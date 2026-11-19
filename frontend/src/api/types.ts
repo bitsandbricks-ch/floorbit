@@ -1161,6 +1161,8 @@ export interface LancacheAgent {
 export interface LancacheDownload extends CacheRow { item: string; clients: number; hit_ratio: number | null }
 export interface LancacheOverview extends LancacheData {
   plugin_on: boolean
+  /** False when the plugin is not installed from the Marketplace. */
+  plugin_installed?: boolean
   agents: LancacheAgent[]
   downloads: LancacheDownload[]
   other_downloads: { hit_bytes: number; miss_bytes: number; requests: number; items: number }

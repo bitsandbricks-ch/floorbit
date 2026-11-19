@@ -30,6 +30,18 @@ def index():
     return redirect('/plan' + (f'?{urlencode(args)}' if args else ''))
 
 
+@bp.route('/overview')
+def overview():
+    """The crew's overview: the built-in Overview dashboard inside the sidebar's frame."""
+    return spa.render('Overview')
+
+
+@bp.route('/dashboards/view/<layout_id>')
+def dashboard_inline(layout_id):
+    """A dashboard inside the app, with the sidebar; ``/dashboards/<id>`` stays the big screen."""
+    return spa.render('Dashboard')
+
+
 @bp.route('/editor/classic')
 def classic_editor():
     """The older editor is retired (Mike: not kept in sync); bookmarks open the plan's editor on the

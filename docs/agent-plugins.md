@@ -8,8 +8,10 @@ pages, widgets, actions and storage.
 
 ## For whoever runs the hall
 
-Nothing to install: the agent's image has every plugin that ships with Floorbit. Turn a plugin on
-under **Settings > Plugins** in the hosted Floorbit and set it up there; every connected agent
+Nothing to install on the agent: its image has every plugin that ships with Floorbit, and it fetches
+the signed ones installed from the [Marketplace](marketplace.md) (the LAN cache, Shelly and Home
+Assistant plugins, for example). Turn a plugin on under **Settings > Plugins** in the hosted
+Floorbit and set it up there; every connected agent
 starts its agent part within a minute (at once when you turn it on). Turning it off stops it on
 the agents too.
 

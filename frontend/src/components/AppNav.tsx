@@ -2,7 +2,9 @@ import { IconBell, IconSpeakerphone } from '@tabler/icons-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { get } from '@/api/client'
+import { boardName, type Board } from '@/pages/dashboards/model'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useCustomSections, useMe, usePageList, useProblems } from '@/api/queries'
@@ -34,6 +36,9 @@ export function AppNav() {
   // An admin changed the sidebar's own sections: everyone's sidebar follows without a reload.
   useLiveEvent('nav.changed', () => void qc.invalidateQueries({ queryKey: qk.pages, exact: true }))
   const problems = useProblems().data
+  // For dashboards pinned to the sidebar: their names, in the reader's language for built-in ones.
+  const boards = useQuery({ queryKey: qk.boards, queryFn: () => get<{ layouts: Board[] }>('/api/dashboards'), staleTime: 60_000 }).data
+  const dashboards = useMemo(() => boards?.layouts.map((b) => ({ id: b.id, name: boardName(t, b) })), [boards, t])
   const [goTo, setGoTo] = useState(false)
   const [notify, setNotify] = useState(false)
   const [notice, setNotice] = useState(false)
@@ -60,7 +65,7 @@ export function AppNav() {
 
   return (
     <>
-      <Sidebar boot={boot} path={path} renderLink={renderLink} onGoTo={open} down={problems?.counts.down ?? null} actions={actions} />
+      <Sidebar boot={boot} path={path} renderLink={renderLink} onGoTo={open} down={problems?.counts.down ?? null} actions={actions} dashboards={dashboards} />
       <GoTo opened={goTo} onOpen={open} onClose={close} />
       {notify && <NotifySettings opened onClose={() => setNotify(false)} />}
       {notice && <CrewNoticeEditor onClose={() => setNotice(false)} />}

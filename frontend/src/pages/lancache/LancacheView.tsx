@@ -265,7 +265,16 @@ export default function LancacheView({ expanded }: ViewProps) {
         <>
           {!data.plugin_on && (
             <Alert color="gray" variant="light" mb="md">
-              {t('lancache.pluginOff')} <Anchor href="/settings/plugins#pl-lancache">{t('lancache.pluginsPage')}</Anchor> · <Anchor href={DOCS}>docs/lancache.md</Anchor>
+              {data.plugin_installed === false ? (
+                <>
+                  {t('lancache.pluginMissing')} <Anchor href="/settings/plugins?tab=marketplace">{t('lancache.marketplace')}</Anchor>
+                </>
+              ) : (
+                <>
+                  {t('lancache.pluginOff')} <Anchor href="/settings/plugins#pl-lancache">{t('lancache.pluginsPage')}</Anchor>
+                </>
+              )}{' '}
+              · <Anchor href={DOCS}>docs/lancache.md</Anchor>
             </Alert>
           )}
           {data.error && <Alert color="warn" mb="md">{t('lancache.readError', { message: data.error })}</Alert>}

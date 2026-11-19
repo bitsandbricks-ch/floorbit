@@ -109,8 +109,8 @@ def test_the_release_script_signs_every_builtin_plugin(tmp_path, keypair):
                             "--out", str(out), "--version", "0.5.0"], capture_output=True, text=True)
     assert built.returncode == 0, built.stderr
     index = json.loads((out / "index.json").read_text())
-    assert {"lancache", "librenms", "syslog-relay"} <= set(index["plugins"]) and "demo" not in index["plugins"]
-    assert index["plugins"]["lancache"]["file"] == "lancache-0.5.0.tar.gz"
+    assert {"netflow-relay", "librenms", "syslog-relay"} <= set(index["plugins"]) and "demo" not in index["plugins"]
+    assert index["plugins"]["netflow-relay"]["file"] == "netflow-relay-0.5.0.tar.gz"
     ok = subprocess.run([sys.executable, str(script), "verify", str(out), "--keys", str(keys)],
                         capture_output=True, text=True)
     assert ok.returncode == 0, ok.stdout
@@ -130,13 +130,13 @@ def offered(tmp_path, keypair, monkeypatch):
     pem, _, _ = keypair
     out = tmp_path / "bundles"
     out.mkdir()
-    folder = plugin_folder(tmp_path, "lancache")
+    folder = plugin_folder(tmp_path, "netflow-relay")
     bundles.sign(folder, pem, "0.5.0", 1)
     data = bundles.pack(folder)
-    (out / "lancache-0.5.0.tar.gz").write_bytes(data)
+    (out / "netflow-relay-0.5.0.tar.gz").write_bytes(data)
     (out / "secret.txt").write_text("not a bundle")
     (out / "index.json").write_text(json.dumps({"plugins": {
-        "lancache": {"version": "0.5.0", "file": "lancache-0.5.0.tar.gz", "sha256": bundles.sha256(data),
+        "netflow-relay": {"version": "0.5.0", "file": "netflow-relay-0.5.0.tar.gz", "sha256": bundles.sha256(data),
                      "agent_api": 1},
         "evil": {"version": "1", "file": "../../etc/passwd"}}}))
     monkeypatch.setenv("FLOORBIT_AGENT_BUNDLES", str(out))
@@ -146,19 +146,19 @@ def offered(tmp_path, keypair, monkeypatch):
 def test_the_hosted_side_offers_and_hands_on_bundles(client, anon_client, offered, app_module):
     from floorbit import agent_plugins
     registry = app_module.app.extensions["floorbit_plugins"]
-    registry.set_enabled("lancache", True)
+    registry.set_enabled("netflow-relay", True)
     try:
         key = enrol(client)["key"]
         cfg = anon_client.get("/api/agent/v1/plugins", headers=head(key)).get_json()
-        assert cfg["bundles"]["lancache"]["file"] == "lancache-0.5.0.tar.gz"
+        assert cfg["bundles"]["netflow-relay"]["file"] == "netflow-relay-0.5.0.tar.gz"
         assert "evil" not in agent_plugins.bundles_index()
-        got = anon_client.get("/api/agent/v1/bundles/lancache-0.5.0.tar.gz", headers=head(key))
+        got = anon_client.get("/api/agent/v1/bundles/netflow-relay-0.5.0.tar.gz", headers=head(key))
         assert got.status_code == 200 and got.data == offered
-        assert anon_client.get("/api/agent/v1/bundles/lancache-0.5.0.tar.gz").status_code in (401, 403)
+        assert anon_client.get("/api/agent/v1/bundles/netflow-relay-0.5.0.tar.gz").status_code in (401, 403)
         for name in ("secret.txt", "index.json", "..%2Findex.json", "other-0.5.0.tar.gz"):
             assert anon_client.get(f"/api/agent/v1/bundles/{name}", headers=head(key)).status_code == 404
     finally:
-        registry.set_enabled("lancache", False)
+        registry.set_enabled("netflow-relay", False)
 
 
 def test_no_bundles_without_an_index(client, anon_client, tmp_path, monkeypatch):

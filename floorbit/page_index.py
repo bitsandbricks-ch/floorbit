@@ -15,6 +15,7 @@ from .store import load_data
 # function to True when the page belongs in the list. ``id`` names its texts in the React app
 # (frontend/src/i18n/*/goto.json).
 PAGES = (
+    ('/overview', 'overview', 'Overview', None),
     ('/plan', 'floorPlan', 'Floor plan', None),
     ('/dashboards', 'dashboards', 'Dashboards', None),
     ('/widgets', 'widgets', 'Widgets', None),

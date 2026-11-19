@@ -2,13 +2,15 @@ import {
   IconChevronDown, IconDots, IconStar, IconStarFilled, IconLanguage, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconLogout,
   IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSelector, IconSun, IconX, type Icon,
 } from '@tabler/icons-react'
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toggleScheme, useScheme } from '@/colorScheme'
 import { LANGUAGES, setLang, type Lang } from '@/i18n/lang'
-import { fetchOtherTenants, readOpen, readPrefs, readRail, saveOpen, savePrefs, saveRail, switchTenant, type NavBoot, type NavPrefs, type OtherTenant } from './boot'
+import { fetchOtherTenants, readFolded, readRail, saveFolded, saveRail, useNavPrefs, switchTenant, type NavBoot, type NavPrefs, type OtherTenant } from './boot'
+import { useCloseOutside } from './closeOutside'
+import { EventPicker } from './EventPicker'
 import './nav.css'
-import { activeHref, customIcon, group, isPluginPage, linkIcon, pageIcon, sectionIcon, type CustomLink, type NavPage } from './sections'
+import { activeHref, boardHref, group, isPluginPage, linkIcon, pageIcon, TABS, type CustomLink, type NavPage } from './sections'
 
 export interface LinkProps {
   href: string
@@ -29,6 +31,8 @@ export interface SidebarProps {
   /** A route link inside the React app, a plain link on the server pages. */
   renderLink: (p: LinkProps) => ReactNode
   onGoTo: () => void
+  /** The dashboards this account sees, for the ones pinned to the sidebar. */
+  dashboards?: { id: string; name: string }[]
   /** Switches down right now, next to Problems; null while unknown. */
   down?: number | null
   actions?: MenuAction[]
@@ -55,17 +59,12 @@ function skipToMain(e: MouseEvent<HTMLAnchorElement>) {
 export function Sidebar(props: SidebarProps) {
   const { t } = useTranslation()
   const [rail, setRail] = useState(readRail)
-  const [prefs, setPrefsState] = useState(() => readPrefs(props.boot))
-  const setPrefs = (next: NavPrefs) => {
-    setPrefsState(next)
-    savePrefs(props.boot, next)
-  }
+  const [prefs, setPrefs] = useNavPrefs(props.boot)
   // Remembers the page it opened on: a link (a new page) closes it without an effect.
   const [sheetAt, setSheetAt] = useState<string | null>(null)
   const sheet = sheetAt === props.path
   const setSheet = (open: boolean) => setSheetAt(open ? props.path : null)
-  const { pinned } = group(props.boot.pages)
-  const lit = activeHref([...props.boot.pages, ...(props.boot.custom ?? []).flatMap((c) => c.links)], props.path)
+  const lit = activeHref([...props.boot.pages, ...pinnedBoards(props.dashboards).filter((b) => prefs.favourites.includes(b.id)), ...(props.boot.custom ?? []).flatMap((c) => c.links)], props.path)
 
   useEffect(() => {
     if (!sheet) return
@@ -82,7 +81,8 @@ export function Sidebar(props: SidebarProps) {
   }
 
   // Phone bar: the four pages crews open most, then everything else behind "Menu".
-  const tabs = pinned.filter((p) => ['floorPlan', 'seats', 'problems', 'incidents'].includes(p.id)).slice(0, 4)
+  const byId = new Map(props.boot.pages.map((p) => [p.id, p]))
+  const tabs = TABS.flatMap((id) => byId.get(id) ?? []).slice(0, 4)
   return (
     <>
       <a className="fb-skip" href="#main" onClick={skipToMain}>{t('nav.skip')}</a>
@@ -150,47 +150,16 @@ function Panel(props: PanelProps) {
   const { t } = useTranslation()
   const { boot, rail, lit, prefs } = props
   const { pinned, sections } = group(boot.pages)
-  const byId = new Map(boot.pages.map((p) => [p.id, p]))
+  const byId = new Map([...boot.pages, ...pinnedBoards(props.dashboards)].map((p) => [p.id, p]))
   const favourites = prefs.favourites.map((id) => byId.get(id)).filter((p): p is NavPage => !!p)
-  const [open, setOpen] = useState<string[]>(readOpen)
-  // Folding the others: the one section opened by hand on this page (id null: closed by hand),
-  // else the one with the page on screen.
-  const [only, setOnly] = useState<{ id: string | null; path: string } | null>(null)
-  // Like the sheet: tied to the page and the fold it opened on, so either change closes it.
-  const [flyoutAt, setFlyout] = useState<{ id: string; top: number; path: string; rail: boolean } | null>(null)
-  const flyout = flyoutAt && flyoutAt.path === props.path && flyoutAt.rail === rail ? flyoutAt : null
-
-  const picked = only && only.path === props.path ? only : null   // a new page starts from its own section
-  const isOpen = (id: string) =>
-    prefs.accordion ? (picked ? picked.id === id : id === litSection) : open.includes(id) || id === litSection
-  const toggle = (id: string) => {
-    if (prefs.accordion) return setOnly({ id: isOpen(id) ? null : id, path: props.path })
-    const next = isOpen(id) ? open.filter((x) => x !== id) : [...open, id]
-    setOpen(next)
-    saveOpen(next)
-  }
+  const [folded, setFolded] = useState<string[]>(readFolded)
   const isFav = (id: string) => prefs.favourites.includes(id)
   const toggleFav = (id: string) =>
     props.setPrefs({ ...prefs, favourites: isFav(id) ? prefs.favourites.filter((x) => x !== id) : [...prefs.favourites, id] })
 
-  useEffect(() => {
-    if (!flyout) return
-    const close = (e: Event) => {
-      if (e instanceof KeyboardEvent && e.key !== 'Escape') return
-      if (e.target instanceof Element && e.target.closest('.fb-nav-flyout, .fb-nav-section-head')) return
-      setFlyout(null)
-    }
-    document.addEventListener('keydown', close)
-    document.addEventListener('pointerdown', close)
-    return () => {
-      document.removeEventListener('keydown', close)
-      document.removeEventListener('pointerdown', close)
-    }
-  }, [flyout])
-
   const row = (p: NavPage, star = !rail) => {
     const Icon = pageIcon(p.id, p.icon)
-    const label = isPluginPage(p.id) ? p.label : t(`goto.pages.${p.id}`, { defaultValue: p.label })
+    const label = ownLabel(p.id) ? p.label : t(`goto.pages.${p.id}`, { defaultValue: p.label })
     const badge = p.id === 'problems' && props.down ? props.down : null
     const fav = isFav(p.id)
     return (
@@ -248,16 +217,22 @@ function Panel(props: PanelProps) {
   // The admins' own sections first (ids "c:<id>", so they never meet a built-in one), then Floorbit's.
   const groups = [
     ...(boot.custom ?? []).map((c) => ({
-      id: `c:${c.id}`, label: c.name, icon: customIcon(c.icon), custom: true, hrefs: c.links.map((x) => x.href),
+      id: `c:${c.id}`, label: c.name, custom: true, hrefs: c.links.map((x) => x.href),
       rows: () => c.links.map(customRow),
     })),
     ...sections.map((s) => ({
-      id: s.id as string, label: t(`nav.sections.${s.id}`), icon: sectionIcon(s.id), custom: false, hrefs: s.pages.map((p) => p.href),
+      id: s.id as string, label: t(`nav.sections.${s.id}`), custom: false, hrefs: s.pages.map((p) => p.href),
       rows: (star: boolean) => s.pages.map((p) => row(p, star)),
     })),
   ]
   const litSection = groups.find((s) => s.hrefs.some((h) => h === lit))?.id
-  const flown = flyout && groups.find((s) => s.id === flyout.id)
+  // A group with the page on screen is always open; the rest stay as someone left them.
+  const isOpen = (id: string) => id === litSection || !folded.includes(id)
+  const toggle = (id: string) => {
+    const next = isOpen(id) ? [...folded, id] : folded.filter((x) => x !== id)
+    setFolded(next)
+    saveFolded(next)
+  }
   return (
     <>
       <div className="fb-nav-top">
@@ -266,6 +241,8 @@ function Panel(props: PanelProps) {
           children: <Brand boot={boot} rail={rail} />,
         })}
       </div>
+
+      <EventPicker rail={rail} sheet={props.sheet} />
 
       <button type="button" className="fb-nav-row fb-nav-search" onClick={props.onGoTo} title={rail ? t('nav.goTo') : undefined} aria-keyshortcuts="Control+K Meta+K">
         <IconSearch size={18} className="fb-nav-icon" aria-hidden="true" />
@@ -282,37 +259,24 @@ function Panel(props: PanelProps) {
         )}
         <ul className="fb-nav-list">{pinned.map((p) => row(p))}</ul>
         {groups.map((s) => {
-          const Icon = s.icon
-          const label = s.label
-          const expanded = rail ? flyout?.id === s.id : isOpen(s.id)
+          // Folded to icons, every group shows its pages' icons, with a line between groups.
+          const expanded = rail || isOpen(s.id)
           return (
             <div key={s.id} className={s.custom ? 'fb-nav-section fb-nav-custom' : 'fb-nav-section'} data-lit={s.id === litSection || undefined}>
-              <button
-                type="button" className="fb-nav-row fb-nav-section-head" aria-expanded={expanded}
-                title={rail ? label : undefined}
-                onClick={(e) => {
-                  if (!rail) return toggle(s.id)
-                  const top = e.currentTarget.getBoundingClientRect().top
-                  setFlyout(flyout?.id === s.id ? null : { id: s.id, top, path: props.path, rail })
-                }}
-              >
-                <Icon size={18} className="fb-nav-icon" aria-hidden="true" />
-                <span className="fb-nav-text">{label}</span>
-                <IconChevronDown size={14} className="fb-nav-chevron" aria-hidden="true" />
-              </button>
-              {!rail && expanded && <ul className="fb-nav-list fb-nav-sub">{s.rows(!rail)}</ul>}
+              {!rail && (
+                <button
+                  type="button" className="fb-nav-section-head" aria-expanded={expanded}
+                  onClick={() => toggle(s.id)}
+                >
+                  <span className="fb-nav-text">{s.label}</span>
+                  <IconChevronDown size={13} className="fb-nav-chevron" aria-hidden="true" />
+                </button>
+              )}
+              {expanded && <ul className="fb-nav-list fb-nav-sub" aria-label={rail ? s.label : undefined}>{s.rows(!rail)}</ul>}
             </div>
           )
         })}
       </div>
-
-      {rail && flown && (
-        <div className="fb-nav-flyout" style={{ top: Math.min(flyout.top, window.innerHeight - 48 - flown.hrefs.length * 36) }}>
-          <div className="fb-nav-flyout-title">{flown.label}</div>
-          {/* Same rows as the open sidebar, so labels show even while it's folded. */}
-          <PanelRows rows={flown.rows(true)} />
-        </div>
-      )}
 
       <Tenants {...props} />
       <div className="fb-nav-foot">
@@ -330,9 +294,12 @@ function Panel(props: PanelProps) {
   )
 }
 
-function PanelRows({ rows }: { rows: ReactNode[] }) {
-  // The flyout's rows always show their text: it is the open list of a folded sidebar.
-  return <ul className="fb-nav-list fb-nav-flyout-list">{rows}</ul>
+/** A plugin's page or a pinned dashboard names itself; Floorbit's pages have their texts. */
+const ownLabel = (id: string) => isPluginPage(id) || id.startsWith('dashboard:')
+
+/** Every dashboard as a row that can be pinned (``dashboard:<id>`` in the favourites). */
+function pinnedBoards(dashboards: { id: string; name: string }[] | undefined): NavPage[] {
+  return (dashboards ?? []).map((d) => ({ href: boardHref(d.id), id: `dashboard:${d.id}`, label: d.name }))
 }
 
 function Brand({ boot, rail }: { boot: NavBoot; rail: boolean }) {
@@ -347,23 +314,6 @@ function Brand({ boot, rail }: { boot: NavBoot; rail: boolean }) {
     )
   }
   return <span className="fb-brand"><span className="fb-brand-lockup" role="img" aria-label="Floorbit" /></span>
-}
-
-function useCloseOutside(open: boolean, setOpen: (o: boolean) => void, box: RefObject<HTMLDivElement | null>) {
-  useEffect(() => {
-    if (!open) return
-    const close = (e: Event) => {
-      if (e instanceof KeyboardEvent && e.key !== 'Escape') return
-      if (e.target instanceof Node && box.current?.contains(e.target) && !(e instanceof KeyboardEvent)) return
-      setOpen(false)
-    }
-    document.addEventListener('keydown', close)
-    document.addEventListener('pointerdown', close)
-    return () => {
-      document.removeEventListener('keydown', close)
-      document.removeEventListener('pointerdown', close)
-    }
-  }, [open, setOpen, box])
 }
 
 /** The tenant switcher: only there when this person can reach another tenant of the platform. */
@@ -458,12 +408,6 @@ function Account(props: PanelProps) {
             </button>
           ))}
           <hr />
-          <button
-            type="button" role="menuitemcheckbox" aria-checked={props.prefs.accordion} className="fb-nav-menu-item"
-            onClick={run(() => props.setPrefs({ ...props.prefs, accordion: !props.prefs.accordion }))}
-          >
-            {t('nav.accordion')}
-          </button>
           {toggle && (
             <>
               <hr />

@@ -4,6 +4,8 @@
   "range": "Time range",
   "pluginOff": "The LAN cache plugin is off. Turn it on and tell the agent where the logs are.",
   "pluginsPage": "Plugins",
+  "pluginMissing": "The LAN cache plugin is not installed. Install it from the Marketplace, turn it on and tell the agent where the logs are.",
+  "marketplace": "Marketplace",
   "readError": "Reading the cache: {{message}}",
   "saved": "Saved",
   "savedSub": "served from the cache, not the internet",

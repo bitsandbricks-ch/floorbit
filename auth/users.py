@@ -226,7 +226,8 @@ def _admin_count(users):
     return sum(1 for u in users.values() if _manager(u))
 
 
-NAV_PAGE_RE = re.compile(r'^[A-Za-z][A-Za-z0-9]{0,40}$')
+# A page id, or a dashboard pinned to the sidebar (``dashboard:<id>``, ids as in floorbit/dashboards.py).
+NAV_PAGE_RE = re.compile(r'^(?:[A-Za-z][A-Za-z0-9]{0,40}|dashboard:[a-z0-9][a-z0-9-]{0,31})\Z')
 MAX_FAVOURITES = 20
 
 

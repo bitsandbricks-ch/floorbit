@@ -245,7 +245,7 @@ def markup(boot):
                f'<span class="fb-nav-text">{e(name)}</span></button></div>'
                f'<button type="button" class="fb-nav-icon-btn fb-nav-fold" aria-label="{e(fold)}" title="{e(fold)}">'
                f'{icons["expand"] if rail else icons["collapse"]}</button></div></nav>')
-    tabs = [by_id[i] for i in shell['pinned'] if i in by_id and i in shell['tabs']][:4]
+    tabs = [by_id[i] for i in shell['tabs'] if i in by_id][:4]
     out.append(f'<nav class="fb-tabbar" aria-label="{e(nav_t["quick"])}">')
     for p in tabs:
         cur = ' aria-current="page"' if p['href'] == lit else ''

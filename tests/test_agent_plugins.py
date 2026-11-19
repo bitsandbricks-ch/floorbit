@@ -364,18 +364,18 @@ def test_plugins_that_answer_for_the_hall_go_to_the_agent_with_their_settings(cl
     store = registry.settings_store
     values = {"librenms.url": "https://librenms.example.com", "librenms.token": "example-token"}
     monkeypatch.setattr(store, "get", lambda k, _get=store.get: values.get(k, _get(k)))
-    monkeypatch.setattr(registry, "enabled", lambda spec: spec.id in ("librenms", "demo", "lancache", "loki"))
+    monkeypatch.setattr(registry, "enabled", lambda spec: spec.id in ("librenms", "demo", "netflow-relay", "loki"))
     local = anon_client.get("/api/agent/v1/plugins", headers=head(key)).get_json()["local"]
     # LibreNMS answers monitoring calls: it goes, with what is set here. Demo never, nor plugins
-    # that answer nothing for the hall (lancache, loki).
+    # that answer nothing for the hall (netflow-relay, loki).
     assert list(local) == ["librenms"]
     assert local["librenms"]["settings"]["librenms.url"] == "https://librenms.example.com"
     assert local["librenms"]["settings"]["librenms.token"] == "example-token"
     # A plugin with an agent part that is also a monitoring source goes too.
-    lancache = registry.specs["lancache"]
-    monkeypatch.setitem(lancache.manifest, "uses", [*lancache.manifest["uses"], "monitoring"])
-    assert "lancache" in agent_plugins.local_config(registry)
-    monkeypatch.setitem(lancache.manifest, "uses", [u for u in lancache.manifest["uses"] if u != "monitoring"])
+    relay = registry.specs["netflow-relay"]
+    monkeypatch.setitem(relay.manifest, "uses", [*relay.manifest["uses"], "monitoring"])
+    assert "netflow-relay" in agent_plugins.local_config(registry)
+    monkeypatch.setitem(relay.manifest, "uses", [u for u in relay.manifest["uses"] if u != "monitoring"])
     before = agent_plugins.config()["etag"]
     values["librenms.url"] = "https://other.example.com"
     assert agent_plugins.config()["etag"] != before

@@ -27,5 +27,6 @@
     "tooShort_other": "Use at least {{count}} characters.",
     "min": "Enter {{min}} or more.",
     "max": "Enter {{max}} or less."
-  }
+  },
+  "open": "Open"
 }
