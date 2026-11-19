@@ -591,6 +591,14 @@
       "label": "Listen address",
       "help": "The agent's address to listen on. Empty: all of them."
     },
+    "plugin_telemetry_polling": {
+      "label": "Who polls the switches",
+      "help": "Auto: LibreNMS when it is on, else Telemetry. While LibreNMS polls, Telemetry stops polling ports and walking ARP and MAC tables, and keeps traps, device facts and streams. Telemetry: it polls everything and answers before LibreNMS."
+    },
+    "plugin_telemetry_tables_minutes": {
+      "label": "ARP and MAC tables every (minutes)",
+      "help": "How often Telemetry walks the ARP and MAC tables while it polls. 0: never. Not used while LibreNMS polls."
+    },
     "plugin_telemetry_uplink_macs": {
       "label": "Uplink MAC limit",
       "help": "A port that sees more MAC addresses than this counts as an uplink and is skipped when Floorbit looks for where a seat is plugged in."

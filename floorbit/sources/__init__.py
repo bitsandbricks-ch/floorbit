@@ -171,7 +171,33 @@ class PluginMonitoring(NoMonitoring):
                           'message': 'The monitoring source is not answering'}
 
     def resolve_ip(self, ip_address, search_device=None):
-        return self._remembered('resolve_ip', ip_address, search_device)
+        found = self._remembered('resolve_ip', ip_address, search_device)
+        if isinstance(found, dict) and found.get('port'):
+            return {**found, 'answered_by': found.get('answered_by') or self.name}
+        # Not known here (or only the MAC): the other monitoring source may know it (issue #945).
+        other = self._ask_others('resolve_ip', ip_address, search_device,
+                                 good=lambda r: isinstance(r, dict) and r.get('port'))
+        return other or found
+
+    def _ask_others(self, method, *args, good=bool):
+        """The first good answer from the other monitoring plugins that are on and set up, marked
+        with the one that gave it. None when none knows."""
+        from ..plugins.base import PluginError
+        registry = getattr(self, '_registry', None)
+        if registry is None or not hasattr(registry, 'monitoring_sources'):
+            return None
+        for spec in registry.monitoring_sources():
+            if spec.id in (self.name, 'demo'):
+                continue
+            try:
+                if not registry.call(spec, 'configured'):
+                    continue
+                result = registry.call(spec, method, *args)
+            except PluginError:
+                continue
+            if good(result):
+                return {**result, 'answered_by': spec.id} if isinstance(result, dict) else result
+        return None
 
     def port_stats(self, hostname, interface):
         return self._remembered('port_stats', hostname, interface)
@@ -206,7 +232,7 @@ class PluginMonitoring(NoMonitoring):
         result = self._remembered('arp', query)
         if isinstance(result, dict):   # stale: the list is under 'value'
             return result.get('value') or []
-        return result or []
+        return result or self._ask_others('arp', query) or []
 
     def mac_for_ip(self, ip):
         """IP to MAC: the DHCP server's lease if its syslog told us (fresh), else the ARP data
@@ -234,6 +260,23 @@ class PluginMonitoring(NoMonitoring):
 
 
 _agent = None
+
+
+def call_monitoring(registry, method, *args):
+    """Run one monitoring call the way ``monitoring()`` would, for the local agent's executor
+    (floorbit-agent): the chosen plugin first, and for an IP or MAC it doesn't know, the other
+    monitoring plugins (issue #945)."""
+    from ..plugins.base import PluginError
+    spec = registry.monitoring_source() if registry is not None else None
+    if spec is None:
+        raise PluginError('No monitoring plugin is set up on the agent (LIBRENMS_URL and LIBRENMS_TOKEN?)')
+    source = PluginMonitoring(registry, spec)
+    if method == 'resolve_ip':
+        return source.resolve_ip(*args)
+    if method == 'arp':
+        result = registry.call(spec, 'arp', *args)
+        return result or source._ask_others('arp', *args) or []
+    return registry.call(spec, method, *args)
 
 
 def monitoring():

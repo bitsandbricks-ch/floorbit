@@ -116,8 +116,22 @@ class AgentPlugin(Base):
         with self.lock:
             self.targets = [t for t in (found or []) if isinstance(t, dict) and t.get('name')]
         self.state.know(self.targets)
+        self.log_polling(settings.get('polling') if isinstance(settings, dict) else None)
         self.write_conf()
         return True
+
+    def log_polling(self, plan):
+        """Say who polls the switches when that changes (floorbit/telemetry/polling.py)."""
+        if not isinstance(plan, dict) or plan == getattr(self, 'polling_said', None):
+            return
+        self.polling_said = plan
+        if plan.get('who') == 'librenms':
+            self.ctx.log(f'polling: LibreNMS polls ports and ARP/MAC tables ({plan.get("why")}); '
+                         'here: traps, device facts and streams')
+        else:
+            minutes = plan.get('tables_minutes') or 0
+            tables = f'ARP/MAC tables every {minutes} min' if minutes else 'no ARP/MAC table walks'
+            self.ctx.log(f'polling: Telemetry polls ports, {tables} ({plan.get("why")})')
 
     def _token(self, name):
         """A token kept in the plugin's own folder, so a restart doesn't need a new Telegraf config;
@@ -169,7 +183,9 @@ class AgentPlugin(Base):
             # Telegraf reaches the agent as 127.0.0.1 or by its compose name, which the hall's
             # certificate doesn't name.
             url = self.output_url()
+            settings = self.ctx.settings if isinstance(getattr(self.ctx, 'settings', None), dict) else {}
             text = telegraf.render(list(self.targets), url, self.token,
+                                   tables_interval=str(settings.get('tables_interval') or '60s'),
                                    output_insecure=url.startswith(('https://agent:', 'https://127.0.0.1:')),
                                    poll=self.primary)
         path = self.conf_path()

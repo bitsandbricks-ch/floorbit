@@ -329,6 +329,7 @@
  "Send the features to change, like {\"power\": false}.": "Schicke die Funktionen, die sich ändern sollen, etwa {\"power\": false}.",
  "Sending incidents to a tech needs the \"assign incidents\" permission.": "Störungen einem Tech schicken braucht die Berechtigung «Störungen jedem Team zuweisen».",
  "Set the AdGuard Home URL under Settings > Plugins.": "Setze die AdGuard-Home-URL unter Einstellungen > Plugins.",
+ "No monitoring plugin is set up on the agent (LIBRENMS_URL and LIBRENMS_TOKEN?)": "Auf dem Agenten ist kein Überwachungs-Plugin eingerichtet (LIBRENMS_URL und LIBRENMS_TOKEN?)",
  "Set the LibreNMS URL and API token under Settings > LibreNMS first.": "Setze zuerst die LibreNMS-URL und das API-Token unter Einstellungen > LibreNMS.",
  "Set the Loki URL under Settings > Plugins.": "Setze die Loki-URL unter Einstellungen > Plugins.",
  "Set the NetBox URL and API token under Settings > NetBox first.": "Setze zuerst die NetBox-URL und das API-Token unter Einstellungen > NetBox.",

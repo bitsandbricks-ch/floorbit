@@ -6,7 +6,33 @@ firewall's gateways and states. [Telegraf](https://www.influxdata.com/time-serie
 does the collecting; Floorbit tells it what to ask and keeps what comes back.
 
 LibreNMS stays a choice: the **Telemetry** plugin is one more monitoring source next to LibreNMS,
-Prometheus, Zabbix and the rest (Settings > Plugins). Only one is used at a time.
+Prometheus, Zabbix and the rest (Settings > Plugins). Only one answers at a time; see
+[Who polls the switches](#who-polls-the-switches) for how Telemetry and LibreNMS share the work.
+
+## Who polls the switches
+
+When LibreNMS runs, it polls the switches anyway. Telemetry polling the same ports and walking the
+same ARP and MAC tables would only double the load on the access switches, so the Telemetry
+setting **Who polls the switches** decides:
+
+| Setting | Ports and ARP/MAC tables | Telemetry still does |
+| --- | --- | --- |
+| **Auto** (default) | LibreNMS when its plugin is on with a URL and token, else Telemetry | traps, device facts, gNMI/MDT streams, the API pollers |
+| **LibreNMS** | LibreNMS, even before it is set up | the same |
+| **Telemetry** | Telemetry, and it answers before LibreNMS | everything |
+
+Traps stay with Telemetry either way: they turn a port down or up within a second, while LibreNMS
+sees it on its next 5-minute poll. The device facts (model, software, interfaces) keep filling the
+inventory ([discovery](inventory.md)).
+
+When Telemetry polls, it walks the ARP and MAC tables every **ARP and MAC tables every (minutes)**
+(default 1; 0: never). When the chosen source doesn't know an IP, Floorbit asks the other
+monitoring source before giving up, and the answer says which one gave it (`answered_by`). The
+agent's log says who polls whenever that changes:
+
+```
+[telemetry] polling: LibreNMS polls ports and ARP/MAC tables (LibreNMS is on); here: traps, device facts and streams
+```
 
 ## How it fits together
 

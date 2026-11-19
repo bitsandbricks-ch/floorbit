@@ -591,6 +591,14 @@
       "label": "Adresse zum Hören",
       "help": "Die Adresse des Agenten, auf der er hört. Leer: alle."
     },
+    "plugin_telemetry_polling": {
+      "label": "Wer die Switches abfragt",
+      "help": "Automatisch: LibreNMS, wenn es eingeschaltet ist, sonst Telemetrie. Solange LibreNMS abfragt, fragt Telemetrie keine Ports und keine ARP- und MAC-Tabellen mehr ab und behält Traps, Geräteangaben und Streams. Telemetrie: Sie fragt alles ab und antwortet vor LibreNMS."
+    },
+    "plugin_telemetry_tables_minutes": {
+      "label": "ARP- und MAC-Tabellen alle (Minuten)",
+      "help": "Wie oft Telemetrie die ARP- und MAC-Tabellen abfragt, solange sie abfragt. 0: nie. Nicht verwendet, solange LibreNMS abfragt."
+    },
     "plugin_telemetry_uplink_macs": {
       "label": "MAC-Grenze für Uplinks",
       "help": "Ein Port, der mehr MAC-Adressen sieht als diese Zahl, gilt als Uplink und wird übersprungen, wenn Floorbit sucht, wo ein Platz eingesteckt ist."

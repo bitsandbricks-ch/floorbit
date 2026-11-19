@@ -1023,6 +1023,13 @@ class Registry:
         LibreNMS is on by default, so a hall that switched to Prometheus would otherwise still ask an
         empty LibreNMS. Only one is used at a time: a mix of two sources would be nonsense.
         """
+        found = self.monitoring_sources()
+        return found[0] if found else None
+
+    def monitoring_sources(self):
+        """The monitoring plugins that are on, best first: demo data, then the set-up ones in id order
+        (LibreNMS before Telemetry), unless Telemetry is set to poll (floorbit/telemetry/polling.py)."""
+        from ..telemetry import polling
         found = self.feeders('monitoring')
 
         def set_up(spec):
@@ -1030,9 +1037,11 @@ class Registry:
                 return bool(self.call(spec, 'configured'))
             except PluginError:
                 return False
+        telemetry_first = polling.choice(self) == 'telemetry'
         # Demo data, once on, replaces the live source.
-        found.sort(key=lambda spec: (spec.id != 'demo', not set_up(spec)))
-        return found[0] if found else None
+        found.sort(key=lambda spec: (spec.id != 'demo', not set_up(spec),
+                                     telemetry_first and spec.id != 'telemetry'))
+        return found
 
     def demo_on(self):
         spec = self.specs.get('demo')
