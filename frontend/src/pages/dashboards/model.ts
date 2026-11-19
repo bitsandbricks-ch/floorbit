@@ -42,6 +42,9 @@ export type Pane = Head & (
    *  All are left out when automatic or the default. */
   | ({ kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend
       also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[] } & Display)
+  /** A saved widget (Widgets page), followed as it changes. ``saved`` comes with the dashboard
+   *  (null: removed) and is dropped when saving; "Clone" turns the pane into a tile pane of its own. */
+  | { kind: 'widget'; widget: string; saved?: { name: string; pane: Extract<Pane, { kind: 'tile' }> } | null }
   /** ``expanded``: the widget at its big size right on the grid (a pane that fills a screen). */
   | { kind: 'view'; view: string; expanded?: boolean }
   | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }
@@ -51,7 +54,7 @@ export type Pane = Head & (
 )
 
 export type PaneKind = Exclude<Pane['kind'], 'private'>
-export const PANE_KINDS: PaneKind[] = ['plan', 'view', 'tile', 'text', 'empty']
+export const PANE_KINDS: PaneKind[] = ['plan', 'widget', 'view', 'tile', 'text', 'empty']
 
 export type Split = 'row' | 'column'
 export type Node = { pane: Pane } | { split: Split; sizes: number[]; children: Node[] }

@@ -8,6 +8,7 @@ can be split into panes side by side or stacked. Each pane shows one thing:
 | --- | --- |
 | **Plan** | A hall's floor plan: the whole hall, one seat block, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
 | **Widget** | A rich widget from the [widget gallery](#the-widget-gallery): service health, stats, traffic, DNS, games, Wi-Fi, speed tests, power load, network status, endpoints, the LAN cache and the event in numbers. Small by default; **Show it big** draws it with everything its page used to show. |
+| **Saved widget** | A widget saved on the Widgets page, see [Saved widgets](#saved-widgets). The pane follows it: change the widget and every dashboard that shows it changes too. **Clone into this dashboard** in the pane's settings turns it into a tile of its own with the same settings, for this dashboard only. |
 | **Tile** | One data widget that fits its box: Floorbit's own (problems, incidents, open incidents, switches, switch states, seats, seats by block, switches down, traffic, bandwidth, peak, ports, uplinks, busiest seats, internet uplinks, LAN cache, agents, and with their feature on: service health, power load, DNS lookups, top and blocked sites, game launchers, Wi-Fi clients and access points, and traffic by kind, top services, traffic by area, and what looks odd) or a plugin's. See [Tiles that fit their box](#tiles-that-fit-their-box). |
 | **Text** | Your own words: a welcome, the schedule, the Wi-Fi name. A small Markdown (`# heading`, `- list`, `**bold**`, `[link](https://example.com)`); every line stays its own line. Four sizes (S to XL) that grow with the pane, aligned left or centred. |
 
@@ -108,10 +109,25 @@ Under **Numbers and colours** in a tile pane's settings:
 Hover a bar, a slice or the gauge for its value and share. **Size** pins small, medium or large
 instead of picking it from the box. Any box size works.
 
+## Saved widgets
+
+**Widgets** (`/widgets`, also a button on the Dashboards list) has two tabs (#1009):
+
+- **Widgets** are the saved ones: a tile with its sources and settings (type, size, grouping,
+  numbers and colours) kept under a name, drawn live as a dashboard shows it. **New widget** makes one
+  from a type; **Copy** makes a new one from an existing widget; **Edit** changes it, and every
+  dashboard that shows it changes with it. **Add to** puts it on a dashboard as a saved-widget pane.
+- **Types** are every kind of widget Floorbit can draw (the gallery below). **Save as widget** starts
+  a new widget from a tile type.
+
+Everyone who may edit dashboards (`floorplan.edit`) may make, change and remove widgets. A widget that
+a dashboard still shows can't be removed: clone it there or take it off first. A public dashboard
+gets the widget's tile itself, under the same rules as a tile pane. API: `GET/POST /api/widgets`,
+`PUT/DELETE /api/widgets/<id>`.
+
 ## The widget gallery
 
-**Widgets** (`/widgets`, also a button on the Dashboards list) shows every widget there is, live, with
-your data: Floorbit's own and the tiles of the plugins that are on. Filter them by area (Network,
+The **Types** tab shows every widget there is, live, with your data: Floorbit's own and the tiles of the plugins that are on. Filter them by area (Network,
 Services, Traffic, Power, Plugins) or search by name. **Open** shows one big in a window; **Add to**
 puts it at the end of a dashboard you pick. A widget whose feature is off says so instead of its
 content.

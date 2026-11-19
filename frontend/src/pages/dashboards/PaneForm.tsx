@@ -18,6 +18,7 @@ import { SeatMap } from '../plan/SeatMap'
 import { type Area, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane } from './model'
 import { pluginName } from '@/lib/pluginName'
 import { DisplayFields } from './DisplayFields'
+import { followed, useSavedWidgets } from '../widgets/saved'
 
 const FILTERS: PlanFilter[] = ['all', 'problems', 'offline', 'recent', 'note', 'checked_in']
 
@@ -27,6 +28,7 @@ function blank(kind: PaneKind, title?: string, hide?: boolean): Pane {
   switch (kind) {
     case 'plan': return planPane(base)
     case 'tile': return { kind, tile: '', ...base }
+    case 'widget': return { kind, widget: '', ...base }
     case 'view': return { kind, view: VIEWS[0]?.id ?? '', ...base }
     case 'text': return { kind, text: '', size: 'l', align: 'start', ...base }
     default: return { kind: 'empty', ...base }
@@ -59,6 +61,7 @@ export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) =
           onChange={(e) => onChange({ ...pane, expanded: e.currentTarget.checked || undefined })} />
       )}
       {pane.kind === 'tile' && <TileField pane={pane} onChange={onChange} />}
+      {pane.kind === 'widget' && <WidgetField pane={pane} onChange={onChange} />}
     </Stack>
   )
 }
@@ -170,7 +173,40 @@ function BoxPicker({ data, box, onPick }: { data: SeatViewData; box: View; onPic
   )
 }
 
-function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; onChange: (p: Pane) => void }) {
+/** Which saved widget the pane follows, and "Clone": a tile pane of its own with the same settings,
+ *  for this dashboard only (Mike, #1009). */
+function WidgetField({ pane, onChange }: { pane: Extract<Pane, { kind: 'widget' }>; onChange: (p: Pane) => void }) {
+  const { t } = useTranslation()
+  const { data, isPending } = useSavedWidgets()
+  const widgets = data?.widgets ?? []
+  const picked = widgets.find((w) => w.id === pane.widget)
+  const saved = picked ? { name: picked.name, pane: picked.pane } : pane.saved
+  return (
+    <>
+      <Select label={t('dashboards.form.widget')} allowDeselect={false} searchable value={pane.widget || null}
+        placeholder={isPending ? t('common.loading') : undefined} nothingFoundMessage={t('dashboards.form.noWidgets')}
+        data={widgets.map((w) => ({ value: w.id, label: w.name }))}
+        onChange={(v) => {
+          const w = widgets.find((x) => x.id === v)
+          if (w) onChange({ ...pane, widget: w.id, saved: { name: w.name, pane: w.pane } })
+        }} />
+      {!isPending && !widgets.length && (
+        <Text size="xs" c="dimmed">{t('dashboards.form.noWidgetsHint')} <a href="/widgets">{t('widgets.title')}</a></Text>
+      )}
+      {saved && (
+        <Stack gap={4}>
+          <Text size="xs" c="dimmed">{t('dashboards.form.widgetHint')}</Text>
+          <Button size="xs" variant="default" onClick={() => onChange(followed(saved, { title: pane.title, hide_title: pane.hide_title }))}>
+            {t('dashboards.form.clone')}
+          </Button>
+          <Text size="xs" c="dimmed">{t('dashboards.form.cloneHint')}</Text>
+        </Stack>
+      )}
+    </>
+  )
+}
+
+export function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; onChange: (p: Pane) => void }) {
   const { t } = useTranslation()
   const { data } = useDashboard()
   const tiles = (data?.tiles ?? []).filter((x) => x.kind !== 'action') as WidgetTile[]

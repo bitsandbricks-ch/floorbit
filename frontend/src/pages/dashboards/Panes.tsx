@@ -11,6 +11,7 @@ import { PlanPane } from './PlanPane'
 import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
 import { Markdown } from '@/components/Markdown'
 import { publicUrl, useScreen } from './screen'
+import { followed } from '../widgets/saved'
 
 const tileKey = (tile: Tile) => `${tile.plugin}/${tile.kind === 'action' ? 'a' : 'w'}/${tile.id}`
 
@@ -131,6 +132,13 @@ function ViewPane({ pane }: { pane: Extract<Pane, { kind: 'view' }> }) {
   )
 }
 
+/** A saved widget: drawn as its tile pane, so a change on the Widgets page shows here too. */
+function WidgetPane({ pane }: { pane: Extract<Pane, { kind: 'widget' }> }) {
+  const { t } = useTranslation()
+  if (pane.saved) return <TilePane pane={followed(pane.saved, pane)} />
+  return <Framed title={pane.title} hide={pane.hide_title}><Note>{t('dashboards.pane.widgetGone')}</Note></Framed>
+}
+
 /** Your own words, big enough to read from across the hall. */
 function TextPane({ pane }: { pane: Extract<Pane, { kind: 'text' }> }) {
   const { t } = useTranslation()
@@ -147,6 +155,7 @@ export function PaneView({ pane, cycle }: { pane: Pane; cycle?: number }) {
   switch (pane.kind) {
     case 'plan': return <PlanPane pane={pane} cycle={cycle} />
     case 'tile': return <TilePane pane={pane} />
+    case 'widget': return <WidgetPane pane={pane} />
     case 'view': return <ViewPane pane={pane} />
     case 'text': return <TextPane pane={pane} />
     case 'private': return <Framed title={pane.title} hide={pane.hide_title}><Stack h="100%" justify="center" align="center"><Note>{t('dashboards.pane.private')}</Note></Stack></Framed>

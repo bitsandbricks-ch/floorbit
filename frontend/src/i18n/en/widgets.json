@@ -1,6 +1,6 @@
 {
   "title": "Widgets",
-  "intro": "Every widget Floorbit can show, live with your data. Open one big, or add it to a dashboard.",
+  "intro": "Widgets are saved: a type with its sources and settings under a name, for any dashboard to show. Types are every kind of widget Floorbit can draw.",
   "search": "Find a widget",
   "area": "Area",
   "none": "No widget matches.",
@@ -54,5 +54,28 @@
     "max": "Max",
     "first": "First",
     "last": "Last"
-  }
+  },
+  "tabSaved": "Widgets",
+  "tabTypes": "Types",
+  "new": "New widget",
+  "newTitle": "New widget",
+  "editTitle": "Edit widget",
+  "name": "Name",
+  "preview": "Preview",
+  "pickType": "Pick what the widget shows.",
+  "save": "Save widget",
+  "saveAs": "Save as widget",
+  "saveAsNamed": "Save {{name}} as a widget",
+  "edit": "Edit",
+  "editNamed": "Edit {{name}}",
+  "copy": "Copy",
+  "copyNamed": "Copy {{name}}",
+  "copyName": "{{name}} (copy)",
+  "remove": "Remove",
+  "removeNamed": "Remove {{name}}",
+  "removeAsk": "Remove the widget {{name}}? Dashboards that still show it keep it until it is cloned there or taken off.",
+  "usedOn": "On {{names}}",
+  "unused": "Not on a dashboard yet",
+  "noSaved": "No saved widgets yet. Make one with New widget, or save a type from the Types tab.",
+  "followHint": "Every dashboard that shows this widget changes with it."
 }

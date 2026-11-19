@@ -34,7 +34,8 @@
     "view": "Widget",
     "tile": "Kachel",
     "empty": "Leer",
-    "text": "Text"
+    "text": "Text",
+    "widget": "Gespeichertes Widget"
   },
   "area": {
     "hall": "Ganze Halle",
@@ -95,7 +96,13 @@
     "reduceHint": "Macht aus den Daten eine Zahl (bei einem Diagramm eine pro Linie).",
     "reduceGroupHint": "Eine Zahl pro Gruppe, aus der ersten Zahlenspalte (ohne eine: die Anzahl).",
     "legend": "Legende zeigt",
-    "legendHint": "Leer: den letzten Wert, gross dazu Max. und Durchschnitt."
+    "legendHint": "Leer: den letzten Wert, gross dazu Max. und Durchschnitt.",
+    "widget": "Gespeichertes Widget",
+    "noWidgets": "Kein gespeichertes Widget passt.",
+    "noWidgetsHint": "Noch keine gespeicherten Widgets. Erstelle eines unter",
+    "widgetHint": "Der Bereich folgt dem Widget: Änderungen auf der Seite Widgets erscheinen auch hier.",
+    "clone": "In dieses Dashboard klonen",
+    "cloneHint": "Macht eine eigene Kachel mit denselben Einstellungen, nur für dieses Dashboard. Sie folgt dem Widget dann nicht mehr."
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
@@ -111,7 +118,8 @@
     "openBig": "Gross öffnen",
     "openBigNamed": "{{name}} gross öffnen",
     "viewOff": "Die Funktion dieses Widgets ist ausgeschaltet (Einstellungen > Funktionen).",
-    "dropped": "Weggelassen, passt nicht zur ersten Kachel: {{names}}"
+    "dropped": "Weggelassen, passt nicht zur ersten Kachel: {{names}}",
+    "widgetGone": "Dieses gespeicherte Widget gibt es nicht mehr. Bearbeite das Dashboard, um ein anderes zu wählen."
   },
   "textSize": {
     "s": "S",
