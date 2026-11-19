@@ -6,6 +6,8 @@ import { readServerPage } from '@/lib/serverPage'
 
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).
 const Dashboards = lazy(() => import('@/pages/Dashboards'))
+const Overview = lazy(() => import('@/pages/Overview'))
+const DashboardView = lazy(() => import('@/pages/DashboardView'))
 const Widgets = lazy(() => import('@/pages/widgets/Widgets'))
 const DashboardScreen = lazy(() => import('@/pages/DashboardScreen'))
 const Plugins = lazy(() => import('@/pages/Plugins'))
@@ -95,7 +97,9 @@ export default function App() {
           {/* A dashboard on a big screen: the page alone, no sidebar. */}
           <Route path="/dashboards/:id" element={<DashboardScreen />} />
           <Route element={<AppShell />}>
+            <Route path="/overview" element={<Overview />} />
             <Route path="/dashboards" element={<Dashboards />} />
+            <Route path="/dashboards/view/:id" element={<DashboardView />} />
             <Route path="/widgets" element={<Widgets />} />
             <Route path="/settings/plugins" element={<Plugins />} />
             <Route path="/settings/plugins/:id" element={<PluginSettings />} />

@@ -4,15 +4,18 @@ import { IconChevronLeft, IconSearch } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { inApp } from '@/nav/sections'
-import { readRail } from '@/nav/boot'
+import { readBoot, readRail } from '@/nav/boot'
+import { usePageList } from '@/api/queries'
 import { openGoTo } from '@/nav/goto'
 import { AppNav } from './AppNav'
-import { Attribution } from './Attribution'
 import { CrewNoticeBanner } from './CrewNotice'
 import { DatabaseBanner } from './DatabaseBanner'
 import { EventBanner } from './EventBanner'
 import { PageError } from './PageError'
 import { rememberPage } from './pages'
+import { setPageTitle } from './pageTitle'
+import { StatusLine } from './StatusLine'
+import { TopBar } from './TopBar'
 
 /** What shows in the page area while a page's code loads: the sidebar and top bar stay. */
 export function PageSkeleton() {
@@ -28,13 +31,15 @@ export function PageSkeleton() {
   )
 }
 
-/** The crew pages' frame, drawn once for the whole app: the sidebar, the phone top bar, the crew
- *  notice and the attribution. Pages change inside it, so moving between pages, or waiting for a
+/** The crew pages' frame, drawn once for the whole app: the sidebar, the top bar (the phone's
+ *  own on phones), the crew notice and the status line with the attribution. Pages change inside it, so moving between pages, or waiting for a
  *  page's code, never takes the sidebar away (it used to come and go with every page). */
 export function AppShell({ children }: { children?: ReactNode }) {
   const { t } = useTranslation()
   const { pathname, search } = useLocation()
   const params = new URLSearchParams(search)
+  const listed = usePageList()
+  const pages = listed.length ? listed : readBoot().pages
   // A wall screen or a print sheet is the page alone: no sidebar, banners or footer on the TV or the paper.
   if (params.get('screen') === '1' || params.get('print') === '1') {
     return <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
@@ -54,13 +59,15 @@ export function AppShell({ children }: { children?: ReactNode }) {
             <IconSearch size={20} aria-hidden="true" />
           </button>
         </header>
+        {/* Desktops: where you are, "Go to" and the notifications. */}
+        <TopBar pages={pages} />
         <DatabaseBanner />
         <EventBanner />
         <CrewNoticeBanner />
         <PageError resetKey={pathname}>
           <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
         </PageError>
-        <Attribution version />
+        <StatusLine />
       </div>
     </div>
   )
@@ -80,6 +87,7 @@ export function Layout({ title, back, count, wide, full, children }: {
   useEffect(() => rememberPage(path), [path])
   useEffect(() => {
     document.title = `${count ? `(${count}) ` : ''}${title} · Floorbit`
+    setPageTitle(title)
   }, [title, count])
   const up = back && back.href !== '/' ? back : null
   return (

@@ -58,6 +58,19 @@ def test_favourites_and_folding_are_kept_with_the_account(app_module):
     assert other.get("/api/auth/me/nav").get_json()["favourites"] == []
 
 
+def test_dashboards_can_be_pinned_to_the_sidebar(app_module):
+    crew = sign_in_as(app_module, "pin1", "tech")
+    saved = crew.put("/api/auth/me/nav", json={"favourites": ["dashboard:hall-b", "dashboard:../x", "dashboard:"]})
+    assert saved.get_json()["favourites"] == ["dashboard:hall-b"]
+
+
+def test_the_overview_and_dashboards_open_inside_the_app(client):
+    assert {"href": "/overview", "id": "overview", "label": "Overview"} in client.get("/api/pages").get_json()["pages"]
+    for path in ("/overview", "/dashboards/view/overview"):
+        res = client.get(path)
+        assert res.status_code in (200, 503) and 'class="fb-has-nav"' in res.get_data(as_text=True), path
+
+
 def test_only_a_signed_in_account_keeps_sidebar_settings(anon_client):
     assert anon_client.get("/api/auth/me/nav").status_code == 400
     assert anon_client.put("/api/auth/me/nav", json={"favourites": ["problems"]}).status_code == 401

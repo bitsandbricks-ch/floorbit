@@ -4,7 +4,7 @@ import {
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
   IconBell, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart, IconLink, IconMap,
   IconBuildingCommunity, IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
-  IconHeadset, IconHierarchy2, IconLifebuoy, IconListSearch, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport,
+  IconHierarchy2, IconLifebuoy, IconListSearch, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport,
   IconServer, IconServer2, IconServerBolt, IconSettings, IconShield, IconStar, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
   IconTools, IconTrophy, IconUserCheck, IconUsers, IconUsersGroup, IconWalk, IconWall, IconWebhook, IconWifi, IconWorldWww,
   type Icon,
@@ -17,29 +17,39 @@ export interface NavPage {
   icon?: string
 }
 
-export type SectionId = 'helpdesk' | 'network' | 'build' | 'event' | 'admin' | 'plugins' | 'more'
+export type SectionId = 'live' | 'inventory' | 'monitoring' | 'seats' | 'event' | 'floorbit' | 'plugins' | 'more'
 
 /** A plugin's own page (plugin.yaml ``pages:``), which goes into the Plugins section. */
 export const isPluginPage = (id: string) => id.startsWith('plugin:')
 
-/** The pages crews open all the time: always at the top of the sidebar, never folded away. */
-export const PINNED = ['floorPlan', 'seats', 'dashboards', 'problems', 'incidents']
+/** The start pages: always at the top of the sidebar, above the groups. */
+export const PINNED = ['overview', 'floorPlan']
 
-/** The rest, folded into sections. A page the server lists that isn't here lands in "more",
- *  so a new page shows up before anyone sorts it in. */
+/** The phone's bottom bar: the pages crews open most; everything else is behind "Menu". */
+export const TABS = ['overview', 'floorPlan', 'incidents', 'problems']
+
+/** The groups, in the sidebar's order (docs: the UI rework's page map). A page the server lists
+ *  that isn't here lands in "more", so a new page shows up before anyone sorts it in. */
 export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
-  { id: 'helpdesk', icon: IconHeadset, pages: ['jobs', 'handover', 'checkins', 'networkStatus'] },
+  { id: 'live', icon: IconBroadcast, pages: ['incidents', 'problems', 'jobs', 'handover', 'dashboards', 'widgets'] },
+  { id: 'inventory', icon: IconServer, pages: ['inventory', 'cables', 'power'] },
   {
-    id: 'network', icon: IconNetwork,
-    pages: ['widgets', 'topology', 'endpoints', 'firewalls', 'services', 'gameServers', 'logs', 'security', 'power', 'commands', 'terminal'],
+    id: 'monitoring', icon: IconActivityHeartbeat,
+    pages: ['networkStatus', 'topology', 'firewalls', 'services', 'gameServers', 'security', 'preflight', 'logs', 'commands', 'terminal'],
   },
-  { id: 'build', icon: IconTools, pages: ['inventory', 'seatMapping', 'cables', 'seatWalk', 'preflight', 'templates'] },
-  { id: 'event', icon: IconCalendarEvent, pages: ['tournament', 'schedule', 'timeline', 'replay', 'report', 'events'] },
-  { id: 'admin', icon: IconSettings, pages: ['settings', 'plugins', 'features', 'sidebarSections', 'apiTokens', 'tenants', 'agents', 'telemetry', 'webhooks', 'users', 'teams', 'signIn', 'audit'] },
+  { id: 'seats', icon: IconArmchair, pages: ['seatMapping', 'checkins', 'seatWalk', 'endpoints', 'tournament'] },
+  { id: 'event', icon: IconCalendarEvent, pages: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events'] },
+  {
+    id: 'floorbit', icon: IconSettings,
+    pages: ['agents', 'plugins', 'settings', 'telemetry', 'features', 'sidebarSections', 'apiTokens', 'tenants', 'webhooks', 'users', 'teams', 'signIn', 'audit'],
+  },
 ]
 
+/** Groups folded until someone opens them (or a page in them is on screen). */
+export const FOLDED = ['event']
+
 const ICONS: Record<string, Icon> = {
-  floorPlan: IconLayoutGrid, seats: IconArmchair, dashboards: IconLayoutDashboard, widgets: IconLayoutCards, problems: IconAlertTriangle,
+  overview: IconLayoutGrid, floorPlan: IconMap, seats: IconArmchair, dashboards: IconLayoutDashboard, widgets: IconLayoutCards, problems: IconAlertTriangle,
   incidents: IconLifebuoy, jobs: IconClipboardCheck, handover: IconArrowsExchange,
   checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
   dns: IconWorldWww, games: IconDeviceGamepad2, gameServers: IconServer2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
@@ -50,7 +60,11 @@ const ICONS: Record<string, Icon> = {
   apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }
 
+/** A dashboard inside the app's frame, with the sidebar (``/dashboards/<id>`` is the big screen). */
+export const boardHref = (id: string) => `/dashboards/view/${encodeURIComponent(id)}`
+
 export function pageIcon(id: string, icon?: string): Icon {
+  if (id.startsWith('dashboard:')) return IconLayoutDashboard
   if (isPluginPage(id)) return (icon && Object.hasOwn(CUSTOM_ICONS, icon) ? CUSTOM_ICONS[icon] : undefined) ?? IconPuzzle
   return ICONS[id] ?? IconApps
 }

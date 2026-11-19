@@ -1,4 +1,5 @@
-import type { CustomSection, NavPage } from './sections'
+import { useSyncExternalStore } from 'react'
+import { FOLDED, type CustomSection, type NavPage } from './sections'
 
 /** What the server puts into every crew page for the sidebar (templates/_nav.html), so it draws
  *  at once, without waiting for an API call. */
@@ -17,7 +18,8 @@ export interface NavBoot {
   prefs: NavPrefs | null
 }
 
-/** Favourite pages first in the sidebar, and whether opening a section folds the others. */
+/** Favourite pages first in the sidebar. ``accordion`` is kept for accounts that saved it; the
+ *  grouped sidebar no longer folds the other groups. */
 export interface NavPrefs { favourites: string[]; accordion: boolean }
 
 const EMPTY: NavBoot = { pages: [], custom: [], brand: { logo: null, name: null }, user: null, signOut: false, prefs: null }
@@ -57,6 +59,32 @@ export function savePrefs(boot: NavBoot, prefs: NavPrefs) {
   }
 }
 
+// One copy of the sidebar settings for the whole page, so a page's own "Pin" button and the
+// sidebar's stars change the same list and both show it at once.
+let shared: NavPrefs | null = null
+const listeners = new Set<() => void>()
+
+/** The sidebar settings and a way to change (and save) them. */
+export function useNavPrefs(boot: NavBoot): [NavPrefs, (next: NavPrefs) => void] {
+  shared ??= readPrefs(boot)
+  const prefs = useSyncExternalStore(
+    (l) => { listeners.add(l); return () => { listeners.delete(l) } },
+    () => shared ?? DEFAULT_PREFS,
+    () => shared ?? DEFAULT_PREFS,
+  )
+  const set = (next: NavPrefs) => {
+    shared = next
+    savePrefs(boot, next)
+    listeners.forEach((l) => l())
+  }
+  return [prefs, set]
+}
+
+/** Tests: forget the settings read so far. */
+export function resetNavPrefs() {
+  shared = null
+}
+
 export function readBoot(): NavBoot {
   const el = typeof document === 'undefined' ? null : document.getElementById('fb-nav-data')
   if (!el?.textContent) return EMPTY
@@ -79,23 +107,25 @@ export function saveRail(rail: boolean) {
   document.documentElement.dataset.nav = rail ? 'rail' : 'full'
 }
 
-const OPEN_KEY = 'floorbit-nav-open'
+const FOLDED_KEY = 'floorbit-nav-folded'
 
-/** The sections someone opened, on this browser. */
-export function readOpen(): string[] {
+/** The groups someone folded, on this browser; groups in FOLDED start folded. */
+export function readFolded(): string[] {
   try {
-    const v: unknown = JSON.parse(localStorage.getItem(OPEN_KEY) ?? '[]')
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
+    const raw = localStorage.getItem(FOLDED_KEY)
+    if (raw === null) return [...FOLDED]
+    const v: unknown = JSON.parse(raw)
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [...FOLDED]
   } catch {
-    return []
+    return [...FOLDED]
   }
 }
 
-export function saveOpen(ids: string[]) {
+export function saveFolded(ids: string[]) {
   try {
-    localStorage.setItem(OPEN_KEY, JSON.stringify(ids))
+    localStorage.setItem(FOLDED_KEY, JSON.stringify(ids))
   } catch {
-    /* private mode: open sections last for this visit */
+    /* private mode: folded groups last for this visit */
   }
 }
 

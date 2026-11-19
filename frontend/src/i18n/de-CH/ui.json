@@ -27,5 +27,6 @@
     "tooShort_other": "Verwende mindestens {{count}} Zeichen.",
     "min": "Gib {{min}} oder mehr ein.",
     "max": "Gib {{max}} oder weniger ein."
-  }
+  },
+  "open": "Öffnen"
 }
