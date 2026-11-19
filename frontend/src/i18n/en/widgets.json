@@ -28,7 +28,8 @@
     "detailsNamed": "Details of {{name}}",
     "other": "Other",
     "gaugeLabel": "{{value}} of {{max}} ({{pct}} %)",
-    "pieLabel": "Pie: {{parts}}"
+    "pieLabel": "Pie: {{parts}}",
+    "columnsLabel": "Columns: {{name}}"
   },
   "state": {
     "up": "Up",

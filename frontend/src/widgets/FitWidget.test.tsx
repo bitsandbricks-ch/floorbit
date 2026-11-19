@@ -77,4 +77,15 @@ describe('FitWidget', () => {
     expect(screen.getByRole('img', { name: 'Pie: Up 28, Down 2' })).toBeInTheDocument()
     expect(screen.getByText('30')).toBeInTheDocument()
   })
+
+  it('draws numbers as vertical bars and time data as columns', () => {
+    size = { w: 400, h: 220 }
+    const blocks: Widget = { ...base, type: 'list', items: [{ label: 'A', value: '10 / 40', tone: '', number: 10, max: 40 }] }
+    const { unmount } = renderWithApp(<FitWidget widget={blocks} pick="column" />)
+    expect(screen.getByTitle('A: 10 / 40 (25 %)')).toBeInTheDocument()
+    unmount()
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 1], [1800000060, 2]] }] }
+    renderWithApp(<FitWidget widget={series} pick="column" />)
+    expect(screen.getByRole('img', { name: 'Columns: W' })).toBeInTheDocument()
+  })
 })

@@ -57,6 +57,7 @@ PAGES["power"] = "/power"
 PAGES["problems"] = "/problems"
 PAGES["s3-backups"] = "/settings/backup"
 PAGES["tile-levels"] = "/dashboards/tile-levels"
+PAGES["tile-charts"] = "/dashboards/tile-charts"
 
 
 def tile(name, x, y, w, h, **look):
@@ -69,10 +70,14 @@ TILE_LEVELS = {"name": "Tile levels", "fit": True, "sections": [{"panels": [
     tile("traffic", 12, 0, 6, 3), tile("seats", 18, 0, 6, 3),
     tile("switch_states", 0, 3, 8, 6), tile("traffic", 8, 3, 16, 6),
     tile("open_incidents", 0, 9, 12, 7), tile("switch_states", 12, 9, 12, 7, type="table", level="l"),
-]}, {"title": "Charts", "panels": [
-    tile("seats", 0, 0, 5, 9, type="gauge"), tile("switch_states", 5, 0, 8, 9, type="pie"),
-    tile("seats_by_block", 13, 0, 11, 9, type="bar"),
 ]}]}
+# The same data as a gauge, a pie, horizontal and vertical bars.
+TILE_CHARTS = {"name": "Tile charts", "fit": True, "sections": [{"panels": [
+    tile("seats", 0, 0, 6, 8, type="gauge"), tile("switch_states", 6, 0, 8, 8, type="pie"),
+    tile("seats_by_block", 14, 0, 10, 8, type="bar"),
+    tile("seats_by_block", 0, 8, 8, 8, type="column"), tile("traffic", 8, 8, 16, 8, type="column"),
+]}]}
+SEEDED = {"tile-levels": TILE_LEVELS, "tile-charts": TILE_CHARTS}
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
@@ -118,13 +123,14 @@ def seed():
 
 
 def seed_tile_levels():
-    try:
-        call("GET", "/api/dashboards/tile-levels")
-    except urllib.error.HTTPError:
+    for name, board in SEEDED.items():
         try:
-            call("PUT", "/api/dashboards/tile-levels", TILE_LEVELS)
-        except urllib.error.HTTPError as exc:
-            print(f"Could not save the tile levels dashboard: HTTP {exc.code}", file=sys.stderr)
+            call("GET", f"/api/dashboards/{name}")
+        except urllib.error.HTTPError:
+            try:
+                call("PUT", f"/api/dashboards/{name}", board)
+            except urllib.error.HTTPError as exc:
+                print(f"Could not save the {name} dashboard: HTTP {exc.code}", file=sys.stderr)
 
 
 def page_exists(path):

@@ -291,7 +291,7 @@ def test_a_tile_pane_keeps_its_widget_type_and_size(client):
     # The defaults stay out of the saved layout.
     r = save({"kind": "tile", "tile": "floorbit/w/seats", "type": "auto", "level": "auto"})
     assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == {"kind": "tile", "tile": "floorbit/w/seats"}
-    for kind in ("gauge", "bar", "pie"):
+    for kind in ("gauge", "bar", "column", "pie"):
         assert save({"kind": "tile", "tile": "floorbit/w/seats", "type": kind}).status_code == 200
     assert "widget type" in save({"kind": "tile", "tile": "floorbit/w/seats", "type": "pie3d"}).get_json()["error"]
     assert "widget size" in save({"kind": "tile", "tile": "floorbit/w/seats", "level": "xl"}).get_json()["error"]

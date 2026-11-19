@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Widget } from '@/api/types'
-import { formatValue, kindsFor, partsOf, resolveKind, rowsOf, scaleOf, slices, stateCounts, statOf } from './shape'
+import { bucketsOf, formatValue, kindsFor, partsOf, resolveKind, rowsOf, scaleOf, slices, stateCounts, statOf } from './shape'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
 const status: Widget = { ...base, type: 'status', items: [
@@ -10,7 +10,7 @@ const labels = { name: 'Name', value: 'Value', state: 'Detail' }
 
 describe('widget shapes', () => {
   it('only offers kinds the data can be drawn as', () => {
-    expect(kindsFor({ ...base, type: 'series', unit: '', series: [] })).toEqual(['graph', 'stat'])
+    expect(kindsFor({ ...base, type: 'series', unit: '', series: [] })).toEqual(['graph', 'column', 'stat'])
     expect(resolveKind(status, 'graph')).toBe('status')
     expect(resolveKind(status, 'stat')).toBe('stat')
   })
@@ -48,5 +48,11 @@ describe('widget shapes', () => {
     const out = slices(parts, 'Other', 'en')
     expect(out).toHaveLength(7)
     expect(out[6]).toMatchObject({ label: 'Other', value: 1 + 2 + 3 + 4 })
+  })
+  it('cuts time data into columns, each the average of its slice', () => {
+    const b = bucketsOf([{ label: 'a', points: [[0, 2], [10, 4], [20, 6], [30, 8]] }, { label: 'b', points: [[0, 1]] }], 2)
+    expect(b).toHaveLength(2)
+    expect(b[0].values).toEqual([3, 1])
+    expect(b[1].values).toEqual([7, null])
   })
 })

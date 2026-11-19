@@ -28,7 +28,8 @@
     "detailsNamed": "Details zu {{name}}",
     "other": "Andere",
     "gaugeLabel": "{{value}} von {{max}} ({{pct}} %)",
-    "pieLabel": "Kreis: {{parts}}"
+    "pieLabel": "Kreis: {{parts}}",
+    "columnsLabel": "Säulen: {{name}}"
   },
   "state": {
     "up": "Läuft",

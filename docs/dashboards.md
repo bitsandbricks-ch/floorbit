@@ -63,8 +63,10 @@ In the pane's settings, **Show as** draws the same data as another kind where it
 
 - a status as a number of what is up, as bars or as a pie of how many are in each state;
 - a number with a scale (switches up out of all, seats online) as a **gauge**;
-- a list with numbers as **bars** (an item with its own maximum, such as seats online out of a
-  block, fills its own track) or a **pie** (seven slices at most, the rest as "Other");
+- a list with numbers as **horizontal bars** or **vertical bars** (an item with its own maximum,
+  such as seats online out of a block, fills its own track) or a **pie** (seven slices at most, the
+  rest as "Other");
+- a graph as **vertical bars**: each bar is the average of its slice of time, one bar per line;
 - a list as a table, a table as a list.
 
 Hover a bar, a slice or the gauge for its value and share. **Size** pins small, medium or large
