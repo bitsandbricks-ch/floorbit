@@ -1,5 +1,5 @@
 """Telemetry for the demo hall: what Telegraf would send for the demo's switches and firewalls, so
-Settings > Telemetry, the stored series and the endpoints search have something to show
+the Telemetry page, the stored series and the endpoints search have something to show
 (docs/telemetry.md). Built from the same made-up hall the demo's monitoring answers from.
 
 The devices are set up with drivers Telegraf would run (SNMP, traps, gNMI, the firewalls' own
@@ -19,27 +19,19 @@ _counters = {}                 # (device, ifIndex, direction) -> (octets, at): c
 _lock = threading.Lock()
 
 
-def targets():
-    """The demo's devices as Settings > Telemetry would have them (secrets made up on the spot)."""
-    out = []
-    for name, _role, i in _switches():
-        address = f'198.51.100.{i}'
-        role = _role_of(name)
-        login = {'snmp_version': '3', 'username': 'floorbit', 'auth_password': secrets.token_urlsafe(16),
-                 'priv_password': secrets.token_urlsafe(16)}
-        if role == 'core':
-            out.append({'name': name, 'address': address, 'kind': 'router', 'platform': 'nxos',
-                        'drivers': ['snmp', 'traps', 'gnmi'], **login})
-        elif role == 'dist':
-            out.append({'name': name, 'address': address, 'kind': 'switch', 'platform': 'iosxe',
-                        'drivers': ['snmp', 'traps'], 'vlans': [VLAN], **login})
-        else:
-            out.append({'name': name, 'address': address, 'kind': 'switch', 'platform': 'ios',
-                        'drivers': ['snmp', 'traps'], 'vlans': [VLAN], **login})
-    for n, name in enumerate(FIREWALLS, 1):
-        out.append({'name': name, 'address': f'198.51.100.{200 + n}', 'kind': 'firewall', 'platform': 'opnsense',
-                    'drivers': ['push']})
-    return out
+def setup():
+    """How the demo's devices are set up for telemetry in the inventory: groups with the feature on,
+    an SNMP v3 login (made up on the spot) and the properties each kind of device needs."""
+    login = {'kind': 'snmp_v3', 'username': 'floorbit', 'auth_protocol': 'SHA', 'priv_protocol': 'AES',
+             'secret': secrets.token_urlsafe(16), 'priv_secret': secrets.token_urlsafe(16)}
+    switches = {name: ({'telemetry_drivers': 'snmp traps gnmi'} if _role_of(name) == 'core'
+                       else {'telemetry_vlans': str(VLAN)}) for name, _role, _i in _switches()}
+    return [
+        # The firewalls run Telegraf themselves and push: no login.
+        {'name': 'Network', 'properties': {}, 'login': login, 'devices': switches},
+        {'name': 'Firewalls', 'properties': {'telemetry_drivers': 'push'}, 'login': None,
+         'devices': {name: {} for name in FIREWALLS}},
+    ]
 
 
 def _role_of(name):

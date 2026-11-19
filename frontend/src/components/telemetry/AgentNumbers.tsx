@@ -1,7 +1,7 @@
 import { Badge, Group, Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 
-/** One agent's telemetry numbers, as its last report said (GET /api/settings/telemetry, status.agents). */
+/** One agent's telemetry numbers, as its last report said (GET /api/telemetry/overview, status.agents). */
 export interface TelemetryAgentNumbers {
   id: string; name: string; connected: boolean; status: string; primary: boolean
   points: number; series: number; sent: number; heard: number; failing: number

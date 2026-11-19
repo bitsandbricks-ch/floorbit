@@ -18,7 +18,7 @@ import time
 # interval (30 to 60 s), gNMI redials every 10 s.
 FORGET_AFTER = 180
 
-# Telegraf's plugin names, as the collection types on Settings > Telemetry call them.
+# Telegraf's plugin names, as the Telemetry page's collection types call them.
 DRIVER_OF = {'snmp': 'snmp', 'snmp_trap': 'traps', 'gnmi': 'gnmi', 'cisco_telemetry_mdt': 'mdt'}
 
 # Most specific first: "connection refused" can sit inside a gRPC "Unavailable".

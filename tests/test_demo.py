@@ -221,8 +221,9 @@ def test_the_demo_speaks_swiss_german_when_asked(monkeypatch):
 
 
 def test_telemetry_hears_the_demo_devices(demo, registry, tmp_path, monkeypatch):
-    """Settings > Telemetry lists the demo's devices, and what Telegraf would send for them fills the
-    picture: ports with rates, MAC tables on the access switches, ARP on the core, the firewalls."""
+    """The Telemetry page lists the demo's devices (set up in inventory groups), and what Telegraf
+    would send for them fills the picture: ports with rates, MAC tables on the access switches, ARP
+    on the core, the firewalls."""
     from floorbit.builtin_plugins.demo import telemetry as demo_telemetry
     from floorbit.plugins import Context
     from floorbit.telemetry import clients, state, storage
@@ -233,8 +234,8 @@ def test_telemetry_hears_the_demo_devices(demo, registry, tmp_path, monkeypatch)
     endpoints.reset()
     try:
         demo.post('/api/demo/layout')
-        body = demo.get('/api/settings/telemetry').get_json()
-        kinds = {t['name']: (t['platform'], t['drivers']) for t in body['targets']}
+        body = demo.get('/api/telemetry/overview').get_json()
+        kinds = {t['name']: (t['platform'], t['drivers']) for t in body['devices']}
         assert kinds['core-01'] == ('nxos', ['snmp', 'traps', 'gnmi']) and kinds['sw-a-01'][0] == 'ios'
         assert kinds['fw-01'] == ('opnsense', ['push']) and len(kinds) == 26      # 16 switches, 10 firewalls
         assert not any(set(d) & {'nxapi', 'restconf', 'opnsense'} for _p, d in kinds.values())   # nothing polled

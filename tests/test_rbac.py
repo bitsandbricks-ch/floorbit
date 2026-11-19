@@ -142,7 +142,9 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
                         "/api/agents",                 # enrolling a local agent hands out a key to the event's data
                         "/api/agent/v1/",              # the local agent, with its own key (blueprints/agent.py)
                         "/api/telemetry/write",        # Telegraf, with the telemetry token (blueprints/telemetry.py)
-                        "/api/telemetry/api/v2/write")
+                        "/api/telemetry/api/v2/write",
+                        "/api/telemetry/test",         # collecting from a device now, through the agent
+                        "/api/telemetry/token")        # a new ingest token stops every sender
     loose = []
     for rule in app_module.app.url_map.iter_rules():
         writes = (rule.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"}

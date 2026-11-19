@@ -12,8 +12,8 @@ const HINT_LINKS: Record<string, HintLink> = {
   telegraf_missing: { href: `${AGENT_DOCS}#telegraf`, internal: false },
   telegraf_stopped: { href: `${AGENT_DOCS}#telegraf`, internal: false },
   telegraf_sidecar_left: { href: `${AGENT_DOCS}#telegraf`, internal: false },
-  telegraf_quiet: { href: '/settings/telemetry', internal: true },
-  device_problems: { href: '/settings/telemetry', internal: true },
+  telegraf_quiet: { href: '/telemetry', internal: true },
+  device_problems: { href: '/telemetry', internal: true },
 }
 
 /** What a plugin says about itself: the translated sentence for a known hint, else its own words. */

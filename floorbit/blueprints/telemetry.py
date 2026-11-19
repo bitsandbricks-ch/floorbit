@@ -10,20 +10,21 @@ proxies log it:
 
 For the crew:
 
+- ``GET /telemetry``: the page (React, under Monitoring).
 - ``GET /api/telemetry/series?device=&port=&metric=&hours=``: one normalised series over time.
 - ``GET /api/telemetry/status``: is it collecting, where, how much.
+- ``GET /api/telemetry/overview``: the status and every device collected from (no logins).
+- ``GET /api/telemetry/devices``: each device's last word and its problems.
+
+Which devices: the inventory's, with the Telemetry feature on (floorbit/telemetry/targets.py).
 
 For admins (``settings.manage``):
 
-- ``GET /settings/telemetry``: the page (React).
-- ``GET /api/settings/telemetry``: the devices (secrets left out) and the status.
-- ``POST /api/settings/telemetry/targets``, ``PUT|DELETE /api/settings/telemetry/targets/<id>``.
-- ``GET /api/settings/telemetry/targets/<id>/device-config``: what to paste on the device.
-- ``GET|POST /api/settings/telemetry/token``: show the ingest token, or make a new one.
-- ``GET /api/settings/telemetry/devices``: each device's last word and its problems.
-- ``POST /api/settings/telemetry/test`` ``{"name"}``: collect from one device now, through the agent.
-- ``GET /api/settings/telemetry/raw?name=``: the last lines the agent got from one device.
-- ``GET /api/settings/telemetry/telegraf.conf``: Telegraf's config, secrets in it, for a
+- ``POST /api/telemetry/test`` ``{"name"}``: collect from one device now, through the agent.
+- ``GET /api/telemetry/raw?name=``: the last lines the agent got from one device.
+- ``GET /api/telemetry/device-config?name=&collector=``: what to paste on the device.
+- ``GET|POST /api/telemetry/token``: show the ingest token, or make a new one.
+- ``GET /api/telemetry/telegraf.conf``: Telegraf's config, secrets in it, for a
   Telegraf that doesn't run in the sidecar.
 
 A local agent gets the devices and sends its series through the telemetry plugin's agent part
@@ -75,7 +76,7 @@ def write():
     except (DatabaseUnavailable, vault.VaultError):
         return jsonify({'error': 'Telemetry cannot be checked right now.'}), 503
     if not good:
-        return jsonify({'error': 'The telemetry token is wrong. See Settings > Telemetry.'}), 401
+        return jsonify({'error': 'The telemetry token is wrong. See Monitoring > Telemetry.'}), 401
     if not telemetry.collector_here():
         return jsonify({'error': 'A local agent collects telemetry for this Floorbit: send it there.'}), 409
     text = _body_text()
@@ -116,9 +117,9 @@ def status():
     return jsonify(telemetry.status())
 
 
-# ── settings ───────────────────────────────────────────────────────────────────────────────────
+# ── the Telemetry page (Monitoring) ───────────────────────────────────────────────────────────
 
-@bp.route('/settings/telemetry')
+@bp.route('/telemetry')
 def telemetry_page():
     return spa.render('Telemetry')
 
@@ -173,43 +174,24 @@ def _devices_on_agent():
     return out
 
 
-@bp.route('/api/settings/telemetry', methods=['GET'])
-def settings_view():
+# What the page lists of each device: no logins, not even usernames (crew without settings read it).
+SHOWN = ('id', 'name', 'address', 'kind', 'platform', 'drivers', 'agent', 'inventory_id', 'ports')
+
+
+@bp.route('/api/telemetry/overview', methods=['GET'])
+def overview():
+    """The collector's numbers and every device telemetry collects from, with its last word."""
     seen, status = _devices(), telemetry.status()
     if not telemetry.collector_here():
         # This Floorbit's own counters stay at 0 while an agent collects: count what the agent heard.
         status.update(devices=sum(1 for d in seen.values() if d.get('seen')), points=None, agents=_agent_numbers())
         if status['agents']:
             status['points'] = sum(a['points'] for a in status['agents'])
-    return jsonify({'targets': targets.listing(), 'inventory': targets.inventory_listing(),
-                    'seen': seen, 'status': status,
-                    'drivers': list(targets.DRIVERS), 'platforms': list(targets.PLATFORMS),
-                    'kinds': list(targets.KINDS), 'fdb_modes': list(targets.FDB_MODES),
-                    'ports': {'traps': 162, 'mdt': telegraf.MDT_PORT}})
+    return jsonify({'devices': [{k: t.get(k) for k in SHOWN} for t in targets.listing()],
+                    'seen': seen, 'status': status, 'ports': {'traps': 162, 'mdt': telegraf.MDT_PORT}})
 
 
-def _save(target_id=None):
-    try:
-        entry = targets.save(request.get_json(silent=True), g.get('audit_user'), target_id)
-    except targets.TargetError as exc:
-        return jsonify({'error': str(exc)}), exc.status
-    except vault.VaultError as exc:
-        return jsonify({'error': str(exc)}), 500
-    name = entry['name']
-    label = f'Changed telemetry from {name}' if target_id else f'Added telemetry from {name}'
-    audit.record('telemetry', label, g.get('audit_user'), ', '.join(entry['drivers']))
-    _tell_agents()
-    return jsonify(entry), 200 if target_id else 201
-
-
-def _tell_agents():
-    """Agents collecting for this Floorbit pick up the change now instead of within a minute."""
-    from .. import agent_link, agent_plugins
-    if agent_link.active():
-        agent_plugins.reload_agents()
-
-
-@bp.route('/api/settings/telemetry/devices', methods=['GET'])
+@bp.route('/api/telemetry/devices', methods=['GET'])
 def devices_view():
     """Each device's last word and its problems: what a device's Telemetry view shows."""
     return jsonify({'devices': _devices()})
@@ -250,7 +232,7 @@ def _device_name():
     return name[:120]
 
 
-@bp.route('/api/settings/telemetry/test', methods=['POST'])
+@bp.route('/api/telemetry/test', methods=['POST'])
 def test_device():
     """Collect from one device now, through the agent, and say what came back or why nothing did."""
     name = _device_name()
@@ -263,7 +245,7 @@ def test_device():
     return jsonify({**answer['result'], 'agent': answer['name']})
 
 
-@bp.route('/api/settings/telemetry/raw', methods=['GET'])
+@bp.route('/api/telemetry/raw', methods=['GET'])
 def raw_lines():
     """The last lines the agent got from one device, as Telegraf sent them."""
     name = _device_name()
@@ -275,36 +257,18 @@ def raw_lines():
     return jsonify({**answer['result'], 'agent': answer['name']})
 
 
-@bp.route('/api/settings/telemetry/targets', methods=['POST'])
-def add_target():
-    return _save()
-
-
-@bp.route('/api/settings/telemetry/targets/<target_id>', methods=['PUT'])
-def change_target(target_id):
-    return _save(target_id)
-
-
-@bp.route('/api/settings/telemetry/targets/<target_id>', methods=['DELETE'])
-def delete_target(target_id):
-    gone = targets.delete(target_id)
-    if gone is None:
-        return jsonify({'error': 'That device is gone.'}), 404
-    audit.record('telemetry', f"Removed telemetry from {gone['name']}", g.get('audit_user'))
-    _tell_agents()
-    return jsonify({'ok': True})
-
-
-@bp.route('/api/settings/telemetry/targets/<target_id>/device-config', methods=['GET'])
-def device_config(target_id):
-    target = next((t for t in targets.raw_targets() if t['id'] == target_id), None)
+@bp.route('/api/telemetry/device-config', methods=['GET'])
+def device_config():
+    """What to paste on one device so it sends to the collector (traps, MDT, its own Telegraf)."""
+    name = _device_name().lower()
+    target = next((t for t in targets.all_opened() if t['name'].lower() == name), None) if name else None
     if target is None:
-        return jsonify({'error': 'That device is gone.'}), 404
+        return jsonify({'error': 'Telemetry does not collect from that device. Turn it on in the inventory.'}), 404
     collector = (request.args.get('collector') or '').strip()[:100] or '<collector address>'
     return jsonify({'config': telegraf.device_config(target, collector)})
 
 
-@bp.route('/api/settings/telemetry/token', methods=['GET'])
+@bp.route('/api/telemetry/token', methods=['GET'])
 def show_token():
     try:
         token = targets.ingest_token()
@@ -314,7 +278,7 @@ def show_token():
     return jsonify({'token': token})
 
 
-@bp.route('/api/settings/telemetry/token', methods=['POST'])
+@bp.route('/api/telemetry/token', methods=['POST'])
 def renew_token():
     try:
         token = targets.new_ingest_token()
@@ -324,7 +288,7 @@ def renew_token():
     return jsonify({'token': token})
 
 
-@bp.route('/api/settings/telemetry/telegraf.conf', methods=['GET'])
+@bp.route('/api/telemetry/telegraf.conf', methods=['GET'])
 def telegraf_conf():
     audit.record('telemetry', 'Downloaded the Telegraf configuration', g.get('audit_user'))
     return telemetry.render_here(), 200, {'Content-Type': 'text/plain; charset=utf-8',

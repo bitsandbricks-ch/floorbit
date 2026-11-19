@@ -15,7 +15,7 @@ from floorbit.telemetry.state import state
 class Plugin(Base):
     def configured(self):
         from floorbit.telemetry import targets
-        return bool(state.devices) or bool(targets.listing())
+        return bool(state.devices) or targets.any_device()
 
     def _device(self, hostname):
         return state.find(hostname)
@@ -58,11 +58,11 @@ class Plugin(Base):
         # On a hosted Floorbit the picture lives on the agent, asked through its link.
         found = sources.monitoring().devices() if agent_link.active() else self.devices()
         if not found:
-            return {'type': 'status', 'items': [], 'sub': 'No devices set up yet.', 'link': '/settings/telemetry'}
+            return {'type': 'status', 'items': [], 'sub': 'No devices set up yet.', 'link': '/telemetry'}
         items = [{'label': d.get('display') or d.get('hostname'), 'state': 'up' if d.get('status') else 'down',
                   'detail': d.get('driver') or ''} for d in found]
         up = sum(i['state'] == 'up' for i in items)
-        return {'type': 'status', 'items': items, 'link': '/settings/telemetry',
+        return {'type': 'status', 'items': items, 'link': '/telemetry',
                 'sub': f'{up} of {len(items)} up' if up == len(items)
                 else f'{up} of {len(items)} up: {len(items) - up} down'}
 
@@ -223,7 +223,7 @@ class Plugin(Base):
     def test(self):
         found = self.devices()
         if not found:
-            raise PluginError('No telemetry has come in yet. Add devices under Settings > Telemetry and start '
+            raise PluginError('No telemetry has come in yet. Turn on Telemetry for devices in the inventory and start '
                               'Telegraf (docs/telemetry.md).')
         online = sum(d['status'] == 1 for d in found)
         return f'Receiving: {len(found)} devices, {online} sent something in the last {_minutes()} minutes.'
@@ -233,7 +233,7 @@ REPLAY = 6 * 3600     # an agent's spool may bring batches this old
 
 
 def _counts(dev):
-    """What came in, for Settings > Telemetry on a Floorbit whose agent collects."""
+    """What came in, for the Telemetry page on a Floorbit whose agent collects."""
     with state._lock:
         return {'ports': len(dev.interfaces), 'macs': len(dev.fdb), 'arp': len(dev.arp),
                 'neighbours': len(dev.lldp) + len(dev.cdp)}

@@ -302,7 +302,7 @@ reads every line it prints.
 
 That is how Floorbit knows why a device sends nothing. Telegraf's errors become a problem per device
 and kind of collection (nothing listening, no answer, login refused, no route, TLS), shown in words
-on the agent's page and next to each device under **Settings > Telemetry**, with what to check
+on the agent's page and next to each device under **Monitoring > Telemetry**, with what to check
 ([telemetry.md, "When a device sends nothing"](telemetry.md#when-a-device-sends-nothing)). The agent's
 log gets a line when a device is first heard or comes back, each new problem, and every five minutes
 how many points came in from how many devices:
@@ -313,7 +313,7 @@ how many points came in from how many devices:
 [telemetry] last 5 min: 18200 points from 12 devices, 12 of 13 heard
 ```
 
-**Test now** (Settings > Telemetry, per device) runs Telegraf once for that one device on the agent
+**Test now** (Monitoring > Telemetry, or a device's Telemetry tab) runs Telegraf once for that one device on the agent
 and shows what came back (values, ports, the device's own name) or the exact error, in a few seconds.
 **Raw data** shows the last lines the agent received from a device, as Telegraf sent them. Both are
 asked of the agent when you open them; nothing extra is stored.

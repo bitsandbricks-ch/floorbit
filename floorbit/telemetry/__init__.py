@@ -3,7 +3,7 @@
 
 The pieces:
 
-- ``targets``: the devices and how to collect from each (Settings > Telemetry), secrets sealed.
+- ``targets``: the devices and how to collect from each (the inventory's devices with Telemetry on).
 - ``telegraf``: Telegraf's config made from them. Telegraf polls SNMP, takes traps, subscribes to
   gNMI and takes Cisco MDT dial-out, and sends line protocol to the collector.
 - ``pollers``: the API drivers Telegraf doesn't have (NX-API, RESTCONF, OPNsense).
@@ -52,9 +52,8 @@ def conf_path():
 
 
 def render_here(target_list=None):
-    """Telegraf's config for the sidecar next to this Floorbit."""
-    target_list = ([targets.opened(t) for t in target_list] if target_list is not None
-                   else targets.all_opened())
+    """Telegraf's config for the sidecar next to this Floorbit. ``target_list``: secrets open."""
+    target_list = targets.all_opened() if target_list is None else target_list
     output = os.environ.get(OUTPUT_ENV) or 'http://floorbit:5000/api/telemetry/write'
     return telegraf.render(target_list, output, targets.ingest_token())
 

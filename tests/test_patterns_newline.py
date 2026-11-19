@@ -6,8 +6,7 @@ import re
 import pytest
 
 CHECKS = [
-    ('floorbit.telemetry.targets', 'NAME_RE', 'sw-a-01'), ('floorbit.telemetry.targets', 'HOST_RE', 'example.com'),
-    ('floorbit.telemetry.targets', 'USER_RE', 'netops'), ('floorbit.services', 'HOST_RE', 'example.com'),
+    ('floorbit.telemetry.targets', 'AGENT_RE', 'rack-a'), ('floorbit.services', 'HOST_RE', 'example.com'),
     ('floorbit.game_servers', 'HOST_RE', 'example.com'), ('floorbit.tenancy', 'ID_RE', 'summer-lan'),
     ('floorbit.ports', 'PORT_RE', 'Gi1/0/1'), ('floorbit.ports', 'USER_RE', 'netops'),
     ('floorbit.links', 'PORT_RE', 'Gi1/0/1'), ('floorbit.seatmap', 'SEAT_RE', 'A-1'),
