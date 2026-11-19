@@ -55,6 +55,10 @@ ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}\Z')
 TILE_RE = re.compile(r'^[\w.-]{1,64}/w/[\w.-]{1,64}\Z')
 REF_RE = re.compile(r'^[\w .:-]{1,120}\Z')
 KINDS = ('plan', 'tile', 'view', 'text', 'empty')
+# What a tile pane may calculate (issue #959); the browser does the maths on the widgets' data.
+CALCS = ('count', 'sum', 'avg', 'min', 'max', 'first', 'last')
+MAX_ALSO = 3
+KEY_RE = re.compile(r'^[\w.-]{1,64}\Z')
 SPLITS = ('row', 'column')
 AREAS = ('hall', 'block', 'zone', 'box')
 PRESETS = ('overview', 'network', 'electrical', 'ops')
@@ -301,6 +305,7 @@ def _pane(raw):
                 raise LayoutError(f'The widget option {key} is one of: {", ".join(allowed)}.')
             if value != allowed[0]:
                 pane[key] = value
+        pane.update(_shaping(raw, tile))
     elif kind == 'view':
         view = str(raw.get('view') or '')
         if not ID_RE.match(view):
@@ -448,6 +453,40 @@ def delete(layout_id):
         save_data(data)
 
 
+def _shaping(raw, tile):
+    """A tile pane's extra sources, grouping and calculations; left out when unused."""
+    out = {}
+    also = raw.get('also') or []
+    if not isinstance(also, list) or len(also) > MAX_ALSO:
+        raise LayoutError(f'A widget draws at most {MAX_ALSO} more tiles.')
+    also = [str(a) for a in also]
+    if any(not TILE_RE.match(a) for a in also) or tile in also or len(set(also)) != len(also):
+        raise LayoutError('Pick each extra tile once, and not the first tile again.')
+    if also:
+        out['also'] = also
+    group_by = str(raw.get('group_by') or '')
+    if group_by:
+        if not KEY_RE.match(group_by):
+            raise LayoutError('Group by a column of the data.')
+        out['group_by'] = group_by
+    reduce = raw.get('reduce') or ''
+    if reduce:
+        if reduce not in CALCS:
+            raise LayoutError(f'A calculation is one of: {", ".join(CALCS)}.')
+        out['reduce'] = reduce
+    legend = raw.get('legend') or []
+    if not isinstance(legend, list) or any(c not in CALCS for c in legend) or len(set(legend)) != len(legend):
+        raise LayoutError(f'A calculation is one of: {", ".join(CALCS)}.')
+    if legend:
+        out['legend'] = legend
+    return out
+
+
+def pane_tiles(pane):
+    """Every tile a tile pane reads."""
+    return [pane['tile'], *pane.get('also', [])] if pane.get('kind') == 'tile' else []
+
+
 def _public_node(node):
     if 'pane' not in node:
         return {**node, 'children': [_public_node(c) for c in node['children']]}
@@ -456,7 +495,7 @@ def _public_node(node):
     head = {k: pane[k] for k in ('title', 'hide_title') if k in pane}
     if kind == 'plan':
         return {'pane': {**pane, 'marks': 'none' if pane.get('marks') == 'none' else 'public'}}
-    if kind in ('text', 'empty') or (kind == 'tile' and pane['tile'] in PUBLIC_TILES) or (
+    if kind in ('text', 'empty') or (kind == 'tile' and all(t in PUBLIC_TILES for t in pane_tiles(pane))) or (
             kind == 'view' and pane['view'] in PUBLIC_VIEWS):
         return {'pane': pane}
     return {'pane': {'kind': 'private', **head}}

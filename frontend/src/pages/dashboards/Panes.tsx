@@ -2,9 +2,10 @@ import { ActionIcon, Loader, Modal, Stack, Text, Tooltip } from '@mantine/core'
 import { IconArrowsMaximize, IconExternalLink } from '@tabler/icons-react'
 import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDashboard, useFeaturesOff, useWidget } from '@/api/queries'
+import { useDashboard, useFeaturesOff, useWidgets } from '@/api/queries'
 import type { Tile, WidgetTile } from '@/api/types'
 import { FitWidget } from '@/widgets/FitWidget'
+import { usePaneData } from '@/widgets/usePaneData'
 import type { Pane } from './model'
 import { PlanPane } from './PlanPane'
 import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
@@ -32,12 +33,12 @@ function Framed({ title, hide, className = '', actions, fit, children }: {
 /** A tile on a public dashboard read signed out: from the dashboard's own feed. */
 function PublicTilePane({ pane, id }: { pane: Extract<Pane, { kind: 'tile' }>; id: string }) {
   const { tiles } = useScreen()
-  const [plugin, , name] = pane.tile.split('/')
-  const tile: WidgetTile = {
-    plugin, plugin_name: 'Floorbit', id: name, label: tiles[pane.tile] ?? name, size: 'small', refresh: 15,
-    url: publicUrl(id, `/tiles/${encodeURIComponent(name)}`),
-  }
-  return <TileWidgetPane pane={pane} tile={tile} />
+  const sources = [pane.tile, ...(pane.also ?? [])].map((key): WidgetTile => {
+    const [plugin, , name] = key.split('/')
+    return { plugin, plugin_name: 'Floorbit', id: name, label: tiles[key] ?? name, size: 'small', refresh: 15,
+      url: publicUrl(id, `/tiles/${encodeURIComponent(name)}`) }
+  })
+  return <TileWidgetPane pane={pane} tiles={sources} />
 }
 
 function TilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
@@ -48,8 +49,11 @@ function TilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
 function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   const { t } = useTranslation()
   const { data, isPending } = useDashboard()
-  const tile = data?.tiles.find((x) => tileKey(x) === pane.tile)
-  if (tile && tile.kind !== 'action') return <TileWidgetPane pane={pane} tile={tile as WidgetTile} />
+  const find = (key: string) => data?.tiles.find((x) => tileKey(x) === key && x.kind !== 'action') as WidgetTile | undefined
+  const tile = find(pane.tile)
+  // A gone extra source just drops out; the pane is gone only when its first tile is.
+  const more = (pane.also ?? []).map(find).filter((x): x is WidgetTile => !!x)
+  if (tile) return <TileWidgetPane pane={pane} tiles={[tile, ...more]} />
   return (
     <Framed title={pane.title} hide={pane.hide_title}>
       {isPending ? <Loader size="sm" aria-label={t('common.loading')} /> : <Note>{t('dashboards.pane.tileGone')}</Note>}
@@ -59,12 +63,12 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
 
 /** A data widget in its pane: it fits the box at the level the box allows. "+N more" and the
  *  button open it large over the dashboard; Esc goes back. */
-function TileWidgetPane({ pane, tile }: { pane: Extract<Pane, { kind: 'tile' }>; tile: WidgetTile }) {
+function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>; tiles: WidgetTile[] }) {
   const { t } = useTranslation()
   const [big, setBig] = useState(false)
-  const { data, error, isPending } = useWidget(tile)
-  const title = pane.title ?? tile.label
-  const look = { stack: pane.stack, style: pane.style, trend: pane.trend }
+  const { data, error, isPending, dropped } = usePaneData(useWidgets(tiles), pane, tiles.map((x) => x.label))
+  const title = pane.title ?? tiles.map((x) => x.label).join(' · ')
+  const look = { stack: pane.stack, style: pane.style, trend: pane.trend, legend: pane.legend }
   const link = data?.link && data.link.startsWith('/') ? data.link : ''
   return (
     <Framed title={title} hide={pane.hide_title} fit actions={data && (
@@ -86,6 +90,7 @@ function TileWidgetPane({ pane, tile }: { pane: Extract<Pane, { kind: 'tile' }>;
       {isPending ? <Loader size="sm" aria-label={t('common.loading')} />
         : error && !data ? <Text size="sm" className="fb-tone-err fb-pane-note" role="alert">✕ {error.message}</Text>
           : data ? <FitWidget widget={data} pick={pane.type} pin={pane.level} look={look} onMore={() => setBig(true)} /> : null}
+      {dropped.length > 0 && <Text size="xs" c="dimmed" className="fb-pane-note">{t('dashboards.pane.dropped', { names: dropped.join(', ') })}</Text>}
       {big && data && (
         <Modal opened onClose={() => setBig(false)} title={title} size="90%" centered classNames={{ body: 'fb-w-big' }}>
           <FitWidget widget={data} pick={pane.type} pin="l" look={look} />

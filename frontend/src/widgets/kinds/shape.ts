@@ -1,5 +1,6 @@
 import type { State, Tone, Widget } from '@/api/types'
 import type { Kind, KindPick } from '../level'
+import type { Calc } from './combine'
 
 /** What a widget's data can be drawn as. The first is its own kind. A stat counts anything; only
  *  time data draws as a graph; a gauge needs a scale and bars or a pie need numbers. */
@@ -115,7 +116,9 @@ export const LINE_STYLES: LineStyle[] = ['line', 'area']
 /** A dashed line over each series: a straight fit over the time shown, or a rolling average. */
 export type Trend = 'none' | 'linear' | 'average'
 export const TRENDS: Trend[] = ['none', 'linear', 'average']
-export interface Look { stack?: Stack; style?: LineStyle; trend?: Trend }
+/** ``legend``: the calculations each line's legend entry shows, instead of the latest value (and
+ *  max and average at large). */
+export interface Look { stack?: Stack; style?: LineStyle; trend?: Trend; legend?: Calc[] }
 
 /** Which look options mean something for this data drawn as this kind: stacking needs two or
  *  more series (or number columns), the line style needs a graph, a trend needs time. */
@@ -126,6 +129,7 @@ export function looksFor(w: Widget, kind: Kind): (keyof Look)[] {
   if (many && ['graph', 'column', 'bar'].includes(kind)) out.push('stack')
   if (kind === 'graph') out.push('style')
   if (timed && (kind === 'graph' || kind === 'column')) out.push('trend')
+  if (kind === 'graph') out.push('legend')
   return out
 }
 

@@ -37,12 +37,22 @@
     "trend": {
       "linear": "Trend",
       "average": "Durchschnitt"
-    }
+    },
+    "state": "Status"
   },
   "state": {
     "up": "Läuft",
     "down": "Ausgefallen",
     "warn": "Warnung",
     "unknown": "Unbekannt"
+  },
+  "calc": {
+    "count": "Anzahl",
+    "sum": "Summe",
+    "avg": "Durchschnitt",
+    "min": "Min.",
+    "max": "Max.",
+    "first": "Erster",
+    "last": "Letzter"
   }
 }
