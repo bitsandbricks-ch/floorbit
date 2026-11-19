@@ -376,6 +376,14 @@ def test_plugins_that_answer_for_the_hall_go_to_the_agent_with_their_settings(cl
     monkeypatch.setitem(relay.manifest, "uses", [*relay.manifest["uses"], "monitoring"])
     assert "netflow-relay" in agent_plugins.local_config(registry)
     monkeypatch.setitem(relay.manifest, "uses", [u for u in relay.manifest["uses"] if u != "monitoring"])
+    # A monitoring source installed from the Marketplace goes as well (the agent gets its signed
+    # bundle); a community one never runs on an agent.
+    librenms = registry.specs["librenms"]
+    monkeypatch.setattr(librenms, "trust", "official")
+    assert "librenms" in agent_plugins.local_config(registry)
+    monkeypatch.setattr(librenms, "trust", "community")
+    assert "librenms" not in agent_plugins.local_config(registry)
+    monkeypatch.setattr(librenms, "trust", "builtin")
     before = agent_plugins.config()["etag"]
     values["librenms.url"] = "https://other.example.com"
     assert agent_plugins.config()["etag"] != before
