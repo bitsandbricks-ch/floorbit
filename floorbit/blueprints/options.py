@@ -102,7 +102,9 @@ def _firewalls(data):
 
 def _agents(_data):
     from .. import agent_link
-    return [{'value': a['name'], 'label': a['name']} for a in agent_link.all_agents(_data) if a.get('name')]
+    # By id: a renamed agent keeps the devices given to it (telemetry_agent).
+    return [{'value': a['id'], 'label': a.get('name') or a['id'], 'hint': a['id']}
+            for a in agent_link.all_agents(_data)]
 
 
 def _users(_data):

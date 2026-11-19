@@ -69,7 +69,8 @@
     "overview": "Übersicht",
     "interfaces": "Interfaces",
     "settings": "Einstellungen",
-    "credentials": "Zugangsdaten"
+    "credentials": "Zugangsdaten",
+    "telemetry": "Telemetrie"
   },
   "icon": {
     "switch": "Switch",
@@ -375,5 +376,18 @@
     "inventory": "Im Lager",
     "none": "Kein Status"
   },
-  "syncEvery": "Synchronisiert von selbst alle {{minutes}} Minuten."
+  "syncEvery": "Synchronisiert von selbst alle {{minutes}} Minuten.",
+  "telemetry": {
+    "now": "Jetzt",
+    "how": "Wie gesammelt wird",
+    "off": "Die Funktion Telemetrie ist für dieses Gerät aus. Schalte sie unter Einstellungen ein (hier, bei seiner Gruppe oder einem Tag), damit es gesammelt wird.",
+    "agent": "Agent",
+    "agentHint": "Der lokale Agent, der davon sammelt. Ist er weg, übernehmen die anderen.",
+    "anyAgent": "Irgendein Agent (der primäre)",
+    "telemetry_port_snmp": "SNMP-Port",
+    "telemetry_port_gnmi": "gNMI-Port",
+    "telemetry_port_api": "API-Port (NX-API, RESTCONF, OPNsense)",
+    "portsHint": "Leer: Die Gruppe darüber entscheidet, sonst der übliche Port. Traps und MDT kommen auf den eigenen Ports des Agents an.",
+    "groupIntro": "Jedes Gerät in dieser Gruppe übernimmt das, ausser es setzt eigene Werte."
+  }
 }

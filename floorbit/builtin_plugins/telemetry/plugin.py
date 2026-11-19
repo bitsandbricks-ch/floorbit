@@ -21,11 +21,14 @@ class Plugin(Base):
         return state.find(hostname)
 
     # the local agent (agent.py there) -----------------------------------------------------------
-    def agent_settings(self, settings):
-        """What the agent part gets: the devices from Settings > Telemetry, secrets opened, sent
-        over the agent's link only. The plugin's own settings (uplink limit, ignored ports) too."""
+    def agent_settings(self, settings, agent_id=None):
+        """What the agent part gets: the devices it collects from (an agent named on a device takes
+        it alone, targets.for_agent), secrets opened, sent over the agent's link only. The plugin's
+        own settings (uplink limit, ignored ports) too."""
+        from floorbit import agent_link
         from floorbit.telemetry import targets
-        return {**settings, 'targets': targets.all_opened()}
+        connected = agent_link.tunnel.connected_agents() if agent_id is not None else set()
+        return {**settings, 'targets': targets.for_agent(targets.all_opened(), agent_id, connected)}
 
     def agent_series(self, agent, payload):
         """The agent's per-port and per-device numbers, for the history here."""

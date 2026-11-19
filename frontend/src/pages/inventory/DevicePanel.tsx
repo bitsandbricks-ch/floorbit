@@ -15,6 +15,8 @@ import { credentialBody, roleIcon, speedLabel, statusLabel, typeName } from './m
 import { useCustomIcons, useDeviceDetail, useInventoryTypes } from './scope'
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
+import { DeviceTelemetryActions, DeviceTelemetryStatus } from '@/components/telemetry/DeviceTelemetry'
+import { TelemetryFields } from './TelemetryFields'
 
 
 export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
@@ -96,6 +98,7 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
             <Tabs.List>
               <Tabs.Tab value="overview">{t('inventory.tabs.overview')}</Tabs.Tab>
               <Tabs.Tab value="interfaces">{t('inventory.tabs.interfaces')} <Badge size="xs" variant="light" ml={4}>{dev.interfaces.filter((i) => !i.hidden).length}</Badge></Tabs.Tab>
+              <Tabs.Tab value="telemetry">{t('inventory.tabs.telemetry')}</Tabs.Tab>
               <Tabs.Tab value="settings">{t('inventory.tabs.settings')}</Tabs.Tab>
               {canEdit && <Tabs.Tab value="credentials">{t('inventory.tabs.credentials')}</Tabs.Tab>}
             </Tabs.List>
@@ -207,6 +210,23 @@ export function DevicePanel({ id, overview, sourceName, onClose, onEdit }: {
                   })}
                 </Text>
               )}
+            </Tabs.Panel>
+
+            <Tabs.Panel value="telemetry" pt="md">
+              {dev.resolved.features.telemetry?.on ? (
+                canSetCreds && (
+                  <PanelSection label={t('inventory.telemetry.now')}>
+                    <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
+                      <DeviceTelemetryStatus name={dev.name} />
+                      <Group gap={6}><DeviceTelemetryActions name={dev.name} /></Group>
+                    </Group>
+                  </PanelSection>
+                )
+              ) : <Text size="sm" c="dimmed" mb="sm">{t('inventory.telemetry.off')}</Text>}
+              <PanelSection label={t('inventory.telemetry.how')}>
+                <TelemetryFields key={JSON.stringify(dev.properties)} own={dev.properties ?? {}} inherited={dev.resolved.properties}
+                  canEdit={canEdit} busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
+              </PanelSection>
             </Tabs.Panel>
 
             <Tabs.Panel value="settings" pt="md">

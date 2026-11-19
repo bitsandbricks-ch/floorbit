@@ -22,6 +22,7 @@ import uuid
 
 from .. import vault
 from ..store import load_data, save_data
+from .telegraf import PORT_KINDS
 
 KEY = 'telemetry'
 MAX = 5000   # the biggest halls have about 1,000 switches; 5,000 was measured to keep up (scale tests)
@@ -29,6 +30,7 @@ DRIVERS = ('snmp', 'traps', 'gnmi', 'mdt', 'nxapi', 'restconf', 'opnsense', 'pus
 KINDS = ('switch', 'router', 'firewall')
 PLATFORMS = ('nxos', 'iosxe', 'ios', 'opnsense', 'pfsense', 'other')
 FDB_MODES = ('qbridge', 'cisco_vlans', 'bridge', 'off')
+AGENT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z')
 SECRETS = ('community', 'auth_password', 'priv_password', 'password', 'api_secret')
 NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,79}\Z')
 HOST_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9.:-]{0,252}\Z')
@@ -60,6 +62,17 @@ def _public(t):
 def listing(data=None):
     """Every target, secrets left out (only which ones are set)."""
     return [_public(t) for t in sorted(_section(data).get('targets') or [], key=lambda t: t['name'].lower())]
+
+
+def _ports(value):
+    value = value if isinstance(value, dict) else {}
+    out = {k: _int(value.get(k), 1, 65535, 0) for k in PORT_KINDS}
+    return {k: v for k, v in out.items() if v}
+
+
+def _agent(value):
+    value = str(value or '').strip()
+    return value if AGENT_RE.match(value) else ''
 
 
 def raw_targets(data=None):
@@ -123,7 +136,8 @@ def _clean(body, existing=None):
     if any(not 1 <= v <= 4094 for v in vlans) or len(vlans) > 64:
         raise TargetError('At most 64 VLANs, each 1 to 4094.')
     out['vlans'] = vlans
-    out['port'] = _int(body.get('port', existing.get('port')), 1, 65535, 0) or None
+    out['ports'] = _ports(body.get('ports', existing.get('ports')))
+    out['agent'] = _agent(body.get('agent', existing.get('agent')))
     out['verify_tls'] = bool(body.get('verify_tls', existing.get('verify_tls', True)))
     out['tables'] = bool(body.get('tables', existing.get('tables', True)))
     out['mdt_node'] = str(body.get('mdt_node', existing.get('mdt_node')) or '').strip()[:80] or None
@@ -194,8 +208,10 @@ def opened(target):
 # A device in the inventory with the Telemetry feature on (on itself, a tag, its group or type) is
 # collected from like one set up here, with the logins stored in the inventory: SNMP v3 or v2c for
 # polling and traps, an API login for NX-API, RESTCONF or OPNsense. Its properties can say more:
-# telemetry_drivers, telemetry_fdb, telemetry_vlans, telemetry_port, telemetry_url,
-# telemetry_mdt_node, telemetry_verify_tls. A device set up here by the same name wins.
+# telemetry_drivers, telemetry_fdb, telemetry_vlans, telemetry_port_snmp, telemetry_port_gnmi,
+# telemetry_port_api, telemetry_agent (the agent that collects), telemetry_url, telemetry_mdt_node,
+# telemetry_verify_tls. Like every property they come from the device, its tags, group or type.
+# A device set up here by the same name wins.
 
 FEATURE = 'telemetry'
 API_DRIVER = {'nxos': 'nxapi', 'iosxe': 'restconf', 'opnsense': 'opnsense'}
@@ -231,7 +247,8 @@ def _from_device(dev, snmp, api):
          'fdb': props.get('telemetry_fdb') if props.get('telemetry_fdb') in FDB_MODES
          else ('cisco_vlans' if platform in ('ios', 'iosxe') else 'qbridge'),
          'vlans': sorted({int(v) for v in _words(props.get('telemetry_vlans')) if v.isdigit() and 1 <= int(v) <= 4094}),
-         'port': _int(props.get('telemetry_port'), 1, 65535, 0) or None,
+         'ports': _ports({k: props.get(f'telemetry_port_{k}') for k in PORT_KINDS}),
+         'agent': _agent(props.get('telemetry_agent')),
          'url': str(props.get('telemetry_url') or '').strip() or None,
          'mdt_node': str(props.get('telemetry_mdt_node') or '').strip() or None,
          'verify_tls': str(props.get('telemetry_verify_tls', 'true')).lower() not in ('false', '0', 'no', 'off'),
@@ -323,3 +340,42 @@ def token_ok(given):
     want = ingest_token(create=False)
     return bool(want) and secrets.compare_digest(str(given), want)
 
+
+# ── which agent collects ──────────────────────────────────────────────────────────────────────
+# A device with an agent (telemetry_agent) is collected by that agent alone, even when it stands by
+# for another (VRRP): "mine" tells it to. While that agent is away, the device goes back to the
+# rest like one without an agent, so it isn't left unheard. Without an agent, every agent gets it
+# and the primary one polls (the agent's own rule).
+
+def for_agent(every, agent_id, connected):
+    """The targets ``agent_id`` gets, ``mine`` set on those only it collects. ``connected``: the
+    agent ids connected now. ``agent_id`` None (an agent that doesn't say who it is): every target,
+    as before."""
+    if agent_id is None:
+        return [dict(t) for t in every]
+    out = []
+    for t in every:
+        owner = t.get('agent') or ''
+        if owner and owner in connected:
+            if owner == agent_id:
+                out.append({**t, 'mine': True})
+        else:
+            out.append(dict(t))
+    return out
+
+
+def pinned(data=None):
+    """{device name, lower case: agent id} for the devices with an agent: where calls about them go."""
+    from .. import inventory, inventory_scope
+    data = load_data() if data is None else data
+    out = {t['name'].lower(): t['agent'] for t in raw_targets(data) if t.get('agent')}
+    for dev in inventory.devices(data, include_hidden=True):
+        name = str(dev.get('name') or '').lower()
+        if not name or name in out:
+            continue
+        stack = inventory_scope.layers(data, dev)
+        agent = _agent(next((h['properties']['telemetry_agent'] for _k, h in stack
+                             if (h.get('properties') or {}).get('telemetry_agent')), ''))
+        if agent:
+            out[name] = agent
+    return out

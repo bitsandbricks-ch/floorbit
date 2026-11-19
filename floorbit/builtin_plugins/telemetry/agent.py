@@ -268,7 +268,8 @@ class AgentPlugin(Base):
             try:
                 if self.follow_role():
                     next_poll = next_send = 0.0
-                if not self.primary:
+                # A standby agent collects only the devices given to it by name (targets.for_agent).
+                if not self.primary and not self.own_targets():
                     self.report(now)
                     continue
                 if now >= next_poll:
@@ -282,9 +283,14 @@ class AgentPlugin(Base):
             except Exception as exc:  # noqa: BLE001  # a bad round must not end the collector
                 self.ctx.error(f'{type(exc).__name__}: {exc}')
 
+    def own_targets(self):
+        with self.lock:
+            return [t for t in self.targets if t.get('mine')]
+
     def poll(self, now):
         with self.lock:
-            wanted = [t for t in self.targets if set(t.get('drivers') or []) & set(pollers.POLLERS)]
+            wanted = [t for t in self.targets if set(t.get('drivers') or []) & set(pollers.POLLERS)
+                      and (self.primary or t.get('mine'))]
         if not wanted:
             return
         found, errors = pollers.poll_all(wanted, now, log=self.ctx.log, blocks=self.ctx)

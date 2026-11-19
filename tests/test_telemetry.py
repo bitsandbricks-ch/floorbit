@@ -599,6 +599,72 @@ def test_devices_from_the_inventory_are_collected_with_their_stored_logins(clien
     assert [t["address"] for t in targets.all_opened() if t["name"] == "sw-a-01"] == ["192.0.2.22"]
 
 
+def test_a_port_per_way_of_asking_and_an_agent_from_the_group(client, tmp_path, monkeypatch):
+    """Ports and the collecting agent are properties: a group sets them for its devices, a device
+    can change one. SNMP's port never leaks into gNMI or the API."""
+    from test_credentials import key_file
+    from test_inventory_scope import add, group, put_cred
+
+    from floorbit.telemetry import pollers, targets
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    hall = group(client, name="Hall B", features={"telemetry": True},
+                 properties={"telemetry_port_snmp": "1161", "telemetry_agent": "rack-b"})
+    add(client, name="sw-b-01", mgmt_ip="192.0.2.31", platform="IOS-XE 17", group_id=hall["id"],
+        properties={"telemetry_port_gnmi": "50052", "telemetry_drivers": "snmp, gnmi, restconf",
+                    "telemetry_port_api": "8443"})
+    put_cred(client, owner_type="group", owner_id=hall["id"], kind="snmp_v2c", secret="example-community")
+    found = {t["name"]: t for t in targets.from_inventory()}["sw-b-01"]
+    assert found["ports"] == {"snmp": 1161, "gnmi": 50052, "api": 8443} and found["agent"] == "rack-b"
+    conf = telegraf.render([found], "http://agent:8186/write", "t")
+    assert "udp://192.0.2.31:1161" in conf and "192.0.2.31:50052" in conf
+    assert pollers._base(found) == "https://192.0.2.31:8443"
+    assert targets.pinned()["sw-b-01"] == "rack-b"
+
+
+def test_a_device_with_an_agent_goes_to_that_agent_only_while_it_is_there():
+    from floorbit.telemetry import targets
+    every = [{"name": "sw-a", "agent": "rack-a"}, {"name": "sw-b", "agent": ""}]
+    both = {"rack-a", "rack-b"}
+    assert targets.for_agent(every, "rack-a", both) == [{"name": "sw-a", "agent": "rack-a", "mine": True},
+                                                        {"name": "sw-b", "agent": ""}]
+    assert targets.for_agent(every, "rack-b", both) == [{"name": "sw-b", "agent": ""}]
+    # rack-a is away: its switch goes back to the others.
+    assert [t["name"] for t in targets.for_agent(every, "rack-b", {"rack-b"})] == ["sw-a", "sw-b"]
+    # A standby agent polls its own device, and only that one.
+    conf = telegraf.render([{"name": "sw-a", "address": "192.0.2.1", "drivers": ["snmp"], "mine": True},
+                            {"name": "sw-b", "address": "192.0.2.2", "drivers": ["snmp"]}],
+                           "http://agent:8186/write", "t", poll=False)
+    assert "192.0.2.1:161" in conf and "192.0.2.2" not in conf
+
+
+def test_each_agent_gets_its_share_of_the_devices(client, anon_client, tmp_path, monkeypatch):
+    from test_credentials import key_file
+    from test_inventory_scope import add, put_cred
+
+    from floorbit import agent_link
+    from tests.test_agent import enrol
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    a, b = enrol(client, "Rack A"), enrol(client, "Rack B")
+    client.put("/api/settings/plugins/telemetry", json={"enabled": True})
+    add(client, name="sw-a-01", mgmt_ip="192.0.2.21", features={"telemetry": True},
+        properties={"telemetry_agent": a["id"]})
+    add(client, name="sw-c-01", mgmt_ip="192.0.2.23", features={"telemetry": True})
+    put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="example-community")
+
+    def names(agent):
+        cfg = anon_client.get("/api/agent/v1/plugins", headers={"Floorbit-Agent-Key": agent["key"]}).get_json()
+        return {t["name"]: bool(t.get("mine")) for t in cfg["plugins"]["telemetry"]["settings"]["targets"]}
+
+    # Rack A away: nobody else would hear its switch, so everyone gets it.
+    assert names(b) == {"sw-a-01": False, "sw-c-01": False}
+    agent_link.tunnel.seen(agent=a["id"])
+    agent_link.tunnel.seen(agent=b["id"])
+    assert names(a) == {"sw-a-01": True, "sw-c-01": False}
+    assert names(b) == {"sw-c-01": False}
+    # Calls about the switch go to the agent that holds its picture.
+    assert agent_link.agent_for("sw-a-01") == a["id"]
+
+
 def test_a_refused_inventory_login_blocks_the_stored_credential():
     target = {"name": "core-1", "address": "192.0.2.1", "drivers": ["nxapi"],
               "logins": {"api": {"device": "dev-1", "credential": "cred-1", "rev": "r1"}}}

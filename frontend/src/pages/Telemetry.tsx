@@ -18,7 +18,7 @@ import { ago, dateTime } from '@/lib/time'
 export interface TelemetryTarget {
   id: string; name: string; address: string; kind: string; platform: string; drivers: string[]
   snmp_version: '2c' | '3'; sec_name?: string; username?: string; auth_protocol: string; priv_protocol: string
-  fdb: string; vlans: number[]; port: number | null; verify_tls: boolean; tables: boolean; mdt_node: string | null
+  fdb: string; vlans: number[]; ports?: { snmp?: number; gnmi?: number; api?: number }; agent?: string; verify_tls: boolean; tables: boolean; mdt_node: string | null
   url: string | null; secrets: string[]
 }
 interface Seen { seen: number | null; online: boolean; ports?: number; macs?: number; arp?: number; neighbours?: number; problems?: DeviceProblem[] }
@@ -43,12 +43,14 @@ const SECRET_KEYS = ['community', 'auth_password', 'priv_password', 'password', 
 
 function fromTarget(tg: TelemetryTarget): Form {
   return { ...EMPTY, ...tg, sec_name: tg.sec_name ?? '', username: tg.username ?? '', vlans: tg.vlans.join(', '),
-    port: tg.port ? String(tg.port) : '', mdt_node: tg.mdt_node ?? '', url: tg.url ?? '' }
+    port: tg.ports?.api ? String(tg.ports.api) : '', mdt_node: tg.mdt_node ?? '', url: tg.url ?? '' }
 }
 
 /** What to send: secrets only when typed (empty keeps the stored one). */
 function body(form: Form) {
-  const out: Record<string, unknown> = { ...form, port: form.port ? Number(form.port) : null }
+  // The form's one port is the API's; the inventory sets each kind's (Telemetry tab).
+  const { port, ...rest } = form
+  const out: Record<string, unknown> = { ...rest, ports: port ? { api: Number(port) } : {} }
   for (const k of SECRET_KEYS) if (!form[k]) delete out[k]
   return out
 }
