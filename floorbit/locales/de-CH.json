@@ -1206,5 +1206,11 @@
  "Telemetry does not collect from that device. Turn it on in the inventory.": "Von diesem Gerät sammelt die Telemetrie nicht. Schalte sie im Inventar ein.",
  "{} must be one of {}.": "{} muss eines davon sein: {}.",
  "The agents CA key cannot be opened. The server log says why.": "Der Schlüssel der Agent-CA lässt sich nicht öffnen. Das Server-Log sagt, warum.",
- "That device is not in the inventory.": "Dieses Gerät ist nicht im Inventar."
+ "That device is not in the inventory.": "Dieses Gerät ist nicht im Inventar.",
+ "No such discovery action.": "Diese Discovery-Aktion gibt es nicht.",
+ "Minutes are a whole number from 0 (off) to {}.": "Die Minuten sind eine ganze Zahl von 0 (aus) bis {}.",
+ "Discovery runs at most every {} minutes.": "Discovery läuft höchstens alle {} Minuten.",
+ "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
+ "Send an object.": "Schicke ein Objekt.",
+ "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken."
 }

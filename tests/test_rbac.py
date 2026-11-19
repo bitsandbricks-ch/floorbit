@@ -138,6 +138,7 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
                         "/api/inventory/credentials",   # passwords and keys stored on devices, groups and tags
                         "/api/icons",                   # uploaded SVGs everyone's browser shows
                         "/api/inventory/types",         # the fields every entry of a type has
+                        "/api/inventory/discovery/actions",   # how often discovery asks every device
                         "/api/discord/interactions",   # signed by Discord, acts with the linked account
                         "/api/agents",                 # enrolling a local agent hands out a key to the event's data
                         "/api/agent/v1/",              # the local agent, with its own key (blueprints/agent.py)

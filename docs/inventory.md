@@ -175,9 +175,25 @@ serial, platform and software version, CPU, cores, memory, disk, location and th
 sysLocation, ENTITY-MIB for the chassis model and serial, HOST-RESOURCES-MIB for memory, disks and
 CPUs, the Cisco memory pool); with LibreNMS it takes what LibreNMS knows of the device.
 
-- It runs every **Discovery (minutes)** under Settings > General (`DISCOVERY_MINUTES`, 15 by
-  default; less than 5 counts as 5, 0 is off) and with **Sync now**. The Inventory page shows its
-  last run next to the plugins'.
+- It is a set of **actions**, each for the kinds of device it fits and on its own clock:
+
+  | Action | Devices | Every |
+  | --- | --- | --- |
+  | `identity`: model, serial, software, location, memory, disks, CPU | all | 60 minutes |
+  | `interfaces` | switches, routers, firewalls, access points, servers, PDUs | Discovery (minutes) |
+  | `networks`: VLANs and networks | switches, routers, firewalls, servers, VMs | Discovery (minutes) |
+  | `optics`: transceivers | switches, routers, firewalls | 60 minutes |
+  | `poe`: the PoE budget | switches | Discovery (minutes) |
+  | `routes` | firewalls | Discovery (minutes) |
+
+  **Discovery (minutes)** is under Settings > General (`DISCOVERY_MINUTES`, 15 by default; less
+  than 5 counts as 5, 0 turns every action off). An admin sets one action's own interval with
+  `PUT /api/inventory/discovery/actions/<id>` (`{"minutes": 30}`, 0 for off, `null` for the
+  default). `GET /api/inventory/discovery` lists the actions with their last run (when, how many
+  devices, how many changed). **Sync now** runs them all; `POST /api/inventory/discovery/run`
+  runs some (`{"actions": ["optics"]}`) or all, on every device or one (`{"device": "<id>"}`), and
+  a run for one device doesn't move the schedule. The Inventory page shows the last run next to
+  the plugins'.
 - It only fills in. A field gets the discovered value when it is empty, or when it still holds
   what discovery put there last, so a software upgrade shows up. A value typed by hand or sent by
   another plugin (NetBox) stays; the run counts it as kept. Empty a field and the next run fills
