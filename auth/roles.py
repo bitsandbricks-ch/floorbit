@@ -280,6 +280,7 @@ RULES = (
     # A device blocked after a failed login: any tech clears it once the login is fixed.
     ('/api/inventory/blocks', None, 'ports.act'),
     ('/api/inventory', WRITE, 'floorplan.edit'),
+    ('/api/switch-swap', WRITE, 'floorplan.edit'),   # a new box in a dead switch's place (floorbit/switch_swap.py)
     ('/api/seat-map', READ, 'seats.view'),
     ('/api/seat-map.csv', READ, 'seats.view'),
     ('/api/seat-map', WRITE, 'seats.edit'),

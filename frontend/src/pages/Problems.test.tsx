@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProblemList } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -136,6 +136,19 @@ describe('Problems', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Mute' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.path === '/api/alerts/mutes')?.body)
       .toEqual({ service_id: 'demo:game-1', minutes: 60, reason: '' }))
+  })
+
+  it('offers the swap page for an offline switch to those who may change the inventory (issue #1060)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    const view = renderWithApp(<Problems />)
+    await screen.findByText('sw-c-02 is offline')
+    expect(screen.queryByRole('link', { name: 'Swap' })).not.toBeInTheDocument()
+    view.unmount()
+    const lead = { enabled: true, user: { ...me.user, role: 'lead', permissions: ['incidents.work', 'floorplan.edit'] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />)
+    await screen.findByText('sw-c-02 is offline')
+    await waitFor(() => expect(screen.getAllByRole('link', { name: 'Swap' })[0]).toHaveAttribute('href', '/switch-swap/s1'))
   })
 
   it('says when all is well', async () => {

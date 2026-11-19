@@ -60,6 +60,7 @@
   "muteTextService": "No Discord messages about this service going down or coming back until the mute ends. It stays on this list and on the health wall.",
   "show": "Show",
   "all": "All",
+  "swap": "Swap",
   "report": "Make an incident",
   "incidentOpen": "Incident open",
   "copy": "Copy list",
