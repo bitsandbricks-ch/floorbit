@@ -500,9 +500,17 @@ agent's machine. Only the newest summary waits while the hosted side is away.
 Every half minute the agent sends a short report: how long it has been up, how often its link
 dropped, the syslog lines it received, still holds and dropped, the NetFlow packets it read, how often its captive portal showed
 the check-in note or said it wasn't needed, and the calls it answered "busy" because too many of one kind were waiting. The Local agents page shows it
-under each agent, with dropped lines and busy calls in colour. Only these numbers are kept, only
-in memory, and a report older than three minutes isn't shown. The agent's own `/metrics` has
-the full detail for Prometheus.
+under each agent, with dropped lines and busy calls in colour. The latest report is kept in
+memory, and one older than three minutes isn't shown. The agent's own `/metrics` has the full
+detail for Prometheus.
+
+A few of the numbers are also kept over time, for the **Graphs** tab on the agent's page: the
+telemetry points and the sends to Floorbit per minute, the series, the devices heard and failing,
+Telegraf restarts, reconnects and syslog lines per minute, and the median time the agent took to
+answer. They are stored with the telemetry series (Floorbit's database, a point a minute for six
+hours and every 15 minutes for `FLOORBIT_TELEMETRY_DAYS`; or VictoriaMetrics as `fb_agent_<name>`
+with an `agent` label when it is set up) and age out with them. A gap in a graph is a time the
+agent didn't report.
 
 ## When the agent is away
 

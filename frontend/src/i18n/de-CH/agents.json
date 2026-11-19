@@ -220,6 +220,7 @@
     "failover": "Ausfallsicherheit pro Halle",
     "server": "Dieses Floorbit",
     "overview": "Übersicht",
+    "graphs": "Verlauf",
     "plugins": "Plugins ({{count}})",
     "updates": "Updates",
     "settings": "Einstellungen"
@@ -245,5 +246,35 @@
     "device_problems": "Einige Geräte senden nichts. Einstellungen > Telemetrie zeigt jedes und warum.",
     "howToFix": "So behebst du es",
     "showDevices": "Geräte zeigen"
+  },
+  "graphs": {
+    "help": "Was dieser Agent über die Zeit gemeldet hat. Lücken sind Zeiten, in denen er weg war. So lange aufbewahrt wie die Telemetrie.",
+    "range": "Zeitraum",
+    "hours_one": "{{count}} h",
+    "hours_other": "{{count}} h",
+    "none": "Noch keine Zahlen gespeichert. Sie beginnen mit den nächsten Meldungen des Agents, alle halbe Minute.",
+    "max": "max. {{n}}",
+    "metric": {
+      "points": "Telemetrie-Punkte",
+      "sent": "Sendungen an Floorbit",
+      "series": "Reihen",
+      "heard": "Geräte gehört",
+      "failing": "Geräte mit Fehlern",
+      "telegraf_restarts": "Telegraf-Neustarts",
+      "reconnects": "Neuverbindungen",
+      "syslog": "Syslog-Zeilen",
+      "median_ms": "Antwortzeit (Median)"
+    },
+    "unit": {
+      "points": "{{n}} pro Minute jetzt",
+      "sent": "{{n}} pro Minute jetzt",
+      "series": "{{n}} jetzt",
+      "heard": "{{n}} jetzt",
+      "failing": "{{n}} jetzt",
+      "telegraf_restarts": "{{n}} seit dem Start des Agents",
+      "reconnects": "{{n}} pro Minute jetzt",
+      "syslog": "{{n}} pro Minute jetzt",
+      "median_ms": "{{n}} ms jetzt"
+    }
   }
 }

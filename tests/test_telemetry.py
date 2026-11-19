@@ -667,3 +667,20 @@ def test_a_big_sample_goes_in_few_statements_and_every_number_lands(tmp_path):
     assert store.series("sw-0", "Gi1/0/0", "in_bps", hours=1, now=now) == [[now, 7.0]]
     assert store.series("sw-19", "Gi1/0/11", "in_bps", hours=1, now=now) == [[now, 999.0]]
     db.close()
+
+
+def test_victoriametrics_names_agent_numbers_by_agent(monkeypatch):
+    monkeypatch.setenv("FLOORBIT_VICTORIAMETRICS_URL", "http://vm.example:8428")
+    sent, asked = [], []
+    monkeypatch.setattr(storage.requests, "post",
+                        lambda url, data=None, timeout=None, **kw: sent.append(data.decode()) or FakeResp({}, 204))
+
+    def fake_get(url, params=None, timeout=None):
+        asked.append(params["query"])
+        return FakeResp({"data": {"result": [{"values": [[1000, "3"]]}]}})
+    monkeypatch.setattr(storage.requests, "get", fake_get)
+    store = storage.Storage(None)
+    store.sample({"agent:ab12||points": 3.0}, 1000)
+    assert sent[0] == "fb_agent_points,agent=ab12 value=3.0 1000000000000"
+    assert store.series("agent:ab12", None, "points", hours=1, now=2000) == [[1000, 3.0]]
+    assert asked == ['fb_agent_points_value{agent="ab12"}']

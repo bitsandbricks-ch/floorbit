@@ -506,3 +506,36 @@ def test_transport_and_newest_version():
     agents = [{"version": "0.9.0"}, {"version": "0.10.1"}, {"version": None}, {"version": "v0.10.0"}]
     assert agent_link.newest_version(agents) == "0.10.1"
     assert agent_link.newest_version([{"version": None}]) is None
+
+
+def _telemetry_report(at, points, sent, reconnects=0):
+    return {"reconnects": reconnects, "syslog_received": 0, "plugins": {"telemetry": {
+        "status": "ok", "running": True, "message": "", "errors": [],
+        "metrics": {"points": points, "sent": sent, "series": 120, "devices_heard": 4, "devices_failing": 1,
+                    "telegraf_restarts": 0}}}}
+
+
+def test_history_rates_from_counters():
+    from floorbit import agent_history
+    before = {"at": 1000, "reconnects": 1, "plugins": {"telemetry": {"metrics": {"points": 100, "sent": 10}}}}
+    now = {"at": 1030, "reconnects": 2,
+           "plugins": {"telemetry": {"metrics": {"points": 400, "sent": 13, "series": 50}}}}
+    got = agent_history.values(before, now, {"median_ms": 12})
+    assert got == {"series": 50.0, "median_ms": 12.0, "points": 600.0, "sent": 6.0, "reconnects": 2.0}
+    restarted = {**now, "reconnects": 0, "plugins": {"telemetry": {"metrics": {"points": 5, "sent": 1}}}}
+    assert "points" not in agent_history.values(now, {**restarted, "at": 1060})       # counter went down
+    assert "points" not in agent_history.values(before, {**now, "at": 5000})          # too long ago for a rate
+    assert agent_history.values(None, {"at": 1}) == {}
+
+
+def test_history_kept_per_agent_and_served(client, anon_client):
+    made = enrol(client)
+    t0 = (time.time() // 60) * 60 - 600
+    agent_link.tunnel.report(made["id"], _telemetry_report(t0, 0, 0), now=t0)
+    agent_link.tunnel.report(made["id"], _telemetry_report(t0 + 60, 1200, 30, reconnects=1), now=t0 + 60)
+    got = client.get(f"/api/agents/{made['id']}/history?hours=1").get_json()
+    series = got["series"]
+    assert [v for _, v in series["points"]] == [1200.0] and [v for _, v in series["sent"]] == [30.0]
+    assert [v for _, v in series["heard"]] == [4.0, 4.0] and series["reconnects"][0][1] == 1.0
+    assert client.get("/api/agents/nobody/history").status_code == 404
+    assert anon_client.get(f"/api/agents/{made['id']}/history").status_code in (401, 403)

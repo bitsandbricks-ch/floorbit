@@ -220,6 +220,7 @@
     "failover": "Failover per hall",
     "server": "This Floorbit",
     "overview": "Overview",
+    "graphs": "Graphs",
     "plugins": "Plugins ({{count}})",
     "updates": "Updates",
     "settings": "Settings"
@@ -245,5 +246,35 @@
     "device_problems": "Some devices send nothing. Settings > Telemetry shows each one and why.",
     "howToFix": "How to fix",
     "showDevices": "Show devices"
+  },
+  "graphs": {
+    "help": "What this agent reported over time. Gaps are times it was away. Kept as long as telemetry.",
+    "range": "Time range",
+    "hours_one": "{{count}} h",
+    "hours_other": "{{count}} h",
+    "none": "No numbers kept yet. They start with the agent's next reports, every half minute.",
+    "max": "max {{n}}",
+    "metric": {
+      "points": "Telemetry points",
+      "sent": "Sends to Floorbit",
+      "series": "Series",
+      "heard": "Devices heard",
+      "failing": "Devices failing",
+      "telegraf_restarts": "Telegraf restarts",
+      "reconnects": "Reconnects",
+      "syslog": "Syslog lines",
+      "median_ms": "Call time (median)"
+    },
+    "unit": {
+      "points": "{{n}} per minute now",
+      "sent": "{{n}} per minute now",
+      "series": "{{n}} now",
+      "heard": "{{n}} now",
+      "failing": "{{n}} now",
+      "telegraf_restarts": "{{n}} since the agent started",
+      "reconnects": "{{n}} per minute now",
+      "syslog": "{{n}} per minute now",
+      "median_ms": "{{n}} ms now"
+    }
   }
 }

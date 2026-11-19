@@ -911,6 +911,8 @@ class Tunnel:
         with self._cond:
             before = self._reports.get(agent)
             self._reports[agent] = clean
+        from . import agent_history
+        agent_history.record(agent, before, clean, self.stats(agent, clean['at']))
         if plugins:
             from .agent_plugins import note_blocks
             note_blocks(agent, before, clean)

@@ -11,17 +11,18 @@ import { Layout } from '@/components/Layout'
 import { StatCard } from '@/components/StatCard'
 import { EmptyState, ErrorBanner, Field, LoadingState, Panel } from '@/components/ui'
 import { ago, dateOnly } from '@/lib/time'
+import { AgentGraphs } from './agents/AgentGraphs'
 import { AgentActions, PluginsOff, Updates } from './agents/AgentTools'
 import { useAgents, useHalls } from './agents/data'
 import { Blocked, PluginTable, Report } from './agents/Details'
 import { KeyAlert, type Made } from './agents/KeyAlert'
 import { behind, stateKey, upText } from './agents/model'
 
-const TABS = ['overview', 'plugins', 'updates', 'settings'] as const
+const TABS = ['overview', 'graphs', 'plugins', 'updates', 'settings'] as const
 type Tab = (typeof TABS)[number]
 
 /** One local agent: a header with what it is and how it connects, then tabs for what needs a
- *  look and its numbers, its plugins, its plugin updates, and its settings (halls, key, revoke). */
+ *  look and its numbers, its numbers over time, its plugins, its plugin updates, and its settings (halls, key, revoke). */
 export default function AgentDetail() {
   const { t, i18n } = useTranslation()
   const lang = i18n.language
@@ -93,6 +94,7 @@ export default function AgentDetail() {
         <Tabs value={tab} onChange={setTab} keepMounted={false}>
           <Tabs.List>
             <Tabs.Tab value="overview">{t('agents.tab.overview')}</Tabs.Tab>
+            <Tabs.Tab value="graphs">{t('agents.tab.graphs')}</Tabs.Tab>
             <Tabs.Tab value="plugins">{t('agents.tab.plugins', { count: pluginCount })}</Tabs.Tab>
             <Tabs.Tab value="updates">{t('agents.tab.updates')}</Tabs.Tab>
             <Tabs.Tab value="settings">{t('agents.tab.settings')}</Tabs.Tab>
@@ -146,6 +148,10 @@ export default function AgentDetail() {
                 </Stack>
               </Grid.Col>
             </Grid>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="graphs" pt="md">
+            <AgentGraphs agentId={a.id} />
           </Tabs.Panel>
 
           <Tabs.Panel value="plugins" pt="md">

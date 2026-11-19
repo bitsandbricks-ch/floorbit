@@ -76,12 +76,21 @@ def snapshot(st=None, now=None):
     return out
 
 
-def _vm_line(key, value, at):
-    device, port, metric = key.split('|', 2)
+AGENT = 'agent:'      # a local agent's own numbers (agent_history.py), not a device's
+
+
+def _vm_name(device, port, metric):
+    """The measurement and labels one series has in VictoriaMetrics."""
+    if device.startswith(AGENT) and not port:
+        return f'fb_agent_{metric}', {'agent': device[len(AGENT):]}
     tags = {'device': device}
     if port:
         tags['port'] = port
-    name = f'fb_port_{metric}' if port else f'fb_device_{metric}'
+    return (f'fb_port_{metric}' if port else f'fb_device_{metric}'), tags
+
+
+def _vm_line(key, value, at):
+    name, tags = _vm_name(*key.split('|', 2))
     return lineproto.format_point(lineproto.Point(name, tags, {'value': float(value)}, at))
 
 
@@ -175,8 +184,8 @@ class Storage:
 
     def _vm_series(self, url, device, port, metric, since, now):
         from ..builtin_plugins.prometheus.plugin import quote
-        name = f'fb_port_{metric}_value' if port else f'fb_device_{metric}_value'
-        selector = f'{name}{{device={quote(device)}' + (f',port={quote(port)}' if port else '') + '}'
+        name, tags = _vm_name(device, port, metric)
+        selector = f'{name}_value{{' + ','.join(f'{k}={quote(v)}' for k, v in tags.items()) + '}'
         step = max(SAMPLE, int((now - since) / 400))
         try:
             resp = requests.get(f'{url}/api/v1/query_range', timeout=TIMEOUT,
@@ -200,9 +209,10 @@ _storage = None
 def storage():
     """The process's storage, on Floorbit's database."""
     global _storage
-    if _storage is None:
-        from .. import database
-        _storage = Storage(database.backend())
+    from .. import database
+    db = database.backend()
+    if _storage is None or _storage.db is not db:     # a new database (another state folder): its own storage
+        _storage = Storage(db)
     return _storage
 
 

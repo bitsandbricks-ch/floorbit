@@ -49,6 +49,22 @@ describe('AgentDetail', () => {
     expect(screen.getByText('Syslog, NetFlow')).toBeInTheDocument()
   })
 
+  it('draws its numbers over time and changes the range', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const pts = (v: number) => [[now - 180, v], [now - 120, v], [now - 60, v + 2]]
+    const api = open(busyAgent(), 'graphs', {
+      'GET /api/agents/a1b2c3d4/history?hours=6': { hours: 6, series: { points: pts(1200), heard: pts(4), sent: [], median_ms: [] } },
+      'GET /api/agents/a1b2c3d4/history?hours=24': { hours: 24, series: {} },
+    })
+    expect(await screen.findByRole('img', { name: 'Telemetry points' })).toBeInTheDocument()
+    expect(screen.getByText('1,202 per minute now')).toBeInTheDocument()
+    expect(screen.getByText('6 now')).toBeInTheDocument()
+    expect(screen.queryByText('Sends to Floorbit')).not.toBeInTheDocument()       // never sent: left out
+    fireEvent.click(screen.getByText('24 h'))
+    expect(await screen.findByText(/No numbers kept yet/)).toBeInTheDocument()
+    expect(api.calls.some((c) => c.path.endsWith('hours=24'))).toBe(true)
+  })
+
   it('shows its plugin updates', async () => {
     const now = Date.now() / 1000
     const a: Agent = { ...busyAgent(), report: { at: now, plugins: {},
