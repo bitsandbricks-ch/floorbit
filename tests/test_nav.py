@@ -126,3 +126,7 @@ def test_the_first_paint_names_plugins_and_settings_at_the_foot(app_module, monk
     assert foot.index('href="/settings/plugins"') < foot.index('href="/settings"')
     assert '>Plugins</span>' in foot and '>Settings</span>' in foot
     assert "fb-nav-settings" not in html
+    with app_module.app.test_request_context("/settings/plugins/netbox"):
+        html = str(nav.markup(boot))
+    assert '<a href="/settings/plugins" class="fb-nav-row" aria-current="page">' in html
+    assert '<a href="/settings" class="fb-nav-row" aria-current="page">' not in html

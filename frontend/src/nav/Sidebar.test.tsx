@@ -85,6 +85,14 @@ describe('Sidebar', () => {
     expect(within(admin).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
   })
 
+  it('lights Plugins on the plugin pages, not Settings', () => {
+    const withPlugins = [...pages, { href: '/settings/plugins', id: 'plugins', label: 'Plugins' }]
+    render(<Sidebar boot={{ ...boot, pages: withPlugins }} path="/settings/plugins/netbox" renderLink={link} onGoTo={() => {}} />)
+    const admin = within(main()).getByRole('list', { name: 'Plugins and settings' })
+    expect(within(admin).getByRole('link', { name: 'Plugins' })).toHaveAttribute('aria-current', 'page')
+    expect(within(admin).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
+  })
+
   it('marks the page on screen and shows how many switches are down', () => {
     sidebar('/incidents', { down: 3 })
     const row = within(main()).getByRole('link', { name: /Helpdesk/ })

@@ -262,9 +262,13 @@ def markup(boot):
     every = {p['id']: p for p in pages}
     admin = [every[i] for i in ('plugins', 'settings') if i in every]
     if admin:
+        # Plugins lives under /settings, so it lights on its own pages and Settings on the rest.
+        here = request.path
+        plugins_on = any(p['id'] == 'plugins' and (here == p['href'] or here.startswith(p['href'] + '/')) for p in admin)
         items = []
         for p in admin:
-            cur = ' aria-current="page"' if p['href'] == lit else ''
+            on = plugins_on if p['id'] == 'plugins' else (p['href'] == lit and not plugins_on)
+            cur = ' aria-current="page"' if on else ''
             tip = f' title="{e(label(p))}"' if rail else ''
             icon = icons['page'].get(p['id']) or icons['page']['*']
             items.append(f'<li class="fb-nav-item"><a href="{e(p["href"])}" class="fb-nav-row"{tip}{cur}>{icon}'
