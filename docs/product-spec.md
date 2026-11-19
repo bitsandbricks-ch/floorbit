@@ -124,8 +124,9 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 
 ### Structure
 
-- **Shell:** event picker at the top of the sidebar, grouped sidebar, top bar with breadcrumbs,
-  Go to (`Ctrl K`) and notifications, a status line. Pinned favourites per person, including
+- **Shell:** event picker at the top of the sidebar, grouped sidebar, one bar on top of every
+  page (its breadcrumb ends in the page's title, the page's buttons, Go to (`Ctrl K`) and
+  notifications on the right; no second title row on a computer), a status line. Pinned favourites per person, including
   dashboards. The tenant switcher shows only with two or more tenants.
 - **Sidebar, about a dozen rows:** Overview and Floor plan · **Work:** Helpdesk · **Monitoring:**
   Services, Network, Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,

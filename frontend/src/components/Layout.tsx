@@ -1,4 +1,4 @@
-import { type ReactNode, Suspense, useEffect } from 'react'
+import { type ReactNode, Suspense, useEffect, useState } from 'react'
 import { Skeleton, Stack } from '@mantine/core'
 import { IconChevronLeft, IconSearch } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
@@ -18,6 +18,7 @@ import { useInPanel } from './panel'
 import { setPageTitle } from './pageTitle'
 import { StatusLine } from './StatusLine'
 import { TopBar } from './TopBar'
+import { TopbarSlot } from './topbarSlot'
 
 /** What shows in the page area while a page's code loads: the sidebar and top bar stay. */
 export function PageSkeleton() {
@@ -43,6 +44,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
   // The API's list only: the breadcrumbs link to its pages, and the list in the page (#fb-nav-data)
   // is text from the document.
   const pages = usePageList()
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
   // A wall screen or a print sheet is the page alone: no sidebar, banners or footer on the TV or the paper.
   if (params.get('screen') === '1' || params.get('print') === '1') {
     return <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
@@ -63,13 +65,15 @@ export function AppShell({ children }: { children?: ReactNode }) {
           </button>
         </header>
         {/* Desktops: where you are, "Go to" and the notifications. */}
-        <TopBar pages={pages} />
+        <TopBar pages={pages} onSlot={setSlot} />
         <HubTabs pages={pages} />
         <DatabaseBanner />
         <EventBanner />
         <CrewNoticeBanner />
         <PageError resetKey={pathname}>
-          <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
+          <TopbarSlot.Provider value={slot}>
+            <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
+          </TopbarSlot.Provider>
         </PageError>
         <StatusLine />
       </div>
