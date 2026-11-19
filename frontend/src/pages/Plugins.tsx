@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Paper, SegmentedControl, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { IconSearch } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -34,7 +34,7 @@ function DataSchema({ plugin }: { plugin: PluginInfo }) {
 function PluginLog({ id }: { id: string }) {
   const { t } = useTranslation()
   const { data, error, isPending } = usePluginLog(id, true)
-  if (isPending) return <Loader size="sm" aria-label={t('common.loading')} />
+  if (isPending) return <LoadingState />
   if (error) return <Text className="fb-tone-err">✕ {error.message}</Text>
   return <pre className="fb-log">{data.lines.length ? data.lines.map((l) => `${l.time}  ${l.line}`).join('\n') : t('plugins.emptyLog')}</pre>
 }

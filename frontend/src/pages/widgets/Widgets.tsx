@@ -1,4 +1,4 @@
-import { Alert, Button, Chip, Group, Loader, Menu, Modal, Paper, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Button, Chip, Group, Menu, Modal, Paper, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconArrowsMaximize, IconPlus, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense, useState } from 'react'
@@ -9,7 +9,7 @@ import { useCan, useDashboard, useFeaturesOff, useMe } from '@/api/queries'
 import type { WidgetTile } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { pluginName } from '@/lib/pluginName'
 import { WidgetCard } from '@/widgets/TileCard'
 import { VIEWS, VIEW_COMPONENTS, type ViewDef } from '@/widgets/views'
@@ -43,11 +43,10 @@ function useEntries(): Entry[] {
 
 /** A widget drawn small and live, as it shows on a dashboard. ``inert``: a preview, not a control. */
 function Preview({ entry }: { entry: Entry }) {
-  const { t } = useTranslation()
   const View = entry.view ? VIEW_COMPONENTS[entry.view.id] : null
   return (
     <div className="fb-widget-preview" inert>
-      {View ? <Suspense fallback={<Loader size="sm" aria-label={t('common.loading')} />}><View expanded={false} /></Suspense>
+      {View ? <Suspense fallback={<LoadingState lines />}><View expanded={false} /></Suspense>
         : entry.tile ? <WidgetCard tile={entry.tile} /> : null}
     </div>
   )
@@ -139,7 +138,7 @@ export default function Widgets() {
       </Stack>
       {big && BigView && (
         <BigModal title={big.name} onClose={() => setBig(null)}>
-          <Suspense fallback={<Loader size="sm" aria-label={t('common.loading')} />}><BigView expanded /></Suspense>
+          <Suspense fallback={<LoadingState />}><BigView expanded /></Suspense>
         </BigModal>
       )}
     </Layout>

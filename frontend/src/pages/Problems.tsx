@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconBellOff, IconCheck, IconCopy } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -14,7 +14,7 @@ import { PageHead } from '@/components/PageHead'
 import { StatCard } from '@/components/StatCard'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { ago, clock } from '@/lib/time'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
@@ -178,7 +178,7 @@ export default function Problems() {
       )} />
       <ErrorBanner error={error} mb="md" />
       {list.isPending || !data ? (
-        <Loader size="sm" />
+        <LoadingState />
       ) : (
         <Stack gap="md">
           {data.quiet_hours && <Alert color="gray" variant="light">{t('problems.quiet')}</Alert>}

@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Checkbox, Group, Loader, PasswordInput, Radio, Stack, Stepper, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Checkbox, Group, PasswordInput, Radio, Stack, Stepper, Text, TextInput } from '@mantine/core'
 import { IconCheck, IconPlugConnected } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ChangeEvent, useState } from 'react'
@@ -9,7 +9,7 @@ import { useSetup } from '@/api/queries'
 import type { ConnectionTest, SetupState, SetupStep } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 
 const STEPS: SetupStep[] = ['netbox', 'librenms', 'switches', 'theme']
 const THEMES = ['floorbit', 'ops', 'kiosk', 'classic'] as const
@@ -195,7 +195,7 @@ export default function Setup() {
   }
 
   let body
-  if (setup.isPending || !data) body = <Loader size="sm" />
+  if (setup.isPending || !data) body = <LoadingState />
   else if (data.needs_account) body = <AccountStep />
   else if (!data.can_set_up) body = <Alert color="gray">{data.done ? t('setup.alreadyDone') : t('setup.adminOnly')}</Alert>
   else {

@@ -1,4 +1,4 @@
-import { Button, Group, Loader, SegmentedControl, Text } from '@mantine/core'
+import { Button, Group, SegmentedControl, Text } from '@mantine/core'
 import { IconFileText, IconPlayerPlay } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -15,7 +15,7 @@ import { Compare } from './Compare'
 import { Forecast } from './Forecast'
 import { bps } from './format'
 import { onPlan } from '../plan/links'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
 
 const HOUR = 3600
@@ -185,7 +185,7 @@ export default function StatsView({ expanded }: ViewProps) {
         </Group>
       )}
       <ErrorBanner error={error} mb="md" />
-      {stats.isPending ? <Loader size="sm" aria-label={t('common.loading')} /> : stats.data && <Board data={stats.data} screen={!expanded} />}
+      {stats.isPending ? <LoadingState lines={!expanded} /> : stats.data && <Board data={stats.data} screen={!expanded} />}
     </>
   )
 }
