@@ -77,6 +77,14 @@ describe('Sidebar', () => {
     expect(within(main()).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
   })
 
+  it('names Plugins and Settings at the foot, not just a gear icon', () => {
+    const withPlugins = [...pages, { href: '/settings/plugins', id: 'plugins', label: 'Plugins' }]
+    render(<Sidebar boot={{ ...boot, pages: withPlugins }} path="/problems" renderLink={link} onGoTo={() => {}} />)
+    const admin = within(main()).getByRole('list', { name: 'Plugins and settings' })
+    expect(within(admin).getByRole('link', { name: 'Plugins' })).toHaveAttribute('href', '/settings/plugins')
+    expect(within(admin).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
+  })
+
   it('marks the page on screen and shows how many switches are down', () => {
     sidebar('/incidents', { down: 3 })
     const row = within(main()).getByRole('link', { name: /Helpdesk/ })

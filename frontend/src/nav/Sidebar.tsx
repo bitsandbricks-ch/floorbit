@@ -1,6 +1,6 @@
 import {
   IconChevronDown, IconDots, IconStar, IconStarFilled, IconLanguage, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconLogout,
-  IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSelector, IconSettings, IconSun, IconX, type Icon,
+  IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSelector, IconSun, IconX, type Icon,
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -152,9 +152,10 @@ function Panel(props: PanelProps) {
   const { t } = useTranslation()
   const { boot, rail, lit, prefs } = props
   const { pinned, sections } = group(boot.pages)
-  // Settings sits at the foot, next to the account (issue #892).
-  const settings = rowsOf(boot.pages).find((p) => p.id === 'settings')
   const byId = new Map([...withParents(boot.pages), ...pinnedBoards(props.dashboards)].map((p) => [p.id, p]))
+  // Plugins and Settings sit at the foot as named rows, so they can't be missed (issue #892).
+  const admin = ['plugins', 'settings'].map((id) => byId.get(id) ?? rowsOf(boot.pages).find((p) => p.id === id))
+    .filter((p): p is NavPage => !!p)
   const favourites = prefs.favourites.map((id) => byId.get(id)).filter((p): p is NavPage => !!p)
   const [folded, setFolded] = useState<string[]>(readFolded)
   const isFav = (id: string) => prefs.favourites.includes(id)
@@ -282,14 +283,10 @@ function Panel(props: PanelProps) {
         })}
       </div>
 
+      {admin.length > 0 && <ul className="fb-nav-list fb-nav-admin" aria-label={t('nav.admin')}>{admin.map((p) => row(p, false))}</ul>}
       <Tenants {...props} />
       <div className="fb-nav-foot">
         <Account {...props} />
-        {settings && props.renderLink({
-          href: settings.href, className: 'fb-nav-icon-btn fb-nav-settings', title: t('goto.pages.settings'),
-          'aria-label': t('goto.pages.settings'), 'aria-current': lit === settings.href ? 'page' : undefined,
-          children: <IconSettings size={18} aria-hidden="true" />,
-        })}
         {props.onToggleRail && (
           <button
             type="button" className="fb-nav-icon-btn fb-nav-fold" onClick={props.onToggleRail}
