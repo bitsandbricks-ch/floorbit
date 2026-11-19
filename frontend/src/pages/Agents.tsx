@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Group, Modal, Paper, SimpleGrid, Stack, Tabs, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Button, Group, Modal, Stack, Tabs, Text, TextInput } from '@mantine/core'
 import { IconPlus } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -8,11 +8,10 @@ import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { StatCard } from '@/components/StatCard'
 import { ErrorBanner, LoadingState } from '@/components/ui'
-import { AgentCard } from './agents/AgentCard'
+import AgentsView from './agents/AgentsView'
 import { GroupsCard, HostedCard } from './agents/Availability'
-import { useAgents, useHalls, type AgentRow } from './agents/data'
+import { useAgents } from './agents/data'
 import { KeyAlert, type Made } from './agents/KeyAlert'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
@@ -25,7 +24,6 @@ export default function Agents() {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const { query, data: d, rows } = useAgents()
-  const halls = useHalls()
   const [params, setParams] = useSearchParams()
   const tab: Tab = (TABS as readonly string[]).includes(params.get('tab') ?? '') ? params.get('tab') as Tab : 'agents'
   const setTab = (v: string | null) => setParams(v && v !== 'agents' ? { tab: v } : {}, { replace: true })
@@ -50,7 +48,6 @@ export default function Agents() {
         {made && <KeyAlert made={made} onClose={() => setMade(null)} />}
         {query.isPending ? <LoadingState /> : d && (
           <>
-            {rows.length > 0 && <Overview rows={rows} />}
             <Tabs value={tab} onChange={setTab} keepMounted={false}>
               <Tabs.List>
                 <Tabs.Tab value="agents">{t('agents.tab.agents', { count: rows.length })}</Tabs.Tab>
@@ -60,15 +57,7 @@ export default function Agents() {
                 <Tabs.Tab value="server" c={hostedOk ? undefined : 'down'}>{t('agents.tab.server')}</Tabs.Tab>
               </Tabs.List>
               <Tabs.Panel value="agents" pt="md">
-                {rows.length === 0 ? (
-                  <Paper withBorder radius="lg" p="md">
-                    <Text size="sm" c="dimmed">{t('agents.none')}</Text>
-                  </Paper>
-                ) : (
-                  <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md" aria-label={t('agents.agents')}>
-                    {rows.map((r) => <AgentCard key={r.agent.id} row={r} newest={d.newest_version} hallNames={halls.names} />)}
-                  </SimpleGrid>
-                )}
+                <AgentsView expanded />
                 <Text size="xs" c="dimmed" mt="xs">{t('agents.inUse')}</Text>
               </Tabs.Panel>
               <Tabs.Panel value="failover" pt="md">
@@ -93,33 +82,5 @@ export default function Agents() {
         </Stack>
       </Modal>
     </Layout>
-  )
-}
-
-/** Four figures over all agents: how many are there, how many need a look, how the plugins run,
- *  and how the calls went in the last hour. */
-function Overview({ rows }: { rows: AgentRow[] }) {
-  const { t, i18n } = useTranslation()
-  const online = rows.filter((r) => r.agent.connected).length
-  const look = rows.filter((r) => r.tone !== 'up')
-  const plugins = rows.flatMap((r) => Object.values(r.agent.report?.plugins ?? {}))
-  const healthy = plugins.filter((p) => p.status === 'off' || (p.running && p.status === 'ok')).length
-  const calls = rows.reduce((n, r) => n + (r.agent.stats?.calls ?? 0), 0)
-  const failed = rows.reduce((n, r) => n + (r.agent.stats?.failed ?? 0), 0)
-  const num = (n: number) => n.toLocaleString(i18n.language)
-  return (
-    <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm" aria-label={t('agents.overview.title')} aria-live="polite">
-      <StatCard label={t('agents.overview.online')} value={`${online} / ${rows.length}`}
-        tone={online === rows.length ? 'up' : online ? 'warn' : 'down'} />
-      <StatCard label={t('agents.overview.look')} value={num(look.length)}
-        tone={look.some((r) => r.tone === 'down') ? 'down' : look.length ? 'warn' : undefined}
-        sub={look.length ? look.map((r) => r.agent.name).join(', ') : t('agents.overview.allGood')} />
-      <StatCard label={t('agents.overview.plugins')} value={plugins.length ? `${healthy} / ${plugins.length}` : '–'}
-        tone={plugins.length && healthy < plugins.length ? 'warn' : undefined}
-        sub={plugins.length ? t('agents.overview.pluginsSub') : t('agents.overview.noPlugins')} />
-      <StatCard label={t('agents.overview.calls')} value={num(calls)}
-        tone={failed ? 'warn' : undefined}
-        sub={failed ? t('agents.statsFailed', { count: failed }) : t('agents.overview.noFailed')} />
-    </SimpleGrid>
   )
 }

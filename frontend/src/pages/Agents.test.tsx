@@ -34,7 +34,7 @@ describe('Agents', () => {
     expect(within(card).getByText('3 hours')).toBeInTheDocument()
     expect(within(card).getByText('2 reconnects')).toBeInTheDocument()
     expect(within(card).getByText('412 calls · 84 ms')).toBeInTheDocument()
-    expect(within(card).getByText('Hall 2')).toBeInTheDocument()
+    expect(await within(card).findByText('Hall 2')).toBeInTheDocument()
     expect(within(within(card).getByLabelText('Plugins')).getByText('lancache')).toBeInTheDocument()
     expect(within(card).getByText('telemetry is failing: cannot listen on 8186')).toBeInTheDocument()
     expect(within(card).getByText(/and \d+ more/)).toBeInTheDocument()
@@ -96,5 +96,21 @@ describe('Agents', () => {
     expect(await screen.findByText('2 instances share the work over Valkey.')).toBeInTheDocument()
     expect(screen.getByText(/floorbit-0 · leader · this page/)).toBeInTheDocument()
     expect(screen.getByText('Database (postgres) answers.')).toBeInTheDocument()
+  })
+})
+
+describe('AgentsView on a dashboard', () => {
+  it('shows the figures and only the agents that need a look', async () => {
+    const { default: AgentsView } = await import('./agents/AgentsView')
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin, 'GET /api/halls': halls,
+      'GET /api/agents': { agents: [busyAgent(), quietAgent({ id: 'ok', name: 'Calm one', report: { at: Date.now() / 1000 } })], connected: true, max: 10, protocol: 2, newest_version: '0.9.0' },
+    }).fn)
+    renderWithApp(<AgentsView expanded={false} />)
+    const look = await screen.findByLabelText('Needs a look')
+    expect(within(look).getByRole('link', { name: 'Spring LAN, hall 2' })).toHaveAttribute('href', '/settings/agents/a1b2c3d4')
+    expect(within(look).queryByText('Calm one')).toBeNull()
+    expect(screen.getByText('2 / 2')).toBeInTheDocument()
+    expect(screen.queryByRole('article')).toBeNull()
   })
 })
