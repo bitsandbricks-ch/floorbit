@@ -246,6 +246,8 @@ def test_telegraf_config_per_driver():
     # Traps must not need net-snmp's snmptranslate, which the agent image doesn't carry.
     assert 'snmp_translator = "gosmi"' in conf
     assert 'community = "pub\\"lic@10"' in conf and 'community = "pub\\"lic@20"' in conf
+    # Each VLAN's poll is named apart, so a problem says which VLAN doesn't answer.
+    assert 'alias = "sw-a-01@vlan10"' in conf and 'alias = "sw-a-01@vlan20"' in conf
     assert conf.count('name = "fb_fdb"') == 2 and 'name = "fb_qfdb"' in conf
     assert 'agents = ["udp://[2001:db8::1]:161"]' in conf and 'sec_level = "authPriv"' in conf
     assert 'addresses = ["[2001:db8::1]:50051"]' in conf and 'origin = "openconfig"' in conf
@@ -468,9 +470,21 @@ def test_what_a_device_leaves_open_comes_from_its_software_and_interfaces(client
     page = client.get(f"/api/telemetry/devices/{sw['id']}").get_json()
     assert page["on"] and page["logins"] == {"snmp": "snmp_v2c"} and page["platform"] == "ios"
     assert page["auto"]["drivers"] == ["snmp", "traps"] and page["auto"]["vlans"] == [101, 102]
+
     assert page["target"]["drivers"] == ["snmp", "traps"] and "s3cret" not in json.dumps(page)
     assert client.get(f"/api/telemetry/devices/{core['id']}").get_json()["target"]["drivers"] == ["snmp", "mdt"]
     assert client.get("/api/telemetry/devices/nope").status_code == 404
+
+
+def test_per_vlan_mac_tables_follow_the_vlans_the_switch_lists():
+    """community@vlan for a VLAN the switch doesn't have gets no answer, only a timeout: the VLANs
+    it lists itself (discovery's VTP walk) win over the ones on its interfaces."""
+    from floorbit.telemetry import targets
+    dev = {"id": "sw", "interfaces": [{"name": "Gi1/0/1", "vlan": 30}, {"name": "Gi1/0/2", "vlan": 101}]}
+    assert targets.iface_vlans(dev) == [30, 101]
+    listed = {"inventory_discovered": {"sw": {"vlans": [{"id": 1}, {"id": 101}, {"id": 1002}, {"id": 1005}]}}}
+    assert targets.iface_vlans(dev, listed) == [1, 101]
+    assert targets.iface_vlans(dev, {"inventory_discovered": {"other": {"vlans": [{"id": 5}]}}}) == [30, 101]
 
 
 def test_the_agent_gets_the_devices_and_sends_series(client, anon_client, tmp_path, monkeypatch):

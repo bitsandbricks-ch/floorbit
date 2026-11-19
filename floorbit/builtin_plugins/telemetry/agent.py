@@ -526,7 +526,7 @@ class AgentPlugin(Base):
             self.state.apply(points, time.time())
             self.problems.heard({name}, time.time())
         # Telegraf says it once per table: one line per kind of problem is enough.
-        problems = list({(p['driver'], p['kind']): p for p in problems}.values())
+        problems = list({(p['driver'], p['kind'], p.get('vlan')): p for p in problems}.values())
         for p in problems:
             p.setdefault('device', name)
             p['hint'] = problems_mod.hint(p)

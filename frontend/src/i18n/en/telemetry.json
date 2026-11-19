@@ -53,6 +53,8 @@
     "refused": "{{driver}}: nothing listens on {{address}}. Is it turned on on the device, and the port right?",
     "timeout": "{{driver}}: no answer from {{address}}. Is it reachable from the agent, and the port right?",
     "timeout_snmp": "SNMP: no answer from {{address}}. Check the community or SNMPv3 login, and that an ACL lets the agent in.",
+    "timeout_vlan": "SNMP: no answer from {{address}} for VLAN {{vlan}} (community@{{vlan}}). Does the switch have that VLAN? Its other data still comes in.",
+    "timeout_table": "SNMP: no answer from {{address}} while reading {{table}}. If its other data comes in, the walk is too slow (a big table or SNMP rate limit); otherwise check the login and ACL.",
     "auth": "{{driver}}: {{address}} refused the login. Check the user and password (or SNMPv3 keys).",
     "unreachable": "{{driver}}: the agent has no route to {{address}}. Check the address and the agent's network.",
     "tls": "{{driver}}: TLS with {{address}} failed. Check its certificate, or turn off TLS checking for it.",

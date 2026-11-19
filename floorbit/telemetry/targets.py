@@ -91,10 +91,21 @@ def auto(platform, has_snmp, has_api):
     return {'drivers': drivers, 'fdb': 'cisco_vlans' if platform in ('ios', 'iosxe') else 'qbridge'}
 
 
-def iface_vlans(dev):
-    """The VLANs on a device's interfaces: where a Cisco switch keeps a MAC table each."""
-    return sorted({int(i['vlan']) for i in dev.get('interfaces') or []
-                   if not i.get('hidden') and str(i.get('vlan') or '').isdigit() and 1 <= int(i['vlan']) <= 4094})
+# Catalyst's FDDI and Token Ring VLANs: always listed, never carry a MAC.
+RESERVED_VLANS = range(1002, 1006)
+
+
+def iface_vlans(dev, data=None):
+    """The VLANs a Cisco switch keeps a MAC table each for: the ones it lists itself (discovery's
+    VTP walk) when known, else the ones on its interfaces. A VLAN it doesn't have gets no answer
+    for community@vlan, only a timeout every minute."""
+    on_ifaces = {int(i['vlan']) for i in dev.get('interfaces') or []
+                 if not i.get('hidden') and str(i.get('vlan') or '').isdigit() and 1 <= int(i['vlan']) <= 4094}
+    found = (data or {}).get('inventory_discovered')
+    found = found if isinstance(found, dict) else {}
+    listed = {int(v['id']) for v in (found.get(dev.get('id')) or {}).get('vlans') or []
+              if isinstance(v, dict) and str(v.get('id') or '').isdigit() and 1 <= int(v['id']) <= 4094}
+    return sorted((listed or on_ifaces) - set(RESERVED_VLANS))
 
 
 def _words(value):
@@ -171,7 +182,7 @@ def from_inventory(data=None):
     found = {**bare, **api, **snmp}
     out = []
     for dev_id in sorted(found, key=lambda i: found[i]['name'].lower()):
-        found[dev_id]['iface_vlans'] = iface_vlans(inventory.find(data, dev_id) or {})
+        found[dev_id]['iface_vlans'] = iface_vlans(inventory.find(data, dev_id) or {}, data)
         t = _from_device(found[dev_id], (snmp.get(dev_id) or {}).get('credential'),
                          (api.get(dev_id) or {}).get('credential'))
         if t:
@@ -199,7 +210,7 @@ def for_device(device_id, data=None):
     platform = _platform(dev.get('platform'))
     flat = {'id': dev['id'], 'name': dev['name'], 'address': dev.get('mgmt_ip') or dev['name'],
             'role': dev.get('role') or '', 'platform': dev.get('platform') or '',
-            'properties': inventory_scope._properties(stack), 'iface_vlans': iface_vlans(dev)}
+            'properties': inventory_scope._properties(stack), 'iface_vlans': iface_vlans(dev, data)}
     target = _from_device(flat, logins.get('snmp'), logins.get('api')) if on else None
     if target:
         target = {k: v for k, v in target.items() if k not in SECRETS and k != 'logins'}
