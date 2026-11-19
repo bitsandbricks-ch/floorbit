@@ -10,6 +10,10 @@ A Flask web app that shows the event's network on a floor plan: switches from Ne
 status and ports from LibreNMS, seat blocks, and which switch port each seat is on. Overview for
 users: [README.md](README.md).
 
+The standing product decisions (scope, architecture, modularity, UI rules, privacy, process) are in
+[docs/product-spec.md](docs/product-spec.md). Follow them; a change to one updates that page in the same
+pull request.
+
 | Path | What lives there |
 | --- | --- |
 | `app.py` | Entry point only: `app = create_app()`. |
