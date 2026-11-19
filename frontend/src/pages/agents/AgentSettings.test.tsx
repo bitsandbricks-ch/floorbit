@@ -38,32 +38,58 @@ function agent(): Agent {
 }
 
 describe('AgentSettingsForm', () => {
-  it('shows where each value comes from, locks what the agent sets itself and saves the changes', async () => {
+  it('puts the few settings that differ first, says where a value comes from and saves through the save bar', async () => {
     const a = agent()
     const api = fakeFetch({
       'GET /api/auth/me': admin,
+      'GET /api/agents': { agents: [a], connected: true, max: 4 },
       [`GET /api/agents/${a.id}/settings`]: page(),
       [`PATCH /api/agents/${a.id}/settings`]: page({ plugins: [{ ...page().plugins[0], values: { port: 2055 } }] }),
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<AgentSettingsForm agent={a} />)
-    const port = await screen.findByLabelText(/Telemetry port/)
+    const port = await screen.findByLabelText('Telemetry port')
     expect(port).toBeDisabled()
     expect(port).toHaveValue('9000')
-    expect(screen.getByText('Set on the agent by FLOORBIT_TELEMETRY_PORT, which wins over Floorbit.')).toBeInTheDocument()
-    expect(screen.getByText('at next start')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Set (type to replace)')).toBeInTheDocument()
-    const hall = screen.getByRole('table', { name: 'Limits set in the hall' })
-    expect(within(hall).getByText('no')).toBeInTheDocument()
-    expect(within(hall).getByText('not set')).toBeInTheDocument()
+    expect(screen.getByText("Set by the agent's environment")).toBeInTheDocument()
+    expect(screen.getByText('Set here')).toBeInTheDocument()
+    // No env var name stands on the page; it sits in a tooltip.
+    expect(screen.queryByText(/FLOORBIT_/)).toBeNull()
+    fireEvent.mouseEnter(screen.getByText("Set by the agent's environment").closest('span') as HTMLElement)
+    expect(await screen.findByText(/environment variable FLOORBIT_TELEMETRY_PORT/)).toBeInTheDocument()
 
-    expect(screen.getByRole('button', { name: 'Save 0 changes' })).toBeDisabled()
-    fireEvent.change(screen.getByLabelText(/Address in the hall/), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText(/^Port/), { target: { value: '2055' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save 2 changes' }))
+    // Metrics fold under Advanced; with one agent there are no shared addresses.
+    const toggle = screen.getByRole('button', { name: /Advanced: 2 more/ })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(toggle)
+    expect(screen.getByPlaceholderText('Set (type to replace)')).toBeInTheDocument()
+    expect(screen.getByText('at next start')).toBeInTheDocument()
+
+    expect(screen.getByText('Actions that change the hall')).toBeInTheDocument()
+    expect(screen.getByText('no')).toBeInTheDocument()
+    expect(screen.getByText('private addresses only')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'All agents' })).toHaveAttribute('href', '/settings/plugins/flows?tab=agents')
+
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    fireEvent.change(screen.getByLabelText('Port'), { target: { value: '2055' } })
+    expect(screen.getByText('2 unsaved changes')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await vi.waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body)
       .toEqual({ settings: { lan_url: null }, plugins: { flows: { port: 2055 } } }))
-    expect(await screen.findByRole('button', { name: 'Save 0 changes' })).toBeDisabled()
+    expect(await screen.findByText('Saved. The agent picks it up on its next pull.')).toBeInTheDocument()
+  })
+
+  it('shows the shared addresses once there is a second agent', async () => {
+    const a = agent()
+    const vrrpPage = page({ fields: [...page().fields, { key: 'vrrp_vips', env: 'FLOORBIT_AGENT_VRRP_VIPS', type: 'cidrs', default: [], restart: true }] })
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin,
+      'GET /api/agents': { agents: [a, { ...a, id: 'b', name: 'Agent B' }], connected: true, max: 4 },
+      [`GET /api/agents/${a.id}/settings`]: vrrpPage,
+    }).fn)
+    renderWithApp(<AgentSettingsForm agent={a} />)
+    expect(await screen.findByRole('button', { name: /Advanced: 3 more/ })).toBeInTheDocument()
   })
 })
 

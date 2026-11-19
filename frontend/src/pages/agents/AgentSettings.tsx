@@ -1,24 +1,24 @@
-import { Anchor, Badge, Button, Group, NumberInput, PasswordInput, Select, SimpleGrid, Stack, Switch, Table, TagsInput, Text, TextInput } from '@mantine/core'
+import { Anchor, Badge, Button, Group, NumberInput, PasswordInput, Select, Stack, Switch, TagsInput, Text, TextInput, Tooltip } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent, AgentPluginField, AgentSettingField, AgentSettingsPage, SettingSource } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
-import { useAgentSettings } from './data'
+import { Advanced, SaveBar } from '@/pages/settings/editor'
+import { useAgentSettings, useAgents } from './data'
 import { ago, dateOnly } from '@/lib/time'
 
 // Floorbit sets these per agent (floorbit/agent_settings.py); the agent's own env wins.
 type Value = string | number | string[] | boolean | null
-const SOURCE_COLOR: Record<SettingSource, string> = { env: 'warn', floorbit: 'up', default: 'gray' }
 
-
-function SourceBadge({ source }: { source: SettingSource }) {
-  const { t } = useTranslation()
-  return <Badge size="xs" variant="light" color={SOURCE_COLOR[source]} tt="none">{t(`agents.cfg.source.${source}`)}</Badge>
-}
+// What differs between agents comes first; the rest folds under Advanced (#996).
+const BASIC = ['lan_url', 'telemetry_port', 'log_level']
+const ADVANCED = ['log_summary', 'metrics', 'metrics_token', 'buffer_max_mb', 'buffer_max_hours']
+const VRRP = ['vrrp_vips', 'vrrp_interface', 'vrrp_prefer', 'vrrp_id', 'vrrp_peers']
 
 function shown(v: unknown): string {
   if (Array.isArray(v)) return v.join(', ')
@@ -26,44 +26,84 @@ function shown(v: unknown): string {
   return String(v)
 }
 
-/** One input for a setting's type; ``disabled`` when the agent's env sets it. */
-function Input({ type, label, value, onChange, disabled, placeholder, min, max, options, description, secretSet }: {
-  type: string; label: ReactNode; value: Value; onChange: (v: Value) => void; disabled?: boolean
+const fieldId = (key: string) => `agent-setting-${key.replace(/[^a-z0-9]+/gi, '-')}`
+
+/** One input for a setting's type; the row around it carries the label and help. */
+function Input({ id, helpId, type, value, onChange, disabled, placeholder, min, max, options, secretSet }: {
+  id: string; helpId?: string; type: string; value: Value; onChange: (v: Value) => void; disabled?: boolean
   placeholder?: string; min?: number | null; max?: number | null; options?: { value: string; label: string }[] | null
-  description?: ReactNode; secretSet?: boolean
+  secretSet?: boolean
 }) {
   const { t } = useTranslation()
-  const common = { label, description, disabled, size: 'sm' as const }
+  const common = { id, disabled, 'aria-describedby': helpId, w: '100%' }
   if (type === 'int') {
     return <NumberInput {...common} placeholder={placeholder} min={min ?? undefined} max={max ?? undefined} allowDecimal={false}
       value={typeof value === 'number' ? value : value === null || value === '' ? '' : Number(value)}
       onChange={(v) => onChange(v === '' ? null : Number(v))} />
   }
-  if (type === 'bool') return <Switch {...common} checked={value === true} onChange={(e) => onChange(e.currentTarget.checked)} mt="xs" />
+  if (type === 'bool') return <Switch id={id} disabled={disabled} aria-describedby={helpId} checked={value === true} onChange={(e) => onChange(e.currentTarget.checked)} />
   if (type === 'choice') return <Select {...common} data={options ?? []} value={value === null ? null : String(value)} clearable placeholder={placeholder} onChange={(v) => onChange(v)} />
   if (['list', 'names', 'cidrs', 'ips'].includes(type)) {
     return <TagsInput {...common} placeholder={placeholder} value={Array.isArray(value) ? value : []} onChange={(v) => onChange(v.length ? v : null)} />
   }
   if (type === 'secret') {
-    return <PasswordInput {...common} placeholder={secretSet ? t('agents.cfg.secretSet') : placeholder}
+    return <PasswordInput {...common} autoComplete="new-password" placeholder={secretSet ? t('agents.cfg.secretSet') : placeholder}
       value={typeof value === 'string' ? value : ''} onChange={(e) => onChange(e.currentTarget.value || null)} />
   }
-  return <TextInput {...common} placeholder={placeholder} value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
+  return <TextInput {...common} spellCheck={false} placeholder={placeholder} value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
     onChange={(e) => onChange(e.currentTarget.value === '' ? null : e.currentTarget.value)} />
 }
 
-/** The agent's own settings and the plugin settings that differ on it, saved together. */
+/** Where a value comes from, said only when it isn't the default, like Settings' rows; the env var sits in a tooltip. */
+function Source({ source, env }: { source: SettingSource; env?: string | null }) {
+  const { t } = useTranslation()
+  if (source === 'default') return null
+  const text = <Text size="xs" c="dimmed" data-source={source}>{t(`agents.cfg.source.${source}`)}</Text>
+  return source === 'env' && env
+    ? <Tooltip label={t('agents.cfg.envTip', { env })} withArrow multiline maw={320}><span tabIndex={0}>{text}</span></Tooltip>
+    : text
+}
+
+/** A settings row: label, help and state on the left, the control on the right (the shared .fb-setting-row). */
+function Row({ id, label, help, dirty, onUndo, onReset, tags, children }: {
+  id: string; label: ReactNode; help?: ReactNode; dirty: boolean; onUndo: () => void; onReset?: () => void
+  tags?: ReactNode; children: ReactNode
+}) {
+  const { t } = useTranslation()
+  return (
+    <div className="fb-setting-row" data-key={id}>
+      <div className="fb-setting-about">
+        <Text component="label" htmlFor={id} size="sm" fw={500}>{label}</Text>
+        {help && <Text id={`${id}-help`} size="xs" c="dimmed">{help}</Text>}
+        <Group gap="xs" mt={2}>
+          {dirty ? <>
+            <Badge size="sm" variant="light" color="warn" tt="none">{t('settings.unsaved')}</Badge>
+            <Anchor component="button" type="button" size="xs" onClick={onUndo}>{t('settings.undo')}</Anchor>
+          </> : <>
+            {tags}
+            {onReset && <Anchor component="button" type="button" size="xs" onClick={onReset}>{t('settings.reset')}</Anchor>}
+          </>}
+        </Group>
+      </div>
+      <div className="fb-setting-control">{children}</div>
+    </div>
+  )
+}
+
+/** The agent's own settings and the plugin settings that differ on it, saved together with Settings' save bar. */
 export function AgentSettingsForm({ agent }: { agent: Agent }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const q = useAgentSettings(agent.id)
+  const others = useAgents().data?.agents.filter((a) => a.id !== agent.id).length ?? 0
   const [draft, setDraft] = useState<Record<string, Value>>({})
   const [plugDraft, setPlugDraft] = useState<Record<string, Record<string, Value>>>({})
+  const [saved, setSaved] = useState(false)
   const save = useMutation({
     mutationFn: () => patch<AgentSettingsPage>(`/api/agents/${agent.id}/settings`, { settings: draft, plugins: plugDraft }),
     onSuccess: (page) => {
       qc.setQueryData([...qk.agents, agent.id, 'settings'], page)
-      setDraft({}); setPlugDraft({})
+      setDraft({}); setPlugDraft({}); setSaved(true)
       void qc.invalidateQueries({ queryKey: qk.agents, exact: true })
     },
   })
@@ -72,108 +112,116 @@ export function AgentSettingsForm({ agent }: { agent: Agent }) {
   const page = q.data
   const reported = agent.report?.settings
   const pending = new Set(reported?.pending ?? [])
-  const dirty = Object.keys(draft).length + Object.values(plugDraft).reduce((n, p) => n + Object.keys(p).length, 0)
+  const count = Object.keys(draft).length + Object.values(plugDraft).reduce((n, p) => n + Object.keys(p).length, 0)
+  const set = (key: string, v: Value) => { setSaved(false); setDraft((d) => ({ ...d, [key]: v })) }
+  const undo = (key: string) => setDraft((d) => Object.fromEntries(Object.entries(d).filter(([k]) => k !== key)))
+  const setPlug = (pid: string, key: string, v: Value) => { setSaved(false); setPlugDraft((d) => ({ ...d, [pid]: { ...d[pid], [key]: v } })) }
+  const undoPlug = (pid: string, key: string) => setPlugDraft((d) => {
+    const left = Object.fromEntries(Object.entries(d[pid] ?? {}).filter(([k]) => k !== key))
+    const rest = Object.fromEntries(Object.entries(d).filter(([p]) => p !== pid))
+    return Object.keys(left).length ? { ...rest, [pid]: left } : rest
+  })
 
-  const field = (f: AgentSettingField) => {
-    const env = reported?.values[f.key]?.source === 'env'
-    const saved = page.values[f.key]
-    const value: Value = f.key in draft ? draft[f.key] : env ? (reported?.values[f.key]?.value ?? '') : saved === true ? null : (saved ?? null)
-    const source: SettingSource = reported?.values[f.key]?.source ?? (saved !== undefined ? 'floorbit' : 'default')
-    const label = (
-      <Group gap={6} wrap="wrap" component="span">
-        <span>{t(`agents.cfg.field.${f.key}`)}</span>
-        <SourceBadge source={source} />
-        {f.restart && pending.has(f.key) && <Badge size="xs" variant="outline" color="warn" tt="none">{t('agents.cfg.atRestart')}</Badge>}
-      </Group>
-    )
-    const help = env ? t('agents.cfg.envWins', { env: f.env }) : t(`agents.cfg.help.${f.key}`)
-    return (
-      <Input key={f.key} type={f.type} label={label} value={value} disabled={env} description={help}
-        placeholder={shown(f.default) || undefined} min={f.min} max={f.max} secretSet={saved === true}
-        options={f.options?.map((o) => ({ value: o, label: t(`agents.cfg.option.${o}`, { defaultValue: o }) }))}
-        onChange={(v) => setDraft((d) => ({ ...d, [f.key]: v }))} />
-    )
-  }
-  const pluginField = (pid: string, values: Record<string, unknown>, f: AgentPluginField) => {
-    const mine = plugDraft[pid]?.[f.key]
-    const value = (pid in plugDraft && f.key in plugDraft[pid] ? mine : values[f.key] ?? null) as Value
-    const set = f.key in values
-    return (
-      <Input key={f.key} type={f.type} label={
-        <Group gap={6} wrap="wrap" component="span"><span>{f.label}</span><SourceBadge source={set ? 'floorbit' : 'default'} /></Group>}
-        value={value} min={f.min} max={f.max} options={f.options}
-        placeholder={shown(f.default) || f.placeholder || undefined}
-        description={t('agents.cfg.pluginDefault', { value: shown(f.default) || '–' })}
-        onChange={(v) => setPlugDraft((d) => ({ ...d, [pid]: { ...d[pid], [f.key]: v } }))} />
-    )
-  }
-  const groups: [string, string[]][] = [
-    ['general', ['lan_url', 'telemetry_port']],
-    ['metrics', ['metrics', 'metrics_token']],
-    ['buffer', ['buffer_max_mb', 'buffer_max_hours']],
-    ['logs', ['log_level', 'log_summary']],
-    ['vrrp', ['vrrp_vips', 'vrrp_interface', 'vrrp_prefer', 'vrrp_id', 'vrrp_peers']],
-  ]
   const byKey = Object.fromEntries(page.fields.map((f) => [f.key, f]))
+  const isSet = (key: string) => page.values[key] !== undefined || (reported?.values[key]?.source ?? 'default') !== 'default'
+  // Shared addresses only matter with a second agent, or where they're set already.
+  const vrrp = others > 0 || VRRP.some(isSet) ? VRRP : []
+  const advanced = [...ADVANCED, ...vrrp].filter((k) => byKey[k])
+
+  const row = (f: AgentSettingField) => {
+    const id = fieldId(f.key)
+    const env = reported?.values[f.key]?.source === 'env'
+    const stored = page.values[f.key]
+    const dirty = f.key in draft
+    const value: Value = dirty ? draft[f.key] : env ? (reported?.values[f.key]?.value ?? '') : stored === true ? null : (stored ?? null)
+    const source: SettingSource = env ? 'env' : stored !== undefined ? 'floorbit' : 'default'
+    return (
+      <Row key={f.key} id={id} label={t(`agents.cfg.field.${f.key}`)} help={t(`agents.cfg.help.${f.key}`)}
+        dirty={dirty} onUndo={() => undo(f.key)} onReset={source === 'floorbit' ? () => set(f.key, null) : undefined}
+        tags={<>
+          <Source source={source} env={f.env} />
+          {f.restart && pending.has(f.key) && <Badge size="xs" variant="outline" color="warn" tt="none">{t('agents.cfg.atRestart')}</Badge>}
+        </>}>
+        <Input id={id} helpId={`${id}-help`} type={f.type} value={value} disabled={env}
+          placeholder={shown(f.default) || undefined} min={f.min} max={f.max} secretSet={stored === true}
+          options={f.options?.map((o) => ({ value: o, label: t(`agents.cfg.option.${o}`, { defaultValue: o }) }))}
+          onChange={(v) => set(f.key, v)} />
+      </Row>
+    )
+  }
+  const pluginRow = (pid: string, values: Record<string, unknown>, f: AgentPluginField) => {
+    const id = fieldId(`${pid}-${f.key}`)
+    const dirty = !!plugDraft[pid] && f.key in plugDraft[pid]
+    const value = (dirty ? plugDraft[pid][f.key] : values[f.key] ?? null) as Value
+    const fallback = t('agents.cfg.pluginDefault', { value: shown(f.default) || '–' })
+    return (
+      <Row key={f.key} id={id} label={f.label} help={f.help ? `${f.help} ${fallback}` : fallback}
+        dirty={dirty} onUndo={() => undoPlug(pid, f.key)}
+        onReset={f.key in values ? () => setPlug(pid, f.key, null) : undefined}
+        tags={<Source source={f.key in values ? 'floorbit' : 'default'} />}>
+        <Input id={id} helpId={`${id}-help`} type={f.type} value={value} min={f.min} max={f.max} options={f.options}
+          placeholder={shown(f.default) || f.placeholder || undefined} onChange={(v) => setPlug(pid, f.key, v)} />
+      </Row>
+    )
+  }
 
   return (
-    <Stack gap="md">
-      <Panel title={t('agents.cfg.title')} desc={t('agents.cfg.intro')}>
-        <Stack gap="lg">
-          {groups.map(([g, keys]) => (
-            <Stack key={g} gap="xs">
-              <Text size="sm" fw={600}>{t(`agents.cfg.group.${g}`)}</Text>
-              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" verticalSpacing="sm">
-                {keys.filter((k) => byKey[k]).map((k) => field(byKey[k]))}
-              </SimpleGrid>
-            </Stack>
-          ))}
-        </Stack>
-      </Panel>
-      {page.plugins.length > 0 && (
-        <Panel title={t('agents.cfg.pluginsTitle')} desc={t('agents.cfg.pluginsIntro')}>
-          <Stack gap="lg">
-            {page.plugins.map((p) => (
-              <Stack key={p.id} gap="xs">
-                <Text size="sm" fw={600}>{p.name}</Text>
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" verticalSpacing="sm">
-                  {p.fields.map((f) => pluginField(p.id, p.values, f))}
-                </SimpleGrid>
-              </Stack>
-            ))}
-          </Stack>
+    <form onSubmit={(e) => { e.preventDefault(); if (count) save.mutate() }} autoComplete="off" noValidate>
+      <Stack gap="md" pb={count ? 96 : 0}>
+        <Panel title={t('agents.cfg.title')} desc={t('agents.cfg.intro')}>
+          <Stack gap={0} className="fb-setting-rows">{BASIC.filter((k) => byKey[k]).map((k) => row(byKey[k]))}</Stack>
+          {advanced.length > 0 && (
+            <Advanced count={advanced.length} hint={t('agents.cfg.advancedHint')}
+              open={advanced.some((k) => k in draft)}>
+              <Stack gap={0} className="fb-setting-rows">{advanced.map((k) => row(byKey[k]))}</Stack>
+            </Advanced>
+          )}
         </Panel>
-      )}
-      <ErrorBanner error={save.error} />
-      <Group justify="flex-end">
-        {dirty > 0 && <Button variant="subtle" onClick={() => { setDraft({}); setPlugDraft({}) }}>{t('agents.cancel')}</Button>}
-        <Button disabled={!dirty} loading={save.isPending} onClick={() => save.mutate()}>{t('agents.cfg.save', { count: dirty })}</Button>
-      </Group>
-      <HallOnly agent={agent} keys={page.local_only} />
-    </Stack>
+        {page.plugins.map((p) => (
+          <Panel key={p.id} title={t('agents.cfg.pluginTitle', { name: p.name })} desc={t('agents.cfg.pluginsIntro')}
+            actions={<Anchor component={Link} to={`/settings/plugins/${encodeURIComponent(p.id)}?tab=agents`} size="sm">
+              {t('agents.cfg.pluginPage')}</Anchor>}>
+            <Stack gap={0} className="fb-setting-rows">{p.fields.map((f) => pluginRow(p.id, p.values, f))}</Stack>
+          </Panel>
+        ))}
+        <HallOnly agent={agent} keys={page.local_only} />
+      </Stack>
+      <SaveBar count={count} bad={false} saving={save.isPending} error={save.error} saved={saved ? t('agents.cfg.saved') : null}
+        onDiscard={() => { setDraft({}); setPlugDraft({}) }} />
+    </form>
   )
 }
 
-/** What the hall allows: only the agent's env sets it, shown here as the agent reports it. */
+/** What the hall allows: only the agent's env sets it. Said in words; the env var name sits in a tooltip. */
 function HallOnly({ agent, keys }: { agent: Agent; keys: string[] }) {
   const { t } = useTranslation()
   const values = agent.report?.settings?.values ?? {}
+  const reported = !!agent.report?.settings
   return (
-    <Panel title={t('agents.cfg.hallTitle')} desc={t('agents.cfg.hallIntro')} padding={0}>
-      <Table.ScrollContainer minWidth={420}>
-        <Table aria-label={t('agents.cfg.hallTitle')} verticalSpacing="xs" horizontalSpacing="md">
-          <Table.Tbody>
-            {keys.map((k) => (
-              <Table.Tr key={k}>
-                <Table.Td><Text size="sm" ff="monospace" style={{ overflowWrap: 'anywhere' }}>{k}</Text></Table.Td>
-                <Table.Td><Text size="sm" c={values[k]?.value ? undefined : 'dimmed'} style={{ overflowWrap: 'anywhere' }}>
-                  {values[k]?.value ?? (agent.report?.settings ? t('agents.cfg.hallDefault') : t('agents.cfg.notReported'))}
-                </Text></Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
+    <Panel title={t('agents.cfg.hallTitle')} desc={t('agents.cfg.hallIntro')}>
+      <Stack gap={0} className="fb-setting-rows">
+        {keys.map((k) => {
+          const value = values[k]?.value
+          return (
+            <div key={k} className="fb-setting-row" data-key={k}>
+              <div className="fb-setting-about">
+                <Tooltip label={t('agents.cfg.envTip', { env: k })} withArrow multiline maw={320}>
+                  <Text size="sm" fw={500} tabIndex={0} style={{ alignSelf: 'flex-start' }}>
+                    {t(`agents.cfg.hall.${k}.label`, { defaultValue: k })}
+                  </Text>
+                </Tooltip>
+                <Text size="xs" c="dimmed">{t(`agents.cfg.hall.${k}.help`, { defaultValue: '' })}</Text>
+              </div>
+              <div className="fb-setting-control">
+                <Text size="sm" c={value ? undefined : 'dimmed'} style={{ overflowWrap: 'anywhere' }}>
+                  {value || (!reported ? t('agents.cfg.notReported')
+                    : t(`agents.cfg.hall.${k}.unset`, { defaultValue: t('agents.cfg.hallDefault') }))}
+                </Text>
+              </div>
+            </div>
+          )
+        })}
+      </Stack>
     </Panel>
   )
 }
@@ -229,7 +277,6 @@ export function CertPanel({ agent, page }: { agent: Agent; page: AgentSettingsPa
       <Stack gap="sm">
         {has ? (
           <Group gap="xs" wrap="wrap">
-            <SourceBadge source={has.source} />
             <Text size="sm">{t('agents.cfg.certHas', { names: has.names.join(', ') || '–', when: dateOnly(has.not_after, i18n.language) })}</Text>
             {!has.floorbit_ca && <Badge size="xs" variant="light" color="gray" tt="none">{t('agents.cfg.certOther')}</Badge>}
           </Group>
