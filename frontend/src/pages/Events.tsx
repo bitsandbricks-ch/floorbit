@@ -1,7 +1,7 @@
 import {
   ActionIcon, Alert, Badge, Button, Group, Modal, Paper, Progress, Stack, Table, Text, TextInput, Title,
 } from '@mantine/core'
-import { IconDownload, IconPencil } from '@tabler/icons-react'
+import { IconArchive, IconDownload, IconPencil } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,7 +15,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { dates, METRICS, share } from './events/metrics'
 import { TenantEvents } from './events/TenantEvents'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 
 type Column = { id: string; name: string; start: number | null; end: number | null; figures: EventFigures; current?: boolean }
 
@@ -140,7 +140,7 @@ export default function Events() {
             <Comparison columns={columns} />
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('events.past')}</Title>
-              {d.archived.length === 0 ? <Text size="sm" c="dimmed">{t('events.none')}</Text> : (
+              {d.archived.length === 0 ? <EmptyState icon={<IconArchive size={24} />} title={t('events.noneTitle')} desc={t('events.none')} /> : (
                 <Stack gap="sm">
                   {d.archived.map((e) => (
                     <Group key={e.id} justify="space-between" wrap="wrap" gap="xs">

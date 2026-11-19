@@ -253,7 +253,7 @@
     "range": "Zeitraum",
     "hours_one": "{{count}} h",
     "hours_other": "{{count}} h",
-    "none": "Noch keine Zahlen gespeichert. Sie beginnen mit den nächsten Meldungen des Agents, alle halbe Minute.",
+    "none": "Sie beginnen mit den nächsten Meldungen des Agents, alle halbe Minute.",
     "max": "max. {{n}}",
     "metric": {
       "points": "Telemetrie-Punkte",
@@ -276,7 +276,8 @@
       "reconnects": "{{n}} pro Minute jetzt",
       "syslog": "{{n}} pro Minute jetzt",
       "median_ms": "{{n}} ms jetzt"
-    }
+    },
+    "noneTitle": "Noch keine Zahlen gespeichert"
   },
   "cfg": {
     "title": "Agent-Einstellungen",
