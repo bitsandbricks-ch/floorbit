@@ -38,7 +38,14 @@ curl -H "Authorization: Bearer fbt_..." https://floor.example.com/api/switches
 ## Versions
 
 `GET /api/version` answers `{"api": 1, "app": "<release>"}`, and every `/api/` answer carries the
-header `Floorbit-API: 1`.
+header `Floorbit-API: 1`. It also says which build runs (the page footer shows the same):
+`release` (the tag of a release image, else null), `commit`, `built` (seconds since the epoch),
+`source` (the repository the commit links to) and `dev` (true for a checkout, not an image).
+Those who manage settings also get `agents`: the connected local agents' `name` and `version`.
+
+The image gets these as build args (`FLOORBIT_COMMIT`, `FLOORBIT_BUILT` as ISO time,
+`FLOORBIT_RELEASE`, `FLOORBIT_SOURCE`); `.github/workflows/image.yml` sets them. Building it yourself:
+`docker build --build-arg FLOORBIT_COMMIT=$(git rev-parse HEAD) --build-arg FLOORBIT_BUILT=$(date -u +%FT%TZ) .`
 
 The API version goes up only when an existing answer changes in a way that breaks a client: a
 field removed or renamed, or a field's meaning changed. New fields and new endpoints don't change

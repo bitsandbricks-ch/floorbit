@@ -81,7 +81,7 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
           </Tabs.Panel>
         </ScrollArea>
       </Tabs>
-      <div className="fb-side-foot"><Attribution compact /></div>
+      <div className="fb-side-foot"><Attribution compact version /></div>
     </aside>
   )
 }

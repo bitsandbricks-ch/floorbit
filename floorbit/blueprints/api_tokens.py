@@ -1,6 +1,8 @@
 """API tokens and the API's version (issue #40). Rules in auth/tokens.py, docs in docs/api.md.
 
-- ``GET /api/version``: ``{"api": 1, "app": "<version>"}``. Every ``/api/`` answer also carries
+- ``GET /api/version``: ``{"api": 1, "app": "<version>", "release", "commit", "built", "source", "dev"}``
+  (floorbit/build_info.py; the page footer shows them) and, for those who manage settings, the
+  connected local agents' ``agents: [{"name", "version"}]``. Every ``/api/`` answer also carries
   ``Floorbit-API: 1``; the number goes up only when an existing answer changes in a way that breaks a
   client (a field removed or renamed). New fields and new endpoints don't change it.
 - ``GET /settings/api``: the page (React), admins only.
@@ -11,7 +13,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 
 from auth import tokens
 
-from .. import spa
+from .. import agent_link, build_info, spa
 
 API_VERSION = 1
 bp = Blueprint('api_tokens', __name__)
@@ -26,7 +28,22 @@ def version_header(response):
 
 @bp.route('/api/version', methods=['GET'])
 def version():
-    return jsonify({'api': API_VERSION, 'app': current_app.config.get('FLOORBIT_VERSION') or '0'})
+    build = build_info.info()
+    out = {'api': API_VERSION, 'app': current_app.config.get('FLOORBIT_VERSION') or '0',
+           **{k: build[k] for k in ('release', 'commit', 'built', 'source', 'dev')}}
+    if _may_see_agents():
+        # Same people as the Local agents page; the version is open to anyone who can read the plan.
+        out['agents'] = [{'name': a['name'], 'version': a.get('version')}
+                         for a in agent_link.all_agents() if a.get('connected')]
+    return jsonify(out)
+
+
+def _may_see_agents():
+    from auth import current_user, roles  # late: auth imports floorbit while it loads
+    if not current_app.extensions['auth'].enabled:
+        return True
+    user = current_user()
+    return bool(user and roles.can(user, 'settings.manage'))
 
 
 @bp.route('/settings/api')
