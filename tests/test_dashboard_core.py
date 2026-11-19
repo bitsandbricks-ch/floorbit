@@ -277,3 +277,30 @@ def test_the_seats_by_block_tile_answers(client):
 def test_switch_and_seat_stats_carry_their_scale_for_a_gauge():
     body = dashboard_core.switches_widget("en", {"online": 3, "offline": 1, "unknown": 0})
     assert (body["min"], body["max"]) == (0, 4)
+
+
+def test_the_traffic_tile_shows_a_time_range_and_yesterday():
+    now = 1_800_000_000
+    snap = {"series": [{"t": now - 7200 + i * 60, "down": i, "up": 1, "online": 0} for i in range(121)]}
+    hours = [{"t": now - 86400 - 3600, "avg_bps": 5, "peak_bps": 9, "online_max": 0},
+             {"t": now - 86400 - 1800, "avg_bps": 6, "peak_bps": 9, "online_max": 0},
+             {"t": now - 3600, "avg_bps": 7, "peak_bps": 11, "online_max": 0}]
+    w = dashboard_core.traffic_widget("en", snap, "1h", None, (), now)
+    assert [len(s["points"]) for s in w["series"]] == [61, 61] and w["series"][0]["points"][0][0] == now - 3600
+    w = dashboard_core.traffic_widget("en", snap, "1h", "day", hours, now)
+    ghost = w["series"][-1]
+    assert ghost["ghost"] is True and ghost["label"] == "Yesterday (in + out)"
+    assert ghost["points"] == [[now - 3600, 5], [now - 1800, 6]]
+    w = dashboard_core.traffic_widget("de", snap, "event", None, hours, now)
+    assert [s["label"] for s in w["series"]] == ["Durchschnitt (rein + raus)", "Spitze (rein + raus)"]
+    assert w["series"][1]["points"][-1] == [now - 3600, 11]
+    many = [[i, i] for i in range(1000)]
+    assert len(dashboard_core._buckets(many)) == dashboard_core.MAX_POINTS
+
+
+def test_a_pane_asks_the_traffic_tile_for_its_range(client):
+    tiles = client.get("/api/dashboard").get_json()["tiles"]
+    assert next(t for t in tiles if t["id"] == "traffic")["ranges"] is True
+    assert "ranges" not in next(t for t in tiles if t["id"] == "seats")
+    assert client.get("/api/dashboard/floorbit/traffic?range=24h&compare=day").status_code == 200
+    assert client.get("/api/dashboard/floorbit/traffic?range=event").get_json()["type"] == "series"

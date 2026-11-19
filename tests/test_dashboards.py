@@ -383,3 +383,15 @@ def test_a_tile_pane_keeps_its_axis_and_series_settings(client):
     assert "series colour" in error(overrides=[{"match": "Download", "colour": "red"}])
     assert "Pick the series" in error(overrides=[{"name": "x"}])
     assert "series settings" in error(overrides=[{"match": "a", "hide": True}] * 11)
+
+
+def test_a_tile_pane_keeps_its_time_range(client):
+    def save(**extra):
+        body = {"name": "Range", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {
+            "pane": {"kind": "tile", "tile": "floorbit/w/traffic", **extra}}}]}]}
+        return client.put("/api/dashboards/range", json=body)
+    pane = save(range="6h", compare="day").get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert pane["range"] == "6h" and pane["compare"] == "day"
+    assert "time range" in save(range="week").get_json()["error"]
+    assert "Compare" in save(compare="lastyear").get_json()["error"]
+    assert "nothing to compare" in save(range="event", compare="day").get_json()["error"]

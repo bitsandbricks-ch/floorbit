@@ -41,7 +41,7 @@ export type Pane = Head & (
    *  (issue #959); the ``Display`` fields set units, colour steps, mappings and rows (#960).
    *  All are left out when automatic or the default. */
   | ({ kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend
-      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[] } & Display)
+      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[]; range?: TimeRange; compare?: Compare } & Display)
   /** A saved widget (Widgets page), followed as it changes. ``saved`` comes with the dashboard
    *  (null: removed) and is dropped when saving; "Clone" turns the pane into a tile pane of its own. */
   | { kind: 'widget'; widget: string; saved?: { name: string; pane: Extract<Pane, { kind: 'tile' }> } | null }
@@ -52,6 +52,20 @@ export type Pane = Head & (
   /** Only on a public dashboard read signed out: a pane that needs an account (floorbit/dashboards.py). */
   | { kind: 'private' }
 )
+
+/** The time a pane shows, for a tile that offers it (``ranges``), and what it is compared with. */
+export type TimeRange = '1h' | '6h' | '24h' | 'event'
+export const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', 'event']
+export type Compare = 'day'
+
+/** A tile's address with the pane's time range and comparison, when the tile takes them. */
+export function rangedUrl(tile: { url: string; ranges?: boolean }, pane: { range?: TimeRange; compare?: Compare }): string {
+  if (!tile.ranges || (!pane.range && !pane.compare)) return tile.url
+  const q = new URLSearchParams()
+  if (pane.range) q.set('range', pane.range)
+  if (pane.compare) q.set('compare', pane.compare)
+  return `${tile.url}${tile.url.includes('?') ? '&' : '?'}${q}`
+}
 
 export type PaneKind = Exclude<Pane['kind'], 'private'>
 export const PANE_KINDS: PaneKind[] = ['plan', 'widget', 'view', 'tile', 'text', 'empty']

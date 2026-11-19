@@ -614,6 +614,17 @@ def _display(raw):
     if raw.get('hide_zero'):
         out['hide_zero'] = True
     out.update(_axis(raw))
+    from .dashboard_core import COMPARES, RANGES
+    if raw.get('range'):
+        if raw['range'] not in RANGES:
+            raise LayoutError(f'A time range is one of: {", ".join(RANGES)}.')
+        out['range'] = raw['range']
+    if raw.get('compare'):
+        if raw['compare'] not in COMPARES:
+            raise LayoutError(f'Compare with one of: {", ".join(COMPARES)}.')
+        if raw.get('range') == 'event':
+            raise LayoutError('The whole event has nothing to compare with yet.')
+        out['compare'] = raw['compare']
     overrides = _overrides(raw.get('overrides'))
     if overrides:
         out['overrides'] = overrides

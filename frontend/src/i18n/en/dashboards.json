@@ -102,7 +102,10 @@
     "noWidgetsHint": "No saved widgets yet. Make one on",
     "widgetHint": "The pane follows the widget: a change on the Widgets page shows here too.",
     "clone": "Clone into this dashboard",
-    "cloneHint": "Makes a tile of its own with the same settings, for this dashboard only. It no longer follows the widget."
+    "cloneHint": "Makes a tile of its own with the same settings, for this dashboard only. It no longer follows the widget.",
+    "range": "Time shown",
+    "compareDay": "Compare with yesterday",
+    "compareDayHint": "A dotted line: yesterday at the same times, by the hour."
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",
@@ -270,5 +273,12 @@
       "blue": "Blue",
       "grey": "Grey"
     }
+  },
+  "range": {
+    "auto": "Auto",
+    "1h": "1 h",
+    "6h": "6 h",
+    "24h": "24 h",
+    "event": "Event"
   }
 }

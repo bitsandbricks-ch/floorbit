@@ -105,6 +105,9 @@ Under **Numbers and colours** in a tile pane's settings:
   red.
 - **Sort**, **Show at most** and **Hide rows that are 0** pick which rows a list or table shows:
   biggest first and at most five is a top 5.
+- **Time shown** (tiles that offer it, such as Traffic): the last hour, 6 hours, 24 hours, or the
+  whole event by the hour. **Compare with yesterday** adds a dotted line with yesterday's traffic at
+  the same times, by the hour.
 - **Value axis** (graphs) fixes where the axis starts and ends, so graphs side by side on a wall
   compare, and **Log scale** draws values far apart (bytes, lookups) readably. Values outside the
   ends sit on the edge.

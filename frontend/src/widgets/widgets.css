@@ -114,6 +114,9 @@ button.fb-w-more:hover { text-decoration: underline; }
 .fb-w-fill.area { fill-opacity: 0.18; }
 .fb-w-fill.stacked { fill-opacity: 0.45; }
 .fb-w-trend { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 6 4; opacity: 0.9; }
+/* A comparison line (yesterday at the same time): faint and dashed, behind the real lines in meaning. */
+.fb-w-ghost { fill: none; stroke: var(--color-muted); stroke-width: 1.5; stroke-dasharray: 2 4; opacity: 0.8; }
+.fb-w-ghost-key i { background: none; border-top: 2px dotted var(--color-muted); height: 0; }
 .fb-w-tip-trend { color: var(--color-muted); }
 .fb-w-hist { gap: 2px; }
 .fb-w-hist .fb-w-col { max-width: none; }

@@ -506,7 +506,12 @@ def _open_incidents_tile(user):
 
 
 def _traffic_tile(user):
-    return core.traffic_widget(_lang(), current_app.extensions['floorbit_stats'].snapshot())
+    # A pane's time range and comparison come as ?range= and ?compare= (dashboards._display).
+    stats = current_app.extensions['floorbit_stats']
+    rng = request.args.get('range') if request.args.get('range') in core.RANGES else None
+    compare = request.args.get('compare') if request.args.get('compare') in core.COMPARES else None
+    hours = stats.event()['hours'] if rng == 'event' or compare else ()
+    return core.traffic_widget(_lang(), stats.snapshot(), rng, compare, hours)
 
 
 def _snapshot():

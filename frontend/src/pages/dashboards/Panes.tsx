@@ -6,7 +6,7 @@ import { useDashboard, useFeaturesOff, useWidgets } from '@/api/queries'
 import type { Tile, WidgetTile } from '@/api/types'
 import { FitWidget } from '@/widgets/FitWidget'
 import { usePaneData } from '@/widgets/usePaneData'
-import { type Pane, displayOf } from './model'
+import { type Pane, displayOf, rangedUrl } from './model'
 import { PlanPane } from './PlanPane'
 import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
 import { Markdown } from '@/components/Markdown'
@@ -51,9 +51,10 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   const { t } = useTranslation()
   const { data, isPending } = useDashboard()
   const find = (key: string) => data?.tiles.find((x) => tileKey(x) === key && x.kind !== 'action') as WidgetTile | undefined
-  const tile = find(pane.tile)
+  const found = find(pane.tile)
+  const tile = found && { ...found, url: rangedUrl(found, pane) }
   // A gone extra source just drops out; the pane is gone only when its first tile is.
-  const more = (pane.also ?? []).map(find).filter((x): x is WidgetTile => !!x)
+  const more = (pane.also ?? []).map(find).filter((x): x is WidgetTile => !!x).map((x) => ({ ...x, url: rangedUrl(x, pane) }))
   if (tile) return <TileWidgetPane pane={pane} tiles={[tile, ...more]} />
   return (
     <Framed title={pane.title} hide={pane.hide_title}>

@@ -123,7 +123,11 @@ def check_widget(raw, item):
                 if not (isinstance(p, (list, tuple)) and len(p) == 2):
                     raise WidgetError('a series point is [time, value]')
                 points.append([_number(p[0]), _number(p[1])])
-            lines.append({'label': _text(line.get('label'), 40), 'points': points})
+            # ``ghost``: a line for comparison (yesterday, the last event), drawn dashed and faint.
+            entry = {'label': _text(line.get('label'), 40), 'points': points}
+            if line.get('ghost'):
+                entry['ghost'] = True
+            lines.append(entry)
         out['series'] = lines
         out['unit'] = _text(raw.get('unit'), 20)
     else:

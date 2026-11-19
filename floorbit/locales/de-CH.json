@@ -1239,5 +1239,8 @@
  "A log scale starts above 0.": "Eine logarithmische Skala beginnt über 0.",
  "A widget has at most {} series settings.": "Ein Widget hat höchstens {} Einstellungen pro Reihe.",
  "Pick the series a setting is for.": "Wähle die Reihe, für die eine Einstellung gilt.",
- "A series colour is one of: {}.": "Eine Reihenfarbe ist eine von: {}."
+ "A series colour is one of: {}.": "Eine Reihenfarbe ist eine von: {}.",
+ "A time range is one of: {}.": "Ein Zeitraum ist einer von: {}.",
+ "Compare with one of: {}.": "Vergleiche mit einem von: {}.",
+ "The whole event has nothing to compare with yet.": "Für den ganzen Event gibt es noch nichts zum Vergleichen."
 }

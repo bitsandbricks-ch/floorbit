@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanDrawing } from '@/api/types'
-import { type Node, areaView, at, depth, panes, remove, resize, seatsIn, split, starter } from './model'
+import { type Node, areaView, at, depth, panes, rangedUrl, remove, resize, seatsIn, split, starter } from './model'
 
 const empty: Node = { pane: { kind: 'empty' } }
 
@@ -60,5 +60,14 @@ describe('areas', () => {
   it('counts the seats inside an area', () => {
     expect(seatsIn(drawing, { x: 350, y: 250, w: 100, h: 100 })).toEqual(['A-1', 'A-2'])
     expect(seatsIn(drawing, { x: 900, y: 500, w: 400, h: 300 })).toEqual([])
+  })
+})
+
+describe('a pane\'s time range (#960)', () => {
+  it('asks only a tile that takes it', () => {
+    const tile = { url: '/api/dashboard/floorbit/traffic', ranges: true }
+    expect(rangedUrl(tile, { range: '6h', compare: 'day' })).toBe('/api/dashboard/floorbit/traffic?range=6h&compare=day')
+    expect(rangedUrl(tile, {})).toBe(tile.url)
+    expect(rangedUrl({ url: '/x' }, { range: '1h' })).toBe('/x')
   })
 })

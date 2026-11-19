@@ -15,7 +15,7 @@ import { usePaneData } from '@/widgets/usePaneData'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
-import { type Area, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane } from './model'
+import { type Area, TIME_RANGES, type TimeRange, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane } from './model'
 import { pluginName } from '@/lib/pluginName'
 import { DisplayFields } from './DisplayFields'
 import { followed, useSavedWidgets } from '../widgets/saved'
@@ -222,6 +222,17 @@ export function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'til
         <MultiSelect label={t('dashboards.form.also')} description={t('dashboards.form.alsoHint')} searchable clearable
           maxValues={MAX_SOURCES - 1} value={pane.also ?? []} data={options.filter((o) => o.value !== pane.tile)}
           onChange={(v) => onChange({ ...pane, also: v.length ? v : undefined })} />
+      )}
+      {sources[0]?.ranges && (
+        <div>
+          <Text size="sm" fw={500} mb={4}>{t('dashboards.form.range')}</Text>
+          <SegmentedControl fullWidth size="xs" value={pane.range ?? 'auto'} aria-label={t('dashboards.form.range')}
+            data={['auto', ...TIME_RANGES].map((r) => ({ value: r, label: t(`dashboards.range.${r}`) }))}
+            onChange={(v) => onChange({ ...pane, range: v === 'auto' ? undefined : (v as TimeRange), ...(v === 'event' ? { compare: undefined } : {}) })} />
+          <Switch mt="xs" label={t('dashboards.form.compareDay')} description={t('dashboards.form.compareDayHint')}
+            disabled={pane.range === 'event'} checked={pane.compare === 'day'}
+            onChange={(e) => onChange({ ...pane, compare: e.currentTarget.checked ? 'day' : undefined })} />
+        </div>
       )}
       {sources[0]?.id && keyOf(sources[0]) === pane.tile && <WidgetLook pane={pane} tiles={sources} onChange={onChange} />}
       <div>

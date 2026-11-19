@@ -98,7 +98,7 @@ export function rowsOf(w: Widget, labels: { name: string; value: string; state: 
 }
 
 /** ``colour``: a pane's per-series setting (#960); otherwise the palette in order. */
-export interface Line { label: string; points: [number, number][]; colour?: string }
+export interface Line { label: string; points: [number, number][]; colour?: string; ghost?: boolean }
 export const lineColour = (l: Line, i: number) => l.colour ?? PALETTE[i % PALETTE.length]
 
 /** Lines over time. A sparkline has no times: its points are evenly spaced. */

@@ -76,6 +76,16 @@ describe('FitWidget', () => {
     expect(container.querySelectorAll('.fb-w-axis span')[1].textContent).toContain('1,000')
   })
 
+  it('draws a comparison line dotted, over the time the real lines cover', () => {
+    size = { w: 900, h: 500 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 1], [1800003600, 2]] },
+      { label: 'Yesterday', ghost: true, points: [[1799990000, 9], [1800000000, 3], [1800003600, 4]] }] }
+    const { container } = renderWithApp(<FitWidget widget={series} />)
+    expect(container.querySelectorAll('.fb-w-ghost')).toHaveLength(1)
+    expect(container.querySelector('.fb-w-ghost')!.getAttribute('points')!.split(' ')).toHaveLength(2)
+    expect(screen.getByText('Yesterday')).toBeInTheDocument()
+  })
+
   it('draws a stat with a scale as a gauge', () => {
     size = { w: 300, h: 220 }
     renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 86, unit: 'of 112', tone: '', min: 0, max: 112 }} pick="gauge" />)

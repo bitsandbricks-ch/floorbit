@@ -46,7 +46,7 @@ export type Widget = WidgetBase &
       }
     | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
     /** Up to four lines of [unix seconds, value], oldest first. */
-    | { type: 'series'; series: { label: string; points: [number, number][]; colour?: string }[]; unit: string }
+    | { type: 'series'; series: { label: string; points: [number, number][]; colour?: string; ghost?: boolean }[]; unit: string }
   )
 
 /** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */
@@ -99,6 +99,8 @@ export interface WidgetTile {
   size: 'small' | 'wide'
   refresh: number
   url: string
+  /** A pane may pick the time it shows (``?range=``) and compare it (``?compare=``), issue #960. */
+  ranges?: boolean
 }
 
 export interface ActionTile {
