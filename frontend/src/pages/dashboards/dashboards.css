@@ -89,7 +89,8 @@
 .fb-thumb-pane.k-empty { background: transparent; border-style: dashed; }
 
 /* Full screen. */
-.fb-board-show { height: 100vh; padding: 1vh 1vw; background: var(--color-ink); position: relative; display: flex; }
+/* A column: the alert bar (#1137), with or without the header, sits above the panes, never beside them. */
+.fb-board-show { height: 100vh; padding: 1vh 1vw; background: var(--color-ink); position: relative; display: flex; flex-direction: column; gap: 1vh; }
 .fb-board-show > .fb-grid { flex: 1; }
 .fb-board-show.scroll { height: auto; min-height: 100vh; }
 .fb-board-clock { position: absolute; left: 1.6vw; bottom: 1.4vh; z-index: 4; font-size: clamp(16px, 1.6vw, 36px);
@@ -99,8 +100,7 @@
   background: color-mix(in srgb, var(--color-raised) 85%, transparent); }
 /* Full screen with its frame: header, the panes, the status line (issue #927). Type grows with
    the screen so the header reads from across the hall. */
-.fb-board-show.framed { flex-direction: column; gap: 1vh; }
-.fb-board-show.framed > .fb-grid { min-height: 0; }
+.fb-board-show > .fb-grid { min-height: 0; }
 .fb-board-show.framed > .fb-status { margin: 0 -1vw -1vh; font-size: clamp(12px, .8vw, 22px); }
 .fb-screen-head { display: flex; align-items: baseline; gap: 1.2vw; padding: .2vh .3vw; color: var(--color-muted);
   font-size: clamp(13px, 1vw, 28px); white-space: nowrap; overflow: hidden; }
@@ -118,6 +118,8 @@
 @media (max-width: 48em) {
   /* Phones: parts stack, each a usable height. */
   .fb-board-show { height: auto; min-height: 100vh; }
+  .fb-screen-alert { flex-wrap: wrap; white-space: normal; row-gap: 2px; }
+  .fb-screen-alert-hint { display: none; }
   .fb-board-show .fb-split, .fb-board-inline .fb-split { flex-direction: column; height: auto; }
   .fb-board-show .fb-split-part, .fb-board-inline .fb-split-part { flex-basis: auto !important; min-height: 60vh; }
   .fb-board-show .fb-grid-section, .fb-board-inline .fb-grid-section { flex: none !important; }
@@ -180,7 +182,7 @@
 @media (prefers-reduced-motion: reduce) { .fb-pane.fb-pane-alert { animation: none; } }
 
 /* A wall's call for attention: something is down and nobody has taken it (#1137). */
-.fb-screen-alert { display: flex; align-items: center; gap: 1vw; padding: .6vh 1vw; border-radius: 8px;
+.fb-screen-alert { flex: none; display: flex; align-items: center; gap: 1vw; padding: .6vh 1vw; border-radius: 8px;
   font-size: clamp(14px, 1.1vw, 30px); color: var(--color-fg); white-space: nowrap; overflow: hidden;
   background: color-mix(in srgb, var(--color-down) 22%, var(--color-raised)); border: 1px solid var(--color-down);
   animation: fb-screen-alert 2s ease-in-out infinite; }
