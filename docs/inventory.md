@@ -90,7 +90,8 @@ where it is switched on **and** a credential for it resolves.
 
 ### Credentials
 
-SSH logins, SNMP v2c communities, SNMP v3 users, API tokens and HTTP logins can be stored on a
+SSH logins, SNMP v2c communities, SNMP v3 users, SNMP v3 trap users ([telemetry.md](telemetry.md#snmpv3-trap-users)),
+API tokens and HTTP logins can be stored on a
 device, a tag, a group or All devices: the nearest one wins, so a group's login is overridden by
 the device's own. They are kept like [stored switch logins](credentials.md): encrypted at rest,
 write-only (the API says which are set and by whom, never the secret), opened only at the moment

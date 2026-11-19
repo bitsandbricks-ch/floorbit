@@ -854,3 +854,71 @@ def test_old_telemetry_property_names_move_to_their_namespace():
     assert data['inventory_defaults']['properties'] == {'telemetry.drivers': 'snmp traps'}
     upgrades._telemetry_properties(data)                                                 # safe to run twice
     assert data['inventory'][0]['properties'] == {'telemetry.snmp.vlans': '10 20', 'rack': 'B3'}
+
+
+def test_each_snmpv3_trap_user_gets_its_own_listener(client, tmp_path, monkeypatch):
+    """#975: the trap user is a credential like the others; one Telegraf trap listener knows one
+    v3 user, so each distinct one gets its own port, kept while others come and go."""
+    from test_credentials import key_file
+    from test_inventory_scope import add, put_cred
+
+    from floorbit.telemetry import targets
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    a = add(client, name="sw-a-01", mgmt_ip="192.0.2.21", platform="IOS 15.2", features={"telemetry": True})
+    b = add(client, name="sw-b-01", mgmt_ip="192.0.2.22", platform="IOS 15.2", features={"telemetry": True})
+    c = add(client, name="core-01", mgmt_ip="192.0.2.11", platform="NX-OS", features={"telemetry": True})
+    put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="s3cret-community")
+    # Hall A's switches send as trap-a (authPriv), core-01 as trap-core with no passphrases.
+    put_cred(client, owner_type="device", owner_id=a["id"], kind="snmp_trap", username="trap-a",
+             secret="auth-pass-a", priv_secret="priv-pass-a")
+    put_cred(client, owner_type="device", owner_id=c["id"], kind="snmp_trap", username="trap-core")
+    bad = client.put("/api/inventory/credentials", json={"owner_type": "device", "owner_id": b["id"],
+                                                         "kind": "snmp_trap", "username": "x", "priv_secret": "p"})
+    assert bad.status_code == 400                      # privacy without authentication
+    found = {t["name"]: t for t in targets.from_inventory()}
+    assert found["sw-b-01"]["trap_port"] == telegraf.TRAP_PORT and found["sw-b-01"].get("trap") is None   # v2c
+    ports = {found["sw-a-01"]["trap_port"], found["core-01"]["trap_port"]}
+    assert ports == {telegraf.TRAP_PORT, telegraf.TRAP_PORT + 1}
+    conf = telegraf.render(list(found.values()), "http://127.0.0.1:9/write", "tok")
+    assert conf.count("[[inputs.snmp_trap]]") == 2
+    assert 'sec_name = "trap-a"' in conf and 'sec_level = "authPriv"' in conf
+    assert 'priv_password = "priv-pass-a"' in conf
+    core_block = conf[conf.index('sec_name = "trap-core"'):].split("[inputs.snmp_trap.tags]")[0]
+    assert 'sec_level = "noAuthNoPriv"' in core_block and "auth_password" not in core_block
+    # The device's page and its paste-in config say where to send.
+    page = client.get(f"/api/telemetry/devices/{c['id']}").get_json()
+    want = telegraf.sent_trap_port(found["core-01"]["trap_port"])
+    assert page["target"]["trap_send_port"] == want and page["target"]["trap_user"] == "trap-core"
+    assert page["logins"]["trap"] == "snmp_trap" and "trap" not in page["target"]
+    snippet = client.get("/api/telemetry/device-config?name=core-01&collector=192.0.2.5").get_json()["config"]
+    assert f"snmp-server host 192.0.2.5 traps version 3 noauth trap-core udp-port {want}" in snippet
+    overview = {d["name"]: d for d in client.get("/api/telemetry/overview").get_json()["devices"]}
+    assert overview["core-01"]["trap_send_port"] == want and "trap-a" not in json.dumps(overview)
+    # A new user doesn't move the others; a removed one frees its port.
+    before = {n: t["trap_port"] for n, t in found.items()}
+    put_cred(client, owner_type="device", owner_id=b["id"], kind="snmp_trap", username="trap-b", secret="auth-b")
+    again = {t["name"]: t["trap_port"] for t in targets.from_inventory()}
+    assert again["sw-a-01"] == before["sw-a-01"] and again["core-01"] == before["core-01"]
+    assert again["sw-b-01"] == telegraf.TRAP_PORT + 2
+
+
+def test_more_trap_users_than_listeners_is_a_problem(client, tmp_path, monkeypatch):
+    from test_credentials import key_file
+    from test_inventory_scope import add, put_cred
+
+    from floorbit.telemetry import targets
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="s3cret-community")
+    for i in range(telegraf.TRAP_EXTRA + 2):
+        dev = add(client, name=f"sw-{i:02d}", mgmt_ip=f"192.0.2.{30 + i}", platform="IOS 15.2",
+                  features={"telemetry": True})
+        put_cred(client, owner_type="device", owner_id=dev["id"], kind="snmp_trap", username=f"trap-{i}")
+    found = targets.from_inventory()
+    assert sorted(t["trap_port"] for t in found if t["trap_port"]) == list(
+        range(telegraf.TRAP_PORT, telegraf.TRAP_PORT + telegraf.TRAP_EXTRA + 1))
+    left = [t["name"] for t in found if t["trap_port"] is None]
+    assert len(left) == 1
+    conf = telegraf.render(found, "http://127.0.0.1:9/write", "tok")
+    assert conf.count("[[inputs.snmp_trap]]") == telegraf.TRAP_EXTRA + 1
+    seen = client.get("/api/telemetry/devices").get_json()["devices"]
+    assert seen[left[0]]["problems"][0]["kind"] == "trap_user"

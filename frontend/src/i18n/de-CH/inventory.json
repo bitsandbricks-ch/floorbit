@@ -296,10 +296,12 @@
     "authProtocol": "Authentifizierung",
     "privProtocol": "Verschlüsselung",
     "privSecret": "Passphrase für die Verschlüsselung",
+    "privSecretOptional": "Passphrase für die Verschlüsselung (optional)",
     "kinds": {
       "ssh": "SSH-Login",
       "snmp_v2c": "SNMP-v2c-Community",
       "snmp_v3": "SNMP-v3-Benutzer",
+      "snmp_trap": "SNMP-v3-Trap-Benutzer",
       "api": "API-Token",
       "http": "HTTP-Login"
     },
@@ -307,6 +309,7 @@
       "ssh": "Passwort",
       "snmp_v2c": "Community",
       "snmp_v3": "Passphrase für die Authentifizierung",
+      "snmp_trap": "Passphrase für die Authentifizierung (optional)",
       "api": "Token",
       "http": "Passwort"
     }
@@ -400,6 +403,9 @@
     "nothing": "noch nichts (kein Login, nichts, das selbst sendet)",
     "methodsHint": "Abfragen und die APIs brauchen ein Login unter Logins. Traps, Cisco MDT, gNMI und das eigene Telegraf einer Firewall müssen auf dem Gerät eingerichtet sein (Geräte-Einrichtung zeigt, was einzufügen ist).",
     "needsLogin": "Einiges davon braucht ein Login, das dieses Gerät noch nicht hat. Füge es unter Logins hinzu, hier oder auf seiner Gruppe.",
+    "trapPort": "Traps gehen an den UDP-Port {{port}} des Agents (v2c).",
+    "trapPortV3": "Traps gehen an den UDP-Port {{port}} des Agents, als SNMPv3-Benutzer {{user}}. Jeder Trap-Benutzer hat seinen eigenen Port.",
+    "trapNoPort": "Jeder Trap-Listener auf dem Agent gehört einem anderen SNMPv3-Trap-Benutzer, darum kommen die Traps dieses Geräts nirgends an. Gib ihm einen Trap-Benutzer, der schon einen Port hat.",
     "fdbLabel": "MAC-Tabellen",
     "fdb": {
       "qbridge": "Standard-Bridge-Tabelle (Q-BRIDGE)",

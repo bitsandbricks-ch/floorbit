@@ -279,9 +279,10 @@ describe('Inventory page', () => {
       },
     }
     const info = {
-      on: true, platform: 'nxos', logins: { snmp: 'snmp_v2c' },
+      on: true, platform: 'nxos', logins: { snmp: 'snmp_v2c', trap: 'snmp_trap' },
       auto: { drivers: ['snmp', 'traps'], fdb: 'qbridge', vlans: [], mdt_node: 'Stage switch', address: '192.0.2.5' },
-      target: { drivers: ['snmp', 'traps'], fdb: 'qbridge', vlans: [], mdt_node: null, address: '192.0.2.5', agent: '' },
+      target: { drivers: ['snmp', 'traps'], fdb: 'qbridge', vlans: [], mdt_node: null, address: '192.0.2.5', agent: '',
+        trap_send_port: 1163, trap_user: 'trap-stage' },
     }
     const api = fakeFetch({
       'GET /api/auth/me': editor,
@@ -299,6 +300,8 @@ describe('Inventory page', () => {
     // On because its group says so; how follows from its software and logins.
     expect(await screen.findByText('Automatic for Cisco NX-OS (Nexus) with its logins: SNMP polling, SNMP traps.')).toBeInTheDocument()
     expect(screen.getByText(/^On ·/)).toHaveTextContent('from group Hall A')
+    // Its own trap user has its own listener: where to send.
+    expect(screen.getByText("Traps go to the agent's UDP port 1163, as the SNMPv3 user trap-stage. Each trap user has its own port.")).toBeInTheDocument()
     // Empty here: the group's port shows, and where it comes from.
     expect(screen.getByLabelText('SNMP port')).toHaveAttribute('placeholder', '1161')
     expect(screen.getByLabelText('gNMI port')).toHaveValue('50052')

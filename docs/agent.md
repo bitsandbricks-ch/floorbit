@@ -313,6 +313,7 @@ the left side of a mapping is what the devices send to.
 | --- | --- | --- | --- | --- |
 | 9520/tcp | `127.0.0.1:9520` | the agent itself | `/healthz`, `/metrics` for Prometheus | yes, this machine only |
 | 1162/udp | `162/udp` | Telemetry | SNMP traps from switches and firewalls | yes |
+| 1163–1170/udp | `1163–1170/udp` | Telemetry | SNMPv3 traps from devices with a further trap user, one port each ([telemetry.md](telemetry.md#snmpv3-trap-users)) | yes |
 | 57000/tcp | `57000` | Telemetry | Cisco model-driven telemetry, dial-out (gRPC) | yes |
 | 8186/tcp | `8186` | Telemetry | a firewall's own Telegraf (OPNsense, pfSense) | no |
 | 5514/udp | `514/udp` | Syslog from the hall | syslog from switches, firewalls, DHCP | no |

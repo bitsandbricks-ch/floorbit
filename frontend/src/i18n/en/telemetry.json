@@ -59,6 +59,7 @@
     "unreachable": "{{driver}}: the agent has no route to {{address}}. Check the address and the agent's network.",
     "tls": "{{driver}}: TLS with {{address}} failed. Check its certificate, or turn off TLS checking for it.",
     "listen": "{{driver}}: Telegraf cannot open its listening port. Is another program using it?",
+    "trap_user": "Traps: every trap listener on the agent already belongs to another SNMPv3 trap user ({{detail}}). Give this device a trap user that already has one.",
     "other": "{{driver}}: {{detail}}",
     "docs": "What to check"
   },

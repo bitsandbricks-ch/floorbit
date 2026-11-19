@@ -67,7 +67,7 @@ export function credentialBody(ownerType: string, ownerId: string, d: { kind: st
   return {
     owner_type: ownerType, owner_id: ownerId, kind: d.kind, username: d.username,
     ...(d.secret ? { secret: d.secret } : {}),
-    ...(d.kind === 'snmp_v3' ? { auth_protocol: d.auth_protocol, priv_protocol: d.priv_protocol, ...(d.priv_secret ? { priv_secret: d.priv_secret } : {}) } : {}),
+    ...(d.kind === 'snmp_v3' || d.kind === 'snmp_trap' ? { auth_protocol: d.auth_protocol, priv_protocol: d.priv_protocol, ...(d.priv_secret ? { priv_secret: d.priv_secret } : {}) } : {}),
   }
 }
 
