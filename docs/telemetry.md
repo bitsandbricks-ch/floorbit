@@ -126,6 +126,13 @@ which also gives the memory use), and per port its MAC, IPv4 addresses, VLAN and
 mode, with the device's VLAN names. [Discovery](inventory.md#discovery) fills the inventory device
 from it.
 
+With the tables (every minute), switches also say their **PoE** (POWER-ETHERNET-MIB): per port
+whether it is off, searching, delivering (with the class) or in fault, and on Cisco what it draws
+and what is set aside for it (CISCO-POWER-ETHERNET-EXT-MIB, `draw_w` and `allocated_w`), and per
+switch the budget and what it gives now. Cisco names each PoE row's port through ENTITY-MIB; on
+other switches with one PoE group the port number is the ifIndex. Each port's `poe` is in the
+device's ports (`device_ports`), and the switch's budget in discovery's `discovered.poe`.
+
 A login the device refuses is blocked on the inventory device, like any stored login: it isn't
 tried again until a tech clears it or the password changes.
 
