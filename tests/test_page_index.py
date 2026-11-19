@@ -10,7 +10,8 @@ def hrefs(client):
 
 def test_everything_while_sign_in_is_off(client):
     pages = client.get("/api/pages").get_json()["pages"]
-    assert pages[0] == {"href": "/plan", "id": "floorPlan", "label": "Floor plan"}
+    assert pages[:2] == [{"href": "/overview", "id": "overview", "label": "Overview"},
+                         {"href": "/plan", "id": "floorPlan", "label": "Floor plan"}]
     got = [p["href"] for p in pages]
     assert "/settings" in got and "/terminal" in got
 
