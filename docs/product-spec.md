@@ -117,6 +117,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Dark first;** light and system theme per person. Colours only through brand tokens (`--ui-*`,
   `--brand-*`). Bit Green is the accent, Trace Cyan is only for selection and seat-to-port traces,
   status colours (up, down, warn, unknown, disabled) are fixed and never themable.
+- **Panels are calm:** a fill one slight step from the page, a thin line, 8px corners, no shadow;
+  pages and dashboards share the look (`--color-surface`, `--radius-card`).
 - **Type:** Geist for text and titles, Geist Mono only for numbers. Square status "bits" and the
   floor-tile grid are the recurring motifs.
 - **Customising** is accent and highlight colour, logos, square mark and name. No theme presets.
