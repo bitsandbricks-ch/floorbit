@@ -1150,6 +1150,9 @@ Source: [`integrations/__init__.py`](https://github.com/bitsandbricks-ch/floorbi
 | POST | `/api/checkins/<seat>/retry` | `seats.edit` |  |
 | GET | `/api/checkins/history` | `seats.view` |  |
 | GET | `/api/checkins/history.csv` | `seats.view` |  |
+| DELETE | `/api/checkins/lookup-window` | `seats.edit` |  |
+| GET | `/api/checkins/lookup-window` | `seats.view` |  |
+| POST | `/api/checkins/lookup-window` | `seats.edit` |  |
 | GET | `/api/checkins/overview` | `seats.view` |  |
 | POST | `/api/checkins/refresh` | `seats.edit` |  |
 | GET | `/api/events` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |

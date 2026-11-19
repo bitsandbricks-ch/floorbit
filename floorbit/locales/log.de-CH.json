@@ -27,6 +27,8 @@
   "Changed network segment": "Netzsegment geändert",
   "Removed network segment": "Netzsegment entfernt",
   "Took network segments from discovery": "Netzsegmente aus der Erkennung übernommen",
+  "Opened the check-in lookups": "Abfragen beim Check-in geöffnet",
+  "Closed the check-in lookups": "Abfragen beim Check-in geschlossen",
   "Backed up switch config": "Switch-Konfiguration gesichert",
   "Backed up switch config: failed": "Switch-Konfiguration sichern: fehlgeschlagen",
   "Bounced port": "Port neu gestartet",

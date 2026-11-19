@@ -27,7 +27,8 @@ sees it on its next 5-minute poll. The device facts (model, software, interfaces
 inventory ([discovery](inventory.md)).
 
 When Telemetry polls, it walks the ARP and MAC tables every **ARP and MAC tables every (minutes)**
-(default 1; 0: never). When the chosen source doesn't know an IP, Floorbit asks the other
+(0: never). **Auto** (the default) walks them every 15 minutes while a [network segment](segments.md)
+has lookups on, because check-ins then ask the switches for their one PC, and every minute otherwise. When the chosen source doesn't know an IP, Floorbit asks the other
 monitoring source before giving up, and the answer says which one gave it (`answered_by`). The
 agent's log says who polls whenever that changes:
 

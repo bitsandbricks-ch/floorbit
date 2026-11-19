@@ -28,6 +28,42 @@ off doesn't count as a change of the facts.
 
 An IP in more than one range belongs to the narrowest one.
 
+## When a check-in asks the switches
+
+A check-in (the PIN on the seat card, the captive portal, the crew's [seat walk](seat-walk.md))
+gives the PC's IP. When the tables (LibreNMS first, then Telemetry) don't know that PC yet, Floorbit
+asks the local agent to find it:
+
+1. The segment of the IP, the narrowest that holds it. No segment, or lookups off there: no
+   lookup. The crew's **Check-in** page shows the check-in with a to-do: type the MAC or pick the
+   port.
+2. The MAC, from the core's ARP entry on the segment's VLAN interface (from discovery). Skipped when
+   the MAC is known already.
+3. The switches, one at a time, until one learned the MAC on a port that isn't an uplink:
+   - the switches serving the seat's row (its learned ports and the patch plan's cables);
+   - then the rest of its block;
+   - then every other switch that carries the VLAN.
+
+   Uplinks are skipped: trunk ports, LLDP or CDP neighbours, and ports with more than 4 MACs in the
+   telemetry picture.
+
+The port found goes to the check-in, to the IP and MAC history ([endpoints.md](endpoints.md)) and,
+with a PIN, to the seat. The same IP or MAC asked again within a minute shares one lookup.
+
+### The check-in window
+
+Attendees' check-ins ask the switches only while the window is open:
+
+- from doors open (the event's start in the [schedule](schedule.md)) for 6 hours;
+- kept open for 30 minutes after any check-in while it is open;
+- or opened by hand on the **Check-in** page (**Open for 6 h**), for example for a late arrival
+  wave. Closing it there ends what was opened by hand.
+
+The crew's seat walk asks at any time.
+
+While a segment has lookups on, Telemetry walks the full ARP and MAC tables only every 15 minutes
+when it polls them ([telemetry.md](telemetry.md#who-polls-the-switches)): the check-ins don't wait for them any more.
+
 ## How the agent asks the switches
 
 The agent asks with single SNMP GETs, never table walks (`floorbit/telemetry/snmpget.py`):

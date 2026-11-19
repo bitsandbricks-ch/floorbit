@@ -12,13 +12,15 @@ The choice is the telemetry plugin's ``polling`` setting:
 - ``telemetry``: Telemetry polls everything and answers before LibreNMS.
 
 Without LibreNMS polling, Telemetry walks the ARP and MAC tables every ``tables_minutes``
-(0 = never). The default stays at 1 minute until check-ins look a PC up on demand (#947): until
-then the check-in pages answer from these tables, and 15 minutes would make them slow.
+(0 = never). ``auto`` (the default): every 15 minutes while a segment has lookups on, because check-ins then
+ask the switches for their one PC (issue #947, docs/segments.md); else every minute, because the
+check-in pages answer from these tables alone.
 """
 from floorbit.runtime import rt
 
 CHOICES = ('auto', 'librenms', 'telemetry')
-TABLES_MINUTES = 1
+TABLES_MINUTES = 1             # no lookups: the tables are all the check-in pages have
+TABLES_MINUTES_LOOKUPS = 15    # lookups on: the tables only feed history and the sweep
 
 
 def _setting(registry, key):
@@ -39,12 +41,20 @@ def librenms_on(registry):
     return bool(spec and registry.enabled(spec) and rt.librenms_enabled)
 
 
+def _default_minutes():
+    from floorbit import segments
+    try:
+        return TABLES_MINUTES_LOOKUPS if segments.lookups_on() else TABLES_MINUTES
+    except Exception:  # noqa: BLE001  # no event data yet: the safe, fast default
+        return TABLES_MINUTES
+
+
 def tables_minutes(registry):
     value = _setting(registry, 'tables_minutes')
     try:
-        return max(0, min(1440, int(value))) if value not in (None, '') else TABLES_MINUTES
+        return max(0, min(1440, int(value))) if value not in (None, '') else _default_minutes()
     except (TypeError, ValueError):
-        return TABLES_MINUTES
+        return _default_minutes()
 
 
 def plan(registry):

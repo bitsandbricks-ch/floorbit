@@ -25,6 +25,8 @@ ACTIONS = {
     ('PATCH', '/api/settings/segments/<seg_id>'): ('settings', 'Changed network segment'),
     ('DELETE', '/api/settings/segments/<seg_id>'): ('settings', 'Removed network segment'),
     ('POST', '/api/settings/segments/discover'): ('settings', 'Took network segments from discovery'),
+    ('POST', '/api/checkins/lookup-window'): ('check-in', 'Opened the check-in lookups'),
+    ('DELETE', '/api/checkins/lookup-window'): ('check-in', 'Closed the check-in lookups'),
     ('POST', '/api/settings/webhooks'): ('settings', 'Added webhook'),
     ('PATCH', '/api/settings/webhooks/<hook_id>'): ('settings', 'Changed webhook'),
     ('DELETE', '/api/settings/webhooks/<hook_id>'): ('settings', 'Removed webhook'),

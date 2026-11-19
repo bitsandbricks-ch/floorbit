@@ -74,6 +74,11 @@ def all_segments():
     return sorted(_load()[1], key=lambda s: (s.get('vlan') or 0, s.get('network') or ''))
 
 
+def lookups_on():
+    """Whether any segment lets check-ins ask the switches."""
+    return any(s.get('lookups') for s in _load()[1])
+
+
 def for_ip(ip, segments=None):
     """The segment an IP is in (the narrowest range), or None."""
     try:

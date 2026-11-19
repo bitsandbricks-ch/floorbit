@@ -477,6 +477,19 @@ class AgentPlugin(Base):
         if len(got) > POLL_LINE_DEVICES:
             self._debug('polls, every device: ' + ', '.join(got))
 
+    # A check-in's lookup: one PC, a few GETs (issue #947) ------------------------------------
+    def call_lookup(self, args):
+        """The switch port of one PC, asked with single SNMP GETs (floorbit/telemetry/lookup.py)."""
+        from floorbit.telemetry import lookup
+        req = args if isinstance(args, dict) else {}
+        try:
+            int(req.get('vlan'))
+        except (TypeError, ValueError):
+            return {'error': 'a lookup needs the VLAN'}
+        with self.lock:
+            targets = list(self.targets)
+        return lookup.find(req, targets, self.state, log=self.ctx.log)
+
     # "Test now": one device, once, while you watch -------------------------------------------
     def call_test(self, args):
         """Collect from one device once and say what came back, or why nothing did. Telegraf runs
