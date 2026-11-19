@@ -343,7 +343,8 @@ def test_a_tile_pane_keeps_how_it_shows_its_numbers(client):
              "short": True, "sort": "value-desc", "limit": 5, "hide_zero": True}
     r = save(**shown)
     assert r.status_code == 200, r.get_json()
-    assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == {"kind": "tile", "tile": "floorbit/w/seats", **shown}
+    pane = r.get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert pane == {"kind": "tile", "tile": "floorbit/w/seats", **shown}
     r = save(thresholds=[], mappings=[], unit="", short=False, sort="", hide_zero=False, threshold_mode="value")
     assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == {"kind": "tile", "tile": "floorbit/w/seats"}
 
