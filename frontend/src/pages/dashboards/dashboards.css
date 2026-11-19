@@ -165,7 +165,7 @@
 .fb-pane-level.cut { color: var(--color-warn); border-color: color-mix(in srgb, var(--color-warn) 50%, transparent); }
 /* Too small: the whole width of the pane is the badge's, over the corner too. */
 .fb-pane-level.tight { left: 4px; right: 4px; max-width: none; text-align: center; }
-.fb-grid-size { position: absolute; right: 10px; bottom: 26px; z-index: 5; font-size: 12px; font-weight: 700; padding: 2px 8px;
+.fb-grid-size { position: absolute; right: 10px; bottom: 34px; z-index: 5; font-size: 12px; font-weight: 700; padding: 2px 8px;
   border-radius: 6px; color: var(--color-on-bit); background: var(--color-bit); pointer-events: none; }
 
 /* A pane listing what the bar names pulses with it (#1137). */

@@ -2,7 +2,7 @@ import { ActionIcon, Group, Text, TextInput, Tooltip, UnstyledButton } from '@ma
 import { IconArrowDown, IconArrowUp, IconChevronDown, IconChevronRight, IconGripVertical, IconTrash } from '@tabler/icons-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { COLS, type Panel, ROW_PX, type Section, type Spot, rows } from './grid'
+import { COLS, type Panel, ROW_PX, type Section, type Spot, rows, snapHeight, stepHeight } from './grid'
 import type { Path, Split } from './model'
 import { SplitView } from './SplitView'
 import { LargeContext, PaneKey, paneAt, paneKey, useLarge } from './large'
@@ -120,7 +120,9 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
     const x0 = e.clientX, y0 = e.clientY
     const move = (ev: PointerEvent) => {
       const dx = Math.round((ev.clientX - x0) / col), dy = Math.round((ev.clientY - y0) / row)
-      editing.onPlace(index, i, mode === 'move' ? { x: start.x + dx, y: start.y + dy } : { w: start.w + dx, h: start.h + dy }, base)
+      // A Page snaps the height to small, medium or large (#923); a Screen shares its height out.
+      const h = fit ? start.h + dy : snapHeight(start.h + dy)
+      editing.onPlace(index, i, mode === 'move' ? { x: start.x + dx, y: start.y + dy } : { w: start.w + dx, h }, base)
     }
     const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); setSizing(null) }
     if (mode === 'size') setSizing(i)
@@ -134,7 +136,8 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
     if (!d) return
     e.preventDefault()
     const p = section.panels[i]
-    editing.onPlace(index, i, e.shiftKey ? { w: p.w + d[0], h: p.h + d[1] } : { x: p.x + d[0], y: p.y + d[1] }, section.panels)
+    const h = !d[1] || fit ? p.h + d[1] : stepHeight(p.h, d[1] as 1 | -1)
+    editing.onPlace(index, i, e.shiftKey ? { w: p.w + d[0], h } : { x: p.x + d[0], y: p.y + d[1] }, section.panels)
   }
   const template = fit ? `repeat(${n}, minmax(0, 1fr))` : `repeat(${n}, ${ROW_PX}px)`
   return (

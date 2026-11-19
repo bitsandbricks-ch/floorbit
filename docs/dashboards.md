@@ -34,7 +34,8 @@ layer at the bottom right.
   in the editor is saved.
 - **Layout**: **Screen** fits the whole dashboard into the space it has, nothing scrolls: under
   the top bar in the app, the whole screen on a wall. Widgets drop a level when their rows get
-  short. **Page** gives rows a fixed height and scrolls like any other page. New dashboards start as
+  short. **Page** gives rows a fixed height and scrolls like any other page; a widget's height
+  snaps to small (3 rows), medium (5) or large (8), and above that goes a row at a time. New dashboards start as
   a Page. On a phone, both scroll, one widget per row. A Page opened full screen (or in a
   rotation) offers whoever may edit it **Make it a Screen**; **Keep it a Page** stops asking on
   that screen.
