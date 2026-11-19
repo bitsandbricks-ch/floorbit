@@ -92,6 +92,7 @@ def test_librenms_says_what_a_switch_is_in_telemetrys_shape(librenms):
     assert facts == {
         "vlans": {"1": "default", "10": "seats", "1002": "fddi-default"},
         "networks": ["192.0.2.0/24"],
+        "svis": [{"vlan": 10, "network": "192.0.2.0/24", "if_index": 90}],     # segments (#947)
         "transceivers": [{"port": "Te1/1/1", "model": "SFP-10G-SR", "descr": "CISCO SFP+", "serial": "AVX0001"}],
     }
     assert client.device_facts("not-in-librenms") == {}
@@ -156,6 +157,7 @@ def test_discovery_fills_vlans_networks_and_optics_from_librenms_alone(client):
         assert client.post('/api/inventory', json=body).status_code == 201
     source = LibreNMSOnly({
         'sw-a-01': {'vlans': {'10': 'seats'}, 'networks': ['192.0.2.0/24'],
+                    'svis': [{'vlan': 10, 'network': '192.0.2.0/24', 'if_index': 90}],
                     'transceivers': [{'port': 'Te1/1/1', 'model': 'SFP-10G-SR', 'descr': '', 'serial': 'AVX0001'}]},
         # The row's own facts win; what they don't say is filled in.
         'fw-01': {'networks': ['198.51.100.0/24'], 'vlans': {'30': 'crew'}},
@@ -173,6 +175,8 @@ def test_discovery_fills_vlans_networks_and_optics_from_librenms_alone(client):
     assert sw['model'] == 'WS-C2960X-48FPD-L' and sw['platform'] == 'Cisco IOS'   # identity as before
     assert sw['discovered']['vlans'] == [{'id': 10, 'name': 'seats'}]
     assert sw['discovered']['networks'] == ['192.0.2.0/24']
+    seg = client.get('/api/settings/segments').get_json()['segments']             # the SVI's segment
+    assert [(x['vlan'], x['network'], x['if_index']) for x in seg] == [(10, '192.0.2.0/24', 90)]
     assert sw['discovered']['transceivers'][0]['serial'] == 'AVX0001'
     assert fw['discovered']['networks'] == ['192.0.2.0/24']
     assert fw['discovered']['vlans'] == [{'id': 30, 'name': 'crew'}]

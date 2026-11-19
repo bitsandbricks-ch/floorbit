@@ -186,7 +186,7 @@ ACTIONS = (
      'roles': ('switch', 'router', 'firewall', 'access-point', 'server', 'vm', 'pdu', 'other')},
     {'id': 'interfaces', 'name': 'Interfaces', 'minutes': None, 'keys': (),
      'roles': ('switch', 'router', 'firewall', 'access-point', 'server', 'pdu')},
-    {'id': 'networks', 'name': 'VLANs and networks', 'minutes': None, 'keys': ('vlans', 'networks'),
+    {'id': 'networks', 'name': 'VLANs and networks', 'minutes': None, 'keys': ('vlans', 'networks', 'svis'),
      'roles': ('switch', 'router', 'firewall', 'server', 'vm')},
     {'id': 'optics', 'name': 'Transceivers', 'minutes': 60, 'keys': ('transceivers',),
      'roles': ('switch', 'router', 'firewall')},

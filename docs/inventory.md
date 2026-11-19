@@ -177,7 +177,8 @@ CPUs, the Cisco memory pool); with LibreNMS it takes what LibreNMS knows of the 
 
 LibreNMS alone fills the VLANs, networks and transceivers too (its `vlans`, `ip`, `transceivers`
 endpoints, or its ENTITY-MIB inventory on versions without `transceivers`), and the interfaces'
-MAC, IPv4 addresses, VLAN and access or trunk mode. Its API has no routes and no PoE budget, so
+MAC, IPv4 addresses, VLAN and access or trunk mode. A VLAN interface with an address (`Vlan10`)
+becomes a proposed lookup segment, as with telemetry. Its API has no routes and no PoE budget, so
 those come from telemetry only. With both on, telemetry's answer comes first and LibreNMS fills
 what it doesn't say. On a hosted Floorbit these calls go through the local agent like every other
 LibreNMS call (an agent older than this asks nothing, and those areas stay as they were).

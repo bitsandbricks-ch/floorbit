@@ -114,6 +114,24 @@ def _networks(device_id):
                    for a in addresses(device_id) if a['prefix'] < 32})
 
 
+def _svis(device_id, ports):
+    """VLAN interfaces with an address, as telemetry's ``svis`` (segments, issue #947)."""
+    from floorbit.segments import vlan_of_interface
+    by_id = {p.get('port_id'): p for p in ports}
+    out = set()
+    for a in addresses(device_id):
+        port = by_id.get(a['port_id']) or {}
+        vlan = vlan_of_interface(port.get('ifName'))
+        if not vlan or a['prefix'] >= 32:
+            continue
+        try:
+            if_index = int(port.get('ifIndex'))
+        except (TypeError, ValueError):
+            if_index = None
+        out.add((vlan, str(ipaddress.ip_network(f"{a['ip']}/{a['prefix']}", strict=False)), if_index))
+    return [{'vlan': v, 'network': n, 'if_index': i} for v, n, i in sorted(out, key=lambda x: x[:2])][:256]
+
+
 def _optics(device_id, names, by_index):
     """The transceivers LibreNMS lists (its transceivers module), else the optics in its ENTITY-MIB
     inventory, as [{port, model, descr, serial}]."""
@@ -145,7 +163,7 @@ def _optics(device_id, names, by_index):
 
 def summary(device_id, ports):
     """The facts of one LibreNMS device (``ports``: its port rows with port_id, ifIndex and ifName):
-    vlans, networks, transceivers. Only what LibreNMS said."""
+    vlans, networks, svis, transceivers. Only what LibreNMS said."""
     names = {p.get('port_id'): p.get('ifName') for p in ports if p.get('ifName')}
     by_index = {str(p.get('ifIndex')): p.get('ifName') for p in ports if p.get('ifName')}
     out = {}
@@ -155,6 +173,9 @@ def summary(device_id, ports):
     networks = _networks(device_id)
     if networks:
         out['networks'] = networks
+    svis = _svis(device_id, ports)
+    if svis:
+        out['svis'] = svis
     optics = _optics(device_id, names, by_index)
     if optics:
         out['transceivers'] = optics
