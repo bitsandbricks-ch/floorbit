@@ -131,6 +131,10 @@
     "plugin-victorialogs": {
       "title": "Plugin: VictoriaLogs",
       "desc": "Schickt die Syslog-Zeilen, die Floorbit empfängt, an VictoriaLogs, um sie länger als einen Tag aufzubewahren, und durchsucht sie auf der Seite Logs mit LogsQL."
+    },
+    "plugin-librenms-alerts": {
+      "title": "Plugin: LibreNMS-Alarme",
+      "desc": "LibreNMS schickt jeden Alarm an den lokalen Agent (sein API-Transport), und der Agent gibt ihn weiter: er erscheint sofort auf der Probleme-Seite und weckt den Statusmonitor. Eine Recovery schliesst ihn."
     }
   },
   "fields": {
@@ -837,6 +841,10 @@
     },
     "plugin_victorialogs_verify_ssl": {
       "label": "TLS-Zertifikate prüfen"
+    },
+    "plugin_librenms-alerts_port": {
+      "label": "Port auf dem Agent",
+      "help": "Wohin LibreNMS seine Alarme schickt, auf der Maschine des Agents (HTTP, oder HTTPS, wenn der Agent ein Zertifikat hat). 0: aus."
     }
   },
   "plugins": {
@@ -849,6 +857,7 @@
     "captive-note": "Der lokale Agent beantwortet im Eventnetz die Captive Portal API (DHCP-Option 114), damit Handys und Laptops einen dezenten Anmeldehinweis zeigen, bis ihr Platz eingecheckt ist. Nichts wird je gesperrt. Solange das gehostete Floorbit nicht erreichbar ist, antwortet er mit dem zuletzt Gehörten.",
     "front-door": "Der lokale Agent antwortet im Eventnetz und gibt jede Anfrage mit der Adresse, die er gesehen hat, an Floorbit weiter. So findet der Check-in den Switch-Port des Platz-PCs, der Speedtest am Platz misst die Halle, und jede teilnehmende Person hat ihre eigene Anmeldesperre. Die Check-in-Adresse (CHECKIN_ADDRESS) auf den Agenten zeigen lassen.",
     "shelly": "Der lokale Agent liest die Last von Shelly-Steckdosen, -Relais und -Energiemessern im Eventnetz (erste und spätere Generationen) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite.",
-    "home-assistant": "Der lokale Agent liest Leistungssensoren aus einem Home Assistant im Eventnetz (Watt, Kilowatt oder Ampere) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite."
+    "home-assistant": "Der lokale Agent liest Leistungssensoren aus einem Home Assistant im Eventnetz (Watt, Kilowatt oder Ampere) und gibt sie per Messgerät-ID an die Stromkreise auf der Elektrik-Seite.",
+    "librenms-alerts": "LibreNMS schickt jeden Alarm an den lokalen Agent (sein API-Transport), und der Agent gibt ihn weiter: er erscheint sofort auf der Probleme-Seite und weckt den Statusmonitor. Eine Recovery schliesst ihn."
   }
 }

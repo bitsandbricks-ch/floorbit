@@ -131,6 +131,10 @@
     "plugin-victorialogs": {
       "title": "Plugin: VictoriaLogs",
       "desc": "Sends the syslog lines Floorbit receives to VictoriaLogs, to keep them longer than a day, and searches them with LogsQL on the Logs page."
+    },
+    "plugin-librenms-alerts": {
+      "title": "Plugin: LibreNMS alerts",
+      "desc": "LibreNMS sends every alert to the local agent (its API transport), and the agent passes it on: it shows on the Problems page at once and wakes the status monitor. A recovery clears it."
     }
   },
   "fields": {
@@ -837,6 +841,10 @@
     },
     "plugin_victorialogs_verify_ssl": {
       "label": "Verify TLS certificates"
+    },
+    "plugin_librenms-alerts_port": {
+      "label": "Port on the agent",
+      "help": "Where LibreNMS sends its alerts, on the agent machine (HTTP, or HTTPS when the agent has a certificate). 0: off."
     }
   },
   "plugins": {
@@ -849,6 +857,7 @@
     "captive-note": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away.",
     "front-door": "The local agent answers on the event network and hands each request on to Floorbit with the address it saw, so check-in finds the seat PC's switch port, the seat speed test measures the hall and each attendee has their own sign-in lockout. Point the check-in address (CHECKIN_ADDRESS) at the agent.",
     "shelly": "The local agent reads the load from Shelly plugs, relays and energy meters on the event network (first and later generations) and hands it to the circuits on the Electrics page by meter id.",
-    "home-assistant": "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id."
+    "home-assistant": "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id.",
+    "librenms-alerts": "LibreNMS sends every alert to the local agent (its API transport), and the agent passes it on: it shows on the Problems page at once and wakes the status monitor. A recovery clears it."
   }
 }

@@ -23,7 +23,8 @@
     "checkin": "Check-in",
     "mapping": "Platz-Port",
     "forecast": "Prognose",
-    "log": "Log"
+    "log": "Log",
+    "librenms": "LibreNMS"
   },
   "attention": {
     "title": "Braucht Aufmerksamkeit",
@@ -63,5 +64,6 @@
   "report": "Störung erfassen",
   "incidentOpen": "Störung offen",
   "copy": "Liste kopieren",
-  "copied": "Kopiert"
+  "copied": "Kopiert",
+  "clear": "Schliessen"
 }

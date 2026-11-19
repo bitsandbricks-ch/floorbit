@@ -34,6 +34,7 @@ from . import (
                inventory_types,
                lancache,
                layout_templates,
+               librenms_alerts,
                logs,
                marketplace,
                metrics,
@@ -94,4 +95,4 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_gro
        wifi.bp, segments.bp,
        speedtest.bp, timeline.bp, topology.bp, status_page.bp,
        stats_wall.bp, schedule.bp, plan.bp, metrics.bp, notice.bp, options.bp,
-       lancache.bp, marketplace.bp, dashboards.bp, nav_sections.bp]
+       lancache.bp, librenms_alerts.bp, marketplace.bp, dashboards.bp, nav_sections.bp]

@@ -18,7 +18,8 @@ that are down or need a look, muted ones (switches and services) left out, e.g. 
   the switch port only, since titles and seats can point at a person;
 - [power circuits](power.md) that tripped, are about to, or are getting close;
 - the [bandwidth forecast](forecast.md) reaching the warning share of the line within the next hours;
-- [links between switches](topology.md) that are down (red) or came up slower than planned (amber).
+- [links between switches](topology.md) that are down (red) or came up slower than planned (amber);
+- [alerts LibreNMS pushed through the agent](librenms-alerts.md), until their recovery.
 
 It asks nothing new: it reads what the status monitor, the health wall, the security watch, the
 power layer and the link reader already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,

@@ -23,7 +23,8 @@
     "checkin": "Check-in",
     "mapping": "Seat port",
     "forecast": "Forecast",
-    "log": "Log"
+    "log": "Log",
+    "librenms": "LibreNMS"
   },
   "attention": {
     "title": "Needs attention",
@@ -63,5 +64,6 @@
   "report": "Make an incident",
   "incidentOpen": "Incident open",
   "copy": "Copy list",
-  "copied": "Copied"
+  "copied": "Copied",
+  "clear": "Clear"
 }

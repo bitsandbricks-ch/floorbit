@@ -1038,6 +1038,7 @@
  "The database does not answer right now.": "Die Datenbank antwortet gerade nicht.",
  "cannot listen for syslog on UDP {}: {}": "kann nicht auf UDP {} auf Syslog hören: {}",
  "cannot listen for flows on UDP {}: {}": "kann nicht auf UDP {} auf Flows hören: {}",
+ "cannot listen for LibreNMS alerts on port {}: {}": "kann auf Port {} nicht auf LibreNMS-Alarme hören: {}",
  "agent.fetches does not list {}": "agent.fetches führt {} nicht auf",
  "Telemetry devices": "Telemetrie-Geräte",
  "No devices set up yet.": "Noch keine Geräte eingerichtet.",
@@ -1228,5 +1229,11 @@
  "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
  "Send an object.": "Schicke ein Objekt.",
  "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken.",
- "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({})."
+ "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({}).",
+ "That LibreNMS alert is not open.": "Dieser LibreNMS-Alarm ist nicht offen.",
+ "{} (acknowledged in LibreNMS)": "{} (in LibreNMS quittiert)",
+ "The alert is not a JSON object.": "Der Alarm ist kein JSON-Objekt.",
+ "The alert names no device: check the body template (hostname).": "Der Alarm nennt kein Gerät: prüfe die Body-Vorlage (hostname).",
+ "The alert has no state: check the body template (state).": "Der Alarm hat keinen Status: prüfe die Body-Vorlage (state).",
+ "The alert has no id: check the body template (alert_id).": "Der Alarm hat keine ID: prüfe die Body-Vorlage (alert_id)."
 }

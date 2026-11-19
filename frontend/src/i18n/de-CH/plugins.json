@@ -49,9 +49,29 @@
     "telemetry": "Telemetrie",
     "services": "Dienste",
     "game-servers": "Gameserver",
-    "firewalls": "Firewalls"
+    "firewalls": "Firewalls",
+    "librenms-alerts": "LibreNMS-Alarme"
   },
   "kicker": "Womit Floorbit spricht: Quellen, Überwachung und Erweiterungen",
   "docs": "Wie Plugins funktionieren",
-  "updates": "Aktualisierungen"
+  "updates": "Aktualisierungen",
+  "librenmsAlerts": {
+    "title": "In LibreNMS einfügen",
+    "desc": "LibreNMS: Alerts > Alert transports, ein neuer Transport vom Typ API. Schalte Verify SSL aus, ausser LibreNMS vertraut dem Zertifikat des Agents, und gib den Alarmregeln diesen Transport mit Recoveries.",
+    "show": "Anzeigen, was einzufügen ist",
+    "method": "API-Methode",
+    "url": "API-URL ({{agent}})",
+    "headers": "Header",
+    "token": "Auth: Bearer-Token",
+    "body": "Body",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "newToken": "Neues Token",
+    "newTokenQuestion": "LibreNMS kommt nicht mehr durch, bis du das neue Token dort einfügst. Ein neues erstellen?",
+    "addressUnknown": "Noch kein Browser hat die Eingangstür dieses Agents erreicht: setze die Adresse des Agents in der Halle ein.",
+    "off": "Der Port ist 0: die Agents nehmen keine LibreNMS-Alarme an.",
+    "noAgent": "Noch kein lokaler Agent: LibreNMS schickt seine Alarme an einen.",
+    "after_one": "{{count}} LibreNMS-Alarm ist gerade offen.",
+    "after_other": "{{count}} LibreNMS-Alarme sind gerade offen."
+  }
 }

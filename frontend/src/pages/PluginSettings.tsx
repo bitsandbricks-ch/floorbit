@@ -6,6 +6,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState } from '@/components/ui'
 import { PluginCard } from './Plugins'
+import { LibreNMSAlertsSetup } from './plugins/LibreNMSAlertsSetup'
 import { SectionPanel, SettingsForm } from './settings/editor'
 import { useSettingsEditor } from './settings/model'
 import { pluginName } from '@/lib/pluginName'
@@ -30,6 +31,8 @@ export default function PluginSettings() {
       {plugin && ed.d && (
         <Stack gap="md">
           <PluginCard plugin={plugin} titled={false} />
+          {/* The one plugin with something to paste elsewhere: its token stays behind a button. */}
+          {plugin.id === 'librenms-alerts' && plugin.enabled && <LibreNMSAlertsSetup />}
           {section && (
             <SettingsForm ed={ed}>
               <SectionPanel ed={ed} section={section} title={t('plugins.settings')} />
