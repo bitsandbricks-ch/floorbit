@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Badge, Button, Code, Group, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
+import { ActionIcon, Alert, Badge, Button, Code, Group, SegmentedControl, SimpleGrid, Stack, Table, Text, TextInput, Tooltip } from '@mantine/core'
 import { IconPencil, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -8,7 +8,6 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { ConfirmButton } from '@/components/ConfirmButton'
-import { DataTable } from '@/components/DataTable'
 import type { EntityOption } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -111,39 +110,48 @@ function Devices({ d, isAdmin }: { d?: TelemetryOverview; isAdmin: boolean }) {
           data={[{ value: 'all', label: t('telemetry.showAll') }, { value: 'problems', label: t('telemetry.showProblems') },
             { value: 'silent', label: t('telemetry.showSilent') }]} />
       </Group>
-      <DataTable rows={rows} rowKey={(dev) => String(dev.id)} label={t('telemetry.tableLabel')} defaultSort={{ id: 'device' }} bare minWidth={640}
-        empty={<Text size="sm" c="dimmed" p="md">{t('telemetry.noMatch')}</Text>}
-        columns={[
-          { id: 'device', header: t('telemetry.device'), sort: (dev) => dev.name, cell: (dev) => (
-            <>
-              <Text component={Link} to={telemetryPath(dev.inventory_id)} ff="monospace" size="sm" fw={600} c="inherit">{dev.name}</Text>
-              <Text size="xs" c="dimmed">{dev.address} · {label('platform', dev.platform)}</Text>
-              <DeviceProblems problems={d!.seen[dev.name]?.problems} />
-            </>
-          ) },
-          { id: 'drivers', header: t('telemetry.drivers'),
-            cell: (dev) => <Group gap={4}>{dev.drivers.map((x) => <Badge key={x} variant="light" size="sm" tt="none">{label('driver', x)}</Badge>)}</Group> },
-          { id: 'agent', header: t('telemetry.agent'), hideOnPhone: true, sort: (dev) => (dev.agent ? agentName(dev.agent) : ''),
-            cell: (dev) => <Text size="sm" c={dev.agent ? undefined : 'dimmed'}>{dev.agent ? agentName(dev.agent) : t('telemetry.anyAgent')}</Text> },
-          { id: 'seen', header: t('telemetry.lastSeen'), descFirst: true, sort: (dev) => d!.seen[dev.name]?.seen ?? 0, cell: (dev) => {
-            const s = d!.seen[dev.name]
-            return s?.seen ? <Badge color={s.online ? 'up' : 'down'} variant="light" tt="none" miw="max-content" title={dateTime(s.seen)}>{ago(s.seen)}</Badge>
-              : <Text size="sm" c="dimmed">{t('telemetry.never')}</Text>
-          } },
-          { id: 'what', header: t('telemetry.what'), hideOnPhone: true, cell: (dev) => {
-            const s = d!.seen[dev.name]
-            return <Text size="sm">{s?.ports !== undefined ? t('telemetry.counts', { ...s }) : '–'}</Text>
-          } },
-          { id: 'actions', header: <VisuallyHidden>{t('telemetry.open')}</VisuallyHidden>, cell: (dev) => (
-            <Group gap={6} justify="flex-end" wrap="nowrap">
-              {isAdmin && d!.status.collector === 'agent' && <DeviceTelemetryActions name={dev.name} />}
-              <Tooltip label={canEdit ? t('telemetry.edit') : t('telemetry.open')}>
-                <ActionIcon component={Link} to={telemetryPath(dev.inventory_id)} variant="default"
-                  aria-label={`${canEdit ? t('telemetry.edit') : t('telemetry.open')}: ${dev.name}`}><IconPencil size={16} /></ActionIcon>
-              </Tooltip>
-            </Group>
-          ) },
-        ]} />
+      <Table.ScrollContainer minWidth={640}>
+        <Table highlightOnHover verticalSpacing="sm">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>{t('telemetry.device')}</Table.Th><Table.Th>{t('telemetry.drivers')}</Table.Th>
+              <Table.Th visibleFrom="sm">{t('telemetry.agent')}</Table.Th><Table.Th>{t('telemetry.lastSeen')}</Table.Th>
+              <Table.Th visibleFrom="md">{t('telemetry.what')}</Table.Th><Table.Th />
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {rows.map((dev) => {
+              const s = d!.seen[dev.name]
+              return (
+                <Table.Tr key={dev.id}>
+                  <Table.Td>
+                    <Text component={Link} to={telemetryPath(dev.inventory_id)} ff="monospace" size="sm" fw={600} c="inherit">{dev.name}</Text>
+                    <Text size="xs" c="dimmed">{dev.address} · {label('platform', dev.platform)}</Text>
+                    <DeviceProblems problems={s?.problems} />
+                  </Table.Td>
+                  <Table.Td><Group gap={4}>{dev.drivers.map((x) => <Badge key={x} variant="light" size="sm" tt="none">{label('driver', x)}</Badge>)}</Group></Table.Td>
+                  <Table.Td visibleFrom="sm"><Text size="sm" c={dev.agent ? undefined : 'dimmed'}>{dev.agent ? agentName(dev.agent) : t('telemetry.anyAgent')}</Text></Table.Td>
+                  <Table.Td>
+                    {s?.seen ? <Badge color={s.online ? 'up' : 'down'} variant="light" tt="none" miw="max-content" title={dateTime(s.seen)}>{ago(s.seen)}</Badge>
+                      : <Text size="sm" c="dimmed">{t('telemetry.never')}</Text>}
+                  </Table.Td>
+                  <Table.Td visibleFrom="md"><Text size="sm">{s?.ports !== undefined ? t('telemetry.counts', { ...s }) : '–'}</Text></Table.Td>
+                  <Table.Td>
+                    <Group gap={6} justify="flex-end" wrap="nowrap">
+                      {isAdmin && d!.status.collector === 'agent' && <DeviceTelemetryActions name={dev.name} />}
+                      <Tooltip label={canEdit ? t('telemetry.edit') : t('telemetry.open')}>
+                        <ActionIcon component={Link} to={telemetryPath(dev.inventory_id)} variant="default"
+                          aria-label={`${canEdit ? t('telemetry.edit') : t('telemetry.open')}: ${dev.name}`}><IconPencil size={16} /></ActionIcon>
+                      </Tooltip>
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
+              )
+            })}
+          </Table.Tbody>
+        </Table>
+      </Table.ScrollContainer>
+      {d && !rows.length && <Text size="sm" c="dimmed" p="md">{t('telemetry.noMatch')}</Text>}
     </Panel>
   )
 }
@@ -159,7 +167,7 @@ function Collector({ d }: { d: TelemetryOverview }) {
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
           <Field label={t('telemetry.collector')}>{t(`telemetry.collectorIs.${d.status.collector}`)}</Field>
           <Field label={t('telemetry.storage')}>{t(`telemetry.storageIs.${d.status.storage.mode}`, { days: d.status.storage.keep_days })}</Field>
-          <Field label={t('telemetry.tableLabel')}>{d.status.devices}</Field>
+          <Field label={t('telemetry.devices')}>{d.status.devices}</Field>
           {d.status.points !== null && <Field label={t('telemetry.points')}>{d.status.points}</Field>}
         </SimpleGrid>
       </Panel>
