@@ -6,6 +6,7 @@ import type { Section } from './grid'
 import type { KindPick, LevelPin } from '@/widgets/level'
 import type { LineStyle, Stack, Trend } from '@/widgets/kinds/shape'
 import type { Calc } from '@/widgets/kinds/combine'
+import type { Display } from '@/widgets/kinds/display'
 
 /** Dashboards (floorbit/dashboards.py): widgets on a grid (grid.ts), each one pane or panes split
  *  side by side or stacked, saved under a name. */
@@ -37,9 +38,10 @@ export type Pane = Head & (
    *  instead of picking it from the box (issue #924). ``stack``, ``style`` and ``trend`` say how
    *  bars and lines draw. ``also`` adds up to three more tiles to draw with it, ``group_by`` and
    *  ``reduce`` group or calculate before drawing, ``legend`` picks a graph legend's numbers
-   *  (issue #959). All are left out when automatic or the default. */
-  | { kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend
-      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[] }
+   *  (issue #959); the ``Display`` fields set units, colour steps, mappings and rows (#960).
+   *  All are left out when automatic or the default. */
+  | ({ kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend
+      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[] } & Display)
   /** ``expanded``: the widget at its big size right on the grid (a pane that fills a screen). */
   | { kind: 'view'; view: string; expanded?: boolean }
   | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }
@@ -234,4 +236,10 @@ export function seatsIn(drawing: PlanDrawing, view: View): string[] {
     }
   }
   return out
+}
+
+/** The display part of a tile pane, for widgets/kinds/display.ts. */
+export function displayOf(p: Extract<Pane, { kind: 'tile' }>): Display {
+  const { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero } = p
+  return { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero }
 }

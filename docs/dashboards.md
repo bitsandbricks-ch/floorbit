@@ -91,6 +91,20 @@ the last number column); without one, the data becomes one number (one per line 
 as the average traffic over the time shown. **Legend shows** picks the numbers a graph's legend
 gives for each line; empty, it shows the latest value, plus max and average when large.
 
+### Numbers and colours
+
+Under **Numbers and colours** in a tile pane's settings:
+
+- **Unit** replaces the data's unit, **Decimals** fixes the decimals, and **Short numbers** writes
+  1,234 as 1.2k.
+- **Colour steps** colour the number, bar or gauge from a value up (≥ 80 orange, ≥ 95 red), or
+  from a share of the maximum (**% of max**, for seats online out of a block). Graphs draw each step
+  as a dashed line.
+- **Show values as text** turns a value or a range into a word in a colour, such as 0 as "Down" in
+  red.
+- **Sort**, **Show at most** and **Hide rows that are 0** pick which rows a list or table shows:
+  biggest first and at most five is a top 5.
+
 Hover a bar, a slice or the gauge for its value and share. **Size** pins small, medium or large
 instead of picking it from the box. Any box size works.
 

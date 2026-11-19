@@ -128,3 +128,9 @@ button.fb-w-more:hover { text-decoration: underline; }
 .fb-w-stack { display: flex; flex-direction: column; background: none !important; overflow: hidden; }
 .fb-w-hstack { display: flex; background: none !important; overflow: hidden; }
 .fb-w-bar-track.grouped { height: 14px; }
+
+/* A threshold on a graph (issue #960): a thin dashed line in its tone. */
+.fb-w-step { stroke: var(--color-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+.fb-w-step.fb-tone-ok { stroke: var(--color-up); }
+.fb-w-step.fb-tone-warn { stroke: var(--color-warn); }
+.fb-w-step.fb-tone-err { stroke: var(--color-down); }

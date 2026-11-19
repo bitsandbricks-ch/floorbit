@@ -37,6 +37,7 @@ Kept in data.json under ``dashboards``. Panes that name something gone (a hall, 
 show a note on the screen instead of failing: the screen keeps running.
 """
 import copy
+import math
 import re
 import threading
 import time
@@ -58,6 +59,10 @@ KINDS = ('plan', 'tile', 'view', 'text', 'empty')
 # What a tile pane may calculate (issue #959); the browser does the maths on the widgets' data.
 CALCS = ('count', 'sum', 'avg', 'min', 'max', 'first', 'last')
 MAX_ALSO = 3
+TONES = ('', 'ok', 'warn', 'err')
+SORTS = ('value-desc', 'value-asc', 'name-asc', 'name-desc')
+MAX_STEPS = 5
+MAX_MAPPINGS = 10
 KEY_RE = re.compile(r'^[\w.-]{1,64}\Z')
 SPLITS = ('row', 'column')
 AREAS = ('hall', 'block', 'zone', 'box')
@@ -306,6 +311,7 @@ def _pane(raw):
             if value != allowed[0]:
                 pane[key] = value
         pane.update(_shaping(raw, tile))
+        pane.update(_display(raw))
     elif kind == 'view':
         view = str(raw.get('view') or '')
         if not ID_RE.match(view):
@@ -479,6 +485,68 @@ def _shaping(raw, tile):
         raise LayoutError(f'A calculation is one of: {", ".join(CALCS)}.')
     if legend:
         out['legend'] = legend
+    return out
+
+
+def _num(value, what, lo=None, hi=None, whole=False):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise LayoutError(f'{what} must be a number.')
+    if whole and (value != int(value) or not lo <= value <= hi):
+        raise LayoutError(f'{what} is a whole number from {lo} to {hi}.')
+    return int(value) if whole else value
+
+
+def _tone(value):
+    tone = value or ''
+    if tone not in TONES:
+        raise LayoutError(f'A colour is one of: {", ".join(t for t in TONES if t)}.')
+    return tone
+
+
+def _display(raw):
+    """How a tile pane shows its numbers (issue #960); left out when unused."""
+    out = {}
+    steps = raw.get('thresholds') or []
+    if not isinstance(steps, list) or len(steps) > MAX_STEPS:
+        raise LayoutError(f'A widget has at most {MAX_STEPS} colour steps.')
+    if steps:
+        out['thresholds'] = [{'at': _num((s or {}).get('at'), 'A colour step'), 'tone': _tone((s or {}).get('tone'))}
+                             for s in steps if isinstance(s, dict)]
+        if len(out['thresholds']) != len(steps):
+            raise LayoutError('A colour step must be a number.')
+        if raw.get('threshold_mode') not in (None, '', 'value', 'percent'):
+            raise LayoutError('Colour steps compare the value or the percent of the max.')
+        if raw.get('threshold_mode') == 'percent':
+            out['threshold_mode'] = 'percent'
+    maps = raw.get('mappings') or []
+    if not isinstance(maps, list) or len(maps) > MAX_MAPPINGS or not all(isinstance(m, dict) for m in maps):
+        raise LayoutError(f'A widget has at most {MAX_MAPPINGS} value mappings.')
+    if maps:
+        out['mappings'] = []
+        for m in maps:
+            entry = {'text': _text(m.get('text'), 40)}
+            for end in ('from', 'to'):
+                if m.get(end) is not None:
+                    entry[end] = _num(m[end], 'A mapped value')
+            if m.get('tone'):
+                entry['tone'] = _tone(m['tone'])
+            out['mappings'].append(entry)
+    unit = _text(raw.get('unit'), 16)
+    if unit:
+        out['unit'] = unit
+    if raw.get('decimals') is not None:
+        out['decimals'] = _num(raw['decimals'], 'Decimals', 0, 4, whole=True)
+    if raw.get('short'):
+        out['short'] = True
+    sort = raw.get('sort') or ''
+    if sort:
+        if sort not in SORTS:
+            raise LayoutError(f'Sort is one of: {", ".join(SORTS)}.')
+        out['sort'] = sort
+    if raw.get('limit') is not None:
+        out['limit'] = _num(raw['limit'], 'Show at most', 1, 100, whole=True)
+    if raw.get('hide_zero'):
+        out['hide_zero'] = True
     return out
 
 

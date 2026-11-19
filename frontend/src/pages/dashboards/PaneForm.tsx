@@ -1,4 +1,4 @@
-import { Button, MultiSelect, Select, SegmentedControl, Stack, Switch, Text, TextInput, Textarea } from '@mantine/core'
+import { Button, Divider, MultiSelect, Select, SegmentedControl, Stack, Switch, Text, TextInput, Textarea } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -17,6 +17,7 @@ import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
 import { type Area, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, planPane } from './model'
 import { pluginName } from '@/lib/pluginName'
+import { DisplayFields } from './DisplayFields'
 
 const FILTERS: PlanFilter[] = ['all', 'problems', 'offline', 'recent', 'note', 'checked_in']
 
@@ -241,6 +242,8 @@ function WidgetLook({ pane, tiles, onChange }: { pane: Extract<Pane, { kind: 'ti
             onChange={(v) => onChange({ ...pane, [key]: v === LOOK_OPTIONS[key][0] ? undefined : v })} />
         </div>
       ))}
+      <Divider label={t('dashboards.display.title')} labelPosition="left" />
+      <DisplayFields pane={pane} data={data} onChange={onChange} />
     </>
   )
 }

@@ -6,7 +6,7 @@ import { useDashboard, useFeaturesOff, useWidgets } from '@/api/queries'
 import type { Tile, WidgetTile } from '@/api/types'
 import { FitWidget } from '@/widgets/FitWidget'
 import { usePaneData } from '@/widgets/usePaneData'
-import type { Pane } from './model'
+import { type Pane, displayOf } from './model'
 import { PlanPane } from './PlanPane'
 import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
 import { Markdown } from '@/components/Markdown'
@@ -66,9 +66,10 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
 function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>; tiles: WidgetTile[] }) {
   const { t } = useTranslation()
   const [big, setBig] = useState(false)
-  const { data, error, isPending, dropped } = usePaneData(useWidgets(tiles), pane, tiles.map((x) => x.label))
+  const { data, error, isPending, dropped } = usePaneData(useWidgets(tiles), pane, tiles.map((x) => x.label), displayOf(pane))
   const title = pane.title ?? tiles.map((x) => x.label).join(' · ')
-  const look = { stack: pane.stack, style: pane.style, trend: pane.trend, legend: pane.legend }
+  const look = { stack: pane.stack, style: pane.style, trend: pane.trend, legend: pane.legend,
+    thresholds: pane.threshold_mode === 'percent' ? undefined : pane.thresholds, number: { decimals: pane.decimals, short: pane.short } }
   const link = data?.link && data.link.startsWith('/') ? data.link : ''
   return (
     <Framed title={title} hide={pane.hide_title} fit actions={data && (

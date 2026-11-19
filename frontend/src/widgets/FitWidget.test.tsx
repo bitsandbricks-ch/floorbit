@@ -122,4 +122,15 @@ describe('FitWidget', () => {
     expect(screen.getByText('Min')).toBeInTheDocument()
     expect(screen.getByText('4')).toBeInTheDocument()
   })
+
+  it('draws colour steps as lines on a graph and shows a mapped value as text', () => {
+    size = { w: 600, h: 300 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 2], [1800000060, 10]] }] }
+    const { container, unmount } = renderWithApp(<FitWidget widget={series} look={{ thresholds: [{ at: 5, tone: 'warn' }] }} />)
+    expect(container.querySelector('.fb-w-step.fb-tone-warn')).not.toBeNull()
+    unmount()
+    size = { w: 200, h: 100 }
+    renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 0, unit: '', tone: 'err', text: 'Down' }} />)
+    expect(screen.getByText('Down')).toBeInTheDocument()
+  })
 })
