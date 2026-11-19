@@ -5,7 +5,7 @@ Floorbit checks nothing itself: every check comes from a plugin with ``uses: [he
 ``health_checks()`` returns a list like::
 
     [{"id": "dhcp-players", "name": "DHCP players", "kind": "dhcp", "status": "warn",
-      "summary": "38 leases left", "link": "/dashboard",
+      "summary": "38 leases left", "link": "/services",
       "metrics": [{"label": "Leases left", "value": 38, "unit": "", "tone": "warn"}]}]
 
 The checks are data, cleaned here like widgets (text stays text, links stay on this site). A

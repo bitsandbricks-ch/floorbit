@@ -190,6 +190,6 @@ def traffic_widget(lang, snapshot):
     """Download and upload over time from the traffic reads (stats.py), in bit/s."""
     text = TEXTS.get(lang, TEXTS['en'])
     samples = (snapshot.get('series') or [])[-500:]
-    return {'type': 'series', 'unit': 'bit/s', 'link': '/stats',
+    return {'type': 'series', 'unit': 'bit/s', 'link': '/overview',
             'series': [{'label': text['download'], 'points': [[s['t'], s['down']] for s in samples]},
                        {'label': text['upload'], 'points': [[s['t'], s['up']] for s in samples]}]}

@@ -74,7 +74,7 @@ def _health(muted):
             key = alerting.service_key(c['id'])
             out.append({'id': key, 'kind': 'health', 'level': c['status'],
                         'title': f"{c['name']}: {'down' if c['status'] == 'down' else 'needs a look'}",
-                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/health',
+                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/services',
                         'mute_id': key, 'name': c['name'], 'muted': _muted(muted.get(key))})
     return out
 
@@ -128,7 +128,7 @@ def _forecast():
     at = time.strftime('%H:%M', time.localtime(alert['t']))
     return [{'id': f"forecast:{alert['t']}", 'kind': 'forecast', 'level': 'down' if alert['pct'] >= 100 else 'warn',
              'title': f"Bandwidth expected at {alert['pct']} % of the line around {at}",
-             'where': 'Forecast from the hours so far', 'since': None, 'link': '/stats'}]
+             'where': 'Forecast from the hours so far', 'since': None, 'link': '/overview'}]
 
 
 def _attention():
