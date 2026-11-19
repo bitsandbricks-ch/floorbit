@@ -353,7 +353,7 @@ def from_monitoring(port):
         out['description'] = str(port['description'])[:200]
     if port.get('state'):
         out['enabled'] = port['state'] != 'disabled'
-    for k in ('mac', 'vlan', 'type', 'mode'):
+    for k in ('mac', 'ips', 'vlan', 'type', 'mode'):
         if port.get(k) not in (None, ''):
             out[k] = port[k]
     return out
