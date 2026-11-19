@@ -227,6 +227,10 @@ def _level(value, warn, down, higher_is_better=False):
     return 'down' if value >= down else 'warn' if value >= warn else 'up'
 
 
+def _platform(name):
+    return 'NX-OS' if name == 'core-01' else 'IOS-XE' if name.startswith('dist-') else 'IOS'
+
+
 def _model(name):
     if name.startswith('core'):
         return CORE_MODEL
@@ -388,9 +392,9 @@ class Plugin(Plugin):
                for i, (name, _pos, _ch) in enumerate(APS, 1)]
         return [{'id': name, 'name': name, 'role': role, 'model': _model(name),
                  'serial': f'DEMO{i:05d}', 'mgmt_ip': f'198.51.100.{i}', 'hall': _hall(name),
-                 'status': 'active'} for name, role, i in _switches()] + aps + [
+                 'status': 'active', 'platform': _platform(name)} for name, role, i in _switches()] + aps + [
             {'id': name, 'name': name, 'role': 'firewall', 'model': FIREWALL_MODEL, 'serial': f'DEMOFW{i:03d}',
-             'mgmt_ip': f'198.51.100.{200 + i}', 'hall': MAIN_HALL, 'status': 'active'}
+             'mgmt_ip': f'198.51.100.{200 + i}', 'hall': MAIN_HALL, 'status': 'active', 'platform': 'OPNsense'}
             for i, name in enumerate(FIREWALLS, 1)] + [
             {'id': LANCACHE, 'name': LANCACHE, 'role': 'server', 'model': 'LAN cache and DNS server',
              'serial': 'DEMOSRV001', 'mgmt_ip': LANCACHE_IP, 'hall': MAIN_HALL, 'status': 'active'}]

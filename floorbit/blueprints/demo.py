@@ -178,15 +178,30 @@ def _seed_uplinks(data, layout):
 
 
 def _seed_telemetry():
-    """The demo's switches and firewalls in Settings > Telemetry, unless devices are set up there."""
+    """The demo's switches and firewalls in inventory groups with Telemetry on, unless the
+    inventory has groups already."""
+    from .. import inventory_scope
     from ..builtin_plugins.demo import telemetry as demo_telemetry
     from ..telemetry import state, targets
-    if targets.raw_targets():
-        return
     try:
-        for target in demo_telemetry.targets():
-            targets.save(target, 'demo')
-        state.state.know(targets.raw_targets())
+        with data_lock:
+            data = load_data()
+            if inventory_scope.groups(data):
+                return
+            devices = {d['name']: d for d in inventory.devices(data)}
+            for spec in demo_telemetry.setup():
+                group, _ = inventory_scope.save_group(data, {'name': spec['name'], 'features': {'telemetry': True},
+                                                             'properties': spec['properties']})
+                if spec['login']:
+                    inventory_scope.set_credential(data, {**spec['login'], 'owner_type': 'group',
+                                                          'owner_id': group['id']}, by='demo')
+                for name, props in spec['devices'].items():
+                    dev = devices.get(name)
+                    if dev is not None:
+                        dev['group_id'] = group['id']
+                        dev['properties'] = {**(dev.get('properties') or {}), **props}
+            save_data(data)
+        state.state.know(targets.all_opened())
     except Exception as exc:  # noqa: BLE001  # a demo hiccup must not stop the rest
         print(f'[demo] telemetry: {exc}')
 

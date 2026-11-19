@@ -68,8 +68,9 @@ RCON console.
 
 ## Telemetry
 
-The demo's switches and firewalls are in **Settings > Telemetry** the way you would set them up:
-the core over SNMP, traps and gNMI, the Catalysts over SNMP and traps with their seat VLAN, the
+The demo's switches and firewalls are set up for telemetry in the inventory the way you would do
+it: two groups with the Telemetry feature on, **Network** with an SNMP v3 login and **Firewalls**
+without one. The core over SNMP, traps and gNMI, the Catalysts over SNMP and traps with their seat VLAN, the
 firewalls with their own Telegraf. Every 30 seconds the demo hands the collector what Telegraf would
 send for them: ports with traffic counters, the access switches' MAC tables, the core's ARP table,
 LLDP neighbours, and the firewalls' CPU, memory, states and gateway. So the telemetry status, the

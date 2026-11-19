@@ -229,6 +229,12 @@ RULES = (
     ('/timeline', READ, 'audit.read'),
     ('/settings/audit', READ, 'audit.read'),
     ('/api/settings', None, 'settings.manage'),
+    # Telemetry's admin parts (floorbit/blueprints/telemetry.py): the crew reads the rest.
+    ('/api/telemetry/test', None, 'settings.manage'),
+    ('/api/telemetry/raw', None, 'settings.manage'),
+    ('/api/telemetry/device-config', None, 'settings.manage'),
+    ('/api/telemetry/token', None, 'settings.manage'),
+    ('/api/telemetry/telegraf.conf', None, 'settings.manage'),
     # Local agents (floorbit/agent_link.py): enrolling one hands out a key to the event's data.
     ('/api/agents', None, 'settings.manage'),
     # Clearing a failed agent login lets the agent try that password again (floorbit/agent_plugins.py).

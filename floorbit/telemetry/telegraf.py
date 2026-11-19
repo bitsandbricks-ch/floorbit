@@ -179,7 +179,7 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
            output_insecure=False, poll=True):
     """The whole telegraf.conf. ``targets`` with secrets opened (targets.opened). ``poll=False``
     (a standby agent): only the listeners, so a device is never polled by two agents."""
-    lines = ['# Made by Floorbit from Settings > Telemetry (docs/telemetry.md). Changes here are',
+    lines = ['# Made by Floorbit from the inventory (docs/telemetry.md). Changes here are',
              '# overwritten: change the devices there instead.', '',
              '[agent]', f'  interval = {q(interval)}', '  round_interval = true', '  flush_interval = "5s"',
              '  metric_buffer_limit = 100000', '  omit_hostname = true',

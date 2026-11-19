@@ -69,7 +69,7 @@ def config(registry=None, agent_id=None):
             settings = {**settings, 'targets': plugin_targets(spec.id, block['targets'].get('credentials'))}
         cls = spec.plugin_class()
         if cls is not None and callable(getattr(cls, 'agent_settings', None)):
-            # Settings kept elsewhere (Settings > Telemetry): the hosted part says what the agent gets.
+            # Settings kept elsewhere (the inventory, for telemetry): the hosted part says what the agent gets.
             from .plugins.base import PluginError
             try:
                 # Which agent asks, for plugins that hand each agent its own share.
