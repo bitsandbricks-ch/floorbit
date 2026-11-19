@@ -179,8 +179,10 @@ def test_reasons_from_the_health_wall():
     # Game servers and websites are not "the network".
     assert status_page.reasons([_check("game", "down"), _check("web", "down")]) == ("operational", [])
     assert status_page.reasons([_check("firewall", "down")]) == ("degraded", ["firewall"])
-    assert status_page.reasons([_check("uplink", "down", "a"), _check("uplink", "up", "b")]) == ("degraded", ["internet_slow"])
-    assert status_page.reasons([_check("uplink", "down", "a"), _check("uplink", "down", "b")]) == ("outage", ["internet_down"])
+    one, both = [_check("uplink", "down", "a"), _check("uplink", "up", "b")], [_check("uplink", "down", "a"),
+                                                                               _check("uplink", "down", "b")]
+    assert status_page.reasons(one) == ("degraded", ["internet_slow"])
+    assert status_page.reasons(both) == ("outage", ["internet_down"])
     assert status_page.reasons([_check("dns", "down"), _check("dhcp", "warn")]) == ("degraded", ["dns"])
     # A range with no firewall left is an outage for its seats.
     assert status_page.reasons([_check("firewall", "down")], {"A-1": {"state": "down"}}) == ("outage", ["no_firewall"])

@@ -205,7 +205,10 @@ def reasons(checks, routed=None):
     elif down['firewall']:
         hit('firewall', 'degraded')
     if down['uplink']:
-        hit('internet_down', 'outage') if len(down['uplink']) == len(every['uplink']) else hit('internet_slow', 'degraded')
+        if len(down['uplink']) == len(every['uplink']):
+            hit('internet_down', 'outage')
+        else:
+            hit('internet_slow', 'degraded')
     if down['dns']:
         hit('dns', 'degraded')
     if down['dhcp']:

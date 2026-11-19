@@ -4,12 +4,15 @@ from floorbit import service_summary
 
 def test_sites_are_rows_and_counts_add_up():
     checks = [
-        {"id": "dhcp-players", "name": "DHCP players", "kind": "dhcp", "status": "warn", "summary": "24 left", "link": ""},
-        {"id": "firewall:1", "name": "fw-03", "kind": "firewall", "status": "down", "summary": "", "link": "/firewalls"},
+        {"id": "dhcp-players", "name": "DHCP players", "kind": "dhcp", "status": "warn", "summary": "24 left",
+         "link": ""},
+        {"id": "firewall:1", "name": "fw-03", "kind": "firewall", "status": "down", "summary": "",
+         "link": "/firewalls"},
         {"id": "sites", "name": "Internet sites", "kind": "web", "status": "up", "summary": "", "link": "/services"},
         {"id": "odd", "name": "Odd", "kind": "other", "status": "weird", "summary": "", "link": ""},
     ]
-    sites = [{"id": "g", "name": "Google", "status": "up"}, {"id": "s", "name": "Steam", "status": "down", "error": "timeout"}]
+    sites = [{"id": "g", "name": "Google", "status": "up"},
+             {"id": "s", "name": "Steam", "status": "down", "error": "timeout"}]
     out = service_summary.summary(checks, sites)
     assert [r["name"] for r in out["rows"]] == ["DHCP players", "fw-03", "Google", "Steam", "Odd"]
     assert out["total"] == 5
@@ -22,6 +25,7 @@ def test_sites_are_rows_and_counts_add_up():
 def test_the_endpoint_counts_what_the_wall_counts(client, app_module, monkeypatch):
     wall = app_module.app.extensions["floorbit_health"]
     monkeypatch.setattr(wall, "fresh", lambda: {"checks": [
-        {"id": "firewall:1", "name": "fw-03", "kind": "firewall", "status": "down", "summary": "1 range failed over", "link": "/firewalls"}]})
+        {"id": "firewall:1", "name": "fw-03", "kind": "firewall", "status": "down",
+         "summary": "1 range failed over", "link": "/firewalls"}]})
     out = client.get("/api/services/summary").get_json()
     assert out["total"] == 1 and out["counts"]["down"] == 1 and out["rows"][0]["kind"] == "firewall"
