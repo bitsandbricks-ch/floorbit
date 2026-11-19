@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Widget } from '@/api/types'
-import { binsOf, bucketsOf, formatValue, kindsFor, looksFor, partsOf, resolveKind, rowsOf, scaleOf, slices, stackLines, stateCounts, statOf, trendOf, valuesOf } from './shape'
+import { PALETTE, binsOf, bucketsOf, formatValue, kindsFor, looksFor, partsOf, resolveKind, rowsOf, scaleOf, slices, stackLines, stateCounts, statOf, trendOf, valuesOf } from './shape'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
 const status: Widget = { ...base, type: 'status', items: [
@@ -41,6 +41,12 @@ describe('widget shapes', () => {
     expect(partsOf(status, name).map((p) => [p.label, p.value])).toEqual([['down', 1], ['warn', 1], ['up', 1]])
     const blocks: Widget = { ...base, type: 'list', items: [{ label: 'A', value: '2 / 3', tone: '', number: 2, max: 3 }] }
     expect(partsOf(blocks, name)[0]).toMatchObject({ label: 'A', value: 2, max: 3, text: '2 / 3' })
+    // One measure, one colour for bars; a pie gives each row its own (issue #1043).
+    const sites: Widget = { type: 'list', id: 'x', label: '', size: 'small', refresh: 60, sub: '', link: '', items: [
+      { label: 'a', value: '3', tone: '', number: 3 }, { label: 'b', value: '2', tone: '', number: 2 },
+      { label: 'c', value: '1', tone: 'err', number: 1 }] }
+    expect(partsOf(sites, name).map((p) => p.colour)).toEqual([PALETTE[0], PALETTE[0], 'var(--color-down)'])
+    expect(new Set(partsOf(sites, name, undefined, true).map((p) => p.colour)).size).toBe(3)
     expect(scaleOf({ ...base, type: 'stat', value: 5, unit: '', tone: '', max: 20 })).toEqual({ value: 5, min: 0, max: 20 })
   })
   it('keeps a pie to seven slices, the rest as other', () => {

@@ -158,7 +158,8 @@ class AttentionWatch:
             events.publish('attention.changed', {'count': len(found)})
         stats = (_app_ext() or {}).get('floorbit_stats')
         if stats is not None:
-            sample = stats.record(reads, [d.get('name') or '' for d in devices], now=now)
+            from .stats import link_ports
+            sample = stats.record(reads, [d.get('name') or '' for d in devices], now=now, links=link_ports(data))
             stats.count_problems(new, now=now)
             _record_frame(sample, stats.seats()['seats'], data)
             events.publish('stats.changed', {})

@@ -160,15 +160,16 @@ const TONE_COLOUR: Record<string, string> = { err: 'var(--color-down)', warn: 'v
 /** Categories that are not states: accent, trace, then colours that never read as up or down. */
 export const PALETTE = ['var(--color-bit)', 'var(--color-trace)', '#a78bfa', '#f472b6', '#fb923c', '#60a5fa', '#94a3b8']
 
-/** Numbered parts for bars and a pie: how many in each state, or a list's numbers. */
-export function partsOf(w: Widget, stateLabel: (s: State) => string, lang?: string): Part[] {
+/** Numbered parts for bars and a pie: how many in each state, or a list's numbers. A list's rows
+ *  are one measure, so bars draw them in one colour (issue #1043); a pie needs ``each`` its own. */
+export function partsOf(w: Widget, stateLabel: (s: State) => string, lang?: string, each = false): Part[] {
   if (w.type === 'status') {
     return stateCounts(w).map(([s, n]) => ({ label: stateLabel(s), value: n, text: n.toLocaleString(lang), colour: STATE_COLOUR[s] }))
   }
   if (w.type === 'list') {
     return w.items.filter((i) => i.number != null).map((i, k) => ({
       label: i.label, value: i.number!, max: i.max, text: i.value || i.number!.toLocaleString(lang),
-      colour: (i.tone && TONE_COLOUR[i.tone]) || PALETTE[i.max != null ? 0 : k % PALETTE.length],
+      colour: (i.tone && TONE_COLOUR[i.tone]) || PALETTE[each ? k % PALETTE.length : 0],
     }))
   }
   if (w.type === 'table') {
