@@ -25,8 +25,9 @@ export function SplitView({ node, path = [], editing, cycle }: { node: Node; pat
   const base = useContext(PaneKey)
   // In the editor, the level the widget drew at, shown on the pane while its box changes (#928).
   const [level, setLevel] = useState<Level | null>(null)
+  const [tight, setTight] = useState(false)
   const [rows, setRows] = useState<[number, number] | null>(null)
-  const report = useMemo(() => ({ level: setLevel, rows: (shown: number, total: number) => setRows([shown, total]) }), [])
+  const report = useMemo(() => ({ level: (l: Level, small: boolean) => { setLevel(l); setTight(small) }, rows: (shown: number, total: number) => setRows([shown, total]) }), [])
   if (isPane(node)) {
     return (
       <div className={`fb-split-pane${editing && same(editing.selected, path) ? ' selected' : ''}`}>
@@ -35,7 +36,7 @@ export function SplitView({ node, path = [], editing, cycle }: { node: Node; pat
             <PaneView pane={node.pane} cycle={cycle} />
           </LevelReport.Provider>
         </PaneKey.Provider>
-        {editing && <PaneTools path={path} editing={editing} level={level} rows={level === 'm' ? rows : null} />}
+        {editing && <PaneTools path={path} editing={editing} level={level} tight={tight} rows={level === 'm' ? rows : null} />}
       </div>
     )
   }
@@ -75,15 +76,21 @@ function SplitBox({ node, path, editing, cycle }: { node: Extract<Node, { split:
   )
 }
 
-function PaneTools({ path, editing, level, rows }: { path: Path; editing: Editing; level: Level | null; rows: [number, number] | null }) {
+function PaneTools({ path, editing, level, tight, rows }: {
+  path: Path; editing: Editing; level: Level | null; tight: boolean; rows: [number, number] | null
+}) {
   const { t } = useTranslation()
   // A list that doesn't fit says so, so the box can be made bigger before the screen shows "+N more".
   const cut = rows && rows[0] < rows[1]
+  // Below small the widget is cut off on the wall; say so while the box can still grow.
+  const warn = tight || cut
   return (
     <>
       {level && (
-        <span className={`fb-pane-level${cut ? ' cut' : ''}`} data-level={level}>
-          {t(`dashboards.level.${level}`)}{cut && ` · ${t('dashboards.edit.rowsShown', { shown: rows[0], total: rows[1] })}`}
+        <span className={`fb-pane-level${warn ? ' cut' : ''}${tight ? ' tight' : ''}`} data-level={level}>
+          {/* A box too small for anything has no room for more than the warning. */}
+          {tight ? t('dashboards.edit.tooSmall') : t(`dashboards.level.${level}`)}
+          {!tight && cut && ` · ${t('dashboards.edit.rowsShown', { shown: rows[0], total: rows[1] })}`}
         </span>
       )}
       {/* The whole pane picks it for the settings, over whatever the pane shows. */}

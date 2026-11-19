@@ -29,7 +29,8 @@
     "move": "Widget verschieben",
     "moveHint": "Ziehen zum Verschieben. Pfeiltasten verschieben, Shift+Pfeile ändern die Grösse.",
     "cells": "{{w}} × {{h}} Felder",
-    "rowsShown": "{{shown}} von {{total}} Zeilen"
+    "rowsShown": "{{shown}} von {{total}} Zeilen",
+    "tooSmall": "Zu klein"
   },
   "kind": {
     "plan": "Plan",

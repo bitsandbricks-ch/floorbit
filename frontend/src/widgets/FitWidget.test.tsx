@@ -30,9 +30,16 @@ describe('FitWidget', () => {
     size = { w: 300, h: 140 }
     const report = { level: vi.fn(), rows: vi.fn() }
     renderWithApp(<LevelReport.Provider value={report}><FitWidget widget={status} /></LevelReport.Provider>)
-    expect(report.level).toHaveBeenLastCalledWith('m')
+    expect(report.level).toHaveBeenLastCalledWith('m', false)
     // 4 of the 30 rows fit; the editor says so before the screen shows "+26 more".
     expect(report.rows).toHaveBeenLastCalledWith(4, 30)
+  })
+
+  it('tells the editor when the box is too small even for small', () => {
+    size = { w: 90, h: 40 }
+    const report = { level: vi.fn(), rows: vi.fn() }
+    renderWithApp(<LevelReport.Provider value={report}><FitWidget widget={status} /></LevelReport.Provider>)
+    expect(report.level).toHaveBeenLastCalledWith('s', true)
   })
 
   it('shows the rows that fit and how many more, worst first', () => {

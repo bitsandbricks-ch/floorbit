@@ -26,7 +26,8 @@ layer at the bottom right.
   keys move it and Shift with the arrow keys resizes it. Up to 24 widgets. While you resize, the
   size in cells shows on the widget, and each widget shows the level it draws at (Small, Medium,
   Large) at the bottom right, so you see what the box gives before you save. A list that doesn't
-  fit says how many of its rows show ("Medium · 5 of 7 rows"), in amber.
+  fit says how many of its rows show ("Medium · 5 of 7 rows"), in amber, and a widget whose box is
+  too small even for Small says "Too small" instead.
 - **Add section** starts a named section below the others. A section's title is optional: without
   one it is just a divider line. Sections fold (the arrow before the title), move up and down, and
   can be removed with their widgets. Folding on a screen is only for whoever looks at it; folding
