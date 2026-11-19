@@ -36,7 +36,7 @@ layer at the bottom right.
   the top bar in the app, the whole screen on a wall. Widgets drop a level when their rows get
   short. **Page** gives rows a fixed height and scrolls like any other page; a widget's height
   snaps to small (3 rows), medium (5) or large (8), and above that goes a row at a time. New dashboards start as
-  a Page. On a phone, both scroll, one widget per row. A Page opened full screen (or in a
+  a Page. On a phone, both scroll, one widget per row in reading order; small numbers (a quarter of the width, up to M high) sit two side by side. A Page opened full screen (or in a
   rotation) offers whoever may edit it **Make it a Screen**; **Keep it a Page** stops asking on
   that screen.
 - Click a pane to set it up in the panel on the right.

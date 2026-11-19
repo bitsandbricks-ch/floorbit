@@ -123,9 +123,11 @@
   .fb-board-show .fb-split, .fb-board-inline .fb-split { flex-direction: column; height: auto; }
   .fb-board-show .fb-split-part, .fb-board-inline .fb-split-part { flex-basis: auto !important; min-height: 60vh; }
   .fb-board-show .fb-grid-section, .fb-board-inline .fb-grid-section { flex: none !important; }
-  /* One widget per row, in the app too (#923). */
-  .fb-board-show .fb-grid-body, .fb-board-inline .fb-grid-body { display: flex; flex-direction: column; }
-  .fb-board-show .fb-grid-item, .fb-board-inline .fb-grid-item { min-height: max(calc(var(--rows) * 40px), 30vh); }
+  /* One widget per row, in the app too, in reading order; small numbers two side by side (#923). */
+  .fb-board-show .fb-grid-body, .fb-board-inline .fb-grid-body { display: flex; flex-flow: row wrap; gap: 8px; }
+  .fb-board-show .fb-grid-item, .fb-board-inline .fb-grid-item { flex: 1 1 100%; order: var(--at);
+    min-height: max(calc(var(--rows) * 40px), 30vh); }
+  .fb-board-show .fb-grid-item.pair, .fb-board-inline .fb-grid-item.pair { flex-basis: calc(50% - 4px); min-height: calc(var(--rows) * 40px); }
 }
 /* The pane's tools sit top right in the editor: keep the title and counts clear of them. */
 .fb-board-screen .fb-split-pane.selected .fb-pane-head { padding-right: 156px; }

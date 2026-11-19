@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { add, compact, overlap, place, rows, snapHeight, stepHeight } from './grid'
+import { add, compact, overlap, phonePair, place, rows, snapHeight, stepHeight } from './grid'
 
 const empty = { pane: { kind: 'empty' as const } }
 const box = (x: number, y: number, w: number, h: number) => ({ x, y, w, h, node: empty })
@@ -43,5 +43,10 @@ describe('dashboard grid', () => {
     expect([1, 2, 3, 4, 5, 6, 7, 8, 11].map(snapHeight)).toEqual([3, 3, 3, 5, 5, 5, 8, 8, 11])
     expect([stepHeight(3, 1), stepHeight(5, 1), stepHeight(8, 1), stepHeight(4, 1)]).toEqual([5, 8, 9, 5])
     expect([stepHeight(9, -1), stepHeight(8, -1), stepHeight(5, -1), stepHeight(3, -1)]).toEqual([8, 5, 3, 3])
+  })
+
+  it('pairs small numbers on a phone, not wide or tall panes', () => {
+    const box = (w: number, h: number) => ({ x: 0, y: 0, w, h })
+    expect([box(6, 3), box(4, 5), box(8, 3), box(6, 8)].map(phonePair)).toEqual([true, true, false, false])
   })
 })

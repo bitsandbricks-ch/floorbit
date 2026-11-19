@@ -13,6 +13,10 @@ export const ROW_PX = 40
  *  with the pane's title, 3 rows draw a number, 5 a short list or a graph, 8 the details. Above
  *  large any height goes. */
 export const PAGE_HEIGHTS = [3, 5, 8]
+
+/** On a phone, a panel this narrow and short (a quarter of the width, up to M) is a small number:
+ *  two sit side by side instead of one per row (#923). */
+export const phonePair = (p: Box) => p.w <= COLS / 4 && p.h <= PAGE_HEIGHTS[1]
 const TOP = PAGE_HEIGHTS[PAGE_HEIGHTS.length - 1]
 
 /** The page height nearest ``h`` (a tie goes up). */

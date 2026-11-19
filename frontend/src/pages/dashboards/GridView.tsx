@@ -2,7 +2,7 @@ import { ActionIcon, Group, Text, TextInput, Tooltip, UnstyledButton } from '@ma
 import { IconArrowDown, IconArrowUp, IconChevronDown, IconChevronRight, IconGripVertical, IconTrash } from '@tabler/icons-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { COLS, type Panel, ROW_PX, type Section, type Spot, rows, snapHeight, stepHeight } from './grid'
+import { COLS, type Panel, ROW_PX, type Section, type Spot, phonePair, rows, snapHeight, stepHeight } from './grid'
 import type { Path, Split } from './model'
 import { SplitView } from './SplitView'
 import { LargeContext, PaneKey, paneAt, paneKey, useLarge } from './large'
@@ -146,7 +146,8 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
         const here = (path: Path): Spot => ({ section: index, panel: i, path })
         const sel = editing?.selected
         return (
-          <div key={i} className="fb-grid-item" style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}`, ['--rows' as string]: p.h }}>
+          <div key={i} className={`fb-grid-item${phonePair(p) ? ' pair' : ''}`}
+            style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}`, ['--rows' as string]: p.h, ['--at' as string]: p.y * COLS + p.x }}>
             <PaneKey.Provider value={editing ? null : paneKey(index, i)}>
               <SplitView node={p.node} cycle={cycle} editing={editing && {
                 selected: sel && sel.section === index && sel.panel === i ? sel.path : null,
