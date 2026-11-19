@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, CopyButton, Group, Paper, SimpleGrid, Stack, Switch, Table, Text, Textarea, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Paper, SimpleGrid, Stack, Switch, Text, Textarea, Title } from '@mantine/core'
 import { IconCheck, IconCopy } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -7,6 +7,7 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { HandoverData, HandoverIncident, HandoverRecord } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { duration } from './report/format'
@@ -146,20 +147,13 @@ export default function Handover() {
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('handover.changesTitle')}</Title>
               {d.changes.length === 0 ? <Text size="sm" c="dimmed">{t('handover.noChanges')}</Text> : (
-                <Table striped className="fb-table-stack">
-                    <Table.Thead>
-                      <Table.Tr><Table.Th>{t('handover.when')}</Table.Th><Table.Th>{t('handover.who')}</Table.Th><Table.Th>{t('handover.what')}</Table.Th></Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {d.changes.map((c, n) => (
-                        <Table.Tr key={n}>
-                          <Table.Td style={{ whiteSpace: 'nowrap' }}>{when(c.at)}</Table.Td>
-                          <Table.Td>{c.user ?? '–'}</Table.Td>
-                          <Table.Td>{c.action}{c.target ? `: ${c.target}` : ''}</Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
+                <DataTable rows={d.changes} rowKey={(_, n) => String(n)} label={t('handover.changesTitle')} urlState={false} pageSize={25}
+                  bare striped cards density="compact"
+                  columns={[
+                    { id: 'when', header: t('handover.when'), card: 'inline', cell: (c) => when(c.at) },
+                    { id: 'who', header: t('handover.who'), card: 'inline', cell: (c) => c.user ?? '–' },
+                    { id: 'what', header: t('handover.what'), wrap: true, cell: (c) => `${c.action}${c.target ? `: ${c.target}` : ''}` },
+                  ]} />
               )}
             </Paper>
 
