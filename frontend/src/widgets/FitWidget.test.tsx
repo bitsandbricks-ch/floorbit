@@ -110,6 +110,12 @@ describe('FitWidget', () => {
     expect(container.querySelector('.fb-w-text-l')).not.toBeNull()
   })
 
+  it('says why a small stat has nothing to show', () => {
+    size = { w: 160, h: 90 }
+    renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: '–', unit: '', tone: '', sub: 'No LAN cache set up' }} pin="s" />)
+    expect(screen.getByText('No LAN cache set up')).toBeInTheDocument()
+  })
+
   it('draws a stat with a scale as a gauge', () => {
     size = { w: 300, h: 220 }
     renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 86, unit: 'of 112', tone: '', min: 0, max: 112 }} pick="gauge" />)

@@ -28,7 +28,9 @@ export function FitWidget({ widget, pick = 'auto', pin = 'auto', look, onMore }:
   const [ref, whole] = useBox<HTMLDivElement>()
   const kind = resolveKind(widget, pick)
   const level = pickLevel(kind, whole.w, whole.h, pin)
-  const sub = level !== 's' && !!widget.sub
+  // A stat with nothing to show ("–") keeps its sub line even when small: it says why.
+  const empty = widget.type === 'stat' && widget.value === '–'
+  const sub = !!widget.sub && (level !== 's' || empty)
   const box = { w: whole.w, h: Math.max(0, whole.h - (sub ? SUB_H : 0)) }
   return (
     <NumberStyleContext.Provider value={look?.number ?? NO_STYLE}>

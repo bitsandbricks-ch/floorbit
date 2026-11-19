@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, NumberInput, Paper, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { IconArrowRight, IconDeviceTv, IconLayoutGridAdd, IconPencil, IconPlus, IconSeparator } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -16,7 +16,7 @@ import {
   COLS, MAX_PANELS, MAX_SECTIONS, type Panel, type Section, type Spot, add, paneCount, place, rows, starterSections, total,
 } from './dashboards/grid'
 import { GridView } from './dashboards/GridView'
-import { type Board, type Node, MAX_PANES, boardName, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
+import { type Board, type Node, MAX_PANES, TIME_RANGES, type TimeRange, boardName, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
 import { PaneForm } from './dashboards/PaneForm'
 import './dashboards/dashboards.css'
 
@@ -115,6 +115,7 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
   const [sections, setSections] = useState<Section[]>(() => board?.sections ?? starterSections())
   const [fit, setFit] = useState(board?.fit ?? true)
   const [cycle, setCycle] = useState<number | ''>(board?.cycle ?? '')
+  const [range, setRange] = useState<TimeRange | undefined>(board?.range)
   const [open, setOpen] = useState(board?.public ?? false)
   const [selected, setSelected] = useState<Spot | null>({ section: 0, panel: 0, path: [] })
   const node = selected ? sections[selected.section]?.panels[selected.panel]?.node : undefined
@@ -122,7 +123,7 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
   const done = () => { void qc.invalidateQueries({ queryKey: qk.boards }); onDone() }
   const id = board?.id ?? slug(name)
   const save = useMutation({
-    mutationFn: () => put<Board>(`/api/dashboards/${id}`, { name, sections, fit, public: open, ...(cycle ? { cycle } : {}) }),
+    mutationFn: () => put<Board>(`/api/dashboards/${id}`, { name, sections, fit, public: open, ...(cycle ? { cycle } : {}), ...(range ? { range } : {}) }),
     onSuccess: done,
   })
   const drop = useMutation({ mutationFn: () => del(`/api/dashboards/${board!.id}`), onSuccess: done })
@@ -151,6 +152,9 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
           onChange={(e) => setName(e.currentTarget.value)} style={{ flex: 1, minWidth: 200 }} />
         <NumberInput label={t('dashboards.cycle')} description={t('dashboards.cycleHint')} w={200} min={10} max={600} value={cycle}
           onChange={(v) => setCycle(typeof v === 'number' ? v : '')} allowDecimal={false} />
+        <Select label={t('dashboards.boardRange')} description={t('dashboards.boardRangeHint')} w={220} allowDeselect={false}
+          value={range ?? 'auto'} data={['auto', ...TIME_RANGES].map((r) => ({ value: r, label: t(`dashboards.range.${r}`) }))}
+          onChange={(v) => setRange(!v || v === 'auto' ? undefined : (v as TimeRange))} />
         <Group gap="xs">
           <Button loading={save.isPending} disabled={!name.trim()} onClick={() => save.mutate()}>{t('dashboards.save')}</Button>
           <Button variant="default" onClick={() => onDone()}>{t('dashboards.cancel')}</Button>

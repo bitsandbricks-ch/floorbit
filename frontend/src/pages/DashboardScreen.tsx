@@ -7,7 +7,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
-import { type Board, boardName } from './dashboards/model'
+import { type Board, TIME_RANGES, type TimeRange, boardName } from './dashboards/model'
 import { nextInRotation, publicUrl, ScreenContext } from './dashboards/screen'
 import { GridView } from './dashboards/GridView'
 import { useIdle } from './plan/idle'
@@ -50,9 +50,11 @@ export default function DashboardScreen() {
     enabled: !open.isPending && !anonymous,
   })
   const q = anonymous ? { ...open, data: open.data!.board!, refetch: open.refetch } : full
+  const asked = params.get('range') as TimeRange | null
+  const range = asked && TIME_RANGES.includes(asked) ? asked : q.data?.range
   const source = useMemo(() => ({
-    publicId: anonymous ? id : null, tiles: open.data?.tiles ?? {}, hall: params.get('hall') ?? '',
-  }), [anonymous, id, open.data?.tiles, params])
+    publicId: anonymous ? id : null, tiles: open.data?.tiles ?? {}, hall: params.get('hall') ?? '', range,
+  }), [anonymous, id, open.data?.tiles, params, range])
   const idle = useIdle(3000)
   // Signed out, /api/version may need an account too: the public feed says which version runs.
   useReloadOnUpdate(!anonymous && !open.isPending)

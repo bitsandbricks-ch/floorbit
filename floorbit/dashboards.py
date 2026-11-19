@@ -489,6 +489,12 @@ def clean(body):
     # Rotate through the halls on every plan pane that shows a whole hall, like /plan?cycle=.
     if body.get('cycle'):
         out['cycle'] = int(_number(body.get('cycle'), 10, 600, 'Each hall stays 10 to 600 seconds.'))
+    # The time every graph shows unless its pane picks its own (issue #960, the mocks' top bar).
+    if body.get('range'):
+        from .dashboard_core import RANGES
+        if body['range'] not in RANGES:
+            raise LayoutError(f'A time range is one of: {", ".join(RANGES)}.')
+        out['range'] = body['range']
     return out
 
 
@@ -724,7 +730,7 @@ def public_board(layout):
     (the screen says they need an account), plan panes draw the public marks only."""
     sections = [{**sec, 'panels': [{**p, 'node': _public_node(p['node'])} for p in sec['panels']]}
                 for sec in layout['sections']]
-    head = {k: layout[k] for k in ('id', 'name', 'fit', 'cycle') if k in layout}
+    head = {k: layout[k] for k in ('id', 'name', 'fit', 'cycle', 'range') if k in layout}
     return {**head, 'public': True, 'sections': sections}
 
 

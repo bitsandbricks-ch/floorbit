@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanDrawing } from '@/api/types'
-import { type Node, areaView, at, depth, panes, rangedUrl, remove, resize, seatsIn, split, starter } from './model'
+import { type Node, areaView, at, depth, paneRange, panes, rangedUrl, remove, resize, seatsIn, split, starter } from './model'
 
 const empty: Node = { pane: { kind: 'empty' } }
 
@@ -69,6 +69,13 @@ describe('a pane\'s time range (#960)', () => {
     expect(rangedUrl(tile, { range: '6h', compare: 'day' })).toBe('/api/dashboard/floorbit/traffic?range=6h&compare=day')
     expect(rangedUrl(tile, {})).toBe(tile.url)
     expect(rangedUrl({ url: '/x' }, { range: '1h' })).toBe('/x')
+  })
+
+  it('follows the dashboard\'s time unless the pane picks its own', () => {
+    expect(paneRange({}, '6h').range).toBe('6h')
+    expect(paneRange({ range: '1h' }, '6h').range).toBe('1h')
+    expect(paneRange({ compare: 'day' }, 'event')).toEqual({ range: 'event', compare: undefined })
+    expect(paneRange({ compare: 'day' }, '24h').compare).toBe('day')
   })
 
   it('asks for marks only from a tile that has them', () => {

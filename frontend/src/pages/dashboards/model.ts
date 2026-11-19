@@ -62,6 +62,12 @@ export type Compare = 'day'
 export type Refresh = 10 | 30 | 60 | 300
 export const REFRESHES: Refresh[] = [10, 30, 60, 300]
 
+/** The pane's own time range, else the dashboard's; comparing with yesterday needs a range that has one. */
+export function paneRange<P extends { range?: TimeRange; compare?: Compare }>(pane: P, board?: TimeRange): P & { range?: TimeRange } {
+  const range = pane.range ?? board
+  return { ...pane, range, ...(range === 'event' ? { compare: undefined } : {}) }
+}
+
 /** A tile's address with the pane's time range and comparison, when the tile takes them. */
 export function rangedUrl(tile: { url: string; ranges?: boolean; marks?: boolean },
   pane: { range?: TimeRange; compare?: Compare; events?: boolean }): string {
@@ -86,6 +92,8 @@ export interface Board {
   fit: boolean
   /** Seconds per hall on the plan panes that show a whole hall; missing is no rotation. */
   cycle?: number
+  /** The time every graph shows unless its pane picks its own; a viewer can change it for themselves. */
+  range?: TimeRange
   updated_at?: number
   by?: string | null
   /** Ready-made (the Kiosk): saving under its id keeps your own version instead. */

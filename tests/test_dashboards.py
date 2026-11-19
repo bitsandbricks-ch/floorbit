@@ -417,3 +417,13 @@ def test_a_tile_pane_sets_its_refresh_text_size_and_stat_extras(client):
     assert put(refresh=5).get_json()["error"] == "Refresh every 10, 30, 60 or 300 seconds."
     assert put(refresh=True).status_code == 400
     assert put(text_size="xl").get_json()["error"] == "Text size is small, normal or large."
+
+
+def test_a_dashboard_sets_the_time_its_graphs_show(client):
+    body = {"name": "Times", "public": True, "range": "6h", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4,
+            "node": {"pane": {"kind": "tile", "tile": "floorbit/w/traffic"}}}]}]}
+    r = client.put("/api/dashboards/times", json=body)
+    assert r.status_code == 200 and r.get_json()["range"] == "6h"
+    assert client.get("/api/dashboards/times/public").get_json()["board"]["range"] == "6h"
+    assert client.put("/api/dashboards/times", json={**body, "range": "week"}).status_code == 400
+    assert "range" not in client.put("/api/dashboards/times", json={**body, "range": ""}).get_json()

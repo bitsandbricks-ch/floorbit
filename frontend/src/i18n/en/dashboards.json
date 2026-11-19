@@ -295,5 +295,7 @@
     "seconds": "Every {{count}} seconds",
     "minutes_one": "Every minute",
     "minutes_other": "Every {{count}} minutes"
-  }
+  },
+  "boardRange": "Time shown",
+  "boardRangeHint": "Every graph that can, unless its pane picks its own. Viewers can change it for themselves."
 }

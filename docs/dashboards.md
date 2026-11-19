@@ -105,6 +105,10 @@ Under **Numbers and colours** in a tile pane's settings:
   red.
 - **Sort**, **Show at most** and **Hide rows that are 0** pick which rows a list or table shows:
   biggest first and at most five is a top 5.
+- **Time shown** for the whole dashboard (in its settings): every graph that can follows it, unless
+  its pane picks its own time. Anyone looking at the dashboard can pick another time for themselves
+  with the time menu next to Edit; it goes into the address (`?range=6h`), so a big screen can be
+  opened with it too.
 - **Time shown** (tiles that offer it, such as Traffic): the last hour, 6 hours, 24 hours, or the
   whole event by the hour. **Compare with yesterday** adds a dotted line with yesterday's traffic at
   the same times, by the hour. **Mark what happened** draws a line where a switch went down or came

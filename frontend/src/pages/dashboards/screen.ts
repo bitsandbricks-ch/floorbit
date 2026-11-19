@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { TimeRange } from './model'
 
 /** Where a dashboard's panes read their data. Signed in: the usual API. A public dashboard on a screen
  *  nobody signed in to (``publicId``): its own feed, /api/dashboards/<id>/public/..., which hands out
@@ -9,6 +10,8 @@ export interface ScreenSource {
   /** Tile names for the public feed (the tile list itself needs an account). */
   tiles: Record<string, string>
   hall: string
+  /** The time the dashboard shows (its own, or the viewer's pick): panes without their own follow it. */
+  range?: TimeRange
 }
 
 export const ScreenContext = createContext<ScreenSource>({ publicId: null, tiles: {}, hall: '' })
