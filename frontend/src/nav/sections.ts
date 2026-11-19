@@ -1,5 +1,5 @@
 import {
-  IconActivityHeartbeat,
+  IconActivityHeartbeat, IconAlertCircle,
   IconDeviceDesktopSearch, IconAlertTriangle, IconApps, IconArchive, IconArmchair, IconArrowsExchange, IconBolt, IconBook,
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
   IconBell, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart, IconLink, IconMap,
@@ -15,9 +15,11 @@ export interface NavPage {
   href: string; id: string; label: string
   /** A plugin's page (id ``plugin:<plugin>:<page>``): the plugin's icon name, and its label as the plugin gives it. */
   icon?: string
+  /** A row that bundles tabs (Helpdesk): the tabs' addresses, which light this row too. */
+  also?: string[]
 }
 
-export type SectionId = 'live' | 'inventory' | 'monitoring' | 'seats' | 'event' | 'floorbit' | 'plugins' | 'more'
+export type SectionId = 'work' | 'monitoring' | 'places' | 'tools' | 'screens' | 'plugins' | 'more'
 
 /** A plugin's own page (plugin.yaml ``pages:``), which goes into the Plugins section. */
 export const isPluginPage = (id: string) => id.startsWith('plugin:')
@@ -26,52 +28,84 @@ export const isPluginPage = (id: string) => id.startsWith('plugin:')
 export const PINNED = ['overview', 'floorPlan']
 
 /** The phone's bottom bar: the pages crews open most; everything else is behind "Menu". */
-export const TABS = ['overview', 'floorPlan', 'incidents', 'problems']
+export const TABS = ['overview', 'floorPlan', 'helpdesk', 'services']
 
-/** The groups, in the sidebar's order (docs: the UI rework's page map). A page the server lists
- *  that isn't here lands in "more", so a new page shows up before anyone sorts it in. */
+/** The groups, in the sidebar's order (issue #892): about a dozen rows, the work that comes in
+ *  first. Most rows bundle several pages as tabs (HUBS). A page the server lists that is in
+ *  neither lands in "more", so a new page shows up before anyone sorts it in. */
 export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
-  { id: 'live', icon: IconBroadcast, pages: ['incidents', 'problems', 'jobs', 'handover', 'dashboards', 'widgets'] },
-  { id: 'inventory', icon: IconServer, pages: ['inventory', 'cables', 'power'] },
-  {
-    id: 'monitoring', icon: IconActivityHeartbeat,
-    pages: ['networkStatus', 'topology', 'firewalls', 'telemetry', 'services', 'gameServers', 'security', 'preflight', 'logs', 'commands', 'terminal'],
-  },
-  { id: 'seats', icon: IconArmchair, pages: ['seatMapping', 'checkins', 'seatWalk', 'endpoints', 'tournament'] },
-  { id: 'event', icon: IconCalendarEvent, pages: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events'] },
-  {
-    id: 'floorbit', icon: IconSettings,
-    pages: ['agents', 'plugins', 'settings'],
-  },
+  { id: 'work', icon: IconLifebuoy, pages: ['helpdesk'] },
+  { id: 'monitoring', icon: IconActivityHeartbeat, pages: ['services', 'network', 'agents'] },
+  { id: 'places', icon: IconArmchair, pages: ['seats', 'inventory'] },
+  { id: 'tools', icon: IconTools, pages: ['console', 'preflight', 'logs'] },
+  { id: 'screens', icon: IconDeviceTv, pages: ['dashboards'] },
 ]
 
-/** Pages that are a tab of another page, not a row of their own: the admin pages inside Settings
- *  (pages/Settings.tsx). "Go to" still finds them; the sidebar lights their page. */
+/** Rows that hold other pages as tabs (issue #892). A row is a page of its own (Inventory,
+ *  Settings) or only a bundle (Helpdesk): then it opens its first tab this account may open.
+ *  The tabs show under the top bar (HubTabs); Settings draws its own. "Go to" still finds every
+ *  page. ``event`` has no row: its pages are in the event menu at the top of the sidebar. */
+export const HUBS: Record<string, string[]> = {
+  helpdesk: ['problems', 'incidents', 'jobs', 'handover', 'networkStatus'],
+  services: ['gameServers'],
+  network: ['topology', 'firewalls', 'security'],
+  agents: ['telemetry'],
+  seats: ['seatMapping', 'checkins', 'seatWalk', 'endpoints'],
+  inventory: ['cables', 'power'],
+  console: ['commands', 'terminal'],
+  dashboards: ['widgets'],
+  settings: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'features', 'sidebarSections', 'audit'],
+  event: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events', 'tournament'],
+}
+
+/** Hubs that draw their tabs themselves (pages/Settings.tsx). */
+export const OWN_TABS = ['settings']
+
+/** Rows outside the sidebar's groups: Settings sits at the foot, the event's pages in the event menu. */
+export const OFF_LIST = ['settings', 'event']
+
+/** Pages that are a tab of another row: page -> its row. */
 export const INSIDE: Record<string, string> = Object.fromEntries(
-  ['users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'features', 'sidebarSections', 'audit'].map((id) => [id, 'settings']),
+  Object.entries(HUBS).flatMap(([hub, ids]) => ids.map((id) => [id, hub])),
 )
 
-/** The list with each tab's page in it: an account that may open a tab (Users) but not its page's
- *  first one (the settings) still gets the page's row, leading to the first tab it may open. */
+/** The list with each hub's row in it, lit by its tabs too. A bundle row opens its first tab
+ *  this account may open; an account that may open a tab (Users) but not its row's own page
+ *  (Settings) still gets the row. */
 export function withParents(pages: NavPage[]): NavPage[] {
-  const ids = new Set(pages.map((p) => p.id))
-  const out = [...pages]
-  for (const p of pages) {
-    const parent = INSIDE[p.id]
-    if (parent && !ids.has(parent)) {
-      ids.add(parent)
-      out.push({ href: p.href, id: parent, label: parent })
-    }
+  const byId = new Map(pages.map((p) => [p.id, p]))
+  const tabsOf = (hub: string) => HUBS[hub].flatMap((id) => byId.get(id) ?? [])
+  const out = pages.map((p) => (HUBS[p.id] ? { ...p, also: tabsOf(p.id).map((x) => x.href) } : p))
+  for (const hub of Object.keys(HUBS)) {
+    const tabs = tabsOf(hub)
+    if (byId.has(hub) || !tabs.length) continue
+    out.push({ href: tabs[0].href, id: hub, label: hub, also: tabs.slice(1).map((x) => x.href) })
   }
   return out
 }
 
+/** The sidebar's rows: hubs in, their tabs out. */
+export const rowsOf = (pages: NavPage[]) => withParents(pages).filter((p) => !(p.id in INSIDE))
+
+/** The tabs of the row the page at ``path`` belongs to: the row's own page first, then its tabs
+ *  this account may open. Null when the row has none, or only one. */
+export function hubTabs(pages: NavPage[], path: string): { hub: string; tabs: NavPage[] } | null {
+  const rows = rowsOf(pages)
+  const lit = activeHref(rows, path)
+  const row = rows.find((p) => p.href === lit)
+  if (!row || !HUBS[row.id] || OWN_TABS.includes(row.id)) return null
+  const byId = new Map(pages.map((p) => [p.id, p]))
+  const tabs = [...(byId.has(row.id) ? [byId.get(row.id)!] : []), ...HUBS[row.id].flatMap((id) => byId.get(id) ?? [])]
+  return tabs.length > 1 ? { hub: row.id, tabs } : null
+}
+
 /** Groups folded until someone opens them (or a page in them is on screen). */
-export const FOLDED = ['event']
+export const FOLDED: string[] = []
 
 const ICONS: Record<string, Icon> = {
   overview: IconLayoutGrid, floorPlan: IconMap, seats: IconArmchair, dashboards: IconLayoutDashboard, widgets: IconLayoutCards, problems: IconAlertTriangle,
-  incidents: IconLifebuoy, jobs: IconClipboardCheck, handover: IconArrowsExchange,
+  helpdesk: IconLifebuoy, network: IconNetwork, console: IconTerminal2, event: IconCalendarEvent,
+  incidents: IconAlertCircle, jobs: IconClipboardCheck, handover: IconArrowsExchange,
   checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
   dns: IconWorldWww, games: IconDeviceGamepad2, gameServers: IconServer2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
   commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk,
@@ -134,10 +168,10 @@ export interface Grouped {
 
 /** The server's list sorted into the sidebar: pinned first, then sections in their order, empty ones left out. */
 export function group(all: NavPage[]): Grouped {
-  const pages = withParents(all).filter((p) => !(p.id in INSIDE))
+  const pages = rowsOf(all)
   const byId = new Map(pages.map((p) => [p.id, p]))
   const pick = (ids: string[]) => ids.flatMap((id) => byId.get(id) ?? [])
-  const known = new Set([...PINNED, ...SECTIONS.flatMap((s) => s.pages)])
+  const known = new Set([...PINNED, ...OFF_LIST, ...SECTIONS.flatMap((s) => s.pages)])
   const sections = SECTIONS.map((s) => ({ id: s.id, pages: pick(s.pages) }))
   sections.push({ id: 'plugins', pages: pages.filter((p) => isPluginPage(p.id)) })
   sections.push({ id: 'more', pages: pages.filter((p) => !known.has(p.id) && !isPluginPage(p.id)) })
@@ -146,11 +180,15 @@ export function group(all: NavPage[]): Grouped {
 
 /** Is ``href`` the page at ``path``? Sub pages (/incidents/qr) count for their parent unless the
  *  parent is "/" or has its own entry, so exactly one row is lit. */
-export function activeHref(pages: { href: string }[], path: string): string | null {
+export function activeHref(pages: { href: string; also?: string[] }[], path: string): string | null {
   let best: string | null = null
+  let bestLen = 0
   for (const p of pages) {
-    const hit = p.href === path || (p.href !== '/' && path.startsWith(p.href + '/'))
-    if (hit && (!best || p.href.length > best.length)) best = p.href
+    // A hub's row is lit by its tabs too; the longest address that holds the path wins.
+    for (const href of [p.href, ...(p.also ?? [])]) {
+      const hit = href === path || (href !== '/' && path.startsWith(href + '/'))
+      if (hit && href.length > bestLen) { best = p.href; bestLen = href.length }
+    }
   }
   return best
 }

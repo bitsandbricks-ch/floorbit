@@ -27,7 +27,8 @@
   background: var(--color-ink);
   border-right: 1px solid var(--color-line);
   font-family: var(--font-sans);
-  font-size: var(--ui-font);
+  /* A step above page text: the sidebar is read at a glance, from a step back (issue #892). */
+  font-size: var(--fs-nav);
   color: var(--color-fg);
 }
 .fb-nav *, .fb-tabbar *, .fb-sheet * { box-sizing: border-box; }
@@ -101,10 +102,9 @@
 .fb-nav-event-text small { font-size: 11px; color: var(--color-faint); }
 .fb-nav-event-text b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fb-nav-event-mark { flex: none; color: var(--color-muted); }
-.fb-nav-event-menu { top: calc(100% + 6px); bottom: auto; width: 100%; min-width: 224px; }
 .fb-nav[data-state="rail"] .fb-nav-event-btn { justify-content: center; padding: 0; height: 36px; border: 0; background: transparent; color: var(--color-muted); }
 .fb-nav[data-state="rail"] .fb-nav-event-text, .fb-nav[data-state="rail"] .fb-nav-event-mark { display: none; }
-.fb-nav[data-state="rail"] .fb-nav-event-menu { top: 0; left: calc(100% + 10px); }
+.fb-nav[data-state="rail"] .fb-nav-menu.fb-nav-event-menu { top: 0; bottom: auto; left: calc(100% + 10px); }
 
 /* The top bar has the search on a desktop; the phone's menu sheet keeps it. */
 .fb-nav .fb-nav-search { display: none; }
@@ -140,6 +140,7 @@
   border: 0; border-radius: 8px; background: transparent; color: var(--color-muted); cursor: pointer;
 }
 .fb-nav-icon-btn:hover { background: var(--fb-nav-hover); color: var(--color-fg); }
+.fb-nav-settings[aria-current="page"] { background: var(--color-raised); color: var(--color-bit); }
 
 .fb-nav-menu {
   background: var(--color-raised);
@@ -150,6 +151,10 @@
   z-index: 200;
 }
 .fb-nav-menu { position: absolute; bottom: calc(100% + 6px); left: 0; width: 224px; display: flex; flex-direction: column; }
+/* The event menu opens downwards. Two classes, so it wins over .fb-nav-menu's bottom whatever the
+   order: with both top and bottom set it was squeezed to one line and the rows spilled out over
+   the sidebar, unstyled (issue #893). */
+.fb-nav-menu.fb-nav-event-menu { top: calc(100% + 6px); bottom: auto; width: 100%; min-width: 224px; }
 .fb-nav-menu hr { border: 0; border-top: 1px solid var(--color-line); margin: 4px 0; width: 100%; }
 .fb-nav-menu form { margin: 0; }
 .fb-nav-menu-label { display: flex; align-items: center; gap: 6px; padding: 6px 8px 2px; font-size: var(--fs-sm); color: var(--color-muted); }

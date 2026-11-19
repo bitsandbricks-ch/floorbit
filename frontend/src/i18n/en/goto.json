@@ -14,6 +14,10 @@
     "notify": "Notification settings"
   },
   "pages": {
+    "helpdesk": "Helpdesk",
+    "network": "Network",
+    "console": "Switch console",
+    "event": "Event",
     "overview": "Overview",
     "floorPlan": "Floor plan",
     "seats": "Seats",

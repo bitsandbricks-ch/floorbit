@@ -14,6 +14,10 @@
     "notify": "Benachrichtigungen einstellen"
   },
   "pages": {
+    "helpdesk": "Helpdesk",
+    "network": "Netzwerk",
+    "console": "Switch-Konsole",
+    "event": "Event",
     "overview": "Übersicht",
     "floorPlan": "Hallenplan",
     "seats": "Plätze",

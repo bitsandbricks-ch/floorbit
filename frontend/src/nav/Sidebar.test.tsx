@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import '@/i18n'
 import { resetNavPrefs, type NavBoot } from './boot'
-import { activeHref, group, isServerPage } from './sections'
+import { activeHref, group, hubTabs, isServerPage } from './sections'
 import { Sidebar, type LinkProps } from './Sidebar'
 
 const pages = [
@@ -33,17 +33,25 @@ afterEach(() => {
 describe('sections', () => {
   it('puts plugin pages in their own section, never under "more"', () => {
     const g = group([...pages, { href: '/plugins/gs/overview', id: 'plugin:gs:overview', label: 'Game servers', icon: 'gamepad' }])
-    expect(g.sections.map((s) => s.id)).toEqual(['live', 'monitoring', 'floorbit', 'plugins', 'more'])
+    expect(g.sections.map((s) => s.id)).toEqual(['work', 'monitoring', 'screens', 'plugins', 'more'])
     expect(g.sections.find((s) => s.id === 'plugins')?.pages.map((p) => p.label)).toEqual(['Game servers'])
   })
 
-  it('pins the start pages and sorts the rest into groups, a new page into "more"', () => {
+  it('pins the start pages and sorts the rest into a few rows, a new page into "more"', () => {
     const g = group(pages)
     expect(g.pinned.map((p) => p.id)).toEqual(['floorPlan'])
+    // Problems and Incidents are Helpdesk's tabs, Topology is Network's, Widgets Dashboards'; Settings sits at the foot.
     expect(g.sections.map((s) => [s.id, s.pages.map((p) => p.id)])).toEqual([
-      ['live', ['incidents', 'problems', 'widgets']], ['monitoring', ['topology']], ['floorbit', ['agents', 'settings']],
-      ['more', ['brandNew']],
+      ['work', ['helpdesk']], ['monitoring', ['network', 'agents']], ['screens', ['dashboards']], ['more', ['brandNew']],
     ])
+    const helpdesk = g.sections[0].pages[0]
+    expect(helpdesk).toMatchObject({ href: '/problems', also: ['/incidents'] })
+  })
+
+  it("lists a row's tabs this account may open, the row's own page first", () => {
+    expect(hubTabs(pages, '/incidents/qr')?.tabs.map((p) => p.id)).toEqual(['problems', 'incidents'])
+    expect(hubTabs(pages, '/topology')).toBeNull()   // one tab only: no strip
+    expect(hubTabs(pages, '/settings/users')).toBeNull()   // Settings draws its own tabs
   })
 
   it('lights one row: the longest page that holds the path', () => {
@@ -64,41 +72,38 @@ describe('sections', () => {
 describe('Sidebar', () => {
   it('shows the Settings tabs (Users) as the Settings row, lit while one is on screen', () => {
     const withUsers = [...pages, { href: '/settings/users', id: 'users', label: 'Users' }]
-    expect(group(withUsers).sections.find((s) => s.id === 'floorbit')?.pages.map((p) => p.id)).toEqual(['agents', 'settings'])
     render(<Sidebar boot={{ ...boot, pages: withUsers }} path="/settings/users" renderLink={link} onGoTo={() => {}} />)
     expect(within(main()).queryByRole('link', { name: 'Users' })).toBeNull()
-    expect(within(main()).getByRole('link', { name: /Settings/ })).toHaveAttribute('aria-current', 'page')
+    expect(within(main()).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('marks the page on screen and shows how many switches are down', () => {
-    sidebar('/problems', { down: 3 })
-    const row = within(main()).getByRole('link', { name: /Problems/ })
+    sidebar('/incidents', { down: 3 })
+    const row = within(main()).getByRole('link', { name: /Helpdesk/ })
     expect(row).toHaveAttribute('aria-current', 'page')
     expect(row).toHaveTextContent('3 down')
   })
 
   it('shows every group open, folds one on a click, and remembers it on this browser', () => {
     sidebar('/topology')
-    expect(within(main()).getByRole('link', { name: 'Topology' })).toHaveAttribute('aria-current', 'page')
-    const live = within(main()).getByRole('button', { name: 'Live' })
+    expect(within(main()).getByRole('link', { name: 'Network' })).toHaveAttribute('aria-current', 'page')
+    const live = within(main()).getByRole('button', { name: 'Work' })
     expect(live).toHaveAttribute('aria-expanded', 'true')
     expect(within(main()).getByRole('link', { name: 'Settings' })).toBeInTheDocument()
     fireEvent.click(live)
     expect(live).toHaveAttribute('aria-expanded', 'false')
-    expect(within(main()).queryByRole('link', { name: /Incidents/ })).not.toBeInTheDocument()
-    expect(JSON.parse(localStorage.getItem('floorbit-nav-folded')!)).toContain('live')
+    expect(within(main()).queryByRole('link', { name: /Helpdesk/ })).not.toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('floorbit-nav-folded')!)).toContain('work')
     // The group with the page on screen stays open.
     const monitoring = within(main()).getByRole('button', { name: 'Monitoring' })
     fireEvent.click(monitoring)
     expect(monitoring).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it('starts with the Event group folded', () => {
+  it("keeps the event's pages out of the groups: they are in the event menu", () => {
     render(<Sidebar boot={{ ...boot, pages: [...pages, { href: '/replay', id: 'replay', label: 'Event replay' }] }} path="/problems" renderLink={link} onGoTo={() => {}} />)
-    const event = within(main()).getByRole('button', { name: 'Event' })
-    expect(event).toHaveAttribute('aria-expanded', 'false')
-    fireEvent.click(event)
-    expect(within(main()).getByRole('link', { name: 'Event replay' })).toBeInTheDocument()
+    expect(within(main()).queryByRole('link', { name: 'Event replay' })).not.toBeInTheDocument()
+    expect(within(main()).queryByRole('button', { name: 'Event' })).not.toBeInTheDocument()
   })
 
   it('pins favourites to the top, saved with the account when signed in', () => {
@@ -107,13 +112,13 @@ describe('Sidebar', () => {
     render(<Sidebar boot={{ ...boot, prefs: { favourites: ['widgets'], accordion: true } }} path="/problems" renderLink={link} onGoTo={() => {}} />)
     const favs = within(main()).getByRole('list', { name: 'Favourites' })
     expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Widgets'])
-    fireEvent.click(within(main()).getByRole('button', { name: 'Add Incidents to favourites' }))
-    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Widgets', 'Incidents'])
+    fireEvent.click(within(main()).getByRole('button', { name: 'Add Helpdesk to favourites' }))
+    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Widgets', 'Helpdesk'])
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/me/nav', expect.objectContaining({
-      method: 'PUT', body: JSON.stringify({ favourites: ['widgets', 'incidents'], accordion: true }),
+      method: 'PUT', body: JSON.stringify({ favourites: ['widgets', 'helpdesk'], accordion: true }),
     }))
     fireEvent.click(within(favs).getByRole('button', { name: 'Remove Widgets from favourites' }))
-    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Incidents'])
+    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Helpdesk'])
     expect(localStorage.getItem('floorbit-nav-prefs')).toBeNull()
   })
 
@@ -132,14 +137,14 @@ describe('Sidebar', () => {
     fireEvent.click(within(main()).getByRole('button', { name: 'Collapse the sidebar' }))
     expect(main()).toHaveAttribute('data-state', 'rail')
     expect(document.cookie).toContain('floorbit_nav=rail')
-    expect(within(main()).queryByRole('button', { name: 'Live' })).not.toBeInTheDocument()
-    expect(within(main()).getByRole('link', { name: 'Widgets' })).toHaveAttribute('title', 'Widgets')
+    expect(within(main()).queryByRole('button', { name: 'Work' })).not.toBeInTheDocument()
+    expect(within(main()).getByRole('link', { name: 'Dashboards' })).toHaveAttribute('title', 'Dashboards')
   })
 
   it('opens everything in a sheet from the phone bar', () => {
     sidebar('/problems')
     const bar = screen.getByRole('navigation', { name: 'Main pages' })
-    expect(within(bar).getAllByRole('link').map((a) => a.textContent)).toEqual(['Floor plan', 'Incidents', 'Problems'])
+    expect(within(bar).getAllByRole('link').map((a) => a.textContent)).toEqual(['Floor plan', 'Helpdesk'])
     fireEvent.click(within(bar).getByRole('button', { name: 'Menu' }))
     const sheet = screen.getByRole('dialog', { name: 'Menu' })
     expect(within(sheet).getByRole('button', { name: 'Monitoring' })).toBeInTheDocument()
@@ -253,6 +258,6 @@ describe('skip link', () => {
     expect(out).toHaveAttribute('target', '_blank')
     expect(out).toHaveAttribute('rel', 'noopener noreferrer')
     // The page link keeps its built-in group too.
-    expect(within(main()).getByRole('button', { name: 'Live' })).toHaveAttribute('aria-expanded', 'true')
+    expect(within(main()).getByRole('button', { name: 'Work' })).toHaveAttribute('aria-expanded', 'true')
   })
 })
