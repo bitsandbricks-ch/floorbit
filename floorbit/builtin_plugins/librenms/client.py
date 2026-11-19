@@ -401,6 +401,10 @@ def fetch_librenms_details(hostname):
         )
         if resp.ok:
             device_data = resp.json().get('devices', [{}])[0] if resp.json().get('devices') else {}
+            # The search above is kept for minutes; this answer is fresh. A switch that went down
+            # or came back would otherwise show its old status until the search is asked again.
+            if 'status' in device_data:
+                result['status'] = 'online' if str(device_data['status']).lower() in ('1', 'true') else 'offline'
             # Try to get CPU from device stats
             if 'processor_usage' in device_data:
                 result['cpu_load'] = round(float(device_data['processor_usage']))

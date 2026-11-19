@@ -62,7 +62,7 @@ class FakeLibreNMS:
         parts = path.split("/")
         if path == "devices":
             q = (params or {}).get("query", "")
-            return Answer({"devices": [d for d in DEVICES if q in d["display"] or q in d["hostname"]]})
+            return Answer({"devices": [dict(d) for d in DEVICES if q in d["display"] or q in d["hostname"]]})
         if parts[:3] == ["resources", "ip", "arp"]:
             rows = [{"ipv4_address": IP, "mac_address": MAC, "hostname": "core.example.com"}]
             return Answer({"arp": [r for r in rows if parts[3] in (r["ipv4_address"], r["mac_address"])]})
@@ -72,6 +72,8 @@ class FakeLibreNMS:
             return Answer({"ports_fdb": MAC_TABLES.get(parts[1], [])})
         if parts[0] == "devices" and parts[2:] == ["ports"]:
             return Answer({"ports": PORTS.get(parts[1], [])})
+        if parts[0] == "devices" and len(parts) == 2:
+            return Answer({"devices": [d for d in DEVICES if str(d["device_id"]) == parts[1]]})
         return Answer({}, 404)
 
 
@@ -174,6 +176,17 @@ def test_switch_details_from_the_device_and_its_ports(librenms):
     assert got["total_traffic_bps"] == 40_000
     assert client.fetch_librenms_details("sw-a10")["status"] == "offline"
     assert client.fetch_librenms_details("sw-b1") == {"status": "unknown", "hostname": "sw-b1"}
+
+
+def test_a_switch_that_comes_back_shows_online_at_once(librenms, monkeypatch):
+    """The name search is kept for minutes; the status comes from the device's own fresh answer
+    (the lab: a switch back after dying showed offline for five minutes)."""
+    assert client.fetch_librenms_details("sw-a10")["status"] == "offline"
+    monkeypatch.setitem(DEVICES[2], "status", 1)
+    assert client.fetch_librenms_details("sw-a10")["status"] == "online"
+    monkeypatch.setitem(DEVICES[1], "status", 0)
+    client.fetch_librenms_details("sw-a1")
+    assert client.fetch_librenms_details("sw-a1")["status"] == "offline"
 
 
 def test_a_librenms_that_does_not_answer_is_not_asked_again_for_a_while(librenms, monkeypatch):
