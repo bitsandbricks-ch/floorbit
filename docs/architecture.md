@@ -27,7 +27,7 @@ different features touch different files.
    | `network.py` | switch status, `/api/resolve/<ip>`, `/api/seats/info`, `/resolve`, `/heatmap` |
    | `backup.py` | `/api/settings/backup` (download, restore; see [backup.md](backup.md)) |
    | `audit.py` | `/settings/audit`, `/api/settings/audit`, `.csv` (see [audit.md](audit.md)) |
-   | `plugins.py` | `/settings/plugins`, `/dashboard`, `/api/plugins/...` (see [plugins.md](plugins.md)) |
+   | `plugins.py` | `/settings/plugins`, `/api/dashboard`, `/api/plugins/...` (see [plugins.md](plugins.md)) |
    | `cache.py` | `/api/cache/...` |
 
 5. **`integrations/`**: live updates (SSE), the status monitor, Discord alerts, seat sources and
@@ -71,7 +71,7 @@ apply before React paints, and sign-in and roles are checked by Flask as for any
 - `src/widgets/`: draws plugin widgets. Everything a plugin returns is shown as text; ESLint
   refuses `dangerouslySetInnerHTML`.
 
-Moved so far: `/dashboard`, `/settings/plugins`, `/inventory`. Without a build these answer 503 with the steps
+Moved so far: `/settings/plugins`, `/inventory`. Without a build these answer 503 with the steps
 to make one.
 
 ### Older pages (`static/`)

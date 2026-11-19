@@ -58,5 +58,8 @@
   "noSites": "No sites yet. Add the ones players need, like game stores and voice chat, to see when one of them is gone rather than the whole internet.",
   "sitePlaceholder": "Steam",
   "host": "Host",
-  "hostHelp": "Floorbit connects to it a few times for the time it takes and the loss."
+  "hostHelp": "Floorbit connects to it a few times for the time it takes and the loss.",
+  "nothing": "No internet lines, resolvers or sites set up yet.",
+  "allUp": "Every line, resolver and site is up.",
+  "manage": "Set up services"
 }

@@ -1,5 +1,5 @@
 import { Alert, Anchor, Button, Group, Loader, Text } from '@mantine/core'
-import { IconBellOff, IconMaximize, IconRefresh } from '@tabler/icons-react'
+import { IconBellOff, IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type CSSProperties, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,8 +8,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useHealth } from '@/api/queries'
 import type { HealthCheck, HealthKind, HealthWall, State } from '@/api/types'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import type { ViewProps } from '@/widgets/views'
 import { clock } from '@/lib/time'
 
 const KINDS: HealthKind[] = ['dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other']
@@ -66,7 +65,7 @@ function Tile({ check }: { check: HealthCheck }) {
   )
 }
 
-function Wall({ wall }: { wall: HealthWall }) {
+function Wall({ wall, compact }: { wall: HealthWall; compact: boolean }) {
   const { t } = useTranslation()
   if (!wall.checks.length) {
     return <Text c="dimmed">{wall.plugins ? t('health.noChecks') : t('health.noPlugins')}</Text>
@@ -81,9 +80,13 @@ function Wall({ wall }: { wall: HealthWall }) {
           </span>
         ))}
       </p>
+      {compact && !wall.checks.some((c) => (c.status === 'down' || c.status === 'warn') && !c.muted_until) && (
+        <Text c="dimmed">{t('health.allFine')}</Text>
+      )}
       <div className="fb-health-groups">
       {KINDS.map((kind) => {
-        const checks = wall.checks.filter((c) => c.kind === kind)
+        // Small, a wall shows only what needs someone: red and amber, not muted.
+        const checks = wall.checks.filter((c) => c.kind === kind && (!compact || ((c.status === 'down' || c.status === 'warn') && !c.muted_until)))
         if (!checks.length) return null
         return (
           <section key={kind} className="fb-health-group" aria-labelledby={`health-${kind}`}>
@@ -100,13 +103,12 @@ function Wall({ wall }: { wall: HealthWall }) {
 }
 
 /** The service health wall: DHCP, DNS, the LAN cache, game servers and the uplink at a glance.
- *  ``?screen=1`` drops the header for a kiosk or ops screen (``?theme=`` picks its look). */
-export default function Health() {
+ *  Small, only what is red or amber; opened up, every check by kind, with "Check now". */
+export default function HealthView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const health = useHealth()
   const canCheck = useCan('plugins.run')
-  const screen = new URLSearchParams(window.location.search).get('screen') === '1'
   const lastAge = useAge(health.data?.last_poll)
   useLiveEvent('health.changed', () => void client.invalidateQueries({ queryKey: qk.health }))
   const check = useMutation({
@@ -114,56 +116,24 @@ export default function Health() {
     onSuccess: (data) => client.setQueryData(qk.health, data),
   })
   const error = health.error ?? check.error
-
-  const body = (
+  return (
     <>
+      {expanded && (
+        <Group justify="space-between" mb="sm" wrap="wrap">
+          <Text size="sm" c="dimmed">{lastAge !== null ? t('health.checked', { count: lastAge }) : ''}</Text>
+          {canCheck && (
+            <Button variant="default" leftSection={<IconRefresh size={16} />} loading={check.isPending} onClick={() => check.mutate()}>
+              {t('health.checkNow')}
+            </Button>
+          )}
+        </Group>
+      )}
       {error && (
         <Alert color="down" role="alert" mb="md">
           {t('common.error', { message: error.message })}
         </Alert>
       )}
-      {health.isPending ? <Loader size="sm" /> : health.data && <Wall wall={health.data} />}
+      {health.isPending ? <Loader size="sm" aria-label={t('common.loading')} /> : health.data && <Wall wall={health.data} compact={!expanded} />}
     </>
-  )
-
-  if (screen) {
-    return (
-      <main className="fb-health-screen">
-        <header>
-          <h1>{t('health.title')}</h1>
-          {lastAge !== null && <span>{t('health.checked', { count: lastAge })}</span>}
-        </header>
-        {body}
-      </main>
-    )
-  }
-  return (
-    // Red and amber services show in a background tab, like the floor plan (issue #216).
-    <Layout title={t('health.title')} back={{ href: '/', label: t('common.floorPlan') }}
-      // Muted services stay out of the tab count, as on the Problems page (issue #260).
-      count={health.data ? health.data.checks.filter((c) => (c.status === 'down' || c.status === 'warn') && !c.muted_until).length : undefined}>
-      <PageHead
-        title={t('health.title')}
-        desc={t('health.intro')}
-        actions={
-          <Group gap="xs">
-            <Button variant="default" component="a" href="/health?screen=1" leftSection={<IconMaximize size={16} />}>
-              {t('health.screen')}
-            </Button>
-            {canCheck && (
-              <Button leftSection={<IconRefresh size={16} />} loading={check.isPending} onClick={() => check.mutate()}>
-                {t('health.checkNow')}
-              </Button>
-            )}
-          </Group>
-        }
-      />
-      {lastAge !== null && (
-        <Text size="sm" c="dimmed" mb="sm">
-          {t('health.checked', { count: lastAge })}
-        </Text>
-      )}
-      {body}
-    </Layout>
   )
 }

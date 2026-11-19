@@ -125,7 +125,7 @@ function latencyPoints(history: [number, number | null][]) {
   return history.map(([, ms]) => ms ?? 0)
 }
 
-function UplinkCard({ uplink: u, onEdit }: { uplink: IspUplink; onEdit?: () => void }) {
+export function UplinkCard({ uplink: u, onEdit }: { uplink: IspUplink; onEdit?: () => void }) {
   const { t } = useTranslation()
   const cap = u.capacity_mbps * 1e6
   const used = u.utilization ?? null
@@ -156,7 +156,7 @@ function UplinkCard({ uplink: u, onEdit }: { uplink: IspUplink; onEdit?: () => v
   )
 }
 
-function ResolverCard({ resolver: r, onEdit }: { resolver: DnsResolver; onEdit?: () => void }) {
+export function ResolverCard({ resolver: r, onEdit }: { resolver: DnsResolver; onEdit?: () => void }) {
   const { t } = useTranslation()
   const points = latencyPoints(r.history)
   return (
@@ -172,7 +172,7 @@ function ResolverCard({ resolver: r, onEdit }: { resolver: DnsResolver; onEdit?:
   )
 }
 
-function SiteCard({ site: s, onEdit }: { site: InternetSite; onEdit?: () => void }) {
+export function SiteCard({ site: s, onEdit }: { site: InternetSite; onEdit?: () => void }) {
   const { t } = useTranslation()
   const points = latencyPoints(s.history)
   const reached = s.status === 'up' || s.status === 'warn'
@@ -189,7 +189,7 @@ function SiteCard({ site: s, onEdit }: { site: InternetSite; onEdit?: () => void
   )
 }
 
-function LanCacheCard({ cache: c }: { cache: LanCacheState }) {
+export function LanCacheCard({ cache: c }: { cache: LanCacheState }) {
   const { t } = useTranslation()
   return (
     <Card name={t('services.lanCache')} status={c.status} sub={c.demo ? t('services.demo') : t('services.thisHour')} mono={false}>

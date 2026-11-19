@@ -8,7 +8,7 @@ import type { PluginPageData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState } from '@/components/ui'
-import { TileGrid } from './Dashboard'
+import { TileGrid } from '@/widgets/TileCard'
 
 /** A plugin's own page (plugin.yaml ``pages:``), in the sidebar's Plugins section: its widgets and
  *  actions, drawn like dashboard tiles. Floorbit draws it; the plugin only says what goes on it. */

@@ -77,8 +77,7 @@ audit log. Viewers lost access to `/api/seats/info`; screens use `/api/seats/occ
 
 What the old kiosk page drew stays open by default, so a screen or the check-in page can load the
 floor plan without an account. Nothing else is: switch management IPs, incidents, the firewall per
-seat and reports need an account, and the other big screens (`/stats?screen=1`, `/health?screen=1`,
-`/screen`) are signed in with a `kiosk` account anyway. Live events reach signed-out readers and
+seat and reports need an account, and dashboards that are not public are signed in with a `kiosk` account anyway. Live events reach signed-out readers and
 accounts without `seats.view` without nicks, account names, IPs and MACs. Set
 `AUTH_PUBLIC_READ=false` to close the kiosk's reads too; a kiosk then needs to be signed in.
 

@@ -139,8 +139,3 @@ def test_demo_history_backfills_only_an_empty_day(monkeypatch):
     s.backfill(demo_history(now=200_000))
     assert len(s.samples) == 720
 
-
-def test_the_screen_version_gets_the_kiosk_look(client):
-    from test_theme import html_tag
-    assert 'data-preset="kiosk"' in html_tag(client.get("/stats?screen=1"))
-    assert 'data-preset="floorbit"' in html_tag(client.get("/stats"))

@@ -32,25 +32,16 @@ itself after a Floorbit update. Set a plan pane's **Plan marks** to **None** for
 
 ## Other big screens
 
-The [health wall](health.md) (`/health?screen=1`), the [stats dashboard](stats.md)
-(`/stats?screen=1`) and the floor plan (`/plan?screen=1`) have big-screen versions too, with the same
-kiosk theme and no personal data. They need an account: sign the screen in with a `kiosk` account.
+Any [dashboard](dashboards.md) works on a big screen at `/dashboards/<id>`, with the same kiosk
+look and clock. Floorbit comes with ready-made ones for the NOC (Service health, Network, Services,
+Traffic, Power load) and the public **Event in numbers**. Those that are not public need an account:
+sign the screen in with a `kiosk` account. The floor plan alone is `/plan?screen=1`.
 
-## Rotating views
+## Rotating dashboards
 
-`/screen` shows one view at a time and moves on every `every` seconds. Sign the screen in with a
-`kiosk` account.
-
-| Option  | Default            | What it does |
-|---------|--------------------|--------------|
-| `views` | `floor,heat,stats` | Which views, in order: `floor` (the Kiosk dashboard), `heat` (the plan with seat traffic, `/plan?screen=1&layers=marks,status`), `stats` (`/stats?screen=1`), `health` (`/health?screen=1`). |
-| `every` | `30`               | Seconds per view (10 to 600). |
-| `theme` |                    | Theme preset for every view ([themes.md](themes.md)). |
-| `hall`  | the first hall     | Which hall `floor` and `heat` show. |
-
-Each view stays loaded after its first turn, so it keeps its live updates, and the next one loads
-before it fades in. Moving the mouse shows the cursor and the view's name, with buttons to go back and
-on; the arrow keys do the same. `GET /api/screen` with the same options answers what the screen shows.
+`?rotate=<id>,<id>,...&every=<seconds>` on a dashboard's address moves on to the next one every so
+many seconds (10 to 600, 30 by default), for example
+`/dashboards/kiosk?rotate=kiosk,traffic,event&every=45`. `hall` and `theme` go along.
 
 ## Attendee view
 

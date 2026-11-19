@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { FeatureState } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Features from './Features'
-import Stats from './Stats'
+import StatsView from './stats/StatsView'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -38,7 +38,7 @@ describe('Features', () => {
       'GET /api/auth/me': admin, 'GET /api/features': { off: ['replay'] },
       'GET /api/stats': { series: [], peak: null, uplinks: [], seats: { online: 0, total: 0 }, top: [], last_poll: null },
     }).fn)
-    renderWithApp(<Stats />)
+    renderWithApp(<StatsView expanded />)
     expect(await screen.findByRole('link', { name: /Event report/ })).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('link', { name: /Replay/ })).not.toBeInTheDocument())
   })

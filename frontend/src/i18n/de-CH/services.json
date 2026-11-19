@@ -58,5 +58,8 @@
   "noSites": "Noch keine Websites. Füge die hinzu, die Spieler brauchen, wie Game-Stores und Voice-Chat, um zu sehen, wenn eine davon weg ist und nicht das ganze Internet.",
   "sitePlaceholder": "Steam",
   "host": "Host",
-  "hostHelp": "Floorbit verbindet sich ein paarmal damit, für die Zeit und den Verlust."
+  "hostHelp": "Floorbit verbindet sich ein paarmal damit, für die Zeit und den Verlust.",
+  "nothing": "Noch keine Internetleitungen, Resolver oder Websites eingerichtet.",
+  "allUp": "Alle Leitungen, Resolver und Websites laufen.",
+  "manage": "Dienste einrichten"
 }

@@ -13,7 +13,7 @@ Pick the site default under **Settings > Appearance** (or with `FLOORBIT_THEME`)
 | --- | --- | --- |
 | `floorbit` | Default everywhere | Seatbit neutrals, Bit Green accent, Trace Cyan for selection. Light and dark. |
 | `ops` | The orga desk | Denser type; the accent turns cyan so green on screen only ever means "up". |
-| `kiosk` | The big screen in the hall | Pure black, stronger lines, larger type. Dark only. The default on the Kiosk dashboard and big screens (`?screen=1`). |
+| `kiosk` | The big screen in the hall | Pure black, stronger lines, larger type. Dark only. The default on the Kiosk dashboard and the plan's big screen (`/plan?screen=1`). |
 | `classic` | People who liked the old look | The previous GitHub-dark surfaces and orange accent. Dark only. |
 | `custom` | An event's own look | Accent, background, panel and text colours from settings; the rest is derived. |
 

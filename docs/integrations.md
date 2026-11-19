@@ -116,7 +116,7 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `STATUS_PAGE` | `false` | the public network status page `/status` ([status-page.md](status-page.md)); also under Settings > Attendee pages |
 | `METRICS_ENABLED` | `false` | Prometheus metrics at `/api/metrics` ([metrics.md](metrics.md)); also under Settings > Prometheus metrics |
 | `SPEEDTEST`, `SPEEDTEST_MAX_RUNNING`, `SPEEDTEST_TEST_MB`, `SPEEDTEST_SEAT_MINUTES`, `SPEEDTEST_MAX_MBPS` | on, 3, 250, 10, 1000 | the speed test on the seat help page and its limits ([speedtest.md](speedtest.md#limits)); also under Settings > Speed tests |
-| `STATS_WALL` | `false` | the public stats wall `/wall` ([stats-wall.md](stats-wall.md)); also under Settings > Attendee pages |
+| `STATS_WALL` | `false` | the public stats wall, the **Event in numbers** dashboard ([stats-wall.md](stats-wall.md)); also under Settings > Attendee pages |
 | `STATS_UPLINK_PATTERN` | `uplink\|trunk` | port descriptions that mark a switch's uplink on the [stats dashboard](stats.md) (a regular expression, case-insensitive) |
 | `DISCORD_HEALTH_ALERTS` | `true` | post when a service on the health wall goes red, and when it is back |
 | `DISCORD_SECURITY_ALERTS` | `true` | post new high and medium security findings (where, never MACs or IPs) |

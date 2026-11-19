@@ -715,9 +715,6 @@ Source: [`floorbit/blueprints/plugins.py`](https://github.com/bitsandbricks-ch/f
 | --- | --- | --- | --- |
 | GET | `/api/dashboard` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
 | GET | `/api/dashboard/floorbit/<tile>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
-| GET | `/api/dashboard/layouts` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
-| DELETE | `/api/dashboard/layouts/<layout_id>` | `floorplan.edit` | `dashboard` |
-| PUT | `/api/dashboard/layouts/<layout_id>` | `floorplan.edit` | `dashboard` |
 | POST | `/api/plugins/<plugin_id>/actions/<action_id>` | `floorplan.view` |  |
 | GET | `/api/plugins/<plugin_id>/endpoints/<endpoint_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/plugins/<plugin_id>/layers/<layer_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
@@ -839,16 +836,6 @@ Source: [`floorbit/blueprints/schedule.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/schedule/items` | `floorplan.edit` | `schedule` |
 | DELETE | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
 | PATCH | `/api/schedule/items/<item_id>` | `floorplan.edit` | `schedule` |
-
-## floorbit.blueprints.screen
-
-Big-screen rotation (issue #18) and the hall drawing other pages use. See docs/kiosk.md.
-
-Source: [`floorbit/blueprints/screen.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/screen.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/screen` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.seat_blocks
 

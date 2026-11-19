@@ -1,6 +1,6 @@
 # Wi-Fi view
 
-`/wifi` (the **Wi-Fi** button on the floor plan) shows each access point's load, how many clients
+The **Wi-Fi** widget (on the ready-made Network dashboard) shows each access point's load, how many clients
 it has and which channel it is on, drawn on the floor plan. Issue #98.
 
 ## What it shows

@@ -9,8 +9,8 @@ const pages = [
   { href: '/', id: 'floorPlan', label: 'Floor plan' },
   { href: '/problems', id: 'problems', label: 'Problems' },
   { href: '/incidents', id: 'incidents', label: 'Incidents' },
-  { href: '/stats', id: 'stats', label: 'Stats' },
-  { href: '/traffic', id: 'traffic', label: 'Traffic' },
+  { href: '/widgets', id: 'widgets', label: 'Widgets' },
+  { href: '/topology', id: 'topology', label: 'Topology' },
   { href: '/settings', id: 'settings', label: 'Settings' },
   { href: '/settings/agents', id: 'agents', label: 'Local agents' },
   { href: '/brand-new', id: 'brandNew', label: 'Brand new page' },
@@ -40,7 +40,7 @@ describe('sections', () => {
     const g = group(pages)
     expect(g.pinned.map((p) => p.id)).toEqual(['floorPlan', 'problems', 'incidents'])
     expect(g.sections.map((s) => [s.id, s.pages.map((p) => p.id)])).toEqual([
-      ['network', ['stats', 'traffic']], ['admin', ['settings', 'agents']], ['more', ['brandNew']],
+      ['network', ['widgets', 'topology']], ['admin', ['settings', 'agents']], ['more', ['brandNew']],
     ])
   })
 
@@ -68,8 +68,8 @@ describe('Sidebar', () => {
   })
 
   it('opens the section of the page on screen, and folds it when another opens', () => {
-    sidebar('/traffic')
-    expect(within(main()).getByRole('link', { name: 'Traffic' })).toHaveAttribute('aria-current', 'page')
+    sidebar('/topology')
+    expect(within(main()).getByRole('link', { name: 'Topology' })).toHaveAttribute('aria-current', 'page')
     const network = within(main()).getByRole('button', { name: 'Network' })
     const admin = within(main()).getByRole('button', { name: 'Settings' })
     expect(network).toHaveAttribute('aria-expanded', 'true')
@@ -82,7 +82,7 @@ describe('Sidebar', () => {
   })
 
   it('keeps several sections open when folding is switched off', () => {
-    sidebar('/traffic')
+    sidebar('/topology')
     fireEvent.click(within(main()).getByRole('button', { name: 'Signed in as kim' }))
     fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Fold other sections when one opens' }))
     expect(JSON.parse(localStorage.getItem('floorbit-nav-prefs')!)).toEqual({ favourites: [], accordion: false })
@@ -96,15 +96,15 @@ describe('Sidebar', () => {
   it('pins favourites to the top, saved with the account when signed in', () => {
     const fetchMock = vi.fn(() => Promise.resolve(new Response('{}')))
     vi.stubGlobal('fetch', fetchMock)
-    render(<Sidebar boot={{ ...boot, prefs: { favourites: ['stats'], accordion: true } }} path="/problems" renderLink={link} onGoTo={() => {}} />)
+    render(<Sidebar boot={{ ...boot, prefs: { favourites: ['widgets'], accordion: true } }} path="/problems" renderLink={link} onGoTo={() => {}} />)
     const favs = within(main()).getByRole('list', { name: 'Favourites' })
-    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Stats'])
+    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Widgets'])
     fireEvent.click(within(main()).getByRole('button', { name: 'Add Incidents to favourites' }))
-    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Stats', 'Incidents'])
+    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Widgets', 'Incidents'])
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/me/nav', expect.objectContaining({
-      method: 'PUT', body: JSON.stringify({ favourites: ['stats', 'incidents'], accordion: true }),
+      method: 'PUT', body: JSON.stringify({ favourites: ['widgets', 'incidents'], accordion: true }),
     }))
-    fireEvent.click(within(favs).getByRole('button', { name: 'Remove Stats from favourites' }))
+    fireEvent.click(within(favs).getByRole('button', { name: 'Remove Widgets from favourites' }))
     expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Incidents'])
     expect(localStorage.getItem('floorbit-nav-prefs')).toBeNull()
   })
@@ -115,9 +115,9 @@ describe('Sidebar', () => {
     expect(main()).toHaveAttribute('data-state', 'rail')
     expect(document.cookie).toContain('floorbit_nav=rail')
     fireEvent.click(within(main()).getByRole('button', { name: 'Network' }))
-    expect(within(main()).getByText('Stats')).toBeInTheDocument()
+    expect(within(main()).getByText('Widgets')).toBeInTheDocument()
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(within(main()).queryByText('Stats')).not.toBeInTheDocument()
+    expect(within(main()).queryByText('Widgets')).not.toBeInTheDocument()
   })
 
   it('opens everything in a sheet from the phone bar', () => {
@@ -206,7 +206,7 @@ describe('skip link', () => {
     const custom = [{
       id: 'main-hall', name: 'Main hall', icon: 'star', links: [
         { kind: 'dashboard' as const, href: '/dashboards/wall', label: 'Hall wall' },
-        { kind: 'page' as const, href: '/stats', page: 'stats', label: 'Stats', own: false },
+        { kind: 'page' as const, href: '/widgets', page: 'widgets', label: 'Widgets', own: false },
         { kind: 'url' as const, href: 'https://example.com/grafana', label: 'Grafana', external: true },
       ],
     }]

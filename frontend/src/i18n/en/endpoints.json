@@ -21,5 +21,6 @@
     "seat": "Seat",
     "vlan": "VLAN",
     "seen": "Last seen"
-  }
+  },
+  "find": "Find"
 }

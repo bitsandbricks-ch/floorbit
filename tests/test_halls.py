@@ -127,11 +127,6 @@ def test_backup_with_a_bad_hall_is_refused(client):
     assert client.post("/api/settings/backup", json=backup).status_code == 400
 
 
-def test_screen_passes_the_hall_on(client, two_halls):
-    h2 = two_halls["hall2"]["id"]
-    views = client.get(f"/api/screen?views=floor,stats&hall={h2}").get_json()["views"]
-    assert [v["url"] for v in views] == [f"/dashboards/kiosk?hall={h2}", "/stats?screen=1"]
-    assert "hall=" not in str(client.get("/api/screen?hall=../x").get_json()["views"])
 
 
 PNG = ('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAA'

@@ -135,9 +135,9 @@ FIELDS = [
               "crew's updates. Off by default."),
     dict(key='public.stats_wall', section='public', label='Stats wall', type='bool',
          env='STATS_WALL', default=False,
-         help='/wall shows fun facts about the event for a big screen (/wall?screen=1) and phones: data '
-              'downloaded, the bandwidth peak, top games, seats online. Hall-wide and per seat block only. '
-              'Off by default.'),
+         help='The "Event in numbers" widget shows fun facts about the event on a public dashboard (and '
+              '/wall.json for the event website): data downloaded, the bandwidth peak, top games, seats '
+              'online. Hall-wide and per seat block only. Off by default.'),
     dict(key='speedtest.enabled', section='speedtest', label='Speed test on the help page', type='bool',
          env='SPEEDTEST', default=True,
          help='Off hides the button on the seat help page and refuses every test.'),

@@ -16,10 +16,9 @@ A node is a tree: a node is either a split (``split`` "row" puts its children si
   (frontend/src/pages/plan/layers.ts PRESETS), a seat filter (``show``), how seats are numbered
   (``labels``, frontend/src/pages/plan/labels.ts) and which plan marks it draws (``marks``: ``all``
   the preset shows, ``public`` only the Overview and Safety ones, like the attendee pages, or ``none``);
-- ``tile``: one dashboard plugin tile (``<plugin>/w/<id>``, floorbit/dashboard_layouts.py);
-- ``dashboard``: a saved dashboard layout, by id;
-- ``page``: one of the other big-screen pages (:data:`PAGES`);
-- ``view``: a rich widget by id (frontend/src/widgets/views.ts); unknown ids show a note;
+- ``tile``: one plugin data tile (``<plugin>/w/<id>``, the tiles of ``GET /api/dashboard``);
+- ``view``: a widget by id (frontend/src/widgets/views.ts), small unless ``expanded`` (its big size
+  right on the grid, for a pane that fills a screen); unknown ids show a note;
 - ``text``: your own words (``text``, the Markdown subset of frontend/src/components/Markdown.tsx),
   in a ``size`` that reads from across the hall and ``align``-ed left or centred;
 - ``empty``: nothing yet.
@@ -28,10 +27,11 @@ Every pane may have a ``title``; ``hide_title`` leaves its head off for a cleane
 
 A ``public`` dashboard opens without signing in, for a screen in the hall or the event website. It
 then shows only what is safe for anyone (:func:`public_board`): plan panes with the public marks,
-Floorbit's switch, seat and down-switch tiles, and texts. Other panes say they need an account.
+Floorbit's switch, seat and down-switch tiles, the "Event in numbers" widget, and texts. Other panes
+say they need an account.
 
-Kept in data.json under ``dashboards``. Panes that name something gone (a hall, a tile, a
-dashboard layout) show a note on the screen instead of failing: the screen keeps running.
+Kept in data.json under ``dashboards``. Panes that name something gone (a hall, a tile, a widget)
+show a note on the screen instead of failing: the screen keeps running.
 """
 import copy
 import re
@@ -51,7 +51,7 @@ MAX_DEPTH = 4
 ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}\Z')
 TILE_RE = re.compile(r'^[\w.-]{1,64}/w/[\w.-]{1,64}\Z')
 REF_RE = re.compile(r'^[\w .:-]{1,120}\Z')
-KINDS = ('plan', 'tile', 'dashboard', 'page', 'view', 'text', 'empty')
+KINDS = ('plan', 'tile', 'view', 'text', 'empty')
 SPLITS = ('row', 'column')
 AREAS = ('hall', 'block', 'zone', 'box')
 PRESETS = ('overview', 'network', 'electrical', 'ops')
@@ -59,14 +59,14 @@ FILTERS = ('all', 'problems', 'offline', 'recent', 'note', 'checked_in')
 LABELS = ('auto', 'all', 'none')
 # Plan marks on a screen: "public" for one people walk past (plan_marks.PUBLIC_LAYERS only).
 MARKS = ('all', 'public', 'none')
-# The big-screen pages a pane can hold (each one's ``?screen=1`` version).
-PAGES = {'health': '/health?screen=1', 'stats': '/stats?screen=1', 'wall': '/wall?screen=1', 'status': '/status'}
 TITLE_MAX = 40
 TEXT_MAX = 2000
 TEXT_SIZES = ('s', 'm', 'l', 'xl')
 TEXT_ALIGN = ('start', 'center')
 # The tiles a public dashboard may show: counts and switch names, nothing about people or the crew.
 PUBLIC_TILES = ('floorbit/w/switches', 'floorbit/w/seats', 'floorbit/w/down')
+# The widgets a public dashboard may show: they read only public feeds (/wall.json).
+PUBLIC_VIEWS = ('event-numbers',)
 _lock = threading.Lock()
 
 
@@ -81,16 +81,72 @@ def _plan(**over):
                      'labels': 'auto', 'marks': 'all', **over}}
 
 
+def _view(view, expanded=False):
+    return {'pane': {'kind': 'view', 'view': view, **({'expanded': True} if expanded else {})}}
+
+
+def _tile(tile):
+    return {'pane': {'kind': 'tile', 'tile': f'floorbit/w/{tile}'}}
+
+
+def _at(x, y, w, h, node):
+    return {'x': x, 'y': y, 'w': w, 'h': h, 'node': node}
+
+
 # Ready-made dashboards, listed until someone saves their own under the same id (deleting that brings
-# the ready-made one back). The kiosk (what /kiosk used to be): the plan on a big screen, often in a
-# public place, so only the public marks; the switches on the plan (network layer), how many switches
-# and seats are up, and which switches are down.
+# the ready-made one back). They are what the old one-off pages were (health, stats, traffic, ...),
+# built from the same widgets anyone can put on their own dashboard.
 BUILTIN = {
+    # The plan on a big screen, often in a public place, so only the public marks; the switches on
+    # the plan (network layer), how many switches and seats are up, and which switches are down.
     'kiosk': {'name': 'Kiosk', 'fit': True, 'public': True, 'sections': [{'panels': [
-        {'x': 0, 'y': 0, 'w': 18, 'h': 12, 'node': _plan(preset='network', marks='public')},
-        {'x': 18, 'y': 0, 'w': 6, 'h': 3, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/switches'}}},
-        {'x': 18, 'y': 3, 'w': 6, 'h': 3, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/seats'}}},
-        {'x': 18, 'y': 6, 'w': 6, 'h': 6, 'node': {'pane': {'kind': 'tile', 'tile': 'floorbit/w/down'}}},
+        _at(0, 0, 18, 12, _plan(preset='network', marks='public')),
+        _at(18, 0, 6, 3, _tile('switches')),
+        _at(18, 3, 6, 3, _tile('seats')),
+        _at(18, 6, 6, 6, _tile('down')),
+    ]}]},
+    # The crew's start page: the hall, what is red, and how busy the network is.
+    'overview': {'name': 'Overview', 'fit': False, 'sections': [{'panels': [
+        _at(0, 0, 6, 3, _tile('switches')),
+        _at(6, 0, 6, 3, _tile('seats')),
+        _at(12, 0, 12, 6, _view('health')),
+        _at(0, 3, 12, 9, _plan(preset='ops')),
+        _at(12, 6, 12, 6, _tile('down')),
+        _at(0, 12, 12, 9, _view('stats')),
+        _at(12, 12, 12, 9, _view('traffic')),
+    ]}]},
+    'health': {'name': 'Service health', 'fit': False, 'sections': [{'panels': [
+        _at(0, 0, 24, 12, _view('health', expanded=True)),
+        _at(0, 12, 12, 8, _view('services')),
+        _at(12, 12, 12, 8, _view('lancache')),
+    ]}]},
+    'network': {'name': 'Network', 'fit': False, 'sections': [{'panels': [
+        _at(0, 0, 6, 3, _tile('switches')),
+        _at(6, 0, 6, 3, _tile('seats')),
+        _at(12, 0, 12, 6, _view('wifi')),
+        _at(0, 3, 12, 3, _view('endpoints')),
+        _at(0, 6, 16, 12, _view('stats', expanded=True)),
+        _at(16, 6, 8, 6, _tile('down')),
+        _at(16, 12, 8, 6, _view('network-status')),
+    ]}]},
+    'services': {'name': 'Services', 'fit': False, 'sections': [{'panels': [
+        _at(0, 0, 24, 10, _view('services', expanded=True)),
+        _at(0, 10, 12, 8, _view('health')),
+        _at(12, 10, 12, 8, _view('lancache')),
+    ]}]},
+    'traffic': {'name': 'Traffic', 'fit': False, 'sections': [{'panels': [
+        _at(0, 0, 24, 14, _view('traffic', expanded=True)),
+        _at(0, 14, 12, 10, _view('dns')),
+        _at(12, 14, 12, 10, _view('games')),
+        _at(0, 24, 24, 8, _view('speedtests')),
+    ]}]},
+    'power': {'name': 'Power load', 'fit': False, 'sections': [{'panels': [
+        _at(0, 0, 24, 14, _view('power-load', expanded=True)),
+    ]}]},
+    # What the old public stats wall showed, for a screen in the hall: off until Settings > Attendee
+    # pages turns on the stats wall.
+    'event': {'name': 'Event in numbers', 'fit': True, 'public': True, 'sections': [{'panels': [
+        _at(0, 0, 24, 12, _view('event-numbers', expanded=True)),
     ]}]},
 }
 
@@ -220,16 +276,13 @@ def _pane(raw):
         if not TILE_RE.match(tile):
             raise LayoutError('Pick a dashboard tile.')
         pane['tile'] = tile
-    elif kind == 'dashboard':
-        layout = str(raw.get('layout') or '')
-        if not ID_RE.match(layout):
-            raise LayoutError('Pick a dashboard layout.')
-        pane['layout'] = layout
     elif kind == 'view':
         view = str(raw.get('view') or '')
         if not ID_RE.match(view):
             raise LayoutError('Pick a widget.')
         pane['view'] = view
+        if raw.get('expanded'):
+            pane['expanded'] = True
     elif kind == 'text':
         # Keep line breaks (they are the Markdown), drop other control characters.
         text = ''.join(c for c in str(raw.get('text') or '').replace('\r\n', '\n') if c == '\n' or c >= ' ').strip()
@@ -242,10 +295,6 @@ def _pane(raw):
         if align not in TEXT_ALIGN:
             raise LayoutError(f'A text is aligned one of: {", ".join(TEXT_ALIGN)}.')
         pane.update(text=text, size=size, align=align)
-    elif kind == 'page':
-        if raw.get('page') not in PAGES:
-            raise LayoutError(f'A page is one of: {", ".join(PAGES)}.')
-        pane['page'] = raw['page']
     return pane
 
 
@@ -382,7 +431,8 @@ def _public_node(node):
     head = {k: pane[k] for k in ('title', 'hide_title') if k in pane}
     if kind == 'plan':
         return {'pane': {**pane, 'marks': 'none' if pane.get('marks') == 'none' else 'public'}}
-    if kind in ('text', 'empty') or (kind == 'tile' and pane['tile'] in PUBLIC_TILES):
+    if kind in ('text', 'empty') or (kind == 'tile' and pane['tile'] in PUBLIC_TILES) or (
+            kind == 'view' and pane['view'] in PUBLIC_VIEWS):
         return {'pane': pane}
     return {'pane': {'kind': 'private', **head}}
 

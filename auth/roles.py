@@ -311,9 +311,7 @@ RULES = (
     # Which seats a range of ports roughly goes to: part of the patch plan (floorbit/port_areas.py).
     ('/api/port-areas/lookup', None, 'seats.view'),
     ('/api/port-areas', WRITE, 'floorplan.edit'),
-    # Saved dashboard layouts: what a screen shows is the floor crew's to arrange (floorbit/dashboard_layouts.py).
-    ('/api/dashboard/layouts', WRITE, 'floorplan.edit'),
-    # Dashboards (floorbit/dashboards.py): arranged by the floor crew, like the older tile layouts.
+    # Dashboards (floorbit/dashboards.py): what a screen shows is the floor crew's to arrange.
     ('/api/dashboards', WRITE, 'floorplan.edit'),
     # Schedule: everyone reads it, leads plan it (floorbit/schedule.py).
     ('/api/schedule', WRITE, 'floorplan.edit'),

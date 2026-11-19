@@ -16,3 +16,11 @@ export const ScreenContext = createContext<ScreenSource>({ publicId: null, tiles
 export const useScreen = () => useContext(ScreenContext)
 
 export const publicUrl = (id: string, rest = '') => `/api/dashboards/${encodeURIComponent(id)}/public${rest}`
+
+/** The next dashboard of ``?rotate=a,b,c`` after ``id``, for a screen that shows several in turn. */
+export function nextInRotation(rotate: string | null, id: string): string | null {
+  const ids = (rotate ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+  if (ids.length < 2) return null
+  const at = ids.indexOf(id)
+  return ids[(at + 1) % ids.length]
+}
