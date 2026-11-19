@@ -70,6 +70,15 @@ ENTITY_FIELDS = (('entPhysicalClass', '1.3.6.1.2.1.47.1.1.1.1.5', False, None), 
 STORAGE_FIELDS = (('hrStorageType', '1.3.6.1.2.1.25.2.3.1.2', False, None),       # RAM, fixed disk, ...
                   ('hrStorageAllocationUnits', '1.3.6.1.2.1.25.2.3.1.4', False, None),
                   ('hrStorageSize', '1.3.6.1.2.1.25.2.3.1.5', False, None))
+# Per interface and per device, for discovery too: MAC, IPv4 addresses, VLANs, access or trunk.
+IF_MAC_FIELDS = (('ifPhysAddress', '1.3.6.1.2.1.2.2.1.6', False, 'hwaddr'),)
+IP_FIELDS = (('ipAdEntIfIndex', '1.3.6.1.2.1.4.20.1.2', False, None),             # index: the address
+             ('ipAdEntNetMask', '1.3.6.1.2.1.4.20.1.3', False, None))
+QVLAN_FIELDS = (('dot1qVlanStaticName', '1.3.6.1.2.1.17.7.1.4.3.1.1', False, None),)   # index: VLAN
+PVID_FIELDS = (('dot1qPvid', '1.3.6.1.2.1.17.7.1.4.5.1.1', False, None),)             # index: bridge port
+VTP_FIELDS = (('vtpVlanName', '1.3.6.1.4.1.9.9.46.1.3.1.1.4', False, None),)          # index: domain.VLAN
+CISCO_IF_VLAN = (('vmVlan', '1.3.6.1.4.1.9.9.68.1.2.2.1.2', False, None),             # access VLAN
+                 ('vlanTrunkPortDynamicStatus', '1.3.6.1.4.1.9.9.46.1.6.1.1.14', False, None))   # 1: trunking
 HR_DEVICE_FIELDS = (('hrDeviceType', '1.3.6.1.2.1.25.3.2.1.2', False, None),      # processors: the CPU
                     ('hrDeviceDescr', '1.3.6.1.2.1.25.3.2.1.3', False, None))
 
@@ -156,9 +165,17 @@ def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
         lines += ['  [[inputs.snmp.field]]', f'    name = {q(field)}', f'    oid = {q(oid)}']
     _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
     _table(lines, 'fb_entity', ENTITY_FIELDS)
-    if not cisco:
+    _table(lines, 'fb_ifmac', IF_MAC_FIELDS)
+    _table(lines, 'fb_ip', IP_FIELDS)
+    if cisco:
+        _table(lines, 'fb_vtp', VTP_FIELDS)
+        _table(lines, 'fb_ifvlan', CISCO_IF_VLAN)
+    else:
         _table(lines, 'fb_storage', STORAGE_FIELDS)
         _table(lines, 'fb_hrdevice', HR_DEVICE_FIELDS)
+        _table(lines, 'fb_qvlan', QVLAN_FIELDS)
+        _table(lines, 'fb_bridge', BRIDGE_FIELDS)
+        _table(lines, 'fb_pvid', PVID_FIELDS)
     if t.get('tables', True):
         lines.append('')
         _snmp_head(lines, t, tables_interval)

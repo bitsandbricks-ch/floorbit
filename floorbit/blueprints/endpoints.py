@@ -4,6 +4,7 @@
 - ``GET /api/endpoints?q=``: rows whose IP starts with ``q`` or whose MAC holds it.
 - ``GET /api/endpoints?device=&port=``: a switch port's history.
 - ``GET /api/endpoints?seat=``: a seat's history.
+- ``GET /api/endpoints?device=``: everything seen on one device's ports (its MAC/IP tab).
 """
 from flask import Blueprint, jsonify, request
 
@@ -27,6 +28,8 @@ def find():
             rows = history.at_seat(args['seat'][:60])
         elif args.get('device') and args.get('port'):
             rows = history.at_port(args['device'][:120], args['port'][:120])
+        elif args.get('device'):
+            rows = history.at_device(args['device'][:120])
         else:
             rows = history.search(args.get('q', ''))
     except DatabaseError:

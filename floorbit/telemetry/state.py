@@ -20,6 +20,7 @@ Points come in several shapes, one per driver (docs/telemetry.md):
 - A firewall's own Telegraf (OPNsense ``os-telegraf``, the pfSense Telegraf package): ``cpu``,
   ``mem``, ``net``, ``pf``, ``system``, with the firewall in the ``host`` tag.
 """
+import ipaddress
 import re
 import threading
 import time
@@ -179,6 +180,8 @@ class Device:
         self._entity = {}                 # ENTITY-MIB index -> row, until the chassis is known
         self._storage = {}                # hrStorage index -> (kind, bytes)
         self._processors = {}             # hrDevice index -> description
+        self.if_facts = {}                # ifIndex -> {mac, ips {address: prefix}, vlan, mode}
+        self.vlans = {}                   # VLAN id -> name
 
     # ports -----------------------------------------------------------------------------------
     def port(self, index=None, name=None):
@@ -211,6 +214,16 @@ class Device:
     def online(self, now=None):
         return (time.time() if now is None else now) - self.seen < STALE
 
+    def port_facts(self, iface):
+        """What discovery knows of one port: mac, ips ['a.b.c.d/nn'], vlan, mode."""
+        facts = self.if_facts.get(str(iface.index)) if iface.index is not None else None
+        if not facts:
+            return {}
+        out = {k: facts[k] for k in ('mac', 'vlan', 'mode') if facts.get(k)}
+        if facts.get('ips'):
+            out['ips'] = [f'{ip}/{prefix}' for ip, prefix in sorted(facts['ips'].items())]
+        return out
+
     def summary(self):
         """What the device said it is (``fb_facts`` and its tables), as discovery takes it: model,
         serial, software, descr, location, memory_mb, disk_gb, cores, cpu. Only what it said."""
@@ -230,6 +243,15 @@ class Device:
         disk = sum(b for kind, b in self._storage.values() if kind == 'disk')
         if disk:
             out['disk_gb'] = round(disk / 1e9)
+        if self.vlans:
+            out['vlans'] = {str(v): name for v, name in sorted(self.vlans.items())}
+        networks = set()
+        for facts in self.if_facts.values():
+            for ip, prefix in (facts.get('ips') or {}).items():
+                if prefix < 32:
+                    networks.add(str(ipaddress.ip_network(f'{ip}/{prefix}', strict=False)))
+        if networks:
+            out['networks'] = sorted(networks)
         if self._processors:
             out['cores'] = len(self._processors)
             names = [d for d in self._processors.values() if d]
@@ -432,6 +454,88 @@ def _hrdevice(dev, point, at):
     if str(f.get('hrDeviceType') or '').endswith('25.3.1.3'):        # hrDeviceProcessor
         # net-snmp writes "GenuineIntel: Intel(R) Xeon(R) ...": the vendor prefix says nothing more.
         dev._processors[str(_index(point))] = _text(f.get('hrDeviceDescr')).split(': ', 1)[-1]
+    return True
+
+
+MAX_IF_FACTS = 5000
+
+
+def _if_fact(dev, index):
+    index = str(index)
+    if index not in dev.if_facts and len(dev.if_facts) >= MAX_IF_FACTS:
+        return {}
+    return dev.if_facts.setdefault(index, {})
+
+
+def _ifmac(dev, point, at):
+    if not _index(point):
+        return False
+    mac = _mac(point.fields.get('ifPhysAddress'))
+    if mac:
+        _if_fact(dev, _index(point))['mac'] = mac
+    return True
+
+
+def _ip(dev, point, at):
+    """ipAddrTable: one row per IPv4 address, the address in the index."""
+    if_index = _num(point.fields.get('ipAdEntIfIndex'))
+    try:
+        address = ipaddress.ip_address(str(_index(point) or ''))
+        prefix = ipaddress.ip_network(f"0.0.0.0/{point.fields.get('ipAdEntNetMask') or '255.255.255.255'}").prefixlen
+    except ValueError:
+        return False
+    if if_index is None or address.is_loopback:
+        return bool(if_index is not None)
+    ips = _if_fact(dev, int(if_index)).setdefault('ips', {})
+    if len(ips) < 16:
+        ips[str(address)] = prefix
+    return True
+
+
+def _vlan_name(dev, vlan, name):
+    if vlan is not None and 1 <= vlan <= 4094 and len(dev.vlans) < 4094:
+        dev.vlans[vlan] = _text(name)[:64]
+
+
+def _vtp(dev, point, at):
+    parts = str(_index(point) or '').split('.')
+    if not parts[-1].isdigit():
+        return False
+    _vlan_name(dev, int(parts[-1]), point.fields.get('vtpVlanName'))
+    return True
+
+
+def _qvlan(dev, point, at):
+    index = str(_index(point) or '').split('.')[-1]
+    if not index.isdigit():
+        return False
+    _vlan_name(dev, int(index), point.fields.get('dot1qVlanStaticName'))
+    return True
+
+
+def _ifvlan(dev, point, at):
+    """Cisco: an access port's VLAN (vmVlan) and whether a port trunks."""
+    if not _index(point):
+        return False
+    facts = _if_fact(dev, _index(point))
+    vlan = _num(point.fields.get('vmVlan'))
+    trunk = _num(point.fields.get('vlanTrunkPortDynamicStatus'))
+    if trunk == 1:
+        facts['mode'] = 'trunk'
+    elif vlan:
+        facts['mode'] = 'access'
+    if vlan and 1 <= vlan <= 4094 and trunk != 1:
+        facts['vlan'] = int(vlan)
+    return True
+
+
+def _pvid(dev, point, at):
+    """Q-BRIDGE: the VLAN untagged frames on a bridge port land in."""
+    if_index = dev.bridge_ports.get(str(_index(point)))
+    vlan = _num(point.fields.get('dot1qPvid'))
+    if not if_index or not vlan or not 1 <= vlan <= 4094:
+        return bool(_index(point))
+    _if_fact(dev, if_index)['vlan'] = int(vlan)
     return True
 
 
@@ -696,6 +800,7 @@ _HANDLERS = {
     'fb_lldp_loc': _lldp_local, 'fb_cdp': _cdp, 'snmp_trap': _trap, 'fb_gateway': _gateway,
     'cpu': _fw_cpu, 'mem': _fw_mem, 'net': _fw_net, 'pf': _fw_pf, 'system': _fw_system,
     'fb_facts': _facts, 'fb_entity': _entity, 'fb_storage': _storage, 'fb_hrdevice': _hrdevice, 'fb_mem': _mem,
+    'fb_ifmac': _ifmac, 'fb_ip': _ip, 'fb_vtp': _vtp, 'fb_qvlan': _qvlan, 'fb_ifvlan': _ifvlan, 'fb_pvid': _pvid,
 }
 
 
@@ -714,6 +819,7 @@ def register(measurement, handler, private=False):
 # Measurements that name people's machines (MACs, IPs): never stored as series (storage.py).
 # The facts are text that never changes: not series either.
 PRIVATE = frozenset({'fb_fdb', 'fb_qfdb', 'fb_arp', 'fb_bridge', 'fb_lldp', 'fb_lldp_loc', 'fb_cdp',
-                     'fb_facts', 'fb_entity', 'fb_storage', 'fb_hrdevice'})
+                     'fb_facts', 'fb_entity', 'fb_storage', 'fb_hrdevice', 'fb_ifmac', 'fb_ip', 'fb_vtp',
+                     'fb_qvlan', 'fb_ifvlan', 'fb_pvid'})
 
 state = State()

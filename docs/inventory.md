@@ -185,7 +185,13 @@ CPUs, the Cisco memory pool); with LibreNMS it takes what LibreNMS knows of the 
 - It matches inventory devices by name (the short name too) or management IP, and never adds or
   deletes a device or changes its name, role, address or status.
 - Interfaces come in as with **Take from monitoring** on the device's Interfaces tab, for
-  switches, routers, firewalls, access points, servers and PDUs that are up.
+  switches, routers, firewalls, access points, servers and PDUs that are up. With telemetry they
+  bring their MAC, IPv4 addresses, access VLAN and whether they are access or trunk ports (Cisco:
+  vmVlan and the trunk status; others: the Q-BRIDGE port VLAN).
+- The VLANs each device knows (with their names) and the networks on its interfaces become
+  **VLAN or IP range** entries, with the same rules as a plugin's: what you change stays, nothing
+  is deleted. A device's own list is `discovered` in `GET /api/inventory/<id>`; what was plugged
+  into its ports is `GET /api/endpoints?device=<name>` ([IP and MAC history](endpoints.md)).
 - The platform it finds (Cisco IOS, IOS-XE, NX-OS, Linux, ...) also sets what telemetry does
   automatically for the device, such as MAC tables per VLAN on Catalyst IOS.
 

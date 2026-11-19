@@ -122,7 +122,8 @@ where it comes from. A device's tab also shows its last word, **Test now**, **Ra
 
 Every five minutes SNMP polling also asks what the device is (sysDescr, sysLocation, the chassis
 model and serial from ENTITY-MIB, memory and disks from HOST-RESOURCES-MIB, the Cisco memory pool,
-which also gives the memory use). [Discovery](inventory.md#discovery) fills the inventory device
+which also gives the memory use), and per port its MAC, IPv4 addresses, VLAN and access or trunk
+mode, with the device's VLAN names. [Discovery](inventory.md#discovery) fills the inventory device
 from it.
 
 A login the device refuses is blocked on the inventory device, like any stored login: it isn't

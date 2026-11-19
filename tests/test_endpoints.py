@@ -94,6 +94,8 @@ def test_search_go_to_and_the_agent(client, viewer_client):
     assert got["rows"][0]["mac"] == "02:00:00:00:00:07" and got["rows"][0]["seat"] == "A-1"
     assert client.get("/api/endpoints?seat=A-1").get_json()["rows"]
     assert client.get("/api/endpoints?device=sw-a-01&port=Gi1/0/1").get_json()["rows"]
+    # A device's MAC/IP tab: every port of it
+    assert [r["ip"] for r in client.get("/api/endpoints?device=SW-A-01").get_json()["rows"]] == ["192.0.2.40"]
     places = client.get("/api/pages/find?q=192.0.2.40").get_json()["places"]
     assert {"kind": "endpoint", "name": "192.0.2.40 · A-1", "href": "/endpoints?q=192.0.2.40"} in places
     # Machines at the seats are for seats.view only.
