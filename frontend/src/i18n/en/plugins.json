@@ -53,5 +53,47 @@
   },
   "kicker": "What Floorbit talks to: sources, monitoring and add-ons",
   "docs": "How plugins work",
-  "updates": "Updates"
+  "updates": "Updates",
+  "state": {
+    "broken": {
+      "title": "Not loaded",
+      "text": "It could not be loaded: {{error}}"
+    },
+    "off": {
+      "title": "Off",
+      "text": "Turn it on to use it."
+    },
+    "working": {
+      "title": "Working",
+      "text": "On and loaded."
+    },
+    "workingOn": {
+      "title": "Working",
+      "text": "Its agent part runs on {{count}} of {{total}} local agents."
+    },
+    "noAgent": {
+      "title": "Needs a local agent",
+      "text": "Its work runs on a local agent in the hall, and none is connected yet."
+    },
+    "notRunning": {
+      "title": "Not running",
+      "text": "Its agent part runs on none of the local agents yet. They pick it up on their next report."
+    },
+    "warning": {
+      "title": "Needs a look",
+      "text": "Its agent part warns on {{names}}: see Per agent."
+    },
+    "failing": {
+      "title": "Failing",
+      "text": "Its agent part fails on {{names}}: see Per agent."
+    }
+  },
+  "perAgent": {
+    "title": "Per agent",
+    "none": "No local agent yet.",
+    "agent": "Agent",
+    "state": "State",
+    "lastError": "Last error",
+    "noError": "None"
+  }
 }

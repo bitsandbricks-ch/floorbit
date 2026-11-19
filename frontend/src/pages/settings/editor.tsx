@@ -278,8 +278,10 @@ export function SettingsForm({ ed, children }: { ed: SettingsEditor; children: R
 }
 
 /** One section's fields; ``only`` limits it to some of them (search results). */
-export function SectionPanel({ ed, section, only, title, actions }: {
-  ed: SettingsEditor; section: SettingsAnswer['sections'][number]; only?: Set<string>; title?: ReactNode; actions?: ReactNode
+export function SectionPanel({ ed, section, only, title, desc, actions }: {
+  ed: SettingsEditor; section: SettingsAnswer['sections'][number]; only?: Set<string>; title?: ReactNode
+  /** null leaves the section's description out (a page that already says it, like a plugin's). */
+  desc?: ReactNode | null; actions?: ReactNode
 }) {
   const { t } = useTranslation()
   const d = ed.d
@@ -298,7 +300,7 @@ export function SectionPanel({ ed, section, only, title, actions }: {
   )
   return (
     <Panel id={`sec-${s.id}`} title={title ?? sectionTitle(t, s)}
-      desc={t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
+      desc={desc === null ? undefined : desc ?? t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
       actions={actions ?? (TESTABLE.has(s.id) && (
         <Button variant="default" size="xs" onClick={() => void ed.test.run(s.id)}>{t('settings.test')}</Button>
       ))}>
