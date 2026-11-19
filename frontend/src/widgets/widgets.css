@@ -22,6 +22,8 @@
 /* Rows: status, list, table */
 .fb-w-rows { display: flex; flex-direction: column; min-height: 0; }
 .fb-w-filter { flex: none; margin-bottom: 6px; }
+.fb-w-rows .fb-dt-pager { margin-top: auto; }
+.fb-w-rows .fb-dt-scroll { flex: none; }
 .fb-w-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
 .fb-w-table th, .fb-w-table td { height: 28px; padding: 0 8px 0 0; text-align: left; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; border-bottom: 1px solid color-mix(in srgb, var(--color-line) 60%, transparent); }
