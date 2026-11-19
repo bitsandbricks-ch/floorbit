@@ -42,6 +42,7 @@ PORT = 8186
 POLL_EVERY = 60
 SEND_EVERY = 60
 QUIET_AFTER = 180          # no line from Telegraf for this long, while it has work: warn
+POLL_LINE_DEVICES = 20     # devices named in the minute's poll line; the rest at debug
 SUMMARY_EVERY = 300        # a line in the agent's log: what came in, from how many devices
 RAW_KEPT = 50              # last lines per device for "Raw data", in memory only
 RAW_DEVICES = 2000
@@ -70,6 +71,7 @@ class AgentPlugin(Base):
         self.raw = {}                # device -> deque of its last lines, for "Raw data"
         self.heard_now = set()       # devices heard since the last look: logged when new or back
         self.summary = {'at': time.time(), 'points': 0, 'devices': set()}
+        self.minute = {'at': time.time(), 'points': collections.Counter()}   # the poll line, every minute
         # Telegraf in here sends with its own token; devices that push themselves (a firewall's own
         # Telegraf, docs/telemetry.md) keep using ingest-token.
         self.push_token = self._token('ingest-token')
@@ -195,11 +197,24 @@ class AgentPlugin(Base):
     def telegraf_line(self, line):
         """One line of Telegraf's output: a device's error becomes a problem it can be told by."""
         found = problems_mod.parse_line(line)
-        if found is None:
-            return
-        if self.problems.note(found):
+        if found is not None and self.problems.note(found):
             who = found['device'] or found['driver']
-            self.ctx.log(f'{who} ({found["driver"]}): {problems_mod.hint(found)} [{found["detail"]}]')
+            self._warn(f'{who} ({found["driver"]}): {problems_mod.hint(found)} [{found["detail"]}]')
+        elif found is None and (' E! ' in line or ' W! ' in line):
+            # Telegraf's own trouble (its config, an output): no device to pin it on, but worth seeing.
+            self._warn(f'telegraf: {line}')
+        else:
+            self._debug(f'telegraf: {line}')    # the device's problem again, or Telegraf's chatter
+
+    def _warn(self, message):
+        # A warning in the agent's log; an agent from before log levels has only ctx.log.
+        getattr(self.ctx, 'warning', self.ctx.log)(message)
+
+    def _debug(self, message):
+        # An agent from before FLOORBIT_AGENT_LOG_LEVEL has no ctx.debug: those lines are left out.
+        debug = getattr(self.ctx, 'debug', None)
+        if debug:
+            debug(message)
 
     # Telegraf's pushes ----------------------------------------------------------------------
     def handle(self, method, path, headers, body):
@@ -249,6 +264,7 @@ class AgentPlugin(Base):
         points, bad = lineproto.parse(text)
         if bad:
             self.ctx.counter('bad_lines', bad)
+            self._debug(f'{bad} lines from Telegraf not understood')
         if not points:
             return None if bad else 0
         taken = self.state.apply(points, now)
@@ -257,7 +273,9 @@ class AgentPlugin(Base):
         self.problems.heard(names, self.last_write)
         self.summary['points'] += len(points)
         self.summary['devices'] |= names
+        self.minute['points'].update(p.tags.get('device') or '?' for p in points)
         self.ctx.counter('points', len(points))
+        self._debug(f'Telegraf posted {len(points)} points from {", ".join(sorted(names)) or "no device"}')
         return taken
 
     # the API pollers, the series for the hosted Floorbit, and health -------------------------
@@ -293,7 +311,11 @@ class AgentPlugin(Base):
                       and (self.primary or t.get('mine'))]
         if not wanted:
             return
-        found, errors = pollers.poll_all(wanted, now, log=self.ctx.log, blocks=self.ctx)
+        began = time.monotonic()
+        found, errors = pollers.poll_all(wanted, now, log=self._poll_log, blocks=self.ctx)
+        self.minute['points'].update(p.tags.get('device') or '?' for p in found)
+        self._debug(f'API poll of {len(wanted)} devices: {len(found)} points, {len(errors)} failed, '
+                    f'{(time.monotonic() - began) * 1000:.0f} ms')
         for name, err in errors.items():
             if self.poll_errors.get(name) != err:
                 self.ctx.error(err)
@@ -307,6 +329,9 @@ class AgentPlugin(Base):
         self.problems.sync(found_errors, now)
         self.state.apply(found, now)
         self.ctx.counter('polled_points', len(found))
+
+    def _poll_log(self, message):
+        self.ctx.log(str(message).removeprefix('[telemetry] '))     # ctx.log names the plugin itself
 
     def send_endpoints(self, now):
         from floorbit.telemetry import clients
@@ -407,11 +432,34 @@ class AgentPlugin(Base):
         for name in sorted(self.heard_now - set(online)):
             self.ctx.log(f'{name} silent for a few minutes')
         self.heard_now = set(online)
+        if now - self.minute['at'] >= POLL_EVERY:
+            self.log_polls(now)
         if now - self.summary['at'] >= SUMMARY_EVERY:
             minutes = round((now - self.summary['at']) / 60)
             self.ctx.log(f'last {minutes} min: {self.summary["points"]} points from '
                          f'{len(self.summary["devices"])} devices, {len(online)} of {len(self.targets)} heard')
             self.summary = {'at': now, 'points': 0, 'devices': set()}
+
+    def log_polls(self, now):
+        """Every minute, what each device gave: points from Telegraf's polls and the API pollers,
+        and the devices that gave nothing, with their problem."""
+        counts, self.minute = self.minute['points'], {'at': now, 'points': collections.Counter()}
+        with self.lock:
+            names = [t['name'] for t in self.targets if self.primary or t.get('mine')]
+        if not names and not counts:
+            return
+        problem = {p['device']: problems_mod.hint(p) for p in self.problems.current(now) if p['device']}
+        got = [f'{n} {counts[n]}' for n in sorted(counts, key=lambda n: (-counts[n], n)) if n != '?']
+        silent = [n + (f' ({problem[n]})' if n in problem else '') for n in sorted(names) if not counts.get(n)]
+        line = (f'polls, last minute: {sum(counts.values())} points from {len(got)} of {len(names)} devices'
+                + (': ' + ', '.join(got[:POLL_LINE_DEVICES]) + (' ...' if len(got) > POLL_LINE_DEVICES else '')
+                   if got else ''))
+        self.ctx.log(line)
+        if silent:
+            self._warn(f'nothing in the last minute from {len(silent)}: '
+                         + ', '.join(silent[:POLL_LINE_DEVICES]) + (' ...' if len(silent) > POLL_LINE_DEVICES else ''))
+        if len(got) > POLL_LINE_DEVICES:
+            self._debug('polls, every device: ' + ', '.join(got))
 
     # "Test now": one device, once, while you watch -------------------------------------------
     def call_test(self, args):
@@ -422,7 +470,20 @@ class AgentPlugin(Base):
         with self.lock:
             target = next((t for t in self.targets if t.get('name') == name), None)
         if target is None:
+            self.ctx.log(f'Test now: {name or "?"} is not among the devices this agent collects from')
             return {'ok': False, 'error': f'{name or "?"} is not among the devices this agent collects from'}
+        result = self._test(name, target)
+        said = f'Test now on {name}: {result["points"]} points in {result["took_ms"]} ms'
+        if result['problems']:
+            said += ' with problems: ' + '; '.join(f'{p["driver"]}: {p["hint"]}' for p in result['problems'][:3])
+        if result['ok']:
+            self.ctx.log(said)
+        else:
+            self._warn(said if result['points'] else f'{said} (failed)')
+        return result
+
+    def _test(self, name, target):
+        self.ctx.log(f'Test now on {name} ({", ".join(target.get("drivers") or []) or "no driver"})')
         started = time.time()
         points, problems, notes = [], [], []
         self.last_test_raw = []
@@ -437,7 +498,7 @@ class AgentPlugin(Base):
                 problems += [p for p in map(problems_mod.parse_line, lines) if p]
                 notes += [x for x in lines if ' E! ' in x][-5:]
         if drivers & set(pollers.POLLERS):
-            found, errors = pollers.poll_all([target], started, log=self.ctx.log, blocks=self.ctx)
+            found, errors = pollers.poll_all([target], started, log=self._poll_log, blocks=self.ctx)
             points += found
             api = sorted(drivers & set(pollers.POLLERS))[0]
             for err in errors.values():
