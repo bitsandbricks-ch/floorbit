@@ -8,7 +8,7 @@ can be split into panes side by side or stacked. Each pane shows one thing:
 | --- | --- |
 | **Plan** | A hall's floor plan: the whole hall, one seat block, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
 | **Widget** | A rich widget from the [widget gallery](#the-widget-gallery): service health, stats, traffic, DNS, games, Wi-Fi, speed tests, power load, network status, endpoints, the LAN cache and the event in numbers. Small by default; **Show it big** draws it with everything its page used to show. |
-| **Tile** | One dashboard tile: Floorbit's own (problems, incidents, switches, seats, switches down) or a plugin's. |
+| **Tile** | One data widget that fits its box: Floorbit's own (problems, incidents, open incidents, switches, switch states, seats, switches down, traffic) or a plugin's. See [Tiles that fit their box](#tiles-that-fit-their-box). |
 | **Text** | Your own words: a welcome, the schedule, the Wi-Fi name. A small Markdown (`# heading`, `- list`, `**bold**`, `[link](https://example.com)`); every line stays its own line. Four sizes (S to XL) that grow with the pane, aligned left or centred. |
 
 For example: the whole hall on the left, the VIP zone zoomed in at the top right, and the network
@@ -44,6 +44,24 @@ layer at the bottom right.
 - **Public** lets the dashboard open without signing in (below).
 - **Rotate halls every** makes plan panes without a fixed hall that show a whole hall go through all
   halls in turn.
+
+## Tiles that fit their box
+
+A tile pane never scrolls inside. It draws its data at one of three levels, picked from the size of
+its box:
+
+- **Small**: a number and its state (28 of 30 switches up, with how many are down or warning).
+- **Medium**: the rows that fit, worst first, ending in **+N more**; or a graph with its legend.
+- **Large**: the details. Tables page, sort (click a column) and filter inside the box; graphs add
+  the time axis and each line's maximum and average.
+
+Hover a graph (or touch it) for the time and every line's value under the pointer; a cut-off row or
+number shows in full on hover. **+N more** and the **Open big** button open the tile large over the
+dashboard; Esc goes back. **Details** jumps to the page behind it.
+
+In the pane's settings, **Show as** draws the same data as another kind where it makes sense (a
+status as a number of what is up, a list as a table), and **Size** pins small, medium or large
+instead of picking it from the box. Any box size works.
 
 ## The widget gallery
 

@@ -56,6 +56,20 @@ PAGES["security"] = "/security"
 PAGES["power"] = "/power"
 PAGES["problems"] = "/problems"
 PAGES["s3-backups"] = "/settings/backup"
+PAGES["tile-levels"] = "/dashboards/tile-levels"
+
+
+def tile(name, x, y, w, h, **look):
+    return {"x": x, "y": y, "w": w, "h": h, "node": {"pane": {"kind": "tile", "tile": f"floorbit/w/{name}", **look}}}
+
+
+# One tile at every level (issue #924): the same data small, medium and large.
+TILE_LEVELS = {"name": "Tile levels", "fit": True, "sections": [{"panels": [
+    tile("switches", 0, 0, 4, 3), tile("switch_states", 4, 0, 4, 3), tile("open_incidents", 8, 0, 4, 3),
+    tile("traffic", 12, 0, 6, 3), tile("seats", 18, 0, 6, 3),
+    tile("switch_states", 0, 3, 8, 6), tile("traffic", 8, 3, 16, 6),
+    tile("open_incidents", 0, 9, 12, 7), tile("switch_states", 12, 9, 12, 7, type="table", level="l"),
+]}]}
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
@@ -100,6 +114,16 @@ def seed():
         call("PUT", f"/api/seat-map/{seat}", entry)
 
 
+def seed_tile_levels():
+    try:
+        call("GET", "/api/dashboards/tile-levels")
+    except urllib.error.HTTPError:
+        try:
+            call("PUT", "/api/dashboards/tile-levels", TILE_LEVELS)
+        except urllib.error.HTTPError as exc:
+            print(f"Could not save the tile levels dashboard: HTTP {exc.code}", file=sys.stderr)
+
+
 def page_exists(path):
     try:
         return call("GET", path)[0] == 200
@@ -115,6 +139,7 @@ def main():
     wait_for_app()
     sign_in()
     seed()
+    seed_tile_levels()
     pages = {name: path for name, path in PAGES.items() if page_exists(path)}
     with sync_playwright() as pw:
         browser = pw.chromium.launch()

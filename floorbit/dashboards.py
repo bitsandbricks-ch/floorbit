@@ -16,7 +16,10 @@ A node is a tree: a node is either a split (``split`` "row" puts its children si
   (frontend/src/pages/plan/layers.ts PRESETS), a seat filter (``show``), how seats are numbered
   (``labels``, frontend/src/pages/plan/labels.ts) and which plan marks it draws (``marks``: ``all``
   the preset shows, ``public`` only the Overview and Safety ones, like the attendee pages, or ``none``);
-- ``tile``: one plugin data tile (``<plugin>/w/<id>``, the tiles of ``GET /api/dashboard``);
+- ``tile``: one data tile (``<plugin>/w/<id>``, the tiles of ``GET /api/dashboard``, Floorbit's own
+  and the plugins'), drawn as a widget ``type`` (:data:`WIDGET_TYPES`; ``auto`` picks one from the
+  data's shape) at a ``level`` (``auto`` picks small, medium or large from the box it gets, or one of
+  ``s``, ``m``, ``l`` pinned). See frontend/src/widgets/kinds/.
 - ``view``: a widget by id (frontend/src/widgets/views.ts), small unless ``expanded`` (its big size
   right on the grid, for a pane that fills a screen); unknown ids show a note;
 - ``text``: your own words (``text``, the Markdown subset of frontend/src/components/Markdown.tsx),
@@ -63,6 +66,9 @@ TITLE_MAX = 40
 TEXT_MAX = 2000
 TEXT_SIZES = ('s', 'm', 'l', 'xl')
 TEXT_ALIGN = ('start', 'center')
+# The generic widget types a tile is drawn as (#894); the browser draws each one (widgets/kinds/).
+WIDGET_TYPES = ('auto', 'stat', 'status', 'graph', 'table', 'list')
+LEVELS = ('auto', 's', 'm', 'l')
 # The tiles a public dashboard may show: counts and switch names, nothing about people or the crew.
 PUBLIC_TILES = ('floorbit/w/switches', 'floorbit/w/seats', 'floorbit/w/down')
 # The widgets a public dashboard may show: they read only public feeds (/wall.json).
@@ -276,6 +282,17 @@ def _pane(raw):
         if not TILE_RE.match(tile):
             raise LayoutError('Pick a dashboard tile.')
         pane['tile'] = tile
+        wtype = raw.get('type') or 'auto'
+        level = raw.get('level') or 'auto'
+        if wtype not in WIDGET_TYPES:
+            raise LayoutError(f'A widget type is one of: {", ".join(WIDGET_TYPES)}.')
+        if level not in LEVELS:
+            raise LayoutError(f'A widget size is one of: {", ".join(LEVELS)}.')
+        # Leave the defaults out, so a layout reads the same as before they existed.
+        if wtype != 'auto':
+            pane['type'] = wtype
+        if level != 'auto':
+            pane['level'] = level
     elif kind == 'view':
         view = str(raw.get('view') or '')
         if not ID_RE.match(view):

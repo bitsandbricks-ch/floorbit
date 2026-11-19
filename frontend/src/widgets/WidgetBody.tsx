@@ -1,6 +1,7 @@
 import { Group, Table, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import type { Tone, Widget } from '@/api/types'
+import { FitWidget } from './FitWidget'
 import { Sparkline } from './Sparkline'
 
 // A widget is data (floorbit/plugins/widgets.py checks it on the server). Everything a plugin
@@ -96,6 +97,13 @@ export function WidgetBody({ widget }: { widget: Widget }) {
           {widget.value != null && <Stat value={widget.value} unit={widget.unit} />}
           <Sparkline points={widget.points} min={widget.min} max={widget.max} />
         </>
+      )
+    case 'series':
+      // A card on a plugin page has no box of its own: give the graph one.
+      return (
+        <div style={{ height: 160, display: 'flex' }}>
+          <FitWidget widget={widget} pin="m" />
+        </div>
       )
     default:
       return (

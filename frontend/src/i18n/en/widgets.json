@@ -9,5 +9,28 @@
   "addNamed": "Add {{name}} to a dashboard",
   "addTo": "Add to dashboard",
   "added": "Added to {{name}}.",
-  "noBoards": "No dashboards yet"
+  "noBoards": "No dashboards yet",
+  "kind": {
+    "of": "of {{count}}",
+    "noData": "No data yet.",
+    "noRows": "Nothing here right now.",
+    "maxAvg": "max {{max}} · avg {{avg}}",
+    "graphLabel": "Graph: {{name}}",
+    "top": "top {{value}}",
+    "name": "Name",
+    "value": "Value",
+    "detail": "Detail",
+    "filter": "Filter",
+    "more": "+{{count}} more",
+    "rowsOf": "{{from}}–{{to}} of {{count}}",
+    "prev": "Previous page",
+    "next": "Next page",
+    "detailsNamed": "Details of {{name}}"
+  },
+  "state": {
+    "up": "Up",
+    "down": "Down",
+    "warn": "Warning",
+    "unknown": "Unknown"
+  }
 }
