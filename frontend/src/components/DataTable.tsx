@@ -67,9 +67,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const sorting: SortingState = (() => {
     if (!urlState) return localSort
     const raw = params.get('sort')
-    if (!raw) return initialSort
-    const desc = raw.startsWith('-')
-    return [{ id: desc ? raw.slice(1) : raw, desc }]
+    const desc = !!raw?.startsWith('-')
+    const id = raw ? (desc ? raw.slice(1) : raw) : ''
+    // A ?sort= left by another table on the same address (a different tab) names no column here.
+    return columns.some((c) => c.id === id && c.sort) ? [{ id, desc }] : initialSort
   })()
   const pageIndex = urlState ? Math.max(0, (Number(params.get('page')) || 1) - 1) : localPage
 

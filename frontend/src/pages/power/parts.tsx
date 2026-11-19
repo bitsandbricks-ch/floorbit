@@ -1,7 +1,8 @@
-import { Anchor, Badge, Group, Progress, Stack, Table, Text } from '@mantine/core'
+import { Anchor, Badge, Group, Progress, Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { Circuit } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { ago } from '@/lib/time'
 import { circuitPath, TONE } from './state'
 
@@ -51,30 +52,22 @@ export function StateBadge({ c }: { c: Circuit }) {
 /** Circuits as rows that each open the circuit's page: no buttons on the rows (issue #877). */
 export function CircuitTable({ circuits }: { circuits: Circuit[] }) {
   const { t } = useTranslation()
+  // Several boards each show their circuits on one page, so the view stays out of the address.
   return (
-    <Table verticalSpacing="xs" className="fb-table-stack">
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>{t('power.circuit')}</Table.Th>
-          <Table.Th>{t('power.load')}</Table.Th>
-          <Table.Th>{t('power.feeds')}</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {circuits.map((c) => (
-          <Table.Tr key={c.id} data-circuit={c.id}>
-            <Table.Td>
-              <Anchor component={Link} to={circuitPath(c.id)} fw={600} size="sm">{c.name}</Anchor>
-              <Group gap={4} mt={2}>
-                <StateBadge c={c} />
-                <Badge size="sm" variant="outline" color="gray">{c.phase} · {c.rating_a} A</Badge>
-              </Group>
-            </Table.Td>
-            <Table.Td><Load c={c} /></Table.Td>
-            <Table.Td><Feeds c={c} /></Table.Td>
-          </Table.Tr>
-        ))}
-      </Table.Tbody>
-    </Table>
+    <DataTable label={t('power.circuits')} rows={circuits} rowKey={(c) => c.id} urlState={false} pageSize={0} bare
+      className="fb-table-stack"
+      columns={[
+        { id: 'name', header: t('power.circuit'), sort: (c) => c.name, cell: (c) => (
+          <div data-circuit={c.id}>
+            <Anchor component={Link} to={circuitPath(c.id)} fw={600} size="sm">{c.name}</Anchor>
+            <Group gap={4} mt={2}>
+              <StateBadge c={c} />
+              <Badge size="sm" variant="outline" color="gray">{c.phase} · {c.rating_a} A</Badge>
+            </Group>
+          </div>
+        ) },
+        { id: 'load', header: t('power.load'), sort: (c) => c.load_pct ?? -1, cell: (c) => <Load c={c} /> },
+        { id: 'feeds', header: t('power.feeds'), cell: (c) => <Feeds c={c} /> },
+      ]} />
   )
 }
