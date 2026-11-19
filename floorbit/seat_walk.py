@@ -201,19 +201,26 @@ def _from_monitoring(ip):
             'mac': _mac(found.get('mac'))}
 
 
-def locate_once(ip, registry=None, account=None, previous=None, likely=(), mac=None):
-    """One try: ``{"found": {"switch", "port"} | None, "mac", "how", "steps": [...], "stale"}``."""
+def _from_switches(ip, seat, mac):
+    """One PC's port with a few SNMP GETs through the agent (floorbit/checkin_lookup.py), or None."""
+    from . import checkin_lookup
+    try:
+        got = checkin_lookup.lookup(ip, seat=seat, mac=mac, crew=True)
+    except Exception as exc:  # noqa: BLE001  # SSH and the next try are still there
+        print(f'[seat-walk] switch lookup failed: {exc}')
+        return None, None
+    found = {'switch': got['switch'], 'port': got['port']} if got.get('state') == 'found' else None
+    return found, got
+
+
+def locate_once(ip, registry=None, account=None, previous=None, likely=(), mac=None, seat=None):
+    """One try: ``{"found": {"switch", "port"} | None, "mac", "how", "steps": [...], "stale"}``.
+    The tables first (LibreNMS, Telemetry), then single SNMP GETs on the switches, and SSH last,
+    for switches that don't answer SNMP."""
     steps, stale = [], False
     if not mac:
         mac, how = mac_for(ip, registry, account)
         steps.append({'step': 'mac', 'ok': bool(mac), 'how': how})
-    if mac and _ssh(registry)[0] is not None:
-        port = port_from_switches(mac, registry, account, likely)
-        steps.append({'step': 'switch', 'ok': bool(port)})
-        if port and _same(port, previous):
-            stale, port = True, None
-        if port:
-            return {'found': port, 'mac': mac, 'how': 'switch', 'steps': steps, 'stale': False}
     if mac:
         # The laptop may have a new lease in another seat block's network (or the crew typed only
         # its MAC): ask by the MAC. The IP we have still answers while ARP keeps it.
@@ -228,17 +235,33 @@ def locate_once(ip, registry=None, account=None, previous=None, likely=(), mac=N
     if port:
         return {'found': {'switch': port['switch'], 'port': port['port']}, 'mac': mac, 'how': 'monitoring',
                 'steps': steps, 'stale': False}
+    if ip:
+        port, got = _from_switches(ip, seat, mac)
+        if got and got.get('state') not in ('todo', 'closed'):
+            steps.append({'step': 'snmp', 'ok': bool(port)})
+        mac = mac or (got or {}).get('mac')
+        if port and _same(port, previous):
+            stale, port = True, None
+        if port:
+            return {'found': port, 'mac': mac, 'how': 'snmp', 'steps': steps, 'stale': False}
+    if mac and _ssh(registry)[0] is not None:
+        port = port_from_switches(mac, registry, account, likely)
+        steps.append({'step': 'switch', 'ok': bool(port)})
+        if port and _same(port, previous):
+            stale, port = True, None
+        if port:
+            return {'found': port, 'mac': mac, 'how': 'switch', 'steps': steps, 'stale': False}
     return {'found': None, 'mac': mac, 'how': None, 'steps': steps, 'stale': stale}
 
 
 def locate(ip, registry=None, account=None, previous=None, likely=(), mac=None, seconds=ATTEMPT_SECONDS,
-           sleep=time.sleep, clock=time.monotonic):
+           sleep=time.sleep, clock=time.monotonic, seat=None):
     """Try for up to ``seconds``. The answer of the last try, with ``tries``. ``mac``: the laptop's,
     when the last seat already found it (it doesn't change from seat to seat)."""
     started, tries = clock(), 0
     while True:
         tries += 1
-        result = locate_once(ip, registry, account, previous, likely, mac)
+        result = locate_once(ip, registry, account, previous, likely, mac, seat)
         mac = result['mac'] or mac
         if result['found'] or clock() - started + RETRY_EVERY > seconds:
             return {**result, 'tries': tries, 'ms': int((clock() - started) * 1000)}

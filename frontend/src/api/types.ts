@@ -1366,9 +1366,9 @@ export interface SeatWalkInfo {
 }
 export interface SeatWalkHello { hello: string; url: string }
 export interface SeatLocated {
-  ok: boolean; retry: boolean; seat: string; ip: string | null; mac: string | null; how: 'switch' | 'monitoring' | null
+  ok: boolean; retry: boolean; seat: string; ip: string | null; mac: string | null; how: 'switch' | 'snmp' | 'monitoring' | null
   ms: number; tries: number; stale: boolean; found: WalkPort | null
-  steps: { step: 'mac' | 'switch' | 'monitoring'; ok: boolean; how?: string | null }[]
+  steps: { step: 'mac' | 'switch' | 'snmp' | 'monitoring'; ok: boolean; how?: string | null }[]
   replaced?: string[]; plan_seat?: string | null
 }
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
@@ -2014,6 +2014,25 @@ export interface CrewCheckin {
   area?: PortAreaHint | null
   checked_in_at: number | null
   verified_at: number | null
+  /** What asking the switches said (docs/segments.md), when it says something for the crew. */
+  lookup?: CheckinLookup | null
+}
+
+/** One check-in's switch lookup: a to-do when it couldn't ask. */
+export interface CheckinLookup {
+  state: 'found' | 'not_found' | 'todo' | 'closed' | 'error'
+  todo?: 'no_segment' | 'segment_off' | 'no_core'
+  vlan?: number
+}
+
+/** When check-ins may ask the switches (GET /api/checkins/lookup-window). */
+export interface LookupWindow {
+  open: boolean
+  until: number | null
+  why: 'doors' | 'by_hand' | 'activity' | null
+  doors: number | null
+  hours: number
+  segments_on: number
 }
 
 export interface CheckinConflict {
@@ -2034,6 +2053,7 @@ export interface CheckinOverview {
   conflicts: CheckinConflict[]
   portal: { fetches: { at: number; agent: string | null; done: number }[]; public_url: string | null }
   verifier: { last_error: string | null }
+  lookups?: LookupWindow
 }
 
 /** One row of the IP and MAC history (floorbit/endpoints.py): a machine seen on a port. */
