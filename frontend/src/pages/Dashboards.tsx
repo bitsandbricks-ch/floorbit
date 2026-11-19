@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { IconDeviceTv, IconLayoutGridAdd, IconPencil, IconPlus, IconSeparator } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -15,7 +15,7 @@ import {
   COLS, MAX_PANELS, MAX_SECTIONS, type Panel, type Section, type Spot, add, paneCount, place, rows, starterSections, total,
 } from './dashboards/grid'
 import { GridView } from './dashboards/GridView'
-import { type Board, type Node, MAX_PANES, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
+import { type Board, type Node, MAX_PANES, boardName, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
 import { PaneForm } from './dashboards/PaneForm'
 import './dashboards/dashboards.css'
 
@@ -44,7 +44,10 @@ export default function Dashboards() {
   return (
     <Layout title={t('dashboards.title')} back={{ href: '/', label: t('common.floorPlan') }}>
       <PageHead title={t('dashboards.title')} desc={t('dashboards.intro')}
-        actions={canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => open('new')}>{t('dashboards.new')}</Button>} />
+        actions={<Group gap="xs">
+          <Button variant="default" component="a" href="/widgets" leftSection={<IconLayoutGridAdd size={16} />}>{t('widgets.title')}</Button>
+          {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => open('new')}>{t('dashboards.new')}</Button>}
+        </Group>} />
       {q.isPending && <LoadingState />}
       <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
       {q.data && q.data.layouts.length === 0 && (
@@ -52,12 +55,12 @@ export default function Dashboards() {
       )}
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
         {q.data?.layouts.map((b) => (
-          <Paper key={b.id} withBorder radius="lg" p="md" component="section" aria-label={b.name}>
+          <Paper key={b.id} withBorder radius="lg" p="md" component="section" aria-label={boardName(t, b)}>
             <Stack gap="sm">
               <div className="fb-board-thumb" aria-hidden="true"><Thumbs sections={b.sections} /></div>
               <div>
                 <Group gap={6}>
-                  <Title order={3} fz="md">{b.name}</Title>
+                  <Title order={3} fz="md">{boardName(t, b)}</Title>
                   {b.builtin && <Badge size="xs" variant="light">{t('dashboards.builtin')}</Badge>}
                   {b.public && <Badge size="xs" variant="light" color="up">{t('dashboards.publicBadge')}</Badge>}
                 </Group>
@@ -74,9 +77,6 @@ export default function Dashboards() {
           </Paper>
         ))}
       </SimpleGrid>
-      <Text size="sm" c="dimmed" mt="md">
-        {t('dashboards.tiles')} <Anchor href="/dashboard">{t('dashboards.tilesLink')}</Anchor>
-      </Text>
     </Layout>
   )
 }

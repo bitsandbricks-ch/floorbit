@@ -1,6 +1,5 @@
 """The service health wall (issue #28). The checks come from health plugins (floorbit/health.py).
 
-- ``GET /health``: the wall, for the ops screen or a kiosk browser (``?theme=`` sticks per screen).
 - ``GET /api/health``: every service with its status, summary and metrics, and until when it is
   muted (issue #260; who muted it and why stay on the Problems page).
 - ``POST /api/health/check``: ask every health plugin now instead of waiting for the next poll.
@@ -17,7 +16,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from integrations import alerting
 
-from .. import database, i18n, spa
+from .. import database, i18n
 
 bp = Blueprint('health', __name__)
 
@@ -93,11 +92,6 @@ def disk_unwritable(exc):
     resp = jsonify({'error': text, 'code': 'disk_full' if text is DISK_FULL else 'disk_read_only'})
     resp.status_code = 507
     return resp
-
-
-@bp.route('/health')
-def health_page():
-    return spa.render('Service health')
 
 
 def _with_mutes(wall):

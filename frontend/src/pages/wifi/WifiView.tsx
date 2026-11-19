@@ -7,10 +7,9 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { WifiAp, WifiBand, WifiData, WifiRadio } from '@/api/types'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import type { ViewProps } from '@/widgets/views'
 import { StatCard } from '@/components/StatCard'
-import { channelColor, loadColor } from './wifi/colors'
+import { channelColor, loadColor } from './colors'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { blockTop } from '@/pages/plan/blockTop'
 
@@ -80,7 +79,7 @@ function Plan({ data, band, mode, label }: { data: WifiData; band: WifiBand; mod
 }
 
 /** Access point load, clients per AP and channels on the floor plan (issue #98). Counts only. */
-export default function Wifi() {
+export default function WifiView({ expanded }: ViewProps) {
   const { t, i18n } = useTranslation()
   const [hall, setHall] = useState<string | null>(null)
   const query = useQuery({
@@ -97,12 +96,13 @@ export default function Wifi() {
   const unplaced = d?.aps.filter((a) => !a.placed).length ?? 0
 
   return (
-    <Layout title={t('wifi.title')} back={{ href: '/', label: t('common.floorPlan') }}>
-      <PageHead title={t('wifi.title')} desc={t('wifi.intro')}
-        actions={d && d.halls.length > 1 ? (
+    <>
+      {expanded && d && d.halls.length > 1 && (
+        <Group justify="flex-end" mb="sm">
           <Select aria-label={t('wifi.hall')} value={d.hall} onChange={setHall} allowDeselect={false} w={200}
             data={d.halls.map((h) => ({ value: h.id, label: h.name }))} />
-        ) : undefined} />
+        </Group>
+      )}
       <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {d?.errors.map((e) => <Alert key={e} color="warn">{t('wifi.pluginError', { message: e })}</Alert>)}
@@ -119,7 +119,7 @@ export default function Wifi() {
                 sub={d.busy.join(', ') || t('wifi.busyNone', { pct: d.thresholds.busy })} />
               <StatCard label={t('wifi.overlaps')} value={num(d.overlaps.length)} tone={d.overlaps.length ? 'warn' : undefined} sub={t('wifi.overlapsSub')} />
             </div>
-            {d.drawing && d.aps.some((a) => a.on_plan) ? (
+            {!expanded ? null : d.drawing && d.aps.some((a) => a.on_plan) ? (
               <Paper withBorder radius="lg" p="md">
                 <Group justify="space-between" mb="sm" wrap="wrap">
                   <SegmentedControl value={mode} onChange={(v) => setMode(v as Mode)} aria-label={t('wifi.show')}
@@ -138,7 +138,7 @@ export default function Wifi() {
             ) : (
               <Alert color="gray" variant="light">{t('wifi.notPlaced')}</Alert>
             )}
-            {d.overlaps.length > 0 && (
+            {expanded && d.overlaps.length > 0 && (
               <Alert color="warn" title={t('wifi.overlapTitle')}>
                 {d.overlaps.map((o) => (
                   <Text key={`${o.band}-${o.channel}-${o.aps.join()}`} size="sm">
@@ -147,7 +147,7 @@ export default function Wifi() {
                 ))}
               </Alert>
             )}
-            <Paper withBorder radius="lg" p="md">
+            {expanded && <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('wifi.list')}</Title>
               <Table striped className="fb-table-stack">
                   <Table.Thead>
@@ -187,11 +187,11 @@ export default function Wifi() {
                   </Table.Tbody>
               </Table>
               {unplaced > 0 && <Text size="xs" c="dimmed" mt="xs">{t('wifi.unplacedHint', { count: unplaced })}</Text>}
-            </Paper>
-            <Text size="xs" c="dimmed">{t('wifi.privacy', { sources: d.sources.join(', ') })}</Text>
+            </Paper>}
+            {expanded && <Text size="xs" c="dimmed">{t('wifi.privacy', { sources: d.sources.join(', ') })}</Text>}
           </>
         )}
       </Stack>
-    </Layout>
+    </>
   )
 }

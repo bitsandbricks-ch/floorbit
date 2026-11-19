@@ -31,9 +31,8 @@ type Head = { title?: string; hide_title?: boolean }
 export type Pane = Head & (
   | { kind: 'plan'; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode; marks?: MarksMode }
   | { kind: 'tile'; tile: string }
-  | { kind: 'dashboard'; layout: string }
-  | { kind: 'page'; page: PageId }
-  | { kind: 'view'; view: string }
+  /** ``expanded``: the widget at its big size right on the grid (a pane that fills a screen). */
+  | { kind: 'view'; view: string; expanded?: boolean }
   | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }
   | { kind: 'empty' }
   /** Only on a public dashboard read signed out: a pane that needs an account (floorbit/dashboards.py). */
@@ -41,10 +40,7 @@ export type Pane = Head & (
 )
 
 export type PaneKind = Exclude<Pane['kind'], 'private'>
-export const PANE_KINDS: PaneKind[] = ['plan', 'view', 'tile', 'dashboard', 'page', 'text', 'empty']
-export const PAGES = ['health', 'stats', 'wall', 'status'] as const
-export type PageId = (typeof PAGES)[number]
-export const PAGE_URL: Record<PageId, string> = { health: '/health?screen=1', stats: '/stats?screen=1', wall: '/wall?screen=1', status: '/status' }
+export const PANE_KINDS: PaneKind[] = ['plan', 'view', 'tile', 'text', 'empty']
 
 export type Split = 'row' | 'column'
 export type Node = { pane: Pane } | { split: Split; sizes: number[]; children: Node[] }
@@ -64,6 +60,10 @@ export interface Board {
   /** Opens without signing in, showing only what anyone may see. */
   public?: boolean
 }
+
+/** A dashboard's name to show: the ready-made ones have theirs in every language. */
+export const boardName = (t: (key: string, opts?: Record<string, unknown>) => string, b: Pick<Board, 'id' | 'name' | 'builtin'>) =>
+  (b.builtin ? t(`dashboards.builtinName.${b.id}`, { defaultValue: b.name }) : b.name)
 
 /** Panes on a whole dashboard, all panels and their splits together. */
 export const MAX_PANES = 40

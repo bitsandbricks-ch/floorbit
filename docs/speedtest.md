@@ -34,7 +34,8 @@ crew can read them at `GET /api/speedtests?seat=` (`incidents.work`).
 
 ## Side by side per switch
 
-**Speed tests** (`/speedtests`, for accounts with **Work incidents**) puts the results next to each
+The **Speed tests** widget (on the ready-made Traffic dashboard, for accounts with **Work
+incidents**) puts the results next to each
 other, so a switch or uplink that is slow for every seat on it shows up as one row instead of many
 separate "slow" reports. It takes each seat's latest test of the last 12 hours and shows:
 

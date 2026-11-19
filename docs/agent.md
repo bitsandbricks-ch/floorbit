@@ -31,7 +31,7 @@ there: Zabbix, Prometheus, UniFi, Aruba, MikroTik) and for the **inventory and c
 | Inventory sync and cable import | inventory, cables |
 | The health wall's checks (HTTP check, or any health plugin turned on there) | health |
 | DNS analytics (Pi-hole, AdGuard Home, turned on there) | dns |
-| The Wi-Fi page (UniFi as a Wi-Fi source, turned on there): open it at `/wifi` | wifi |
+| The Wi-Fi widget (UniFi as a Wi-Fi source, turned on there) | wifi |
 | Syslog on the Logs page, when the agent listens for it (the **Syslog from the hall** plugin) | syslog |
 | The Traffic page (NetFlow and IPFIX), when the agent collects flows (the **Traffic from the hall** plugin) | traffic |
 | Port actions (SSH ports), switch commands, config backups and the switch terminal | switch SSH |
@@ -360,8 +360,8 @@ machine names leave the event network; the hosted side applies the same 5-client
 
 With the UniFi plugin on under Settings > Plugins, the agent asks the controller and the hosted [Wi-Fi page](wifi.md) shows the access points, their
 channels and client counts, marked "UniFi (local agent)". The agent cleans the controller's answer
-first, so only counts leave the event network, never client names or MACs. The Wi-Fi link in the
-menu only shows when the hosted Floorbit has a Wi-Fi plugin of its own; open the page at `/wifi`.
+first, so only counts leave the event network, never client names or MACs. The Wi-Fi widget
+only has data when the hosted Floorbit has a Wi-Fi plugin of its own.
 
 ## Syslog through the agent
 

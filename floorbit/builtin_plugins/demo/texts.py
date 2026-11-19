@@ -42,7 +42,6 @@ TEXTS = {
             (15, 1, 'tournament', 'Demo Cup: final', 'Main stage'),
             (20, None, 'other', 'Doors close', 'Entrance'),
         ],
-        'layouts': [('noc-wall', 'NOC wall', 4), ('ops-desk', 'Ops desk', 2)],
     },
     'de': {
         'main_hall': 'Haupthalle', 'side_hall': 'Nebenhalle', 'range': 'Sitzbereich {}', 'block': 'Block {}',
@@ -77,7 +76,6 @@ TEXTS = {
             (15, 1, 'tournament', 'Demo Cup: Final', 'Hauptbühne'),
             (20, None, 'other', 'Ende', 'Eingang'),
         ],
-        'layouts': [('noc-wall', 'NOC-Wand', 4), ('ops-desk', 'Ops-Pult', 2)],
     },
 }
 

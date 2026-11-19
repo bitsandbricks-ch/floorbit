@@ -1,13 +1,11 @@
-import { Loader, Stack, Text } from '@mantine/core'
-import { Suspense } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { ActionIcon, Loader, Modal, Stack, Text, Tooltip } from '@mantine/core'
+import { IconArrowsMaximize } from '@tabler/icons-react'
+import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { get } from '@/api/client'
-import { qk } from '@/api/keys'
-import { useDashboard } from '@/api/queries'
-import type { DashboardLayout, Tile, WidgetTile } from '@/api/types'
-import { TileGrid, WidgetCard } from '../Dashboard'
-import { PAGE_URL, type Pane } from './model'
+import { useDashboard, useFeaturesOff } from '@/api/queries'
+import type { Tile, WidgetTile } from '@/api/types'
+import { WidgetCard } from '@/widgets/TileCard'
+import type { Pane } from './model'
 import { PlanPane } from './PlanPane'
 import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
 import { Markdown } from '@/components/Markdown'
@@ -19,10 +17,12 @@ function Note({ children }: { children: React.ReactNode }) {
   return <Text c="dimmed" className="fb-pane-note">{children}</Text>
 }
 
-function Framed({ title, hide, className = '', children }: { title?: string; hide?: boolean; className?: string; children: React.ReactNode }) {
+function Framed({ title, hide, className = '', actions, children }: {
+  title?: string; hide?: boolean; className?: string; actions?: React.ReactNode; children: React.ReactNode
+}) {
   return (
     <div className={`fb-pane ${className}${!title || hide ? ' fb-pane-nohead' : ''}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
-      {title && !hide && <div className="fb-pane-head"><Text fw={800} className="fb-pane-title" truncate>{title}</Text></div>}
+      {title && !hide && <div className="fb-pane-head"><Text fw={800} className="fb-pane-title" truncate>{title}</Text>{actions}</div>}
       <div className={`fb-pane-body fb-pane-scroll${hide ? ' fb-pane-headless' : ''}`}>{children}</div>
     </div>
   )
@@ -56,40 +56,32 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   )
 }
 
-function DashboardPane({ pane }: { pane: Extract<Pane, { kind: 'dashboard' }> }) {
-  const { t } = useTranslation()
-  const tiles = useDashboard()
-  const layouts = useQuery({ queryKey: qk.dashboardLayouts, queryFn: () => get<{ layouts: DashboardLayout[] }>('/api/dashboard/layouts') })
-  const layout = layouts.data?.layouts.find((l) => l.id === pane.layout)
-  const shown = layout ? layout.tiles.map((k) => tiles.data?.tiles.find((x) => tileKey(x) === k)).filter((x): x is Tile => !!x) : []
-  return (
-    <Framed title={pane.title ?? layout?.name} hide={pane.hide_title}>
-      {tiles.isPending || layouts.isPending ? <Loader size="sm" aria-label={t('common.loading')} />
-        : !layout ? <Note>{t('dashboards.pane.dashboardGone')}</Note>
-        : <TileGrid tiles={shown} columns={layout.columns} />}
-    </Framed>
-  )
-}
-
-function PagePane({ pane }: { pane: Extract<Pane, { kind: 'page' }> }) {
-  const { t } = useTranslation()
-  const title = pane.title ?? t(`dashboards.page.${pane.page}`)
-  return (
-    <div className="fb-pane">
-      {/* Same site, so the page brings its own sign-in and live updates. */}
-      <iframe className="fb-pane-frame" src={PAGE_URL[pane.page]} title={title} />
-    </div>
-  )
-}
-
+/** A rich widget. Small on the grid unless the pane is set to show it big; the button opens it big
+ *  over the dashboard, with its filters and actions, without leaving the screen. */
 function ViewPane({ pane }: { pane: Extract<Pane, { kind: 'view' }> }) {
   const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const off = useFeaturesOff()
   const def = VIEWS.find((v) => v.id === pane.view)
-  const View = def ? VIEW_COMPONENTS[def.id] : null
+  // A feature switched off (Settings > Features) has no data to show: say so instead of an error.
+  const View = def && !(def.feature && off.includes(def.feature)) ? VIEW_COMPONENTS[def.id] : null
+  const title = pane.title ?? (def ? t(def.label) : undefined)
+  const big = !!pane.expanded
+  const loading = <Loader size="sm" aria-label={t('common.loading')} />
   return (
-    <Framed title={pane.title ?? (def ? t(def.label) : undefined)} hide={pane.hide_title}>
-      {View ? <Suspense fallback={<Loader size="sm" aria-label={t('common.loading')} />}><View expanded /></Suspense>
-        : <Note>{t('dashboards.pane.viewGone')}</Note>}
+    <Framed title={title} hide={pane.hide_title} actions={View && !big && (
+      <Tooltip label={t('dashboards.pane.openBig')}>
+        <ActionIcon variant="subtle" color="gray" aria-label={t('dashboards.pane.openBigNamed', { name: title ?? '' })}
+          onClick={() => setOpen(true)}><IconArrowsMaximize size={16} /></ActionIcon>
+      </Tooltip>
+    )}>
+      {View ? <Suspense fallback={loading}><View expanded={big} /></Suspense>
+        : <Note>{def ? t('dashboards.pane.viewOff') : t('dashboards.pane.viewGone')}</Note>}
+      {View && open && (
+        <Modal opened onClose={() => setOpen(false)} title={title} size="90%" centered classNames={{ body: 'fb-view-big' }}>
+          <Suspense fallback={loading}><View expanded /></Suspense>
+        </Modal>
+      )}
     </Framed>
   )
 }
@@ -110,8 +102,6 @@ export function PaneView({ pane, cycle }: { pane: Pane; cycle?: number }) {
   switch (pane.kind) {
     case 'plan': return <PlanPane pane={pane} cycle={cycle} />
     case 'tile': return <TilePane pane={pane} />
-    case 'dashboard': return <DashboardPane pane={pane} />
-    case 'page': return <PagePane pane={pane} />
     case 'view': return <ViewPane pane={pane} />
     case 'text': return <TextPane pane={pane} />
     case 'private': return <Framed title={pane.title} hide={pane.hide_title}><Stack h="100%" justify="center" align="center"><Note>{t('dashboards.pane.private')}</Note></Stack></Framed>

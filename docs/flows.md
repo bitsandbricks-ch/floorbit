@@ -1,6 +1,6 @@
 # Traffic insights (NetFlow and IPFIX)
 
-**Traffic** in the sidebar (`/traffic`, under Network) shows what the hall's traffic is made of: gaming, streaming,
+The **Traffic** widget (on the ready-made Traffic dashboard, `/dashboards/traffic`) shows what the hall's traffic is made of: gaming, streaming,
 downloads, updates, web and other, for the whole hall and per seat block, the services most seats
 use, and things ops should look at. It stays aggregate: nobody can see what a person visited.
 

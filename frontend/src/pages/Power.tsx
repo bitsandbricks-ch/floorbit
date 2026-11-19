@@ -7,18 +7,17 @@ import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, usePower } from '@/api/queries'
-import type { Circuit, PowerBoard, PowerOverview, PowerState } from '@/api/types'
+import type { Circuit, PowerBoard, PowerOverview } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { BoardDialog, CircuitDialog, ReadingDialog } from './power/Dialogs'
+import { ORDER, TONE } from './power/state'
 import { ErrorBanner } from '@/components/ui'
 import { ago } from '@/lib/time'
 
-const TONE: Record<PowerState, string> = { ok: 'up', warn: 'warn', crit: 'down', tripped: 'down', unknown: 'gray' }
-const ORDER: PowerState[] = ['tripped', 'crit', 'warn', 'ok', 'unknown']
 
-function Load({ c }: { c: Circuit }) {
+export function Load({ c }: { c: Circuit }) {
   const { t } = useTranslation()
   if (c.state === 'tripped') {
     return <Text size="sm" c="var(--color-down)" fw={600}>{t('power.trippedNote', { who: c.tripped?.by ?? '?', ago: ago(c.tripped?.at ?? 0) })}</Text>

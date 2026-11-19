@@ -5,8 +5,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { SpeedSeat, SpeedtestSummary } from '@/api/types'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import type { ViewProps } from '@/widgets/views'
 import { StatCard } from '@/components/StatCard'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 
@@ -25,7 +24,7 @@ function SeatList({ seats }: { seats: SpeedSeat[] }) {
 }
 
 /** The seats' speed tests side by side per switch (issue #434): one slow switch shows up as one row. */
-export default function Speedtests() {
+export default function SpeedtestsView({ expanded }: ViewProps) {
   const { t, i18n } = useTranslation()
   const client = useQueryClient()
   const query = useQuery({
@@ -41,9 +40,7 @@ export default function Speedtests() {
   const ms = (n: number | null) => n == null ? '–' : t('speedtests.ms', { n: num(n) })
 
   return (
-    <Layout title={t('speedtests.title')} back={{ href: '/incidents', label: t('incidents.title') }}>
-      <PageHead title={t('speedtests.title')} desc={t('speedtests.intro')} />
-      <Stack gap="md">
+    <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {query.isPending || !d ? <LoadingState /> : d.hall.tests === 0 ? (
           <Alert color="gray" variant="light">{t('speedtests.none', { hours: d.hours })}</Alert>
@@ -70,7 +67,7 @@ export default function Speedtests() {
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {d.switches.map((s) => (
+                      {(expanded ? d.switches : d.switches.filter((s) => s.slow).slice(0, 6)).map((s) => (
                         <Table.Tr key={s.id}>
                           <Table.Td>
                             <Group gap="xs" wrap="wrap">
@@ -91,7 +88,7 @@ export default function Speedtests() {
               )}
               {d.switches.some((s) => s.slow) && <Text size="xs" c="dimmed" mt="xs">{t('speedtests.slowHint')}</Text>}
             </Paper>
-            {d.unknown.length > 0 && (
+            {expanded && d.unknown.length > 0 && (
               <Paper withBorder radius="lg" p="md">
                 <Title order={2} size="h4" mb="xs">{t('speedtests.unknown')}</Title>
                 <SeatList seats={d.unknown} />
@@ -99,7 +96,6 @@ export default function Speedtests() {
             )}
           </>
         )}
-      </Stack>
-    </Layout>
+    </Stack>
   )
 }

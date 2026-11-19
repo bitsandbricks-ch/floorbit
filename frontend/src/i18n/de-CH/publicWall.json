@@ -1,6 +1,6 @@
 {
   "title": "Der Event in Zahlen",
-  "off": "Diese Seite ist ausgeschaltet.",
+  "off": "Die Statistik-Wand ist ausgeschaltet (Einstellungen > Seiten für Teilnehmende).",
   "online": "Plätze jetzt online",
   "of": "von {{n}}",
   "unknown": "gerade nicht bekannt",

@@ -1,21 +1,15 @@
 """Game and launcher insights (issue #88). The numbers come from floorbit/games.py.
 
-- ``GET /games``: the page.
 - ``GET /api/games?hours=24``: per launcher the DNS lookups, traffic and what the LAN cache served,
   the gaming services the event named, the other caches, and the cache's hit ratio per hour, for the
   last 1 to 168 hours. Hall-wide only.
 """
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import features, games, spa
+from .. import features, games
 from .flows import current as current_flows
 
 bp = Blueprint('games', __name__)
-
-
-@bp.route('/games')
-def games_page():
-    return spa.render('Games')
 
 
 @bp.route('/api/games', methods=['GET'])

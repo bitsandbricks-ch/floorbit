@@ -35,8 +35,9 @@ def test_save_read_replace_delete(client):
     assert client.get("/api/dashboards/main-hall").get_json()["name"] == "Main hall wall"
     client.put("/api/dashboards/main-hall", json={**MIXED, "name": "Wall"})
     listed = client.get("/api/dashboards").get_json()
-    assert [x["name"] for x in listed["layouts"]] == ["Wall", "Kiosk"]
-    assert "health" in listed["pages"]
+    names = [x["name"] for x in listed["layouts"]]
+    assert names[:2] == ["Wall", "Kiosk"] and {"Network", "Services", "Traffic", "Event in numbers"} <= set(names)
+    assert "pages" not in listed
     assert client.delete("/api/dashboards/main-hall").status_code == 200
     assert client.delete("/api/dashboards/main-hall").status_code == 404
     assert client.get("/api/dashboards/main-hall").status_code == 404
@@ -46,15 +47,19 @@ def test_other_panes(client):
     body = {"name": "Ops", "cycle": 30, "root": {"split": "column", "sizes": [1, 3], "children": [
         {"pane": {"kind": "tile", "tile": "demo/w/dhcp"}},
         {"split": "row", "children": [
-            {"pane": {"kind": "dashboard", "layout": "ops-desk"}},
-            {"pane": {"kind": "page", "page": "health"}},
-            {"pane": {"kind": "view", "view": "lancache"}},
+            {"pane": {"kind": "view", "view": "health", "expanded": True}},
+            {"pane": {"kind": "view", "view": "lancache", "expanded": 0}},
             {"pane": {"kind": "empty"}},
         ]},
     ]}}
     saved = client.put("/api/dashboards/ops", json=body).get_json()
-    assert saved["sections"][0]["panels"][0]["node"]["sizes"] == [25, 75]
-    assert saved["cycle"] == 30
+    node = saved["sections"][0]["panels"][0]["node"]
+    assert node["sizes"] == [25, 75] and saved["cycle"] == 30
+    assert [c["pane"] for c in node["children"][1]["children"][:2]] == [
+        {"kind": "view", "view": "health", "expanded": True}, {"kind": "view", "view": "lancache"}]
+    # The tile dashboard and the page panes are gone: widgets do their job.
+    for gone in ({"kind": "dashboard", "layout": "ops-desk"}, {"kind": "page", "page": "health"}):
+        assert client.put("/api/dashboards/ops", json={"name": "Ops", "root": {"pane": gone}}).status_code == 400
 
 
 def test_text_pane(client):
@@ -176,7 +181,8 @@ def test_public_dashboards_open_without_an_account(client, anon_client, monkeypa
         {"x": 12, "y": 0, "w": 6, "h": 6, "node": {"pane": {"kind": "tile", "tile": "floorbit/w/down"}}},
         {"x": 12, "y": 6, "w": 6, "h": 6, "node": {"pane": {"kind": "tile", "tile": "floorbit/w/problems",
                                                             "title": "Crew"}}},
-        {"x": 18, "y": 0, "w": 6, "h": 12, "node": {"pane": {"kind": "page", "page": "health"}}},
+        {"x": 18, "y": 0, "w": 6, "h": 6, "node": {"pane": {"kind": "view", "view": "health"}}},
+        {"x": 18, "y": 6, "w": 6, "h": 6, "node": {"pane": {"kind": "view", "view": "event-numbers"}}},
     ]}]}
     assert client.put("/api/dashboards/hall", json=wall).get_json()["public"] is True
     assert anon_client.get("/dashboards/hall").status_code in (200, 503)   # 503: no frontend build in CI
@@ -187,6 +193,7 @@ def test_public_dashboards_open_without_an_account(client, anon_client, monkeypa
     assert panes[0]["kind"] == "plan" and panes[0]["marks"] == "public"   # "all" turns public
     assert panes[1]["tile"] == "floorbit/w/down"
     assert panes[2] == {"kind": "private"} and panes[3] == {"kind": "private", "title": "Crew"}   # by row
+    assert panes[4] == {"kind": "view", "view": "event-numbers"}   # the stats wall is public itself
     assert client.get("/api/dashboards/hall/public").get_json()["account"] is True
 
     plan = anon_client.get("/api/dashboards/hall/public/plan").get_json()
@@ -220,7 +227,8 @@ def test_a_screen_account_limited_to_some_dashboards(client, kiosk_client):
     and starts on the first; without a list it opens every one, as before."""
     client.put("/api/dashboards/hall-b", json={**MIXED, "name": "Hall B wall"})
     client.put("/api/dashboards/noc", json={**MIXED, "name": "NOC"})
-    assert len(kiosk_client.get("/api/dashboards").get_json()["layouts"]) == 3
+    from floorbit.dashboards import BUILTIN
+    assert len(kiosk_client.get("/api/dashboards").get_json()["layouts"]) == 2 + len(BUILTIN)
     r = client.patch("/api/users/screen-1", json={"dashboards": ["hall-b", "hall-b"]})
     assert r.status_code == 200, r.get_json()
     assert next(u for u in r.get_json()["users"] if u["username"] == "screen-1")["dashboards"] == ["hall-b"]
@@ -235,11 +243,38 @@ def test_a_screen_account_limited_to_some_dashboards(client, kiosk_client):
     assert kiosk_client.get("/dashboards/kiosk").status_code in (200, 503)
     assert kiosk_client.get("/api/dashboards/kiosk").status_code == 200    # what that page then reads
     # Other accounts aren't touched.
-    assert len(client.get("/api/dashboards").get_json()["layouts"]) == 3
+    assert len(client.get("/api/dashboards").get_json()["layouts"]) == 2 + len(BUILTIN)
     # Unknown ids are refused, in German too; an empty list lifts the limit.
     bad = client.patch("/api/users/screen-1", json={"dashboards": ["nope"]}, headers={"Accept-Language": "de-CH"})
     assert bad.status_code == 400 and bad.get_json()["error"] == 'Es gibt kein Dashboard «nope».'
     assert client.patch("/api/users/screen-1", json={"dashboards": "noc"}).status_code == 400
     assert client.patch("/api/users/screen-1", json={"dashboards": []}).status_code == 200
-    assert len(kiosk_client.get("/api/dashboards").get_json()["layouts"]) == 3
+    from floorbit.dashboards import BUILTIN
+    assert len(kiosk_client.get("/api/dashboards").get_json()["layouts"]) == 2 + len(BUILTIN)
     assert kiosk_client.get("/").headers["Location"].endswith("/plan")
+
+
+def test_ready_made_dashboards_use_known_widgets(client):
+    """The ready-made dashboards replace the old pages and walls; each one saves through clean()
+    unchanged, so the editor can open and save it, and the stats wall's is public."""
+    import re
+    from pathlib import Path
+
+    from floorbit.dashboards import BUILTIN, clean
+    source = (Path(__file__).parent.parent / "frontend/src/widgets/views.ts").read_text()
+    views = set(re.findall(r"id: '([\w-]+)'", source))
+    for layout_id, layout in BUILTIN.items():
+        assert clean(layout)["sections"] == layout["sections"], layout_id
+        for sec in layout["sections"]:
+            for panel in sec["panels"]:
+                pane = panel["node"].get("pane", {})
+                if pane.get("kind") == "view":
+                    assert pane["view"] in views, (layout_id, pane)
+    assert client.get("/api/dashboards/network").get_json()["builtin"] is True
+    assert BUILTIN["event"]["public"] is True
+
+
+def test_the_widget_gallery_needs_an_account(client, anon_client, app_module, monkeypatch):
+    assert client.get("/widgets").status_code in (200, 503)   # 503: no frontend build in CI
+    monkeypatch.setattr(app_module.app.extensions["auth"], "public_read", False)
+    assert anon_client.get("/widgets").status_code in (302, 401)

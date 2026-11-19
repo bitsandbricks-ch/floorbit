@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { DnsData, DnsSite } from '@/api/types'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import type { ViewProps } from '@/widgets/views'
 import { ErrorBanner } from '@/components/ui'
 import { StatCard } from '@/components/StatCard'
 import { clock, dayClock } from '@/lib/time'
@@ -77,7 +76,7 @@ function Sites({ id, title, sites, empty, value, sub }: {
   )
 }
 
-function Board({ data }: { data: DnsData }) {
+function Board({ data, compact }: { data: DnsData; compact: boolean }) {
   const { t, i18n } = useTranslation()
   const num = (n: number) => n.toLocaleString(i18n.language)
   const catTop = Math.max(1, ...data.categories.map((c) => c.lookups))
@@ -92,7 +91,7 @@ function Board({ data }: { data: DnsData }) {
       </SimpleGrid>
       <div className="fb-stats">
         <Chart hours={data.hours} label={t('dns.chartLabel', { lookups: num(data.lookups), blocked: num(data.blocked) })} />
-        <section className="fb-stats-panel" aria-labelledby="dns-categories">
+        {!compact && <section className="fb-stats-panel" aria-labelledby="dns-categories">
           <h2 id="dns-categories">{t('dns.categories')}</h2>
           <ul className="fb-stats-bars">
             {data.categories.map((c) => (
@@ -104,13 +103,13 @@ function Board({ data }: { data: DnsData }) {
             ))}
           </ul>
           <Text size="xs" c="dimmed" mt={6}>{t('dns.categoriesText')}</Text>
-        </section>
-        <Sites id="dns-top" title={t('dns.top')} sites={data.sites.slice(0, 20)} empty={t('dns.noneYet', { count: data.min_clients })}
+        </section>}
+        <Sites id="dns-top" title={t('dns.top')} sites={data.sites.slice(0, compact ? 5 : 20)} empty={t('dns.noneYet', { count: data.min_clients })}
           value={(s) => num(s.lookups)} sub={(s) => t('dns.clients', { count: s.clients_max })} />
-        <Sites id="dns-blocked" title={t('dns.blockedSites')} sites={data.blocked_sites} empty={t('dns.noneBlocked')}
+        {!compact && <><Sites id="dns-blocked" title={t('dns.blockedSites')} sites={data.blocked_sites} empty={t('dns.noneBlocked')}
           value={(s) => num(s.blocked)} />
         <Sites id="dns-new" title={t('dns.new')} sites={data.new} empty={t('dns.noneNew')}
-          value={(s) => clock(s.first_seen ?? 0, i18n.language)} />
+          value={(s) => clock(s.first_seen ?? 0, i18n.language)} /></>}
       </div>
     </>
   )
@@ -118,28 +117,25 @@ function Board({ data }: { data: DnsData }) {
 
 /** What the hall looks up, from the event's DNS resolver (issue #87). Hall-wide only: a site is
  *  named once enough different seats looked it up, and nothing is kept per seat. */
-export default function Dns() {
+export default function DnsView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const [hours, setHours] = useState(24)
   const query = useQuery({ queryKey: qk.dns(hours), queryFn: () => get<DnsData>(`/api/dns?hours=${hours}`), refetchInterval: 60_000 })
   const data = query.data
   return (
-    <Layout title={t('dns.title')} back={{ href: '/traffic', label: t('dns.traffic') }}>
-      <PageHead title={t('dns.title')} desc={t('dns.intro')}
-        actions={
+    <>
+      {expanded && (
+        <Group justify="space-between" mb="sm" wrap="wrap">
+          <Text size="sm" c="dimmed">{data ? t('dns.privacy', { count: data.min_clients }) : ''}</Text>
           <SegmentedControl value={String(hours)} onChange={(v) => setHours(Number(v))} aria-label={t('dns.range')}
             data={RANGES.map((h) => ({ value: String(h), label: t(`dns.hours.${h}`) }))} />
-        } />
+        </Group>
+      )}
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {data?.error && <Alert color="warn" mb="md">{t('dns.pluginError', { message: data.error })}</Alert>}
       {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : data.plugins === 0 && data.lookups === 0 ? (
         <Alert color="gray" variant="light">{t('dns.noPlugin')} <Anchor href={DOCS}>docs/dns.md</Anchor></Alert>
-      ) : (
-        <>
-          <Text size="sm" c="dimmed" mb="sm">{t('dns.privacy', { count: data.min_clients })}</Text>
-          <Board data={data} />
-        </>
-      )}
-    </Layout>
+      ) : <Board data={data} compact={!expanded} />}
+    </>
   )
 }

@@ -189,7 +189,6 @@ def test_one_slow_seat_does_not_mark_its_switch():
 def test_summary_endpoint(client, floor):
     body = client.get("/api/speedtests/summary").get_json()
     assert body["hours"] == 12 and body["hall"]["tests"] == 0 and body["switches"] == []
-    assert client.get("/speedtests").status_code in (200, 503)   # 503: no frontend build (CI)
 
 
 def test_streams_that_never_start_free_their_slot(anon_client, app_module, floor):

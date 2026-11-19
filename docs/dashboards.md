@@ -7,10 +7,8 @@ can be split into panes side by side or stacked. Each pane shows one thing:
 | Pane | What it shows |
 | --- | --- |
 | **Plan** | A hall's floor plan: the whole hall, one seat block, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
-| **Widget** | A rich widget (a chart, a map, a table) from the widget list (`frontend/src/widgets/views.ts`). |
+| **Widget** | A rich widget from the [widget gallery](#the-widget-gallery): service health, stats, traffic, DNS, games, Wi-Fi, speed tests, power load, network status, endpoints, the LAN cache and the event in numbers. Small by default; **Show it big** draws it with everything its page used to show. |
 | **Tile** | One dashboard tile: Floorbit's own (problems, incidents, switches, seats, switches down) or a plugin's. |
-| **Tiles** | A saved tile layout from the [tile dashboard](dashboard.md). |
-| **Page** | Service health, stats, the public stats wall or the status page. |
 | **Text** | Your own words: a welcome, the schedule, the Wi-Fi name. A small Markdown (`# heading`, `- list`, `**bold**`, `[link](https://example.com)`); every line stays its own line. Four sizes (S to XL) that grow with the pane, aligned left or centred. |
 
 For example: the whole hall on the left, the VIP zone zoomed in at the top right, and the network
@@ -47,6 +45,34 @@ layer at the bottom right.
 - **Rotate halls every** makes plan panes without a fixed hall that show a whole hall go through all
   halls in turn.
 
+## The widget gallery
+
+**Widgets** (`/widgets`, also a button on the Dashboards list) shows every widget there is, live, with
+your data: Floorbit's own and the tiles of the plugins that are on. Filter them by area (Network,
+Services, Traffic, Power, Plugins) or search by name. **Open** shows one big in a window; **Add to**
+puts it at the end of a dashboard you pick. A widget whose feature is off says so instead of its
+content.
+
+Read-only pages live only as widgets now: service health, stats, traffic, DNS, games, Wi-Fi, speed
+tests and the stats wall have no page of their own. Pages where you change something (Services,
+Power, Network status, Endpoints) keep their page and add a widget for their read-only part.
+
+## Ready-made dashboards
+
+Floorbit comes with these. Change any of them; saving keeps your version under the same name, and
+deleting your version brings the ready-made one back.
+
+| Dashboard | What is on it |
+| --- | --- |
+| **Kiosk** | The big screen in the hall (below). Public. |
+| **Overview** | Problems, incidents, switches and seats, the plan, and service health. |
+| **Service health** | The health wall, big, for the NOC. |
+| **Network** | Network status, stats, Wi-Fi and endpoints. |
+| **Services** | Services, the LAN cache and service health. |
+| **Traffic** | Traffic, DNS, games and speed tests. |
+| **Power load** | Power load per board. |
+| **Event in numbers** | The stats wall for the hall and attendees' phones. Public, fit to screen. |
+
 ## Kiosk
 
 **Kiosk** is a ready-made dashboard for the big screen in the hall, and what `/kiosk` opens: the
@@ -65,9 +91,10 @@ event website. Signed out, it shows only what anyone may see:
   IPs, MACs, notes, seat problems, power boards or patch panels, and no power, firewall, Wi-Fi or
   crew layer.
 - **Tiles**: Floorbit's switches, seats online and switches down tiles.
+- **Widgets**: the event in numbers (the [stats wall](stats-wall.md)), while the stats wall is on.
 - **Text** and empty panes.
 
-Any other pane (other tiles, widgets, tile layouts, pages) says it needs an account. Someone signed
+Any other pane (other tiles and widgets) says it needs an account. Someone signed
 in sees the whole dashboard as usual. For a screen that should show more, sign it in with a `kiosk`
 account or a custom role ([auth.md](auth.md)).
 
@@ -98,6 +125,13 @@ for example `/dashboards/kiosk?hall=hall-2`. `?theme=<preset>` picks the look, a
 ([themes.md](themes.md)); the Kiosk dashboard uses the `kiosk` preset unless the site theme says
 otherwise.
 
+### Rotating dashboards
+
+`?rotate=<id>,<id>,...&every=<seconds>` moves on to the next dashboard in the list every so many
+seconds (10 to 600, 30 by default), for a wall that shows several: for example
+`/dashboards/kiosk?rotate=kiosk,traffic,event&every=45`. The other options (`hall`, `theme`) go
+along.
+
 ## For developers
 
 Data: `floorbit/dashboards.py` (data.json key `dashboards`), API `GET/PUT/DELETE /api/dashboards/<id>`.
@@ -106,7 +140,9 @@ A dashboard is `sections` (each with an optional `title`, `folded` and its `pane
 as one split tree (`root`) are read as one panel filling the screen. How panels make room is in
 `frontend/src/pages/dashboards/grid.ts`.
 A rich widget is a React component registered with one line in `frontend/src/widgets/views.ts`; it
-gets `expanded` and has no page or route of its own. Floorbit's own tiles are one line in
+gets `expanded` and has no page or route of its own. Its `area` groups it in the gallery, `feature`
+names the feature that turns it off, and `permission` who sees it. A view pane's `expanded: true`
+draws it big on the dashboard too. `GET /api/dashboard` lists the tiles this account may see. Floorbit's own tiles are one line in
 `TILES` (`floorbit/dashboard_core.py`) plus their builder in `CORE_TILES`
-(`floorbit/blueprints/plugins.py`). What a public dashboard may show is `PUBLIC_TILES` and
+(`floorbit/blueprints/plugins.py`). What a public dashboard may show is `PUBLIC_TILES`, `PUBLIC_VIEWS` and
 `public_board()` in `floorbit/dashboards.py`.

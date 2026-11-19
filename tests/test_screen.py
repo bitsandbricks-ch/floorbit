@@ -1,4 +1,5 @@
-"""Big-screen rotation (issue #18). The "find your seat" page was removed."""
+"""The plan behind the big screens. `/screen` gave way to `?rotate=` on dashboards; the "find your
+seat" page was removed."""
 import pytest
 
 from integrations import seat_sources
@@ -16,27 +17,10 @@ def test_the_seat_finder_is_gone(client, hall):
     assert client.get("/api/seat-finder?q=D-6").status_code == 404
 
 
-def test_screen_rotates_the_chosen_views(client, hall):
-    # The page is React (BigScreen.test.tsx rotates through what this answers).
-    assert client.get("/screen").status_code in (200, 503)
-    body = client.get("/api/screen?views=stats,heat,nonsense&every=5&theme=ops&hall=h-2").get_json()
-    assert body["views"] == [{"id": "stats", "url": "/stats?screen=1&theme=ops"},
-                             {"id": "heat", "url": "/plan?screen=1&layers=marks%2Cstatus&hall=h-2&theme=ops"}]
-    assert body["every"] == 10   # at least 10 seconds
-    assert "qr" not in body
 
 
-def test_screen_without_theme_injection(client, hall):
-    body = client.get("/api/screen", query_string={"theme": '"><script>', "every": "x"}).get_json()
-    assert body["every"] == 30
-    assert [v["url"] for v in body["views"]] == ["/dashboards/kiosk", "/plan?screen=1&layers=marks%2Cstatus",
-                                                  "/stats?screen=1"]   # the default views, no theme
 
 
-def test_screen_needs_floor_plan_access(anon_client, app_module, monkeypatch):
-    monkeypatch.setattr(app_module.app.extensions["auth"], "public_read", False)
-    assert anon_client.get("/screen").status_code in (302, 401)
-    assert anon_client.get("/api/screen").status_code == 401
 
 
 def test_seat_traffic_for_the_heat_view(client, app_module):

@@ -1,6 +1,6 @@
 {
   "title": "The event in numbers",
-  "off": "This page is switched off.",
+  "off": "The stats wall is turned off (Settings > Attendee pages).",
   "online": "Seats online now",
   "of": "of {{n}}",
   "unknown": "not known right now",

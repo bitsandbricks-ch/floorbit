@@ -83,8 +83,7 @@ nav:
       - Security detection: security.md
       - Electrics: power.md
       - Dashboards: dashboards.md
-      - Tile dashboard: dashboard.md
-      - Stats dashboard: stats.md
+      - Stats: stats.md
       - Bandwidth forecast: forecast.md
       - Traffic insights: flows.md
       - DNS analytics: dns.md

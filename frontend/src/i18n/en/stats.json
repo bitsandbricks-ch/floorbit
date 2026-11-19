@@ -1,7 +1,6 @@
 {
   "title": "Stats",
   "intro": "The numbers people ask for during the event: bandwidth now and at its peak, uplinks, online seats and the busiest ports. Read from the switches every couple of minutes.",
-  "screen": "Big screen",
   "resetPeak": "Reset peak",
   "resetConfirm": "Start the event's peak again from now? Do this after load tests, before doors open.",
   "updated": "Updated {{time}}",

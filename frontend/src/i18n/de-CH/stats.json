@@ -1,7 +1,6 @@
 {
   "title": "Statistik",
   "intro": "Die Zahlen, nach denen während des Events gefragt wird: Bandbreite jetzt und am Höchststand, Uplinks, Plätze online und die aktivsten Ports. Alle paar Minuten von den Switches gelesen.",
-  "screen": "Grosser Bildschirm",
   "resetPeak": "Höchststand zurücksetzen",
   "resetConfirm": "Den Höchststand des Events ab jetzt neu zählen? Nach Lasttests, bevor die Türen öffnen.",
   "updated": "Aktualisiert {{time}}",

@@ -108,16 +108,6 @@ export interface ActionTile {
 
 export type Tile = WidgetTile | ActionTile
 
-/** A saved dashboard layout (issue #103): tiles as ``<plugin>/<w|a>/<id>``, in order. */
-export interface DashboardLayout {
-  id: string
-  name: string
-  tiles: string[]
-  columns: number
-  updated_at: number
-  by: string | null
-}
-
 export interface ActionResult {
   ok: boolean
   message: string

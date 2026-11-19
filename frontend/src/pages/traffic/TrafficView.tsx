@@ -1,12 +1,11 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Table, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Badge, Group, Loader, Table, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useFeature, useFlows } from '@/api/queries'
+import { useFlows } from '@/api/queries'
 import type { FlowMix, FlowsData } from '@/api/types'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
-import { bytes, CATEGORIES, mostly, total } from './traffic/format'
-import { onPlan } from './plan/links'
+import type { ViewProps } from '@/widgets/views'
+import { bytes, CATEGORIES, mostly, total } from './format'
+import { onPlan } from '../plan/links'
 import { ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
 
@@ -68,7 +67,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
   )
 }
 
-function Board({ data }: { data: FlowsData }) {
+function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
   const { t } = useTranslation()
   const services = data.services ?? []
   return (
@@ -98,7 +97,7 @@ function Board({ data }: { data: FlowsData }) {
         <MixBar mix={data.mix_day} label={t('traffic.day')} />
       </section>
 
-      <section className="fb-stats-panel" aria-labelledby="traffic-areas">
+      {!compact && <section className="fb-stats-panel" aria-labelledby="traffic-areas">
         <h2 id="traffic-areas">{t('traffic.areas')}</h2>
         <ul className="fb-flow-areas">
           {(data.areas ?? []).map((a) => (
@@ -110,7 +109,7 @@ function Board({ data }: { data: FlowsData }) {
           ))}
         </ul>
         <Text size="xs" c="dimmed" mt={6}>{t('traffic.areasText')}</Text>
-      </section>
+      </section>}
 
       <section className="fb-stats-panel" aria-labelledby="traffic-services">
         <h2 id="traffic-services">{t('traffic.services')}</h2>
@@ -127,43 +126,36 @@ function Board({ data }: { data: FlowsData }) {
         </Text>
       </section>
 
-      {data.seats && <Seats seats={data.seats} />}
+      {!compact && data.seats && <Seats seats={data.seats} />}
     </div>
   )
 }
 
 /** What the hall's traffic is made of, from NetFlow or IPFIX (issue #25). Aggregate only:
- *  nobody sees what a person visited. */
-export default function Traffic() {
+ *  nobody sees what a person visited. Small, the hall's mix and the services; opened up, everything. */
+export default function TrafficView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const flows = useFlows()
-  const dnsOn = useFeature('dns')
-  const gamesOn = useFeature('games')
   const data = flows.data
   return (
-    <Layout title={t('traffic.title')} back={{ href: '/', label: t('common.floorPlan') }}>
-      <PageHead title={t('traffic.title')} desc={t('traffic.intro')}
-        actions={
-          <Group gap="xs">
-            {gamesOn && <Button variant="default" component="a" href="/games">{t('traffic.games')}</Button>}
-            {dnsOn && <Button variant="default" component="a" href="/dns">{t('traffic.dns')}</Button>}
-          </Group>
-        } />
+    <>
       <ErrorBanner error={flows.error} mb="md" />
       {data?.rules_error && <Alert color="warn" mb="md">{t('traffic.rulesError', { message: data.rules_error })}</Alert>}
-      {flows.isPending || !data ? <Loader size="sm" /> : !data.collector ? (
+      {flows.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : !data.collector ? (
         <Alert color="gray" variant="light">{t('traffic.noCollector')} <Anchor href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/flows.md">docs/flows.md</Anchor></Alert>
       ) : (
         <>
-          <Text size="sm" c="dimmed" mb="sm">
-            {data.updated ? t('traffic.updated', { time: clock(data.updated) }) : ''}
-            {data.stale ? ` · ${t('traffic.stale')}` : ''}
-            {data.agent ? ` · ${t('traffic.viaAgent', { agent: data.agent })}` : ''}
-            {' · '}{t('traffic.privacy', { days: data.retention_days ?? 7 })}
-          </Text>
-          <Board data={data} />
+          {expanded && (
+            <Text size="sm" c="dimmed" mb="sm">
+              {data.updated ? t('traffic.updated', { time: clock(data.updated) }) : ''}
+              {data.stale ? ` · ${t('traffic.stale')}` : ''}
+              {data.agent ? ` · ${t('traffic.viaAgent', { agent: data.agent })}` : ''}
+              {' · '}{t('traffic.privacy', { days: data.retention_days ?? 7 })}
+            </Text>
+          )}
+          <Board data={data} compact={!expanded} />
         </>
       )}
-    </Layout>
+    </>
   )
 }

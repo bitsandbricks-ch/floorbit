@@ -15,11 +15,9 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
+import { COLOR } from './status/state'
 
 const BY_HAND: StatusState[] = ['operational', 'degraded', 'outage', 'maintenance']
-const COLOR: Record<StatusState, string> = {
-  operational: 'up', degraded: 'warn', outage: 'down', maintenance: 'warn', unknown: 'gray',
-}
 
 type T = ReturnType<typeof useTranslation>['t']
 
@@ -27,7 +25,7 @@ function whereOf(a: StatusArea, t: T) {
   return a.block ? t('status.block', { name: a.block }) : a.hall ? t('status.hall', { name: a.hall }) : t('status.somewhere')
 }
 
-function AreaLine({ a }: { a: StatusArea }) {
+export function AreaLine({ a }: { a: StatusArea }) {
   const { t } = useTranslation()
   const where = whereOf(a, t)
   const bits = [a.hall && a.block ? a.hall : '', a.rows ? t('status.rows', { rows: a.rows }) : '',

@@ -5,8 +5,8 @@ import { PageError } from '@/components/PageError'
 import { readServerPage } from '@/lib/serverPage'
 
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).
-const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Dashboards = lazy(() => import('@/pages/Dashboards'))
+const Widgets = lazy(() => import('@/pages/widgets/Widgets'))
 const DashboardScreen = lazy(() => import('@/pages/DashboardScreen'))
 const Plugins = lazy(() => import('@/pages/Plugins'))
 const PluginSettings = lazy(() => import('@/pages/PluginSettings'))
@@ -17,15 +17,10 @@ const Teams = lazy(() => import('@/pages/Teams'))
 const SignIn = lazy(() => import('@/pages/SignIn'))
 const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
-const Health = lazy(() => import('@/pages/Health'))
 const Security = lazy(() => import('@/pages/Security'))
 const Power = lazy(() => import('@/pages/Power'))
 const Problems = lazy(() => import('@/pages/Problems'))
 const Setup = lazy(() => import('@/pages/Setup'))
-const Stats = lazy(() => import('@/pages/Stats'))
-const Traffic = lazy(() => import('@/pages/Traffic'))
-const Dns = lazy(() => import('@/pages/Dns'))
-const Games = lazy(() => import('@/pages/Games'))
 const GameServers = lazy(() => import('@/pages/GameServers'))
 const Topology = lazy(() => import('@/pages/Topology'))
 const Firewalls = lazy(() => import('@/pages/Firewalls'))
@@ -46,12 +41,10 @@ const WalkRow = lazy(() => import('@/pages/WalkRow'))
 const SeatWalk = lazy(() => import('@/pages/SeatWalk'))
 const Telemetry = lazy(() => import('@/pages/Telemetry'))
 const Endpoints = lazy(() => import('@/pages/Endpoints'))
-const Wifi = lazy(() => import('@/pages/Wifi'))
 const Timeline = lazy(() => import('@/pages/Timeline'))
 const NetworkStatus = lazy(() => import('@/pages/NetworkStatus'))
 const Schedule = lazy(() => import('@/pages/Schedule'))
 const FloorPlan = lazy(() => import('@/pages/FloorPlan'))
-const Speedtests = lazy(() => import('@/pages/Speedtests'))
 const Checkins = lazy(() => import('@/pages/Checkins'))
 const Events = lazy(() => import('@/pages/Events'))
 const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
@@ -67,8 +60,6 @@ const Features = lazy(() => import('@/pages/Features'))
 const SidebarSections = lazy(() => import('@/pages/SidebarSections'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
-const PublicWall = lazy(() => import('@/pages/public/PublicWall'))
-const BigScreen = lazy(() => import('@/pages/screen/BigScreen'))
 const Forbidden = lazy(() => import('@/pages/Forbidden'))
 const SeatHelp = lazy(() => import('@/pages/public/SeatHelp'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
@@ -100,14 +91,12 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/checkin" element={<Checkin />} />
           <Route path="/status" element={<PublicStatus />} />
-          <Route path="/wall" element={<PublicWall />} />
           <Route path="/help/:seat" element={<SeatHelp />} />
           {/* A dashboard on a big screen: the page alone, no sidebar. */}
           <Route path="/dashboards/:id" element={<DashboardScreen />} />
-          <Route path="/screen" element={<BigScreen />} />
           <Route element={<AppShell />}>
-            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboards" element={<Dashboards />} />
+            <Route path="/widgets" element={<Widgets />} />
             <Route path="/settings/plugins" element={<Plugins />} />
             <Route path="/settings/plugins/:id" element={<PluginSettings />} />
             <Route path="/plugins/:plugin/:page" element={<PluginPage />} />
@@ -117,15 +106,10 @@ export default function App() {
             <Route path="/settings/sign-in" element={<SignIn />} />
             <Route path="/incidents" element={<Incidents />} />
             <Route path="/incidents/qr" element={<HelpdeskQr />} />
-            <Route path="/health" element={<Health />} />
             <Route path="/security" element={<Security />} />
             <Route path="/power" element={<Power />} />
             <Route path="/problems" element={<Problems />} />
             <Route path="/setup" element={<Setup />} />
-            <Route path="/stats" element={<Stats />} />
-            <Route path="/traffic" element={<Traffic />} />
-            <Route path="/dns" element={<Dns />} />
-            <Route path="/games" element={<Games />} />
             <Route path="/game-servers" element={<GameServers />} />
             <Route path="/topology" element={<Topology />} />
             <Route path="/firewalls" element={<Firewalls />} />
@@ -144,13 +128,11 @@ export default function App() {
             <Route path="/cables" element={<Cables />} />
             <Route path="/cables/walk" element={<WalkRow />} />
             <Route path="/seat-walk" element={<SeatWalk />} />
-            <Route path="/wifi" element={<Wifi />} />
             <Route path="/timeline" element={<Timeline />} />
             <Route path="/network-status" element={<NetworkStatus />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/plan" element={<FloorPlan />} />
             <Route path="/checkins" element={<Checkins />} />
-            <Route path="/speedtests" element={<Speedtests />} />
             <Route path="/events" element={<Events />} />
             <Route path="/settings/:section?" element={<Settings />} />
             <Route path="/settings/features" element={<Features />} />

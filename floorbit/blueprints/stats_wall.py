@@ -1,8 +1,7 @@
-"""Public stats wall (issue #105). The facts come from floorbit/stats_wall.py; see docs/stats-wall.md.
+"""The event in numbers (issue #105). The facts come from floorbit/stats_wall.py; see docs/stats-wall.md.
 
-- ``GET /wall``: the page, for a big screen or attendees' phones, no account. Off unless Settings >
-  Attendee pages turns it on. ``?screen=1`` for the big screen: larger type, no scrolling.
-- ``GET /wall.json``: the same numbers as JSON, for the event website or a Discord bot.
+- ``GET /wall.json``: hall-wide numbers, no account: for the "Event in numbers" widget on a public
+  dashboard, the event website or a Discord bot. Off unless Settings > Attendee pages turns it on.
 
 Hall-wide and per seat block only: no nicks, IPs, MACs, seat numbers or switch names.
 """
@@ -10,7 +9,7 @@ import time
 
 from flask import Blueprint, current_app, jsonify
 
-from .. import features, games, incidents, spa, stats_wall
+from .. import features, games, incidents, stats_wall
 from ..store import load_data
 from .flows import current as current_flows
 
@@ -53,14 +52,6 @@ def _facts(now=None):
     return stats_wall.facts(event, None if online is None else len(online & set(seats)), len(seats), insights, now=now)
 
 
-@bp.route('/wall')
-def wall_page():
-    """The page is React (frontend/src/pages/public/PublicWall.tsx), reading /wall.json; 404 while
-    it is switched off."""
-    html, status = spa.render('The event in numbers')
-    return html, status if page_on() else 404
-
-
 @bp.route('/wall.json')
 def wall_json():
     if not page_on():
@@ -68,5 +59,4 @@ def wall_json():
     return jsonify(_facts())
 
 
-for _view in (wall_page, wall_json):
-    _view._auth_public = True   # what auth.public_endpoint sets: attendees have no account
+wall_json._auth_public = True   # what auth.public_endpoint sets: attendees have no account

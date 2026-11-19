@@ -26,8 +26,3 @@ export function usePublicFeed<T>(url: string, every: number) {
     retry: () => void q.refetch(),
   }
 }
-
-/** ``?screen=1``: the big-screen layout of a public page (no scrolling, larger type). */
-export function isScreen(search = window.location.search): boolean {
-  return new URLSearchParams(search).get('screen') === '1'
-}

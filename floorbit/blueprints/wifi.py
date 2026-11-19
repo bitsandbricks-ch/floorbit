@@ -1,6 +1,5 @@
 """Wi-Fi view (issue #98). The rules live in floorbit/wifi.py.
 
-- ``GET /wifi``: the page (React).
 - ``GET /api/wifi?hall=``: every access point with its radios (channel, load, client count), where
   it is on the floor plan, totals, busy APs and channel overlaps, and the hall's drawing.
 
@@ -8,7 +7,7 @@ Client counts only, never who: reading needs ``floorplan.view``, like the floor 
 """
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import halls, spa, wifi
+from .. import halls, wifi
 from ..store import load_data
 from .screen import PLAN_H, PLAN_W, plan
 
@@ -26,11 +25,6 @@ def wifi_flags():
         return {'wifi_on': bool(_registry().feeders('wifi'))}
     except Exception:  # noqa: BLE001 - a nav link must never break a page
         return {'wifi_on': False}
-
-
-@bp.route('/wifi')
-def wifi_page():
-    return spa.render('Wi-Fi')
 
 
 @bp.route('/api/wifi', methods=['GET'])
