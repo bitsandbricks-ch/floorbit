@@ -88,3 +88,22 @@ def test_entries_in_the_same_millisecond_keep_the_newest_first(app_module):
     timeline.write('deploy', 'second', t=1_800_000_000.0)
     rows, _, _ = timeline.build(kinds={'deploy'})
     assert [r['title'] for r in rows[:2]] == ['second', 'first']
+
+
+def test_a_reader_waits_for_the_batch_the_writer_is_storing(app_module, monkeypatch):
+    """The writer thread took the line and is still storing it: a reader must see it all the same."""
+    import threading
+    slow = threading.Event()
+    real = timeline.journal.append_many
+
+    def append_slowly(where, rows):
+        slow.set()
+        time.sleep(0.3)
+        return real(where, rows)
+    monkeypatch.setattr(timeline.journal, "append_many", append_slowly)
+    timeline.write("alert", "Local agent away", "no answers from the event network")
+    writer = threading.Thread(target=timeline.flush)
+    writer.start()
+    assert slow.wait(2)
+    assert any(e["title"] == "Local agent away" for e in timeline._journal())
+    writer.join()
