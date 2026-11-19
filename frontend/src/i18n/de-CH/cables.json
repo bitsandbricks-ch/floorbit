@@ -29,7 +29,6 @@
   "cable": "Kabel",
   "direct": "Direkt",
   "edit": "Bearbeiten",
-  "open": "Öffnen",
   "save": "Speichern",
   "delete": "Löschen",
   "fromImport": "Dieses Kabel kommt aus {{plugin}}. Ändere es dort und importiere neu.",
@@ -100,5 +99,8 @@
   "areasSkip": "Leer: nicht zu Plätzen",
   "areasBatch": "Ports {{first}}-{{last}}: erster Platz",
   "areasSave": "Bereiche speichern",
-  "areaHint": "Bereich {{label}}"
+  "areaHint": "Bereich {{label}}",
+  "back": "Alle Kabel",
+  "notFound": "Dieses Kabel gibt es nicht mehr.",
+  "noRights": "Nur wer den Hallenplan bearbeiten darf, erfasst Kabel."
 }

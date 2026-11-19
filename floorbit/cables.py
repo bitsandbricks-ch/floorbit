@@ -266,7 +266,7 @@ def labels_pdf(cables, base_url):
         for k, (c, end) in enumerate(items[start:start + per_page]):
             x, y = MX + (k % COLS) * w, MY + (k // COLS) * h
             page.rect(x + 3, y + 3, w - 6, h - 6, stroke='#c9ced6')
-            qr = segno.make(f"{base_url.rstrip('/')}/cables?cable={c['id']}", error='m')
+            qr = segno.make(f"{base_url.rstrip('/')}/cables/{c['id']}", error='m')
             matrix = list(qr.matrix)
             size = min(h - 24, 62.0)
             cell = size / len(matrix)

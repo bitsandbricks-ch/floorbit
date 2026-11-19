@@ -1,6 +1,7 @@
 """Cables and patching (issue #97). The rules live in floorbit/cables.py.
 
-- ``GET /cables``: the page (React); ``/cables?cable=<id>`` opens one cable (what its labels' QR links to).
+- ``GET /cables``: the page (React); ``/cables/<id>`` is one cable's page (what its labels' QR links to),
+  ``/cables/new`` adds one.
 - ``GET /api/cables?q=&seat=``: the cables, and whether a plugin can import them.
 - ``POST /api/cables``, ``PATCH /api/cables/<id>``, ``DELETE /api/cables/<id>``: the crew's own cables.
 - ``POST /api/cables/import``: read the cables from NetBox again (replaces the last import).
@@ -58,6 +59,11 @@ def _picked():
 @bp.route('/cables')
 def cables_page():
     return spa.render('Cables')
+
+
+@bp.route('/cables/<cable_id>')
+def cable_page(cable_id):
+    return spa.render('Cable')
 
 
 @bp.route('/api/cables', methods=['GET'])
