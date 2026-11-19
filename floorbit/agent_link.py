@@ -932,7 +932,8 @@ class Tunnel:
         if plugins:
             clean['plugins'] = plugins
         from .agent_plugins import clean_updates, clean_vrrp
-        for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp)):
+        from .agent_settings import clean_report
+        for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report)):
             value = cleaner(raw.get(key))
             if value is not None:
                 clean[key] = value

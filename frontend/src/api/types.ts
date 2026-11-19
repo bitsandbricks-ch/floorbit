@@ -1798,6 +1798,46 @@ export interface AgentReport {
   updates?: AgentUpdates
   /** With VRRP: whether it is its hall's primary, and the addresses it holds. */
   vrrp?: { primary: boolean; holds: string[] }
+  /** Where each of its settings came from (floorbit/agent_settings.py ``clean_report``). */
+  settings?: AgentSettingsReport
+}
+
+export type SettingSource = 'env' | 'floorbit' | 'default'
+
+/** What the agent says about its settings: their source and value (never a secret's), which wait
+ *  for its next start, where its key and certificate came from. */
+export interface AgentSettingsReport {
+  values: Record<string, { source: SettingSource; value?: string; set?: boolean }>
+  pending?: string[]
+  key?: 'stored' | 'env' | 'file'
+  cert?: { not_after: number; names: string[]; source: SettingSource; floorbit_ca: boolean }
+}
+
+/** One of an agent's own settings (agent_settings.FIELDS). */
+export interface AgentSettingField {
+  key: string; env: string | null
+  type: 'url' | 'listen' | 'secret' | 'int' | 'names' | 'cidrs' | 'ips' | 'iface' | 'choice'
+  default: string | number | string[]; restart: boolean; min?: number; max?: number; options?: string[]
+}
+
+/** A plugin setting an agent may set for itself (Settings > Plugins has the default). */
+export interface AgentPluginField {
+  key: string; label: string; type: string; help?: string | null; placeholder?: string | null
+  min?: number | null; max?: number | null; options?: { value: string; label: string }[] | null
+  default: unknown
+}
+
+/** GET /api/agents/<id>/settings. */
+export interface AgentSettingsPage {
+  fields: AgentSettingField[]
+  /** What Floorbit sets; a secret is ``true`` (set) and never sent back. */
+  values: Record<string, string | number | string[] | true>
+  local_only: string[]
+  plugins: { id: string; name: string; fields: AgentPluginField[]; values: Record<string, unknown> }[]
+  roll_asked: number | null
+  renewed_at: number | null
+  cert: { issued_at: number; not_after: number; names: string[] } | null
+  cert_asked: number | null
 }
 
 export interface AgentPluginHealth {

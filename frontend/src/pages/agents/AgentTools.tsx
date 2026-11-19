@@ -9,26 +9,19 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { ago } from '@/lib/time'
 
 /** Rename, a new key (the old one works until the agent uses the new one), and plugins left off. */
-export function AgentActions({ agent, onKey }: { agent: Agent; onKey: (made: { name: string; key: string }) => void }) {
+export function AgentRename({ agent }: { agent: Agent }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
-  const refresh = () => void qc.invalidateQueries({ queryKey: qk.agents })
   const [renaming, setRenaming] = useState<string | null>(null)
   const rename = useMutation({
     mutationFn: (name: string) => patch(`/api/agents/${agent.id}`, { name }),
-    onSuccess: () => { setRenaming(null); refresh() },
-  })
-  const rotate = useMutation({
-    mutationFn: () => post<{ name: string; key: string }>(`/api/agents/${agent.id}/rotate`),
-    onSuccess: (m) => { onKey(m); refresh() },
+    onSuccess: () => { setRenaming(null); void qc.invalidateQueries({ queryKey: qk.agents }) },
   })
   return (
     <Stack gap={4}>
       {renaming === null ? (
         <Group gap={6}>
           <Button size="compact-sm" variant="default" onClick={() => setRenaming(agent.name)}>{t('agents.rename')}</Button>
-          <ConfirmButton size="compact-sm" variant="default" danger label={t('agents.rotate')}
-            question={t('agents.rotateQuestion', { name: agent.name })} loading={rotate.isPending} onConfirm={() => rotate.mutate()} />
         </Group>
       ) : (
         <Group gap={6} align="flex-end">
@@ -39,8 +32,25 @@ export function AgentActions({ agent, onKey }: { agent: Agent; onKey: (made: { n
           <Button size="compact-sm" variant="subtle" onClick={() => setRenaming(null)}>{t('agents.cancel')}</Button>
         </Group>
       )}
-      {(rename.error || rotate.error) && <Text size="xs" c="down" role="alert">{(rename.error ?? rotate.error)?.message}</Text>}
+      {rename.error && <Text size="xs" c="down" role="alert">{rename.error.message}</Text>}
     </Stack>
+  )
+}
+
+/** A new key to copy into the agent's env by hand: for an agent that is away (else "Roll key"). */
+export function NewKeyButton({ agent, onKey }: { agent: Agent; onKey: (made: { name: string; key: string }) => void }) {
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+  const rotate = useMutation({
+    mutationFn: () => post<{ name: string; key: string }>(`/api/agents/${agent.id}/rotate`),
+    onSuccess: (m) => { onKey(m); void qc.invalidateQueries({ queryKey: qk.agents }) },
+  })
+  return (
+    <>
+      <ConfirmButton size="compact-sm" variant="default" danger label={t('agents.rotate')}
+        question={t('agents.rotateQuestion', { name: agent.name })} loading={rotate.isPending} onConfirm={() => rotate.mutate()} />
+      {rotate.error && <Text size="xs" c="down" role="alert">{rotate.error.message}</Text>}
+    </>
   )
 }
 

@@ -225,18 +225,63 @@ time Floorbit starts with its local agent, it turns on syslog on port 5514, flow
 front door on `0.0.0.0:8443`, the ports the compose file and the pod publish. A plugin you set up or
 turned off yourself is left alone.
 
-What stays in the agent's environment is the machine itself:
+### The agent's own settings
+
+Each agent's own settings are set on its page in Floorbit (**Agents >** the agent **> Settings**), and
+the agent takes them with its plugins: the address laptops in the hall use, the metrics listener and
+its token, how much it buffers while Floorbit is away, the Telegraf port, the log level and summary
+line, and the VRRP virtual IPs. Plugin settings that differ on one agent (another flow port, another
+syslog bind) are set there too; **Settings > Plugins** stays the default for every agent.
+
+**The agent's environment wins.** When the agent's own environment sets one of them
+(`FLOORBIT_AGENT_LAN_URL`, `FLOORBIT_AGENT_METRICS`, `_METRICS_TOKEN`, `_BUFFER_MAX_MB`,
+`_BUFFER_MAX_HOURS`, `FLOORBIT_TELEMETRY_PORT`, `FLOORBIT_AGENT_LOG_LEVEL` (or `LOG_LEVEL`),
+`_LOG_SUMMARY`, `FLOORBIT_AGENT_VRRP_*`), that value is used and the field on the page is locked.
+The agent reports where each value came from (*agent env*, *Floorbit* or *default*), and which ones
+wait for its next start: the address and the log level apply at once, the rest when it starts again.
+It keeps what Floorbit sent in `agent-settings.json` in its state folder (readable only by it), so it
+starts with them even while Floorbit is out of reach. A token set in Floorbit is sealed there and
+only sent to that agent; the page shows it as set, never its value.
+
+What stays in the agent's environment:
 
 | Setting | What |
 | --- | --- |
 | `FLOORBIT_URL` | the hosted Floorbit, `https://…` |
-| `FLOORBIT_AGENT_KEY` | the key from **Settings > Local agents** |
-| `FLOORBIT_AGENT_TLS_CERT`, `FLOORBIT_AGENT_TLS_KEY` | a certificate on the agent's machine, so the front door and telemetry answer with HTTPS |
-| `FLOORBIT_AGENT_ALLOW_ACTIONS`, `FLOORBIT_AGENT_PLUGIN_UPDATES` | what the people at the hall allow (actions, plugin updates): Floorbit can't decide that for them |
-| `FLOORBIT_AGENT_VRRP_*` | two agents in one hall (floorbit-agent's `docs/vrrp.md`): each machine's interface and priority |
+| `FLOORBIT_AGENT_KEY` | the key from **Agents**, to enrol it; a rolled key replaces it (below) |
+| `FLOORBIT_AGENT_ALLOW_ACTIONS`, `FLOORBIT_AGENT_PLUGIN_UPDATES` | what the people at the hall allow (actions, plugin updates) |
+| `FLOORBIT_AGENT_SWITCH_NETS`, `_GAME_NETS`, `_PROBE_NETS` | which networks it may reach |
+| `FLOORBIT_AGENT_TLS_CERT`, `FLOORBIT_AGENT_TLS_KEY` | a certificate of your own, instead of the one Floorbit signs (below) |
 | `FLOORBIT_AGENT_HEARTBEAT` | where the heartbeat file for `health` goes (next to its settings file by default) |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
+
+The limits (actions, plugin updates, networks) are only ever set in the hall, and the agent's page
+shows them read-only as the agent reports them: a stolen Floorbit login must not widen what an agent
+can reach or do.
+
+### Rolling an agent's key
+
+**Roll key** on the agent's page (or for every agent at once, `POST /api/agents/roll`) makes a new
+key; the agent fetches it on its next pull and keeps it in `agent-key` in its state folder, readable
+only by it. Nothing in its environment has to change: a stored key wins over `FLOORBIT_AGENT_KEY`,
+which only enrols it. The old key keeps working until the agent uses the new one, for 24 hours at
+most, so an answer lost on the way doesn't lock the agent out. When Floorbit refuses the stored key
+(the agent was revoked and enrolled again), the agent moves it aside and starts with the key in its
+environment. **New key** still makes a key to copy by hand, for an agent that is offline.
+
+### Certificates for the agent
+
+The front door and the telemetry listener answer HTTPS. Floorbit runs its own certificate authority
+for its agents: each agent makes its own key (it never leaves the agent) and sends a signing request;
+Floorbit signs it for the names listed under **Names on the certificate** on the agent's page, and
+only those, whatever the request asks for. A certificate lasts 397 days, the longest phones and
+browsers accept, and the agent asks for a new one 30 days before the end, when the names change, or
+when someone presses **New certificate**. It keeps it in `tls/` in its state folder.
+
+Crew devices install the CA once (**Download CA** on the agent's page, `GET /api/agents/ca.pem`)
+and then trust every agent of this Floorbit. The CA's key is sealed with the vault. A certificate set
+in the agent's environment (`FLOORBIT_AGENT_TLS_CERT`, `_TLS_KEY`) wins, for a hall that uses its own.
 
 The agent only makes outgoing requests; nothing listens on it unless a plugin that listens is on (syslog, flows, the check-in note, the front door). It runs up to 4 calls side by side,
 so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit can't be reached,
