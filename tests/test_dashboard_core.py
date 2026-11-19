@@ -70,7 +70,7 @@ def test_switch_and_seat_tiles(client):
     assert dashboard_core.switches_widget("en", {"online": 3, "offline": 0, "unknown": 0})["tone"] == "ok"
     assert dashboard_core.switches_widget("de", {"online": 0, "offline": 0, "unknown": 0})["unit"] == "von 0 online"
     unknown = dashboard_core.seats_widget("en", None, 120)
-    assert unknown["value"] == "?" and unknown["unit"] == "of 120" and "Not known" in unknown["sub"]
+    assert unknown["value"] == "?" and unknown["unit"] == "of 120, all halls" and "Not known" in unknown["sub"]
     assert dashboard_core.seats_widget("en", 87, 120)["value"] == 87
     for tile in ("switches", "seats"):
         assert client.get(f"/api/dashboard/floorbit/{tile}").get_json()["type"] == "stat"
