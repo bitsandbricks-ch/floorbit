@@ -63,7 +63,6 @@ button.fb-w-more:hover { text-decoration: underline; }
 .fb-w-axis { flex: none; height: 18px; display: flex; justify-content: space-between; font-size: 11px; color: var(--color-faint); }
 
 /* Make large: the same widget, at its large level, filling most of the screen. */
-.fb-w-big { height: 72vh; display: flex; }
 
 /* Gauge */
 .fb-w-gauge { display: flex; align-items: center; justify-content: center; min-height: 0; }

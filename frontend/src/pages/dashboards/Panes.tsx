@@ -1,6 +1,6 @@
-import { ActionIcon, Loader, Modal, Stack, Text, Tooltip } from '@mantine/core'
+import { ActionIcon, Loader, Stack, Text, Tooltip } from '@mantine/core'
 import { IconArrowsMaximize, IconExternalLink } from '@tabler/icons-react'
-import { Suspense, useState } from 'react'
+import { Suspense, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDashboard, useFeaturesOff, useWidgets } from '@/api/queries'
 import type { Tile, WidgetTile } from '@/api/types'
@@ -12,6 +12,7 @@ import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
 import { Markdown } from '@/components/Markdown'
 import { publicUrl, useScreen } from './screen'
 import { followed } from '../widgets/saved'
+import { LargeContext, useMakeLarge } from './large'
 
 const tileKey = (tile: Tile) => `${tile.plugin}/${tile.kind === 'action' ? 'a' : 'w'}/${tile.id}`
 
@@ -66,10 +67,11 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
 }
 
 /** A data widget in its pane: it fits the box at the level the box allows. "+N more" and the
- *  button open it large over the dashboard; Esc goes back. */
+ *  button open it large in the dashboard's area (#925); Esc goes back. */
 function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>; tiles: WidgetTile[] }) {
   const { t } = useTranslation()
-  const [big, setBig] = useState(false)
+  const large = useContext(LargeContext)
+  const makeLarge = useMakeLarge()
   const paced = pane.refresh ? tiles.map((x) => ({ ...x, refresh: pane.refresh! })) : tiles
   const { data, error, isPending, dropped } = usePaneData(useWidgets(paced), pane, tiles.map((x) => x.label), displayOf(pane))
   const title = pane.title ?? tiles.map((x) => x.label).join(' · ')
@@ -87,52 +89,45 @@ function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>
             </ActionIcon>
           </Tooltip>
         )}
-        <Tooltip label={t('dashboards.pane.openBig')}>
-          <ActionIcon variant="subtle" color="gray" size="sm" aria-label={t('dashboards.pane.openBigNamed', { name: title })} onClick={() => setBig(true)}>
-            <IconArrowsMaximize size={15} />
-          </ActionIcon>
-        </Tooltip>
+        {makeLarge && (
+          <Tooltip label={t('dashboards.pane.openBig')}>
+            <ActionIcon variant="subtle" color="gray" size="sm" aria-label={t('dashboards.pane.openBigNamed', { name: title })} onClick={makeLarge}>
+              <IconArrowsMaximize size={15} />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </>
     )}>
       {isPending ? <Loader size="sm" aria-label={t('common.loading')} />
         : error && !data ? <Text size="sm" className="fb-tone-err fb-pane-note" role="alert">✕ {error.message}</Text>
-          : data ? <FitWidget widget={data} pick={pane.type} pin={pane.level} look={look} onMore={() => setBig(true)} /> : null}
+          : data ? <FitWidget widget={data} pick={pane.type} pin={large ? 'l' : pane.level} look={look} onMore={makeLarge ?? undefined} /> : null}
       {dropped.length > 0 && <Text size="xs" c="dimmed" className="fb-pane-note">{t('dashboards.pane.dropped', { names: dropped.join(', ') })}</Text>}
-      {big && data && (
-        <Modal opened onClose={() => setBig(false)} title={title} size="90%" centered classNames={{ body: 'fb-w-big' }}>
-          <FitWidget widget={data} pick={pane.type} pin="l" look={look} />
-        </Modal>
-      )}
     </Framed>
   )
 }
 
-/** A rich widget. Small on the grid unless the pane is set to show it big; the button opens it big
- *  over the dashboard, with its filters and actions, without leaving the screen. */
+/** A rich widget. Small on the grid unless the pane is set to show it big; the button opens it large
+ *  in the dashboard's area, with its filters and actions, without leaving the screen. */
 function ViewPane({ pane }: { pane: Extract<Pane, { kind: 'view' }> }) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
+  const makeLarge = useMakeLarge()
+  const large = useContext(LargeContext)
   const off = useFeaturesOff()
   const def = VIEWS.find((v) => v.id === pane.view)
   // A feature switched off (Settings > Features) has no data to show: say so instead of an error.
   const View = def && !(def.feature && off.includes(def.feature)) ? VIEW_COMPONENTS[def.id] : null
   const title = pane.title ?? (def ? t(def.label) : undefined)
-  const big = !!pane.expanded
+  const big = !!pane.expanded || large
   const loading = <Loader size="sm" aria-label={t('common.loading')} />
   return (
-    <Framed title={title} hide={pane.hide_title} actions={View && !big && (
+    <Framed title={title} hide={pane.hide_title} actions={View && !big && makeLarge && (
       <Tooltip label={t('dashboards.pane.openBig')}>
         <ActionIcon variant="subtle" color="gray" aria-label={t('dashboards.pane.openBigNamed', { name: title ?? '' })}
-          onClick={() => setOpen(true)}><IconArrowsMaximize size={16} /></ActionIcon>
+          onClick={makeLarge}><IconArrowsMaximize size={16} /></ActionIcon>
       </Tooltip>
     )}>
       {View ? <Suspense fallback={loading}><View expanded={big} /></Suspense>
         : <Note>{def ? t('dashboards.pane.viewOff') : t('dashboards.pane.viewGone')}</Note>}
-      {View && open && (
-        <Modal opened onClose={() => setOpen(false)} title={title} size="90%" centered classNames={{ body: 'fb-view-big' }}>
-          <Suspense fallback={loading}><View expanded /></Suspense>
-        </Modal>
-      )}
     </Framed>
   )
 }

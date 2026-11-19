@@ -57,8 +57,10 @@ its box:
   the time axis and each line's maximum and average.
 
 Hover a graph (or touch it) for the time and every line's value under the pointer; a cut-off row or
-number shows in full on hover. **+N more** and the **Open big** button open the tile large over the
-dashboard; Esc goes back. **Details** jumps to the page behind it.
+number shows in full on hover. **+N more** and the **Make large** button show the tile at its large
+level in the whole dashboard area; the sidebar and the time stay. The address gets `?w=`, so the
+browser's Back and a shared link work. **Back to the dashboard** or Esc goes back, and on a full
+screen it goes back by itself after a minute. **Details** jumps to the page behind it.
 
 In the pane's settings, **Show as** draws the same data as another kind where it makes sense:
 

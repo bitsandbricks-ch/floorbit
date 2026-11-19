@@ -128,8 +128,8 @@
     "viewGone": "Dieses Widget gibt es nicht mehr.",
     "noText": "Schreib etwas in die Einstellungen des Bereichs.",
     "private": "Braucht ein Konto: auf einem öffentlichen Bildschirm nicht gezeigt.",
-    "openBig": "Gross öffnen",
-    "openBigNamed": "{{name}} gross öffnen",
+    "openBig": "Gross zeigen",
+    "openBigNamed": "{{name}} gross zeigen",
     "viewOff": "Die Funktion dieses Widgets ist ausgeschaltet (Einstellungen > Funktionen).",
     "dropped": "Weggelassen, passt nicht zur ersten Kachel: {{names}}",
     "widgetGone": "Dieses gespeicherte Widget gibt es nicht mehr. Bearbeite das Dashboard, um ein anderes zu wählen."
@@ -146,6 +146,11 @@
   "fit": "An Bildschirm anpassen",
   "frame": "Kopfzeile und Statuszeile im Vollbild",
   "nextBoard": "Danach: {{name}}",
+  "large": {
+    "back": "Zurück zum Dashboard",
+    "esc": "Esc geht zurück",
+    "backAfter": "Geht nach {{seconds}} s von selbst zurück · Esc"
+  },
   "section": {
     "new": "Neuer Abschnitt",
     "untitled": "Titel des Abschnitts (leer: nur eine Trennlinie)",

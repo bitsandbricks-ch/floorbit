@@ -128,8 +128,8 @@
     "viewGone": "This widget is gone.",
     "noText": "Write something in the pane's settings.",
     "private": "Needs an account: not shown on a public screen.",
-    "openBig": "Open big",
-    "openBigNamed": "Open {{name}} big",
+    "openBig": "Make large",
+    "openBigNamed": "Make {{name}} large",
     "viewOff": "This widget's feature is turned off (Settings > Features).",
     "dropped": "Left out, doesn't fit with the first tile: {{names}}",
     "widgetGone": "This saved widget is gone. Edit the dashboard to pick another."
@@ -146,6 +146,11 @@
   "fit": "Fit to screen",
   "frame": "Header and status line in full screen",
   "nextBoard": "Next: {{name}}",
+  "large": {
+    "back": "Back to the dashboard",
+    "esc": "Esc goes back",
+    "backAfter": "Goes back by itself in {{seconds}} s · Esc"
+  },
   "section": {
     "new": "New section",
     "untitled": "Section title (empty: just a divider)",

@@ -83,6 +83,25 @@ describe('Dashboard screen', () => {
     expect(screen.getByLabelText('Time')).toBeInTheDocument()
   })
 
+  it('makes a pane large in the dashboard area, and Esc goes back', async () => {
+    const api = fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: false, board, tiles: { 'floorbit/w/down': 'Switches down' }, app: '1' },
+      'GET /api/dashboards/kiosk/public/tiles/down': {
+        id: 'down', type: 'list', items: [{ label: 'sw-a-01', value: '7 min', tone: 'err' }], sub: '', link: '',
+      },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    layOut()
+    show()
+    ;(await screen.findByRole('button', { name: 'Make Switches down large' })).click()
+    expect(await screen.findByRole('button', { name: 'Back to the dashboard' })).toBeInTheDocument()
+    expect(screen.getByText('Goes back by itself in 60 s · Esc')).toBeInTheDocument()
+    expect(screen.getByText('sw-a-01')).toBeInTheDocument()
+    expect(screen.queryByText('Welcome')).not.toBeInTheDocument()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    expect(await screen.findByText('Welcome')).toBeInTheDocument()
+  })
+
   it('keeps showing the board while the server is away, with a small note instead of a banner', async () => {
     const api = fakeFetch({
       'GET /api/dashboards/kiosk/public': { account: false, board, tiles: {}, app: '1' },

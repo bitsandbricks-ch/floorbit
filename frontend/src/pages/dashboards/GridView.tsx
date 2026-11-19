@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next'
 import { COLS, type Panel, ROW_PX, type Section, type Spot, rows } from './grid'
 import type { Path, Split } from './model'
 import { SplitView } from './SplitView'
+import { LargeContext, PaneKey, paneAt, paneKey, useLarge } from './large'
+import { LargeBar } from './LargeBar'
+import { PaneView } from './Panes'
 
 export interface GridEditing {
   selected: Spot | null
@@ -23,8 +26,25 @@ const GAP = 8
 
 /** A dashboard's sections and their panels on the grid. With ``fit`` the rows share the screen's
  *  height (each section by its rows); otherwise rows are ROW_PX high and the page scrolls. */
-export function GridView({ sections, fit, cycle, editing }: { sections: Section[]; fit: boolean; cycle?: number; editing?: GridEditing }) {
+export function GridView({ sections, fit, cycle, editing, backAfter }: {
+  sections: Section[]; fit: boolean; cycle?: number; editing?: GridEditing
+  /** Seconds after which a large pane goes back to the dashboard by itself (a wall). */
+  backAfter?: number
+}) {
   const [folded, setFolded] = useState<Record<number, boolean>>({})
+  const { open, close } = useLarge()
+  // "Make large" (#925): the one pane fills the dashboard's area; a key that no longer fits shows the dashboard.
+  const large = !editing && open ? paneAt(sections, open) : null
+  if (large) {
+    return (
+      <div className={`fb-grid fb-grid-large${fit ? ' fit' : ''}`}>
+        <LargeBar onBack={close} backAfter={backAfter} />
+        <div className="fb-grid-large-body">
+          <LargeContext.Provider value><PaneView pane={large} cycle={cycle} /></LargeContext.Provider>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className={`fb-grid${fit ? ' fit' : ''}${editing ? ' editing' : ''}`}>
       {sections.map((section, s) => {
@@ -121,13 +141,15 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
         const sel = editing?.selected
         return (
           <div key={i} className="fb-grid-item" style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}`, ['--rows' as string]: p.h }}>
-            <SplitView node={p.node} cycle={cycle} editing={editing && {
-              selected: sel && sel.section === index && sel.panel === i ? sel.path : null,
-              onSelect: (path) => editing.onSelect(here(path)),
-              onSplit: (path, dir) => editing.onSplit(here(path), dir),
-              onRemove: (path) => editing.onRemove(here(path)),
-              onResize: (path, border, pct) => editing.onResizeSplit(here(path), border, pct),
-            }} />
+            <PaneKey.Provider value={editing ? null : paneKey(index, i)}>
+              <SplitView node={p.node} cycle={cycle} editing={editing && {
+                selected: sel && sel.section === index && sel.panel === i ? sel.path : null,
+                onSelect: (path) => editing.onSelect(here(path)),
+                onSplit: (path, dir) => editing.onSplit(here(path), dir),
+                onRemove: (path) => editing.onRemove(here(path)),
+                onResize: (path, border, pct) => editing.onResizeSplit(here(path), border, pct),
+              }} />
+            </PaneKey.Provider>
             {editing && (
               <>
                 <button type="button" className="fb-grid-grip" aria-label={t('dashboards.edit.move')} title={t('dashboards.edit.moveHint')}

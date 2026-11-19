@@ -138,3 +138,10 @@
 /* The colour a series setting picks, shown in its picker. */
 .fb-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
 .fb-series-row { padding-left: 8px; border-left: 2px solid var(--color-line); }
+
+/* Make large (#925): one pane fills the dashboard's area, under a bar that goes back. */
+.fb-grid-large { display: flex; flex-direction: column; gap: 8px; }
+.fb-grid-large-bar { display: flex; align-items: center; gap: 12px; }
+.fb-grid-large-body { flex: 1; display: flex; flex-direction: column; min-height: calc(100vh - 200px); }
+.fb-grid-large.fit .fb-grid-large-body { min-height: 0; }
+.fb-grid-large-body > .fb-pane { flex: 1; min-height: 0; }

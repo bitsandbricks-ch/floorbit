@@ -1,9 +1,10 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
 import { IconLayoutColumns, IconLayoutRows, IconSettings, IconTrash } from '@tabler/icons-react'
-import { Fragment, useRef } from 'react'
+import { Fragment, useContext, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isPane, type Node, type Path, type Split } from './model'
 import { PaneView } from './Panes'
+import { PaneKey } from './large'
 
 export interface Editing {
   selected: Path | null
@@ -18,10 +19,14 @@ const same = (a: Path | null, b: Path) => !!a && a.length === b.length && a.ever
 /** A dashboard drawn as nested splits. With ``editing`` each pane gets its tools and the borders
  *  between parts can be dragged. */
 export function SplitView({ node, path = [], editing, cycle }: { node: Node; path?: Path; editing?: Editing; cycle?: number }) {
+  // The grid cell's key; the pane's own adds its place in the splits ("make large", ?w=).
+  const base = useContext(PaneKey)
   if (isPane(node)) {
     return (
       <div className={`fb-split-pane${editing && same(editing.selected, path) ? ' selected' : ''}`}>
-        <PaneView pane={node.pane} cycle={cycle} />
+        <PaneKey.Provider value={base == null ? null : [base, ...path].join('.')}>
+          <PaneView pane={node.pane} cycle={cycle} />
+        </PaneKey.Provider>
         {editing && <PaneTools path={path} editing={editing} />}
       </div>
     )
