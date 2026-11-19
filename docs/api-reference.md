@@ -245,6 +245,10 @@ Source: [`floorbit/blueprints/dashboards.py`](https://github.com/bitsandbricks-c
 | GET | `/api/dashboards/<layout_id>/public` | anyone |  |
 | GET | `/api/dashboards/<layout_id>/public/plan` | anyone |  |
 | GET | `/api/dashboards/<layout_id>/public/tiles/<tile>` | anyone |  |
+| GET | `/api/widgets` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/widgets` | `floorplan.edit` |  |
+| DELETE | `/api/widgets/<widget_id>` | `floorplan.edit` |  |
+| PUT | `/api/widgets/<widget_id>` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.demo
 
