@@ -102,6 +102,25 @@ describe('Dashboard screen', () => {
     expect(await screen.findByText('Welcome')).toBeInTheDocument()
   })
 
+  it('calls attention to something down that nobody has taken yet', async () => {
+    const down = (id: string, extra: object = {}) => ({ id, kind: 'switch', level: 'down', title: `${id} down`, where: 'Hall A', since: null, link: '', ...extra })
+    const api = fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': board,
+      'GET /api/problems': { counts: { down: 3, warn: 0, muted: 0 }, checked_at: 0, mutes: [], quiet_hours: false, can_mute: true, problems: [
+        down('sw-a-01'), down('sw-b-02', { incident: 'i1' }), down('sw-c-03', { muted: { until: 0, by: null, reason: '' } }),
+      ] },
+      'GET /api/version': { app: '1' },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    show()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('sw-a-01 down')
+    // Taken (an incident) or muted: no call for attention.
+    expect(alert).not.toHaveTextContent('sw-b-02')
+    expect(alert).not.toHaveTextContent('sw-c-03')
+  })
+
   it('keeps showing the board while the server is away, with a small note instead of a banner', async () => {
     const api = fakeFetch({
       'GET /api/dashboards/kiosk/public': { account: false, board, tiles: {}, app: '1' },

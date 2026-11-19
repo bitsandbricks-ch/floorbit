@@ -149,6 +149,12 @@
   "layoutScreen": "Screen: fits",
   "frame": "Header and status line in full screen",
   "nextBoard": "Next: {{name}}",
+  "attention": {
+    "held": "Rotation waits",
+    "more_one": "+{{count}} more",
+    "more_other": "+{{count}} more",
+    "hint": "Open an incident or mute it to clear this"
+  },
   "large": {
     "back": "Back to the dashboard",
     "esc": "Esc goes back",

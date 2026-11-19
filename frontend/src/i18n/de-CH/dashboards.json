@@ -149,6 +149,12 @@
   "layoutScreen": "Bildschirm: passt",
   "frame": "Kopfzeile und Statuszeile im Vollbild",
   "nextBoard": "Danach: {{name}}",
+  "attention": {
+    "held": "Wechsel wartet",
+    "more_one": "+{{count}} weiteres",
+    "more_other": "+{{count}} weitere",
+    "hint": "Störung eröffnen oder stumm schalten, dann verschwindet das"
+  },
   "large": {
     "back": "Zurück zum Dashboard",
     "esc": "Esc geht zurück",

@@ -159,3 +159,12 @@
   border: 1px solid var(--color-line); pointer-events: none; }
 .fb-grid-size { position: absolute; right: 10px; bottom: 26px; z-index: 5; font-size: 12px; font-weight: 700; padding: 2px 8px;
   border-radius: 6px; color: var(--color-on-bit); background: var(--color-bit); pointer-events: none; }
+
+/* A wall's call for attention: something is down and nobody has taken it (#1137). */
+.fb-screen-alert { display: flex; align-items: center; gap: 1vw; padding: .6vh 1vw; border-radius: 8px;
+  font-size: clamp(14px, 1.1vw, 30px); color: var(--color-fg); white-space: nowrap; overflow: hidden;
+  background: color-mix(in srgb, var(--color-down) 22%, var(--color-raised)); border: 1px solid var(--color-down);
+  animation: fb-screen-alert 2s ease-in-out infinite; }
+.fb-screen-alert-hint { color: var(--color-muted); font-size: .8em; }
+@keyframes fb-screen-alert { 50% { background: color-mix(in srgb, var(--color-down) 8%, var(--color-raised)); } }
+@media (prefers-reduced-motion: reduce) { .fb-screen-alert { animation: none; } }
