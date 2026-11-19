@@ -16,6 +16,7 @@ import { PageHead } from '@/components/PageHead'
 import { dates, METRICS, share } from './events/metrics'
 import { TenantEvents } from './events/TenantEvents'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { toastDone } from '@/components/toast'
 
 type Column = { id: string; name: string; start: number | null; end: number | null; figures: EventFigures; current?: boolean }
 
@@ -120,7 +121,6 @@ export default function Events() {
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.events })
   useLiveEvent('events.changed', refresh)
   const [renaming, setRenaming] = useState<PastEvent | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const remove = useMutation({ mutationFn: (id: string) => del(`/api/past-events/${id}`), onSuccess: refresh })
   const d = query.data
   const tz = new Date().getTimezoneOffset()
@@ -134,7 +134,6 @@ export default function Events() {
       <Stack gap="md">
         <ErrorBanner error={error} />
         <TenantEvents isAdmin={isAdmin} />
-        {notice && <Alert color="up" role="status" withCloseButton onClose={() => setNotice(null)}>{notice}</Alert>}
         {query.isPending ? <LoadingState /> : d && (
           <>
             <Comparison columns={columns} />
@@ -179,7 +178,7 @@ export default function Events() {
               )}
             </Paper>
             {isAdmin && (
-              <CloseEvent name={d.current.name} onDone={(a) => { setNotice(t('events.closed', { name: a.name })); refresh() }} />
+              <CloseEvent name={d.current.name} onDone={(a) => { toastDone(t('events.closed', { name: a.name })); refresh() }} />
             )}
           </>
         )}

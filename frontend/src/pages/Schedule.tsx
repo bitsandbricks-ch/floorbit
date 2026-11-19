@@ -19,6 +19,7 @@ import { fromInput, toInput } from './schedule/time'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { revealForm } from '@/lib/revealForm'
 import { clock, dateOnly } from '@/lib/time'
+import { toastDone } from '@/components/toast'
 
 const COLORS: Record<ScheduleKind, string> = { talk: 'bit', tournament: 'warn', meal: 'up', quiet: 'cyan', other: 'gray' }
 
@@ -109,7 +110,7 @@ export default function Schedule() {
     mutationFn: async (file: File) => post<{ added: number; updated: number; removed: number }>('/api/schedule/import', {
       ics: await file.text(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
     }),
-    onSuccess: refresh,
+    onSuccess: (r) => { toastDone(t('schedule.imported', r)); refresh() },
   })
   const d = query.data
   const day = (ts: number) => dateOnly(ts, i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })
@@ -134,11 +135,6 @@ export default function Schedule() {
         ) : undefined} />
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
       {err && <Alert color="down" role="alert" mb="sm">{err.message}</Alert>}
-      {upload.data && (
-        <Alert color="up" role="status" mb="sm" withCloseButton onClose={() => upload.reset()}>
-          {t('schedule.imported', upload.data)}
-        </Alert>
-      )}
       {query.isPending || !d ? <LoadingState /> : (
         <Stack gap="md">
           <EventTimes key={`${d.event.start}-${d.event.end}`} data={d} canEdit={canEdit} />
