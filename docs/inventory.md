@@ -151,6 +151,14 @@ page, or the sync button on the floor plan). Floorbit merges them with these rul
 Bad entries from a plugin (no ID, no name, an IP that isn't one) are skipped and counted, never
 stored.
 
+### Syncing on its own
+
+Set **Inventory sync (minutes)** under Settings > General (`INVENTORY_SYNC_MINUTES`) and Floorbit
+runs the same sync by itself, so a switch added in NetBox during setup shows up without anyone
+pressing **Sync now**. 0 (the default) is off; less than 5 counts as 5, at most once a day. The
+time counts from the newest sync, by hand or not, and a failed one waits the same time before the
+next try. With several pods only the leader syncs. The Inventory page says how often it runs.
+
 ### What NetBox sends besides devices
 
 The NetBox plugin also fills these types, with the same rules (hand edits lock a field, nothing is

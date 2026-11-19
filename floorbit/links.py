@@ -31,7 +31,7 @@ MEDIA = {'cat5e': 'copper', 'cat6': 'copper', 'cat6a': 'copper', 'fiber-sm': 'fi
 SPEEDS = (1, 10, 25, 40, 100)           # Gbit/s
 LABELS = {'cat5e': 'Copper Cat5e', 'cat6': 'Copper Cat6', 'cat6a': 'Copper Cat6a', 'fiber-sm': 'Fiber single-mode',
           'fiber-mm': 'Fiber multi-mode', 'dac': 'DAC'}
-PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}$')
+PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}\Z')
 ROLES = ('switch', 'router', 'firewall')  # what the topology draws
 READ_EVERY = 30                          # seconds a switch's ports are kept
 NEIGHBOURS_EVERY = 120

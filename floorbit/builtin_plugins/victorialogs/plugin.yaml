@@ -1,0 +1,21 @@
+# Sends the syslog to VictoriaLogs for longer storage, and reads it back with LogsQL (docs/syslog.md).
+# Off until turned on under Settings > Plugins. docker-compose.yml runs one with --profile logs.
+id: victorialogs
+name: VictoriaLogs
+icon: book
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "Sends the syslog lines Floorbit receives to VictoriaLogs, to keep them longer than a day, and searches them with LogsQL on the Logs page."
+author: Floorbit
+homepage: https://docs.victoriametrics.com/victorialogs/
+uses: [settings, http, logs]
+settings:
+  - {key: url, label: VictoriaLogs URL, type: url, placeholder: "http://victorialogs:9428",
+     help: "VictoriaLogs' HTTP address, without /insert or /select."}
+  - {key: account, label: Tenant, type: string, placeholder: "0:0",
+     help: "AccountID:ProjectID when VictoriaLogs keeps several tenants. Leave empty otherwise."}
+  - {key: username, label: Username, type: string, help: "For VictoriaLogs behind basic auth (vmauth or a proxy)."}
+  - {key: password, label: Password or token, type: secret}
+  - {key: event_label, label: Event label, type: string, placeholder: "summer-lan",
+     help: "Added to every line as event=..., to tell events apart in one VictoriaLogs."}
+  - {key: verify_ssl, label: Verify TLS certificates, type: bool, default: true}

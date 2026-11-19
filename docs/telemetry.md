@@ -131,7 +131,8 @@ Neither does model-driven streaming. What comes closest:
   the normalised series (`fb_port_in_bps_value{device,port}`, `fb_port_out_bps_value`,
   `fb_port_errors_value`, `fb_port_up_value`, `fb_device_up_value`, `fb_device_cpu_value`,
   `fb_device_mem_value`, `fb_device_states_value`), for as long as its `-retentionPeriod` says.
-- **VictoriaLogs** for log events: `--profile logs` and `FLOORBIT_VICTORIALOGS_URL=http://victorialogs:9428`.
+- Logs aren't telemetry: to keep the syslog longer, start VictoriaLogs with `--profile logs` and turn on
+  its plugin ([syslog.md](syslog.md#keeping-it-longer-victorialogs-or-grafana-loki)).
 - **Grafana** (`--profile grafana`): add VictoriaMetrics as a Prometheus data source.
 
 Redis isn't used for telemetry.

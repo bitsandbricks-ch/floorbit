@@ -372,6 +372,9 @@ SCHEMA = [
      'help': 'Turn off only for a source with a self-signed certificate on the event network.'},
 
     # General
+    {'key': 'INVENTORY_SYNC_MINUTES', 'group': 'general', 'type': 'int', 'default': 0,
+     'label': 'Inventory sync (minutes)',
+     'help': 'How often the inventory plugins (NetBox) are synced on their own, 5 or more. 0 is off: only Sync now.'},
     {'key': 'PUBLIC_URL', 'group': 'general', 'type': 'string', 'default': '',
      'label': 'Public URL', 'help': 'Where people open the floor plan; used for links in alerts.'},
     {'key': 'QR_URL', 'group': 'general', 'type': 'string', 'default': '',

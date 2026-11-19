@@ -22,6 +22,9 @@ def index():
     from auth import current_user, roles
     args = request.args.to_dict()
     user = current_user()
+    if not args and user and user.get('dashboards'):
+        # A screen account limited to some dashboards (#702) starts on the first of them.
+        return redirect(f"/dashboards/{user['dashboards'][0]}")
     if args and user and roles.can(user, 'floorplan.edit'):
         args.setdefault('edit', '1')
     return redirect('/plan' + (f'?{urlencode(args)}' if args else ''))

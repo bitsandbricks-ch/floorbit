@@ -68,6 +68,13 @@ def create_users_blueprint(auth):
                 raise UserError('You cannot change your own role. Ask another admin.')
             if 'role' in body or 'display_name' in body:
                 auth.users.update(username, role=body.get('role'), display_name=body.get('display_name'))
+            if 'dashboards' in body:
+                from floorbit import dashboards
+                try:
+                    limit = dashboards.clean_limit(body['dashboards'])
+                except dashboards.LayoutError as exc:
+                    raise UserError(str(exc)) from exc
+                auth.users.update(username, dashboards=limit)
             if body.get('password'):
                 auth.users.set_password(username, body['password'])
             if 'discord_id' in body:

@@ -74,6 +74,15 @@ account or a custom role ([auth.md](auth.md)).
 A signed-out screen reads `GET /api/dashboards/<id>/public` and, below it, `/plan?hall=` and
 `/tiles/<tile>`; they answer only for a public dashboard and only for what it shows.
 
+## A screen account for some dashboards
+
+A wall screen's account can be limited to some dashboards: under Settings > Users, **Limit
+dashboards** on its row, pick them and save. That account then lists and opens only those (another
+one's address takes it to the first of them, `GET /api/dashboards/<id>` answers 404), and `/` starts
+on the first. Public dashboards still open, as they do for anyone. An empty list lifts the limit.
+It narrows what the account's role allows; the rest of the role stays as it is. For example: a
+`kiosk` account for the Hall B wall, limited to the Hall B dashboard.
+
 ## On the screen
 
 **Open full screen** opens `/dashboards/<id>`: no sidebar, a clock in the corner, the pointer hides

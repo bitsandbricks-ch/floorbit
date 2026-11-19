@@ -53,7 +53,7 @@ CATEGORIES = {
     'updates': ('windowsupdate.com', 'nvidia.com', 'amd.com'),
 }
 CATEGORY_IDS = (*CATEGORIES, 'other')
-LABEL_RE = re.compile(r'^[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?$')
+LABEL_RE = re.compile(r'^[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?\Z')
 
 _stats = None
 

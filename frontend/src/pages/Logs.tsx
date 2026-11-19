@@ -68,6 +68,9 @@ function StatusLine({ status }: { status: LogStatus }) {
       {(status.stores ?? []).map((st) => st.error
         ? <Badge key={st.id} color="warn" variant="light" tt="none">{t('logs.storeError', { name: st.name, error: st.error })}</Badge>
         : <Text key={st.id} size="xs" c="dimmed">· {t('logs.storeSent', { name: st.name, n: num(st.sent ?? 0) })}</Text>)}
+      {!!status.leases?.granted && (
+        <Text size="xs" c="dimmed">· {t('logs.leases', { count: status.leases.granted, n: num(status.leases.granted) })}</Text>
+      )}
     </Group>
   )
 }
@@ -124,6 +127,12 @@ function Compact({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) 
   )
 }
 
+// Each logs plugin's own query language, with an example for the box.
+const QUERY: Record<string, { language: string; example: string }> = {
+  loki: { language: 'LogQL', example: '{job="floorbit"} |= "err-disable"' },
+  victorialogs: { language: 'LogsQL', example: 'device:sw-a-01 err-disable' },
+}
+
 /** Syslog from the event's switches, firewalls and DHCP servers (issue #91): search, filter and
  *  follow along. Lines name MACs and IPs, so the page needs seats.view like the API. With
  *  audit.read, the same viewer also shows Floorbit's own log and the audit log (issue #93). */
@@ -141,7 +150,7 @@ export default function Logs() {
   })
   const syslog = source === 'syslog'
   const store = source.startsWith('plugin:')
-  // A LogQL query runs when it's sent (Enter), not on every key: half a query is an error.
+  // A logs plugin's query runs when it's sent (Enter), not on every key: half a query is an error.
   const [logql, setLogql] = useState('')
   const [draft, setDraft] = useState('')
   const [hours, setHours] = useState('24')
@@ -179,6 +188,7 @@ export default function Logs() {
   const filtered = store ? logql !== '' : syslog ? Object.values(filters).some((v) => v !== '') : filters.q !== '' || filters.severity !== ''
   const sources = data?.status.sources ?? ['syslog']
   const onDevice = syslog ? set('device') : undefined
+  // A logs plugin's line id is its time in microseconds: lines sent in one go share it, so it can't be the key alone.
   const storeName = (s: string) => data?.status.stores?.find((x) => `plugin:${x.id}` === s)?.name ?? s.slice('plugin:'.length)
   const phone = useMediaQuery('(max-width: 48em)')
 
@@ -187,14 +197,15 @@ export default function Logs() {
       <PageHead title={t('logs.title')} desc={t(syslog ? 'logs.intro' : store ? 'logs.intros.store' : `logs.intros.${source}`)}
         actions={<Switch label={t('logs.live')} checked={live} onChange={(e) => setLive(e.currentTarget.checked)} />} />
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
-      {data?.status.error && <Alert color="warn" mb="md">{data.status.error}</Alert>}
+      {syslog && data?.status.error && <Alert color="warn" mb="md">{data.status.error}</Alert>}
       {sources.length > 1 && (
         <SegmentedControl mb="sm" value={source} onChange={(v) => setSource(v as LogSource)} aria-label={t('logs.source')}
           data={sources.map((s) => ({ value: s, label: s.startsWith('plugin:') ? storeName(s) : t(`logs.sources.${s}`) }))} />
       )}
       {store ? (
         <Group gap="sm" mb="sm" align="flex-end" wrap="wrap">
-          <TextInput label={t('logs.logql')} placeholder='{job="floorbit"} |= "err-disable"' value={draft} styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)' } }}
+          <TextInput label={QUERY[source.slice('plugin:'.length)] ? t('logs.queryIn', { language: QUERY[source.slice('plugin:'.length)].language }) : t('logs.query')}
+            placeholder={QUERY[source.slice('plugin:'.length)]?.example} value={draft} styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)' } }}
             style={{ flex: '3 1 320px' }} onChange={(e) => setDraft(e.currentTarget.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') setLogql(draft.trim()) }} />
           <Select label={t('logs.range')} value={hours} onChange={(v) => setHours(v ?? '24')} allowDeselect={false}
@@ -233,7 +244,7 @@ export default function Logs() {
             <>
               {phone ? (
                 <ul className="fb-log-lines" aria-label={t('logs.title')}>
-                  {lines.map((l) => <Compact key={l.id} line={l} onDevice={onDevice} />)}
+                  {lines.map((l, i) => <Compact key={store ? `${l.id}-${i}` : l.id} line={l} onDevice={onDevice} />)}
                 </ul>
               ) : (
                 <Table.ScrollContainer minWidth={640}>
@@ -247,7 +258,7 @@ export default function Logs() {
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {lines.map((l) => <Row key={l.id} line={l} onDevice={onDevice} />)}
+                      {lines.map((l, i) => <Row key={store ? `${l.id}-${i}` : l.id} line={l} onDevice={onDevice} />)}
                     </Table.Tbody>
                   </Table>
                 </Table.ScrollContainer>

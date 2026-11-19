@@ -31,7 +31,7 @@ from datetime import datetime
 
 from integrations import config
 
-from . import features, inventory, log_alerts, store
+from . import dhcp_leases, features, inventory, log_alerts, store
 
 MAX_LINE = 2048
 LATE = 120               # seconds: a relayed line older than this was kept by the agent (#465)
@@ -373,6 +373,8 @@ class SyslogReceiver:
         self._write(line)
         if not late:      # an alert about something hours ago would only send the crew running now
             self.alerts.observe(line, now)
+            # A lease line hours old could undo a newer one; the lease ran out by now anyway.
+            dhcp_leases.leases.observe(line['message'], now)
         return line
 
     def relay(self, agent_name, lines, now=None, dropped=0, offset=0.0):
@@ -550,6 +552,7 @@ class SyslogReceiver:
                     'relayed': [{'agent': name, **seen, 'recent': time.time() - seen['at'] < 300}
                                 for name, seen in sorted(self.relayed.items())],
                     'last_id': self.lines[-1]['id'] if self.lines else 0,
+                    'leases': dhcp_leases.leases.status(),
                     'stores': [{'id': s.id, 'name': s.name, **{k: v for k, v in self.forwarded.get(s.id, {}).items()
                                                                if k != 'id'}} for s in self.log_plugins()]}
 
@@ -639,6 +642,9 @@ def demo_lines(now):
         out.append(('dist-01', '<189>%SPANTREE-5-TOPOTRAP: Topology Change Trap for vlan 100'))
     if minute % 5 == 0:
         out.append(('dhcp-01', '<30>dhcpd[812]: DHCPACK on 192.0.2.40 to 02:00:00:00:00:1e via eth1'))
+    if minute % 10 == 3:
+        out.append(('dhcp-01', '<28>dhcpd[812]: DHCPDISCOVER from 02:00:00:00:00:51 via eth1: network 192.0.2.0/24: '
+                               'no free leases'))
     out.append(('fw-01', f'<134>filterlog[5512]: 5,,,1000000103,igb1,match,block,in,4,0x0,,64,{minute % 65000},0,'
                          'none,17,udp,76,203.0.113.9,198.51.100.1,123,123,56'))
     return out

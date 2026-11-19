@@ -17,6 +17,9 @@ PATTERNS = (
     ('port_security', re.compile(r'PSECURE_VIOLATION|PORT_SECURITY|port.security violation', re.I),
      'Port security violation'),
     ('dhcp_snooping', re.compile(r'DHCP_SNOOPING|dhcp.snooping', re.I), 'DHCP snooping dropped packets'),
+    # The DHCP server ran out of addresses: ISC dhcpd, Kea, dnsmasq, MikroTik. Seats get no IP at all.
+    ('dhcp_pool', re.compile(r'no free leases|ALLOC_ENGINE_V4_ALLOC_FAIL|no address available|'
+                             r'pool \S+ is empty|pool exhausted', re.I), 'DHCP server out of addresses'),
     ('mac_flap', re.compile(r'MACFLAP|MAC_MOVE|flapping between port', re.I), 'MAC address moving between ports'),
     ('loop', re.compile(r'LOOP_?(?:BACK_)?DETECT|loop(?:-?back)? detected', re.I), 'Loop detected'),
     ('storm', re.compile(r'STORM_CONTROL|storm.control', re.I), 'Storm control'),

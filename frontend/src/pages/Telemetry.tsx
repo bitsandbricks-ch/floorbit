@@ -24,7 +24,7 @@ export interface TelemetrySettings {
   /** Devices from the inventory with the Telemetry feature on: set up there, shown here. */
   inventory?: TelemetryTarget[]
   status: { collector: 'here' | 'agent'; devices: number; points: number; unknown: number; poll_errors: Record<string, string>
-    storage: { mode: string; logs: string | null; keep_days: number | null; errors: Record<string, string> } }
+    storage: { mode: string; keep_days: number | null; errors: Record<string, string> } }
   drivers: string[]; platforms: string[]; kinds: string[]; fdb_modes: string[]
 }
 

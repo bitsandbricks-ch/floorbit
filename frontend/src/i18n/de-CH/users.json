@@ -32,5 +32,11 @@
   "optional": "Freiwillig",
   "password": "Passwort",
   "addButton": "Konto hinzufügen",
-  "added": "{{name}} hinzugefügt."
+  "added": "{{name}} hinzugefügt.",
+  "dashboards": "Dashboards",
+  "dashboardsHelp": "Das Konto eines Wandbildschirms: Es sieht und öffnet nur diese und startet auf dem ersten. Leer: alle Dashboards.",
+  "allDashboards": "Alle Dashboards",
+  "limitDashboards": "Dashboards beschränken",
+  "onlyDashboards_one": "Nur {{count}} Dashboard",
+  "onlyDashboards_other": "Nur {{count}} Dashboards"
 }

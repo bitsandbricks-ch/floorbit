@@ -34,12 +34,6 @@ CHANGE_AREAS = ('ports', 'settings', 'floor plan', 'power', 'plugins', 'accounts
 _lock = threading.Lock()
 
 
-class HandoverError(ValueError):
-    def __init__(self, message, status=400):
-        super().__init__(message)
-        self.status = status
-
-
 def history(data=None):
     data = data if data is not None else load_data()
     raw = data.get(KEY) if isinstance(data.get(KEY), list) else []

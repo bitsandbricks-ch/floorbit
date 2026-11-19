@@ -26,8 +26,8 @@ MODES = ('access', 'trunk', 'routed', '')
 MAX_PER_DEVICE = 1024
 MAX_RANGE = 512
 MAX_IPS = 16
-NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:@+-]{0,63}$')
-MAC_RE = re.compile(r'^[0-9a-f]{12}$')
+NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:@+-]{0,63}\Z')
+MAC_RE = re.compile(r'^[0-9a-f]{12}\Z')
 # "Gi1/0/1-48", "eth0-3", "1-24": a prefix and the number range at the end.
 RANGE_RE = re.compile(r'^(?P<prefix>.*?)(?P<first>\d+)\s*-\s*(?P<last>\d+)$')
 

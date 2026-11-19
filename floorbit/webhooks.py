@@ -31,7 +31,7 @@ MAX_HOOKS = 20
 TIMEOUT = 5
 RETRY_DELAYS = (10, 60, 300)
 LOG_SIZE = 20
-NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}$')
+NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}\Z')
 # The events a hook can pick, in the order the settings page lists them.
 EVENTS = ('switch.down', 'switch.up', 'monitoring.offline', 'monitoring.online', 'incident.opened',
           'incident.changed', 'seat.checked_in', 'security.finding', 'power.alert', 'health.changed',

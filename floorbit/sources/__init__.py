@@ -111,10 +111,12 @@ class NoMonitoring:
         return []
 
     def mac_for_ip(self, ip):
-        return None
+        from ..dhcp_leases import leases
+        return leases.mac_for_ip(ip)
 
     def ip_for_mac(self, mac):
-        return None
+        from ..dhcp_leases import leases
+        return leases.ip_for_mac(mac)
 
 
 class PluginMonitoring(NoMonitoring):
@@ -207,17 +209,24 @@ class PluginMonitoring(NoMonitoring):
         return result or []
 
     def mac_for_ip(self, ip):
-        """IP to MAC from the ARP data (None if unknown)."""
+        """IP to MAC: the DHCP server's lease if its syslog told us (fresh), else the ARP data
+        (None if unknown)."""
+        leased = super().mac_for_ip(ip)
+        if leased:
+            return leased
         for entry in self.arp(ip):
             if entry.get('ipv4_address') == ip:
                 return normalise_mac(entry.get('mac_address'))
         return None
 
     def ip_for_mac(self, mac):
-        """MAC to its current IP from the ARP data (None if unknown)."""
+        """MAC to its current IP: the DHCP lease, else the ARP data (None if unknown)."""
         want = normalise_mac(mac)
         if not want:
             return None
+        leased = super().ip_for_mac(want)
+        if leased:
+            return leased
         for entry in self.arp(want):
             if normalise_mac(entry.get('mac_address')) == want and entry.get('ipv4_address'):
                 return entry['ipv4_address']

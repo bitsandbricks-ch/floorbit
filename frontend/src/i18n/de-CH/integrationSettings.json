@@ -127,6 +127,10 @@
     "backup": {
       "title": "Sicherungen nach S3",
       "desc": "Lädt regelmässig eine Sicherung in einen S3-Bucket (Amazon S3, MinIO, Garage, Backblaze B2 und andere). Die Sicherungen werden unter «Sichern und wiederherstellen» aufgelistet, wiederhergestellt und heruntergeladen."
+    },
+    "plugin-victorialogs": {
+      "title": "Plugin: VictoriaLogs",
+      "desc": "Schickt die Syslog-Zeilen, die Floorbit empfängt, an VictoriaLogs, um sie länger als einen Tag aufzubewahren, und durchsucht sie auf der Seite Logs mit LogsQL."
     }
   },
   "fields": {
@@ -349,6 +353,10 @@
     "integrations_checkin_history_file": {
       "label": "Datei des Check-in-Verlaufs",
       "help": "Ein Protokoll im Format JSON Lines, das nur wächst. Leer heisst neben der Datei der Check-ins (checkins-history.jsonl)."
+    },
+    "integrations_inventory_sync_minutes": {
+      "label": "Inventar-Sync (Minuten)",
+      "help": "Wie oft die Inventar-Plugins (NetBox) von selbst synchronisiert werden, 5 oder mehr. 0 heisst aus: nur «Jetzt synchronisieren»."
     },
     "integrations_public_url": {
       "label": "Öffentliche URL",
@@ -795,6 +803,28 @@
     "integrations_s3_backup_keep": {
       "label": "Aufbewahrte Sicherungen",
       "help": "Nach jedem Upload werden ältere Sicherungen im Ordner gelöscht."
+    },
+    "plugin_victorialogs_url": {
+      "label": "VictoriaLogs-URL",
+      "help": "Die HTTP-Adresse von VictoriaLogs, ohne /insert oder /select."
+    },
+    "plugin_victorialogs_account": {
+      "label": "Tenant",
+      "help": "AccountID:ProjectID, wenn VictoriaLogs mehrere Tenants führt. Sonst leer lassen."
+    },
+    "plugin_victorialogs_username": {
+      "label": "Benutzername",
+      "help": "Für VictoriaLogs hinter Basic Auth (vmauth oder ein Proxy)."
+    },
+    "plugin_victorialogs_password": {
+      "label": "Passwort oder Token"
+    },
+    "plugin_victorialogs_event_label": {
+      "label": "Event-Label",
+      "help": "Kommt als event=... an jede Zeile, um Events in einem VictoriaLogs auseinanderzuhalten."
+    },
+    "plugin_victorialogs_verify_ssl": {
+      "label": "TLS-Zertifikate prüfen"
     }
   },
   "plugins": {

@@ -104,6 +104,12 @@ describe('Inventory page', () => {
     expect(screen.getByText('2 devices')).toBeInTheDocument()
   })
 
+  it('says when the inventory syncs on its own', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': { ...list, every: 15 }, 'GET /api/inventory/groups': overview }).fn)
+    renderWithApp(<Inventory />)
+    expect(await screen.findByText('Syncs on its own every 15 minutes.')).toBeInTheDocument()
+  })
+
   it('shows what NetBox says for a locked field and can take it back', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': editor,

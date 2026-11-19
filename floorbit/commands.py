@@ -21,7 +21,7 @@ from .store import load_data, save_data
 KINDS = ('show', 'change')
 # A show template may only start its commands with these: they read and change nothing.
 READ_WORDS = ('show', 'display', 'ping', 'traceroute', 'get')
-ID_RE = re.compile(r'^[a-z][a-z0-9_-]{1,31}$')
+ID_RE = re.compile(r'^[a-z][a-z0-9_-]{1,31}\Z')
 # Output pipes that write a file on the switch (IOS redirect/append/tee, Junos save): not reading.
 WRITE_PIPE = re.compile(r'\|\s*(redirect|append|tee|save)\b', re.IGNORECASE)
 # NX-OS runs "show clock ; reload" as two commands: a show template keeps to one per line.

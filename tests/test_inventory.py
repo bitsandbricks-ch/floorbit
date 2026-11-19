@@ -5,6 +5,7 @@ from conftest import TEST_PASSWORD
 
 from floorbit import inventory
 from floorbit.inventory import InventoryError
+from floorbit.store import load_data
 
 # These run the plugins the way the local agent does (tests/conftest.py, lan_here).
 pytestmark = pytest.mark.usefixtures("lan_here")
@@ -227,6 +228,25 @@ def test_sync_endpoint_and_switch_api_share_one_inventory(client, fake_netbox):
     # Removing it from the floor plan only unplaces it.
     client.delete(f"/api/switches/{sw['id']}")
     assert client.get('/api/inventory').get_json()['devices'][0]['placed'] is False
+
+
+def test_the_inventory_syncs_on_its_own_when_set(client, app_module, fake_netbox, monkeypatch):
+    from floorbit import inventory_schedule as schedule
+    app = app_module.app
+    with app.app_context():
+        assert schedule.tick() is None                      # off by default
+    assert client.get('/api/inventory').get_json()['every'] == 0
+    monkeypatch.setenv('INVENTORY_SYNC_MINUTES', '2')
+    assert client.get('/api/inventory').get_json()['every'] == schedule.MIN_MINUTES   # raised to the floor
+    with app.app_context():
+        [report] = schedule.tick()                          # never synced: due now
+        assert report['plugin'] == 'netbox' and report['added'] == 1
+        last = schedule.last_sync_at(load_data())
+        assert schedule.tick(now=last + 60) is None         # not again within the interval
+        assert schedule.tick(now=last + 5 * 60)[0]['plugin'] == 'netbox'
+        with schedule.running:                              # a sync by hand is under way: skip
+            assert schedule.tick(now=last + 3600) is None
+    assert schedule.due(1000, None, 5) and schedule.due(1000, 2000, 5) and not schedule.due(1000, 900, 0)
 
 
 def test_api_edits_unlock_and_hide(client, fake_netbox):

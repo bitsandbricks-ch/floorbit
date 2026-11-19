@@ -100,14 +100,41 @@ search and level filter:
 
 **Logs** in the sidebar shows for them even while the syslog receiver is off.
 
-## Keeping it longer: Grafana Loki
+## Keeping it longer: VictoriaLogs or Grafana Loki
 
-Floorbit keeps the syslog for a day. To keep it longer, turn on the built-in
-[Grafana Loki plugin](plugins.md#built-in-grafana-loki) under Settings > Plugins: every line goes to
-Loki as well, and the Logs page gets a **Grafana Loki** source to search it with LogQL over the last
-hour to 30 days. Write the query and press Enter, for example
-`{job="floorbit", device="sw-a-01"} |= "err-disable"`; an empty query shows everything Floorbit sent.
-The line above the syslog shows how many lines went to Loki, or why it didn't take them.
+Floorbit keeps the syslog for a day. To keep it longer, turn on one of the built-in logs plugins
+under Settings > Plugins: every line goes there as well, and the Logs page gets a source to search it
+over the last hour to 30 days. Write the query and press Enter; an empty query shows everything
+Floorbit sent. The line above the syslog shows how many lines went out, or why they weren't taken.
+
+- [VictoriaLogs](plugins.md#built-in-victorialogs): `docker compose --profile logs up -d` starts one
+  next to Floorbit; set the plugin's URL to `http://victorialogs:9428`. Search with LogsQL, for
+  example `device:sw-a-01 err-disable` or `severity:warning seat:B-3`.
+- [Grafana Loki](plugins.md#built-in-grafana-loki): search with LogQL, for example
+  `{job="floorbit", device="sw-a-01"} |= "err-disable"`.
+
+`FLOORBIT_VICTORIALOGS_URL` is no longer read: it never sent anything. Use the plugin instead.
+
+## DHCP leases: IP to MAC as it happens
+
+Point the DHCP server's syslog at Floorbit too (or at the local agent, which relays it) and its
+lease lines become an IP to MAC source. ARP from the monitoring source only knows a new laptop after
+the next poll; the lease line comes the moment the address is handed out. Check-in, the seat walk and
+the IP and MAC search ask the leases first and ARP after; the clients on seat ports (unplanned,
+moved, the Captive Portal answer) take a lease's IP where ARP has none yet. Read from:
+
+| Server | Lines |
+| --- | --- |
+| ISC dhcpd (also pfSense and OPNsense with it) | `DHCPACK on 192.0.2.40 to 02:00:..`, `DHCPRELEASE of ..` |
+| Kea (also OPNsense with it) | `DHCP4_LEASE_ALLOC [hwtype=1 02:00:..] .. lease 192.0.2.40 has been allocated`, `DHCP4_RELEASE` |
+| dnsmasq (also Pi-hole) | `DHCPACK(eth0) 192.0.2.40 02:00:..`, `DHCPRELEASE(..)` |
+| MikroTik | `dhcp1 assigned 192.0.2.40 to 02:00:..`, `deassigned` |
+
+The server has to be on the allow-list like the switches. A lease is kept until it runs out (Kea's
+lease time, else 12 hours) or is released, in Valkey so every pod sees it (in memory without one).
+Only the address pair is kept, not the host name in the line. Lines a local agent kept while the
+uplink was down are not used: a lease from hours ago could undo a newer one. The line above the
+syslog says how many leases were read.
 
 ## Log alerts
 
@@ -119,6 +146,7 @@ the words other vendors use:
 | Port shut down by the switch (err-disable) | `ERR_DISABLE`, `err-disable` |
 | Port security violation | `PSECURE_VIOLATION`, `PORT_SECURITY` |
 | DHCP snooping dropped packets | `DHCP_SNOOPING` |
+| DHCP server out of addresses | "no free leases" (ISC dhcpd), `ALLOC_ENGINE_V4_ALLOC_FAIL` (Kea), "no address available" (dnsmasq), "pool .. is empty" (MikroTik) |
 | MAC address moving between ports | `MACFLAP`, `MAC_MOVE`, "flapping between port" |
 | Loop detected | `LOOP_DETECT`, `LOOP_BACK_DETECTED`, "loop detected" |
 | Storm control | `STORM_CONTROL` |

@@ -72,8 +72,8 @@ class Plugin(Base):
 
     def query_logs(self, query, start, end, limit):
         resp = self._http().get('/loki/api/v1/query_range', params={
-            'query': query, 'start': str(int(start * 1e9)), 'end': str(int(end * 1e9)), 'limit': limit,
-            'direction': 'backward'})
+            'query': query or '{job="floorbit"}', 'start': str(int(start * 1e9)), 'end': str(int(end * 1e9)),
+            'limit': limit, 'direction': 'backward'})
         if resp.status_code == 400:
             text = (getattr(resp, 'text', '') or '').strip()[:300]
             raise PluginError(f'Loki can\'t read that query: {text}' if text else 'Loki can\'t read that query.')

@@ -26,8 +26,8 @@ from .store import load_data, save_data
 
 KEY = 'cables'
 MAX_CABLES = 5000
-PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}$')
-LABEL_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 ._/#-]{0,23}$')
+PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}\Z')
+LABEL_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 ._/#-]{0,23}\Z')
 FIELDS = ('label', 'switch', 'port', 'panel', 'panel_port', 'seat', 'color', 'length_m', 'type', 'speed', 'note')
 LIMITS = {'switch': 80, 'panel': 40, 'panel_port': 16, 'seat': 16, 'color': 20, 'note': 200}
 _lock = threading.Lock()

@@ -17,7 +17,7 @@ import uuid
 from . import store
 
 FOLDER = 'events'
-ID_RE = re.compile(r'^[0-9]{8}-[0-9a-f]{8}$')
+ID_RE = re.compile(r'^[0-9]{8}-[0-9a-f]{8}\Z')
 MAX_NAME = 120
 # The parts of data.json that belong to one event and start empty for the next.
 RESET_KEYS = ('incidents', 'handover', 'preflight', 'crew_notice')

@@ -249,7 +249,7 @@ def locate(ip, registry=None, account=None, previous=None, likely=(), mac=None, 
 
 HELLO_SECONDS = 10 * 60     # a code is good this long after the page asked for it
 HELLO_KEEP = 12 * 3600      # and the laptop it named is remembered this long (a walk's length)
-TOKEN_RE = re.compile(r'^[A-Za-z0-9_-]{16,64}$')
+TOKEN_RE = re.compile(r'^[A-Za-z0-9_-]{16,64}\Z')
 _hello_lock = threading.Lock()
 
 

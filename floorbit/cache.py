@@ -130,33 +130,6 @@ def get_redis_client():
 
 
 # ── Redis cache helpers ────────────────────────────────────────────────────────
-def get_cached_arp(hostname):
-    """Get cached ARP table for a device."""
-    client = get_redis_client()
-    if not client:
-        return None
-    try:
-        cache_key = f"arp:{hostname}"
-        cached = client.get(cache_key)
-        if cached:
-            return json.loads(cached)
-    except (redis.RedisError, ValueError) as e:
-        print(f"Redis cache read error (ARP): {e}")
-    return None
-
-
-def set_cached_arp(hostname, arp_data):
-    """Cache ARP table for a device."""
-    client = get_redis_client()
-    if not client:
-        return
-    try:
-        cache_key = f"arp:{hostname}"
-        client.setex(cache_key, rt.cache_ttl_arp, json.dumps(arp_data))
-    except redis.RedisError as e:
-        print(f"Redis cache write error (ARP): {e}")
-
-
 def get_cached_mac(hostname):
     """Get cached MAC address table for a device."""
     client = get_redis_client()

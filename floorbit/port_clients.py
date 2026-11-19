@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from . import cables as cables_mod
 from . import sources
+from .dhcp_leases import leases
 from .store import load_data
 
 MAX_LISTED = 200
@@ -120,7 +121,8 @@ def find(monitor, data, seats):
             continue
         for mac in sorted(macs):
             clients += 1
-            ip = mac_ip.get(mac) or ''
+            # A laptop the ARP poll hasn't seen yet may already have its DHCP lease (dhcp_leases.py).
+            ip = mac_ip.get(mac) or leases.ip_for_mac(mac) or ''
             row = {'switch': switch, 'port': port, 'mac': mac, 'ip': ip, 'ip_seat': ip_seat.get(ip, '')}
             if cable is None:
                 unplanned.append(row)

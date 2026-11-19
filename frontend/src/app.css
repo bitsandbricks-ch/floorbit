@@ -714,15 +714,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-wall--screen .fb-wall-games li { font-size: 1.5vw; }
 .fb-wall--screen .fb-wall-bar { height: .7vw; }
 .fb-wall--screen .fb-wall-note { font-size: 1vw !important; }
-/* The hall drawn for the public pages (components/HallSketch.tsx): the attendee view. */
-.fb-hall-sketch { display: block; width: 100%; height: auto; max-height: 75vh; background: var(--color-raised); border-radius: 10px; }
-.fb-hall-sketch .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
-.fb-hall-sketch .cell { fill: var(--color-surface); stroke: var(--color-line); }
-.fb-hall-sketch .cell.on { fill: var(--color-up); stroke: var(--color-up); }
-.fb-hall-sketch .cell.hit { fill: var(--color-bit); stroke: var(--color-bit); }
-.fb-hall-sketch .ring { fill: none; stroke: var(--color-bit); stroke-width: 4; }
-.fb-hall-sketch .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
-.fb-hall-sketch .rowlbl { fill: var(--color-fg); font: 800 15px var(--font-sans); text-anchor: middle; }
 /* A public page showing old data because the server can't be reached (lib/publicFeed.ts). */
 .fb-stale-note {
   position: fixed; left: 50%; top: 12px; transform: translateX(-50%); margin: 0; padding: 6px 14px; z-index: 300;

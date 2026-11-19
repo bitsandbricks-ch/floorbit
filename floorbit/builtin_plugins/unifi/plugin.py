@@ -14,7 +14,7 @@ from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
 from floorbit.sources import normalise_mac
 
-SITE_RE = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
+SITE_RE = re.compile(r'^[a-zA-Z0-9_-]{1,64}\Z')
 SWITCH_TYPES = ('usw',)   # access points and gateways are not on the floor plan's switch layer
 
 

@@ -358,6 +358,7 @@ export interface InventorySource {
 export interface InventoryList {
   devices: Device[]
   sources: InventorySource[]
+  every?: number
   roles: string[]
   fields: InventoryField[]
 }
@@ -457,6 +458,8 @@ export interface Account extends AccountSummary {
   identities: string[]
   discord_id: string
   created_by: string | null
+  /** The dashboards this account is limited to (a wall screen, #702); empty: every one. */
+  dashboards: string[]
 }
 
 export interface AccountsList {
@@ -1262,6 +1265,8 @@ export interface LogStatus {
   source: LogSource
   /** Logs plugins (Loki) that get every line, and how sending them goes. */
   stores?: { id: string; name: string; at?: number | null; sent?: number; error?: string | null }[]
+  /** DHCP lease lines read from the syslog: a fresh IP to MAC source (docs/syslog.md). */
+  leases?: { granted: number; released: number; last_at: number | null }
   query?: string
   query_error?: string
 }

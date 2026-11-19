@@ -141,17 +141,20 @@
 @media (max-width: 48em) {
   .fb-table-stack thead { display: none; }
   .fb-table-stack tbody tr { display: block; padding: var(--mantine-spacing-xs) 0; }
-  .fb-table-stack tbody td { display: block; border: 0; padding: 2px 0; text-align: left !important; }
+  .fb-table-stack tbody td { display: block; border: 0; padding: 2px 0; text-align: left !important; overflow-wrap: anywhere; }
   .fb-table-stack tbody td .mantine-Group-root[style*="flex-end"] { justify-content: flex-start; }
+  /* A row of buttons that sat side by side in a wide cell wraps instead of running off the phone. */
+  .fb-table-stack tbody td:not(.fb-stack-actions) .mantine-Group-root { flex-wrap: wrap; }
   /* Short cells (seat, name, state) share the row's first line. */
   .fb-table-stack tbody td.fb-stack-inline { display: inline-block; margin-right: var(--mantine-spacing-sm); }
   /* A few icon buttons go to the row's top right corner instead of a line of their own. */
-  .fb-table-stack tbody tr:has(> td.fb-stack-actions) { position: relative; padding-right: 5em; }
+  .fb-table-stack tbody tr:has(> td.fb-stack-actions) { position: relative; }
+  .fb-table-stack tbody tr:has(> td.fb-stack-actions:not(:empty)) { padding-right: 5em; }
   .fb-table-stack tbody td.fb-stack-actions { position: absolute; top: var(--mantine-spacing-xs); right: 0; }
   .fb-table-stack tbody td.fb-stack-actions .mantine-Group-root { justify-content: flex-end; }
   /* Striped tables: the row's shade gets a margin, so text doesn't touch its edge. */
   .fb-table-stack tbody tr[data-striped] { padding-left: var(--mantine-spacing-xs); padding-right: var(--mantine-spacing-xs); }
-  .fb-table-stack tbody tr[data-striped]:has(> td.fb-stack-actions) { padding-right: 5em; }
+  .fb-table-stack tbody tr[data-striped]:has(> td.fb-stack-actions:not(:empty)) { padding-right: 5em; }
   .fb-table-stack tbody tr[data-striped] > td.fb-stack-actions { right: var(--mantine-spacing-xs); }
   /* A cell that needs its heading carries it as data-label, shown to its left. */
   .fb-table-stack tbody td[data-label]:empty { display: none; }

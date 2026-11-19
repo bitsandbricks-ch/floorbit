@@ -50,7 +50,8 @@
     "audit": "Who changed what, and when: every change through the app and every sign-in.",
     "store": "What a logs plugin keeps of the syslog, searched with its own query language. An empty query shows everything Floorbit sent."
   },
-  "logql": "LogQL query",
+  "query": "Query",
+  "queryIn": "{{language}} query",
   "range": "Time range",
   "run": "Search",
   "hours": {
@@ -62,5 +63,7 @@
   "storeSent": "{{name}}: {{n}} lines sent",
   "storeError": "{{name}} couldn't take the lines: {{error}}",
   "relayed": "Through the local agent {{agent}}",
-  "relayDropped": "{{n}} dropped on the agent"
+  "relayDropped": "{{n}} dropped on the agent",
+  "leases_one": "{{n}} DHCP lease read for IP to MAC",
+  "leases_other": "{{n}} DHCP leases read for IP to MAC"
 }

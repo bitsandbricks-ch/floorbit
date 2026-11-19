@@ -36,7 +36,7 @@ STATES = ('ok', 'warn', 'crit', 'tripped', 'unknown')
 MAX_BOARDS = 100
 MAX_CIRCUITS = 500
 MAX_RATING = 400          # amps; a LAN hall circuit is 10 to 63
-METER_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 ._:/-]{0,59}$')
+METER_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 ._:/-]{0,59}\Z')
 
 _lock = threading.Lock()
 

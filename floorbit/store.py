@@ -323,7 +323,7 @@ def state_folder():
 TENANT_ENV = 'FLOORBIT_TENANT'
 DEFAULT_TENANT = 'default'
 TENANTS_FOLDER = 'tenants'
-_TENANT_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}$')
+_TENANT_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}\Z')
 
 
 def current_tenant():

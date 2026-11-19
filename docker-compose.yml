@@ -101,7 +101,8 @@ services:
       - victoriametrics_data:/storage
     restart: unless-stopped
 
-  # Optional: log events in VictoriaLogs. Set FLOORBIT_VICTORIALOGS_URL=http://victorialogs:9428.
+  # Optional: keep the syslog longer in VictoriaLogs. Turn on the VictoriaLogs plugin under
+  # Settings > Plugins with the URL http://victorialogs:9428 (docs/syslog.md).
   #   docker compose --profile logs up -d
   victorialogs:
     image: victoriametrics/victoria-logs:v1.54.0

@@ -201,7 +201,10 @@ def fake_agent(test_client, key, stop, seen):
         out = []
         for c in calls:
             seen.append((c["method"], c["args"]))
-            out.append({"id": c["id"], "ok": True, "result": {"done": c["args"][2]}})
+            # Other calls (a block with no third argument) come too: a crash here left the thread
+            # dead and later calls unanswered.
+            args = c["args"] if isinstance(c.get("args"), list) else []
+            out.append({"id": c["id"], "ok": True, "result": {"done": args[2] if len(args) > 2 else None}})
         if out:
             test_client.post("/api/agent/v1/answers", json={"answers": out}, headers=head(key))
 

@@ -94,3 +94,7 @@ agent-bundles/*
 
 # Written by the telemetry collector (Settings > Telemetry), never committed.
 telegraf/
+
+# pytest-cov data
+.coverage
+.coverage.*

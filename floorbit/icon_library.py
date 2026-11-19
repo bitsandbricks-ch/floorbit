@@ -24,7 +24,7 @@ MAX_ICONS = 300
 MAX_ELEMENTS = 2000
 MAX_DEPTH = 32             # groups in groups: real icons stay under ten
 NAME_MAX = 40
-ID_RE = re.compile(r'^custom-[0-9a-f]{12}$')
+ID_RE = re.compile(r'^custom-[0-9a-f]{12}\Z')
 # What a floor plan icon shows once its uploaded icon is removed (floorbit/plan_icons.py).
 PLAN_FALLBACK = 'info'
 
@@ -49,9 +49,9 @@ PRESENTATION = {
 }
 ROOT_ONLY = {'viewBox', 'preserveAspectRatio'}
 # clip-path="url(#a)" and fill="url(#g)" may point inside the icon, nowhere else.
-LOCAL_REF = re.compile(r'^url\(\s*#[A-Za-z_][\w.-]{0,60}\s*\)$')
-SAFE_VALUE = re.compile(r'^[\w\s.,#%()+-]{0,4000}$')
-D_VALUE = re.compile(r'^[\w\s.,+-]{0,40000}$')
+LOCAL_REF = re.compile(r'^url\(\s*#[A-Za-z_][\w.-]{0,60}\s*\)\Z')
+SAFE_VALUE = re.compile(r'^[\w\s.,#%()+-]{0,4000}\Z')
+D_VALUE = re.compile(r'^[\w\s.,+-]{0,40000}\Z')
 
 
 class IconError(ValueError):

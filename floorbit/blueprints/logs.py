@@ -76,7 +76,7 @@ def _from_store(source, args, before, limit, status):
     if not 1 <= hours <= 24 * 90:
         return jsonify({'error': 'hours is a whole number from 1 to 2160.'}), 400
     end = before / 1e6 if before else time.time()   # a plugin line's id is its time in microseconds
-    query = (args.get('q') or '').strip() or '{job="floorbit"}'
+    query = (args.get('q') or '').strip()   # empty: the plugin's own "everything Floorbit sent"
     try:
         lines = current_app.extensions['floorbit_syslog'].query(source[len('plugin:'):], query, end - hours * 3600,
                                                                 end, limit)

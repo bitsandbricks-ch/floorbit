@@ -41,8 +41,8 @@ PANEL_PORTS = 24                        # a new panel's ports unless said
 MAX_PANEL_PORTS = 96
 PITCH_X, PITCH_Y = 2.0, 3.2           # one seat in % of the plan (16:10, 50 seats across)
 TRUNK = 1.0                            # how far beside a block its cables run, in seats
-KEY_RE = re.compile(r'^(lan|link|power):[^\s]{1,200}$')
-PANEL_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 ._/#-]{0,39}$')
+KEY_RE = re.compile(r'^(lan|link|power):[^\s]{1,200}\Z')
+PANEL_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9 ._/#-]{0,39}\Z')
 
 
 def _lock():

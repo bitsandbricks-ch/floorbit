@@ -59,10 +59,6 @@ def collections(plugin_id):
     return [n[:-5] for n in store.list_json(folder(plugin_id)) if COLLECTION_RE.match(n[:-5])]
 
 
-def used_bytes(plugin_id):
-    return sum(_size(_read(plugin_id, c)) for c in collections(plugin_id))
-
-
 class Collection:
     """One collection: ``get``, ``put``, ``delete``, ``ids``, ``all``. Writes read the collection
     fresh under the plugin's lock, so two hooks writing at once don't undo each other; between pods,

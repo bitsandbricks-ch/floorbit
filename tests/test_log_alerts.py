@@ -26,6 +26,12 @@ def test_known_patterns():
         "%ETHCNTR-3-LOOP_BACK_DETECTED: Loop-back detected on Gi1/0/2": "loop",
         "%STORM_CONTROL-3-FILTERED: A Broadcast storm detected on Gi1/0/5": "storm",
         "%SPANTREE-5-TOPOTRAP: Topology Change Trap for vlan 100": "stp",
+        "DHCPDISCOVER from 02:00:00:00:00:1e via eth1: network 10.20.0.0/22: no free leases": "dhcp_pool",
+        "ALLOC_ENGINE_V4_ALLOC_FAIL [hwtype=1 02:00:00:00:00:1e], tid=0x1: failed to allocate an IPv4 address "
+        "after 1024 attempt(s)": "dhcp_pool",
+        "DHCPDISCOVER(eth0) 02:00:00:00:00:1e no address available": "dhcp_pool",
+        "dhcp1 failed to give out IP address: pool seats is empty": "dhcp_pool",
+        "DHCPACK on 192.0.2.40 to 02:00:00:00:00:1e via eth1": None,
         "%LINK-3-UPDOWN: Interface Gi1/0/4, changed state to down": None,
     }
     for message, want in cases.items():

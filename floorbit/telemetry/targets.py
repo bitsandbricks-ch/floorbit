@@ -14,7 +14,6 @@ A target is one device: its floor plan name, its address, and the drivers that c
 - ``push``: the device runs Telegraf itself and sends to the collector (OPNsense os-telegraf, the
   pfSense Telegraf package); nothing to poll.
 """
-import ipaddress
 import re
 import secrets
 import threading
@@ -31,9 +30,9 @@ KINDS = ('switch', 'router', 'firewall')
 PLATFORMS = ('nxos', 'iosxe', 'ios', 'opnsense', 'pfsense', 'other')
 FDB_MODES = ('qbridge', 'cisco_vlans', 'bridge', 'off')
 SECRETS = ('community', 'auth_password', 'priv_password', 'password', 'api_secret')
-NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$')
-HOST_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9.:-]{0,252}$')
-USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}$')
+NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,79}\Z')
+HOST_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9.:-]{0,252}\Z')
+USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}\Z')
 _lock = threading.Lock()
 
 
@@ -324,10 +323,3 @@ def token_ok(given):
     want = ingest_token(create=False)
     return bool(want) and secrets.compare_digest(str(given), want)
 
-
-def is_address(text):
-    try:
-        ipaddress.ip_address(str(text))
-        return True
-    except ValueError:
-        return False

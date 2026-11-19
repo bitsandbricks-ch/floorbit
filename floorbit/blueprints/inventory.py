@@ -10,7 +10,7 @@ import threading
 
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import agent_link, inventory, inventory_scope, inventory_types, spa
+from .. import agent_link, inventory, inventory_schedule, inventory_scope, inventory_types, spa
 from ..plugins import PluginError
 from ..store import load_data, save_data
 
@@ -151,7 +151,8 @@ def list_devices():
     data = load_data()
     hidden = request.args.get('hidden') in ('1', 'true')
     return jsonify({'devices': [inventory.public(d) for d in inventory.devices(data, include_hidden=hidden)],
-                    'sources': _sources(data), 'roles': list(inventory.ROLES), 'fields': list(inventory.FIELDS)})
+                    'sources': _sources(data), 'every': inventory_schedule.every_minutes(),
+                    'roles': list(inventory.ROLES), 'fields': list(inventory.FIELDS)})
 
 
 @bp.route('/api/inventory', methods=['POST'])
@@ -202,7 +203,8 @@ def delete_device(device_id):
 def sync_now():
     if not _feeders() and not agent_link.active():
         return jsonify({'error': 'No inventory source is on. Turn one on under Settings > Plugins.'}), 400
-    reports = run_sync()
+    with inventory_schedule.running:   # a scheduled sync that's under way finishes first
+        reports = run_sync()
     return jsonify({'reports': reports, 'sources': _sources(load_data())})
 
 

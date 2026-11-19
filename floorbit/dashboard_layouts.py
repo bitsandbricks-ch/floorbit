@@ -15,8 +15,8 @@ from .store import load_data, save_data
 KEY = 'dashboard_layouts'
 MAX_LAYOUTS = 30
 MAX_TILES = 60
-ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}$')
-TILE_RE = re.compile(r'^[\w.-]{1,64}/[wa]/[\w.-]{1,64}$')
+ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}\Z')
+TILE_RE = re.compile(r'^[\w.-]{1,64}/[wa]/[\w.-]{1,64}\Z')
 COLUMNS = (1, 2, 3, 4)
 _lock = threading.Lock()
 

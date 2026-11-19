@@ -88,8 +88,9 @@ The search box on the floor plan (press `/`) finds switches, seats and nicks, an
 
 A full IP or MAC is also looked up on the network (`GET /api/seats/find?q=`):
 
-- when no seat source knows it, the monitoring source's ARP table turns the IP into a MAC (or back)
-  and that finds the seat;
+- when no seat source knows it, the DHCP server's lease (when its syslog reaches Floorbit,
+  [syslog.md](syslog.md#dhcp-leases-ip-to-mac-as-it-happens)) or else the monitoring source's ARP
+  table turns the IP into a MAC (or back) and that finds the seat;
 - the switch port it is plugged into is resolved, and shows under **On the network** even when no
   seat is known for it.
 
