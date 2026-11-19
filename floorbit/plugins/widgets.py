@@ -23,6 +23,7 @@ STATES = ('up', 'down', 'warn', 'unknown')
 MAX_ITEMS = 50
 MAX_POINTS = 500
 MAX_SERIES = 4
+MAX_MARKS = 50
 
 
 class WidgetError(ValueError):
@@ -130,6 +131,15 @@ def check_widget(raw, item):
             lines.append(entry)
         out['series'] = lines
         out['unit'] = _text(raw.get('unit'), 20)
+        # ``marks``: what happened when (a switch down, an incident), drawn as lines across the graph.
+        marks = []
+        for m in _list(raw, 'marks')[-MAX_MARKS:]:
+            if not isinstance(m, dict):
+                raise WidgetError('a mark is a dict with t, label and tone')
+            marks.append({'t': _number(m.get('t')), 'label': _text(m.get('label'), 80),
+                          'tone': _tone(m.get('tone') or '')})
+        if marks:
+            out['marks'] = marks
     else:
         raise WidgetError('type must be stat, status, list, table, sparkline or series')
     return out

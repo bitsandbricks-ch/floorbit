@@ -105,7 +105,9 @@
     "cloneHint": "Makes a tile of its own with the same settings, for this dashboard only. It no longer follows the widget.",
     "range": "Time shown",
     "compareDay": "Compare with yesterday",
-    "compareDayHint": "A dotted line: yesterday at the same times, by the hour."
+    "compareDayHint": "A dotted line: yesterday at the same times, by the hour.",
+    "events": "Mark what happened",
+    "eventsHint": "Switches going down or coming back, and incidents, as lines on the graph."
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",

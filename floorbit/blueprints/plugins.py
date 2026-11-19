@@ -510,8 +510,14 @@ def _traffic_tile(user):
     stats = current_app.extensions['floorbit_stats']
     rng = request.args.get('range') if request.args.get('range') in core.RANGES else None
     compare = request.args.get('compare') if request.args.get('compare') in core.COMPARES else None
-    hours = stats.event()['hours'] if rng == 'event' or compare else ()
-    return core.traffic_widget(_lang(), stats.snapshot(), rng, compare, hours)
+    event = stats.event() if rng == 'event' or compare or request.args.get('marks') else None
+    widget = core.traffic_widget(_lang(), stats.snapshot(), rng, compare, event['hours'] if event else ())
+    if request.args.get('marks') == '1':
+        from .. import incidents
+        # Incidents only for those who may see the board, like the incident tiles.
+        found = incidents.list_all() if _may_see_board(user) else ()
+        core.with_marks(widget, core.event_marks(_lang(), event['switch_events'], found))
+    return widget
 
 
 def _snapshot():

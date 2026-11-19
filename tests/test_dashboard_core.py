@@ -304,3 +304,18 @@ def test_a_pane_asks_the_traffic_tile_for_its_range(client):
     assert "ranges" not in next(t for t in tiles if t["id"] == "seats")
     assert client.get("/api/dashboard/floorbit/traffic?range=24h&compare=day").status_code == 200
     assert client.get("/api/dashboard/floorbit/traffic?range=event").get_json()["type"] == "series"
+
+
+def test_the_traffic_tile_marks_what_happened(client):
+    now = 1_800_000_000
+    switches = [[now - 50, "s1", "sw-a-01", "offline"], [now - 10, "s1", "sw-a-01", "online"]]
+    marks = dashboard_core.event_marks("en", switches, [{"created_at": now - 30, "title": "Port flapping"}])
+    assert [(m["label"], m["tone"]) for m in marks] == [
+        ("sw-a-01 down", "err"), ("Incident: Port flapping", "warn"), ("sw-a-01 back", "ok")]
+    widget = {"series": [{"label": "Down", "points": [[now - 40, 1], [now, 2]]}]}
+    assert [m["label"] for m in dashboard_core.with_marks(widget, marks)["marks"]] == [
+        "Incident: Port flapping", "sw-a-01 back"]   # the one before the lines start is left out
+    assert "marks" not in dashboard_core.with_marks({"series": []}, marks)
+    tile = next(t for t in client.get("/api/dashboard").get_json()["tiles"] if t["id"] == "traffic")
+    assert tile["marks"] is True
+    assert client.get("/api/dashboard/floorbit/traffic?marks=1").status_code == 200

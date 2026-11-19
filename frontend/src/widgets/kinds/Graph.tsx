@@ -55,6 +55,9 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
   const valueAt = (pts: [number, number][], ts: number) => pts.reduce((a, b) => (Math.abs(b[0] - ts) < Math.abs(a[0] - ts) ? b : a))[1]
   const sum = hover ? lines.reduce((a, l) => a + Math.max(0, valueAt(l.points, hover[0])), 0) : 0
   const trends = lines.map((l) => trendOf(l.points, trend))
+  // What happened (a switch down, an incident) as lines across the graph; hover names the near ones.
+  const marks = widget.type === 'series' ? (widget.marks ?? []).filter((m) => m.t >= t0 && m.t <= t1) : []
+  const near = hover ? marks.filter((m) => Math.abs(x(m.t) - x(hover[0])) <= 8) : []
   return (
     <div className="fb-w-graph">
       <div className="fb-w-legend">
@@ -79,7 +82,7 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
       </div>
       <div className="fb-w-plot" onPointerMove={(e) => setAt(e.clientX - e.currentTarget.getBoundingClientRect().left)}
         onPointerLeave={() => setAt(null)}>
-        <Plot lines={lines} stack={stack} area={area} trends={trends} steps={stack === 'percent' ? [] : look.thresholds} w={W} h={H} t0={t0} t1={t1} top={top} axis={axis} ghosts={stack === 'percent' ? [] : ghosts} cross={hover ? x(hover[0]) : null}
+        <Plot lines={lines} stack={stack} area={area} trends={trends} steps={stack === 'percent' ? [] : look.thresholds} w={W} h={H} t0={t0} t1={t1} top={top} axis={axis} ghosts={stack === 'percent' ? [] : ghosts} marks={marks.map((m) => ({ x: x(m.t), tone: m.tone }))} cross={hover ? x(hover[0]) : null}
           label={t('widgets.kind.graphLabel', { name: widget.label || lines.map((l) => l.label).join(', ') })} />
         {hover && (
           <div className="fb-w-tip" role="tooltip" style={tipAt(x(hover[0]) - 10, x(hover[0]) + 10, W)}>
@@ -93,6 +96,9 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
                 </div>
               )
             })}
+            {near.map((m, i) => (
+              <div key={`m${i}`} className={`fb-w-tip-mark fb-tone-${m.tone || 'none'}`}>{m.label}<b>{when(m.t)}</b></div>
+            ))}
             {trend !== 'none' && trends.map((tr, i) => tr.length > 0 && (
               <div key={`t${i}`} className="fb-w-tip-trend">{t(`widgets.kind.trend.${trend}`)} · {lines[i].label}<b>{fmt(trendAt(tr, hover[0]))}</b></div>
             ))}
@@ -118,8 +124,8 @@ function trendAt(tr: [number, number][], ts: number): number {
   return tr[tr.length - 1][1]
 }
 
-function Plot({ lines, stack, area, trends = [], steps = [], ghosts = [], w, h, t0, t1, top, axis, cross = null, label }: {
-  lines: Line[]; stack: Look['stack']; area: boolean; trends?: [number, number][][]; steps?: Threshold[]; ghosts?: Line[]
+function Plot({ lines, stack, area, trends = [], steps = [], ghosts = [], marks = [], w, h, t0, t1, top, axis, cross = null, label }: {
+  lines: Line[]; stack: Look['stack']; area: boolean; trends?: [number, number][][]; steps?: Threshold[]; ghosts?: Line[]; marks?: { x: number; tone: string }[]
   w: number; h: number; t0?: number; t1?: number; top?: number; axis?: Axis; cross?: number | null; label?: string
 }) {
   const all = lines.flatMap((l) => l.points)
@@ -168,6 +174,7 @@ function Plot({ lines, stack, area, trends = [], steps = [], ghosts = [], w, h, 
         <line key={`s${i}`} className={`fb-w-step fb-tone-${st.tone || 'none'}`} x1={0} x2={w} y1={y(st.at)} y2={y(st.at)} />
       ))}
       {ghosts.map((l, i) => <polyline key={`g${i}`} className="fb-w-ghost" points={l.points.map((p) => xy(p[0], p[1])).join(' ')} />)}
+      {marks.map((m, i) => <line key={`m${i}`} className={`fb-w-mark fb-tone-${m.tone || 'none'}`} x1={m.x} x2={m.x} y1={0} y2={h} />)}
       {cross != null && <line className="fb-w-cross" x1={cross} x2={cross} y1={0} y2={h} />}
     </svg>
   )

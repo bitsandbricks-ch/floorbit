@@ -22,6 +22,7 @@ TEXTS = {
            'switch_states': 'Switch states', 'down_for': 'down {t}', 'open_incidents': 'Open incidents',
            'col_what': 'What', 'col_where': 'Where', 'col_open': 'Open for', 'switch_at': 'Switch {name}',
            'seat_at': 'Seat {seat}', 'traffic': 'Traffic', 'download': 'Download', 'upload': 'Upload',
+           'mark_down': '{name} down', 'mark_up': '{name} back', 'mark_incident': 'Incident: {title}',
            'avg_total': 'Average (in + out)', 'peak_total': 'Busiest (in + out)', 'yesterday': 'Yesterday (in + out)',
            'seats_by_block': 'Seats online by block',
            'bandwidth': 'Bandwidth', 'down_up': '↓ {down} · ↑ {up}', 'no_reads': 'No traffic read yet',
@@ -59,6 +60,7 @@ TEXTS = {
            'switch_states': 'Switch-Status', 'down_for': 'aus seit {t}', 'open_incidents': 'Offene Störungen',
            'col_what': 'Was', 'col_where': 'Wo', 'col_open': 'Offen seit', 'switch_at': 'Switch {name}',
            'seat_at': 'Platz {seat}', 'traffic': 'Verkehr', 'download': 'Download', 'upload': 'Upload',
+           'mark_down': '{name} ausgefallen', 'mark_up': '{name} wieder da', 'mark_incident': 'Störung: {title}',
            'avg_total': 'Durchschnitt (rein + raus)', 'peak_total': 'Spitze (rein + raus)',
            'yesterday': 'Gestern (rein + raus)',
            'seats_by_block': 'Plätze online nach Block',
@@ -97,8 +99,9 @@ TILES = {
     # Data for the generic widget types (#894): a state per switch, the open incidents, traffic over time.
     'switch_states': {'label': 'switch_states', 'size': 'small', 'refresh': 15},
     'open_incidents': {'label': 'open_incidents', 'size': 'small', 'refresh': 30},
-    # ``ranges``: a pane may pick the time it shows and compare it (#960, RANGES below).
-    'traffic': {'label': 'traffic', 'size': 'wide', 'refresh': 30, 'ranges': True},
+    # ``ranges``: a pane may pick the time it shows and compare it (#960, RANGES below); ``marks``:
+    # it can mark what happened (event_marks).
+    'traffic': {'label': 'traffic', 'size': 'wide', 'refresh': 30, 'ranges': True, 'marks': True},
     'seats_by_block': {'label': 'seats_by_block', 'size': 'small', 'refresh': 30},
     # What the Stats and Traffic views showed in one big pane, as tiles of their own.
     'bandwidth': {'label': 'bandwidth', 'size': 'small', 'refresh': 30},
@@ -135,7 +138,7 @@ def tiles(lang, may_see_board, feature_on=lambda f: True):
     hidden |= {t for t, spec in TILES.items() if spec.get('feature') and not feature_on(spec['feature'])}
     return [{'plugin': PLUGIN, 'plugin_name': NAME, 'id': tile, 'label': text[spec['label']], 'size': spec['size'],
              'refresh': spec['refresh'], 'url': f'/api/dashboard/floorbit/{tile}',
-             **({'ranges': True} if spec.get('ranges') else {})}
+             **{k: True for k in ('ranges', 'marks') if spec.get(k)}}
             for tile, spec in TILES.items() if tile not in hidden]
 
 
@@ -279,6 +282,31 @@ def _buckets(points, n=MAX_POINTS):
         part = points[int(k * size):int((k + 1) * size)] or points[-1:]
         out.append([part[-1][0], round(sum(p[1] for p in part) / len(part))])
     return out
+
+
+MAX_MARKS = 50
+
+
+def event_marks(lang, switch_events=(), incident_list=()):
+    """What happened, as marks for a time graph (#960): switches going down and coming back, and
+    new incidents. Newest last; the graph keeps the ones inside the time it shows."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    marks = [{'t': t, 'tone': 'err' if status == 'offline' else 'ok',
+              'label': text['mark_down' if status == 'offline' else 'mark_up'].format(name=name or sid)}
+             for t, sid, name, status in switch_events]
+    marks += [{'t': i['created_at'], 'tone': 'warn', 'label': text['mark_incident'].format(title=i.get('title') or '')}
+              for i in incident_list if i.get('created_at')]
+    return sorted(marks, key=lambda m: m['t'])
+
+
+def with_marks(widget, marks):
+    """Only the marks inside the time the widget's lines cover, at most MAX_MARKS of the newest."""
+    times = [p[0] for line in widget.get('series') or [] for p in line['points']]
+    if times and marks:
+        inside = [m for m in marks if min(times) <= m['t'] <= max(times)]
+        if inside:
+            widget['marks'] = inside[-MAX_MARKS:]
+    return widget
 
 
 def traffic_widget(lang, snapshot, rng=None, compare=None, hours=(), now=None):

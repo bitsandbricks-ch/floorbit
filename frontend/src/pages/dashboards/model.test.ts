@@ -70,4 +70,9 @@ describe('a pane\'s time range (#960)', () => {
     expect(rangedUrl(tile, {})).toBe(tile.url)
     expect(rangedUrl({ url: '/x' }, { range: '1h' })).toBe('/x')
   })
+
+  it('asks for marks only from a tile that has them', () => {
+    expect(rangedUrl({ url: '/t', ranges: true, marks: true }, { range: '1h', events: true })).toBe('/t?range=1h&marks=1')
+    expect(rangedUrl({ url: '/t' }, { events: true })).toBe('/t')
+  })
 })

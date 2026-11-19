@@ -625,6 +625,8 @@ def _display(raw):
         if raw.get('range') == 'event':
             raise LayoutError('The whole event has nothing to compare with yet.')
         out['compare'] = raw['compare']
+    if raw.get('events'):
+        out['events'] = True   # marks what happened on a time graph, for a tile that can
     overrides = _overrides(raw.get('overrides'))
     if overrides:
         out['overrides'] = overrides

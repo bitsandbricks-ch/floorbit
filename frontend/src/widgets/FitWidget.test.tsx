@@ -86,6 +86,20 @@ describe('FitWidget', () => {
     expect(screen.getByText('Yesterday')).toBeInTheDocument()
   })
 
+  it('marks what happened with a line, named under the pointer', () => {
+    size = { w: 900, h: 500 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 1], [1800003600, 2]] }],
+      marks: [{ t: 1800003600, label: 'sw-a1 down', tone: 'err' }, { t: 1700000000, label: 'Too early', tone: '' }] }
+    const { container } = renderWithApp(<FitWidget widget={series} />)
+    expect(container.querySelectorAll('.fb-w-mark')).toHaveLength(1)
+    expect(container.querySelector('.fb-w-mark')!.getAttribute('class')).toContain('fb-tone-err')
+    const plot = container.querySelector('.fb-w-plot')!
+    plot.getBoundingClientRect = () => ({ left: 0, top: 0, right: 900, bottom: 400, width: 900, height: 400, x: 0, y: 0, toJSON: () => ({}) })
+    fireEvent.pointerMove(plot, { clientX: 899 })
+    expect(screen.getByText('sw-a1 down')).toBeInTheDocument()
+    expect(screen.queryByText('Too early')).toBeNull()
+  })
+
   it('draws a stat with a scale as a gauge', () => {
     size = { w: 300, h: 220 }
     renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 86, unit: 'of 112', tone: '', min: 0, max: 112 }} pick="gauge" />)

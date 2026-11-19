@@ -46,7 +46,9 @@ export type Widget = WidgetBase &
       }
     | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
     /** Up to four lines of [unix seconds, value], oldest first. */
-    | { type: 'series'; series: { label: string; points: [number, number][]; colour?: string; ghost?: boolean }[]; unit: string }
+    | { type: 'series'; series: { label: string; points: [number, number][]; colour?: string; ghost?: boolean }[]; unit: string
+      /** What happened when, drawn as lines across the graph. */
+      marks?: { t: number; label: string; tone: Tone }[] }
   )
 
 /** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */
@@ -101,6 +103,8 @@ export interface WidgetTile {
   url: string
   /** A pane may pick the time it shows (``?range=``) and compare it (``?compare=``), issue #960. */
   ranges?: boolean
+  /** It can mark what happened on its graph (``?marks=1``): switches down, incidents. */
+  marks?: boolean
 }
 
 export interface ActionTile {

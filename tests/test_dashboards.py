@@ -395,3 +395,10 @@ def test_a_tile_pane_keeps_its_time_range(client):
     assert "time range" in save(range="week").get_json()["error"]
     assert "Compare" in save(compare="lastyear").get_json()["error"]
     assert "nothing to compare" in save(range="event", compare="day").get_json()["error"]
+
+
+def test_a_tile_pane_keeps_showing_events(client):
+    body = {"name": "Events", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {
+        "pane": {"kind": "tile", "tile": "floorbit/w/traffic", "events": True}}}]}]}
+    pane = client.put("/api/dashboards/events", json=body).get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert pane["events"] is True

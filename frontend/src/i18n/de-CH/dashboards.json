@@ -105,7 +105,9 @@
     "cloneHint": "Macht eine eigene Kachel mit denselben Einstellungen, nur für dieses Dashboard. Sie folgt dem Widget dann nicht mehr.",
     "range": "Gezeigte Zeit",
     "compareDay": "Mit gestern vergleichen",
-    "compareDayHint": "Eine gepunktete Linie: gestern zur selben Zeit, pro Stunde."
+    "compareDayHint": "Eine gepunktete Linie: gestern zur selben Zeit, pro Stunde.",
+    "events": "Ereignisse markieren",
+    "eventsHint": "Ausgefallene und wieder erreichbare Switches sowie Störungen als Linien in der Grafik."
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",

@@ -1242,5 +1242,6 @@
  "A series colour is one of: {}.": "Eine Reihenfarbe ist eine von: {}.",
  "A time range is one of: {}.": "Ein Zeitraum ist einer von: {}.",
  "Compare with one of: {}.": "Vergleiche mit einem von: {}.",
- "The whole event has nothing to compare with yet.": "Für den ganzen Event gibt es noch nichts zum Vergleichen."
+ "The whole event has nothing to compare with yet.": "Für den ganzen Event gibt es noch nichts zum Vergleichen.",
+ "a mark is a dict with t, label and tone": "Eine Markierung ist ein Dict mit t, label und tone"
 }

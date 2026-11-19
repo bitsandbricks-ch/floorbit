@@ -234,6 +234,10 @@ export function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'til
             onChange={(e) => onChange({ ...pane, compare: e.currentTarget.checked ? 'day' : undefined })} />
         </div>
       )}
+      {sources[0]?.marks && (
+        <Switch label={t('dashboards.form.events')} description={t('dashboards.form.eventsHint')} checked={!!pane.events}
+          onChange={(e) => onChange({ ...pane, events: e.currentTarget.checked || undefined })} />
+      )}
       {sources[0]?.id && keyOf(sources[0]) === pane.tile && <WidgetLook pane={pane} tiles={sources} onChange={onChange} />}
       <div>
         <Text size="sm" fw={500} mb={4}>{t('dashboards.form.level')}</Text>
