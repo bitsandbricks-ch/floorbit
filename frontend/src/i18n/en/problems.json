@@ -1,6 +1,6 @@
 {
   "title": "Problems",
-  "intro": "Everything wrong right now: switches offline, services down, security findings and power circuits close to tripping. Mute a switch or service you are working on so it stops paging.",
+  "intro": "Everything wrong right now: switches offline, services down, Wi-Fi access points down or busy, security findings and power circuits close to tripping. Mute what you are working on so it stops paging.",
   "none": "Nothing is wrong right now.",
   "count": {
     "down_one": "{{count}} down",

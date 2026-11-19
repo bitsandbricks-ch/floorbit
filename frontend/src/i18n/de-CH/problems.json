@@ -1,6 +1,6 @@
 {
   "title": "Probleme",
-  "intro": "Alles, was gerade nicht stimmt: Switches offline, Dienste down, Sicherheitsfunde und Stromkreise kurz vor dem Auslösen. Schalte einen Switch oder Dienst stumm, an dem du arbeitest, damit er nicht mehr alarmiert.",
+  "intro": "Alles, was gerade nicht stimmt: Switches offline, Dienste down, WLAN-Access-Points ausgefallen oder ausgelastet, Sicherheitsfunde und Stromkreise kurz vor dem Auslösen. Schalte stumm, woran du arbeitest, damit es nicht mehr alarmiert.",
   "none": "Gerade ist alles in Ordnung.",
   "count": {
     "down_one": "{{count}} down",
