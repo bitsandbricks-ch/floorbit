@@ -73,7 +73,7 @@ THEME_PRESETS = [
 LOGO_MAX_BYTES = 256 * 1024
 LOGO_TYPES = ('image/svg+xml', 'image/png', 'image/jpeg', 'image/webp')
 
-# key, section, label, type, env var, default, help
+# key, section, label, type, env var, default, help; ``advanced`` folds a field under Advanced (#991)
 FIELDS = [
     dict(key='netbox.url', section='netbox', label='URL', type='url',
          env='NETBOX_URL', default='', placeholder='https://netbox.example.com'),
@@ -82,25 +82,26 @@ FIELDS = [
     dict(key='netbox.device_roles', section='netbox', label='Device roles', type='list',
          env='NETBOX_DEVICE_ROLE', default=['access-switch'],
          help='Comma-separated NetBox role slugs to import as switches.'),
-    dict(key='netbox.verify_ssl', section='netbox', label='Verify TLS certificate', type='bool',
+    dict(key='netbox.verify_ssl', advanced=True, section='netbox', label='Verify TLS certificate', type='bool',
          env='NETBOX_VERIFY_SSL', default=True),
 
     dict(key='librenms.url', section='librenms', label='URL', type='url',
          env='LIBRENMS_URL', default='', placeholder='https://librenms.example.com'),
     dict(key='librenms.token', section='librenms', label='API token', type='secret',
          env='LIBRENMS_TOKEN', default=''),
-    dict(key='librenms.verify_ssl', section='librenms', label='Verify TLS certificate', type='bool',
+    dict(key='librenms.verify_ssl', advanced=True, section='librenms', label='Verify TLS certificate', type='bool',
          env='LIBRENMS_VERIFY_SSL', default=True),
-    dict(key='librenms.fdb_exclude', section='librenms', label='Ignored port names', type='list',
+    dict(key='librenms.fdb_exclude', advanced=True, section='librenms', label='Ignored port names', type='list',
          env='LIBRENMS_FDB_EXCLUDE',
          default=['port-channel', 'vlan', 'virtual', 'tunnel', 'loopback', 'po'],
          help='When locating a MAC address, ports whose name contains any of these are skipped (uplinks, LAGs, SVIs).'),
 
-    dict(key='cache.ttl_arp', section='cache', label='ARP table TTL', type='int', unit='seconds',
+    dict(key='cache.ttl_arp', advanced=True, section='cache', label='ARP table TTL', type='int', unit='seconds',
          env='CACHE_TTL_ARP', default=300, min=1, max=86400),
-    dict(key='cache.ttl_mac', section='cache', label='MAC table TTL', type='int', unit='seconds',
+    dict(key='cache.ttl_mac', advanced=True, section='cache', label='MAC table TTL', type='int', unit='seconds',
          env='CACHE_TTL_MAC', default=300, min=1, max=86400),
-    dict(key='cache.ttl_resolve', section='cache', label='Seat resolution TTL', type='int', unit='seconds',
+    dict(key='cache.ttl_resolve', advanced=True, section='cache', label='Seat resolution TTL', type='int',
+         unit='seconds',
          env='CACHE_TTL_RESOLVE', default=30, min=1, max=86400,
          help='How long an IP to switch-port result is reused.'),
 
@@ -141,16 +142,17 @@ FIELDS = [
     dict(key='speedtest.enabled', section='speedtest', label='Speed test on the help page', type='bool',
          env='SPEEDTEST', default=True,
          help='Off hides the button on the seat help page and refuses every test.'),
-    dict(key='speedtest.max_running', section='speedtest', label='Streams at once', type='int',
+    dict(key='speedtest.max_running', advanced=True, section='speedtest', label='Streams at once', type='int',
          env='SPEEDTEST_MAX_RUNNING', default=3, min=1, max=20,
          help='Downloads and uploads running at the same time, over all seats. Each holds a server thread.'),
-    dict(key='speedtest.test_mb', section='speedtest', label='Data per test', type='int', unit='MB',
+    dict(key='speedtest.test_mb', advanced=True, section='speedtest', label='Data per test', type='int', unit='MB',
          env='SPEEDTEST_TEST_MB', default=250, min=20, max=2000,
          help='What one test may move, download and upload together. Enough for a gigabit seat.'),
     dict(key='speedtest.seat_minutes', section='speedtest', label='One test per seat every', type='int',
          unit='minutes', env='SPEEDTEST_SEAT_MINUTES', default=10, min=0, max=240,
          help='0 lets a seat test as often as it likes.'),
-    dict(key='speedtest.max_mbps', section='speedtest', label='Speed cap per stream', type='int', unit='Mbit/s',
+    dict(key='speedtest.max_mbps', advanced=True, section='speedtest', label='Speed cap per stream', type='int',
+         unit='Mbit/s',
          env='SPEEDTEST_MAX_MBPS', default=1000, min=0, max=100000,
          help='0 for no cap. With the default, a gigabit seat still measures in full.'),
     dict(key='metrics.enabled', section='metrics', label='Prometheus metrics', type='bool',

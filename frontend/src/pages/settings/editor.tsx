@@ -1,6 +1,6 @@
-import { Alert, Anchor, Badge, Button, ColorInput, FileButton, Group, Image, NumberInput, Paper, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, ThemeIcon, Tooltip } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Collapse, ColorInput, FileButton, Group, Image, NumberInput, Paper, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, ThemeIcon, Tooltip, UnstyledButton } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
-import { IconCircleCheck, IconCircleX, IconDownload, IconUpload } from '@tabler/icons-react'
+import { IconChevronRight, IconCircleCheck, IconCircleX, IconDownload, IconUpload } from '@tabler/icons-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
@@ -286,6 +286,16 @@ export function SectionPanel({ ed, section, only, title, actions }: {
   if (!d) return null
   const s = section
   const fields = d.fields.filter((f) => f.section === s.id && (!only || only.has(f.key)))
+  const basic = fields.filter((f) => !f.advanced)
+  const advanced = fields.filter((f) => f.advanced)
+  const row = (f: Field, i: number, list: Field[]) => (
+    <Stack key={f.key} gap={0}>
+      {/* Above the Custom-only colours, which its text ("the colours below") points at. */}
+      {s.id === 'appearance' && f.theme === 'custom' && list[i - 1]?.theme !== 'custom' && <ThemeHint current={ed.current} />}
+      <FieldRow field={f} info={d.values[f.key]} change={ed.changes[f.key]}
+        onChange={(v) => ed.setField(f, v)} onReset={() => ed.reset(f.key)} onUndo={() => ed.drop(f.key)} />
+    </Stack>
+  )
   return (
     <Panel id={`sec-${s.id}`} title={title ?? sectionTitle(t, s)}
       desc={t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
@@ -294,15 +304,30 @@ export function SectionPanel({ ed, section, only, title, actions }: {
       ))}>
       <Stack gap={0} className="fb-setting-rows">
         {TESTABLE.has(s.id) && <TestLine result={ed.test.results[s.id] ?? null} />}
-        {fields.map((f, i) => (
-          <Stack key={f.key} gap={0}>
-            {/* Above the Custom-only colours, which its text ("the colours below") points at. */}
-            {s.id === 'appearance' && f.theme === 'custom' && fields[i - 1]?.theme !== 'custom' && <ThemeHint current={ed.current} />}
-            <FieldRow field={f} info={d.values[f.key]} change={ed.changes[f.key]}
-              onChange={(v) => ed.setField(f, v)} onReset={() => ed.reset(f.key)} onUndo={() => ed.drop(f.key)} />
-          </Stack>
-        ))}
+        {basic.map(row)}
       </Stack>
+      {advanced.length > 0 && (
+        <Advanced fields={advanced} open={!!only || advanced.some((f) => ed.changes[f.key] !== undefined)} alone={!basic.length}>
+          <Stack gap={0} className="fb-setting-rows">{advanced.map(row)}</Stack>
+        </Advanced>
+      )}
     </Panel>
+  )
+}
+
+/** A section's server-side values, folded: open when searching or when one of them has an unsaved change. */
+function Advanced({ fields, open, alone, children }: { fields: Field[]; open: boolean; alone: boolean; children: ReactNode }) {
+  const { t } = useTranslation()
+  const [shown, setShown] = useState(false)
+  const opened = shown || open
+  return (
+    <div className={alone ? 'fb-setting-advanced is-alone' : 'fb-setting-advanced'}>
+      <UnstyledButton className="fb-setting-advanced-toggle" aria-expanded={opened} onClick={() => setShown(!opened)}>
+        <IconChevronRight size={14} className={opened ? 'is-open' : undefined} aria-hidden />
+        <Text size="sm" fw={600} component="span">{t('settings.advanced', { count: fields.length })}</Text>
+        <Text size="xs" c="dimmed" component="span">{t('settings.advancedHint')}</Text>
+      </UnstyledButton>
+      <Collapse expanded={opened}>{children}</Collapse>
+    </div>
   )
 }

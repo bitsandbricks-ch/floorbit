@@ -168,4 +168,16 @@ describe('Settings in German', () => {
     expect(screen.getByText('Nur Hosts in dieser Gruppe werden gelesen.')).toBeInTheDocument()
     expect(screen.getByText(/Zustand, Verkehr und Fehler der Ports aus Zabbix/)).toBeInTheDocument()
   })
+
+  it('folds the server-side values of a section under Advanced', async () => {
+    const folded: SettingsAnswer = { ...answer, fields: answer.fields.map((f) => f.key === 'discord.token' ? { ...f, advanced: true } : f) }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': folded }).fn)
+    page('/settings/discord')
+    const toggle = await screen.findByRole('button', { name: /Advanced: 1 more/ })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByLabelText('Webhook URL')).toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('Bot token')).toBeInTheDocument()
+  })
 })
