@@ -1,6 +1,6 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
 import { IconLayoutColumns, IconLayoutRows, IconSettings, IconTrash } from '@tabler/icons-react'
-import { Fragment, useContext, useRef, useState } from 'react'
+import { Fragment, useContext, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isPane, type Node, type Path, type Split } from './model'
 import { PaneView } from './Panes'
@@ -25,15 +25,17 @@ export function SplitView({ node, path = [], editing, cycle }: { node: Node; pat
   const base = useContext(PaneKey)
   // In the editor, the level the widget drew at, shown on the pane while its box changes (#928).
   const [level, setLevel] = useState<Level | null>(null)
+  const [rows, setRows] = useState<[number, number] | null>(null)
+  const report = useMemo(() => ({ level: setLevel, rows: (shown: number, total: number) => setRows([shown, total]) }), [])
   if (isPane(node)) {
     return (
       <div className={`fb-split-pane${editing && same(editing.selected, path) ? ' selected' : ''}`}>
         <PaneKey.Provider value={base == null ? null : [base, ...path].join('.')}>
-          <LevelReport.Provider value={editing ? setLevel : null}>
+          <LevelReport.Provider value={editing ? report : null}>
             <PaneView pane={node.pane} cycle={cycle} />
           </LevelReport.Provider>
         </PaneKey.Provider>
-        {editing && <PaneTools path={path} editing={editing} level={level} />}
+        {editing && <PaneTools path={path} editing={editing} level={level} rows={level === 'm' ? rows : null} />}
       </div>
     )
   }
@@ -73,11 +75,17 @@ function SplitBox({ node, path, editing, cycle }: { node: Extract<Node, { split:
   )
 }
 
-function PaneTools({ path, editing, level }: { path: Path; editing: Editing; level: Level | null }) {
+function PaneTools({ path, editing, level, rows }: { path: Path; editing: Editing; level: Level | null; rows: [number, number] | null }) {
   const { t } = useTranslation()
+  // A list that doesn't fit says so, so the box can be made bigger before the screen shows "+N more".
+  const cut = rows && rows[0] < rows[1]
   return (
     <>
-      {level && <span className="fb-pane-level" data-level={level}>{t(`dashboards.level.${level}`)}</span>}
+      {level && (
+        <span className={`fb-pane-level${cut ? ' cut' : ''}`} data-level={level}>
+          {t(`dashboards.level.${level}`)}{cut && ` · ${t('dashboards.edit.rowsShown', { shown: rows[0], total: rows[1] })}`}
+        </span>
+      )}
       {/* The whole pane picks it for the settings, over whatever the pane shows. */}
       <button type="button" className="fb-pane-pick" aria-label={t('dashboards.edit.pick')} onClick={() => editing.onSelect(path)} />
       <Group gap={4} className="fb-pane-tools">

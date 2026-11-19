@@ -28,7 +28,8 @@
     "addSection": "Add section",
     "move": "Move widget",
     "moveHint": "Drag to move. Arrow keys move it, Shift+arrows resize it.",
-    "cells": "{{w}} × {{h}} cells"
+    "cells": "{{w}} × {{h}} cells",
+    "rowsShown": "{{shown}} of {{total}} rows"
   },
   "kind": {
     "plan": "Plan",

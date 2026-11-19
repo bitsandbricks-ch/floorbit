@@ -1,10 +1,11 @@
 import { ActionIcon, TextInput, UnstyledButton } from '@mantine/core'
 import { IconChevronLeft, IconChevronRight, IconSearch } from '@tabler/icons-react'
-import { useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Widget } from '@/api/types'
 import { type Kind, type Level, ROW_H, rowsThatFit } from '../level'
 import { type Row, rowsOf, stateCounts, statOf } from './shape'
+import { LevelReport } from '../levelReport'
 
 const BAR_H = 34
 
@@ -67,6 +68,7 @@ export function RowsKind({ widget, kind, level, box, onMore }: {
   const cols = table ? columns : columns.slice(0, 2)
   return (
     <div className="fb-w-rows">
+      {!big && <ReportRows shown={slice.length} total={rows.length} />}
       {filtering && (
         <TextInput size="xs" leftSection={<IconSearch size={14} />} placeholder={t('widgets.kind.filter')} aria-label={t('widgets.kind.filter')}
           value={query} onChange={(e) => { setQuery(e.currentTarget.value); setPage(0) }} className="fb-w-filter" />
@@ -117,4 +119,11 @@ export function RowsKind({ widget, kind, level, box, onMore }: {
       )}
     </div>
   )
+}
+
+/** Tells the dashboard editor how many rows show (#928); draws nothing. */
+function ReportRows({ shown, total }: { shown: number; total: number }) {
+  const report = useContext(LevelReport)
+  useEffect(() => { report?.rows(shown, total) }, [report, shown, total])
+  return null
 }

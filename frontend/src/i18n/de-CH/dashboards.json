@@ -28,7 +28,8 @@
     "addSection": "Abschnitt hinzufügen",
     "move": "Widget verschieben",
     "moveHint": "Ziehen zum Verschieben. Pfeiltasten verschieben, Shift+Pfeile ändern die Grösse.",
-    "cells": "{{w}} × {{h}} Felder"
+    "cells": "{{w}} × {{h}} Felder",
+    "rowsShown": "{{shown}} von {{total}} Zeilen"
   },
   "kind": {
     "plan": "Plan",

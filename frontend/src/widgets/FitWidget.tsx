@@ -31,7 +31,7 @@ export function FitWidget({ widget, pick = 'auto', pin = 'auto', look, onMore }:
   const kind = resolveKind(widget, pick)
   const level = pickLevel(kind, whole.w, whole.h, pin)
   const report = useContext(LevelReport)
-  useEffect(() => { if (whole.w) report?.(level) }, [report, level, whole.w])
+  useEffect(() => { if (whole.w) report?.level(level) }, [report, level, whole.w])
   // A stat with nothing to show ("–") keeps its sub line even when small: it says why.
   const empty = widget.type === 'stat' && widget.value === '–'
   const sub = !!widget.sub && (level !== 's' || empty)
