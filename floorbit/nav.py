@@ -264,7 +264,8 @@ def markup(boot):
     if admin:
         # Plugins lives under /settings, so it lights on its own pages and Settings on the rest.
         here = request.path
-        plugins_on = any(p['id'] == 'plugins' and (here == p['href'] or here.startswith(p['href'] + '/')) for p in admin)
+        plugins_on = any(p['id'] == 'plugins' and (here == p['href'] or here.startswith(p['href'] + '/'))
+                         for p in admin)
         items = []
         for p in admin:
             on = plugins_on if p['id'] == 'plugins' else (p['href'] == lit and not plugins_on)
