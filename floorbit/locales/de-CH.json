@@ -1239,5 +1239,12 @@
  "Send the seat blocks as a list.": "Schicke die Sitzblöcke als Liste.",
  "Pick the seat blocks from the floor plan.": "Wähle die Sitzblöcke aus dem Hallenplan.",
  "Block {}: {} of {} seats are outside its ranges": "Block {}: {} von {} Plätzen sind ausserhalb seiner Bereiche",
- "Check which ranges the block is for, under Firewalls": "Prüfe unter Firewalls, für welche Bereiche der Block gilt"
+ "Check which ranges the block is for, under Firewalls": "Prüfe unter Firewalls, für welche Bereiche der Block gilt",
+ "{}: {} seat ports without {}": "{}: {} Platz-Ports ohne {}",
+ "{}: {} seat ports not in VLAN {}": "{}: {} Platz-Ports nicht im VLAN {}",
+ "No switch has {} on its seat ports": "Kein Switch hat {} auf seinen Platz-Ports",
+ "Fix it, or turn the rule off under Switch configs": "Behebe es oder schalte die Regel unter Switch-Konfigs aus",
+ "Pick the rules to turn off from the list.": "Wähle die Regeln zum Ausschalten aus der Liste.",
+ "{}: {} seat port without {}": "{}: {} Platz-Port ohne {}",
+ "{}: {} seat port not in VLAN {}": "{}: {} Platz-Port nicht im VLAN {}"
 }

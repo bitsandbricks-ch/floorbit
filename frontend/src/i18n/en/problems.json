@@ -24,6 +24,7 @@
     "mapping": "Seat port",
     "forecast": "Forecast",
     "log": "Log",
+    "portconfig": "Port config",
     "range": "IP range"
   },
   "attention": {

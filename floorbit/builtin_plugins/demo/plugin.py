@@ -682,9 +682,13 @@ class Plugin(Plugin):
                  'version 15.2', f'hostname {name}', '!',
                  'enable secret 9 $9$demo.example.hash', 'username netops privilege 15 secret 9 $9$demo.example.hash',
                  '!', 'vlan 100', ' name players', 'vlan 999', ' name mgmt', '!']
-        for seat, _b, _n, _i, port in self._demo_ports(name):
-            lines += [f'interface {port}', f' description Seat {seat}', ' switchport access vlan 100',
-                      ' switchport mode access', ' spanning-tree portfast', ' spanning-tree bpduguard enable']
+        for i, (seat, _b, _n, _i, port) in enumerate(self._demo_ports(name)):
+            # A few slips for the seat port check (issue #1059): sw-d-02 lost BPDU guard on its first
+            # ports (its broadcast storm), sw-b-02 has one port left in the default VLAN.
+            vlan = [] if (name, i) == ('sw-b-02', 2) else [' switchport access vlan 100']
+            guard = [] if name == 'sw-d-02' and i < 3 else [' spanning-tree bpduguard enable']
+            lines += [f'interface {port}', f' description Seat {seat}', *vlan,
+                      ' switchport mode access', ' spanning-tree portfast', *guard]
             if (name, port) in _shut:
                 lines.append(' shutdown')
             lines.append('!')

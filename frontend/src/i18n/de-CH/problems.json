@@ -24,6 +24,7 @@
     "mapping": "Platz-Port",
     "forecast": "Prognose",
     "log": "Log",
+    "portconfig": "Port-Konfig",
     "range": "IP-Bereich"
   },
   "attention": {

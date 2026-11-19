@@ -11,7 +11,8 @@ Gathered from what is already watched, without asking anything new:
 - links between switches that are down or slower than planned (floorbit/links.py).
 
 Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
-and seats outside their block's range (floorbit/seat_ranges.py) come as a list of their own under
+seats outside their block's range (floorbit/seat_ranges.py) and seat ports whose config breaks a
+rule (floorbit/port_config.py) come as a list of their own under
 ``attention``, newest first.
 
 Each problem is ``{id, kind, level, title, where, since, link}`` with ``level`` ``down`` or ``warn``.
@@ -158,6 +159,20 @@ def _ranges():
             for f in found]
 
 
+def _port_check():
+    """Seat ports whose config breaks a rule, from the last config copies (floorbit/port_config.py)."""
+    from integrations import seat_sources
+
+    from . import port_config
+    from .store import load_data
+    try:
+        found = port_config.problems(port_config.check(load_data(), seat_sources.load()))
+    except Exception:  # noqa: BLE001 - a copy or seat source that can't be read must not take the page down
+        return []
+    return [{'id': f['id'], 'kind': 'portconfig', 'level': 'warn', 'title': f['title'], 'where': f['where'],
+             'since': None, 'switch_id': None, 'link': '/configs#port-check'} for f in found]
+
+
 def _logs(may_see_people):
     """Syslog lines that matched a known pattern (floorbit/log_alerts.py), as port trouble."""
     from . import features, inventory
@@ -193,7 +208,8 @@ def current(may_see_people):
               'muted': sum(bool(p.get('muted')) for p in items)}
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
-    attention = sorted(_attention() + _logs(may_see_people) + _ranges(), key=lambda p: -(p['since'] or 0))
+    attention = sorted(_attention() + _logs(may_see_people) + _ranges() + _port_check(),
+                       key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
     mutes = [{'switch_id': k, 'kind': 'health' if k.startswith(alerting.service_key('')) else 'switch', **v}
              for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
