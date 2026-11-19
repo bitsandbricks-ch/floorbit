@@ -1187,7 +1187,6 @@
  "List the names this agent is reached by (cert_names) before it can get a certificate.": "Gib zuerst die Namen an, unter denen dieser Agent erreichbar ist (cert_names), dann bekommt er ein Zertifikat.",
  "No new key was asked for this agent.": "Für diesen Agent wurde kein neuer Schlüssel angefordert.",
  "No plugin settings for {} on an agent.": "{} hat keine Einstellungen für einen Agent.",
- "The agents CA key cannot be opened: {}": "Der Schlüssel der Agent-CA lässt sich nicht öffnen: {}",
  "The signing request is missing or too large.": "Die Zertifikatsanfrage fehlt oder ist zu gross.",
  "The signing request is not a PEM certificate request.": "Die Zertifikatsanfrage ist keine PEM-Zertifikatsanfrage.",
  "The signing request is not signed by its own key.": "Die Zertifikatsanfrage ist nicht mit ihrem eigenen Schlüssel signiert.",
@@ -1202,5 +1201,6 @@
  "{} takes at most {} entries.": "{} nimmt höchstens {} Einträge.",
  "{}: \"{}\" is not valid.": "{}: «{}» ist nicht gültig.",
  "Telemetry does not collect from that device. Turn it on in the inventory.": "Von diesem Gerät sammelt die Telemetrie nicht. Schalte sie im Inventar ein.",
- "{} must be one of {}.": "{} muss eines davon sein: {}."
+ "{} must be one of {}.": "{} muss eines davon sein: {}.",
+ "The agents CA key cannot be opened. The server log says why.": "Der Schlüssel der Agent-CA lässt sich nicht öffnen. Das Server-Log sagt, warum."
 }

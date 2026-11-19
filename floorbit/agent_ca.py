@@ -12,6 +12,7 @@ install the CA once (``GET /api/agents/ca.pem``) and then trust every agent, in 
 """
 import datetime
 import ipaddress
+import logging
 import threading
 
 from .store import load_data, save_data
@@ -24,6 +25,7 @@ RENEW_DAYS = 30
 CSR_MAX = 8192
 
 _lock = threading.Lock()
+log = logging.getLogger(__name__)
 
 
 class CAError(ValueError):
@@ -84,7 +86,9 @@ def _ca():
     try:
         key = serialization.load_pem_private_key(vault.open_(SLOT, found['key']).encode(), None)
     except vault.VaultError as exc:
-        raise CAError(f'The agents CA key cannot be opened: {exc}') from None
+        # The vault's reason can name a path on this server: the log has it, the agent doesn't.
+        log.error('The agents CA key cannot be opened: %s', exc)
+        raise CAError('The agents CA key cannot be opened. The server log says why.') from None
     return x509.load_pem_x509_certificate(found['cert'].encode()), key
 
 
