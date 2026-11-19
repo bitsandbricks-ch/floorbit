@@ -22,7 +22,16 @@ TEXTS = {
            'switch_states': 'Switch states', 'down_for': 'down {t}', 'open_incidents': 'Open incidents',
            'col_what': 'What', 'col_where': 'Where', 'col_open': 'Open for', 'switch_at': 'Switch {name}',
            'seat_at': 'Seat {seat}', 'traffic': 'Traffic', 'download': 'Download', 'upload': 'Upload',
-           'seats_by_block': 'Seats online by block'},
+           'seats_by_block': 'Seats online by block',
+           'bandwidth': 'Bandwidth', 'down_up': '↓ {down} · ↑ {up}', 'no_reads': 'No traffic read yet',
+           'peak': 'Peak of the event', 'peak_sub': '{ago} ago · 24 h peak {day}', 'ports': 'Ports',
+           'ports_unit': 'up', 'ports_sub': '{down} down · {errors} with errors', 'uplinks': 'Uplinks',
+           'top_ports': 'Busiest seats', 'port_at': '{switch} {port}', 'traffic_mix': 'Traffic by kind',
+           'mix_sub': 'Last hour: {total}', 'flow_services': 'Top services', 'seat_count': '{n} seats',
+           'traffic_areas': 'Traffic by area', 'anomalies': 'Look at this', 'nothing_odd': 'Nothing odd',
+           'for': 'for {t}', 'no_flows': 'No flows yet',
+           'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'downloads': 'Downloads', 'updates': 'Updates',
+                   'web': 'Web', 'other': 'Other'}},
     'de': {'problems': 'Probleme jetzt', 'incidents': 'Störungen', 'down': 'ausgefallen', 'open': 'offen',
            'switches': 'Switches', 'switches_unit': 'von {n} online',
            'switches_sub': '{offline} offline · {unknown} unbekannt',
@@ -36,7 +45,16 @@ TEXTS = {
            'switch_states': 'Switch-Status', 'down_for': 'aus seit {t}', 'open_incidents': 'Offene Störungen',
            'col_what': 'Was', 'col_where': 'Wo', 'col_open': 'Offen seit', 'switch_at': 'Switch {name}',
            'seat_at': 'Platz {seat}', 'traffic': 'Verkehr', 'download': 'Download', 'upload': 'Upload',
-           'seats_by_block': 'Plätze online nach Block'},
+           'seats_by_block': 'Plätze online nach Block',
+           'bandwidth': 'Bandbreite', 'down_up': '↓ {down} · ↑ {up}', 'no_reads': 'Noch keine Verkehrsdaten',
+           'peak': 'Spitze des Events', 'peak_sub': 'vor {ago} · 24-Std.-Spitze {day}', 'ports': 'Ports',
+           'ports_unit': 'online', 'ports_sub': '{down} offline · {errors} mit Fehlern', 'uplinks': 'Uplinks',
+           'top_ports': 'Aktivste Plätze', 'port_at': '{switch} {port}', 'traffic_mix': 'Verkehr nach Art',
+           'mix_sub': 'Letzte Stunde: {total}', 'flow_services': 'Top-Dienste', 'seat_count': '{n} Plätze',
+           'traffic_areas': 'Verkehr nach Bereich', 'anomalies': 'Anschauen', 'nothing_odd': 'Nichts Auffälliges',
+           'for': 'seit {t}', 'no_flows': 'Noch keine Flows',
+           'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'downloads': 'Downloads', 'updates': 'Updates',
+                   'web': 'Web', 'other': 'Anderes'}},
 }
 # One line per tile: its id, the text key of its label, its size and how often it reloads (seconds).
 # blueprints/plugins.py core_widget() has the matching builder. The Widgets gallery lists them all.
@@ -51,14 +69,26 @@ TILES = {
     'open_incidents': {'label': 'open_incidents', 'size': 'small', 'refresh': 30},
     'traffic': {'label': 'traffic', 'size': 'wide', 'refresh': 30},
     'seats_by_block': {'label': 'seats_by_block', 'size': 'small', 'refresh': 30},
+    # What the Stats and Traffic views showed in one big pane, as tiles of their own.
+    'bandwidth': {'label': 'bandwidth', 'size': 'small', 'refresh': 30},
+    'peak': {'label': 'peak', 'size': 'small', 'refresh': 30},
+    'ports': {'label': 'ports', 'size': 'small', 'refresh': 30},
+    'uplinks': {'label': 'uplinks', 'size': 'small', 'refresh': 30},
+    'top_ports': {'label': 'top_ports', 'size': 'small', 'refresh': 30},
+    'traffic_mix': {'label': 'traffic_mix', 'size': 'small', 'refresh': 30, 'feature': 'traffic'},
+    'flow_services': {'label': 'flow_services', 'size': 'small', 'refresh': 30, 'feature': 'traffic'},
+    'traffic_areas': {'label': 'traffic_areas', 'size': 'small', 'refresh': 30, 'feature': 'traffic'},
+    'anomalies': {'label': 'anomalies', 'size': 'small', 'refresh': 30, 'feature': 'traffic'},
 }
 MAX_DOWN = 20   # a big screen reads a short list; the rest is "+ n more"
 
 
-def tiles(lang, may_see_board):
-    """The tile list entries, next to the plugins' in ``GET /api/dashboard``."""
+def tiles(lang, may_see_board, feature_on=lambda f: True):
+    """The tile list entries, next to the plugins' in ``GET /api/dashboard``. A tile of a feature
+    that is off (Settings > Features) is left out, like its page."""
     text = TEXTS.get(lang, TEXTS['en'])
     hidden = set() if may_see_board else {'incidents', 'open_incidents'}
+    hidden |= {t for t, spec in TILES.items() if spec.get('feature') and not feature_on(spec['feature'])}
     return [{'plugin': PLUGIN, 'plugin_name': NAME, 'id': tile, 'label': text[spec['label']], 'size': spec['size'],
              'refresh': spec['refresh'], 'url': f'/api/dashboard/floorbit/{tile}'}
             for tile, spec in TILES.items() if tile not in hidden]
@@ -193,3 +223,141 @@ def traffic_widget(lang, snapshot):
     return {'type': 'series', 'unit': 'bit/s', 'link': '/stats',
             'series': [{'label': text['download'], 'points': [[s['t'], s['down']] for s in samples]},
                        {'label': text['upload'], 'points': [[s['t'], s['up']] for s in samples]}]}
+
+
+NONE = '\u2013'   # an en dash: no number yet
+SI = ('', 'k', 'M', 'G', 'T', 'P')
+
+
+def _si(value, unit):
+    """4.8 Gbit/s, 282 GB: one decimal under ten, as the dashboard writes numbers."""
+    value = float(value or 0)
+    i = 0
+    while abs(value) >= 1000 and i < len(SI) - 1:
+        value /= 1000
+        i += 1
+    digits = 1 if i and abs(value) < 10 else 0
+    return f'{value:.{digits}f} {SI[i]}{unit}'
+
+
+def rate(bps):
+    return _si(bps, 'bit/s')
+
+
+def size(n):
+    return _si(n, 'B')
+
+
+def bandwidth_widget(lang, snapshot):
+    """Download and upload together right now, from the latest traffic read (stats.py)."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    now = snapshot.get('now')
+    if not now:
+        return {'type': 'stat', 'value': NONE, 'unit': '', 'sub': text['no_reads'], 'link': '/dashboards/network'}
+    return {'type': 'stat', 'value': now['down'] + now['up'], 'unit': 'bit/s', 'link': '/dashboards/network',
+            'sub': text['down_up'].format(down=rate(now['down']), up=rate(now['up']))}
+
+
+def peak_widget(lang, snapshot, now=None):
+    """The busiest moment of the event, how long ago, and the last 24 hours' peak next to it."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    now = time.time() if now is None else now
+    peak = snapshot.get('peak')
+    if not peak:
+        return {'type': 'stat', 'value': NONE, 'unit': '', 'sub': text['no_reads'], 'link': '/dashboards/network'}
+    day = (snapshot.get('day') or {}).get('peak_bps') or 0
+    return {'type': 'stat', 'value': peak['bps'], 'unit': 'bit/s', 'link': '/dashboards/network',
+            'sub': text['peak_sub'].format(ago=_down_for(text, now - (peak.get('at') or now)), day=rate(day))}
+
+
+def ports_widget(lang, snapshot):
+    """Ports up from the latest read, with how many are down or count errors."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    now = snapshot.get('now')
+    if not now:
+        return {'type': 'stat', 'value': NONE, 'unit': '', 'sub': text['no_reads'], 'link': '/problems'}
+    up, down, errors = now.get('ports_up', 0), now.get('ports_down', 0), now.get('ports_errors', 0)
+    return {'type': 'stat', 'value': up, 'unit': text['ports_unit'], 'tone': 'warn' if errors else '',
+            'sub': text['ports_sub'].format(down=down, errors=errors), 'link': '/problems',
+            'min': 0, 'max': up + down}
+
+
+def uplinks_widget(lang, snapshot):
+    """Each uplink's load as a share of its speed, busiest first, so it draws as bars."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    items = []
+    for u in sorted(snapshot.get('uplinks') or [], key=lambda u: -(u.get('utilization') or 0)):
+        pct = round((u.get('utilization') or 0) * 100)
+        items.append({'label': text['port_at'].format(switch=u.get('switch') or '', port=u.get('port') or '').strip(),
+                      'value': f"{pct} % · {rate(u.get('bps'))}", 'number': pct, 'max': 100,
+                      'tone': 'err' if pct >= 80 else 'warn' if pct >= 60 else ''})
+    return {'type': 'list', 'items': items, 'link': '/dashboards/network'}
+
+
+def top_ports_widget(lang, snapshot):
+    """The busiest seats (or switch ports without a seat) right now. Seat numbers only, no nicks."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    items = [{'label': text['seat_at'].format(seat=t['seat']) if t.get('seat')
+              else text['port_at'].format(switch=t.get('switch') or '', port=t.get('port') or '').strip(),
+              'value': rate(t.get('bps')), 'number': t.get('bps') or 0}
+             for t in snapshot.get('top') or []]
+    return {'type': 'list', 'items': items, 'link': '/dashboards/network'}
+
+
+CATEGORIES = ('gaming', 'streaming', 'downloads', 'updates', 'web', 'other')
+
+
+def _no_flows(text):
+    return {'type': 'list', 'items': [], 'sub': text['no_flows'], 'link': '/dashboards/traffic'}
+
+
+def traffic_mix_widget(lang, flows):
+    """The last hour's traffic by kind (gaming, streaming, ...), as shares of the whole hall."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not flows:
+        return _no_flows(text)
+    mix = flows.get('mix_hour') or {}
+    total = sum(mix.get(c) or 0 for c in CATEGORIES)
+    items = [{'label': text['cat'][c], 'value': f"{round((mix.get(c) or 0) / total * 100)} % · {size(mix.get(c))}",
+              'number': mix.get(c) or 0} for c in CATEGORIES if total and mix.get(c)]
+    return {'type': 'list', 'items': items, 'sub': text['mix_sub'].format(total=size(total)),
+            'link': '/dashboards/traffic'}
+
+
+def flow_services_widget(lang, flows):
+    """The services the hall talks to most, by volume, with how many seats use each."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not flows:
+        return _no_flows(text)
+    items = [{'label': s.get('name') or '', 'number': s.get('bytes') or 0,
+              'value': f"{size(s.get('bytes'))} · {text['seat_count'].format(n=s.get('seats', 0))}"}
+             for s in flows.get('services') or []]
+    return {'type': 'list', 'items': items, 'link': '/dashboards/traffic'}
+
+
+def traffic_areas_widget(lang, flows):
+    """Volume per area of the hall (aggregates only, issue #25's 5+ seats rule holds there)."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not flows:
+        return _no_flows(text)
+    items = [{'label': a.get('area') or '', 'value': size(a.get('bytes')), 'number': a.get('bytes') or 0}
+             for a in flows.get('areas') or []]
+    return {'type': 'list', 'items': items, 'link': '/dashboards/traffic'}
+
+
+def anomalies_widget(lang, flows, now=None):
+    """What the flow collector found odd (P2P, rogue DHCP, ...), newest first. ``flows`` is already
+    trimmed for this account: without seats.view an anomaly names no seat."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not flows:
+        return {'type': 'status', 'items': [], 'sub': text['no_flows'], 'link': '/dashboards/traffic'}
+    now = time.time() if now is None else now
+    found = sorted(flows.get('anomalies') or [], key=lambda a: -(a.get('first_seen') or 0))
+    if not found:
+        return {'type': 'status', 'items': [{'label': text['nothing_odd'], 'state': 'up'}],
+                'link': '/dashboards/traffic'}
+    bad = ('rogue-dhcp', 'rogue-dns', 'burst')
+    return {'type': 'status', 'link': '/dashboards/traffic', 'items': [
+        {'label': ' · '.join(x for x in (a.get('title'), a.get('detail')) if x),
+         'state': 'down' if a.get('kind') in bad else 'warn',
+         'detail': text['for'].format(t=_down_for(text, now - (a.get('first_seen') or now)))} for a in found]}

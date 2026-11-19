@@ -102,8 +102,8 @@ def _view(view, expanded=False):
     return {'pane': {'kind': 'view', 'view': view, **({'expanded': True} if expanded else {})}}
 
 
-def _tile(tile):
-    return {'pane': {'kind': 'tile', 'tile': f'floorbit/w/{tile}'}}
+def _tile(tile, **look):
+    return {'pane': {'kind': 'tile', 'tile': f'floorbit/w/{tile}', **look}}
 
 
 def _at(x, y, w, h, node):
@@ -122,15 +122,23 @@ BUILTIN = {
         _at(18, 3, 6, 3, _tile('seats')),
         _at(18, 6, 6, 6, _tile('down')),
     ]}]},
-    # The crew's start page: the hall, what is red, and how busy the network is.
+    # The crew's start page: the numbers that matter, the hall, what is red, and how busy the network is.
     'overview': {'name': 'Overview', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 6, 3, _tile('switches')),
-        _at(6, 0, 6, 3, _tile('seats')),
-        _at(12, 0, 12, 6, _view('health')),
-        _at(0, 3, 12, 9, _plan(preset='ops')),
-        _at(12, 6, 12, 6, _tile('down')),
-        _at(0, 12, 12, 9, _view('stats')),
-        _at(12, 12, 12, 9, _view('traffic')),
+        _at(0, 0, 4, 3, _tile('seats')),
+        _at(4, 0, 4, 3, _tile('switches')),
+        _at(8, 0, 4, 3, _tile('bandwidth')),
+        _at(12, 0, 4, 3, _tile('peak')),
+        _at(16, 0, 4, 3, _tile('ports')),
+        _at(20, 0, 4, 3, _tile('incidents')),
+        _at(0, 3, 14, 9, _plan(preset='ops')),
+        _at(14, 3, 10, 5, _view('health')),
+        _at(14, 8, 10, 4, _tile('down')),
+        _at(0, 12, 8, 8, _tile('switch_states', type='status')),
+        _at(8, 12, 10, 8, _tile('traffic', type='graph', style='area')),
+        _at(18, 12, 6, 8, _tile('uplinks', type='bar')),
+        _at(0, 20, 8, 8, _tile('top_ports', type='bar', limit=8)),
+        _at(8, 20, 8, 8, _tile('traffic_mix', type='pie')),
+        _at(16, 20, 8, 8, _tile('anomalies', type='status')),
     ]}]},
     'health': {'name': 'Service health', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 24, 12, _view('health', expanded=True)),
@@ -140,11 +148,16 @@ BUILTIN = {
     'network': {'name': 'Network', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 6, 3, _tile('switches')),
         _at(6, 0, 6, 3, _tile('seats')),
-        _at(12, 0, 12, 6, _view('wifi')),
-        _at(0, 3, 12, 3, _view('endpoints')),
-        _at(0, 6, 16, 12, _view('stats', expanded=True)),
-        _at(16, 6, 8, 6, _tile('down')),
-        _at(16, 12, 8, 6, _view('network-status')),
+        _at(12, 0, 6, 3, _tile('bandwidth')),
+        _at(18, 0, 6, 3, _tile('ports')),
+        _at(0, 3, 16, 9, _tile('traffic', type='graph', style='area')),
+        _at(16, 3, 8, 9, _tile('down')),
+        _at(0, 12, 8, 9, _tile('uplinks', type='bar')),
+        _at(8, 12, 8, 9, _tile('top_ports', type='bar', limit=10)),
+        _at(16, 12, 8, 9, _tile('switch_states', type='status')),
+        _at(0, 21, 12, 6, _view('wifi')),
+        _at(12, 21, 12, 3, _view('endpoints')),
+        _at(12, 24, 12, 3, _view('network-status')),
     ]}]},
     'services': {'name': 'Services', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 24, 10, _view('services', expanded=True)),
@@ -152,10 +165,17 @@ BUILTIN = {
         _at(12, 10, 12, 8, _view('lancache')),
     ]}]},
     'traffic': {'name': 'Traffic', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 24, 14, _view('traffic', expanded=True)),
-        _at(0, 14, 12, 10, _view('dns')),
-        _at(12, 14, 12, 10, _view('games')),
-        _at(0, 24, 24, 8, _view('speedtests')),
+        _at(0, 0, 6, 3, _tile('bandwidth')),
+        _at(6, 0, 6, 3, _tile('peak')),
+        _at(12, 0, 12, 6, _tile('anomalies', type='status')),
+        _at(0, 3, 12, 9, _tile('traffic', type='graph', style='area')),
+        _at(12, 6, 12, 6, _tile('traffic_mix', type='pie')),
+        _at(0, 12, 8, 9, _tile('flow_services', type='bar', limit=10)),
+        _at(8, 12, 8, 9, _tile('traffic_areas', type='bar')),
+        _at(16, 12, 8, 9, _tile('top_ports', type='bar', limit=10)),
+        _at(0, 21, 12, 10, _view('dns')),
+        _at(12, 21, 12, 10, _view('games')),
+        _at(0, 31, 24, 8, _view('speedtests')),
     ]}]},
     'power': {'name': 'Power load', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 24, 14, _view('power-load', expanded=True)),

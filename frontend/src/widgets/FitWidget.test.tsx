@@ -78,6 +78,14 @@ describe('FitWidget', () => {
     expect(screen.getByText('30')).toBeInTheDocument()
   })
 
+  it('writes a big pie total short, so it fits the ring', () => {
+    size = { w: 500, h: 220 }
+    const mix: Widget = { ...base, type: 'list', items: [{ label: 'Web', value: '360 GB', tone: '', number: 3.6e11 },
+      { label: 'Gaming', value: '183 GB', tone: '', number: 1.83e11 }] }
+    renderWithApp(<FitWidget widget={mix} pick="pie" />)
+    expect(screen.getByText('543G')).toBeInTheDocument()
+  })
+
   it('draws numbers as vertical bars and time data as columns', () => {
     size = { w: 400, h: 220 }
     const blocks: Widget = { ...base, type: 'list', items: [{ label: 'A', value: '10 / 40', tone: '', number: 10, max: 40 }] }
