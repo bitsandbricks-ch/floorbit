@@ -319,7 +319,8 @@ def test_an_agent_feed_from_a_plugin_not_set_up_is_no_failure(client, monkeypatc
     monkeypatch.setattr(agent_link, 'active', lambda: True)
     monkeypatch.setattr(agent_link, 'may_call_here', lambda spec: False)
     monkeypatch.setattr(agent_link, 'inventory_feeds', lambda: [
-        {'plugin': 'netbox', 'name': 'NetBox', 'error': 'Set the NetBox URL and API token under Settings > NetBox first.'},
+        {'plugin': 'netbox', 'name': 'NetBox',
+         'error': 'Set the NetBox URL and API token under Settings > NetBox first.'},
         {'plugin': 'lab', 'name': 'Lab', 'items': [{'id': '1', 'name': 'sw-lab-01'}]}])
     reports = client.post('/api/inventory/sync').get_json()['reports']
     assert 'netbox' not in [r['plugin'] for r in reports]
