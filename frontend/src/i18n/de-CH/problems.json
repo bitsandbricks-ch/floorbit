@@ -24,6 +24,7 @@
     "mapping": "Platz-Port",
     "forecast": "Prognose",
     "log": "Log",
+    "plugin": "Plugin",
     "wifi": "WLAN"
   },
   "attention": {

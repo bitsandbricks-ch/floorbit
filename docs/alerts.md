@@ -20,7 +20,9 @@ that are down or need a look, muted ones (switches and services) left out, e.g. 
 - the [bandwidth forecast](forecast.md) reaching the warning share of the line within the next hours;
 - [links between switches](topology.md) that are down (red) or came up slower than planned (amber);
 - [Wi-Fi](wifi.md) access points that are down (red) or busy for 5 minutes (amber), and two placed
-  access points near each other on one channel (amber).
+  access points near each other on one channel (amber);
+- plugins turned on that don't load (red), whose calls have all failed for 5 minutes (amber), and
+  installed versions the [Marketplace](marketplace.md) withdrew (amber).
 
 It asks nothing new: it reads what the status monitor, the health wall, the security watch, the
 power layer, the link reader and the Wi-Fi view already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,
