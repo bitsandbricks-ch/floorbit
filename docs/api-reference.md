@@ -58,9 +58,11 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agent/v1/answers` | anyone |  |
 | GET | `/api/agent/v1/calls` | anyone |  |
 | GET | `/api/agent/v1/captive` | anyone |  |
+| POST | `/api/agent/v1/cert` | anyone |  |
 | POST | `/api/agent/v1/env-settings` | anyone |  |
 | POST | `/api/agent/v1/flows` | anyone |  |
 | GET | `/api/agent/v1/hello` | anyone |  |
+| POST | `/api/agent/v1/key` | anyone |  |
 | POST | `/api/agent/v1/report` | anyone |  |
 | POST | `/api/agent/v1/seat-walk` | anyone |  |
 | GET | `/api/agent/v1/seats` | anyone |  |
@@ -70,8 +72,14 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agents` | `settings.manage` |  |
 | DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
+| POST | `/api/agents/<agent_id>/cert` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/history` | `settings.manage` |  |
+| POST | `/api/agents/<agent_id>/roll` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
+| GET | `/api/agents/<agent_id>/settings` | `settings.manage` |  |
+| PATCH | `/api/agents/<agent_id>/settings` | `settings.manage` |  |
+| GET | `/api/agents/ca.pem` | `settings.manage` |  |
+| POST | `/api/agents/roll` | `settings.manage` |  |
 
 ## floorbit.blueprints.agent_plugins
 

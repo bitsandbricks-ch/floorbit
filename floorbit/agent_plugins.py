@@ -52,16 +52,17 @@ def config(registry=None, agent_id=None):
     compares the etag and restarts only the plugins whose part changed. ``agent_id``: leaves out the
     plugins that agent was told to leave off (Local agents page)."""
     registry = registry or _registry()
-    off = set()
+    off, mine = set(), {}
     if agent_id is not None:
-        from . import agent_link
+        from . import agent_link, agent_settings
         off = agent_link.plugins_off(agent_id)
+        mine = agent_settings.overrides(agent_id)     # this agent's own plugin settings (its page)
     plugins = {}
     for spec in agent_specs(registry):
         if spec.id in off:
             continue
         block = spec.agent
-        settings = registry.settings_of(spec)
+        settings = {**registry.settings_of(spec), **mine.get(spec.id, {})}
         if block.get('targets'):
             # The devices this plugin may work on: enabled for them (device, group, tag) and with
             # credentials, as the inventory resolves it (inventory_scope, docs/agent-plugins.md).
@@ -96,8 +97,13 @@ def config(registry=None, agent_id=None):
         other = stand_by_for(agent_id)
         if other:
             ha['stand_by_for'] = other
-    raw = json.dumps([plugins, local, offered, ha], sort_keys=True, default=str).encode()
-    return {'plugins': plugins, 'local': local, 'bundles': offered, 'ha': ha,
+    # The agent's own settings, a new key to fetch, its certificate's names (agent_settings.py).
+    agent = {}
+    if agent_id is not None:
+        from .agent_settings import agent_block
+        agent = agent_block(agent_id)
+    raw = json.dumps([plugins, local, offered, ha, agent], sort_keys=True, default=str).encode()
+    return {'plugins': plugins, 'local': local, 'bundles': offered, 'ha': ha, 'agent': agent,
             'etag': hashlib.sha256(raw).hexdigest()[:32]}
 
 
