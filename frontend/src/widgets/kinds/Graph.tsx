@@ -124,7 +124,7 @@ function trendAt(tr: [number, number][], ts: number): number {
   return tr[tr.length - 1][1]
 }
 
-function Plot({ lines, stack, area, trends = [], steps = [], ghosts = [], marks = [], w, h, t0, t1, top, axis, cross = null, label }: {
+export function Plot({ lines, stack, area, trends = [], steps = [], ghosts = [], marks = [], w, h, t0, t1, top, axis, cross = null, label }: {
   lines: Line[]; stack: Look['stack']; area: boolean; trends?: [number, number][][]; steps?: Threshold[]; ghosts?: Line[]; marks?: { x: number; tone: string }[]
   w: number; h: number; t0?: number; t1?: number; top?: number; axis?: Axis; cross?: number | null; label?: string
 }) {

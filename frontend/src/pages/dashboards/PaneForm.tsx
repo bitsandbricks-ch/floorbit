@@ -15,7 +15,7 @@ import { usePaneData } from '@/widgets/usePaneData'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
-import { type Area, TIME_RANGES, type TimeRange, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane } from './model'
+import { type Area, REFRESHES, type Refresh, TIME_RANGES, type TimeRange, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane } from './model'
 import { pluginName } from '@/lib/pluginName'
 import { DisplayFields } from './DisplayFields'
 import { followed, useSavedWidgets } from '../widgets/saved'
@@ -239,6 +239,22 @@ export function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'til
           onChange={(e) => onChange({ ...pane, events: e.currentTarget.checked || undefined })} />
       )}
       {sources[0]?.id && keyOf(sources[0]) === pane.tile && <WidgetLook pane={pane} tiles={sources} onChange={onChange} />}
+      {pane.tile && (
+        <div>
+          <Text size="sm" fw={500} mb={4}>{t('dashboards.form.textSize')}</Text>
+          <SegmentedControl fullWidth size="xs" value={pane.text_size ?? 'm'} aria-label={t('dashboards.form.textSize')}
+            data={['s', 'm', 'l'].map((v) => ({ value: v, label: t(`dashboards.textSize.${v}`) }))}
+            onChange={(v) => onChange({ ...pane, text_size: v === 'm' ? undefined : (v as 's' | 'l') })} />
+          <Text size="xs" c="dimmed" mt={4}>{t('dashboards.form.textSizeHint')}</Text>
+        </div>
+      )}
+      {pane.tile && (
+        <Select label={t('dashboards.form.refresh')} description={t('dashboards.form.refreshHint')} clearable
+          placeholder={t('dashboards.refresh.auto', { seconds: Math.max(10, sources[0]?.refresh ?? 30) })}
+          value={pane.refresh ? String(pane.refresh) : null}
+          data={REFRESHES.map((r) => ({ value: String(r), label: r < 60 ? t('dashboards.refresh.seconds', { count: r }) : t('dashboards.refresh.minutes', { count: r / 60 }) }))}
+          onChange={(v) => onChange({ ...pane, refresh: v ? (Number(v) as Refresh) : undefined })} />
+      )}
       <div>
         <Text size="sm" fw={500} mb={4}>{t('dashboards.form.level')}</Text>
         <SegmentedControl fullWidth size="xs" value={pane.level ?? 'auto'} aria-label={t('dashboards.form.level')}
@@ -283,7 +299,10 @@ function WidgetLook({ pane, tiles, onChange }: { pane: Extract<Pane, { kind: 'ti
           data={picks.map((k) => ({ value: k, label: k === 'auto' ? t('dashboards.widgetType.auto', { kind: t(`dashboards.widgetType.${ok[0]}`) }) : t(`dashboards.widgetType.${k}`) }))}
           onChange={(v) => onChange({ ...pane, type: !v || v === 'auto' ? undefined : (v as KindPick) })} />
       )}
-      {looks.map((key) => key === 'legend' ? (
+      {looks.map((key) => key === 'spark' || key === 'change' ? (
+        <Switch key={key} label={t(`dashboards.form.${key}`)} description={t(`dashboards.form.${key}Hint`)} checked={!!pane[key]}
+          onChange={(e) => onChange({ ...pane, [key]: e.currentTarget.checked || undefined })} />
+      ) : key === 'legend' ? (
         <MultiSelect key={key} label={t('dashboards.form.legend')} description={t('dashboards.form.legendHint')} clearable
           value={pane.legend ?? []} data={CALCS.map((c) => ({ value: c, label: t(`widgets.calc.${c}`) }))}
           onChange={(v) => onChange({ ...pane, legend: v.length ? (v as Calc[]) : undefined })} />

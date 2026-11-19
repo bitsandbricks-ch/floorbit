@@ -68,11 +68,12 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
 function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>; tiles: WidgetTile[] }) {
   const { t } = useTranslation()
   const [big, setBig] = useState(false)
-  const { data, error, isPending, dropped } = usePaneData(useWidgets(tiles), pane, tiles.map((x) => x.label), displayOf(pane))
+  const paced = pane.refresh ? tiles.map((x) => ({ ...x, refresh: pane.refresh! })) : tiles
+  const { data, error, isPending, dropped } = usePaneData(useWidgets(paced), pane, tiles.map((x) => x.label), displayOf(pane))
   const title = pane.title ?? tiles.map((x) => x.label).join(' · ')
   const look = { stack: pane.stack, style: pane.style, trend: pane.trend, legend: pane.legend,
     thresholds: pane.threshold_mode === 'percent' ? undefined : pane.thresholds, number: { decimals: pane.decimals, short: pane.short },
-    axis: { min: pane.y_min, max: pane.y_max, log: pane.y_log } }
+    axis: { min: pane.y_min, max: pane.y_max, log: pane.y_log }, spark: pane.spark, change: pane.change, text: pane.text_size }
   const link = data?.link && data.link.startsWith('/') ? data.link : ''
   return (
     <Framed title={title} hide={pane.hide_title} fit actions={data && (

@@ -32,7 +32,7 @@ export function FitWidget({ widget, pick = 'auto', pin = 'auto', look, onMore }:
   const box = { w: whole.w, h: Math.max(0, whole.h - (sub ? SUB_H : 0)) }
   return (
     <NumberStyleContext.Provider value={look?.number ?? NO_STYLE}>
-    <div className={`fb-w fb-w-is-${kind} fb-w-level-${level}`} data-kind={kind} data-level={level} ref={ref}>
+    <div className={`fb-w fb-w-is-${kind} fb-w-level-${level}${look?.text ? ` fb-w-text-${look.text}` : ''}`} data-kind={kind} data-level={level} ref={ref}>
       <div className="fb-w-area">
         {box.w > 0 && <Kind kind={kind} widget={widget} level={level} box={box} look={look} onMore={onMore} />}
       </div>
@@ -44,7 +44,7 @@ export function FitWidget({ widget, pick = 'auto', pin = 'auto', look, onMore }:
 
 function Kind({ kind, look, ...props }: { kind: Kind; widget: Widget; level: Level; box: { w: number; h: number }; look?: Look; onMore?: () => void }) {
   switch (kind) {
-    case 'stat': return <StatKind {...props} />
+    case 'stat': return <StatKind {...props} look={look} />
     case 'gauge': return <GaugeKind {...props} />
     case 'graph': return <Graph {...props} look={look} />
     case 'bar': return <BarsKind {...props} look={look} />

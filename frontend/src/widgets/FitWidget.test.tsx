@@ -100,6 +100,16 @@ describe('FitWidget', () => {
     expect(screen.queryByText('Too early')).toBeNull()
   })
 
+  it('puts a stat\'s history under it, with how it moved, when the pane asks', () => {
+    size = { w: 300, h: 220 }
+    const t0 = 1800000000
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Clients', points: [[t0, 40], [t0 + 1800, 50], [t0 + 5400, 60]] }] }
+    const { container } = renderWithApp(<FitWidget widget={series} pick="stat" pin="m" look={{ spark: true, change: true, text: 'l' }} />)
+    expect(container.querySelector('.fb-w-spark polyline')).not.toBeNull()
+    expect(container.querySelector('.fb-w-change')!.textContent).toBe('▲ 20 % vs an hour ago')
+    expect(container.querySelector('.fb-w-text-l')).not.toBeNull()
+  })
+
   it('draws a stat with a scale as a gauge', () => {
     size = { w: 300, h: 220 }
     renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 86, unit: 'of 112', tone: '', min: 0, max: 112 }} pick="gauge" />)

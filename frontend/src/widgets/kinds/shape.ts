@@ -108,6 +108,23 @@ export function linesOf(w: Widget): { lines: Line[]; unit: string; timed: boolea
   return { lines: [], unit: '', timed: false }
 }
 
+/** How a stat with a history moved (issue #960): against an hour before its latest sample when the
+ *  history goes back that far, else against its first sample. ``pct`` is left out when the earlier
+ *  value is 0; ``at`` is the earlier sample's time (unix seconds) for a timed history. */
+export interface Change { from: number; to: number; pct?: number; hour: boolean; at?: number }
+export function changeOf(w: Widget): Change | null {
+  const { lines, timed } = linesOf(w)
+  const pts = lines.find((l) => !l.ghost)?.points ?? []
+  if (pts.length < 2) return null
+  const last = pts[pts.length - 1]
+  const target = last[0] - 3600
+  const hour = timed && pts[0][0] <= target
+  const prev = hour ? pts.reduce((a, b) => (Math.abs(b[0] - target) < Math.abs(a[0] - target) ? b : a)) : pts[0]
+  const to = w.type === 'sparkline' && w.value != null ? w.value : last[1]
+  return { from: prev[1], to, hour, ...(prev[1] ? { pct: ((to - prev[1]) / Math.abs(prev[1])) * 100 } : {}),
+    ...(timed ? { at: prev[0] } : {}) }
+}
+
 /** How many of each state, worst first, for a status at its small level. */
 export function stateCounts(w: Widget): [State, number][] {
   if (w.type !== 'status') return []
@@ -133,11 +150,14 @@ export const TRENDS: Trend[] = ['none', 'linear', 'average']
  *  max and average at large). */
 /** ``axis``: a graph's fixed value ends and log scale (#960). */
 export interface Axis { min?: number; max?: number; log?: boolean }
-export interface Look { stack?: Stack; style?: LineStyle; trend?: Trend; legend?: Calc[]; thresholds?: Threshold[]; number?: NumberStyle; axis?: Axis }
+/** ``spark`` and ``change``: a stat's history as a sparkline under it, and how it moved; ``text``: the
+ *  size of the big number (issue #960). */
+export interface Look { stack?: Stack; style?: LineStyle; trend?: Trend; legend?: Calc[]; thresholds?: Threshold[]; number?: NumberStyle; axis?: Axis
+  spark?: boolean; change?: boolean; text?: 's' | 'l' }
 
 /** Which look options mean something for this data drawn as this kind: stacking needs two or
  *  more series (or number columns), the line style needs a graph, a trend needs time. */
-export type LookKey = 'stack' | 'style' | 'trend' | 'legend'
+export type LookKey = 'stack' | 'style' | 'trend' | 'legend' | 'spark' | 'change'
 export function looksFor(w: Widget, kind: Kind): LookKey[] {
   const timed = w.type === 'series' || w.type === 'sparkline'
   const many = w.type === 'series' ? w.series.length > 1 : numberColumns(w).length > 1
@@ -146,6 +166,7 @@ export function looksFor(w: Widget, kind: Kind): LookKey[] {
   if (kind === 'graph') out.push('style')
   if (timed && (kind === 'graph' || kind === 'column')) out.push('trend')
   if (kind === 'graph') out.push('legend')
+  if (timed && kind === 'stat') out.push('spark', 'change')
   return out
 }
 

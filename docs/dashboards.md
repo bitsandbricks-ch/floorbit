@@ -110,6 +110,13 @@ Under **Numbers and colours** in a tile pane's settings:
   the same times, by the hour. **Mark what happened** draws a line where a switch went down or came
   back, and where an incident started (incidents only for crew who may see the board); hover names
   them. Up to 50 of the latest show.
+- **History under the number** and **Show the change** (a number drawn from data over time): a
+  small line of how it went, when the pane is too small for the graph, and an arrow with how much it
+  moved since an hour ago (or since the start of the data, when that is shorter).
+- **Number size** makes the big number of a number, gauge or pie smaller or larger, for a wall seen
+  from afar or a crowded screen.
+- **Refresh** sets how often the pane asks again (every 10 or 30 seconds, every minute or every 5
+  minutes) instead of the tile's own pace.
 - **Value axis** (graphs) fixes where the axis starts and ends, so graphs side by side on a wall
   compare, and **Log scale** draws values far apart (bytes, lookups) readably. Values outside the
   ends sit on the edge.

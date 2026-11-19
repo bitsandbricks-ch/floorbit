@@ -569,6 +569,11 @@ def _tone(value):
     return tone
 
 
+# How often a pane asks its tile again (seconds), and its text size (issue #960).
+REFRESHES = (10, 30, 60, 300)
+WIDGET_TEXT_SIZES = ('s', 'm', 'l')
+
+
 def _display(raw):
     """How a tile pane shows its numbers (issue #960); left out when unused."""
     out = {}
@@ -627,6 +632,18 @@ def _display(raw):
         out['compare'] = raw['compare']
     if raw.get('events'):
         out['events'] = True   # marks what happened on a time graph, for a tile that can
+    if raw.get('refresh') is not None:
+        if raw['refresh'] not in REFRESHES or isinstance(raw['refresh'], bool):
+            raise LayoutError('Refresh every 10, 30, 60 or 300 seconds.')
+        out['refresh'] = raw['refresh']
+    if raw.get('text_size'):
+        if raw['text_size'] not in WIDGET_TEXT_SIZES:
+            raise LayoutError('Text size is small, normal or large.')
+        if raw['text_size'] != 'm':
+            out['text_size'] = raw['text_size']
+    for flag in ('spark', 'change'):   # a stat's history under it, and how it moved
+        if raw.get(flag):
+            out[flag] = True
     overrides = _overrides(raw.get('overrides'))
     if overrides:
         out['overrides'] = overrides

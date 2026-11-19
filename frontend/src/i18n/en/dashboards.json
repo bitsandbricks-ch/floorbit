@@ -107,7 +107,15 @@
     "compareDay": "Compare with yesterday",
     "compareDayHint": "A dotted line: yesterday at the same times, by the hour.",
     "events": "Mark what happened",
-    "eventsHint": "Switches going down or coming back, and incidents, as lines on the graph."
+    "eventsHint": "Switches going down or coming back, and incidents, as lines on the graph.",
+    "spark": "History under the number",
+    "sparkHint": "A small line of how it went, when the pane is too small for the graph.",
+    "change": "Show the change",
+    "changeHint": "An arrow with how much it moved since an hour ago (or since the start of the data).",
+    "textSize": "Number size",
+    "textSizeHint": "The big number of a number, gauge or pie, for a wall seen from afar or a crowded screen.",
+    "refresh": "Refresh",
+    "refreshHint": "How often this pane asks again. Faster means fresher numbers and more load."
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",
@@ -127,10 +135,9 @@
     "widgetGone": "This saved widget is gone. Edit the dashboard to pick another."
   },
   "textSize": {
-    "s": "S",
-    "m": "M",
-    "l": "L",
-    "xl": "XL"
+    "s": "Small",
+    "m": "Normal",
+    "l": "Large"
   },
   "align": {
     "start": "Left",
@@ -282,5 +289,11 @@
     "6h": "6 h",
     "24h": "24 h",
     "event": "Event"
+  },
+  "refresh": {
+    "auto": "As the tile sets it (every {{seconds}} s)",
+    "seconds": "Every {{count}} seconds",
+    "minutes_one": "Every minute",
+    "minutes_other": "Every {{count}} minutes"
   }
 }

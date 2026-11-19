@@ -107,7 +107,15 @@
     "compareDay": "Mit gestern vergleichen",
     "compareDayHint": "Eine gepunktete Linie: gestern zur selben Zeit, pro Stunde.",
     "events": "Ereignisse markieren",
-    "eventsHint": "Ausgefallene und wieder erreichbare Switches sowie Störungen als Linien in der Grafik."
+    "eventsHint": "Ausgefallene und wieder erreichbare Switches sowie Störungen als Linien in der Grafik.",
+    "spark": "Verlauf unter der Zahl",
+    "sparkHint": "Eine kleine Linie, wie es lief, wenn das Feld für die Grafik zu klein ist.",
+    "change": "Veränderung zeigen",
+    "changeHint": "Ein Pfeil, wie stark es sich seit einer Stunde bewegt hat (oder seit Beginn der Daten).",
+    "textSize": "Zahlengrösse",
+    "textSizeHint": "Die grosse Zahl bei Zahl, Tacho und Kreis, für eine Wand aus der Ferne oder einen vollen Bildschirm.",
+    "refresh": "Neu laden",
+    "refreshHint": "Wie oft dieses Feld neu fragt. Schneller heisst frischere Zahlen und mehr Last."
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
@@ -127,10 +135,9 @@
     "widgetGone": "Dieses gespeicherte Widget gibt es nicht mehr. Bearbeite das Dashboard, um ein anderes zu wählen."
   },
   "textSize": {
-    "s": "S",
-    "m": "M",
-    "l": "L",
-    "xl": "XL"
+    "s": "Klein",
+    "m": "Normal",
+    "l": "Gross"
   },
   "align": {
     "start": "Links",
@@ -282,5 +289,11 @@
     "6h": "6 h",
     "24h": "24 h",
     "event": "Event"
+  },
+  "refresh": {
+    "auto": "Wie die Kachel es vorgibt (alle {{seconds}} s)",
+    "seconds": "Alle {{count}} Sekunden",
+    "minutes_one": "Jede Minute",
+    "minutes_other": "Alle {{count}} Minuten"
   }
 }

@@ -38,7 +38,10 @@
       "linear": "Trend",
       "average": "Average"
     },
-    "state": "State"
+    "state": "State",
+    "changeHour": "vs an hour ago",
+    "changeSince": "since {{time}}",
+    "changeStart": "since the start"
   },
   "state": {
     "up": "Up",

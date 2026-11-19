@@ -41,7 +41,8 @@ export type Pane = Head & (
    *  (issue #959); the ``Display`` fields set units, colour steps, mappings and rows (#960).
    *  All are left out when automatic or the default. */
   | ({ kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend
-      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[]; range?: TimeRange; compare?: Compare; events?: boolean } & Display)
+      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[]; range?: TimeRange; compare?: Compare; events?: boolean
+      refresh?: Refresh; text_size?: 's' | 'l'; spark?: boolean; change?: boolean } & Display)
   /** A saved widget (Widgets page), followed as it changes. ``saved`` comes with the dashboard
    *  (null: removed) and is dropped when saving; "Clone" turns the pane into a tile pane of its own. */
   | { kind: 'widget'; widget: string; saved?: { name: string; pane: Extract<Pane, { kind: 'tile' }> } | null }
@@ -57,6 +58,9 @@ export type Pane = Head & (
 export type TimeRange = '1h' | '6h' | '24h' | 'event'
 export const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', 'event']
 export type Compare = 'day'
+/** How often a pane asks its tile again, in seconds, instead of the tile's own pace. */
+export type Refresh = 10 | 30 | 60 | 300
+export const REFRESHES: Refresh[] = [10, 30, 60, 300]
 
 /** A tile's address with the pane's time range and comparison, when the tile takes them. */
 export function rangedUrl(tile: { url: string; ranges?: boolean; marks?: boolean },

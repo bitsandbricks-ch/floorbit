@@ -402,3 +402,18 @@ def test_a_tile_pane_keeps_showing_events(client):
         "pane": {"kind": "tile", "tile": "floorbit/w/traffic", "events": True}}}]}]}
     pane = client.put("/api/dashboards/events", json=body).get_json()["sections"][0]["panels"][0]["node"]["pane"]
     assert pane["events"] is True
+
+
+def test_a_tile_pane_sets_its_refresh_text_size_and_stat_extras(client):
+    def put(**extra):
+        body = {"name": "Extras", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {
+            "pane": {"kind": "tile", "tile": "floorbit/w/traffic", **extra}}}]}]}
+        return client.put("/api/dashboards/extras", json=body)
+    r = put(refresh=30, text_size="l", spark=True, change=True)
+    assert r.status_code == 200, r.get_json()
+    pane = r.get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert (pane["refresh"], pane["text_size"], pane["spark"], pane["change"]) == (30, "l", True, True)
+    assert "text_size" not in put(text_size="m").get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert put(refresh=5).get_json()["error"] == "Refresh every 10, 30, 60 or 300 seconds."
+    assert put(refresh=True).status_code == 400
+    assert put(text_size="xl").get_json()["error"] == "Text size is small, normal or large."
