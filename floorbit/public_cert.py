@@ -1,9 +1,11 @@
 """A Let's Encrypt certificate for each tenant's agents (issue #1026, docs/agent.md "Certificates").
 
-Laptops in the hall reach the agent's front door as ``<tenant>.agent.<domain>``. When the platform
-has a domain (``flask tenants agent-domain``), Floorbit gets a certificate for that name from Let's
-Encrypt (HTTP-01: public DNS points the name at the platform, and port 80 reaches Floorbit) and hands
-it to every agent of the tenant. The hall's DNS points the same name at the agent.
+Laptops in the hall reach the agent's front door as ``<tenant>.agent.<domain>``. The domain comes
+from the platform's own address (floor.example.com gives example.com; ``flask tenants agent-domain``
+overrides it or turns it off). Nothing needs switching on: once public DNS points the name at the
+platform and port 80 reaches Floorbit (``reachable``, checked every few minutes), Floorbit gets a
+certificate for it from Let's Encrypt (HTTP-01) and hands it to every agent of the tenant. The hall's
+DNS points the same name at the agent.
 
 - **One certificate per tenant**, so all its agents share one key. Floorbit makes a new key on every
   issue, keeps it sealed with the vault, and gives it to an agent only encrypted to that agent's own
@@ -17,6 +19,7 @@ it to every agent of the tenant. The hall's DNS points the same name at the agen
 import base64
 import logging
 import os
+import secrets
 import threading
 import time
 
@@ -28,6 +31,7 @@ ACCOUNT_SLOT = 'agent-public-cert:account'
 RENEW_DAYS = 30
 RETRY_AFTER = 3600
 CHECK_EVERY = 600
+PROBE_TIMEOUT = 10
 INFO = b'floorbit agent tls key v1'
 ALG = 'ECDH-ES+A256GCM'
 
@@ -77,9 +81,11 @@ def status():
         return None
     st = _state()
     current = st.get('name') == want and st.get('cert')
+    waiting = st.get('waiting') if st.get('waiting', {}).get('name') == want else None
     return {'name': want, 'not_after': st.get('not_after') if current else None,
             'issued_at': st.get('issued_at') if current else None,
-            'error': st.get('error'), 'failed_at': st.get('failed_at')}
+            'error': st.get('error'), 'failed_at': st.get('failed_at'),
+            'waiting': (waiting or {}).get('reason'), 'checked_at': (waiting or {}).get('at')}
 
 
 def block():
@@ -176,6 +182,27 @@ def due(now=None):
     return now >= min((st.get('not_after') or 0) - RENEW_DAYS * 86400, st.get('renew_at') or float('inf'))
 
 
+def reachable(want, session=None):
+    """Whether ``http://<want>/.well-known/acme-challenge/...`` reaches this Floorbit: public DNS has
+    the name and port 80 is routed. Asked before every order, so a platform whose DNS isn't there yet
+    never counts against Let's Encrypt's limits. Returns (True, '') or (False, why)."""
+    if session is None:
+        import requests as session
+    token = 'probe-' + secrets.token_urlsafe(24)
+    answer = secrets.token_urlsafe(24)
+    acme.put_challenge(token, answer)
+    try:
+        got = session.get(f'http://{want}/.well-known/acme-challenge/{token}', timeout=PROBE_TIMEOUT,
+                          allow_redirects=False)
+        if got.status_code == 200 and got.text.strip() == answer:
+            return True, ''
+        return False, f'http://{want} answered {got.status_code}, not this Floorbit.'
+    except Exception as exc:  # noqa: BLE001  # DNS, refused, timeout: all mean "not yet"
+        return False, f'http://{want} cannot be reached ({type(exc).__name__}).'
+    finally:
+        acme.drop_challenge(token)
+
+
 def _client(st, session=None, sleep=time.sleep):
     from . import vault
     account = st.get('account') or {}
@@ -201,8 +228,15 @@ def run(now=None, session=None, sleep=time.sleep):
             try:
                 client.revoke(st['cert'])
                 audit.record('agents', "Revoked the agents' Let's Encrypt certificate", 'Floorbit', st.get('name'))
+                # Revoked is revoked, even if no new one can be ordered right now.
+                _change(lambda s: [s.pop(k, None) for k in ('cert', 'key', 'revoke')])
             except acme.AcmeError as exc:     # a new key still replaces it below
                 log.warning("Could not revoke the agents' certificate: %s", exc)
+        ok, why = reachable(want, session=session)
+        if not ok:
+            # Not a failure: DNS or port 80 isn't there yet. Asked again at the next check.
+            _change(lambda s: s.update(waiting={'name': want, 'reason': why, 'at': now}))
+            return False
         key_pem = acme.new_key_pem()
         pem = client.issue(want, key_pem)
         renew_at = client.renewal_start(pem)

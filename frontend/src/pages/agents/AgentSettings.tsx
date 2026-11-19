@@ -213,6 +213,9 @@ function PublicCertLine({ pc }: { pc: NonNullable<AgentSettingsPage['public_cert
   if (pc.not_after) {
     return <Text size="sm">{t('agents.cfg.publicHas', { name: pc.name, when: dateOnly(pc.not_after, i18n.language) })}</Text>
   }
+  if (pc.waiting) {
+    return <Text size="sm" c="dimmed">{t('agents.cfg.publicNotReached', { name: pc.name, why: pc.waiting })}</Text>
+  }
   return (
     <Text size="sm" c={pc.error ? 'warn' : 'dimmed'}>
       {pc.error ? t('agents.cfg.publicFailed', { name: pc.name, error: pc.error }) : t('agents.cfg.publicWaiting', { name: pc.name })}

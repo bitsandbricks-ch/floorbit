@@ -161,16 +161,52 @@ def suspended(now=None):
 DOMAIN_RE = re.compile(r'^(?=.{4,200}\Z)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\Z')
 
 
+OFF = 'off'
+
+
+def _platform_url():
+    """Where the platform answers: the default tenant's address, else its Public URL setting."""
+    listed = next((t['url'] for t in tenants() if t['id'] == store.DEFAULT_TENANT and t['url']), '')
+    if listed:
+        return listed
+    data = tenant_data(store.DEFAULT_TENANT)
+    found = (data.get('app_settings') or {}).get('integrations.public_url')
+    return str(found or os.environ.get('PUBLIC_URL') or '')
+
+
+def derived_domain():
+    """The agents' domain worked out from the platform's address: floor.example.com gives
+    example.com (so agents are <tenant>.agent.example.com). '' for an IP, localhost or nothing."""
+    host = (urlsplit(_platform_url().strip()).hostname or '').lower().rstrip('.')
+    labels = host.split('.')
+    if len(labels) < 2 or labels[-1].isdigit() or ':' in host:
+        return ''
+    domain = '.'.join(labels[1:] if len(labels) > 2 else labels)
+    return domain if DOMAIN_RE.match(domain) else ''
+
+
 def agent_domain():
     """The domain the agents' public certificates are made under (``<tenant>.agent.<domain>``,
-    floorbit/public_cert.py), or '' when the platform has none: then agents keep Floorbit's own CA."""
+    floorbit/public_cert.py): the one a platform admin set, else the one from the platform's address
+    (derived_domain). '' when there is none or it was turned off: agents keep Floorbit's own CA.
+    Nothing is ordered until the name really reaches this Floorbit (public_cert.reachable)."""
     found = str(_doc().get('agent_domain') or '').strip().lower()
-    return found if DOMAIN_RE.match(found) else ''
+    if found == OFF:
+        return ''
+    if DOMAIN_RE.match(found):
+        return found
+    return derived_domain()
+
+
+def agent_domain_setting():
+    """What a platform admin set: a domain, 'off', or '' (worked out from the platform's address)."""
+    found = str(_doc().get('agent_domain') or '').strip().lower()
+    return found if found == OFF or DOMAIN_RE.match(found) else ''
 
 
 def set_agent_domain(domain):
     domain = (domain or '').strip().lower().rstrip('.')
-    if domain and not DOMAIN_RE.match(domain):
+    if domain and domain != OFF and not DOMAIN_RE.match(domain):
         raise HostingError('The domain is a name like example.com.')
     with _lock:
         _save(agent_domain=domain)
@@ -251,16 +287,18 @@ def register_cli(app):
     @group.command('agent-domain')
     @click.argument('domain', required=False)
     def agent_domain_cmd(domain):
-        """Show or set the domain for the agents' Let's Encrypt certificates ("-" clears it)."""
+        """Show or set the domain for the agents' Let's Encrypt certificates: "off" turns them off,
+        "-" goes back to the one worked out from the platform's address."""
         if domain is None:
             click.echo(agent_domain() or 'No domain: agents use Floorbit\'s own CA.')
             return
         try:
-            found = set_agent_domain('' if domain == '-' else domain)
+            set_agent_domain('' if domain == '-' else domain)
         except HostingError as exc:
             raise click.ClickException(str(exc)) from None
-        click.echo(f'Agents get <tenant>.agent.{found} from Let\'s Encrypt.' if found
-                   else 'Cleared: agents use Floorbit\'s own CA.')
+        found = agent_domain()
+        click.echo(f'Agents get <tenant>.agent.{found} from Let\'s Encrypt once it reaches Floorbit.' if found
+                   else 'Off: agents use Floorbit\'s own CA.')
 
     app.cli.add_command(group)
 

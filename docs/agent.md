@@ -285,16 +285,22 @@ in the agent's environment (`FLOORBIT_AGENT_TLS_CERT`, `_TLS_KEY`) wins, for a h
 
 #### A Let's Encrypt certificate for the tenant
 
-Laptops in the hall don't trust Floorbit's CA. When the platform has a domain for its agents, each
-tenant gets one certificate from Let's Encrypt for `<tenant>.agent.<domain>`, and every agent of the
-tenant serves it on the front door and the other HTTPS listeners.
+Laptops in the hall don't trust Floorbit's CA, so each tenant gets one certificate from Let's
+Encrypt for `<tenant>.agent.<domain>`, and every agent of the tenant serves it on the front door and
+the other HTTPS listeners. There is nothing to switch on:
 
-1. Public DNS: `agent.<domain>` and `*.agent.<domain>` as A (and AAAA) records pointing at the
-   platform, and port 80 routed to Floorbit, which answers `/.well-known/acme-challenge/<token>`
-   (Let's Encrypt's HTTP-01 check). Any tenant's process can answer for every tenant.
-2. The domain: `flask tenants agent-domain example.com` or `PUT /api/platform/agent-domain`
-   `{"domain": "example.com"}` as a platform admin. Without it nothing changes.
-3. The hall's DNS points `<tenant>.agent.<domain>` at the agent (or the agents' VRRP address).
+- **The domain** comes from the platform's own address: Floorbit at `floor.example.com` makes
+  agents `<tenant>.agent.example.com` (a two-part address like `example.com` is used as it is). An IP
+  address or `localhost` gives none. A platform admin can set another one, or `off`, with
+  `flask tenants agent-domain example.net` or `PUT /api/platform/agent-domain`
+  `{"domain": "example.net"}`; `-` (CLI) or `""` (API) goes back to the one from the address.
+- **Public DNS:** `agent.<domain>` and `*.agent.<domain>` as A (and AAAA) records pointing at the
+  platform, and port 80 routed to Floorbit, which answers `/.well-known/acme-challenge/<token>`
+  (Let's Encrypt's HTTP-01 check). Any tenant's process can answer for every tenant.
+- **Self-check:** every ten minutes Floorbit asks `http://<tenant>.agent.<domain>/` for a token of
+  its own. Until that comes back, nothing is ordered (so Let's Encrypt's limits aren't spent) and each
+  agent's page says what is missing. Once it answers, the certificate follows within ten minutes.
+- **The hall's DNS** points `<tenant>.agent.<domain>` at the agent (or the agents' VRRP address).
 
 Floorbit asks Let's Encrypt within ten minutes and renews 30 days before the end, or earlier when
 Let's Encrypt's renewal window (ARI) says so. A failed try is shown on each agent's page and tried

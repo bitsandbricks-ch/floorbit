@@ -155,7 +155,8 @@ request. The default tenant is the platform's own and has no such setting.
 - `GET`/`PUT /api/tenant/platform-access` `{"visits": bool}` (`accounts.manage`).
 - `POST /api/platform/tenants/<id>/admin` `{"username"}`: `{admin, password, made}`.
 - `GET`/`PUT /api/platform/agent-domain` `{"domain"}`: the domain the agents' Let's Encrypt certificates
-  are made under, `<tenant>.agent.<domain>` (docs/agent.md); empty keeps Floorbit's own CA.
+  are made under, `<tenant>.agent.<domain>` (docs/agent.md). Empty means the one from the platform's
+  address (`GET` returns it as `derived`), `off` keeps Floorbit's own CA.
 
 ### Adding and suspending tenants
 

@@ -358,6 +358,7 @@
     "publicHas": "Let's Encrypt: {{name}}, gültig bis {{when}}. Agents, die es übernehmen können, nutzen dieses; lass {{name}} im DNS der Halle auf den Agent zeigen.",
     "publicWaiting": "Let's Encrypt: Das Zertifikat für {{name}} wird geholt.",
     "publicFailed": "Let's Encrypt konnte {{name}} noch nicht ausstellen: {{error}}. Floorbit versucht es innert einer Stunde wieder.",
+    "publicNotReached": "Let's Encrypt: Wartet, bis {{name}} Floorbit aus dem Internet erreicht (öffentliches DNS und Port 80). {{why}} Floorbit prüft alle 10 Minuten wieder.",
     "certEnv": "Der Agent nutzt ein Zertifikat aus seiner Umgebung.",
     "certNew": "Neues Zertifikat",
     "certWaiting": "Wartet, bis der Agent es anfordert.",

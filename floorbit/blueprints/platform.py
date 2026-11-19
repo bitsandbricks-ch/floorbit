@@ -152,22 +152,25 @@ def init_app(app):
 def get_agent_domain():
     _platform_only()
     from .. import acme
-    return jsonify({'domain': hosting.agent_domain(), 'directory': acme.directory_url()})
+    return jsonify({'domain': hosting.agent_domain(), 'setting': hosting.agent_domain_setting(),
+                    'derived': hosting.derived_domain(), 'directory': acme.directory_url()})
 
 
 @bp.route('/api/platform/agent-domain', methods=['PUT'])
 def set_agent_domain():
-    """The domain for the agents' Let's Encrypt certificates (``<tenant>.agent.<domain>``); '' turns it off."""
+    """The domain for the agents' Let's Encrypt certificates (``<tenant>.agent.<domain>``): a domain,
+    'off', or '' for the one worked out from the platform's address."""
     _platform_only()
     body = request.get_json(silent=True) or {}
     try:
         domain = hosting.set_agent_domain(body.get('domain') if isinstance(body.get('domain'), str) else '')
     except hosting.HostingError as exc:
         return _error(exc)
-    audit.record('settings', "Set the domain for the agents' certificates", g.get('audit_user'), domain or '(none)')
+    audit.record('settings', "Set the domain for the agents' certificates", g.get('audit_user'),
+                 domain or '(from the platform address)')
     from .. import public_cert
     public_cert.wake()
-    return jsonify({'domain': domain})
+    return jsonify({'domain': hosting.agent_domain(), 'setting': domain})
 
 
 @bp.route('/.well-known/acme-challenge/<token>')

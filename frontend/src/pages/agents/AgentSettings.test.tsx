@@ -107,7 +107,12 @@ describe('KeyPanel and CertPanel', () => {
     unmount()
     const failed = page({ public_cert: { name: 'club.agent.example.com', not_after: null, issued_at: null,
       error: 'Connection refused on port 80', failed_at: Date.now() / 1000 } })
-    renderWithApp(<CertPanel agent={a} page={failed} />)
+    const second = renderWithApp(<CertPanel agent={a} page={failed} />)
     expect(screen.getByText(/could not issue club\.agent\.example\.com yet: Connection refused on port 80/)).toBeInTheDocument()
+    second.unmount()
+    const notYet = page({ public_cert: { name: 'club.agent.example.com', not_after: null, issued_at: null,
+      error: null, failed_at: null, waiting: 'http://club.agent.example.com cannot be reached (ConnectionError).', checked_at: 1 } })
+    renderWithApp(<CertPanel agent={a} page={notYet} />)
+    expect(screen.getByText(/waiting until club\.agent\.example\.com reaches Floorbit/)).toBeInTheDocument()
   })
 })

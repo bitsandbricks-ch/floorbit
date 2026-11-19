@@ -46,8 +46,17 @@ class FakeAcme:
         self.nonces = 0
         self.bad_nonce_once = True
         self.state = {}
+        self.dns = True           # public DNS and port 80 reach Floorbit (public_cert.reachable)
+        self.probes = 0
+        self.ca_sees_404 = False  # Let's Encrypt's own check fails anyway
 
-    def get(self, url, timeout=None):
+    def get(self, url, timeout=None, allow_redirects=True):
+        if url.startswith('http://') and '/.well-known/acme-challenge/' in url:
+            self.probes += 1
+            if not self.dns:
+                raise ConnectionError('no such name')
+            got = self.web.get(url[url.index('/.well-known/'):])
+            return Resp(got.status_code, text=got.get_data(as_text=True))
         if url == f'{BASE}/directory':
             return Resp(body={k: f'{BASE}/{k}' for k in ('newNonce', 'newAccount', 'newOrder', 'revokeCert',
                                                            'renewalInfo')})
@@ -102,7 +111,7 @@ class FakeAcme:
                 {'type': 'http-01', 'url': f'{BASE}/chall/1', 'token': self.state['token']}]})
         if path == 'chall/1':
             token = self.state['token']
-            got = self.web.get(f'/.well-known/acme-challenge/{token}')
+            got = self.web.get(f'/.well-known/acme-challenge/{token}' + ('x' if self.ca_sees_404 else ''))
             thumb = acme.thumbprint_of_public(self.accounts[self.state['kid']])
             ok = got.status_code == 200 and got.get_data(as_text=True) == f'{token}.{thumb}'
             self.checked.append(ok)
@@ -174,10 +183,52 @@ def test_the_platform_domain_is_set_by_its_admins(client):
     assert client.get('/api/platform/agent-domain').get_json()['domain'] == ''
     assert client.put('/api/platform/agent-domain', json={'domain': 'not a domain'}).status_code == 400
     assert client.put('/api/platform/agent-domain', json={'domain': 'Example.COM.'}).get_json() == {
-        'domain': 'example.com'}
+        'domain': 'example.com', 'setting': 'example.com'}
     assert hosting.agent_domain() == 'example.com'
     assert public_cert.name() == 'default.agent.example.com'
     assert [t['id'] for t in hosting.tenants()] == ['default']      # the list is still there
+
+
+@pytest.mark.parametrize('url, domain', [
+    ('https://floor.example.com', 'example.com'),
+    ('https://floor.lan.example.org:8443/x', 'lan.example.org'),
+    ('https://example.net', 'example.net'),
+    ('http://192.0.2.10:5000', ''),
+    ('http://localhost:5000', ''),
+    ('', ''),
+])
+def test_the_domain_comes_from_the_platform_address(client, monkeypatch, url, domain):
+    monkeypatch.setenv('PUBLIC_URL', url)
+    assert hosting.derived_domain() == domain and hosting.agent_domain() == domain
+    if domain:
+        assert public_cert.name() == f'default.agent.{domain}'
+
+
+def test_an_admin_overrides_or_turns_off_the_derived_domain(client, monkeypatch):
+    monkeypatch.setenv('PUBLIC_URL', 'https://floor.example.com')
+    got = client.get('/api/platform/agent-domain').get_json()
+    assert got['domain'] == 'example.com' and got['setting'] == '' and got['derived'] == 'example.com'
+    assert client.put('/api/platform/agent-domain', json={'domain': 'off'}).get_json() == {
+        'domain': '', 'setting': 'off'}
+    assert public_cert.name() is None and not public_cert.due()
+    put = client.put('/api/platform/agent-domain', json={'domain': 'example.net'})
+    assert put.get_json()['domain'] == 'example.net'
+    assert client.put('/api/platform/agent-domain', json={'domain': ''}).get_json() == {
+        'domain': 'example.com', 'setting': ''}
+
+
+def test_nothing_is_ordered_until_dns_and_port_80_reach_floorbit(client, fake, monkeypatch):
+    monkeypatch.setenv('PUBLIC_URL', 'https://floor.example.com')
+    fake.dns = False
+    assert public_cert.due()
+    assert not public_cert.run(session=fake, now=1_000, sleep=lambda s: None)
+    assert fake.issued == [] and fake.accounts == {}           # Let's Encrypt was never asked
+    status = public_cert.status()
+    assert status['waiting'] and status['checked_at'] == 1_000 and not status['failed_at']
+    assert public_cert.due(now=1_060)                          # not a failure: asked again next check
+    fake.dns = True
+    assert public_cert.run(session=fake, sleep=lambda s: None)
+    assert len(fake.issued) == 1 and public_cert.status()['waiting'] is None
 
 
 def test_the_tenant_gets_one_certificate_and_each_agent_its_key_sealed(client, anon_client, fake):
@@ -236,7 +287,7 @@ def test_a_revoked_agent_that_never_had_the_key_changes_nothing(client, fake):
 
 def test_a_failed_check_is_kept_and_tried_again_later(client, fake, monkeypatch):
     hosting.set_agent_domain('example.com')
-    monkeypatch.setattr(acme, 'put_challenge', lambda token, answer, now=None: None)   # port 80 not routed
+    fake.ca_sees_404 = True
     assert not public_cert.run(session=fake, now=1_000, sleep=lambda s: None)
     status = public_cert.status()
     assert status['not_after'] is None and status['failed_at'] == 1_000 and status['error']
