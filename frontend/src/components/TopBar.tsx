@@ -9,6 +9,9 @@ import { inApp, isPluginPage, type NavPage } from '@/nav/sections'
 import { Notifications } from './Notifications'
 import { usePageTitle } from './pageTitle'
 
+// The page list comes in the page itself (#fb-nav-data): link only to a path on this server.
+const isLocalPath = (href: string) => /^\/(?!\/)/.test(href)
+
 const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
 /** The bar above every crew page on a desktop: where you are, "Go to" and the notifications. */
@@ -30,7 +33,7 @@ export function TopBar({ pages }: { pages: NavPage[] }) {
         {section && (label || title) && <IconChevronRight size={13} className="fb-crumb-sep" aria-hidden="true" />}
         {sub && page ? (
           <>
-            {inApp(page.href) ? <Link to={page.href}>{label}</Link> : <a href={page.href}>{label}</a>}
+            {!isLocalPath(page.href) ? <span>{label}</span> : inApp(page.href) ? <Link to={page.href}>{label}</Link> : <a href={page.href}>{label}</a>}
             <IconChevronRight size={13} className="fb-crumb-sep" aria-hidden="true" />
             <b aria-current="page">{sub}</b>
           </>
