@@ -28,8 +28,6 @@ export const qk = {
   oidc: ['oidc'] as const,
   incidents: ['incidents'] as const,
   jobs: ['jobs'] as const,
-  tournament: ['tournament'] as const,
-  qos: ['tournament', 'qos'] as const,
   crew: ['crew'] as const,
   handover: ['handover'] as const,
   cables: ['cables'] as const,

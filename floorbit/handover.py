@@ -100,10 +100,10 @@ def _where(i):
     return {'kind': 'switch', 'name': i.get('switch_name') or i.get('switch_id')}
 
 
-def _incident(i, match):
+def _incident(i):
     return {'id': i['id'], 'title': i.get('title'), 'where': _where(i), 'status': i.get('status'),
             'assignee': i.get('assignee'), 'team': i.get('team'), 'created_at': i.get('created_at'),
-            'fixed_at': i.get('fixed_at'), 'match': match.get(i.get('seat') or '')}
+            'fixed_at': i.get('fixed_at')}
 
 
 def _mutes(now):
@@ -123,15 +123,14 @@ def _coming_up(data, now):
 
 
 def summary(switch_events, problems_now, since=None, now=None):
-    from . import incidents, notice, seat_notes, tournament
+    from . import incidents, notice, seat_notes
     now = time.time() if now is None else now
     data = load_data()
     since = since_default(now, data) if since is None else since
-    match = tournament.match_seats(data)
     items = incidents.list_all()
-    still_open = [_incident(i, match) for i in items if i.get('status') != 'fixed']
-    still_open.sort(key=lambda i: (not i['match'], i['status'] != 'open', i['created_at'] or 0))
-    fixed = [_incident(i, match) for i in items if i.get('status') == 'fixed' and (i.get('fixed_at') or 0) >= since]
+    still_open = [_incident(i) for i in items if i.get('status') != 'fixed']
+    still_open.sort(key=lambda i: (i['status'] != 'open', i['created_at'] or 0))
+    fixed = [_incident(i) for i in items if i.get('status') == 'fixed' and (i.get('fixed_at') or 0) >= since]
     opened = sum(1 for i in items if (i.get('created_at') or 0) >= since)
     outages = [o for o in _outages(switch_events, since, now) if o['down_at'] >= since or o['back_at'] is None
                or o['back_at'] >= since]

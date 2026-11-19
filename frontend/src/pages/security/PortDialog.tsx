@@ -20,7 +20,6 @@ export function PortDialog({
   needsLogin,
   busy,
   error,
-  matchSeat,
   onClose,
   onConfirm,
 }: {
@@ -28,10 +27,8 @@ export function PortDialog({
   needsLogin: boolean
   busy: boolean
   error: string | null
-  /** The match zone, once the server said this port is behind a tournament seat (issue #31). */
-  matchSeat?: string | null
   onClose: () => void
-  onConfirm: (login: { username?: string; password?: string; reason?: string; confirm_match?: boolean }) => void
+  onConfirm: (login: { username?: string; password?: string; reason?: string }) => void
 }) {
   const { t } = useTranslation()
   const [username, setUsername] = useState('')
@@ -52,7 +49,7 @@ export function PortDialog({
           e.preventDefault()
           const login = needsLogin ? { username: username.trim(), password } : {}
           setPassword('')
-          onConfirm({ ...login, reason: reason.trim() || undefined, ...(matchSeat ? { confirm_match: true } : {}) })
+          onConfirm({ ...login, reason: reason.trim() || undefined })
         }}
       >
         <Stack gap="sm">
@@ -69,12 +66,11 @@ export function PortDialog({
               <Text size="xs" c="dimmed">{t('security.loginHint')}</Text>
             </>
           )}
-          {matchSeat ? <Alert color="warn" role="alert" title={t('security.matchTitle', { zone: matchSeat })}>{t('security.matchText')}</Alert>
-            : error && <Alert color="down" role="alert">{error}</Alert>}
+          {error && <Alert color="down" role="alert">{error}</Alert>}
           <Group justify="flex-end">
             <Button variant="default" onClick={close}>{t('common.cancel')}</Button>
             <Button type="submit" color={shut ? 'down' : undefined} loading={busy}>
-              {matchSeat ? t('security.matchConfirm') : t(bounce ? 'security.bounce' : shut ? 'security.shut' : 'security.enable')}
+              {t(bounce ? 'security.bounce' : shut ? 'security.shut' : 'security.enable')}
             </Button>
           </Group>
         </Stack>

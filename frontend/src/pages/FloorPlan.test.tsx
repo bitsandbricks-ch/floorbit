@@ -17,14 +17,14 @@ const data: SeatViewData = {
     'D-1': { state: 'online', checked_in: true, bps: 6_000_000 },
     'D-2': { state: 'offline', problems: 1, taken: true },
     'D-3': { state: 'unknown' },
-    'D-4': { state: 'online', match: 'Main stage' },
+    'D-4': { state: 'online' },
   },
   blocks: [{ name: 'D', seats: 4, online: 2, problems: 1 }], monitoring: true, checkin: true, last_read: 1_800_000_000,
 }
 const details: SeatDetails = {
   seat: 'D-2', block: 'D', state: 'offline', bps: null, switch: 'sw-d-01', port: 'Gi1/0/2',
   incidents: [{ id: 'i1', title: 'No link', status: 'open', created_at: 1_800_000_000 }], attention: [],
-  match: null, checked_in: false, last_read: 1_800_000_000, people: false, crew: false,
+  checked_in: false, last_read: 1_800_000_000, people: false, crew: false,
   history: { from: 1_800_000_000 - 6 * 3600, to: 1_800_000_000, start: true, changes: [[1_799_990_000, 0], [1_799_991_000, 1], [1_799_995_000, 0]] },
 }
 const me = { enabled: true, user: { username: 'tia', display_name: 'Tia', role: 'tech', permissions: ['floorplan.view'] } }
@@ -176,7 +176,6 @@ describe('Seats page', () => {
     expect(seat('D-2').querySelector('.slash')).not.toBeNull()
     expect(seat('D-2').querySelector('.prob')).not.toBeNull()
     expect(seat('D-3').querySelector('.s-unknown')).not.toBeNull()
-    expect(seat('D-4').querySelector('.match')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'D-2: Offline · 1 problem' })).toBeInTheDocument()
     expect(legendText()).toContain('Checked in')
     expect(document.title).toBe('(1) Floor plan · Floorbit')   // D-2 has a problem: shows in a background tab
@@ -329,7 +328,7 @@ describe('Seats page', () => {
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: (b: Blob) => { created.push(b); return 'blob:x' }, revokeObjectURL: () => {} }))
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     fireEvent.click(screen.getByRole('button', { name: 'CSV' }))
-    expect(await created[0].text()).toBe('seat,state,problems,bps,checked_in,match,note\nD-2,offline,1,,no,,no\n')
+    expect(await created[0].text()).toBe('seat,state,problems,bps,checked_in,note\nD-2,offline,1,,no,no\n')
     click.mockRestore()
 
     fireEvent.click(within(table).getByRole('button', { name: 'D-2' }))

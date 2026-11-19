@@ -33,7 +33,6 @@ function IncidentRow({ i, now }: { i: HandoverIncident; now: number }) {
         <Text size="sm" c="dimmed">{where}{i.assignee ? ` · ${i.assignee}` : ''}</Text>
       </Stack>
       <Group gap={4}>
-        {i.match && <Badge variant="light" color="warn" tt="none">{i.match}</Badge>}
         {isWaiting(i, now) && <Badge variant="filled" color="warn" tt="none">{waitedFor(now - i.created_at, t)}</Badge>}
         <Badge variant="light" color={i.status === 'open' ? 'down' : i.status === 'fixed' ? 'up' : 'trace'} tt="none">
           {t(`handover.status.${i.status}`)}

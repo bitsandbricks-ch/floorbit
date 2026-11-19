@@ -81,6 +81,13 @@ def test_the_public_agenda_and_attendee_discord_settings_are_dropped():
     assert data['schedule'] == {'event': {'start': 1, 'end': None}, 'items': []}   # the crew's schedule stays
 
 
+def test_tournament_match_zones_are_dropped():
+    data = {'tournament': {'zones': [{'id': 'z1', 'name': 'Stage', 'blocks': ['B'], 'seats': [], 'note': ''}]},
+            'features': {'tournament': True, 'schedule': True}}
+    upgrades.apply(data)
+    assert 'tournament' not in data and data['features'] == {'schedule': True}
+
+
 def test_steps_are_safe_to_run_twice():
     data = {'auth_users': {'ed': {'username': 'ed', 'role': 'editor'}},
             'seat_blocks': [{'id': 'a', 'group': 'g'}, {'id': 'b', 'group': 'g'}]}

@@ -546,7 +546,6 @@ export interface Incident {
   outage?: { switch: string; since: number } | null
   /** Filed while the seat's switch was down, and the switch is back since (issue #390). */
   back_up?: { switch: string; since: number } | null
-  match?: string | null
   can_work: boolean
   can_assign: boolean
   /** The seat's crew note (issue #204). */
@@ -717,8 +716,6 @@ export interface Problem {
   mute_id?: string
   name?: string
   muted?: { until: number; by: string | null; reason: string } | null
-  /** The match zone, when the problem is at a tournament seat (issue #31). */
-  match?: string | null
   /** An offline switch's open incident, for people who see the board (issue #278). */
   incident?: string | null
 }
@@ -969,23 +966,10 @@ export interface Job {
 export interface JobsData { me: DutyStatus; seats: string[]; jobs: Job[]; can_dispatch: boolean; done?: number; auto?: boolean }
 export interface CrewMember { username: string; display_name: string; at: string | null; since: number | null; jobs: number; done?: number }
 
-/** Tournament awareness (issue #31). */
-export interface MatchZone { id: string; name: string; blocks: string[]; seats: string[]; note: string }
-export interface TournamentData {
-  zones: MatchZone[]
-  seats: Record<string, string>
-  plans: { hall: string; name: string; drawing: PlanDrawing; match: number }[]
-}
-export interface QosHints {
-  available: boolean
-  switches: { switch: string; switch_id: string; ports: { port: string; seat: string; zone: string }[]; uplinks: string[] }[]
-  missing: string[]
-}
-
 /** Shift handover (issue #33). */
 export interface HandoverIncident {
   id: string; title: string; where: { kind: 'seat' | 'switch' | 'circuit'; name: string }; status: IncidentStatus
-  assignee: string | null; team: string | null; created_at: number; fixed_at: number | null; match: string | null
+  assignee: string | null; team: string | null; created_at: number; fixed_at: number | null
 }
 export interface HandoverRecord {
   id: string; at: number; since: number; by: string | null; note: string
@@ -1507,7 +1491,6 @@ export interface PlanSeat {
   checked_in?: boolean
   taken?: boolean
   problems?: number
-  match?: string
   bps?: number
   /** When the link last changed, if within the last 15 minutes (issue #171). */
   changed?: number
@@ -1601,7 +1584,6 @@ export interface SeatDetails {
   attention: { kind: string; title: string; since: number }[]
   /** The link over the last hours (issue #167): online at ``from`` (null: not read yet), then each change. */
   history?: { from: number; to: number; start: boolean | null; changes: [number, number][] }
-  match: string | null
   checked_in: boolean | null
   /** Crew only: the port lookup of the seat's check-in, when it has one. */
   checkin_wired?: WiredState

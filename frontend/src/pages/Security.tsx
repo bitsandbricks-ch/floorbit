@@ -3,7 +3,7 @@ import { IconPlugConnectedX, IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ApiError, post } from '@/api/client'
+import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useSecurity } from '@/api/queries'
@@ -76,7 +76,6 @@ export default function Security() {
   const canCheck = useCan('plugins.run')
   const [request, setRequest] = useState<PortRequest | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
-  const [matchSeat, setMatchSeat] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const refresh = () => void client.invalidateQueries({ queryKey: qk.security })
   useLiveEvent('security.finding', refresh)
@@ -96,16 +95,10 @@ export default function Security() {
     },
     onSuccess: (r) => {
       setRequest(null)
-      setMatchSeat(null)
       setMessage(r.message)
       refresh()
     },
-    onError: (e) => {
-      // A match seat (issue #31): ask a second time instead of failing.
-      const zone = e instanceof ApiError && typeof e.data.match_seat === 'string' ? e.data.match_seat : null
-      setMatchSeat(zone)
-      setDialogError(zone ? null : e.message)
-    },
+    onError: (e) => setDialogError(e.message),
   })
   const error = list.error ?? check.error ?? ack.error
   const data = list.data
@@ -193,8 +186,8 @@ export default function Security() {
           )}
         </Stack>
       )}
-      <PortDialog request={request} needsLogin={!!data?.needs_login} busy={port.isPending} error={dialogError} matchSeat={matchSeat}
-        onClose={() => { setRequest(null); setMatchSeat(null) }}
+      <PortDialog request={request} needsLogin={!!data?.needs_login} busy={port.isPending} error={dialogError}
+        onClose={() => setRequest(null)}
         onConfirm={(extra) => request && port.mutate({ request, extra })} />
     </Layout>
   )

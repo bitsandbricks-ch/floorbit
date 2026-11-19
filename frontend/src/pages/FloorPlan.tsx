@@ -46,7 +46,7 @@ import { LoadingState, ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
 
 const PANELS = ['seat', 'block', 'switch']
-const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'match', 'note', 'checked_in']
+const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'note', 'checked_in']
 
 /** The floor plan's seats (issue #55): one state per seat that reads the same in every theme and
  *  for colour-blind eyes, three zoom levels, and one inspector for a seat. ``?screen=1`` for a kiosk. */

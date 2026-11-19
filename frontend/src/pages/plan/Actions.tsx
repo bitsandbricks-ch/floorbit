@@ -3,7 +3,7 @@ import { IconFlag, IconPlugConnected } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ApiError, get, post } from '@/api/client'
+import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { PortDialog, type PortRequest } from '../security/PortDialog'
@@ -19,7 +19,6 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
   const canFlag = useCan('incidents.work')
   const info = useQuery({ queryKey: qk.ports, queryFn: () => get<PortInfo>('/api/ports'), enabled: canAct })
   const [request, setRequest] = useState<PortRequest | null>(null)
-  const [matchSeat, setMatchSeat] = useState<string | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
   const [flagging, setFlagging] = useState(false)
@@ -29,15 +28,9 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
     mutationFn: (extra: Record<string, string | boolean | undefined>) => post<{ message: string }>('/api/ports/bounce', { seat, ...extra }),
     onSuccess: (r) => {
       setRequest(null)
-      setMatchSeat(null)
       setDone(r.message)
     },
-    onError: (e) => {
-      // A match seat (issue #31): ask a second time instead of failing.
-      const zone = e instanceof ApiError && typeof e.data.match_seat === 'string' ? e.data.match_seat : null
-      setMatchSeat(zone)
-      setDialogError(zone ? null : e.message)
-    },
+    onError: (e) => setDialogError(e.message),
   })
   const flag = useMutation({
     // The same title as the editor's flag, whatever the language.
@@ -77,8 +70,8 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
           )}
         </Group>
       )}
-      <PortDialog request={request} needsLogin={!!info.data?.needs_login} busy={bounce.isPending} error={dialogError} matchSeat={matchSeat}
-        onClose={() => { setRequest(null); setMatchSeat(null) }}
+      <PortDialog request={request} needsLogin={!!info.data?.needs_login} busy={bounce.isPending} error={dialogError}
+        onClose={() => setRequest(null)}
         onConfirm={(extra) => bounce.mutate(extra)} />
     </Stack>
   )

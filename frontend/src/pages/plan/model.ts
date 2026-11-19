@@ -124,14 +124,13 @@ export function reveal(view: View, point: { x: number; y: number }, margin: numb
   return x === view.x && y === view.y ? view : { ...view, x, y }
 }
 
-export type Filter = 'all' | 'problems' | 'offline' | 'recent' | 'match' | 'note' | 'checked_in'
+export type Filter = 'all' | 'problems' | 'offline' | 'recent' | 'note' | 'checked_in'
 
 export function matches(seat: PlanSeat | undefined, filter: Filter) {
   if (filter === 'all') return true
   if (!seat) return false
   if (filter === 'problems') return !!seat.problems
   if (filter === 'offline') return seat.state === 'offline'
-  if (filter === 'match') return !!seat.match
   if (filter === 'recent') return !!seat.changed
   if (filter === 'note') return !!seat.note
   return !!seat.checked_in
