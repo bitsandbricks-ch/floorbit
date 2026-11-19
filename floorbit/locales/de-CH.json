@@ -1228,5 +1228,8 @@
  "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({}).",
  "That row is not on the floor plan any more.": "Diese Reihe ist nicht mehr auf dem Hallenplan.",
  "Pick a row.": "Wähle eine Reihe.",
- "Pick the rows to patch.": "Wähle die Reihen, die gepatcht werden."
+ "Pick the rows to patch.": "Wähle die Reihen, die gepatcht werden.",
+ "No such switch in the inventory.": "Diesen Switch gibt es im Inventar nicht.",
+ "Pick blocks, rows and seats from the lists.": "Wähle Blöcke, Reihen und Plätze aus den Listen.",
+ "That is not on the floor plan any more.": "Das ist nicht mehr auf dem Hallenplan."
 }

@@ -991,6 +991,17 @@ Source: [`floorbit/blueprints/status_page.py`](https://github.com/bitsandbricks-
 | POST | `/api/status-page/updates` | `incidents.assign` | `status_page` |
 | DELETE | `/api/status-page/updates/<update_id>` | `incidents.assign` | `status_page` |
 
+## floorbit.blueprints.switch_areas
+
+Which seats each switch serves (issue #948): rules in floorbit/switch_areas.py, docs in docs/switch-areas.md.
+
+Source: [`floorbit/blueprints/switch_areas.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/switch_areas.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/switch-areas` | `seats.view` |  |
+| PUT | `/api/switch-areas/<switch>` | `seats.edit` |  |
+
 ## floorbit.blueprints.switches
 
 Switches on the floor plan: the placed devices of the inventory (floorbit/inventory.py).
