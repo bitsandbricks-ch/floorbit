@@ -5,6 +5,12 @@ other device Floorbit knows about, with their interfaces. Floorbit owns
 the list: it works with no plugin at all, filled by hand on the **Inventory** page (`/inventory`)
 or by placing switches on the floor plan. Plugins such as NetBox add to it.
 
+Every device, group and tag has its own page, with no side panel in between: a device opens at
+`/inventory/devices/<id>` with tabs for its overview, interfaces, telemetry, settings and
+credentials; a group at `/inventory/groups/<id>`, a tag at `/inventory/tags/<id>` and the
+defaults for all devices at `/inventory/defaults`. Other entries (cables, transceivers, ...) open at
+`/inventory/entries/<type>/<id>`. The links can be shared and bookmarked.
+
 ## What each device has
 
 Name, role (switch, router, firewall, access point, server, virtual machine, PDU, other), model,
@@ -43,7 +49,7 @@ virtual NICs. Each has a type (copper, fiber, DAC, virtual, LAG, wireless, manag
 MAC, addresses, untagged VLAN, mode (access, trunk, routed), description, whether it is enabled
 or a management port, and the LAG it belongs to.
 
-- **By hand:** open a device on the Inventory page, **Interfaces**, **Add**. A range adds many at
+- **By hand:** open a device's page, the **Interfaces** tab, **Add**. A range adds many at
   once: `Gi1/0/1-48`, `Te1/1/1-4, mgmt0`.
 - **From NetBox:** the NetBox plugin sends each device's interfaces (`/api/dcim/interfaces/`, with
   their addresses from IPAM) and the virtual machines with theirs, on every inventory sync.

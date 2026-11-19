@@ -54,6 +54,14 @@ describe('top bar', () => {
     // What is down comes first.
     expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining('fw-07 down'), expect.stringContaining('Uplink at 1G')])
   })
+
+  it('says a section once when its page has the same name', () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/problems': problems }).fn)
+    const inventory = { href: '/inventory', id: 'inventory', label: 'Inventory' }
+    renderWithApp(<><TopBar pages={[inventory]} /><Layout title="core-01"><p>device</p></Layout></>, '/inventory/devices/d1')
+    const crumbs = screen.getByRole('navigation', { name: 'Where you are' })
+    expect(crumbs).toHaveTextContent(/^Inventorycore-01$/)
+  })
 })
 
 function Tabs() {

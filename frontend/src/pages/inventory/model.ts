@@ -83,3 +83,8 @@ export const DEVICE_STATUSES = ['active', 'planned', 'staged', 'offline', 'faile
 export function statusLabel(t: (k: string, o?: Record<string, unknown>) => string, status: string) {
   return status ? t(`inventory.statusName.${status}`, { defaultValue: status }) : ''
 }
+
+/** The pages of one inventory item (pages/inventory/*Page.tsx). */
+export const devicePath = (id: string) => `/inventory/devices/${encodeURIComponent(id)}`
+export const scopePath = (kind: 'group' | 'tag', id: string) => `/inventory/${kind === 'group' ? 'groups' : 'tags'}/${encodeURIComponent(id)}`
+export const entryPath = (type: string, id: string) => `/inventory/entries/${encodeURIComponent(type)}/${encodeURIComponent(id)}`

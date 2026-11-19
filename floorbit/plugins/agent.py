@@ -365,6 +365,14 @@ class MemoryContext:
     def log(self, message):
         self.lines.append(str(message))
 
+    def debug(self, message):
+        """Detail for FLOORBIT_AGENT_LOG_LEVEL=debug (an agent from before it has no debug)."""
+        self.lines.append(f'debug: {message}')
+
+    def warning(self, message):
+        """A line at warning level in the agent's log (an agent from before it has only log)."""
+        self.lines.append(str(message))
+
     def primary(self):
         """True unless another agent in the hall is the primary (VRRP): only it polls and logs in."""
         return bool(self.is_primary)

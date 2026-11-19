@@ -44,7 +44,8 @@ the same everywhere. Floorbit never takes the request's own address for the lapt
 The agent answers on its captive port (the **Check-in note on phones** plugin's address) at
 `/floorbit/hello/<code>`. Tell Floorbit where laptops reach it, one of:
 
-- `FLOORBIT_AGENT_LAN_URL` on the agent, for example `http://192.0.2.10:8908`. The agent reports it,
+- **Address in the hall** on the agent's settings page (or `FLOORBIT_AGENT_LAN_URL` on the agent),
+  for example `http://192.0.2.10:8908`. The agent reports it,
   and the page uses the first connected agent that has one.
 - `SEAT_WALK_AGENT_URL` in Floorbit's settings, which wins.
 
@@ -62,7 +63,7 @@ the address and looks for that MAC in the switches' MAC tables (or the monitorin
   blocked for about 30 seconds after the cable goes in.
 - **Wi-Fi off.** The laptop's address must be the one on the cable. With `CHECKIN_ALLOWED_NETWORKS`
   set, the page refuses addresses outside the seat networks.
-- **A local agent** with its captive port on and `FLOORBIT_AGENT_LAN_URL` set, or the laptop's MAC
+- **A local agent** with its captive port on and its address in the hall set, or the laptop's MAC
   typed in.
 
 ## Per event, cleared a day after

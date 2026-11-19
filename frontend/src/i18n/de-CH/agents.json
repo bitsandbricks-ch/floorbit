@@ -276,5 +276,94 @@
       "syslog": "{{n}} pro Minute jetzt",
       "median_ms": "{{n}} ms jetzt"
     }
+  },
+  "cfg": {
+    "title": "Agent-Einstellungen",
+    "intro": "Floorbit schickt diese Werte an den Agent. Setzt die Umgebung des Agents einen Wert selbst, gilt dieser und das Feld ist hier gesperrt.",
+    "source": {
+      "env": "Agent-Umgebung",
+      "floorbit": "Floorbit",
+      "default": "Standard"
+    },
+    "secretSet": "Gesetzt (zum Ersetzen tippen)",
+    "atRestart": "beim nächsten Start",
+    "envWins": "Auf dem Agent durch {{env}} gesetzt; das gilt vor Floorbit.",
+    "field": {
+      "lan_url": "Adresse in der Halle",
+      "metrics": "Metrics-Port",
+      "metrics_token": "Metrics-Token",
+      "buffer_max_mb": "Puffergrösse (MB)",
+      "buffer_max_hours": "Pufferalter (Stunden)",
+      "telemetry_port": "Telemetrie-Port",
+      "cert_names": "Namen im Zertifikat",
+      "vrrp_vips": "Virtuelle IPs",
+      "vrrp_interface": "Schnittstelle",
+      "vrrp_prefer": "Bevorzugte Position",
+      "vrrp_id": "Virtual-Router-ID",
+      "vrrp_peers": "Andere Agents",
+      "log_level": "Log-Stufe",
+      "log_summary": "Zusammenfassung (Sekunden)"
+    },
+    "help": {
+      "lan_url": "Wo Laptops in der Halle den Agent erreichen, für den Platz-Rundgang, z. B. http://192.0.2.10:8908.",
+      "metrics": "host:port für /metrics und /healthz, oder off.",
+      "metrics_token": "Scraper senden dann \"Authorization: Bearer <token>\". Setzen, wenn der Port aus dem LAN erreichbar ist.",
+      "buffer_max_mb": "Wie viel der Agent behält, solange Floorbit nicht erreichbar ist.",
+      "buffer_max_hours": "Wie lange der Agent Daten behält, solange Floorbit nicht erreichbar ist.",
+      "telemetry_port": "Wohin Switches Telemetrie an das Telegraf des Agents senden.",
+      "cert_names": "Hostnamen und IPs, über die Crew-Geräte diesen Agent erreichen. Nur diese kommen ins Zertifikat.",
+      "vrrp_vips": "Adressen, die sich die Agents teilen, z. B. 192.0.2.10/24. Auf jedem Agent gleich.",
+      "vrrp_interface": "Die Netzwerkschnittstelle mit den virtuellen IPs, z. B. eth0.",
+      "vrrp_prefer": "Welche virtuellen IPs dieser Agent hält, solange er läuft: 1 auf dem ersten Agent, 2 auf dem zweiten.",
+      "vrrp_id": "Router-ID der ersten virtuellen IP; die weiteren nehmen die nächsten Nummern. Im VLAN eindeutig.",
+      "vrrp_peers": "Die Adressen der anderen Agents, wenn das Netz Multicast verwirft.",
+      "log_level": "Wie viel der Agent in sein Log schreibt. Gilt sofort.",
+      "log_summary": "Wie oft der Agent eine Zusammenfassung ins Log schreibt; 0 schaltet sie aus."
+    },
+    "group": {
+      "general": "Allgemein",
+      "metrics": "Metrics",
+      "buffer": "Puffer",
+      "vrrp": "Geteilte Adressen (VRRP)",
+      "logs": "Logs"
+    },
+    "pluginsTitle": "Plugin-Einstellungen für diesen Agent",
+    "pluginsIntro": "Leere Felder nehmen die Einstellung des Plugins aus Einstellungen › Plugins.",
+    "pluginDefault": "Plugin-Einstellung: {{value}}",
+    "save_one": "1 Änderung speichern",
+    "save_other": "{{count}} Änderungen speichern",
+    "hallTitle": "In der Halle gesetzte Grenzen",
+    "hallIntro": "Was der Agent erreichen und tun darf. Nur seine eigene Umgebung setzt das, damit ein Floorbit-Login es nicht ausweiten kann.",
+    "hallDefault": "nicht gesetzt",
+    "notReported": "noch nicht gemeldet",
+    "keyTitle": "Schlüssel",
+    "keyIntro": "Beim Erneuern entsteht ein neuer Schlüssel, den der Agent selbst abholt. Der alte gilt, bis der Agent den neuen benutzt.",
+    "keyMade": "Schlüssel vom {{when}}",
+    "keyFrom": {
+      "stored": "von Floorbit abgeholt",
+      "env": "aus der Agent-Umgebung",
+      "file": "aus der Schlüsseldatei"
+    },
+    "rollWaiting": "Neuer Schlüssel wartet seit {{when}} auf den Agent.",
+    "roll": "Schlüssel erneuern",
+    "rollQuestion": "Schlüssel von {{name}} erneuern? Der Agent holt den neuen bei der nächsten Abfrage ab.",
+    "rollOffline": "Der Agent holt den neuen Schlüssel selbst ab und muss dafür verbunden sein.",
+    "certTitle": "Zertifikat",
+    "certIntro": "Der Agent erstellt seinen eigenen Schlüssel; Floorbit signiert ihn für die hier aufgeführten Namen. Die CA einmal auf den Crew-Geräten installieren.",
+    "downloadCa": "CA herunterladen",
+    "certHas": "Für {{names}}, gültig bis {{when}}",
+    "certOther": "nicht von diesem Floorbit",
+    "certNone": "Noch kein Zertifikat.",
+    "certEnv": "Der Agent nutzt ein Zertifikat aus seiner Umgebung.",
+    "certNew": "Neues Zertifikat",
+    "certWaiting": "Wartet, bis der Agent es anfordert.",
+    "generalTitle": "Allgemein",
+    "dangerTitle": "Entfernen",
+    "option": {
+      "debug": "Debug",
+      "info": "Info",
+      "warning": "Warnungen",
+      "error": "Fehler"
+    }
   }
 }

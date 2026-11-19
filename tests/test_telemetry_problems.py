@@ -136,6 +136,11 @@ def test_the_agent_runs_telegraf_and_says_which_device_fails(tmp_path, monkeypat
         time.sleep(1.1)
         assert ctx.handler("POST", "/write", {"Authorization": f"Token {token}"}, line)[0] == 204
         assert plugin.problems.current() == []
+        # The log says Telegraf runs, and every minute what each device gave.
+        assert any(x.startswith("Telegraf started (pid ") for x in ctx.lines)
+        plugin.log_polls(time.time())
+        assert "polls, last minute: 1 points from 1 of 1 devices: sw-a-01 1" in ctx.lines
+        assert any("Telegraf posted 1 points from sw-a-01" in x for x in ctx.lines)
         # A wrong token is just refused.
         assert ctx.handler("POST", "/write", {"Authorization": "Token fba_old"}, line)[0] == 401
         # A firewall's own Telegraf pushes with ingest-token, as docs/telemetry.md says: taken.
@@ -315,3 +320,23 @@ def test_test_now_and_raw_go_through_the_agent(client, monkeypatch):
 def test_the_crew_cannot_test_or_read_raw_lines(anon_client):
     assert anon_client.post("/api/telemetry/test", json={"name": "sw-a-01"}).status_code in (401, 403)
     assert anon_client.get("/api/telemetry/raw?name=sw-a-01").status_code in (401, 403)
+
+
+def test_test_now_and_silent_devices_are_logged(tmp_path, monkeypatch):
+    agent = importlib.import_module("floorbit.builtin_plugins.telemetry.agent")
+    monkeypatch.setattr(supervisor, "binary", lambda: None)
+    ctx = AgentCtx("telemetry", {"targets": [TARGET]}, {}, state_dir=str(tmp_path))
+    plugin = agent.AgentPlugin(ctx)
+    plugin.start()
+    try:
+        plugin.call_test({"name": "sw-a-99"})
+        assert "Test now: sw-a-99 is not among the devices this agent collects from" in ctx.lines
+        result = plugin.call_test({"name": "sw-a-01"})
+        assert not result["ok"] and "Test now on sw-a-01 (snmp, traps)" in ctx.lines
+        said = ctx.lines[-1]
+        assert said.startswith("Test now on sw-a-01: 0 points in ") and said.endswith("(failed)")
+        assert "snmp: this agent image has no Telegraf to test with" in said
+        plugin.log_polls(time.time())
+        assert ctx.lines[-1] == "nothing in the last minute from 1: sw-a-01"
+    finally:
+        ctx.stopping.set()

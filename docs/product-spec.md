@@ -45,6 +45,7 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 | **One database layer** | SQLite by default, Postgres for bigger or hosted installs, same migrations. No JSON-file backend. See [database.md](database.md). |
 | **Valkey for cache and live only** | Durable data goes to the database; Valkey holds cache, live updates and pub/sub (env stays `REDIS_*`). |
 | **Agent plugins configured from the app** | The agent reads no plugin settings from its own env; the hosted side hands them over. |
+| **Agent settings from the app, env wins** | An agent's own settings are set on its page in Floorbit; a value its own env sets wins and the page shows each value's source. Its safety limits (actions, plugin updates, networks it may reach) are env-only, so a stolen login can't widen them. Floorbit rolls keys (the agent fetches them) and signs agent certificates with its own CA; private keys stay on the agent. |
 
 ### Building blocks
 
@@ -126,7 +127,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   | Detail page | One thing, with tabs | A device, an agent, a seat |
 
 - **Side panel or detail page:** a click opens a side panel to peek and act quickly; anything
-  bigger opens the detail page. The panel links there.
+  bigger opens the detail page. The panel links there. The inventory has no side panel: devices,
+  groups, tags and entries each open their own page.
 - **Floor plan:** one full-screen map editor, not separate modes. Live status is always on, edit
   tools follow the role, the plan is an infinite grid, layers stack with presets and each layer has
   its own legend, filters are chips in the top bar, one docked panel on the right.

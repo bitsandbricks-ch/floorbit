@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Agent, AgentGroup, Hall, HostedState } from '@/api/types'
+import type { Agent, AgentGroup, AgentSettingsPage, Hall, HostedState } from '@/api/types'
 import { problems, worst, type Problem, type Tone } from './model'
 
 export type AgentsAnswer = {
@@ -33,3 +33,8 @@ export function useHalls() {
 }
 
 export const agentHref = (id: string) => `/settings/agents/${encodeURIComponent(id)}`
+
+/** One agent's settings page: fields, values with their source, plugin overrides, key and certificate state. */
+export function useAgentSettings(agentId: string) {
+  return useQuery({ queryKey: [...qk.agents, agentId, 'settings'], queryFn: () => get<AgentSettingsPage>(`/api/agents/${agentId}/settings`) })
+}

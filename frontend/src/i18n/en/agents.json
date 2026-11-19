@@ -276,5 +276,94 @@
       "syslog": "{{n}} per minute now",
       "median_ms": "{{n}} ms now"
     }
+  },
+  "cfg": {
+    "title": "Agent settings",
+    "intro": "Floorbit sends these to the agent. Where the agent's own environment sets a value, that value wins and the field is locked here.",
+    "source": {
+      "env": "agent env",
+      "floorbit": "Floorbit",
+      "default": "default"
+    },
+    "secretSet": "Set (type to replace)",
+    "atRestart": "at next start",
+    "envWins": "Set on the agent by {{env}}, which wins over Floorbit.",
+    "field": {
+      "lan_url": "Address in the hall",
+      "metrics": "Metrics listener",
+      "metrics_token": "Metrics token",
+      "buffer_max_mb": "Buffer size (MB)",
+      "buffer_max_hours": "Buffer age (hours)",
+      "telemetry_port": "Telemetry port",
+      "cert_names": "Names on the certificate",
+      "vrrp_vips": "Virtual IPs",
+      "vrrp_interface": "Interface",
+      "vrrp_prefer": "Preferred position",
+      "vrrp_id": "Virtual router ID",
+      "vrrp_peers": "Other agents",
+      "log_level": "Log level",
+      "log_summary": "Summary line (seconds)"
+    },
+    "help": {
+      "lan_url": "Where laptops in the hall reach the agent, for the seat walk-through, such as http://192.0.2.10:8908.",
+      "metrics": "host:port for /metrics and /healthz, or off.",
+      "metrics_token": "Scrapers then send \"Authorization: Bearer <token>\". Set it when the port is reachable from the LAN.",
+      "buffer_max_mb": "How much the agent keeps while Floorbit is out of reach.",
+      "buffer_max_hours": "How long the agent keeps data while Floorbit is out of reach.",
+      "telemetry_port": "Where switches send telemetry to the agent's Telegraf.",
+      "cert_names": "Host names and IPs crew devices use to reach this agent. Only these go on its certificate.",
+      "vrrp_vips": "Addresses the agents share, such as 192.0.2.10/24. The same on every agent.",
+      "vrrp_interface": "The network interface that carries the virtual IPs, such as eth0.",
+      "vrrp_prefer": "Which virtual IPs this agent holds while it is up: 1 on the first agent, 2 on the second.",
+      "vrrp_id": "The first virtual IP's router ID; the next ones take the next numbers. Unique on the VLAN.",
+      "vrrp_peers": "The other agents' addresses, where the network drops multicast.",
+      "log_level": "How much the agent writes to its log. Takes effect right away.",
+      "log_summary": "How often the agent writes a summary line to its log; 0 turns it off."
+    },
+    "group": {
+      "general": "General",
+      "metrics": "Metrics",
+      "buffer": "Buffer",
+      "vrrp": "Shared addresses (VRRP)",
+      "logs": "Logs"
+    },
+    "pluginsTitle": "Plugin settings for this agent",
+    "pluginsIntro": "Empty fields use the plugin's setting from Settings › Plugins.",
+    "pluginDefault": "Plugin setting: {{value}}",
+    "save_one": "Save 1 change",
+    "save_other": "Save {{count}} changes",
+    "hallTitle": "Limits set in the hall",
+    "hallIntro": "What the agent may reach and do. Only its own environment sets these, so a Floorbit login can't widen them.",
+    "hallDefault": "not set",
+    "notReported": "not reported yet",
+    "keyTitle": "Key",
+    "keyIntro": "Rolling makes a new key and the agent fetches it itself. The old key works until the agent uses the new one.",
+    "keyMade": "Key from {{when}}",
+    "keyFrom": {
+      "stored": "fetched from Floorbit",
+      "env": "from the agent's env",
+      "file": "from the key file"
+    },
+    "rollWaiting": "New key waiting for the agent since {{when}}.",
+    "roll": "Roll key",
+    "rollQuestion": "Roll the key of {{name}}? The agent fetches the new one on its next pull.",
+    "rollOffline": "The agent fetches the new key itself, so it has to be connected.",
+    "certTitle": "Certificate",
+    "certIntro": "The agent makes its own key; Floorbit signs it for the names listed here. Install the CA on crew devices once.",
+    "downloadCa": "Download CA",
+    "certHas": "For {{names}}, valid until {{when}}",
+    "certOther": "not from this Floorbit",
+    "certNone": "No certificate yet.",
+    "certEnv": "The agent uses a certificate set in its environment.",
+    "certNew": "New certificate",
+    "certWaiting": "Waiting for the agent to ask for it.",
+    "generalTitle": "General",
+    "dangerTitle": "Remove",
+    "option": {
+      "debug": "Debug",
+      "info": "Info",
+      "warning": "Warnings",
+      "error": "Errors"
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Badge, Grid, Group, MultiSelect, Paper, SimpleGrid, Stack, Tabs, Text, ThemeIcon, Title } from '@mantine/core'
+import { Badge, Grid, Group, MultiSelect, SimpleGrid, Stack, Tabs, Text, ThemeIcon, Title } from '@mantine/core'
 import { IconServer2 } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -6,14 +6,16 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { del, patch } from '@/api/client'
 import { qk } from '@/api/keys'
+import type { Agent } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { StatCard } from '@/components/StatCard'
 import { EmptyState, ErrorBanner, Field, LoadingState, Panel } from '@/components/ui'
 import { ago, dateOnly } from '@/lib/time'
 import { AgentGraphs } from './agents/AgentGraphs'
-import { AgentActions, PluginsOff, Updates } from './agents/AgentTools'
-import { useAgents, useHalls } from './agents/data'
+import { AgentRename, NewKeyButton, PluginsOff, Updates } from './agents/AgentTools'
+import { AgentSettingsForm, CertPanel, KeyPanel } from './agents/AgentSettings'
+import { useAgentSettings, useAgents, useHalls } from './agents/data'
 import { Blocked, PluginTable, Report } from './agents/Details'
 import { KeyAlert, type Made } from './agents/KeyAlert'
 import { behind, stateKey, upText } from './agents/model'
@@ -168,24 +170,52 @@ export default function AgentDetail() {
           </Tabs.Panel>
 
           <Tabs.Panel value="settings" pt="md">
-            <Paper withBorder radius="lg" p="md">
-              <Stack gap="md" maw={560}>
-                <AgentActions agent={a} onKey={(m) => setMade({ ...m, rotated: true })} />
-                {halls.options.length > 1 && (
-                  <MultiSelect label={t('agents.halls')} description={t('agents.hallsHelp')}
-                    placeholder={a.halls?.length ? undefined : t('agents.allHalls')}
-                    data={halls.options} value={a.halls ?? []} clearable onChange={(ids) => setHalls.mutate(ids)} />
-                )}
-                <PluginsOff agent={a} />
-                <Group>
-                  <ConfirmButton variant="default" danger label={t('agents.revoke')}
-                    question={t('agents.revokeQuestion', { name: a.name })} onConfirm={() => revoke.mutate()} />
-                </Group>
-              </Stack>
-            </Paper>
+            <SettingsTab agent={a} hallOptions={halls.options} onHalls={(ids) => setHalls.mutate(ids)}
+              onKey={(m) => setMade({ ...m, rotated: true })} onRevoke={() => revoke.mutate()} />
           </Tabs.Panel>
         </Tabs>
       </Stack>
     </Layout>
+  )
+}
+
+
+/** Its name, halls and plugins; its own settings and plugin settings (Floorbit sets them, the agent's
+ *  env wins); its key and certificate; revoking it. */
+function SettingsTab({ agent: a, hallOptions, onHalls, onKey, onRevoke }: {
+  agent: Agent; hallOptions: { value: string; label: string }[]; onHalls: (ids: string[]) => void
+  onKey: (m: { name: string; key: string }) => void; onRevoke: () => void
+}) {
+  const { t } = useTranslation()
+  const page = useAgentSettings(a.id)
+  return (
+    <Grid gap="md">
+      <Grid.Col span={{ base: 12, lg: 8 }}>
+        <AgentSettingsForm agent={a} />
+      </Grid.Col>
+      <Grid.Col span={{ base: 12, lg: 4 }}>
+        <Stack gap="md">
+          <Panel title={t('agents.cfg.generalTitle')}>
+            <Stack gap="md">
+              <AgentRename agent={a} />
+              {hallOptions.length > 1 && (
+                <MultiSelect label={t('agents.halls')} description={t('agents.hallsHelp')}
+                  placeholder={a.halls?.length ? undefined : t('agents.allHalls')}
+                  data={hallOptions} value={a.halls ?? []} clearable onChange={onHalls} />
+              )}
+              <PluginsOff agent={a} />
+            </Stack>
+          </Panel>
+          <KeyPanel agent={a} page={page.data}><NewKeyButton agent={a} onKey={onKey} /></KeyPanel>
+          {page.data && <CertPanel agent={a} page={page.data} />}
+          <Panel title={t('agents.cfg.dangerTitle')}>
+            <Group>
+              <ConfirmButton variant="default" danger label={t('agents.revoke')}
+                question={t('agents.revokeQuestion', { name: a.name })} onConfirm={onRevoke} />
+            </Group>
+          </Panel>
+        </Stack>
+      </Grid.Col>
+    </Grid>
   )
 }

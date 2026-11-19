@@ -156,6 +156,86 @@ def rotate(agent_id):
     return jsonify({'id': agent_id, 'name': name, 'key': key})
 
 
+@bp.route('/api/agents/ca.pem', methods=['GET'])
+def ca_certificate():
+    """The CA that signs the agents' certificates (agent_ca.py), to install on crew devices."""
+    from .. import agent_ca
+    resp = current_app.response_class(agent_ca.ca_pem(), mimetype='application/x-pem-file')
+    resp.headers['Content-Disposition'] = 'attachment; filename="floorbit-agents-ca.pem"'
+    return resp
+
+
+@bp.route('/api/agents/<agent_id>/settings', methods=['GET'])
+def settings_page(agent_id):
+    """The agent's Settings tab: its settings, this agent's plugin settings, key and certificate."""
+    from .. import agent_settings, i18n
+    try:
+        return jsonify(agent_settings.page(agent_id, lang=i18n.language(request.headers.get('Accept-Language'))))
+    except agent_link.AgentError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+
+
+@bp.route('/api/agents/<agent_id>/settings', methods=['PATCH'])
+def settings_change(agent_id):
+    """``{"settings": {key: value | null}, "plugins": {plugin id: {setting: value | null}}}``."""
+    from .. import agent_plugins, agent_settings
+    body = request.get_json(silent=True) or {}
+    try:
+        name, changed = agent_settings.update(agent_id, body.get('settings'), body.get('plugins'))
+    except agent_link.AgentError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    if changed:
+        audit.record('agents', f"Changed a local agent's settings: {', '.join(changed)}", g.get('audit_user'), name,
+                     fields=changed)
+        agent_plugins.reload_agents()
+        events.publish('agents.changed', {})
+    from .. import i18n
+    return jsonify(agent_settings.page(agent_id, lang=i18n.language(request.headers.get('Accept-Language'))))
+
+
+@bp.route('/api/agents/<agent_id>/roll', methods=['POST'])
+def roll_key(agent_id):
+    """The agent fetches a new key itself, at once when it is connected (no key to copy)."""
+    from .. import agent_plugins, agent_settings
+    try:
+        name = agent_settings.ask_roll(agent_id)
+    except agent_link.AgentError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    audit.record('agents', 'Asked a local agent to fetch a new key', g.get('audit_user'), name)
+    agent_plugins.reload_agents()
+    events.publish('agents.changed', {})
+    return jsonify(agent_settings.state(agent_id))
+
+
+@bp.route('/api/agents/roll', methods=['POST'])
+def roll_all_keys():
+    """Every agent fetches a new key."""
+    from .. import agent_plugins, agent_settings
+    names = [agent_settings.ask_roll(a['id']) for a in agent_link.all_agents()]
+    if names:
+        audit.record('agents', 'Asked every local agent to fetch a new key', g.get('audit_user'), ', '.join(names))
+        agent_plugins.reload_agents()
+        events.publish('agents.changed', {})
+    return jsonify({'asked': len(names)})
+
+
+@bp.route('/api/agents/<agent_id>/cert', methods=['POST'])
+def new_cert(agent_id):
+    """The agent asks for a new certificate at its next config pull."""
+    from .. import agent_plugins, agent_settings
+    try:
+        if not agent_settings.values(agent_id).get('cert_names'):
+            return jsonify({'error': 'List the names this agent is reached by (cert_names) before it can get a '
+                                     'certificate.'}), 400
+        name = agent_settings.ask_cert(agent_id)
+    except agent_link.AgentError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    audit.record('agents', 'Asked a local agent to fetch a new certificate', g.get('audit_user'), name)
+    agent_plugins.reload_agents()
+    events.publish('agents.changed', {})
+    return jsonify(agent_settings.state(agent_id))
+
+
 @bp.route('/api/agents/<agent_id>', methods=['DELETE'])
 def revoke(agent_id):
     try:
@@ -367,6 +447,40 @@ def env_settings():
     return jsonify(agent_plugins.import_env(agent, body.get('settings'), body.get('plugins')))
 
 
+@bp.route('/api/agent/v1/key', methods=['POST'])
+def fetch_key():
+    """An agent asked to roll its key fetches the new one (agent_settings.take_roll) and keeps it in
+    its own state folder. The answer is the only place the new key is ever shown."""
+    agent = _agent(reachable=False)
+    if agent is None:
+        return _refused()
+    from .. import agent_settings
+    key = agent_settings.take_roll(agent['id'])
+    if key is None:
+        return jsonify({'error': 'No new key was asked for this agent.'}), 409
+    audit.record('agents', 'A local agent fetched its new key', 'agent', agent['name'])
+    events.publish('agents.changed', {})
+    resp = jsonify({'key': key})
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp
+
+
+@bp.route('/api/agent/v1/cert', methods=['POST'])
+def sign_cert():
+    """The agent's signing request (its key stays on the agent), signed for the names on its page."""
+    agent = _agent(reachable=False)
+    if agent is None:
+        return _refused()
+    from .. import agent_ca, agent_settings
+    try:
+        pem = agent_settings.issue_cert(agent['id'], _agent_body().get('csr'))
+    except agent_ca.CAError as exc:
+        return jsonify({'error': str(exc)}), 400
+    audit.record('agents', 'Signed a certificate for a local agent', 'agent', agent['name'])
+    events.publish('agents.changed', {})
+    return jsonify({'cert': pem})
+
+
 @bp.route('/api/agent/v1/report', methods=['POST'])
 def report():
     """The agent's own numbers, from an agent on the long poll (on the link they come as a
@@ -546,7 +660,7 @@ def link(ws):
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
 for _view in (hello, calls, answers, syslog, flow_seats, captive, seat_walk_hello, flows, link, report,
-              env_settings):
+              env_settings, fetch_key, sign_cert):
     _view._auth_public = True
 # After _auth_public is set: the route's wrapper copies the attribute.
 sock.route(LINK_PATH, bp=bp)(link)

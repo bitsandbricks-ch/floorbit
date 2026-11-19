@@ -333,5 +333,11 @@
   "The platform set an admin": "Die Plattform hat einen Admin gesetzt",
   "Set a tenant's admin": "Admin eines Mandanten gesetzt",
   "Made a platform admin": "Zum Plattform-Admin gemacht",
-  "Took platform admin away": "Plattform-Admin entzogen"
+  "Took platform admin away": "Plattform-Admin entzogen",
+  "Changed a local agent's settings: {}": "Einstellungen eines lokalen Agents geändert: {}",
+  "Asked a local agent to fetch a new key": "Lokalen Agent gebeten, einen neuen Schlüssel abzuholen",
+  "Asked every local agent to fetch a new key": "Alle lokalen Agents gebeten, einen neuen Schlüssel abzuholen",
+  "Asked a local agent to fetch a new certificate": "Lokalen Agent gebeten, ein neues Zertifikat abzuholen",
+  "A local agent fetched its new key": "Ein lokaler Agent hat seinen neuen Schlüssel abgeholt",
+  "Signed a certificate for a local agent": "Zertifikat für einen lokalen Agent signiert"
 }

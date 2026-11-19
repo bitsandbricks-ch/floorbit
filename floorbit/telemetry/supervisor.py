@@ -52,6 +52,7 @@ class Telegraf:
                         [self.path, '--config', self.conf], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                         text=True, errors='replace', start_new_session=True)
                     self.started_at = time.time()
+                self.log(f'Telegraf started (pid {self.proc.pid})')
             except OSError as exc:
                 self.log(f'cannot start Telegraf ({self.path}): {exc}')
                 self.last_exit = (time.time(), None, [str(exc)])
@@ -81,6 +82,7 @@ class Telegraf:
             if self.running():
                 with contextlib.suppress(OSError):
                     self.proc.send_signal(signal.SIGHUP)
+                    self.log('Telegraf reads its config again (the devices changed)')
 
     def stop(self):
         with self._lock:
@@ -91,3 +93,4 @@ class Telegraf:
                 proc.wait(10)
             except subprocess.TimeoutExpired:
                 proc.kill()
+            self.log('Telegraf stopped (the plugin stops)')
