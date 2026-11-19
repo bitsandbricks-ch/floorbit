@@ -28,6 +28,7 @@ const fed: Device = {
   memory_mb: '',
   disk_gb: '',
   host: '',
+  location: '',
   x: 10,
   y: 20,
   placed: true,

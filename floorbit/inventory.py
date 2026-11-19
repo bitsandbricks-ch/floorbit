@@ -27,16 +27,17 @@ import uuid
 from . import icon_library
 
 # Fields a plugin may feed (and a hand edit then locks). The second row are the specs of servers,
-# VMs and firewalls: what runs on it, how big it is, and for a VM the device it runs on.
+# VMs and firewalls: what runs on it, how big it is, and for a VM the device it runs on. Location is
+# where the device says it is (SNMP sysLocation; discovery fills it, inventory_discovery.py).
 FIELDS = ('name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes',
-          'platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host')
+          'platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host', 'location')
 SPECS = ('platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host')
 NUMBERS = ('cores', 'memory_mb', 'disk_gb')
 ROLES = ('switch', 'router', 'firewall', 'access-point', 'server', 'vm', 'pdu', 'other')
 STATUSES = ('active', 'planned', 'staged', 'offline', 'failed', 'decommissioning', 'inventory', '')
 LIMITS = {'name': 80, 'role': 40, 'model': 80, 'serial': 80, 'mgmt_ip': 45, 'hall': 80, 'status': 40,
           'notes': 1000, 'platform': 60, 'os': 80, 'cpu': 80, 'cores': 6, 'memory_mb': 9, 'disk_gb': 9,
-          'host': 80}
+          'host': 80, 'location': 120}
 # The icons a device or group can show (frontend/src/pages/inventory/icons.tsx draws them).
 ICONS = ('switch', 'router', 'firewall', 'server', 'vm', 'access-point', 'pdu', 'ups', 'storage', 'camera',
          'printer', 'screen', 'phone', 'cloud', 'cpu', 'antenna', 'cable', 'circuit', 'power-board', 'patch-panel',

@@ -9,7 +9,8 @@ Points come in several shapes, one per driver (docs/telemetry.md):
 
 - SNMP polling, as floorbit/telemetry/telegraf.py asks Telegraf for it: ``fb_system``, ``fb_if``,
   ``fb_bridge``, ``fb_fdb``, ``fb_qfdb``, ``fb_arp``, ``fb_lldp``, ``fb_lldp_loc``, ``fb_cdp``,
-  each table row with its SNMP index in the ``index`` tag.
+  ``fb_mem``, each table row with its SNMP index in the ``index`` tag; and, every few minutes, what
+  the device is: ``fb_facts``, ``fb_entity``, ``fb_storage``, ``fb_hrdevice`` (Device.summary).
 - SNMP traps (Telegraf ``snmp_trap``): linkUp and linkDown change a port at once, between polls.
 - gNMI and Cisco model-driven telemetry (NX-OS, IOS-XE): OpenConfig or native interface paths.
   Field names differ by platform and path, so the last part of each name is what counts
@@ -28,6 +29,7 @@ from . import lineproto
 EXPIRE_EVERY = 10      # seconds between passes that drop rows past TABLE_TTL
 MIN_RATE_GAP = 2.0     # seconds between two counter readings worth a rate
 TABLE_TTL = 600        # seconds a MAC, ARP or neighbour row lives without being seen again
+MAX_ENTITY = 2000      # ENTITY-MIB rows kept per device: a big chassis lists every optic and sensor
 STALE = 180            # a device that sent nothing for this long reads as offline
 OPER = {1: 'up', 2: 'down', 3: 'testing', 4: 'unknown', 5: 'dormant', 6: 'notPresent', 7: 'lowerLayerDown'}
 DUPLEX = {1: 'unknown', 2: 'halfDuplex', 3: 'fullDuplex'}
@@ -171,6 +173,10 @@ class Device:
         self.lldp = {}                    # (local port, remote index) -> [row, seen]
         self.cdp = {}
         self.gateways = {}                # name -> {status, delay_ms, loss_pct, seen}
+        self.facts = {}                   # what it is, for discovery: see facts()
+        self._entity = {}                 # ENTITY-MIB index -> row, until the chassis is known
+        self._storage = {}                # hrStorage index -> (kind, bytes)
+        self._processors = {}             # hrDevice index -> description
 
     # ports -----------------------------------------------------------------------------------
     def port(self, index=None, name=None):
@@ -202,6 +208,32 @@ class Device:
 
     def online(self, now=None):
         return (time.time() if now is None else now) - self.seen < STALE
+
+    def summary(self):
+        """What the device said it is (``fb_facts`` and its tables), as discovery takes it: model,
+        serial, software, descr, location, memory_mb, disk_gb, cores, cpu. Only what it said."""
+        out = {k: v for k, v in self.facts.items() if v not in (None, '')}
+        chassis = [row for _i, row in sorted(self._entity.items(), key=lambda kv: _natural_index(kv[0]))
+                   if _num(row.get('entPhysicalClass')) == 3]
+        if chassis:
+            # A stack answers one chassis per member: the first is the one in charge.
+            for field, key in (('entPhysicalModelName', 'model'), ('entPhysicalSerialNum', 'serial'),
+                               ('entPhysicalSoftwareRev', 'software')):
+                value = _text(chassis[0].get(field))
+                if value:
+                    out[key] = value
+        ram = sum(b for kind, b in self._storage.values() if kind == 'ram')
+        if ram and 'memory_mb' not in out:
+            out['memory_mb'] = round(ram / 2 ** 20)
+        disk = sum(b for kind, b in self._storage.values() if kind == 'disk')
+        if disk:
+            out['disk_gb'] = round(disk / 1e9)
+        if self._processors:
+            out['cores'] = len(self._processors)
+            names = [d for d in self._processors.values() if d]
+            if names:
+                out['cpu'] = names[0]
+        return out
 
 
 class State:
@@ -341,6 +373,74 @@ def _system(dev, point, at):
     for key in ('mem', 'mem_percent'):
         if _num(f.get(key)) is not None:
             dev.mem = _num(f[key])
+    return True
+
+
+def _text(value):
+    """A string from SNMP as Telegraf sends it: escaped line breaks become spaces."""
+    if value is None or isinstance(value, bool):
+        return ''
+    text = str(value).replace('\\r', ' ').replace('\\n', ' ').replace('\r', ' ').replace('\n', ' ')
+    return ' '.join(text.split())[:500]
+
+
+def _natural_index(index):
+    return [int(p) if p.isdigit() else p for p in str(index).split('.')]
+
+
+def _facts(dev, point, at):
+    """sysDescr, sysLocation and hrMemorySize, with the tables below: what the device is."""
+    f = point.fields
+    for field, key in (('sysDescr', 'descr'), ('sysLocation', 'location')):
+        if field in f:
+            dev.facts[key] = _text(f[field])
+    if _num(f.get('hrMemorySize')):
+        dev.facts['memory_mb'] = round(_num(f['hrMemorySize']) / 1024)
+    return True
+
+
+def _entity(dev, point, at):
+    if not _index(point):
+        return False
+    index = str(_index(point))
+    if index not in dev._entity and len(dev._entity) >= MAX_ENTITY:
+        return True
+    dev._entity.setdefault(index, {}).update(point.fields)
+    return True
+
+
+STORAGE_KINDS = {'25.2.1.2': 'ram', '25.2.1.4': 'disk'}     # hrStorageRam, hrStorageFixedDisk
+
+
+def _storage(dev, point, at):
+    f = point.fields
+    kind = next((k for oid, k in STORAGE_KINDS.items() if str(f.get('hrStorageType') or '').endswith(oid)), None)
+    size, unit = _num(f.get('hrStorageSize')), _num(f.get('hrStorageAllocationUnits'))
+    if not _index(point) or kind is None or not size or not unit:
+        return bool(_index(point))
+    dev._storage[str(_index(point))] = (kind, size * unit)
+    return True
+
+
+def _hrdevice(dev, point, at):
+    """hrDeviceTable: the processor rows say how many cores and which CPU."""
+    f = point.fields
+    if not _index(point):
+        return False
+    if str(f.get('hrDeviceType') or '').endswith('25.3.1.3'):        # hrDeviceProcessor
+        # net-snmp writes "GenuineIntel: Intel(R) Xeon(R) ...": the vendor prefix says nothing more.
+        dev._processors[str(_index(point))] = _text(f.get('hrDeviceDescr')).split(': ', 1)[-1]
+    return True
+
+
+def _mem(dev, point, at):
+    """CISCO-MEMORY-POOL-MIB: pool 1 is the processor's."""
+    used, free = _num(point.fields.get('memUsed')), _num(point.fields.get('memFree'))
+    if used is None or free is None:
+        return False
+    if str(_index(point)) == '1' and used + free > 0:
+        dev.mem = round(100 * used / (used + free), 1)
+        dev.facts['memory_mb'] = round((used + free) / 2 ** 20)
     return True
 
 
@@ -580,6 +680,7 @@ _HANDLERS = {
     'fb_bridge': _bridge, 'fb_fdb': _fdb, 'fb_qfdb': _qfdb, 'fb_arp': _arp, 'fb_lldp': _lldp,
     'fb_lldp_loc': _lldp_local, 'fb_cdp': _cdp, 'snmp_trap': _trap, 'fb_gateway': _gateway,
     'cpu': _fw_cpu, 'mem': _fw_mem, 'net': _fw_net, 'pf': _fw_pf, 'system': _fw_system,
+    'fb_facts': _facts, 'fb_entity': _entity, 'fb_storage': _storage, 'fb_hrdevice': _hrdevice, 'fb_mem': _mem,
 }
 
 
@@ -596,6 +697,8 @@ def register(measurement, handler, private=False):
 
 
 # Measurements that name people's machines (MACs, IPs): never stored as series (storage.py).
-PRIVATE = frozenset({'fb_fdb', 'fb_qfdb', 'fb_arp', 'fb_bridge', 'fb_lldp', 'fb_lldp_loc', 'fb_cdp'})
+# The facts are text that never changes: not series either.
+PRIVATE = frozenset({'fb_fdb', 'fb_qfdb', 'fb_arp', 'fb_bridge', 'fb_lldp', 'fb_lldp_loc', 'fb_cdp',
+                     'fb_facts', 'fb_entity', 'fb_storage', 'fb_hrdevice'})
 
 state = State()

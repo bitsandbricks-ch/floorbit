@@ -3,14 +3,15 @@
 - ``GET /api/inventory``: every device (``?hidden=1`` includes hidden ones), the plugins that
   feed it and their last sync. Viewers and up.
 - ``POST /api/inventory``, ``PATCH`` / ``DELETE /api/inventory/<id>``: editors and up.
-- ``POST /api/inventory/sync``: run every inventory plugin that's on now. Editors and up.
+- ``POST /api/inventory/sync``: run every inventory plugin that's on now, then discovery
+  (floorbit/inventory_discovery.py). Editors and up.
 - ``GET /api/inventory/log``: the last syncs. Editors and up.
 """
 import threading
 
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import agent_link, inventory, inventory_schedule, inventory_scope, inventory_types, spa
+from .. import agent_link, inventory, inventory_discovery, inventory_schedule, inventory_scope, inventory_types, spa
 from ..plugins import PluginError
 from ..store import load_data, save_data
 
@@ -138,6 +139,9 @@ def _sources(data):
         if not via_agent:   # nothing came from it yet: show it, with its last error if any
             last = next((r for r in log if r.get('plugin') == 'agent'), None)
             out.append({'id': 'agent', 'name': 'Local agent', 'last_sync': last})
+    if inventory_discovery.available():
+        out.append({'id': inventory_discovery.PLUGIN, 'name': inventory_discovery.NAME,
+                    'last_sync': inventory_discovery.last(data)})
     return out
 
 
@@ -203,10 +207,14 @@ def delete_device(device_id):
 
 @bp.route('/api/inventory/sync', methods=['POST'])
 def sync_now():
-    if not _feeders() and not agent_link.active():
+    discover = inventory_discovery.available()
+    if not _feeders() and not agent_link.active() and not discover:
         return jsonify({'error': 'No inventory source is on. Turn one on under Settings > Plugins.'}), 400
     with inventory_schedule.running:   # a scheduled sync that's under way finishes first
         reports = run_sync()
+    if discover:
+        with inventory_discovery.running:
+            reports.append(inventory_discovery.run())
     return jsonify({'reports': reports, 'sources': _sources(load_data())})
 
 

@@ -190,7 +190,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
             <Stack gap="md" style={{ minWidth: 0 }}>
               <Panel title={t('inventory.page.details')}>
                 <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }} spacing="sm">
-                  {(['model', 'serial', 'mgmt_ip', 'hall', 'status'] as const).filter((f) => dev[f]).map((f) => (
+                  {(['model', 'serial', 'mgmt_ip', 'hall', 'location', 'status'] as const).filter((f) => dev[f]).map((f) => (
                     <Field key={f} label={t(`inventory.field.${f}`)}>{f === 'status' ? statusLabel(t, dev[f]) : dev[f]}</Field>
                   ))}
                   <Field label={t('inventory.placedLabel')}>{dev.placed ? t('inventory.placed') : t('inventory.notPlaced')}</Field>

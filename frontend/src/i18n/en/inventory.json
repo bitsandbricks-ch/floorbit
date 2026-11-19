@@ -49,7 +49,8 @@
     "cores": "Cores",
     "memory_mb": "Memory (MB)",
     "disk_gb": "Disk (GB)",
-    "host": "Runs on"
+    "host": "Runs on",
+    "location": "Location"
   },
   "role": {
     "switch": "Switch",

@@ -15,7 +15,8 @@ settings (properties and feature switches) and credentials. Other entries (cable
 ## What each device has
 
 Name, role (switch, router, firewall, access point, server, virtual machine, PDU, other), model,
-serial, management IP, hall or site, status and notes, plus where it sits on the floor plan. Every
+serial, management IP, hall or site, location (where the device says it is), status and notes,
+plus where it sits on the floor plan. Every
 device on the floor plan is an inventory device; unplaced ones wait in the floor plan's "add
 switch" dialog.
 
@@ -165,6 +166,28 @@ runs the same sync by itself, so a switch added in NetBox during setup shows up 
 pressing **Sync now**. 0 (the default) is off; less than 5 counts as 5, at most once a day. The
 time counts from the newest sync, by hand or not, and a failed one waits the same time before the
 next try. With several pods only the leader syncs. The Inventory page says how often it runs.
+
+### Discovery
+
+Floorbit also fills the devices from what the monitoring source polls, like a discovery: model,
+serial, platform and software version, CPU, cores, memory, disk, location and the interfaces. With
+[telemetry](telemetry.md) the agent asks each device by SNMP every five minutes (sysDescr,
+sysLocation, ENTITY-MIB for the chassis model and serial, HOST-RESOURCES-MIB for memory, disks and
+CPUs, the Cisco memory pool); with LibreNMS it takes what LibreNMS knows of the device.
+
+- It runs every **Discovery (minutes)** under Settings > General (`DISCOVERY_MINUTES`, 15 by
+  default; less than 5 counts as 5, 0 is off) and with **Sync now**. The Inventory page shows its
+  last run next to the plugins'.
+- It only fills in. A field gets the discovered value when it is empty, or when it still holds
+  what discovery put there last, so a software upgrade shows up. A value typed by hand or sent by
+  another plugin (NetBox) stays; the run counts it as kept. Empty a field and the next run fills
+  it again.
+- It matches inventory devices by name (the short name too) or management IP, and never adds or
+  deletes a device or changes its name, role, address or status.
+- Interfaces come in as with **Take from monitoring** on the device's Interfaces tab, for
+  switches, routers, firewalls, access points, servers and PDUs that are up.
+- The platform it finds (Cisco IOS, IOS-XE, NX-OS, Linux, ...) also sets what telemetry does
+  automatically for the device, such as MAC tables per VLAN on Catalyst IOS.
 
 ### What NetBox sends besides devices
 

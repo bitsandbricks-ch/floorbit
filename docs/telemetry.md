@@ -120,6 +120,11 @@ where it comes from. A device's tab also shows its last word, **Test now**, **Ra
 | `telemetry_mdt_node` | the node name a device sends model-driven telemetry as (default: its name) |
 | `telemetry_verify_tls` | `false` for an API with a self-signed certificate |
 
+Every five minutes SNMP polling also asks what the device is (sysDescr, sysLocation, the chassis
+model and serial from ENTITY-MIB, memory and disks from HOST-RESOURCES-MIB, the Cisco memory pool,
+which also gives the memory use). [Discovery](inventory.md#discovery) fills the inventory device
+from it.
+
 A login the device refuses is blocked on the inventory device, like any stored login: it isn't
 tried again until a tech clears it or the password changes.
 
