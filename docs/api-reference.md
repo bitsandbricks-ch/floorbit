@@ -827,7 +827,7 @@ Source: [`floorbit/blueprints/s3_backup.py`](https://github.com/bitsandbricks-ch
 
 ## floorbit.blueprints.schedule
 
-Event schedule and countdown (issue #106). The rules live in floorbit/schedule.py; see docs/schedule.md.
+Event schedule (issue #106), for the crew. The rules live in floorbit/schedule.py; see docs/schedule.md.
 
 Source: [`floorbit/blueprints/schedule.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/schedule.py)
 
@@ -1075,6 +1075,7 @@ Source: [`floorbit/blueprints/topology.py`](https://github.com/bitsandbricks-ch/
 | PUT | `/api/links/<link_id>` | `floorplan.edit` |  |
 | DELETE | `/api/links/layout` | `floorplan.edit` |  |
 | PUT | `/api/links/layout` | `floorplan.edit` |  |
+| GET | `/api/links/ports` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.tournament
 

@@ -107,8 +107,6 @@ class DiscordNotifier:
         events.subscribe('security.finding', self.on_security, leader_only=True)
         events.subscribe('power.alert', self.on_power, leader_only=True)
         events.subscribe('forecast.alert', self.on_forecast, leader_only=True)
-        events.subscribe('status_page.update', self.on_status_update, leader_only=True)
-        events.subscribe('schedule.starting', self.on_schedule_starting, leader_only=True)
 
     def _ensure_worker(self):
         with self._lock:
@@ -485,59 +483,6 @@ class DiscordNotifier:
             payload['_mute'] = [(c['id'], c['name']) for c in offline[:MAX_BUTTONS]]
         return payload
 
-    @staticmethod
-    def status_webhook():
-        return config.get('DISCORD_STATUS_WEBHOOK_URL', '') or ''
-
-    def on_status_update(self, event):
-        # Attendees' channel, not the crew's: only what the public status page shows.
-        data = event['data']
-        url = self.status_webhook()
-        if not url or not data.get('public') or not data.get('update'):
-            return
-        self.post({**self.build_status_update_message(data['update'], data.get('page_url')), '_webhook': url})
-
-    def build_status_update_message(self, update, page_url=None):
-        colors = {'outage': COLOR_OFFLINE, 'degraded': COLOR_INFO, 'maintenance': COLOR_INFO,
-                  'operational': COLOR_ONLINE}
-        names = {'outage': 'Network outage', 'degraded': 'Part of the network is down',
-                 'maintenance': 'Maintenance', 'operational': 'All systems running'}
-        title = ' · '.join(p for p in (names.get(update.get('state')), update.get('area')) if p)
-        embed = {'title': title or 'Network status', 'description': (update.get('text') or '')[:4000],
-                 'color': colors.get(update.get('state'), COLOR_INFO),
-                 'timestamp': datetime.fromtimestamp(update.get('at') or time.time(), UTC).isoformat()}
-        if page_url:
-            embed['url'] = page_url
-        return {'username': config.get('DISCORD_USERNAME', 'Floorbit') or 'Floorbit', 'embeds': [embed],
-                'allowed_mentions': {'parse': []}}
-
-    def on_schedule_starting(self, event):
-        url = config.get('DISCORD_SCHEDULE_WEBHOOK_URL', '') or ''
-        data = event['data']
-        if url and data.get('items'):
-            self.post({**self.build_schedule_message(data['items'], data.get('page_url')), '_webhook': url})
-
-    def build_schedule_message(self, items, page_url=None):
-        """What is about to start, for attendees. Times as Discord timestamps: each reader sees their own."""
-        colors = {'talk': 0x58A6FF, 'tournament': COLOR_INFO, 'meal': COLOR_ONLINE}   # else grey
-        embeds = []
-        for item in items[:10]:   # Discord takes ten embeds per message
-            at = int(item['start'])
-            if item['kind'] == 'quiet':
-                title, lines = 'Quiet hours', [f'Quiet hours start <t:{at}:R>, at <t:{at}:t>. Please keep it down.']
-            else:
-                title = item['title'][:256]
-                lines = [f'Starts <t:{at}:R>, at <t:{at}:t>' + (f" · {item['where']}" if item.get('where') else '')]
-            if item.get('note'):
-                lines.append(item['note'][:500])
-            embed = {'title': title, 'description': '\n'.join(lines), 'color': colors.get(item['kind'], 0x8B949E)}
-            if page_url:
-                embed['url'] = page_url
-            embeds.append(embed)
-        # Titles are the crew's text: no @everyone sneaks through them.
-        return {'username': config.get('DISCORD_USERNAME', 'Floorbit') or 'Floorbit', 'embeds': embeds,
-                'allowed_mentions': {'parse': []}}
-
     def _reports_from_outage(self, change, now):
         """Open incidents at the switch's seats filed while it was down (issue #398): likely fixed now."""
         from contextlib import nullcontext
@@ -577,7 +522,7 @@ class DiscordNotifier:
 
     # ── sending ───────────────────────────────────────────────────────────────────────────
     def send(self, payload, retries=2):
-        url = payload.get('_webhook') or self.webhook()
+        url = self.webhook()
         if not url and self._via_crew():
             self.crew.post_alert(payload)
             self.last_sent, self.last_error = time.time(), None

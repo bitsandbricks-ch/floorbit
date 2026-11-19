@@ -714,46 +714,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-wall--screen .fb-wall-games li { font-size: 1.5vw; }
 .fb-wall--screen .fb-wall-bar { height: .7vw; }
 .fb-wall--screen .fb-wall-note { font-size: 1vw !important; }
-/* The public schedule (pages/public/PublicAgenda.tsx); ?screen=1 is two columns sized to the screen. */
-.fb-agenda { display: grid; gap: 16px; }
-.fb-agenda-card { padding: 18px 20px; }
-.fb-agenda-card .fb-wall-label { margin-bottom: 10px; }
-.fb-agenda-countdown { display: flex; gap: 0 clamp(18px, 3vw, 56px); flex-wrap: wrap; margin: 4px 0 6px; }
-.fb-agenda-countdown div { text-align: center; }
-.fb-agenda-countdown b { display: block; font-size: clamp(40px, 9vw, 96px); line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
-.fb-agenda-countdown span { color: var(--color-muted); font-size: 14px; }
-.fb-agenda-item { border-left: 4px solid var(--k, var(--color-line)); padding: 4px 0 4px 12px; }
-.fb-agenda-item b { display: block; font-size: 18px; }
-.fb-agenda-item + .fb-agenda-item { margin-top: 10px; }
-.fb-agenda-big .fb-agenda-item b { font-size: clamp(20px, 3vw, 30px); }
-.fb-agenda-k-talk { --k: var(--color-bit); }
-.fb-agenda-k-tournament { --k: var(--color-warn); }
-.fb-agenda-k-meal { --k: var(--color-up); }
-.fb-agenda-k-quiet { --k: var(--color-trace); }
-.fb-agenda-k-other { --k: var(--color-muted); }
-.fb-agenda-quiet {
-  background: color-mix(in srgb, var(--color-trace) 18%, var(--color-surface)) !important;
-  border-color: var(--color-trace) !important;
-}
-.fb-agenda-programme ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.fb-agenda-programme li { display: grid; grid-template-columns: 4.5em 1fr; gap: 12px; align-items: start; }
-/* Past items in the muted text colour rather than faded: faded text fell to 2.3:1 (issue #232). */
-.fb-agenda-programme li.fb-agenda-past, .fb-agenda-programme li.fb-agenda-past * { color: var(--color-muted); }
-.fb-agenda-programme li.fb-agenda-on b { font-weight: 800; }
-.fb-agenda-when { color: var(--color-muted); font-variant-numeric: tabular-nums; padding-top: 4px; }
-.fb-agenda-programme li.fb-agenda-day { display: block; margin: 14px 0 2px; font-size: 15px; font-weight: 700; }
-.fb-agenda-programme li.fb-agenda-day:first-child { margin-top: 0; }
-.fb-agenda--screen { padding: 3vh 3vw; height: 100vh; overflow: hidden; grid-template-columns: 1fr 1fr; align-items: start; align-content: start; }
-.fb-agenda--screen .fb-agenda-wide { grid-column: 1 / -1; }
-.fb-agenda--screen .fb-wall-title { font-size: 2.6vw; }
-.fb-agenda--screen .fb-agenda-countdown b { font-size: 7vw; }
-.fb-agenda--screen .fb-agenda-countdown span { font-size: 1.3vw; }
-.fb-agenda--screen .fb-agenda-big .fb-agenda-item b { font-size: 2.2vw; }
-.fb-agenda--screen .fb-wall-label { font-size: 1.1vw; }
-.fb-agenda--screen .mantine-Text-root, .fb-agenda--screen .fb-agenda-programme ol { font-size: 1.2vw; }
-.fb-agenda--screen .fb-agenda-programme { max-height: 62vh; overflow: hidden; }
-.fb-agenda--screen .fb-agenda-programme li.fb-agenda-day { font-size: 1.3vw; }
-.fb-agenda--screen .fb-agenda-programme .fb-agenda-item b { font-size: 1.7vw; }
 /* A public page showing old data because the server can't be reached (lib/publicFeed.ts). */
 .fb-stale-note {
   position: fixed; left: 50%; top: 12px; transform: translateX(-50%); margin: 0; padding: 6px 14px; z-index: 300;

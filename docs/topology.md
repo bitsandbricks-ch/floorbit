@@ -17,6 +17,10 @@ A link joins a port on one switch with a port on another. Leads and admins (`flo
 | Speed | 1, 10, 25, 40 or 100G: what the link should run at. Optional. |
 | Note | Anything the crew should know, like the patch panel it runs through. |
 
+The port fields offer the switch's ports as the monitoring source reads them: free ones first, with
+whether they are up and their speed, then the ones a link already uses, with where that link goes. A
+switch that can't be read gets no list; type the port as before.
+
 A port belongs to one link at most; `Te1/1/1` and `TenGigabitEthernet1/1/1` count as the same port.
 
 ## What the page shows
@@ -90,3 +94,5 @@ A plugin offers this with an optional `neighbours(hostname)` returning
 - `GET /api/links` also has `layout`: `{switch name in lower case: {x, y}}`, where the crew dragged the boxes.
   `PUT /api/links/layout` `{"positions": {...}, "replace": false}` keeps places (unknown switches are dropped),
   `DELETE /api/links/layout` goes back to the automatic layout (`floorplan.edit`).
+- `GET /api/links/ports?switch=<name>`: `{"ports": [{"name", "state", "speed_bps", "used_by"}]}` for the port picker
+  (`floorplan.edit`); `used_by` names the other end of the link on that port. Port descriptions are left out.

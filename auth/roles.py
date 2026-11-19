@@ -247,6 +247,8 @@ RULES = (
     # Crew notes on a seat (floorbit/seat_notes.py); reading them is checked in the blueprint.
     ('/api/plan/seats', WRITE, 'incidents.work'),
     ('/api/switches', WRITE, 'floorplan.edit'),
+    # The port picker reads the switches, so only people who add links ask it.
+    ('/api/links/ports', None, 'floorplan.edit'),
     ('/api/links', WRITE, 'floorplan.edit'),
     ('/api/firewalls', WRITE, 'floorplan.edit'),
     ('/api/services', WRITE, 'floorplan.edit'),
@@ -313,7 +315,7 @@ RULES = (
     ('/api/dashboard/layouts', WRITE, 'floorplan.edit'),
     # Dashboards (floorbit/dashboards.py): arranged by the floor crew, like the older tile layouts.
     ('/api/dashboards', WRITE, 'floorplan.edit'),
-    # Schedule: everyone reads it, leads plan it; /agenda itself is public (floorbit/schedule.py).
+    # Schedule: everyone reads it, leads plan it (floorbit/schedule.py).
     ('/api/schedule', WRITE, 'floorplan.edit'),
     # Status page: the crew's view and updates; /status itself is public (floorbit/status_page.py).
     ('/api/status-page', READ, 'incidents.work'),

@@ -113,17 +113,6 @@ SCHEMA = [
     # Discord
     {'key': 'DISCORD_WEBHOOK_URL', 'group': 'discord', 'type': 'string', 'default': '', 'secret': True,
      'label': 'Discord webhook URL', 'help': 'Channel settings → Integrations → Webhooks → Copy URL.'},
-    {'key': 'DISCORD_STATUS_WEBHOOK_URL', 'group': 'discord', 'type': 'string', 'default': '', 'secret': True,
-     'label': 'Attendee status channel webhook',
-     'help': 'A webhook in a channel attendees read. Every update the crew posts on Network status goes '
-             'there too, while the public status page is on. Leave empty to post nothing.'},
-    {'key': 'DISCORD_SCHEDULE_WEBHOOK_URL', 'group': 'discord', 'type': 'string', 'default': '', 'secret': True,
-     'label': 'Attendee programme channel webhook',
-     'help': 'A webhook in a channel attendees read (it can be the status channel\'s). Shortly before a talk, '
-             'tournament or meal starts, it is announced there, while the public schedule page is on.'},
-    {'key': 'SCHEDULE_ANNOUNCE_MINUTES', 'group': 'discord', 'type': 'int', 'default': 10,
-     'label': 'Announce the programme (minutes ahead)',
-     'help': 'How long before an item starts it is announced in the programme channel. 0 announces nothing.'},
     {'key': 'DISCORD_ALERTS_ENABLED', 'group': 'discord', 'type': 'bool', 'default': True,
      'label': 'Discord alerts', 'help': 'Post a message when a placed switch goes offline or comes back.'},
     {'key': 'DISCORD_NOTIFY_RECOVERY', 'group': 'discord', 'type': 'bool', 'default': True,
@@ -134,8 +123,8 @@ SCHEMA = [
      'label': 'Bot name', 'help': 'Name shown on the webhook messages.'},
     {'key': 'DISCORD_LANGUAGE', 'group': 'discord', 'type': 'string', 'default': 'en',
      'label': 'Language of the messages',
-     'help': 'en (English), de-CH (Swiss German spelling) or de (German for Germany and Austria): alerts, '
-             'the crew bot and the attendee channels. Slash command answers follow each user\'s Discord language.'},
+     'help': 'en (English), de-CH (Swiss German spelling) or de (German for Germany and Austria): alerts '
+             'and the crew bot. Slash command answers follow each user\'s Discord language.'},
     {'key': 'DISCORD_COOLDOWN', 'group': 'discord', 'type': 'int', 'default': 300,
      'label': 'Per-switch cooldown (seconds)', 'help': 'Do not alert about the same switch more often than this.'},
     {'key': 'ALERT_GROUP_AFTER', 'group': 'discord', 'type': 'int', 'default': 3,

@@ -1,11 +1,11 @@
-"""Event schedule and countdown (issue #106): talks, tournaments, meals and quiet hours. See docs/schedule.md.
+"""Event schedule (issue #106): talks, tournaments, meals and quiet hours. See docs/schedule.md.
 
 Kept in data.json under ``schedule``: ``{"event": {"start", "end"}, "items": [...]}``. Leads edit it on
 the Schedule page, or import an iCal file (``.ics``) from a calendar or the event website. An import
 replaces the items it brought in before (matched by the file's UIDs) and leaves hand-made ones alone.
 
-The public side (``/agenda``, floorbit/blueprints/schedule.py) shows a countdown to the event's start,
-what is on now and next, and the day's programme. Nothing here names attendees.
+The crew sees it on /schedule; the shift handover lists what starts during the next shift, and the
+seat walk clears seat ports a day after the event's end.
 """
 import datetime as dt
 import re
@@ -258,70 +258,8 @@ def import_ics(text, by, default_tz=None):
     return _change(run)
 
 
-# ── What the public side shows ─────────────────────────────────────────────────────────────────
+# ── Without who edited what ────────────────────────────────────────────────────────────────────
 
-def public(data=None, now=None):
-    """The countdown, now and next, and every item, without who edited what."""
-    now = time.time() if now is None else now
-    s = get(data)
-    items = [{k: i.get(k) for k in ('id', 'title', 'kind', 'start', 'end', 'where', 'note')} for i in s['items']]
-
-    def running(i):
-        return i['start'] <= now < (i['end'] or i['start'] + 1800)   # no end: half an hour
-    start, end = s['event']['start'], s['event']['end']
-    phase = 'unknown' if start is None else 'before' if now < start else 'after' if end and now >= end else 'during'
-    return {
-        'event': s['event'],
-        'phase': phase,
-        'countdown': max(0, round(start - now)) if phase == 'before' else None,
-        'now': [i for i in items if running(i)],
-        'next': [i for i in items if i['start'] == min((j['start'] for j in items if j['start'] > now), default=None)],
-        'quiet': next((i for i in items if i['kind'] == 'quiet' and running(i)), None),
-        'items': items,
-        'server_time': now,
-    }
-
-
-# ── The calendar feed (/agenda.ics) ────────────────────────────────────────────────────────────
-
-def _escape(value):
-    return re.sub(r'([\;,])', r'\\\1', str(value)).replace('\r\n', '\\n').replace('\n', '\\n')
-
-
-def _fold(line):
-    """Lines longer than 75 bytes continue on the next one, after a space (RFC 5545 3.1)."""
-    out, cur = [], b''
-    for ch in line:
-        b = ch.encode()
-        if len(cur) + len(b) > (75 if not out else 74):
-            out.append(cur)
-            cur = b''
-        cur += b
-    out.append(cur)
-    return '\r\n '.join(part.decode() for part in out)
-
-
-def _utc(epoch):
-    return dt.datetime.fromtimestamp(epoch, dt.UTC).strftime('%Y%m%dT%H%M%SZ')
-
-
-def to_ics(items, name, host, now=None):
-    """The programme as an iCal calendar people subscribe to. Times are in UTC so every calendar app
-    shows them in the reader's own zone. An item without an end lasts half an hour, as on /agenda."""
-    now = time.time() if now is None else now
-    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//BitsAndBricks//Floorbit//EN', 'CALSCALE:GREGORIAN',
-             'METHOD:PUBLISH', f'X-WR-CALNAME:{_escape(name)}', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
-             'X-PUBLISHED-TTL:PT1H']
-    for i in items:
-        lines += ['BEGIN:VEVENT', f"UID:{i['id']}@{host}", f'DTSTAMP:{_utc(now)}', f"DTSTART:{_utc(i['start'])}",
-                  f"DTEND:{_utc(i['end'] or i['start'] + 1800)}", f"SUMMARY:{_escape(i['title'])}",
-                  f"CATEGORIES:{i['kind'].upper()}"]
-        if i.get('where'):
-            lines.append(f"LOCATION:{_escape(i['where'])}")
-        if i.get('note'):
-            lines.append(f"DESCRIPTION:{_escape(i['note'])}")
-        if i['kind'] == 'quiet':
-            lines.append('TRANSP:TRANSPARENT')   # quiet hours shouldn't mark the reader as busy
-        lines.append('END:VEVENT')
-    lines.append('END:VCALENDAR')
-    return '\r\n'.join(_fold(line) for line in lines) + '\r\n'
+def programme(data=None):
+    """Every item, without who edited what."""
+    return [{k: i.get(k) for k in ('id', 'title', 'kind', 'start', 'end', 'where', 'note')} for i in get(data)['items']]

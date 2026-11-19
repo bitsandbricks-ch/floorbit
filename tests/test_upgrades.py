@@ -70,6 +70,17 @@ def test_the_status_page_and_hall_view_extras_are_dropped():
     assert data['app_settings'] == {'public.status_page': True} and data['features'] == {'replay': False}
 
 
+
+def test_the_public_agenda_and_attendee_discord_settings_are_dropped():
+    data = {'app_settings': {'public.schedule': True, 'integrations.discord_status_webhook_url': 'x',
+                             'integrations.discord_schedule_webhook_url': 'y',
+                             'integrations.schedule_announce_minutes': 5, 'integrations.discord_webhook_url': 'z'},
+            'schedule': {'event': {'start': 1, 'end': None}, 'items': []}}
+    upgrades.apply(data)
+    assert data['app_settings'] == {'integrations.discord_webhook_url': 'z'}
+    assert data['schedule'] == {'event': {'start': 1, 'end': None}, 'items': []}   # the crew's schedule stays
+
+
 def test_steps_are_safe_to_run_twice():
     data = {'auth_users': {'ed': {'username': 'ed', 'role': 'editor'}},
             'seat_blocks': [{'id': 'a', 'group': 'g'}, {'id': 'b', 'group': 'g'}]}

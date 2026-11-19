@@ -107,7 +107,7 @@ nav:
       - Event changelog: timeline.md
       - Network status page: status-page.md
       - Stats wall: stats-wall.md
-      - Schedule and countdown: schedule.md
+      - Schedule: schedule.md
       - Past events: events.md
   - Extend:
       - Plugins: plugins.md

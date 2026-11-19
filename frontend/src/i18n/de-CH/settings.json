@@ -230,10 +230,6 @@
       "label": "Prometheus-Metriken",
       "help": "/api/metrics anbieten. Standardmässig aus."
     },
-    "public_schedule": {
-      "label": "Programm und Countdown",
-      "help": "/agenda zeigt den Countdown zum Event, was jetzt und als Nächstes läuft, und das Programm, für grosse Bildschirme (/agenda?screen=1) und Handys. Standardmässig aus."
-    },
     "floorplan_naming": {
       "label": "Sitznamen"
     },

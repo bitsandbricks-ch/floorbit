@@ -194,18 +194,6 @@
       "label": "Discord webhook URL",
       "help": "Channel settings → Integrations → Webhooks → Copy URL."
     },
-    "integrations_discord_status_webhook_url": {
-      "label": "Attendee status channel webhook",
-      "help": "A webhook in a channel attendees read. Every update the crew posts on Network status goes there too, while the public status page is on. Leave empty to post nothing."
-    },
-    "integrations_discord_schedule_webhook_url": {
-      "label": "Attendee programme channel webhook",
-      "help": "A webhook in a channel attendees read (it can be the status channel's). Shortly before a talk, tournament or meal starts, it is announced there, while the public schedule page is on."
-    },
-    "integrations_schedule_announce_minutes": {
-      "label": "Announce the programme (minutes ahead)",
-      "help": "How long before an item starts it is announced in the programme channel. 0 announces nothing."
-    },
     "integrations_discord_alerts_enabled": {
       "label": "Discord alerts",
       "help": "Post a message when a placed switch goes offline or comes back."
@@ -224,7 +212,7 @@
     },
     "integrations_discord_language": {
       "label": "Language of the messages",
-      "help": "en (English), de-CH (Swiss German spelling) or de (German for Germany and Austria): alerts, the crew bot and the attendee channels. Slash command answers follow each user's Discord language."
+      "help": "en (English), de-CH (Swiss German spelling) or de (German for Germany and Austria): alerts and the crew bot. Slash command answers follow each user's Discord language."
     },
     "integrations_discord_cooldown": {
       "label": "Per-switch cooldown (seconds)",

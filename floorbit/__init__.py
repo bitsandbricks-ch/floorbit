@@ -175,10 +175,6 @@ def create_app(start_background=True):
     from .health import init_health
     init_health(app, registry, start_background=start_background)
 
-    # Discord posts what is about to start on the public programme (docs/schedule.md).
-    from .schedule_announce import init_schedule_announce
-    init_schedule_announce(app, start_background=start_background)
-
     # A bare "x" or 5 as a JSON body is refused before any handler reads it (floorbit/json_body.py).
     from .json_body import init_json_body
     init_json_body(app)

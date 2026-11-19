@@ -230,10 +230,6 @@
       "label": "Prometheus metrics",
       "help": "Serve /api/metrics. Off by default."
     },
-    "public_schedule": {
-      "label": "Schedule and countdown",
-      "help": "/agenda shows the countdown to the event, what is on now and next, and the programme, for big screens (/agenda?screen=1) and phones. Off by default."
-    },
     "floorplan_naming": {
       "label": "Seat names"
     },

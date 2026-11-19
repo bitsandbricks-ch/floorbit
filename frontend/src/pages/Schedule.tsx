@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Alert, Anchor, Badge, Button, FileButton, Group, Paper, Select, SimpleGrid, Stack, Table, Text,
+  ActionIcon, Alert, Badge, Button, FileButton, Group, Paper, Select, SimpleGrid, Stack, Table, Text,
   TextInput, Title,
 } from '@mantine/core'
 import { IconCalendarPlus, IconPencil, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
@@ -95,7 +95,7 @@ function EventTimes({ data, canEdit }: { data: ScheduleData; canEdit: boolean })
   )
 }
 
-/** The event's programme (issue #106). Leads plan it here; attendees see it on /agenda. */
+/** The event's programme (issue #106), for the crew. Leads plan it here. */
 export default function Schedule() {
   const { t, i18n } = useTranslation()
   const qc = useQueryClient()
@@ -141,11 +141,6 @@ export default function Schedule() {
       )}
       {query.isPending || !d ? <LoadingState /> : (
         <Stack gap="md">
-          <Text size="sm">
-            {d.public
-              ? <>{t('schedule.publicOn')} <Anchor href="/agenda" target="_blank" underline="always">/agenda</Anchor> · <Anchor href="/agenda?screen=1" target="_blank" underline="always">{t('schedule.bigScreen')}</Anchor> · <Anchor href="/agenda.ics" underline="always">{t('schedule.calendarFeed')}</Anchor></>
-              : t('schedule.publicOff')}
-          </Text>
           <EventTimes key={`${d.event.start}-${d.event.end}`} data={d} canEdit={canEdit} />
           {editing && (
             <ItemForm key={editing} item={editing === 'new' ? null : d.items.find((i) => i.id === editing) ?? null} kinds={d.kinds}
