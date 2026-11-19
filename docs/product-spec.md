@@ -138,6 +138,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **No free text for known data.** Switches, ports, seats, blocks, halls, devices, agents, users,
   teams and VLANs are picked from a searchable list (`EntitySelect`). No native `<select>`.
 - **Controls look the same everywhere;** pages never restyle them. Menu text is 14px like page text.
+- **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
+  for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
 - **Deletes ask first** (`ConfirmButton`), never `window.confirm`, `alert` or `prompt`.
 - **Languages:** English and Swiss German everywhere (pages, server errors, Discord, logs); standard
   German is derived. No "ß". Terms: Sitzblock, Störung, Hallenplan, Mandant.

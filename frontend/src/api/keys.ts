@@ -19,6 +19,8 @@ export const qk = {
   inventoryEntries: (type: string) => ['inventory', 'entries', type] as const,
   inventoryEntry: (type: string, id: string) => ['inventory', 'entry', type, id] as const,
   inventoryDevice: (id: string) => ['inventory', 'device', id] as const,
+  // Under 'inventory', so saving the device refreshes it too.
+  inventoryTelemetry: (id: string) => ['inventory', 'telemetry', id] as const,
   inventoryCredentials: ['inventory', 'credentials'] as const,
   seatMap: ['seat-map'] as const,
   roles: ['roles'] as const,
@@ -54,6 +56,7 @@ export const qk = {
   agents: ['agents'] as const,
   telemetryDevices: ['telemetry-devices'] as const,
   telemetryRaw: (name: string) => ['telemetry-raw', name] as const,
+  telemetryDeviceConfig: (name: string) => ['telemetry-device-config', name] as const,
   webhooks: ['webhooks'] as const,
   gameServers: ['game-servers'] as const,
   firewalls: ['firewalls'] as const,

@@ -264,23 +264,30 @@ describe('Inventory page', () => {
     expect(screen.getAllByText('from group Hall A').length).toBeGreaterThan(0)
   })
 
-  it('sets the collecting agent and a port per kind on the Telemetry tab, over what the group says', async () => {
+  it('sets telemetry up on the Telemetry tab: automatic from its software, chosen ways, agent and ports over the group', async () => {
+    const hallA = { type: 'group' as const, id: 'g1', name: 'Hall A' }
     const detail: DeviceDetail = {
       ...fedDetail, blocks: [], properties: { telemetry_port_gnmi: '50052' },
       resolved: {
         ...fedDetail.resolved,
         properties: {
-          telemetry_port_snmp: { value: '1161', from: { type: 'group', id: 'g1', name: 'Hall A' } },
+          telemetry_port_snmp: { value: '1161', from: hallA },
           telemetry_port_gnmi: { value: '50052', from: { type: 'device', id: 'netbox-12', name: 'Stage switch' } },
         },
-        features: { ...fedDetail.resolved.features, telemetry: { on: false, from: null } },
+        features: { ...fedDetail.resolved.features, telemetry: { on: true, from: hallA } },
       },
+    }
+    const info = {
+      on: true, platform: 'nxos', logins: { snmp: 'snmp_v2c' },
+      auto: { drivers: ['snmp', 'traps'], fdb: 'qbridge', vlans: [], mdt_node: 'Stage switch', address: '192.0.2.5' },
+      target: { drivers: ['snmp', 'traps'], fdb: 'qbridge', vlans: [], mdt_node: null, address: '192.0.2.5', agent: '' },
     }
     const api = fakeFetch({
       'GET /api/auth/me': editor,
       'GET /api/inventory': list,
       'GET /api/inventory/groups': overview,
       'GET /api/inventory/netbox-12': detail,
+      'GET /api/telemetry/devices/netbox-12': info,
       'GET /api/options/agents': { options: [{ value: 'a1', label: 'Rack A', hint: 'a1' }] },
       'PATCH /api/inventory/netbox-12': { ok: true },
     })
@@ -288,18 +295,47 @@ describe('Inventory page', () => {
     app()
     fireEvent.click(await screen.findByRole('link', { name: 'Stage switch' }))
     fireEvent.click(await screen.findByRole('tab', { name: 'Telemetry' }))
-    expect(await screen.findByText(/The Telemetry feature is off/)).toBeInTheDocument()
+    // On because its group says so; how follows from its software and logins.
+    expect(await screen.findByText('Automatic for Cisco NX-OS (Nexus) with its logins: SNMP polling, SNMP traps.')).toBeInTheDocument()
+    expect(screen.getByText(/^On ·/)).toHaveTextContent('from group Hall A')
     // Empty here: the group's port shows, and where it comes from.
     expect(screen.getByLabelText('SNMP port')).toHaveAttribute('placeholder', '1161')
-    expect(screen.getByText('from group Hall A')).toBeInTheDocument()
     expect(screen.getByLabelText('gNMI port')).toHaveValue('50052')
+    // Choosing starts from what it does now; MDT asks for its node name, the switch's own by default.
+    expect(screen.queryByLabelText('MDT node name')).toBeNull()
+    fireEvent.click(screen.getByRole('radio', { name: 'Choose' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Cisco MDT dial-out' }))
+    expect(screen.getByLabelText('MDT node name')).toHaveAttribute('placeholder', 'Stage switch')
     fireEvent.change(screen.getByLabelText('API port (NX-API, RESTCONF, OPNsense)'), { target: { value: '84x43' } })
     fireEvent.change(screen.getByLabelText('gNMI port'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('combobox', { name: 'Agent' }))
     fireEvent.click(await screen.findByRole('option', { name: /Rack A/, hidden: true }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
-      properties: { telemetry_agent: 'a1', telemetry_port_api: '8443' },
+      properties: { telemetry_agent: 'a1', telemetry_port_api: '8443', telemetry_drivers: 'snmp traps mdt' },
+      features: { ...detail.features, telemetry: null },
+    }))
+  })
+
+  it('turns telemetry off for one device', async () => {
+    const detail: DeviceDetail = {
+      ...fedDetail, blocks: [],
+      resolved: { ...fedDetail.resolved, features: { ...fedDetail.resolved.features, telemetry: { on: true, from: { type: 'defaults', id: 'defaults', name: '' } } } },
+    }
+    const api = fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'GET /api/inventory/netbox-12': detail, 'PATCH /api/inventory/netbox-12': { ok: true },
+      'GET /api/telemetry/devices/netbox-12': { on: true, platform: 'ios', logins: {}, auto: { drivers: [], fdb: 'cisco_vlans', vlans: [10], mdt_node: 'x', address: 'x' }, target: null },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    app('/inventory/devices/netbox-12?tab=telemetry')
+    await screen.findByRole('button', { name: 'Save' })     // once it knows who may edit
+    fireEvent.click(screen.getByRole('radio', { name: 'Off' }))
+    // Off: nothing left to set up.
+    expect(screen.queryByLabelText('MAC tables')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
+      properties: detail.properties ?? {}, features: { ...detail.features, telemetry: false },
     }))
   })
 

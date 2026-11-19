@@ -23,21 +23,31 @@ describe('Telemetry', () => {
   it('lists the inventory devices with what came in, their agent and errors', async () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': admin, 'GET /api/telemetry/overview': overview, 'GET /api/options/agents': agents,
-      'GET /api/telemetry/device-config?name=core-01': { config: 'feature nxapi' },
       'GET /api/telemetry/token': { token: 'fbt_example' },
     }).fn)
     renderWithApp(<Telemetry />)
-    expect((await screen.findAllByText('core-01')).length).toBeGreaterThan(0)
+    // Each device opens its own page, on the Telemetry tab, where it is set up and tested.
+    expect(await screen.findByRole('link', { name: 'core-01' })).toHaveAttribute('href', '/inventory/devices/d1?tab=telemetry')
+    expect(screen.getByRole('link', { name: /: fw-01$/ })).toHaveAttribute('href', '/inventory/devices/d2?tab=telemetry')
     expect(screen.getByText('52 ports, 0 MACs, 812 ARP, 4 neighbours')).toBeInTheDocument()
-    expect(screen.getByText('NX-API on core-01 refused the login.')).toBeInTheDocument()
-    expect(screen.getByText("Floorbit's database, 2 days")).toBeInTheDocument()
     expect(await screen.findByText('Hall A agent')).toBeInTheDocument()
     expect(screen.getByText('Any agent')).toBeInTheDocument()
+    expect(screen.getByText('1 / 2')).toBeInTheDocument()       // heard from
     expect(screen.getByRole('link', { name: 'Open the inventory' })).toHaveAttribute('href', '/inventory')
     // Devices are set up in the inventory: nothing here adds or changes one.
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Device setup' })[0])
-    expect(await screen.findByText('feature nxapi')).toBeInTheDocument()
+    // Find and filter.
+    fireEvent.change(screen.getByRole('textbox', { name: 'Find a device' }), { target: { value: 'opn' } })
+    expect(screen.queryByRole('link', { name: 'core-01' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'fw-01' })).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Find a device' }), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('radio', { name: 'Never heard' }))
+    expect(screen.queryByRole('link', { name: 'core-01' })).toBeNull()
+    // The collector's own state and its errors have their tab; the token its own.
+    fireEvent.click(screen.getByRole('tab', { name: /Collector/ }))
+    expect(screen.getByText('NX-API on core-01 refused the login.')).toBeInTheDocument()
+    expect(screen.getAllByText("Floorbit's database, 2 days")).toHaveLength(2)     // the summary card and the tab
+    fireEvent.click(screen.getByRole('tab', { name: 'Senders' }))
     fireEvent.click(screen.getByRole('button', { name: 'Show the token' }))
     expect(await screen.findByText('fbt_example')).toBeInTheDocument()
   })
@@ -46,9 +56,8 @@ describe('Telemetry', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/telemetry/overview': overview, 'GET /api/options/agents': agents }).fn)
     renderWithApp(<Telemetry />)
     expect((await screen.findAllByText('core-01')).length).toBeGreaterThan(0)
-    expect(screen.queryByRole('button', { name: 'Device setup' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Test now' })).toBeNull()
-    expect(screen.queryByText('Senders')).toBeNull()
+    expect(screen.queryByRole('tab', { name: 'Senders' })).toBeNull()
   })
 
   it('says how to add devices when there are none', async () => {

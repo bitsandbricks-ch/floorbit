@@ -438,6 +438,32 @@ def test_a_device_that_sends_by_itself_needs_no_login(client, tmp_path, monkeypa
     assert targets.any_device()
 
 
+def test_what_a_device_leaves_open_comes_from_its_software_and_interfaces(client, app_module, tmp_path, monkeypatch):
+    from test_credentials import key_file
+    from test_inventory_scope import add, put_cred
+
+    from floorbit.telemetry import targets
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    sw = add(client, name="sw-b-01", mgmt_ip="192.0.2.22", platform="IOS 15.2", features={"telemetry": True})
+    for name, vlan in (("Gi1/0/1", 101), ("Gi1/0/2", 102), ("Gi1/0/3", 101)):
+        added = client.post(f"/api/inventory/{sw['id']}/interfaces", json={"name": name, "vlan": vlan})
+        assert added.status_code == 201, added.get_json()
+    core = add(client, name="core-01", mgmt_ip="192.0.2.11", platform="NX-OS", features={"telemetry": True},
+               properties={"telemetry_drivers": "snmp mdt"})
+    put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="s3cret-community")
+    found = {t["name"]: t for t in targets.from_inventory()}
+    # A Catalyst keeps a MAC table per VLAN: the VLANs on its interfaces, unless telemetry_vlans says.
+    assert found["sw-b-01"]["fdb"] == "cisco_vlans" and found["sw-b-01"]["vlans"] == [101, 102]
+    # Cisco names an MDT stream after the switch.
+    assert found["core-01"]["mdt_node"] == "core-01" and found["core-01"]["fdb"] == "qbridge"
+    page = client.get(f"/api/telemetry/devices/{sw['id']}").get_json()
+    assert page["on"] and page["logins"] == {"snmp": "snmp_v2c"} and page["platform"] == "ios"
+    assert page["auto"]["drivers"] == ["snmp", "traps"] and page["auto"]["vlans"] == [101, 102]
+    assert page["target"]["drivers"] == ["snmp", "traps"] and "s3cret" not in json.dumps(page)
+    assert client.get(f"/api/telemetry/devices/{core['id']}").get_json()["target"]["drivers"] == ["snmp", "mdt"]
+    assert client.get("/api/telemetry/devices/nope").status_code == 404
+
+
 def test_the_agent_gets_the_devices_and_sends_series(client, anon_client, tmp_path, monkeypatch):
     from tests.test_agent import enrol
     key = enrol(client)["key"]

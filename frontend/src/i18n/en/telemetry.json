@@ -95,5 +95,21 @@
   "heard": "Heard {{when}}",
   "devicesTitle": "Devices",
   "agent": "Agent",
-  "anyAgent": "Any agent"
+  "anyAgent": "Any agent",
+  "summary": "Telemetry at a glance",
+  "heardCard": "Heard from",
+  "problemsCard": "With problems",
+  "noProblems": "all quiet",
+  "collectorTab": "Collector",
+  "agentsTitle": "Per agent",
+  "emptyTitle": "No devices yet",
+  "turnOn": "Turn it on for all devices",
+  "search": "Find a device",
+  "show": "Show",
+  "showAll": "All",
+  "showProblems": "With problems",
+  "showSilent": "Never heard",
+  "edit": "Set up and test",
+  "open": "Open",
+  "noMatch": "No device matches."
 }
