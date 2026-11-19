@@ -8,6 +8,9 @@ kinds of client stand out:
   a crew laptop, a rogue switch).
 - ``moved``: a client on seat A's port whose IP the seat mapping gives to seat B (players swapped
   seats, or the cables at the switch are swapped).
+- ``shared``: a seat port with more than one machine on it, a desk switch or router when it has
+  many (issue #1119). Those are where loops, a home router's DHCP and a lost seat start. Only the
+  count of MACs is kept, never which.
 
 Ports with many MACs are uplinks or a switch under a desk, and ports cabled without a seat are
 infrastructure: neither is a client. Reading every seat switch is many calls at 4000 seats, so a
@@ -112,12 +115,15 @@ def find(monitor, data, seats):
                 per_port.setdefault((switch, row['port']), set()).add(mac)
     mac_ip = _arp(monitor, networks(ip_seat)) if per_port else {}
 
-    unplanned, moved, clients, seat_ips, seat_macs = [], [], 0, {}, {}
+    unplanned, moved, shared, clients, seat_ips, seat_macs = [], [], [], 0, {}, {}
     for (switch, port), macs in sorted(per_port.items(), key=lambda kv: (kv[0][0].lower(), canonical_port(kv[0][1]))):
-        if len(macs) > UPLINK_MACS:
-            continue
         cable = by_port.get((switch.lower(), canonical_port(port)))
         if cable and not cable.get('seat'):
+            continue
+        if cable and len(macs) > 1:
+            shared.append({'switch': switch, 'port': port, 'seat': cable['seat'], 'cable': cable['label'],
+                           'macs': len(macs), 'desk_switch': len(macs) > UPLINK_MACS})
+        if len(macs) > UPLINK_MACS:
             continue
         for mac in sorted(macs):
             clients += 1
@@ -133,7 +139,10 @@ def find(monitor, data, seats):
                 seat_macs[cable['seat']] = {'mac_address': mac, 'ip_address': ip}
             if row['ip_seat'] and row['ip_seat'] != cable['seat'].upper():
                 moved.append({**row, 'seat': cable['seat'], 'cable': cable['label']})
-    return {'unplanned': _listed(unplanned), 'moved': _listed(moved), 'switches': len(switches),
+    # Desk switches first: they are the ones that loop or hand out addresses.
+    shared.sort(key=lambda r: (not r['desk_switch'], -r['macs']))
+    return {'unplanned': _listed(unplanned), 'moved': _listed(moved), 'shared': _listed(shared),
+            'switches': len(switches),
             'failed': failed, 'clients': clients, 'seat_ips': seat_ips, 'seat_macs': seat_macs}
 
 
@@ -207,7 +216,8 @@ class Finder:
     def state(self):
         with self._lock:
             return {'as_of': self.as_of, 'reading': self._running, 'error': self.error,
-                    **(self.result or {'unplanned': _listed([]), 'moved': _listed([]), 'switches': 0,
+                    **(self.result or {'unplanned': _listed([]), 'moved': _listed([]), 'shared': _listed([]),
+                                       'switches': 0,
                                        'failed': [], 'clients': 0})}
 
     def reset(self):
@@ -215,6 +225,32 @@ class Finder:
             self.result = self.as_of = self.error = None
             self.seat_ips, self.seat_macs = {}, {}
             self._running = False
+
+
+SHARED_ONE_LINE = 5     # more shared seat ports than this: one line in Problems, the list is on Cables
+
+
+def problems(state):
+    """Problems' attention items for the seat ports with more than one machine (issue #1119)."""
+    rows = (state.get('shared') or {}).get('rows') or []
+    count = (state.get('shared') or {}).get('count', len(rows))
+    if not rows:
+        return []
+    desks = [r for r in rows if r['desk_switch']]
+    if count > SHARED_ONE_LINE:
+        title = f'{count} seat ports have more than one machine'
+        looks = 'looks' if len(desks) == 1 else 'look'
+        where = f'{len(desks)} {looks} like a desk switch or router' if desks else 'Check them under Cables'
+        return [{'id': 'shared:all', 'title': title, 'where': where, 'seat': None, 'switch': None}]
+    out = []
+    for r in rows:
+        if r['desk_switch']:
+            title = f"Seat {r['seat']}: a switch or router on the seat port ({r['macs']} machines)"
+        else:
+            title = f"Seat {r['seat']}: {r['macs']} machines on one seat port"
+        out.append({'id': f"shared:{r['switch']}:{r['port']}", 'title': title, 'where': f"{r['switch']} {r['port']}",
+                    'seat': r['seat'], 'switch': r['switch']})
+    return out
 
 
 _finder = None
@@ -227,6 +263,11 @@ def seat_clients():
         return {}
     with finder._lock:
         return {seat: dict(v) for seat, v in finder.seat_macs.items()}
+
+
+def last_read():
+    """The last read as the page sees it, without starting a new one."""
+    return _finder.state() if _finder is not None else None
 
 
 def init_app(app):
