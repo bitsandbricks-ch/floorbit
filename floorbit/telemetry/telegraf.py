@@ -63,10 +63,16 @@ CISCO_MEM = (('memUsed', '1.3.6.1.4.1.9.9.48.1.1.1.5', False, None),
 # What a device is, for discovery (floorbit/inventory_discovery.py): asked every few minutes.
 FACT_FIELDS = (('sysDescr', '1.3.6.1.2.1.1.1.0'), ('sysLocation', '1.3.6.1.2.1.1.6.0'),
                ('hrMemorySize', '1.3.6.1.2.1.25.2.2.0'))                      # kilobytes
-ENTITY_FIELDS = (('entPhysicalClass', '1.3.6.1.2.1.47.1.1.1.1.5', False, None),   # 3: the chassis
+ENTITY_FIELDS = (('entPhysicalDescr', '1.3.6.1.2.1.47.1.1.1.1.2', False, None),
+                 ('entPhysicalContainedIn', '1.3.6.1.2.1.47.1.1.1.1.4', False, None),
+                 ('entPhysicalClass', '1.3.6.1.2.1.47.1.1.1.1.5', False, None),   # 3: the chassis
+                 ('entPhysicalName', '1.3.6.1.2.1.47.1.1.1.1.7', False, None),
                  ('entPhysicalSoftwareRev', '1.3.6.1.2.1.47.1.1.1.1.10', False, None),
                  ('entPhysicalSerialNum', '1.3.6.1.2.1.47.1.1.1.1.11', False, None),
                  ('entPhysicalModelName', '1.3.6.1.2.1.47.1.1.1.1.13', False, None))
+# Which interface an ENTITY-MIB row is (index entPhysicalIndex.logical, value ifIndex's OID): an
+# optic's port.
+ENT_ALIAS_FIELDS = (('entAliasMappingIdentifier', '1.3.6.1.2.1.47.1.3.2.1.2', False, None),)
 STORAGE_FIELDS = (('hrStorageType', '1.3.6.1.2.1.25.2.3.1.2', False, None),       # RAM, fixed disk, ...
                   ('hrStorageAllocationUnits', '1.3.6.1.2.1.25.2.3.1.4', False, None),
                   ('hrStorageSize', '1.3.6.1.2.1.25.2.3.1.5', False, None))
@@ -165,6 +171,7 @@ def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
         lines += ['  [[inputs.snmp.field]]', f'    name = {q(field)}', f'    oid = {q(oid)}']
     _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
     _table(lines, 'fb_entity', ENTITY_FIELDS)
+    _table(lines, 'fb_entalias', ENT_ALIAS_FIELDS)
     _table(lines, 'fb_ifmac', IF_MAC_FIELDS)
     _table(lines, 'fb_ip', IP_FIELDS)
     if cisco:

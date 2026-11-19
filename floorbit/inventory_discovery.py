@@ -237,10 +237,18 @@ def run():
                 out[dev_id] = rows
         data['inventory_drift'] = out
         report['drift'] = len(out)
-        networks = {dev_id: networks_of(row) for dev_id, (_values, row) in found.items()}
-        data['inventory_discovered'] = {dev_id: {**n, 'at': now_text} for dev_id, n in networks.items()
-                                        if n['vlans'] or n['networks']}
-        _entries(data, networks.values(), report)
+        seen = {}
+        for dev_id, (_values, row) in found.items():
+            dev = inventory.find(data, dev_id)
+            seen[dev_id] = {**networks_of(row), 'transceivers': optics_of(row, dev['name'] if dev else '')}
+        last = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
+        # A device that didn't answer this time keeps what it said last: its optics and VLANs aren't gone.
+        kept = {dev_id: n for dev_id, n in last.items()
+                if dev_id not in seen and isinstance(n, dict) and inventory.find(data, dev_id) is not None}
+        data['inventory_discovered'] = {
+            **kept, **{dev_id: {**n, 'at': now_text} for dev_id, n in seen.items()
+                       if n['vlans'] or n['networks'] or n['transceivers']}}
+        _entries(data, list(data['inventory_discovered'].values()), report)
         save_data(data)
     return _keep(report)
 
@@ -265,21 +273,87 @@ def networks_of(row):
     return out
 
 
+# ── transceivers (issue #919) ───────────────────────────────────────────────────────────────
+
+def _optic_form(text):
+    if re.search(r'TWINAX|(?<![A-Z])(DAC|CU)\d?(?![A-Z])', text):
+        return 'DAC'
+    if re.search(r'(?<![A-Z])AOC', text):
+        return 'AOC'
+    if 'QSFP' in text:
+        return 'QSFP28' if re.search(r'(?<!\d)100G', text) else 'QSFP+'
+    if 'SFP' in text or 'GLC-' in text:            # GLC-: Cisco's 1G SFPs
+        if re.search(r'SFP28|(?<!\d)25G', text):
+            return 'SFP28'
+        if re.search(r'SFP\+|(?<!\d)10G', text):
+            return 'SFP+'
+        return 'SFP'
+    return ''
+
+
+def _optic_speed(text):
+    for speed in ('100G', '40G', '25G', '10G'):
+        if re.search(rf'(?<!\d){speed}', text):
+            return speed
+    if re.search(r'1000BASE|(?<!\d)1G(?!\d)|GLC-|GBIC', text):
+        return '1G'
+    return ''
+
+
+def _optic_media(text, form):
+    if form == 'DAC' or re.search(r'BASE-?T(?![A-Z])|GLC-T', text):
+        return 'Copper'
+    for media, pattern in (('BiDi', r'BIDI|(?<![A-Z])BX'), ('ER', r'(?<![A-Z])(ER|ZX|EX|ZR)\d?(?![A-Z])'),
+                           ('LR', r'(?<![A-Z])(LR|LX|LH)\d?(?![A-Z])'), ('SR', r'(?<![A-Z])(SR|SX)\d?(?![A-Z])')):
+        if re.search(pattern, text):
+            return media
+    return ''
+
+
+def optic(model, descr=''):
+    """Form factor, media and speed read from an optic's model and description, in the
+    Transceiver type's choices; '' where it doesn't say."""
+    text = f'{model} {descr}'.upper()
+    form = _optic_form(text)
+    return {'form': form, 'media': _optic_media(text, form), 'speed': _optic_speed(text)}
+
+
+def optics_of(row, device_name):
+    """The transceivers a device reports (telemetry's facts), as entries' fields."""
+    facts = row.get('facts') if isinstance(row.get('facts'), dict) else {}
+    out = []
+    for o in facts.get('transceivers') or []:
+        if not isinstance(o, dict) or not str(o.get('serial') or '').strip():
+            continue
+        model = ' '.join(str(o.get('model') or '').split())[:80]
+        out.append({'serial': ' '.join(str(o['serial']).split())[:64], 'model': model,
+                    'port': str(o.get('port') or '')[:64], 'device': device_name,
+                    **optic(model, str(o.get('descr') or ''))})
+    return out[:500]
+
+
 def _entries(data, found, report):
-    """Every VLAN and network the devices know, as inventory 'VLAN or IP range' entries (the same
-    rules as a plugin's: hand changes win, nothing is deleted)."""
+    """Every VLAN, network and transceiver the devices know, as inventory entries (the same rules
+    as a plugin's: hand changes win, nothing is deleted)."""
     from . import inventory_scope, inventory_types
-    vlans, networks = {}, set()
+    vlans, networks, optics = {}, set(), {}
     for n in found:
-        for v in n['vlans']:
+        for v in n.get('vlans') or []:
             if v['name'] or v['id'] not in vlans:
                 vlans[v['id']] = v['name'] or vlans.get(v['id']) or ''
-        networks.update(n['networks'])
-    if not vlans and not networks:
+        networks.update(n.get('networks') or [])
+        for o in n.get('transceivers') or []:
+            optics[o['serial'].lower()] = o          # an optic moved to another switch: where it is now
+    if not vlans and not networks and not optics:
         return
     feed = {'vlan': [{'ref': f'vlan-{vid}', 'name': name or f'VLAN {vid}', 'fields': {'vlan_id': vid}}
                      for vid, name in sorted(vlans.items())]
             + [{'ref': f'prefix-{net}', 'name': net, 'fields': {'prefix': net}} for net in sorted(networks)]}
+    if optics:
+        feed['transceiver'] = [
+            {'ref': f'optic-{key}', 'name': f'{o["model"] or "Transceiver"} {o["serial"]}',
+             'fields': {k: o[k] for k in ('device', 'port', 'form', 'media', 'speed', 'serial') if o[k]}}
+            for key, o in sorted(optics.items())]
     try:
         clean, skipped = inventory_types.clean_feed(feed)
         result = inventory_types.sync_entries(data, PLUGIN, clean, skipped)
@@ -291,7 +365,7 @@ def _entries(data, found, report):
 
 def discovered_of(data, device_id):
     found = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
-    return found.get(device_id) or {'vlans': [], 'networks': [], 'at': None}
+    return {'vlans': [], 'networks': [], 'transceivers': [], 'at': None, **(found.get(device_id) or {})}
 
 
 # ── drift ────────────────────────────────────────────────────────────────────────────────────

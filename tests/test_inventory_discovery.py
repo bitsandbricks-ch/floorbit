@@ -58,7 +58,8 @@ def test_the_picture_keeps_what_the_device_said():
     # The first chassis of a stack; an optic's serial is not the switch's
     assert dev.summary() == {'descr': IOS.replace('\\r\\n', ' '), 'location': 'Hall A, rack 3',
                              'model': 'WS-C2960X-48FPD-L', 'serial': 'FOC0000X0AA', 'software': '15.2(7)E8',
-                             'memory_mb': 512}
+                             'memory_mb': 512,
+                             'transceivers': [{'port': '', 'model': 'GLC-SX-MMD', 'descr': '', 'serial': 'SFP0001'}]}
     assert dev.mem == 50.0
 
 
@@ -281,3 +282,89 @@ def test_discovery_fills_interfaces_and_the_vlan_entries(client):
     entries = client.get('/api/inventory/entries?type=vlan').get_json()
     names = sorted(e['name'] for e in entries.get('entries', entries if isinstance(entries, list) else []))
     assert names == ['192.0.2.0/24', 'VLAN 20', 'seats']
+
+
+# ── transceivers (issue #919) ───────────────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize('model, descr, expected', [
+    ('SFP-10G-SR', '', ('SFP+', 'SR', '10G')),
+    ('GLC-LH-SMD', '1000BaseLX SFP', ('SFP', 'LR', '1G')),
+    ('GLC-TE', '1000BaseT SFP', ('SFP', 'Copper', '1G')),
+    ('QSFP-40G-SR4', '', ('QSFP+', 'SR', '40G')),
+    ('QSFP-100G-LR4-S', '', ('QSFP28', 'LR', '100G')),
+    ('SFP-25G-SR-S', '', ('SFP28', 'SR', '25G')),
+    ('SFP-H10GB-CU3M', '10GBASE-CU SFP+ Cable 3 Meter', ('DAC', 'Copper', '10G')),
+    ('GLC-BX-D', '1000BASE-BX10-D', ('SFP', 'BiDi', '1G')),
+    ('', 'Some optic', ('', '', '')),
+])
+def test_an_optics_form_media_and_speed_come_from_its_model(model, descr, expected):
+    found = inventory_discovery.optic(model, descr)
+    assert (found['form'], found['media'], found['speed']) == expected
+
+
+def test_a_switch_says_its_optics_and_the_ports_they_sit_in():
+    st = State()
+    ns = 1_700_000_000_000_000_000
+    st.apply_text('\n'.join([
+        f'fb_if,{SW},index=10149,ifName=Te1/1/1 ifOperStatus=1i {ns}',
+        f'fb_if,{SW},index=10150,ifName=Te1/1/2 ifOperStatus=1i {ns}',
+        f'fb_if,{SW},index=10151,ifName=Gi1/0/3 ifOperStatus=1i {ns}',
+        # Cisco: the port row maps to the interface, the optic is a module inside it
+        f'fb_entity,{SW},index=1050 entPhysicalClass=10i,entPhysicalName="TenGigabitEthernet1/1/1" {ns}',
+        f'fb_entity,{SW},index=1051 entPhysicalClass=9i,entPhysicalContainedIn=1050i,'
+        f'entPhysicalModelName="SFP-10G-LR",entPhysicalSerialNum="AVX0001",entPhysicalDescr="SFP-10GBase-LR" {ns}',
+        f'fb_entalias,{SW},index=1050.0 entAliasMappingIdentifier="iso.3.6.1.2.1.2.2.1.1.10149" {ns}',
+        # mapped itself, numeric
+        f'fb_entity,{SW},index=1052 entPhysicalClass=10i,entPhysicalModelName="SFP-10G-SR",'
+        f'entPhysicalSerialNum="AVX0002" {ns}',
+        f'fb_entalias,{SW},index=1052.0 entAliasMappingIdentifier=".1.3.6.1.2.1.2.2.1.1.10150" {ns}',
+        # no mapping: by the name
+        f'fb_entity,{SW},index=1053 entPhysicalClass=10i,entPhysicalName="Gi1/0/3",entPhysicalModelName="GLC-TE",'
+        f'entPhysicalSerialNum="AVX0003" {ns}',
+        # a port without an optic, a fan with a serial: not optics
+        f'fb_entity,{SW},index=1054 entPhysicalClass=10i,entPhysicalName="GigabitEthernet1/0/4" {ns}',
+        f'fb_entity,{SW},index=1055 entPhysicalClass=7i,entPhysicalName="Fan 1",entPhysicalSerialNum="FAN1" {ns}',
+    ]))
+    optics = st.devices['sw-a-01'].transceivers()
+    assert [(o['port'], o['serial']) for o in optics] == [('Te1/1/1', 'AVX0001'), ('Te1/1/2', 'AVX0002'),
+                                                          ('Gi1/0/3', 'AVX0003')]
+
+
+def test_telegraf_asks_for_entity_names_and_their_interfaces():
+    t = {'name': 'sw-a-01', 'address': '192.0.2.10', 'platform': 'ios', 'drivers': ['snmp'], 'kind': 'switch'}
+    conf = '\n'.join(telegraf.snmp(t))
+    assert '"1.3.6.1.2.1.47.1.1.1.1.7"' in conf and '"1.3.6.1.2.1.47.1.3.2.1.2"' in conf
+
+
+def test_discovery_adds_the_optics_as_transceiver_entries_and_keeps_them_while_a_switch_is_away(client):
+    add(client, name='sw-a-01')
+    add(client, name='sw-a-02')
+    optic = {'port': 'Te1/1/1', 'model': 'SFP-10G-SR', 'descr': '', 'serial': 'AVX0001'}
+    rows = [{'hostname': 'sw-a-01', 'status': 1, 'facts': {'transceivers': [optic]}}]
+    before = sources.use(Telemetry(rows, {}))
+    try:
+        report = next(x for x in client.post('/api/inventory/sync').get_json()['reports']
+                      if x['plugin'] == 'discovery')
+        entries = client.get('/api/inventory/entries?type=transceiver').get_json()
+        sw = next(d for d in client.get('/api/inventory').get_json()['devices'] if d['name'] == 'sw-a-01')
+        detail = client.get(f"/api/inventory/{sw['id']}").get_json()
+        # The switch didn't answer this time: its optic stays where it was.
+        sources.use(Telemetry([], {}))
+        client.post('/api/inventory/sync')
+        after = client.get('/api/inventory/entries?type=transceiver').get_json()
+        # The optic moved to the other switch.
+        sources.use(Telemetry([{'hostname': 'sw-a-02', 'status': 1,
+                                'facts': {'transceivers': [{**optic, 'port': 'Te1/1/4'}]}}], {}))
+        client.post('/api/inventory/sync')
+        moved = client.get('/api/inventory/entries?type=transceiver').get_json()
+    finally:
+        sources.use(before)
+    assert report['entries']['added'] == 1
+    rows = entries.get('entries', entries if isinstance(entries, list) else [])
+    assert [(e['name'], e['fields']) for e in rows] == [('SFP-10G-SR AVX0001', {
+        'device': 'sw-a-01', 'port': 'Te1/1/1', 'form': 'SFP+', 'media': 'SR', 'speed': '10G', 'serial': 'AVX0001'})]
+    assert detail['discovered']['transceivers'][0]['serial'] == 'AVX0001'
+    kept = after.get('entries', after if isinstance(after, list) else [])
+    assert len(kept) == 1 and not kept[0].get('gone')
+    now = moved.get('entries', moved if isinstance(moved, list) else [])
+    assert len(now) == 1 and (now[0]['fields']['device'], now[0]['fields']['port']) == ('sw-a-02', 'Te1/1/4')
