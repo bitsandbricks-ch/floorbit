@@ -143,7 +143,7 @@ export interface LogLine {
 }
 
 export const INVENTORY_FIELDS = ['name', 'role', 'model', 'serial', 'mgmt_ip', 'hall', 'status', 'notes',
-  'platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host'] as const
+  'platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host', 'location'] as const
 export type InventoryField = (typeof INVENTORY_FIELDS)[number]
 export const SPEC_FIELDS = ['platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host'] as const
 

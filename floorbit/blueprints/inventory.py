@@ -3,14 +3,16 @@
 - ``GET /api/inventory``: every device (``?hidden=1`` includes hidden ones), the plugins that
   feed it and their last sync. Viewers and up.
 - ``POST /api/inventory``, ``PATCH`` / ``DELETE /api/inventory/<id>``: editors and up.
-- ``POST /api/inventory/sync``: run every inventory plugin that's on now. Editors and up.
+- ``POST /api/inventory/sync``: run every inventory plugin that's on now, then discovery
+  (floorbit/inventory_discovery.py). Editors and up.
 - ``GET /api/inventory/log``: the last syncs. Editors and up.
+- ``GET /api/inventory/drift``: where devices and the inventory disagree (discovery). Viewers and up.
 """
 import threading
 
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import agent_link, inventory, inventory_schedule, inventory_scope, inventory_types, spa
+from .. import agent_link, inventory, inventory_discovery, inventory_schedule, inventory_scope, inventory_types, spa
 from ..plugins import PluginError
 from ..store import load_data, save_data
 
@@ -138,6 +140,9 @@ def _sources(data):
         if not via_agent:   # nothing came from it yet: show it, with its last error if any
             last = next((r for r in log if r.get('plugin') == 'agent'), None)
             out.append({'id': 'agent', 'name': 'Local agent', 'last_sync': last})
+    if inventory_discovery.available():
+        out.append({'id': inventory_discovery.PLUGIN, 'name': inventory_discovery.NAME,
+                    'last_sync': inventory_discovery.last(data)})
     return out
 
 
@@ -152,7 +157,9 @@ def inventory_page(_item=None):
 def list_devices():
     data = load_data()
     hidden = request.args.get('hidden') in ('1', 'true')
-    return jsonify({'devices': [inventory.public(d) for d in inventory.devices(data, include_hidden=hidden)],
+    drift = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
+    return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or [])}
+                                for d in inventory.devices(data, include_hidden=hidden)],
                     'sources': _sources(data), 'every': inventory_schedule.every_minutes(),
                     'roles': list(inventory.ROLES), 'fields': list(inventory.FIELDS)})
 
@@ -203,11 +210,26 @@ def delete_device(device_id):
 
 @bp.route('/api/inventory/sync', methods=['POST'])
 def sync_now():
-    if not _feeders() and not agent_link.active():
+    discover = inventory_discovery.available()
+    if not _feeders() and not agent_link.active() and not discover:
         return jsonify({'error': 'No inventory source is on. Turn one on under Settings > Plugins.'}), 400
     with inventory_schedule.running:   # a scheduled sync that's under way finishes first
         reports = run_sync()
+    if discover:
+        with inventory_discovery.running:
+            reports.append(inventory_discovery.run())
     return jsonify({'reports': reports, 'sources': _sources(load_data())})
+
+
+@bp.route('/api/inventory/drift', methods=['GET'])
+def drift_list():
+    """Where devices and the inventory disagree, from the last discovery run (inventory_discovery.py)."""
+    data = load_data()
+    names = {d['id']: d['name'] for d in inventory.devices(data, include_hidden=True)}
+    found = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
+    return jsonify({'devices': [{'id': i, 'name': names[i], 'drift': rows} for i, rows in sorted(found.items())
+                                if i in names],
+                    'last_run': inventory_discovery.last(data)})
 
 
 @bp.route('/api/inventory/log', methods=['GET'])

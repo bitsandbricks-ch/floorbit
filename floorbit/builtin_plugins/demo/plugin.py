@@ -227,6 +227,9 @@ def _level(value, warn, down, higher_is_better=False):
     return 'down' if value >= down else 'warn' if value >= warn else 'up'
 
 
+DEMO_OS = {'NX-OS': ('nxos', '10.3(4a)'), 'IOS-XE': ('iosxe', '17.9.4a'), 'IOS': ('ios', '15.2(7)E8')}
+
+
 def _platform(name):
     return 'NX-OS' if name == 'core-01' else 'IOS-XE' if name.startswith('dist-') else 'IOS'
 
@@ -443,8 +446,11 @@ class Plugin(Plugin):
         return True
 
     def devices(self):
+        # What LibreNMS knows of a switch, for discovery (floorbit/inventory_discovery.py).
         return [{'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name,
-                 'status': 0 if _down(name) else 1, 'status_reason': 'icmp' if _down(name) else ''}
+                 'status': 0 if _down(name) else 1, 'status_reason': 'icmp' if _down(name) else '',
+                 'hardware': _model(name), 'os': DEMO_OS[_platform(name)][0], 'version': DEMO_OS[_platform(name)][1],
+                 'location': _hall(name)}
                 for name, _role, _i in _switches()] + [
             {'display': name, 'hostname': f'{name}.{DOMAIN}', 'sysName': name, 'status': 1, 'status_reason': ''}
             for name, _pos, _ch in APS] + [

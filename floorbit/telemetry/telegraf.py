@@ -55,6 +55,21 @@ CDP_FIELDS = (('cdpCacheDeviceId', '1.3.6.1.4.1.9.9.23.1.2.1.1.6', False, None),
               ('cdpCacheDevicePort', '1.3.6.1.4.1.9.9.23.1.2.1.1.7', False, None))
 CISCO_CPU = (('cpu', '1.3.6.1.4.1.9.9.109.1.1.1.1.7', False, None),)          # cpmCPUTotal1minRev
 HOST_CPU = (('cpu', '1.3.6.1.2.1.25.3.3.1.2', False, None),)                  # hrProcessorLoad
+# CISCO-MEMORY-POOL-MIB: the processor pool's use (mem %) and, used + free, how much there is.
+CISCO_MEM = (('memUsed', '1.3.6.1.4.1.9.9.48.1.1.1.5', False, None),
+             ('memFree', '1.3.6.1.4.1.9.9.48.1.1.1.6', False, None))
+# What a device is, for discovery (floorbit/inventory_discovery.py): asked every few minutes.
+FACT_FIELDS = (('sysDescr', '1.3.6.1.2.1.1.1.0'), ('sysLocation', '1.3.6.1.2.1.1.6.0'),
+               ('hrMemorySize', '1.3.6.1.2.1.25.2.2.0'))                      # kilobytes
+ENTITY_FIELDS = (('entPhysicalClass', '1.3.6.1.2.1.47.1.1.1.1.5', False, None),   # 3: the chassis
+                 ('entPhysicalSoftwareRev', '1.3.6.1.2.1.47.1.1.1.1.10', False, None),
+                 ('entPhysicalSerialNum', '1.3.6.1.2.1.47.1.1.1.1.11', False, None),
+                 ('entPhysicalModelName', '1.3.6.1.2.1.47.1.1.1.1.13', False, None))
+STORAGE_FIELDS = (('hrStorageType', '1.3.6.1.2.1.25.2.3.1.2', False, None),       # RAM, fixed disk, ...
+                  ('hrStorageAllocationUnits', '1.3.6.1.2.1.25.2.3.1.4', False, None),
+                  ('hrStorageSize', '1.3.6.1.2.1.25.2.3.1.5', False, None))
+HR_DEVICE_FIELDS = (('hrDeviceType', '1.3.6.1.2.1.25.3.2.1.2', False, None),      # processors: the CPU
+                    ('hrDeviceDescr', '1.3.6.1.2.1.25.3.2.1.3', False, None))
 
 
 def q(value):
@@ -117,8 +132,9 @@ def _host(address):
     return f'[{address}]' if ':' in address else address
 
 
-def snmp(t, interval='30s', tables_interval='60s'):
-    """Polling for one device: ports every ``interval``, tables (ARP, MAC, neighbours) less often."""
+def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
+    """Polling for one device: ports every ``interval``, tables (ARP, MAC, neighbours) less often,
+    and what the device is (model, serial, software, memory, disks) every ``facts_interval``."""
     lines = []
     cisco = t.get('platform') in ('nxos', 'iosxe', 'ios')
     _snmp_head(lines, t, interval)
@@ -129,6 +145,18 @@ def snmp(t, interval='30s', tables_interval='60s'):
     _table(lines, 'fb_if', IF_FIELDS)
     _table(lines, 'fb_if', DUPLEX_FIELDS)
     _table(lines, 'fb_cpu', CISCO_CPU if cisco else HOST_CPU)
+    if cisco:
+        _table(lines, 'fb_mem', CISCO_MEM)
+    lines.append('')
+    _snmp_head(lines, t, facts_interval)
+    lines.append('  name = "fb_facts"')
+    for field, oid in FACT_FIELDS:
+        lines += ['  [[inputs.snmp.field]]', f'    name = {q(field)}', f'    oid = {q(oid)}']
+    _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
+    _table(lines, 'fb_entity', ENTITY_FIELDS)
+    if not cisco:
+        _table(lines, 'fb_storage', STORAGE_FIELDS)
+        _table(lines, 'fb_hrdevice', HR_DEVICE_FIELDS)
     if t.get('tables', True):
         lines.append('')
         _snmp_head(lines, t, tables_interval)
