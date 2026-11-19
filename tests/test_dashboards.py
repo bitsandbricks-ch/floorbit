@@ -301,3 +301,33 @@ def test_a_tile_pane_keeps_its_widget_type_and_size(client):
     assert "option trend" in save({"kind": "tile", "tile": "floorbit/w/traffic", "trend": "cubic"}).get_json()["error"]
     assert "widget type" in save({"kind": "tile", "tile": "floorbit/w/seats", "type": "pie3d"}).get_json()["error"]
     assert "widget size" in save({"kind": "tile", "tile": "floorbit/w/seats", "level": "xl"}).get_json()["error"]
+
+
+def test_a_tile_pane_draws_more_sources_grouped_and_calculated(client, anon_client):
+    def save(pane, public=False):
+        body = {"name": "Mixed", "public": public,
+                "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {"pane": pane}}]}]}
+        return client.put("/api/dashboards/mixed", json=body)
+    pane = {"kind": "tile", "tile": "floorbit/w/switches", "also": ["floorbit/w/seats"], "group_by": "state",
+            "reduce": "avg", "legend": ["max", "avg"]}
+    r = save(pane)
+    assert r.status_code == 200
+    assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == pane
+    r = save({"kind": "tile", "tile": "floorbit/w/seats", "also": [], "group_by": "", "reduce": "", "legend": []})
+    assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == {"kind": "tile", "tile": "floorbit/w/seats"}
+    def error(**extra):
+        return save({"kind": "tile", "tile": "floorbit/w/seats", **extra}).get_json()["error"]
+    more = ["floorbit/w/a", "floorbit/w/b", "floorbit/w/c", "floorbit/w/d"]
+    assert "at most 3" in error(also=more)
+    assert "once" in error(also=["floorbit/w/seats"])
+    assert "once" in error(also=["nope"])
+    assert "calculation" in error(reduce="median")
+    assert "calculation" in error(legend=["avg", "avg"])
+    assert "column" in error(group_by="a b")
+    # Public only when every source is public, and then each source reads signed out.
+    save({"kind": "tile", "tile": "floorbit/w/switches", "also": ["floorbit/w/seats"]}, public=True)
+    assert anon_client.get("/api/dashboards/mixed/public/tiles/seats").status_code == 200
+    save({"kind": "tile", "tile": "floorbit/w/switches", "also": ["floorbit/w/problems"]}, public=True)
+    board = anon_client.get("/api/dashboards/mixed/public").get_json()["board"]
+    assert board["sections"][0]["panels"][0]["node"]["pane"]["kind"] == "private"
+    assert anon_client.get("/api/dashboards/mixed/public/tiles/switches").status_code == 404

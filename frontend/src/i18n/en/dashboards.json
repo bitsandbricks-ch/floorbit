@@ -83,7 +83,17 @@
     "widgetType": "Show as",
     "stack": "Bars and lines",
     "style": "Lines",
-    "trend": "Trend line"
+    "trend": "Trend line",
+    "also": "Draw together with",
+    "alsoHint": "Up to three more tiles: their lines join the graph, their numbers the bars.",
+    "groupBy": "Group by",
+    "noGroup": "No grouping",
+    "reduce": "Calculate",
+    "noReduce": "Nothing, show the data",
+    "reduceHint": "Turns the data into one number (one per line for a graph).",
+    "reduceGroupHint": "One number per group, from the first number column (a count without one).",
+    "legend": "Legend shows",
+    "legendHint": "Empty: the latest value, plus max and average when large."
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",
@@ -98,7 +108,8 @@
     "private": "Needs an account: not shown on a public screen.",
     "openBig": "Open big",
     "openBigNamed": "Open {{name}} big",
-    "viewOff": "This widget's feature is turned off (Settings > Features)."
+    "viewOff": "This widget's feature is turned off (Settings > Features).",
+    "dropped": "Left out, doesn't fit with the first tile: {{names}}"
   },
   "textSize": {
     "s": "S",
@@ -183,5 +194,10 @@
       "linear": "Straight trend",
       "average": "Rolling average"
     }
+  },
+  "groupKey": {
+    "state": "State",
+    "detail": "Detail",
+    "value": "Value"
   }
 }

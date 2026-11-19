@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { get } from './client'
 import { qk } from './keys'
 import type { CustomSection } from '@/nav/sections'
@@ -90,6 +90,18 @@ export function useWidget(tile: WidgetTile) {
     // The server already refuses less than 10 s; this keeps a broken manifest from hammering it.
     refetchInterval: Math.max(10, tile.refresh) * 1000,
     refetchIntervalInBackground: false,
+  })
+}
+
+/** Several widgets at once (a pane with more than one source), each on its own refresh. */
+export function useWidgets(tiles: WidgetTile[]) {
+  return useQueries({
+    queries: tiles.map((tile) => ({
+      queryKey: qk.widget(tile.url),
+      queryFn: () => get<Widget>(tile.url),
+      refetchInterval: Math.max(10, tile.refresh) * 1000,
+      refetchIntervalInBackground: false,
+    })),
   })
 }
 
