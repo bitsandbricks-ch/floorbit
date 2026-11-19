@@ -52,7 +52,7 @@ On the React pages, coloured badges and tinted buttons pull their text 20 % towa
 text colour, so small labels keep 4.5:1 against their own tint with the built-in colours in both
 the light and the dark theme. The pages are checked with axe in the browser (`color-contrast`
 included) before a change to colours goes in. The faint text colour (`--color-faint`) is for
-decoration only; text people need to read, such as help lines, timestamps and past agenda items,
+decoration only; text people need to read, such as help lines and timestamps,
 uses the muted colour (`--color-muted`), which passes 4.5:1 in both themes.
 
 ## Controls

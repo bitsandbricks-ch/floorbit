@@ -213,8 +213,17 @@ def _small_status_page(data):
         features.pop('public_hall', None)
 
 
+def _no_attendee_programme(data):
+    """The public agenda (/agenda) and the attendee Discord channels went: their settings go. The crew's
+    schedule stays."""
+    if isinstance(data.get('app_settings'), dict):
+        for key in ('public.schedule', 'integrations.discord_status_webhook_url',
+                    'integrations.discord_schedule_webhook_url', 'integrations.schedule_announce_minutes'):
+            data['app_settings'].pop(key, None)
+
+
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
-         _no_runbooks, _no_seat_finder, _small_status_page)
+         _no_runbooks, _no_seat_finder, _small_status_page, _no_attendee_programme)
 CURRENT = len(STEPS)
 
 

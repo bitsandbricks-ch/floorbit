@@ -102,13 +102,10 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 |---|---|---|
 | `DISCORD_WEBHOOK_URL` | | Channel settings → Integrations → Webhooks |
 | `DISCORD_ALERTS_ENABLED` | `true` | |
-| `DISCORD_STATUS_WEBHOOK_URL` | | a webhook in a channel attendees read: every update the crew posts on the network status page goes there too, while the public page is on ([status-page.md](status-page.md#discord)) |
-| `DISCORD_SCHEDULE_WEBHOOK_URL` | | a webhook in a channel attendees read: what is about to start on the public programme is announced there ([schedule.md](schedule.md#discord)) |
-| `SCHEDULE_ANNOUNCE_MINUTES` | `10` | how long before an item starts it is announced; `0` announces nothing |
 | `DISCORD_NOTIFY_RECOVERY` | `true` | also post "back online" with downtime, and how many open incidents from its seats were filed while it was down |
 | `DISCORD_MENTION` | | e.g. `<@&ROLE_ID>` or `@here`, outages only |
 | `DISCORD_USERNAME` | `Floorbit` | |
-| `DISCORD_LANGUAGE` | `en` | `de-CH` or `de` for German: alerts, the crew bot and the attendee channels. Slash command answers follow each user's own Discord language ([crew-discord.md](crew-discord.md#language)) |
+| `DISCORD_LANGUAGE` | `en` | `de-CH` or `de` for German: alerts and the crew bot. Slash command answers follow each user's own Discord language ([crew-discord.md](crew-discord.md#language)) |
 | `DISCORD_COOLDOWN` | `300` | seconds between outage alerts for the same switch |
 | `ALERT_GROUP_AFTER` | `3` | more switch changes than this in one poll become one message, grouped by power circuit ([alerts.md](alerts.md)) |
 | `ALERT_QUIET_HOURS` | | e.g. `02:00-08:00`: messages go out silently and without the mention |
@@ -118,7 +115,6 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `CABLE_AUTO` | `true` | draw a cable to every seat whose switch port is known ([cables.md](cables.md#cables-drawn-on-the-floor-plan)); also under Settings > Cabling |
 | `STATUS_PAGE` | `false` | the public network status page `/status` ([status-page.md](status-page.md)); also under Settings > Attendee pages |
 | `METRICS_ENABLED` | `false` | Prometheus metrics at `/api/metrics` ([metrics.md](metrics.md)); also under Settings > Prometheus metrics |
-| `SCHEDULE_PAGE` | `false` | the public schedule and countdown `/agenda` ([schedule.md](schedule.md)); also under Settings > Attendee pages |
 | `SPEEDTEST`, `SPEEDTEST_MAX_RUNNING`, `SPEEDTEST_TEST_MB`, `SPEEDTEST_SEAT_MINUTES`, `SPEEDTEST_MAX_MBPS` | on, 3, 250, 10, 1000 | the speed test on the seat help page and its limits ([speedtest.md](speedtest.md#limits)); also under Settings > Speed tests |
 | `STATS_WALL` | `false` | the public stats wall `/wall` ([stats-wall.md](stats-wall.md)); also under Settings > Attendee pages |
 | `STATS_UPLINK_PATTERN` | `uplink\|trunk` | port descriptions that mark a switch's uplink on the [stats dashboard](stats.md) (a regular expression, case-insensitive) |

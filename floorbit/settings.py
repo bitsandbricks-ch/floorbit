@@ -156,10 +156,6 @@ FIELDS = [
     dict(key='metrics.enabled', section='metrics', label='Prometheus metrics', type='bool',
          env='METRICS_ENABLED', default=False,
          help='Serve /api/metrics. Off by default.'),
-    dict(key='public.schedule', section='public', label='Schedule and countdown', type='bool',
-         env='SCHEDULE_PAGE', default=False,
-         help='/agenda shows the countdown to the event, what is on now and next, and the programme, for big '
-              'screens (/agenda?screen=1) and phones. Off by default.'),
 
     dict(key='floorplan.naming', section='floorplan', label='Seat names', type='choice',
          options=[{'value': 'rows', 'label': 'A letter per row: A-1, A-2 … then B-1, B-2'},

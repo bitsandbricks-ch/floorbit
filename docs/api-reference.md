@@ -827,7 +827,7 @@ Source: [`floorbit/blueprints/s3_backup.py`](https://github.com/bitsandbricks-ch
 
 ## floorbit.blueprints.schedule
 
-Event schedule and countdown (issue #106). The rules live in floorbit/schedule.py; see docs/schedule.md.
+Event schedule (issue #106), for the crew. The rules live in floorbit/schedule.py; see docs/schedule.md.
 
 Source: [`floorbit/blueprints/schedule.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/schedule.py)
 

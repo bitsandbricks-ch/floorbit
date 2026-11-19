@@ -48,11 +48,6 @@ def _who():
     return user.get('display_name') or user.get('username')
 
 
-
-def _base_url():
-    return (current_app.extensions['auth'].public_url() or '').rstrip('/') or request.host_url.rstrip('/')
-
-
 def _changed():
     events.publish('status_page.changed', {})
 
@@ -117,10 +112,6 @@ def publish_update(body, by, audit_user, label='Posted status update'):
     update = status_page.post_update(body, by)
     audit.record('status page', label, audit_user, update['text'][:120])
     _changed()
-    # For the attendees' Discord channel (integrations/discord.py): never who posted.
-    events.publish('status_page.update', {
-        'update': {k: update[k] for k in ('at', 'text', 'state', 'area')}, 'public': page_on(),
-        'page_url': _base_url() + '/status'})
     return update
 
 

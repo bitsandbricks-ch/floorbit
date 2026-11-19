@@ -36,7 +36,7 @@ The page updates every minute and shows times in the reader's own time zone.
 
 ## Staying current
 
-The status page, the [stats wall](stats-wall.md) and the public [schedule](schedule.md) update
+The status page and the [stats wall](stats-wall.md) update
 themselves in place: every minute the page fetches its own address again and swaps in the new content, so a big screen doesn't
 flash white. A hidden browser tab waits and updates as soon as it is shown.
 
@@ -63,11 +63,8 @@ the affected areas with the switch names, and the updates.
 
 ## Discord
 
-Set **Attendee status channel webhook** (Settings > Integrations > Discord,
-`DISCORD_STATUS_WEBHOOK_URL`) to a webhook in a channel attendees read, such as `#network-status`.
-Every update the crew posts then goes there as well, with its state, area and a link to `/status`,
-while the public status page is on. Like the page, it never says who posted, and it mentions
-nobody. This is separate from the crew's alert webhook, which says much more.
+The crew posts updates from Discord too, with `/statusupdate` ([crew-discord.md](crew-discord.md#slash-commands)).
+Floorbit doesn't post them to a channel attendees read: attendees read the network status on `/status`.
 
 ## API
 
