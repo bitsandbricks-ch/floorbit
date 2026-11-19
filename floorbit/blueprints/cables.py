@@ -152,8 +152,8 @@ def ignore_client(mac=None):
     try:
         mac = port_clients.set_ignored(data, mac or body.get('mac'), on=mac is None, by=g.get('audit_user'),
                                        note=body.get('note'))
-    except ValueError as exc:
-        return jsonify({'error': str(exc)}), 400
+    except ValueError:
+        return jsonify({'error': 'That is not a MAC address.'}), 400   # the only reason; no exception text out
     save_data(data)
     audit.record('cables', 'Ignored a machine' if request.method == 'POST' else 'Stopped ignoring a machine',
                  g.get('audit_user'), mac)
