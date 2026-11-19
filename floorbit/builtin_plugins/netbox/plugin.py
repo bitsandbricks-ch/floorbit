@@ -265,6 +265,9 @@ def power_feed(raw):
             'phase': '3P' if phase == 'three-phase' else 'L1', 'rating_a': raw.get('amperage') or 16}
 
 class Plugin(Plugin):
+    def configured(self):
+        return bool(self.settings.get('url') and self.settings.get('token'))
+
     def _client(self):
         s = self.settings
         if not s.get('url') or not s.get('token'):

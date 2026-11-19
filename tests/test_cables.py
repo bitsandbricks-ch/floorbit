@@ -63,16 +63,16 @@ def test_viewers_read_only(app_module, client):
 
 
 def test_import_from_demo_keeps_crew_cables(client):
-    # NetBox is on by default but not set up yet: its own message comes back.
-    r = client.post("/api/cables/import")
-    assert r.status_code == 502 and "NetBox URL" in r.get_json()["error"]
+    # NetBox is on by default but not set up yet: it is no source, so there's nothing to import from.
+    assert client.post("/api/cables/import").status_code == 409
+    assert client.get("/api/cables").get_json()["sources"] == []
     mine = client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/1", "label": "MINE"}).get_json()
     client.put("/api/settings/plugins/demo", json={"enabled": True})
     assert "Demo" in " ".join(client.get("/api/cables").get_json()["sources"])
     r = client.post("/api/cables/import").get_json()
     # The demo hall's A-1 is on sw-a-01 Gi1/0/1, which already has the crew's cable: that one stays.
     assert r["imported"] > 50 and any("skipped" in e for e in r["errors"])
-    assert any("NetBox URL" in e for e in r["errors"])   # one source failing doesn't stop the others
+    assert not any("NetBox" in e for e in r["errors"])     # not set up: not asked, so no failure
     rows = client.get("/api/cables").get_json()["cables"]
     assert next(c for c in rows if c["port"] == "Gi1/0/1" and c["switch"] == "sw-a-01")["label"] == "MINE"
     imported = next(c for c in rows if c["source"] == "import")

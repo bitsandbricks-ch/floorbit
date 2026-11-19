@@ -30,8 +30,14 @@ def _registry():
 
 
 def _feeders():
+    """The inventory plugins that are on and set up. One that isn't set up yet is no source."""
     registry = _registry()
-    return registry.feeders('inventory') if registry else []
+    return [s for s in registry.feeders('inventory') if registry.set_up(s)] if registry else []
+
+
+def _not_set_up():
+    registry = _registry()
+    return {s.id for s in registry.feeders('inventory') if not registry.set_up(s)} if registry else set()
 
 
 def run_sync():
@@ -104,8 +110,11 @@ def _sync_from_agent():
         _record(report)
         return [report]
     reports = []
+    skip = _not_set_up()
     for feed in feeds:
         base = {'name': feed['name'], 'via': 'agent', 'base': feed.get('base', feed['plugin'])}
+        if 'error' in feed and base['base'] in skip:
+            continue    # the agent asked a plugin that isn't set up (NetBox without a URL): not a fault
         try:
             if 'error' in feed:
                 raise inventory.InventoryError(feed['error'])
@@ -132,11 +141,13 @@ def _sources(data):
         via = ' (local agent)' if last and last.get('via') == 'agent' else ''
         out.append({'id': spec.id, 'name': spec.name + via, 'last_sync': last})
     if agent_link.active():
-        known, via_agent = {o['id'] for o in out}, False
+        known, via_agent, skip = {o['id'] for o in out}, False, _not_set_up()
         for r in log:       # newest first: the agent's feeds as of its last sync
             if r.get('via') != 'agent' or r.get('plugin') == 'agent':
                 continue
             via_agent = True
+            if r.get('error') and (r.get('base') or r.get('plugin')) in skip:
+                continue
             if r.get('plugin') not in known:
                 known.add(r['plugin'])
                 out.append({'id': r['plugin'], 'name': f"{r.get('name') or r['plugin']} (local agent)", 'last_sync': r})
@@ -215,7 +226,7 @@ def delete_device(device_id):
 def sync_now():
     discover = inventory_discovery.available()
     if not _feeders() and not agent_link.active() and not discover:
-        return jsonify({'error': 'No inventory source is on. Turn one on under Settings > Plugins.'}), 400
+        return jsonify({'error': 'No inventory source is set up. Set one up under Settings > Plugins.'}), 400
     with inventory_schedule.running:   # a scheduled sync that's under way finishes first
         reports = run_sync()
     if discover:
