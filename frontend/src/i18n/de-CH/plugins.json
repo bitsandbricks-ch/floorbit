@@ -72,6 +72,7 @@
     "off": "Der Port ist 0: die Agents nehmen keine LibreNMS-Alarme an.",
     "noAgent": "Noch kein lokaler Agent: LibreNMS schickt seine Alarme an einen.",
     "after_one": "{{count}} LibreNMS-Alarm ist gerade offen.",
-    "after_other": "{{count}} LibreNMS-Alarme sind gerade offen."
+    "after_other": "{{count}} LibreNMS-Alarme sind gerade offen.",
+    "notListening": "Hört auf diesem Agent nicht: {{why}}"
   }
 }

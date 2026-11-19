@@ -731,7 +731,7 @@ export interface LibreNMSAlertsSetup {
   body: string
   token: string
   active: number
-  agents: { id: string; name: string; connected: boolean; url: string; address_known: boolean }[]
+  agents: { id: string; name: string; connected: boolean; url: string; address_known: boolean; status?: string | null; problem?: string }[]
 }
 export interface ProblemList {
   problems: Problem[]

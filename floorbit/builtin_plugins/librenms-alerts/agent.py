@@ -26,7 +26,9 @@ class AgentPlugin(Base):
             self.port = self.ctx.listen_http(port, self.handle, tls=True)
         except (OSError, OverflowError) as exc:
             raise PluginError(f'cannot listen for LibreNMS alerts on port {port}: {exc}') from exc
-        self.ctx.health('ok', f'listening on port {self.port}')
+        tls = bool(getattr(self.ctx, 'tls', False))
+        self.ctx.gauge('tls', 1 if tls else 0)      # Floorbit shows LibreNMS http:// or https://
+        self.ctx.health('ok', f"listening on port {self.port} ({'HTTPS' if tls else 'HTTP'})")
 
     def handle(self, method, path, headers, body):
         route = path.split('?', 1)[0].rstrip('/')

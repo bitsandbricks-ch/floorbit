@@ -47,6 +47,7 @@ def test_the_agent_part_checks_the_token_and_passes_the_alert_on():
     ctx, plugin = _agent_part({"port": 9530, "token": "fbl_right"})
     plugin.start()
     assert ctx.health_.report()["status"] == "ok" and "9530" in plugin.check()
+    assert ctx.health_.report()["metrics"]["tls"] == 0 and "(HTTP)" in ctx.health_.report()["message"]
     body = json.dumps(_alert()).encode()
     assert plugin.handle("POST", "/librenms", {"Authorization": "Bearer fbl_wrong"}, body)[0] == 401
     assert plugin.handle("POST", "/librenms", {}, body)[0] == 401
@@ -171,3 +172,21 @@ def test_setup_and_clearing_need_their_permissions(app_module):
     assert roles.needed_for("/api/alerts/librenms/setup", "GET") == "settings.manage"
     assert roles.needed_for("/api/alerts/librenms/token", "POST") == "settings.manage"
     assert roles.needed_for("/api/alerts/librenms/abc", "DELETE") == "incidents.work"
+
+
+def test_setup_follows_what_the_agent_reports(client, app_module, monkeypatch):
+    from floorbit import agent_link, agent_settings
+    from floorbit import librenms_alerts as la
+    agent = enrol(client)
+    _enable(client)
+    reports = {"lan_url": "http://192.0.2.5:8080",
+               "plugins": {"librenms-alerts": {"status": "ok", "message": "listening on port 9531 (HTTP)",
+                                               "metrics": {"tls": 0}}}}
+    monkeypatch.setattr(agent_link.tunnel, "reported", lambda agent_id, now=None: reports)
+    monkeypatch.setattr(agent_settings, "overrides", lambda agent_id, data=None: {"librenms-alerts": {"port": 9531}})
+    [a] = la.setup()["agents"]
+    assert a["url"] == "http://192.0.2.5:9531/librenms" and a["address_known"] and a["problem"] == ""
+    reports["plugins"]["librenms-alerts"] = {"status": "error", "message": "port 9531 is taken"}
+    [a] = la.setup()["agents"]
+    assert a["url"].startswith("https://") and a["problem"] == "port 9531 is taken"
+    assert agent["id"] == a["id"]

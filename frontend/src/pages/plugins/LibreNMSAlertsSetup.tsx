@@ -47,6 +47,7 @@ export function LibreNMSAlertsSetup() {
                     <Table.Td>
                       <Group gap={6}><Code style={{ overflowWrap: 'anywhere' }}>{a.url}</Code><Copy value={a.url} /></Group>
                       {!a.address_known && <Text size="xs" c="dimmed">{t('plugins.librenmsAlerts.addressUnknown')}</Text>}
+                      {a.problem && <Text size="xs" className="fb-tone-err">{t('plugins.librenmsAlerts.notListening', { why: a.problem })}</Text>}
                     </Table.Td>
                   </Table.Tr>
                 ))}

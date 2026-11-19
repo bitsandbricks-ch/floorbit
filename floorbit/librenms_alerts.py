@@ -275,12 +275,20 @@ def setup(data=None):
             port = int(registry.settings_of(spec).get('port') or 0)
     except Exception as exc:  # noqa: BLE001  # the default port still helps
         print(f'[librenms-alerts] could not read the port setting: {exc}')
+    from . import agent_settings
     agents = []
     for a in agent_link.all_agents(data):
-        host = _host_of((a.get('report') or {}).get('lan_url') or '')
+        report = a.get('report') or {}
+        host = _host_of(report.get('lan_url') or '')
+        mine = int((agent_settings.overrides(a['id'], data).get('librenms-alerts') or {}).get('port', port) or 0)
+        running = (report.get('plugins') or {}).get('librenms-alerts') or {}
+        # The agent says whether it got a certificate (agent.py's tls gauge); unknown: HTTPS, the intent.
+        scheme = 'http' if (running.get('metrics') or {}).get('tls') == 0 else 'https'
         agents.append({'id': a['id'], 'name': a['name'], 'connected': bool(a.get('connected')),
-                       'url': f"https://{host or '<agent address>'}:{port}{PATH}" if port else '',
-                       'address_known': bool(host)})
+                       'url': f"{scheme}://{host or '<agent address>'}:{mine}{PATH}" if mine else '',
+                       'address_known': bool(host), 'status': running.get('status'),
+                       # Why it isn't listening, in the agent's words (a port taken, no token yet).
+                       'problem': '' if running.get('status') in (None, 'ok') else (running.get('message') or '')})
     enabled = bool(registry is not None and registry.active('librenms-alerts'))
     return {'enabled': enabled, 'port': port, 'method': 'POST', 'content_type': 'application/json', 'body': BODY,
             'agents': agents, 'active': len(active(data))}
