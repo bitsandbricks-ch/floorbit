@@ -71,6 +71,7 @@ export default function SeatMapping() {
   // ?q= from the floor plan's right-click menu ("Edit seat mapping", "Show in inventory")
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
   const [onlyManual, setOnlyManual] = useState(false)
+  const [onlyOffPlan, setOnlyOffPlan] = useState(false)
   const [editing, setEditing] = useState<SeatRow | null>(null)
   const [formOpen, form] = useDisclosure(false)
   const [importOpen, importDialog] = useDisclosure(false)
@@ -113,7 +114,10 @@ export default function SeatMapping() {
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
 
-  const rows = (data?.seats ?? []).filter((r) => matches(r, query, onlyManual))
+  const rows = (data?.seats ?? []).filter((r) => matches(r, query, onlyManual, onlyOffPlan))
+  // Seats a source names that no seat block has (a stale seats.json, a typo in a CSV): counted apart,
+  // so the total here matches the plan and the dashboards.
+  const offPlan = (data?.seats ?? []).filter((r) => r.on_plan === false).length
   const errors = Object.entries(data?.errors ?? {})
 
   function open(row: SeatRow | null) {
@@ -163,6 +167,9 @@ export default function SeatMapping() {
           style={{ flex: '1 1 260px' }}
         />
         <Switch label={t('seatmap.onlyManual')} checked={onlyManual} onChange={(e) => setOnlyManual(e.currentTarget.checked)} mb={8} />
+        {(offPlan > 0 || onlyOffPlan) && (
+          <Switch label={t('seatmap.onlyOffPlan')} checked={onlyOffPlan} onChange={(e) => setOnlyOffPlan(e.currentTarget.checked)} mb={8} />
+        )}
         {canEdit && portless > 0 && (
           <Button variant="light" leftSection={<IconPlugConnected size={16} />} loading={resolve.isPending} onClick={() => resolve.mutate()}>
             {t('seatmap.resolve', { count: portless })}
@@ -178,7 +185,9 @@ export default function SeatMapping() {
       {data && (
         <>
           <Text size="sm" c="dimmed" mb="xs">
-            {t('seatmap.count', { count: rows.length })}
+            {offPlan > 0 && rows.length === data.seats.length
+              ? t('seatmap.countSplit', { count: rows.length, onPlan: rows.length - offPlan, off: offPlan })
+              : t('seatmap.count', { count: rows.length })}
           </Text>
           {rows.length === 0 ? (
             <Text>{data.seats.length ? t('seatmap.noMatch') : t('seatmap.empty')}</Text>
@@ -208,6 +217,11 @@ export default function SeatMapping() {
                             <Text size="sm" ff="monospace" fw={600}>
                               {r.seat}
                             </Text>
+                          )}
+                          {r.on_plan === false && (
+                            <Badge size="xs" variant="light" color="gray" ml={4} title={t('seatmap.offPlanHint')}>
+                              {t('seatmap.offPlan')}
+                            </Badge>
                           )}
                         </Table.Td>
                         <Table.Td data-label={t('seatmap.port')}>

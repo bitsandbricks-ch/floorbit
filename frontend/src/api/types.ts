@@ -382,6 +382,8 @@ export interface SeatRow {
   from: Partial<Record<'switch' | 'port' | 'ip' | 'mac' | 'nick' | 'note', string>>
   manual: ManualSeat | null
   sources: string[]
+  /** On a seat block of any hall; off-plan rows come only from a source (seats.json, a CSV feed). */
+  on_plan: boolean
 }
 
 export interface SeatMapList {
