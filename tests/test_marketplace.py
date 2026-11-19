@@ -170,10 +170,10 @@ def test_nothing_unsigned_or_tampered_gets_in(client, market):
 
 
 def test_builtin_plugins_are_not_replaced(client, market):
-    market.publish("lancache", "9.0.0")
-    res = client.post("/api/settings/marketplace/lancache", json={})
+    market.publish("netflow-relay", "9.0.0")
+    res = client.post("/api/settings/marketplace/netflow-relay", json={})
     assert res.status_code == 400 and "ships with this Floorbit" in res.get_json()["error"]
-    assert market.registry.specs["lancache"].trust == "builtin"
+    assert market.registry.specs["netflow-relay"].trust == "builtin"
 
 
 def test_a_bundle_naming_another_plugin_leaves_that_one_alone(client, market):

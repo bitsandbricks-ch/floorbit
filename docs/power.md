@@ -66,9 +66,11 @@ meters for every demo row: B row 2 runs warm and C row 2 goes red two minutes in
 
 ### Shelly and Home Assistant
 
-Two built-in plugins read meters on the event network through the [local agent](agent.md), so they
-work with a hosted Floorbit too. Turn them on under **Settings > Plugins**; the agent picks them up
-within a minute and sends the newest readings only.
+Two plugins from the [Marketplace](marketplace.md) read meters on the event network through the
+[local agent](agent.md), so they work with a hosted Floorbit too (bitsandbricks-ch/floorbit-plugin-shelly
+and bitsandbricks-ch/floorbit-plugin-home-assistant). Install them under **Settings > Plugins >
+Marketplace** and turn them on; the agent fetches them, signed, within a minute and sends the
+newest readings only.
 
 - **Shelly meters**: one line per meter, `meter id = address [channel]`, e.g. `db1-1 = 192.0.2.50`
   or `db1-2 = 192.0.2.51 em:0`. Later generations are asked `/rpc/Shelly.GetStatus`, the first
@@ -83,7 +85,7 @@ or token is changed in the plugin's settings. A meter the agent hasn't read for 
 as unread.
 
 TODO: ask Mike which PDUs or meters are used at the event, and whether any report load, so a
-built-in plugin can read them.
+plugin can read them.
 
 ## Settings
 
