@@ -43,10 +43,24 @@ A plugin's `health_checks()` returns a list:
 | `summary` | one line, up to 120 characters |
 | `metrics` | up to 6 `{label, value, unit, tone}`; `tone` is `ok`, `warn`, `err` or empty |
 | `link` | optional, a path on this site |
+| `capacity` | optional, `{"used": 96, "total": 120}`: how much of a pool is used (a DHCP scope), for the forecast below |
 
 Like widgets, checks are data: text is shown as text and links only go to this site. A plugin that
 fails shows as one grey tile; the error is in its log under **Settings › Plugins**. The plugin
 decides what amber and red mean, since a "low" lease count depends on the scope.
+
+### When a pool runs full
+
+A check with `capacity` gets a forecast (issue #1061). The wall keeps the counts for an hour, works
+out how fast they grew over the last 15 minutes, and says "Full in about 25 minutes at 2 a minute"
+on the tile. The doors-open rush (phones, consoles, second PCs) can fill a DHCP scope in minutes, so
+this warns while there are still addresses left:
+
+- A check the plugin calls `up` turns amber when its pool is forecast full within an hour, or is
+  85 % used. Problems then reads "DHCP players: full in about 25 min", and the usual alerts go out.
+- The forecast needs 5 minutes of counts first, so a restart doesn't warn anybody. When a scope's
+  size changes, it starts over.
+- The plugin's own amber and red still win: the forecast only ever adds a warning.
 
 Write `summary` and metric labels in English. On a German page the wall shows the German text from
 `floorbit/locales/de-CH.json` when there is one (Floorbit's own checks and the demo have them), and

@@ -213,7 +213,7 @@ class Plugin(Base):
 | `dns` | send lookups from the event's resolver for [DNS analytics](dns.md): define `dns_queries(since)` returning `[{"ts", "domain", "client", "blocked"}]` after that unix time. Floorbit keeps only hall-wide counts |
 | `wifi` | access points for the [Wi-Fi view](wifi.md): define `wifi_aps()` returning `[{"name", "model", "status": "up"/"down", "clients", "radios": [{"band": "2.4"/"5"/"6", "channel", "width", "utilization", "clients"}]}]`. Counts only: anything else is dropped. The built-in UniFi plugin has it |
 | `logs` | keep the [syslog](syslog.md) longer and search it: define `push_logs(lines)`, called every 10 seconds with the new lines, and `query_logs(query, start, end, limit)` returning lines newest first in the Logs page's shape (`id` is the time in microseconds) |
-| `health` | put services on the [health wall](health.md): define `health_checks()` returning `[{"id", "name", "kind", "status", "summary", "metrics", "link"}]`. See the built-in HTTP check plugin |
+| `health` | put services on the [health wall](health.md): define `health_checks()` returning `[{"id", "name", "kind", "status", "summary", "metrics", "link", "capacity"}]` (`capacity` optional, for the "full in" forecast). See the built-in HTTP check plugin |
 
 Three manifest keys are only for plugins that ship with Floorbit: `default_enabled: true` (on until
 an admin turns it off), `enable_env: <VARIABLE>` (on while that variable is `1`) and `core_settings: <section>` (read a settings section that existed before

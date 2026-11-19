@@ -37,7 +37,7 @@ FLAPPING_PORT = ('C', 9)      # a loose cable: the link drops every 45 seconds
 BOUNCE_SECONDS = 10          # a demo bounce keeps the port down this long
 _bounced = {}                 # (switch, port) -> time the port comes back
 _shut = set()                 # (switch, port) shut until turned on again
-DHCP_POOL = 120               # small enough that the player scope shows amber
+DHCP_POOL = 160               # room left at first; the phone rush (health_checks) brings it to amber
 
 # Models and their ports: (port name, speed in bit/s) in the order the switch lists them.
 CORE_MODEL = 'Cisco Nexus 93180YC-FX'
@@ -786,7 +786,9 @@ class Plugin(Plugin):
         # The DHCP scopes and the LAN cache. The resolvers, internet lines and game servers have tiles
         # of their own (floorbit/services.py, floorbit/game_servers.py), answered by Plugin.answer.
         now = time.time()
-        players = sum(_taken(s[3]) for s in _seats())
+        # Phones and consoles arrive in waves on top of the PCs: a 40-minute rush that fills the scope
+        # by ~0.8 leases a minute, so the forecast (#1061) has something to say before it shows amber.
+        players = min(DHCP_POOL, sum(_taken(s[3]) for s in _seats()) + round(min(30, (now % 2400) / 60) * 0.8))
         left = DHCP_POOL - players
         hit = round(62 + 28 * _wave(1, now, period=600))
         saved = round(40 + (now % 86400) / 86400 * 900 * _wave(2, now, period=3600), 1)
@@ -794,9 +796,11 @@ class Plugin(Plugin):
             {'id': 'dhcp-players', 'name': 'DHCP players', 'kind': 'dhcp', 'link': '/dashboard',
              'status': _level(left / DHCP_POOL, warn=0.25, down=0.05, higher_is_better=True),
              'summary': f'{left} of {DHCP_POOL} leases left',
-             'metrics': [{'label': 'Leases left', 'value': left}, {'label': 'In use', 'value': players}]},
+             'metrics': [{'label': 'Leases left', 'value': left}, {'label': 'In use', 'value': players}],
+             'capacity': {'used': players, 'total': DHCP_POOL}},
             {'id': 'dhcp-staff', 'name': 'DHCP staff', 'kind': 'dhcp', 'status': 'up',
-             'summary': '52 of 64 leases left', 'metrics': [{'label': 'Leases left', 'value': 52}]},
+             'summary': '52 of 64 leases left', 'metrics': [{'label': 'Leases left', 'value': 52}],
+             'capacity': {'used': 12, 'total': 64}},
             {'id': 'cache', 'name': 'LAN cache', 'kind': 'cache',
              'status': _level(hit / 100, warn=0.5, down=0.2, higher_is_better=True),
              'summary': f'{hit} % hit rate, {saved} GB saved',

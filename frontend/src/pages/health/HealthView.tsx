@@ -13,6 +13,7 @@ import { clock } from '@/lib/time'
 
 const KINDS: HealthKind[] = ['dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other']
 const STATES: State[] = ['down', 'warn', 'up', 'unknown']
+const SAY_FULL_IN = 180 // minutes: further out than this, a forecast is noise
 
 /** Seconds since a unix time, ticking once every few seconds. */
 function useAge(since: number | null | undefined) {
@@ -40,6 +41,11 @@ function Tile({ check }: { check: HealthCheck }) {
         <span className="fb-health-state">{t(`health.status.${check.status}`)}</span>
       </header>
       {check.summary && <p className="fb-health-summary">{check.summary}</p>}
+      {check.forecast?.full_in_min != null && check.forecast.full_in_min <= SAY_FULL_IN && (
+        <p className={`fb-health-summary${check.forecast.raised ? ' fb-tone-warn' : ''}`}>
+          {t('health.fullIn', { count: check.forecast.full_in_min, rate: check.forecast.rate_per_min })}
+        </p>
+      )}
       {check.metrics.length > 0 && (
         <dl className="fb-health-metrics">
           {check.metrics.map((m) => (
