@@ -77,7 +77,10 @@
     "marks": "Plan marks",
     "marksHint": "Public: only the Overview and Safety marks, for a screen people walk past.",
     "expanded": "Show it big",
-    "expandedHint": "With its filters and details, for a pane that fills a screen."
+    "expandedHint": "With its filters and details, for a pane that fills a screen.",
+    "level": "Size",
+    "levelHint": "Automatic picks small, medium or large from the size of the box.",
+    "widgetType": "Show as"
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",
@@ -142,5 +145,19 @@
     "traffic": "Traffic",
     "power": "Power load",
     "event": "Event in numbers"
+  },
+  "level": {
+    "auto": "Automatic",
+    "s": "Small",
+    "m": "Medium",
+    "l": "Large"
+  },
+  "widgetType": {
+    "auto": "Automatic ({{kind}})",
+    "stat": "Number",
+    "status": "Status",
+    "graph": "Graph",
+    "table": "Table",
+    "list": "List"
   }
 }

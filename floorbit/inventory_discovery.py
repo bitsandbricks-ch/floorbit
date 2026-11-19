@@ -240,14 +240,15 @@ def run():
         seen = {}
         for dev_id, (_values, row) in found.items():
             dev = inventory.find(data, dev_id)
-            seen[dev_id] = {**networks_of(row), 'transceivers': optics_of(row, dev['name'] if dev else '')}
+            seen[dev_id] = {**networks_of(row), 'transceivers': optics_of(row, dev['name'] if dev else ''),
+                            'poe': poe_of(row)}
         last = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
         # A device that didn't answer this time keeps what it said last: its optics and VLANs aren't gone.
         kept = {dev_id: n for dev_id, n in last.items()
                 if dev_id not in seen and isinstance(n, dict) and inventory.find(data, dev_id) is not None}
         data['inventory_discovered'] = {
             **kept, **{dev_id: {**n, 'at': now_text} for dev_id, n in seen.items()
-                       if n['vlans'] or n['networks'] or n['transceivers']}}
+                       if n['vlans'] or n['networks'] or n['transceivers'] or n['poe']}}
         _entries(data, list(data['inventory_discovered'].values()), report)
         save_data(data)
     return _keep(report)
@@ -332,6 +333,17 @@ def optics_of(row, device_name):
     return out[:500]
 
 
+def poe_of(row):
+    """A switch's PoE budget and what it gives now, in watts: {budget_w, used_w}, or None."""
+    facts = row.get('facts') if isinstance(row.get('facts'), dict) else {}
+    poe = facts.get('poe') if isinstance(facts.get('poe'), dict) else {}
+    try:
+        return {'budget_w': float(poe['budget_w']), 'used_w': float(poe.get('used_w') or 0)} if poe.get('budget_w') \
+            else None
+    except (TypeError, ValueError):
+        return None
+
+
 def _entries(data, found, report):
     """Every VLAN, network and transceiver the devices know, as inventory entries (the same rules
     as a plugin's: hand changes win, nothing is deleted)."""
@@ -365,7 +377,7 @@ def _entries(data, found, report):
 
 def discovered_of(data, device_id):
     found = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
-    return {'vlans': [], 'networks': [], 'transceivers': [], 'at': None, **(found.get(device_id) or {})}
+    return {'vlans': [], 'networks': [], 'transceivers': [], 'poe': None, 'at': None, **(found.get(device_id) or {})}
 
 
 # ── drift ────────────────────────────────────────────────────────────────────────────────────

@@ -368,3 +368,63 @@ def test_discovery_adds_the_optics_as_transceiver_entries_and_keeps_them_while_a
     assert len(kept) == 1 and not kept[0].get('gone')
     now = moved.get('entries', moved if isinstance(moved, list) else [])
     assert len(now) == 1 and (now[0]['fields']['device'], now[0]['fields']['port']) == ('sw-a-02', 'Te1/1/4')
+
+
+# ── PoE (issue #919) ────────────────────────────────────────────────────────────────────────────
+
+def test_a_cisco_switch_says_poe_per_port_and_its_budget():
+    st = State()
+    ns = 1_700_000_000_000_000_000
+    st.apply_text('\n'.join([
+        f'fb_if,{SW},index=10101,ifName=Gi1/0/1 ifOperStatus=1i {ns}',
+        f'fb_if,{SW},index=10102,ifName=Gi1/0/2 ifOperStatus=1i {ns}',
+        f'fb_if,{SW},index=1,ifName=Vl1 ifOperStatus=1i {ns}',
+        f'fb_entalias,{SW},index=1011.0 entAliasMappingIdentifier="iso.3.6.1.2.1.2.2.1.1.10101" {ns}',
+        f'fb_entalias,{SW},index=1012.0 entAliasMappingIdentifier="iso.3.6.1.2.1.2.2.1.1.10102" {ns}',
+        f'fb_poe,{SW},index=1.1 pethPsePortAdminEnable=1i,pethPsePortDetectionStatus=3i,'
+        f'pethPsePortPowerClassifications=4i {ns}',
+        f'fb_poe,{SW},index=1.1 cpeExtPsePortPwrConsumption=6400i,cpeExtPsePortPwrAllocated=15400i,'
+        f'cpeExtPsePortEntPhyIndex=1011i {ns}',
+        f'fb_poe,{SW},index=1.2 pethPsePortAdminEnable=2i,pethPsePortDetectionStatus=1i {ns}',
+        f'fb_poe,{SW},index=1.2 cpeExtPsePortPwrConsumption=0i,cpeExtPsePortEntPhyIndex=1012i {ns}',
+        f'fb_pse,{SW},index=1 pethMainPsePower=740i,pethMainPseOperStatus=1i,pethMainPseConsumptionPower=37i {ns}',
+        f'fb_pse,{SW},index=2 pethMainPsePower=740i,pethMainPseOperStatus=1i,pethMainPseConsumptionPower=0i {ns}',
+    ]))
+    dev = st.devices['sw-a-01']
+    ports = {i.name: dev.port_facts(i).get('poe') for i in dev.interfaces.values()}
+    # Port 1.1 is not ifIndex 1 (the VLAN interface): Cisco says which port through ENTITY-MIB.
+    assert ports == {'Gi1/0/1': {'state': 'delivering', 'class': 3, 'draw_w': 6.4, 'allocated_w': 15.4},
+                     'Gi1/0/2': {'state': 'off', 'draw_w': 0.0}, 'Vl1': None}
+    assert dev.summary()['poe'] == {'budget_w': 1480, 'used_w': 37}
+
+
+def test_other_switches_number_poe_ports_by_ifindex():
+    st = State()
+    ns = 1_700_000_000_000_000_000
+    st.apply_text('\n'.join([
+        f'fb_if,{SW},index=5,ifName=5 ifOperStatus=1i {ns}',
+        f'fb_poe,{SW},index=1.5 pethPsePortAdminEnable=1i,pethPsePortDetectionStatus=4i {ns}',
+    ]))
+    dev = st.devices['sw-a-01']
+    assert dev.port_facts(next(iter(dev.interfaces.values())))['poe'] == {'state': 'fault'}
+
+
+def test_telegraf_asks_switches_for_poe():
+    t = {'name': 'sw-a-01', 'address': '192.0.2.10', 'platform': 'ios', 'drivers': ['snmp'], 'kind': 'switch'}
+    conf = '\n'.join(telegraf.snmp(t))
+    assert 'name = "fb_poe"' in conf and '"1.3.6.1.4.1.9.9.402.1.2.1.9"' in conf and 'name = "fb_pse"' in conf
+    server = '\n'.join(telegraf.snmp({**t, 'platform': 'other', 'kind': 'server'}))
+    assert 'fb_poe' not in server
+
+
+def test_discovery_keeps_a_switchs_poe_budget(client):
+    add(client, name='sw-a-01')
+    rows = [{'hostname': 'sw-a-01', 'status': 1, 'facts': {'poe': {'budget_w': 740, 'used_w': 37}}}]
+    before = sources.use(Telemetry(rows, {}))
+    try:
+        client.post('/api/inventory/sync')
+        sw = next(d for d in client.get('/api/inventory').get_json()['devices'] if d['name'] == 'sw-a-01')
+        detail = client.get(f"/api/inventory/{sw['id']}").get_json()
+    finally:
+        sources.use(before)
+    assert detail['discovered']['poe'] == {'budget_w': 740.0, 'used_w': 37.0}

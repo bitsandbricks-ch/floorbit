@@ -18,7 +18,10 @@ TEXTS = {
            'problems_sub': '{warn} to look at · {attention} port trouble · {muted} muted',
            'incidents_sub': '{waiting} waiting 10+ min · {worked} being worked',
            'down_switches': 'Switches down', 'all_up': 'All switches up', 'no_status': 'No switch status yet',
-           'just_now': 'just now', 'mins': '{n} min', 'hours': '{h} h {m} min', 'more': '+ {n} more'},
+           'just_now': 'just now', 'mins': '{n} min', 'hours': '{h} h {m} min', 'more': '+ {n} more',
+           'switch_states': 'Switch states', 'down_for': 'down {t}', 'open_incidents': 'Open incidents',
+           'col_what': 'What', 'col_where': 'Where', 'col_open': 'Open for', 'switch_at': 'Switch {name}',
+           'seat_at': 'Seat {seat}', 'traffic': 'Traffic', 'download': 'Download', 'upload': 'Upload'},
     'de': {'problems': 'Probleme jetzt', 'incidents': 'Störungen', 'down': 'ausgefallen', 'open': 'offen',
            'switches': 'Switches', 'switches_unit': 'von {n} online',
            'switches_sub': '{offline} offline · {unknown} unbekannt',
@@ -28,7 +31,10 @@ TEXTS = {
            'incidents_sub': '{waiting} warten seit 10+ Min. · {worked} in Arbeit',
            'down_switches': 'Switches ausgefallen', 'all_up': 'Alle Switches online',
            'no_status': 'Noch kein Switch-Status', 'just_now': 'gerade eben', 'mins': '{n} Min.',
-           'hours': '{h} Std. {m} Min.', 'more': '+ {n} weitere'},
+           'hours': '{h} Std. {m} Min.', 'more': '+ {n} weitere',
+           'switch_states': 'Switch-Status', 'down_for': 'aus seit {t}', 'open_incidents': 'Offene Störungen',
+           'col_what': 'Was', 'col_where': 'Wo', 'col_open': 'Offen seit', 'switch_at': 'Switch {name}',
+           'seat_at': 'Platz {seat}', 'traffic': 'Verkehr', 'download': 'Download', 'upload': 'Upload'},
 }
 # One line per tile: its id, the text key of its label, its size and how often it reloads (seconds).
 # blueprints/plugins.py core_widget() has the matching builder. The Widgets gallery lists them all.
@@ -38,6 +44,10 @@ TILES = {
     'switches': {'label': 'switches', 'size': 'small', 'refresh': 30},    # #304
     'seats': {'label': 'seats', 'size': 'small', 'refresh': 30},          # #304
     'down': {'label': 'down_switches', 'size': 'small', 'refresh': 15},  # the old /kiosk's "Down" list
+    # Data for the generic widget types (#894): a state per switch, the open incidents, traffic over time.
+    'switch_states': {'label': 'switch_states', 'size': 'small', 'refresh': 15},
+    'open_incidents': {'label': 'open_incidents', 'size': 'small', 'refresh': 30},
+    'traffic': {'label': 'traffic', 'size': 'wide', 'refresh': 30},
 }
 MAX_DOWN = 20   # a big screen reads a short list; the rest is "+ n more"
 
@@ -45,7 +55,7 @@ MAX_DOWN = 20   # a big screen reads a short list; the rest is "+ n more"
 def tiles(lang, may_see_board):
     """The tile list entries, next to the plugins' in ``GET /api/dashboard``."""
     text = TEXTS.get(lang, TEXTS['en'])
-    hidden = set() if may_see_board else {'incidents'}
+    hidden = set() if may_see_board else {'incidents', 'open_incidents'}
     return [{'plugin': PLUGIN, 'plugin_name': NAME, 'id': tile, 'label': text[spec['label']], 'size': spec['size'],
              'refresh': spec['refresh'], 'url': f'/api/dashboard/floorbit/{tile}'}
             for tile, spec in TILES.items() if tile not in hidden]
@@ -115,3 +125,51 @@ def incidents_widget(lang, now=None):
     return {'type': 'stat', 'value': len(still_open), 'unit': text['open'],
             'tone': 'warn' if waiting else '' if still_open else 'ok',
             'sub': text['incidents_sub'].format(waiting=waiting, worked=worked), 'link': '/incidents'}
+
+
+STATE_OF = {'online': 'up', 'offline': 'down'}
+
+
+def switch_states_widget(lang, statuses, now=None):
+    """Every switch with its state, down ones first: the state grid's data."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    now = time.time() if now is None else now
+    order = {'down': 0, 'unknown': 1, 'up': 2}
+    items = []
+    for s in statuses.values():
+        state = STATE_OF.get(s.get('status'), 'unknown')
+        detail = text['down_for'].format(t=_down_for(text, now - (s.get('since') or now))) if state == 'down' else ''
+        items.append({'label': str(s.get('name') or s.get('id')), 'state': state, 'detail': detail})
+    items.sort(key=lambda i: (order[i['state']], i['label']))
+    return {'type': 'status', 'items': items[:50], 'link': '/problems'}
+
+
+def open_incidents_widget(lang, now=None):
+    """Open and worked incidents, oldest first: what is left to do."""
+    from . import incidents
+    text = TEXTS.get(lang, TEXTS['en'])
+    now = time.time() if now is None else now
+    left = sorted((i for i in incidents.list_all() if i.get('status') in ('open', 'assigned')),
+                  key=lambda i: i.get('created_at') or now)
+
+    def where(i):
+        if i.get('switch_name'):
+            return text['switch_at'].format(name=i['switch_name'])
+        if i.get('seat'):
+            return text['seat_at'].format(seat=i['seat'])
+        return i.get('circuit_name') or ''
+    rows = [{'what': i.get('title') or '', 'where': where(i),
+             'open': _down_for(text, now - (i.get('created_at') or now))} for i in left]
+    return {'type': 'table', 'columns': [{'key': 'what', 'label': text['col_what']},
+                                         {'key': 'where', 'label': text['col_where']},
+                                         {'key': 'open', 'label': text['col_open']}],
+            'rows': rows[:50], 'link': '/incidents'}
+
+
+def traffic_widget(lang, snapshot):
+    """Download and upload over time from the traffic reads (stats.py), in bit/s."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    samples = (snapshot.get('series') or [])[-500:]
+    return {'type': 'series', 'unit': 'bit/s', 'link': '/stats',
+            'series': [{'label': text['download'], 'points': [[s['t'], s['down']] for s in samples]},
+                       {'label': text['upload'], 'points': [[s['t'], s['up']] for s in samples]}]}

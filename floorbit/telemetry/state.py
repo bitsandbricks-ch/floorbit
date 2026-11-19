@@ -186,6 +186,8 @@ class Device:
         self._processors = {}             # hrDevice index -> description
         self.if_facts = {}                # ifIndex -> {mac, ips {address: prefix}, vlan, mode}
         self.vlans = {}                   # VLAN id -> name
+        self.poe = {}                     # 'group.port' -> POWER-ETHERNET-MIB (+ Cisco) fields
+        self.pse = {}                     # PoE group (a stack member) -> {budget_w, used_w, on}
 
     # ports -----------------------------------------------------------------------------------
     def port(self, index=None, name=None):
@@ -218,12 +220,41 @@ class Device:
     def online(self, now=None):
         return (time.time() if now is None else now) - self.seen < STALE
 
-    def port_facts(self, iface):
-        """What discovery knows of one port: mac, ips ['a.b.c.d/nn'], vlan, mode."""
+    def poe_ports(self):
+        """PoE per ifIndex: {ifIndex: {state, class, draw_w, allocated_w}}. Cisco names each row's
+        ENTITY-MIB port, which the alias table maps to its interface; elsewhere the port number is
+        the ifIndex (HPE/Aruba, most others) when the switch has one PoE group."""
+        out = {}
+        groups = {key.split('.')[0] for key in self.poe}
+        for key, f in self.poe.items():
+            if 'cpeExtPsePortEntPhyIndex' in f:
+                index = self._entity_if.get(str(int(_num(f['cpeExtPsePortEntPhyIndex']) or 0)))
+            else:
+                index = key.split('.')[-1] if len(groups) == 1 else None
+            if index is None or str(index) not in self.interfaces:
+                continue
+            admin, found = _num(f.get('pethPsePortAdminEnable')), _num(f.get('pethPsePortDetectionStatus'))
+            row = {'state': 'off' if admin == 2 else POE_STATE.get(int(found or 0), 'unknown')}
+            klass = _num(f.get('pethPsePortPowerClassifications'))
+            if klass and row['state'] == 'delivering':
+                row['class'] = int(klass) - 1
+            for field, name in (('cpeExtPsePortPwrConsumption', 'draw_w'),
+                                ('cpeExtPsePortPwrAllocated', 'allocated_w')):
+                if _num(f.get(field)) is not None:
+                    row[name] = round(_num(f[field]) / 1000, 1)
+            out[str(index)] = row
+        return out
+
+    def port_facts(self, iface, poe=None):
+        """What discovery knows of one port: mac, ips ['a.b.c.d/nn'], vlan, mode, and its PoE
+        (``poe``: poe_ports(), worked out once for all ports)."""
         facts = self.if_facts.get(str(iface.index)) if iface.index is not None else None
+        power = (poe if poe is not None else self.poe_ports()).get(str(iface.index)) if self.poe else None
         if not facts:
-            return {}
+            return {'poe': power} if power else {}
         out = {k: facts[k] for k in ('mac', 'vlan', 'mode') if facts.get(k)}
+        if power:
+            out['poe'] = power
         if facts.get('ips'):
             out['ips'] = [f'{ip}/{prefix}' for ip, prefix in sorted(facts['ips'].items())]
         return out
@@ -289,6 +320,11 @@ class Device:
                     networks.add(str(ipaddress.ip_network(f'{ip}/{prefix}', strict=False)))
         if networks:
             out['networks'] = sorted(networks)
+        if self.pse:
+            on = [g for g in self.pse.values() if g.get('on') and g.get('budget_w')]
+            if on:
+                out['poe'] = {'budget_w': sum(g['budget_w'] for g in on),
+                              'used_w': sum(g.get('used_w') or 0 for g in on)}
         optics = self.transceivers()
         if optics:
             out['transceivers'] = optics
@@ -483,6 +519,31 @@ def _entalias(dev, point, at):
         return bool(parts[0])
     if parts[0] in dev._entity_if or len(dev._entity_if) < MAX_ENTITY:
         dev._entity_if[parts[0]] = match.group(1)
+    return True
+
+
+POE_STATE = {1: 'off', 2: 'searching', 3: 'delivering', 4: 'fault', 5: 'test', 6: 'fault'}
+
+
+def _poe(dev, point, at):
+    """pethPsePortTable and Cisco's extension of it, both indexed group.port: one row each."""
+    index = str(_index(point) or '')
+    if index.count('.') != 1:
+        return False
+    if index in dev.poe or len(dev.poe) < MAX_IF_FACTS:
+        dev.poe.setdefault(index, {}).update(point.fields)
+    return True
+
+
+def _pse(dev, point, at):
+    """pethMainPseTable: each PoE group's (stack member's) budget and what it gives now."""
+    f = point.fields
+    if not _index(point):
+        return False
+    if len(dev.pse) < 64 or str(_index(point)) in dev.pse:
+        dev.pse[str(_index(point))] = {'budget_w': _num(f.get('pethMainPsePower')),
+                                      'used_w': _num(f.get('pethMainPseConsumptionPower')),
+                                      'on': _num(f.get('pethMainPseOperStatus')) == 1}
     return True
 
 
@@ -852,6 +913,7 @@ _HANDLERS = {
     'fb_bridge': _bridge, 'fb_fdb': _fdb, 'fb_qfdb': _qfdb, 'fb_arp': _arp, 'fb_lldp': _lldp,
     'fb_lldp_loc': _lldp_local, 'fb_cdp': _cdp, 'snmp_trap': _trap, 'fb_gateway': _gateway,
     'cpu': _fw_cpu, 'mem': _fw_mem, 'net': _fw_net, 'pf': _fw_pf, 'system': _fw_system,
+    'fb_poe': _poe, 'fb_pse': _pse,
     'fb_facts': _facts, 'fb_entity': _entity, 'fb_entalias': _entalias, 'fb_storage': _storage,
     'fb_hrdevice': _hrdevice, 'fb_mem': _mem,
     'fb_ifmac': _ifmac, 'fb_ip': _ip, 'fb_vtp': _vtp, 'fb_qvlan': _qvlan, 'fb_ifvlan': _ifvlan, 'fb_pvid': _pvid,

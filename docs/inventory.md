@@ -197,6 +197,8 @@ CPUs, the Cisco memory pool); with LibreNMS it takes what LibreNMS knows of the 
   the port it sits in (ENTITY-MIB's alias mapping, its parent's, or the same name), and form
   factor, media and speed read from the model. An optic moved to another port or switch follows.
   A device's own list is `discovered.transceivers`.
+- A switch's PoE budget and what it gives now are `discovered.poe` (`budget_w`, `used_w`); the
+  per-port PoE is live data on its ports ([telemetry](telemetry.md)).
 - A device that didn't answer keeps what it said last, so its optics and VLANs aren't marked gone
   while it is away.
 - The platform it finds (Cisco IOS, IOS-XE, NX-OS, Linux, ...) also sets what telemetry does

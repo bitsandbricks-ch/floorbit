@@ -483,9 +483,22 @@ def _down_tile(user):
     return core.down_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].statuses)
 
 
+def _switch_states_tile(user):
+    return core.switch_states_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].statuses)
+
+
+def _open_incidents_tile(user):
+    return core.open_incidents_widget(_lang()) if _may_see_board(user) else None
+
+
+def _traffic_tile(user):
+    return core.traffic_widget(_lang(), current_app.extensions['floorbit_stats'].snapshot())
+
+
 # Floorbit's own tiles (dashboard_core.TILES): one builder each, None when this account may not see it.
 CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switches': _switches_tile,
-              'seats': _seats_tile, 'down': _down_tile}
+              'seats': _seats_tile, 'down': _down_tile, 'switch_states': _switch_states_tile,
+              'open_incidents': _open_incidents_tile, 'traffic': _traffic_tile}
 
 
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])
