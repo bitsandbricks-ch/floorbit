@@ -40,7 +40,7 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
   const stacked = stack !== 'none' ? stackLines(lines, stack) : null
   const top = stack === 'percent' ? 100 : stacked ? Math.max(1, ...stacked[stacked.length - 1].map((p) => p[2])) : Math.max(...all.map((p) => p[1]), 1)
   const x = (ts: number) => ((ts - t0) / (t1 - t0 || 1)) * W
-  const when = (ts: number) => (timed ? (t1 - t0 >= 86400 ? dayClock(ts * 1000) : clock(ts * 1000)) : '')
+  const when = (ts: number) => (timed ? (t1 - t0 >= 86400 ? dayClock(ts) : clock(ts)) : '')
   const fmt = (v: number) => { const f = formatValue(v, unit, i18n.language, style); return `${f.value}${f.unit ? ` ${f.unit}` : ''}` }
   // The sample nearest the pointer, on the longest line: every line is read at that time.
   const base = lines.reduce((a, b) => (b.points.length > a.points.length ? b : a))

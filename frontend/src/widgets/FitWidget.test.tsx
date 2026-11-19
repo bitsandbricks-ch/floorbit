@@ -2,6 +2,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { Widget } from '@/api/types'
 import { renderWithApp } from '@/test/render'
+import { clock } from '@/lib/time'
 import { FitWidget } from './FitWidget'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
@@ -54,6 +55,18 @@ describe('FitWidget', () => {
     renderWithApp(<FitWidget widget={series} />)
     expect(screen.getByRole('img', { name: 'Graph: W' })).toBeInTheDocument()
     expect(screen.getByText('2 Gbit/s')).toBeInTheDocument()
+  })
+
+  it('writes the time axis in the samples own times', () => {
+    size = { w: 900, h: 500 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 1], [1800003600, 2]] }] }
+    const { container, unmount } = renderWithApp(<FitWidget widget={series} />)
+    const axis = [...container.querySelectorAll('.fb-w-axis span')].map((s) => s.textContent)
+    expect(axis[0]).toBe(clock(1800000000))
+    expect(axis[2]).toBe(clock(1800003600))
+    unmount()
+    const cols = renderWithApp(<FitWidget widget={series} pick="column" />)
+    expect(cols.container.querySelector('.fb-w-axis span')?.textContent).toBe(clock(1800000000))
   })
 
   it('draws a stat with a scale as a gauge', () => {

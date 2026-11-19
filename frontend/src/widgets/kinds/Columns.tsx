@@ -103,7 +103,7 @@ function TimeColumns({ widget, level, box, look = {} }: { widget: Widget; level:
   if (!buckets.length) return <div className="fb-w-empty">{t('widgets.kind.noData')}</div>
   const fmt = (v: number) => { const f = formatValue(v, unit, i18n.language, style); return `${f.value}${f.unit ? ` ${f.unit}` : ''}` }
   const span = buckets[buckets.length - 1].to - buckets[0].from
-  const when = (ts: number) => (timed ? (span >= 86400 ? dayClock(ts * 1000) : clock(ts * 1000)) : '')
+  const when = (ts: number) => (timed ? (span >= 86400 ? dayClock(ts) : clock(ts)) : '')
   const stack = lines.length > 1 ? look.stack ?? 'none' : 'none'
   const sums = buckets.map((b) => b.values.reduce<number>((a, v) => a + Math.max(0, v ?? 0), 0))
   const top = stack === 'percent' ? 100 : stack === 'stacked' ? Math.max(1, ...sums) : Math.max(1, ...buckets.flatMap((b) => b.values.map((v) => v ?? 0)))
