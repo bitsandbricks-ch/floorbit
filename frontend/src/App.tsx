@@ -22,6 +22,8 @@ const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
 const Security = lazy(() => import('@/pages/Security'))
 const Power = lazy(() => import('@/pages/Power'))
+const BoardPage = lazy(() => import('@/pages/power/BoardPage'))
+const CircuitPage = lazy(() => import('@/pages/power/CircuitPage'))
 const Problems = lazy(() => import('@/pages/Problems'))
 const Setup = lazy(() => import('@/pages/Setup'))
 const Topology = lazy(() => import('@/pages/Topology'))
@@ -108,6 +110,8 @@ export default function App() {
             <Route path="/incidents/qr" element={<HelpdeskQr />} />
             <Route path="/security" element={<Security />} />
             <Route path="/power" element={<Power />} />
+            <Route path="/power/boards/:id" element={<BoardPage />} />
+            <Route path="/power/circuits/:id" element={<CircuitPage />} />
             <Route path="/problems" element={<Problems />} />
             <Route path="/setup" element={<Setup />} />
             <Route path="/topology" element={<Topology />} />

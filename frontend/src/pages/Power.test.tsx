@@ -1,8 +1,19 @@
 import { fireEvent, screen, within } from '@testing-library/react'
+import { Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Circuit, PowerOverview } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Power from './Power'
+import BoardPage from './power/BoardPage'
+import CircuitPage from './power/CircuitPage'
+
+// The list and the board and circuit pages, so a click from one lands on the other.
+const app = (route = '/power') => renderWithApp(
+  <Routes>
+    <Route path="/power" element={<Power />} />
+    <Route path="/power/boards/:id" element={<BoardPage />} />
+    <Route path="/power/circuits/:id" element={<CircuitPage />} />
+  </Routes>, route)
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -24,61 +35,85 @@ const overview = (over: Partial<PowerOverview> = {}): PowerOverview => ({
 const me = { enabled: true, user: { username: 'kim', display_name: 'Kim', role: 'viewer', permissions: ['floorplan.view'] } }
 
 describe('Electrics', () => {
-  it('shows each circuit with its load and what it feeds', async () => {
+  it('shows each circuit with its load and what it feeds, each opening its own page', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/power': overview(), 'GET /api/switches': [] }).fn)
-    renderWithApp(<Power />)
+    app()
     const board = await screen.findByRole('region', { name: /DB-1/ })
-    const row = within(board).getByText('A row 2').closest('tr') as HTMLElement
+    expect(within(board).getByRole('link', { name: 'DB-1' })).toHaveAttribute('href', '/power/boards/b1')
+    const link = within(board).getByRole('link', { name: 'A row 2' })
+    expect(link).toHaveAttribute('href', '/power/circuits/c1')
+    const row = link.closest('tr') as HTMLElement
     expect(within(row).getByText('Getting close')).toBeInTheDocument()
     expect(within(row).getByText('13.2 A of 16 A (82.5 %)')).toBeInTheDocument()
     expect(within(row).getByText('block A row 2, sw-a-01')).toBeInTheDocument()
     expect(within(row).getByText('3 seats')).toBeInTheDocument()
+    // No buttons on the rows: everything is done on the circuit's page (issue #877).
+    expect(within(row).queryByRole('button')).toBeNull()
     expect(screen.getByText('1 tripped')).toBeInTheDocument()
     // One getting close and one tripped: a background tab shows two (issue #218).
     expect(document.title).toBe('(2) Electrics · Floorbit')
     // Someone on the Electrics team types readings in but can't change the circuits.
-    expect(screen.queryByRole('button', { name: 'Add board' })).not.toBeInTheDocument()
-    expect(within(row).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Add board' })).not.toBeInTheDocument()
   })
 
-  it('sends a reading in watts and reports a trip', async () => {
+  it('sends a reading in watts and reports a trip on the circuit page', async () => {
     const fake = fakeFetch({
       'GET /api/auth/me': me, 'GET /api/power': overview(), 'GET /api/switches': [],
       'POST /api/power/circuits/c1/reading': { circuit: circuit(), alerts: [] },
       'POST /api/power/circuits/c1/trip': { circuit: circuit(), alerts: [] },
     })
     vi.stubGlobal('fetch', fake.fn)
-    renderWithApp(<Power />)
-    const row = (await screen.findByText('A row 2')).closest('tr') as HTMLElement
-    fireEvent.click(within(row).getByRole('button', { name: 'Reading' }))
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByText('Watts'))
-    fireEvent.change(within(dialog).getByLabelText(/Load/), { target: { value: '2900' } })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }))
+    app('/power/circuits/c1')
+    fireEvent.click(await screen.findByText('Watts'))
+    fireEvent.change(screen.getByLabelText(/Load/), { target: { value: '2900' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.path.endsWith('/reading'))?.body).toEqual({ watts: 2900 }))
-    fireEvent.click(within(row).getByRole('button', { name: 'Tripped' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tripped' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.path.endsWith('/trip'))?.body).toEqual({ tripped: true }))
+    // Without floor plan rights there is no form to change the circuit.
+    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull()
   })
 
-  it('asks in its own dialog before it removes a circuit', async () => {
+  it('asks in its own dialog before it removes a circuit, then goes back to its board', async () => {
     const fake = fakeFetch({
       'GET /api/auth/me': me, 'GET /api/power': overview({ can_edit: true }), 'GET /api/switches': [],
       'DELETE /api/power/circuits/c1': { ok: true },
     })
     vi.stubGlobal('fetch', fake.fn)
-    renderWithApp(<Power />)
-    const row = (await screen.findByText('A row 2')).closest('tr') as HTMLElement
-    fireEvent.click(within(row).getByRole('button', { name: 'Remove' }))
+    app('/power/circuits/c1')
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Remove A row 2?')).toBeInTheDocument()
     expect(fake.calls.some((c) => c.method === 'DELETE')).toBe(false)
     fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, go ahead' }))
     await vi.waitFor(() => expect(fake.calls.some((c) => c.method === 'DELETE' && c.path === '/api/power/circuits/c1')).toBe(true))
+    expect(await screen.findByRole('link', { name: 'Add circuit' })).toHaveAttribute('href', '/power/circuits/new?board=b1')
+  })
+
+  it('changes a board on its page and lists its circuits', async () => {
+    const fake = fakeFetch({
+      'GET /api/auth/me': me, 'GET /api/power': overview({ can_edit: true }), 'GET /api/switches': [],
+      'PATCH /api/power/boards/b1': { id: 'b1', name: 'DB-2', location: 'West wall', x: 4, y: 40 },
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    app('/power/boards/b1')
+    expect(await screen.findByRole('link', { name: 'Network rack' })).toHaveAttribute('href', '/power/circuits/c2')
+    // A board with circuits can't be removed.
+    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'DB-2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'PATCH')?.body).toMatchObject({ name: 'DB-2', location: 'West wall' }))
+  })
+
+  it('says so when a circuit is gone', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/power': overview(), 'GET /api/switches': [] }).fn)
+    app('/power/circuits/nope')
+    expect(await screen.findByText('This circuit is gone.')).toBeInTheDocument()
   })
 
   it('says so when the layer is off', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/power': overview({ enabled: false }), 'GET /api/switches': [] }).fn)
-    renderWithApp(<Power />)
+    app()
     expect(await screen.findByText(/The power layer is off/)).toBeInTheDocument()
   })
 })
