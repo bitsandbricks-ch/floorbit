@@ -1,7 +1,7 @@
 import {
-  Alert, Badge, Button, Group, Paper, Stack, Table, Text, TextInput,
+  Alert, Badge, Button, Group, Menu, Paper, Stack, Table, Text, TextInput,
 } from '@mantine/core'
-import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconChevronDown, IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -57,18 +57,25 @@ export default function Cables() {
         actions={
           <Group gap="xs">
             {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => setAdding({})}>{t('cables.add')}</Button>}
-            {canEdit && <Button variant="default" leftSection={<IconLayoutRows size={16} />} onClick={() => setPatching(true)}>
-              {t('cables.patchBlock')}</Button>}
             {canEdit && <Button variant="default" component="a" href="/cables/walk" leftSection={<IconPlugConnected size={16} />}>
               {t('walk.title')}</Button>}
-            {canEdit && d && d.sources.length > 0 && (
-              <Button variant="default" leftSection={<IconCloudDownload size={16} />} loading={doImport.isPending}
-                onClick={() => doImport.mutate()}>{t('cables.import', { source: d.sources.join(', ') })}</Button>
-            )}
-            <Button variant="default" component="a" target="_blank" leftSection={<IconPrinter size={16} />}
-              href={`/api/cables/labels.pdf${q}`}>{t('cables.labels')}</Button>
-            <Button variant="default" component="a" leftSection={<IconDownload size={16} />}
-              href={`/api/cables.csv${q}`}>CSV</Button>
+            {/* The rest in a menu: six buttons pushed the bar past a laptop screen. */}
+            <Menu position="bottom-end" withinPortal>
+              <Menu.Target>
+                <Button variant="default" rightSection={<IconChevronDown size={14} />}>{t('cables.more')}</Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                {canEdit && <Menu.Item leftSection={<IconLayoutRows size={14} />} onClick={() => setPatching(true)}>{t('cables.patchBlock')}</Menu.Item>}
+                {canEdit && d && d.sources.length > 0 && (
+                  <Menu.Item leftSection={<IconCloudDownload size={14} />} disabled={doImport.isPending} onClick={() => doImport.mutate()}>
+                    {t('cables.import', { source: d.sources.join(', ') })}
+                  </Menu.Item>
+                )}
+                <Menu.Item component="a" target="_blank" href={`/api/cables/labels.pdf${q}`} leftSection={<IconPrinter size={14} />}>
+                  {t('cables.labels')}</Menu.Item>
+                <Menu.Item component="a" href={`/api/cables.csv${q}`} leftSection={<IconDownload size={14} />}>CSV</Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
           </Group>
         } />
       <Stack gap="md">
