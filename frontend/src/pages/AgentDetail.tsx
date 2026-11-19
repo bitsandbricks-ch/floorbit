@@ -12,19 +12,21 @@ import { Layout } from '@/components/Layout'
 import { StatCard } from '@/components/StatCard'
 import { EmptyState, ErrorBanner, Field, LoadingState, Panel } from '@/components/ui'
 import { ago, dateOnly } from '@/lib/time'
+import { AgentDevices } from './agents/AgentDevices'
 import { AgentGraphs } from './agents/AgentGraphs'
 import { AgentRename, NewKeyButton, PluginsOff, Updates } from './agents/AgentTools'
 import { AgentSettingsForm, CertPanel, KeyPanel } from './agents/AgentSettings'
 import { useAgentSettings, useAgents, useHalls } from './agents/data'
 import { Blocked, PluginTable, Report } from './agents/Details'
+import { HintAnchor } from './agents/HintAnchor'
 import { KeyAlert, type Made } from './agents/KeyAlert'
 import { behind, stateKey, upText } from './agents/model'
 
-const TABS = ['overview', 'graphs', 'plugins', 'updates', 'settings'] as const
+const TABS = ['overview', 'devices', 'graphs', 'plugins', 'updates', 'settings'] as const
 type Tab = (typeof TABS)[number]
 
 /** One local agent: a header with what it is and how it connects, then tabs for what needs a
- *  look and its numbers, its numbers over time, its plugins, its plugin updates, and its settings (halls, key, revoke). */
+ *  look and its numbers, the devices it collects, its numbers over time, its plugins, its plugin updates, and its settings (halls, key, revoke). */
 export default function AgentDetail() {
   const { t, i18n } = useTranslation()
   const lang = i18n.language
@@ -96,6 +98,7 @@ export default function AgentDetail() {
         <Tabs value={tab} onChange={setTab} keepMounted={false}>
           <Tabs.List>
             <Tabs.Tab value="overview">{t('agents.tab.overview')}</Tabs.Tab>
+            <Tabs.Tab value="devices">{t('agents.tab.devices')}</Tabs.Tab>
             <Tabs.Tab value="graphs">{t('agents.tab.graphs')}</Tabs.Tab>
             <Tabs.Tab value="plugins">{t('agents.tab.plugins', { count: pluginCount })}</Tabs.Tab>
             <Tabs.Tab value="updates">{t('agents.tab.updates')}</Tabs.Tab>
@@ -119,12 +122,12 @@ export default function AgentDetail() {
                   <Panel title={t('agents.needsLook')} aria-label={t('agents.needsLook')}>
                     <Stack gap={6}>
                       {problems.length === 0 && <Text size="sm" c="dimmed">{t('agents.overview.allGood')}</Text>}
-                      {problems.filter((p) => !p.blocked).map((p, i) => <Text key={i} size="sm" c={p.tone} style={{ overflowWrap: 'anywhere' }}>{p.text}</Text>)}
+                      {problems.filter((p) => !p.blocked).map((p, i) => <Text key={i} size="sm" c={p.tone} style={{ overflowWrap: 'anywhere' }}>{p.text}{p.link && <>{' '}<HintAnchor link={p.link} /></>}</Text>)}
                       <Blocked agentId={a.id} plugins={plugins} lang={lang} size="sm" />
                     </Stack>
                   </Panel>
                   <Panel title={t('agents.plugins')} padding={0}>
-                    <PluginTable plugins={plugins} lang={lang} />
+                    <PluginTable plugins={plugins} lang={lang} agentId={a.id} />
                   </Panel>
                 </Stack>
               </Grid.Col>
@@ -152,13 +155,17 @@ export default function AgentDetail() {
             </Grid>
           </Tabs.Panel>
 
+          <Tabs.Panel value="devices" pt="md">
+            <AgentDevices agentId={a.id} />
+          </Tabs.Panel>
+
           <Tabs.Panel value="graphs" pt="md">
             <AgentGraphs agentId={a.id} />
           </Tabs.Panel>
 
           <Tabs.Panel value="plugins" pt="md">
             <Stack gap="md">
-              <Panel padding={0}><PluginTable plugins={plugins} lang={lang} /></Panel>
+              <Panel padding={0}><PluginTable plugins={plugins} lang={lang} agentId={a.id} /></Panel>
               <Blocked agentId={a.id} plugins={plugins} lang={lang} />
             </Stack>
           </Tabs.Panel>

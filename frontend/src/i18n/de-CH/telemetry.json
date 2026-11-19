@@ -113,5 +113,21 @@
   "showSilent": "Nie gehört",
   "edit": "Einrichten und testen",
   "open": "Öffnen",
-  "noMatch": "Kein Gerät passt."
+  "noMatch": "Kein Gerät passt.",
+  "state": {
+    "col": "Zustand",
+    "table": "Geräte und ihr Zustand",
+    "all": "Alle ({{count}})",
+    "look": "Braucht einen Blick ({{count}})",
+    "allFine": "Alle Geräte senden. Nichts braucht einen Blick.",
+    "silent": "Sendet nichts",
+    "never": "Nie gehört",
+    "partial": "Teilweise",
+    "unknown": "Unbekannt",
+    "waiting": "Wartet auf Traps",
+    "standby": "Anderer Agent sammelt",
+    "up": "Sendet",
+    "pinned": "Diesem Agent gegeben",
+    "pushed": "Sendet selbst"
+  }
 }

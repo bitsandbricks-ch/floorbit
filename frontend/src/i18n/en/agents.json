@@ -220,6 +220,7 @@
     "failover": "Failover per hall",
     "server": "This Floorbit",
     "overview": "Overview",
+    "devices": "Devices",
     "graphs": "Graphs",
     "plugins": "Plugins ({{count}})",
     "updates": "Updates",
@@ -366,5 +367,21 @@
       "warning": "Warnings",
       "error": "Errors"
     }
+  },
+  "devices": {
+    "error": {
+      "offline": "The agent is not connected",
+      "no_telemetry": "Telemetry is off",
+      "no_answer": "The agent did not say what it collects"
+    },
+    "errorHelp": {
+      "offline": "These are the devices Floorbit gives it. Their state shows once it is back.",
+      "no_telemetry": "Turn on the Telemetry plugin to collect from devices through the agents.",
+      "no_answer": "An agent older than this Floorbit does not know this question yet: update it. These are the devices Floorbit gives it."
+    },
+    "turnOn": "Plugins",
+    "standby": "Standby",
+    "standbyHelp": "The other agent of this pair collects. This one only takes the devices given to it by name, and takes over the rest when the other one goes away.",
+    "none": "No devices for this agent. Turn on Telemetry for devices in the inventory."
   }
 }

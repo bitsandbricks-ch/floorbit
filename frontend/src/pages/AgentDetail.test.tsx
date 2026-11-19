@@ -49,6 +49,36 @@ describe('AgentDetail', () => {
     expect(screen.getByText('Syslog, NetFlow')).toBeInTheDocument()
   })
 
+  it('lists the devices it collects, what needs a look first', async () => {
+    const problem = { driver: 'snmp', kind: 'refused', address: '192.0.2.22:161', detail: 'connection refused', hint: 'nothing listens' }
+    open(busyAgent(), 'devices', {
+      'GET /api/agents/a1b2c3d4/devices': { agent: { id: 'a1b2c3d4', name: 'Spring LAN, hall 2' }, connected: true, primary: true, error: null, detail: '', devices: [
+        { name: 'sw-a-02', inventory_id: 'd2', kind: 'switch', platform: 'ios', address: '192.0.2.22', drivers: ['snmp'], state: 'silent', pinned: true, seen: null, online: false, problems: [problem] },
+        { name: 'sw-a-01', inventory_id: 'd1', kind: 'switch', platform: 'ios', address: '192.0.2.21', drivers: ['snmp', 'traps'], state: 'up', pinned: false, seen: Math.floor(Date.now() / 1000) - 30, online: true, ports: 52, macs: 10, arp: 0, neighbours: 2, problems: [] },
+      ] },
+    })
+    const table = await screen.findByRole('table', { name: 'Devices and their state' })
+    expect(within(table).getByText('Sends nothing')).toBeInTheDocument()
+    expect(within(table).getByText('Given to this agent')).toBeInTheDocument()
+    expect(within(table).getByText('Sends')).toBeInTheDocument()
+    expect(within(table).getByText('52 ports, 10 MACs, 0 ARP, 2 neighbours')).toBeInTheDocument()
+    expect(within(table).getAllByRole('button', { name: 'Test now' })).toHaveLength(2)
+    fireEvent.click(screen.getByRole('radio', { name: 'Needs a look (1)' }))
+    expect(within(table).queryByText('sw-a-01')).not.toBeInTheDocument()
+    expect(within(table).getByText('sw-a-02')).toBeInTheDocument()
+  })
+
+  it('says when the agent is away, and still lists what it is given', async () => {
+    open({ ...busyAgent(), connected: false }, 'devices', {
+      'GET /api/agents/a1b2c3d4/devices': { agent: { id: 'a1b2c3d4', name: 'x' }, connected: false, primary: null, error: 'offline', detail: '', devices: [
+        { name: 'sw-a-01', inventory_id: 'd1', kind: 'switch', platform: 'ios', address: '192.0.2.21', drivers: ['snmp'], state: 'unknown', pinned: false, seen: null, online: false, problems: [] },
+      ] },
+    })
+    expect(await screen.findByText('The agent is not connected')).toBeInTheDocument()
+    expect(screen.getByText('Unknown')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Test now' })).not.toBeInTheDocument()
+  })
+
   it('draws its numbers over time and changes the range', async () => {
     const now = Math.floor(Date.now() / 1000)
     const pts = (v: number) => [[now - 180, v], [now - 120, v], [now - 60, v + 2]]

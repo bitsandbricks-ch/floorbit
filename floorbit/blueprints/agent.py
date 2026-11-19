@@ -4,6 +4,7 @@ For admins (``settings.manage``):
 
 - ``GET /settings/agents``: the page (React); ``/settings/agents/<id>``: one agent's page.
 - ``GET /api/agents``: the enrolled agents, whether each is connected, and the tunnel's state.
+- ``GET /api/agents/<id>/devices``: the devices it collects, their state and why one sends nothing.
 - ``POST /api/agents`` ``{"name"}``: enrol one; the answer holds its key, this once.
 - ``PATCH /api/agents/<id>`` ``{"halls": [ids]}``: the halls it answers for (empty: every hall).
 - ``DELETE /api/agents/<id>``: revoke it.
@@ -103,6 +104,16 @@ def history(agent_id):
     except DatabaseUnavailable:
         return jsonify({'error': 'The database is not answering.', 'code': 'database_unavailable'}), 503
     return jsonify({'hours': hours, 'series': series})
+
+
+@bp.route('/api/agents/<agent_id>/devices', methods=['GET'])
+def agent_devices(agent_id):
+    """The devices this agent collects, with their state and problems: its Devices tab (issue #1013)."""
+    from .. import agent_devices as found
+    result = found.devices_of(agent_id, current_app.extensions.get('floorbit_plugins'))
+    if result is None:
+        return jsonify({'error': 'No such agent.'}), 404
+    return jsonify(result)
 
 
 @bp.route('/api/agents', methods=['POST'])

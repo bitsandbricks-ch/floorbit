@@ -567,6 +567,16 @@ hours and every 15 minutes for `FLOORBIT_TELEMETRY_DAYS`; or VictoriaMetrics as 
 with an `agent` label when it is set up) and age out with them. A gap in a graph is a time the
 agent didn't report.
 
+The **Devices** tab on the agent's page lists the devices it collects, worst first: sends
+nothing, never heard, partly (a VLAN or a table fails), waits for traps, another agent collects
+(the standby of a pair), sends. Each row shows its drivers, when it was last heard, what came in
+(ports, MACs, ARP, neighbours) and, for a device that sends nothing, why, with **Test now** and
+**Raw data**. A device given to this agent by name says so; one that sends by itself (a firewall's
+own Telegraf) does too. **Needs a look** keeps only the devices with a problem, and the agent's
+"some devices send nothing" warning and a failed call about one device link there. While the
+agent is away the tab still lists what Floorbit gives it. `GET /api/agents/<id>/devices` (admins)
+has the same, asked from the agent's memory through its link; no logins.
+
 ## When the agent is away
 
 An agent counts as **connected** while it asked for work in the last 60 seconds, and over the

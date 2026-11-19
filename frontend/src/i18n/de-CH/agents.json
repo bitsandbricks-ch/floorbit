@@ -220,6 +220,7 @@
     "failover": "Ausfallsicherheit pro Halle",
     "server": "Dieses Floorbit",
     "overview": "Übersicht",
+    "devices": "Geräte",
     "graphs": "Verlauf",
     "plugins": "Plugins ({{count}})",
     "updates": "Updates",
@@ -366,5 +367,21 @@
       "warning": "Warnungen",
       "error": "Fehler"
     }
+  },
+  "devices": {
+    "error": {
+      "offline": "Der Agent ist nicht verbunden",
+      "no_telemetry": "Telemetrie ist aus",
+      "no_answer": "Der Agent hat nicht gesagt, was er sammelt"
+    },
+    "errorHelp": {
+      "offline": "Das sind die Geräte, die Floorbit ihm gibt. Ihr Zustand erscheint, sobald er zurück ist.",
+      "no_telemetry": "Schalte das Telemetrie-Plugin ein, um über die Agents von Geräten zu sammeln.",
+      "no_answer": "Ein Agent, der älter ist als dieses Floorbit, kennt diese Frage noch nicht: aktualisiere ihn. Das sind die Geräte, die Floorbit ihm gibt."
+    },
+    "turnOn": "Plugins",
+    "standby": "Bereitschaft",
+    "standbyHelp": "Der andere Agent dieses Paars sammelt. Dieser nimmt nur die Geräte, die ihm mit Namen gegeben sind, und übernimmt den Rest, wenn der andere wegfällt.",
+    "none": "Keine Geräte für diesen Agent. Schalte im Inventar Telemetrie für Geräte ein."
   }
 }

@@ -505,6 +505,32 @@ class AgentPlugin(Base):
             targets = list(self.targets)
         return lookup.find(req, targets, self.state, log=self.ctx.log)
 
+    # "Devices": what this agent collects, for the Devices tab on its page (issue #1013) ---------
+    def call_devices(self, args=None):
+        """Every device this agent was given, whether it collects it now (a standby agent of a VRRP
+        pair only takes the ones given to it by name), when it was last heard, what came in and
+        why it sends nothing. No logins."""
+        now = time.time()
+        with self.lock:
+            given = [dict(t) for t in self.targets]
+        problems = collections.defaultdict(list)
+        for p in self.problems.current(now):
+            problems[p['device']].append({**p, 'hint': problems_mod.hint(p)})
+        rows = []
+        with self.state._lock:
+            heard = dict(self.state.devices)
+            for t in given:
+                dev = heard.pop(t['name'], None)
+                rows.append(_device_row(t['name'], dev, now, problems.pop(t['name'], []),
+                                        t.get('drivers') or [], bool(t.get('mine')),
+                                        self.primary or bool(t.get('mine'))))
+            # Devices that push themselves (a firewall's own Telegraf) without being given here.
+            for name, dev in sorted(heard.items()):
+                rows.append(_device_row(name, dev, now, problems.pop(name, []), [dev.driver] if dev.driver else [],
+                                        False, True))
+        return {'primary': bool(self.primary), 'devices': rows,
+                'unknown': [p for rows_ in problems.values() for p in rows_][:20]}
+
     # "Test now": one device, once, while you watch -------------------------------------------
     def call_test(self, args):
         """Collect from one device once and say what came back, or why nothing did. Telegraf runs
@@ -621,3 +647,14 @@ def _as_line(point):
 
 def _text(value):
     return value.decode('utf-8', 'replace') if isinstance(value, bytes) else (value or '')
+
+
+def _device_row(name, dev, now, problems, drivers, mine, collects):
+    """One device for call_devices: the counts what came in, never what it holds."""
+    row = {'name': name, 'drivers': list(drivers), 'mine': mine, 'collects': collects,
+           'problems': problems[:10], 'seen': None, 'online': False}
+    if dev is not None:
+        row.update(seen=dev.seen or None, online=dev.online(now), kind=dev.kind or '', address=dev.address or '',
+                   ports=len(dev.interfaces), macs=len(dev.fdb), arp=len(dev.arp),
+                   neighbours=len(dev.lldp) + len(dev.cdp))
+    return row

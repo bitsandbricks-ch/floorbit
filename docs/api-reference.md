@@ -73,6 +73,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/cert` | `settings.manage` |  |
+| GET | `/api/agents/<agent_id>/devices` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/history` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/roll` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |

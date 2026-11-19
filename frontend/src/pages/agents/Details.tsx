@@ -89,7 +89,7 @@ export function Blocked({ agentId, plugins, lang, size = 'xs' }: { agentId: stri
 }
 
 /** Every plugin the agent runs, one row each: state, its message, all its numbers, the last error. */
-export function PluginTable({ plugins, lang }: { plugins?: Record<string, AgentPluginHealth>; lang: string }) {
+export function PluginTable({ plugins, lang, agentId }: { plugins?: Record<string, AgentPluginHealth>; lang: string; agentId?: string }) {
   const { t } = useTranslation()
   const ids = Object.keys(plugins ?? {}).sort()
   if (!plugins || !ids.length) return <Text size="sm" c="dimmed">{t('agents.noPluginReport')}</Text>
@@ -107,7 +107,7 @@ export function PluginTable({ plugins, lang }: { plugins?: Record<string, AgentP
         {ids.map((id) => {
           const p = plugins[id]
           const last = p.errors[p.errors.length - 1]
-          const says = pluginSays(p, t)
+          const says = pluginSays(p, t, agentId)
           const tone = p.status === 'error' ? 'down' : p.status === 'warning' ? 'warn' : 'dimmed'
           return (
             <Table.Tr key={id}>
