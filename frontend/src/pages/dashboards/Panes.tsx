@@ -64,6 +64,7 @@ function TileWidgetPane({ pane, tile }: { pane: Extract<Pane, { kind: 'tile' }>;
   const [big, setBig] = useState(false)
   const { data, error, isPending } = useWidget(tile)
   const title = pane.title ?? tile.label
+  const look = { stack: pane.stack, style: pane.style, trend: pane.trend }
   const link = data?.link && data.link.startsWith('/') ? data.link : ''
   return (
     <Framed title={title} hide={pane.hide_title} fit actions={data && (
@@ -84,10 +85,10 @@ function TileWidgetPane({ pane, tile }: { pane: Extract<Pane, { kind: 'tile' }>;
     )}>
       {isPending ? <Loader size="sm" aria-label={t('common.loading')} />
         : error && !data ? <Text size="sm" className="fb-tone-err fb-pane-note" role="alert">✕ {error.message}</Text>
-          : data ? <FitWidget widget={data} pick={pane.type} pin={pane.level} onMore={() => setBig(true)} /> : null}
+          : data ? <FitWidget widget={data} pick={pane.type} pin={pane.level} look={look} onMore={() => setBig(true)} /> : null}
       {big && data && (
         <Modal opened onClose={() => setBig(false)} title={title} size="90%" centered classNames={{ body: 'fb-w-big' }}>
-          <FitWidget widget={data} pick={pane.type} pin="l" />
+          <FitWidget widget={data} pick={pane.type} pin="l" look={look} />
         </Modal>
       )}
     </Framed>

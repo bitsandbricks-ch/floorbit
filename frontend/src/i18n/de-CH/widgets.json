@@ -29,7 +29,15 @@
     "other": "Andere",
     "gaugeLabel": "{{value}} von {{max}} ({{pct}} %)",
     "pieLabel": "Kreis: {{parts}}",
-    "columnsLabel": "Säulen: {{name}}"
+    "columnsLabel": "Säulen: {{name}}",
+    "histogramLabel": "Histogramm: {{name}}, {{count}} Werte",
+    "binTip": "{{range}}: {{count}}",
+    "values_one": "{{count}} Wert",
+    "values_other": "{{count}} Werte",
+    "trend": {
+      "linear": "Trend",
+      "average": "Durchschnitt"
+    }
   },
   "state": {
     "up": "Läuft",

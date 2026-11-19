@@ -88,4 +88,30 @@ describe('FitWidget', () => {
     renderWithApp(<FitWidget widget={series} pick="column" />)
     expect(screen.getByRole('img', { name: 'Columns: W' })).toBeInTheDocument()
   })
+
+  it('stacks lines to 100 % with a dashed trend', () => {
+    size = { w: 600, h: 300 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [
+      { label: 'Download', points: [[1800000000, 3], [1800000060, 1]] }, { label: 'Upload', points: [[1800000000, 1], [1800000060, 3]] }] }
+    const { container } = renderWithApp(<FitWidget widget={series} look={{ stack: 'percent', style: 'area', trend: 'linear' }} />)
+    expect(screen.getByText('100 %')).toBeInTheDocument()
+    expect(container.querySelectorAll('.fb-w-trend')).toHaveLength(2)
+  })
+
+  it('counts values in ranges as a histogram', () => {
+    size = { w: 400, h: 220 }
+    const blocks: Widget = { ...base, type: 'list', items: [1, 2, 3, 11].map((n) => ({ label: `b${n}`, value: String(n), tone: '' as const, number: n })) }
+    renderWithApp(<FitWidget widget={blocks} pick="histogram" />)
+    expect(screen.getByRole('img', { name: /^Histogram: W/ })).toBeInTheDocument()
+    expect(screen.getByTitle('0–5: 3')).toBeInTheDocument()
+  })
+
+  it('stacks the number columns of a table row in one bar', () => {
+    size = { w: 400, h: 200 }
+    const table: Widget = { ...base, type: 'table', columns: [{ key: 'n', label: 'Name' }, { key: 'a', label: 'In' }, { key: 'b', label: 'Out' }],
+      rows: [{ n: 'core', a: '2', b: '3' }] }
+    const { container } = renderWithApp(<FitWidget widget={table} pick="bar" look={{ stack: 'stacked' }} />)
+    expect(container.querySelector('.fb-w-hstack')).not.toBeNull()
+    expect(screen.getByText('In')).toBeInTheDocument()
+  })
 })

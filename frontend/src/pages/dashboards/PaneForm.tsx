@@ -9,7 +9,7 @@ import type { SeatViewData, WidgetTile } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { VIEWS } from '@/widgets/views'
 import { KIND_PICKS, LEVEL_PINS, type KindPick, type LevelPin } from '@/widgets/level'
-import { kindsFor } from '@/widgets/kinds/shape'
+import { type Look, LINE_STYLES, STACKS, TRENDS, kindsFor, looksFor, resolveKind } from '@/widgets/kinds/shape'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
@@ -188,16 +188,31 @@ function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; 
   )
 }
 
-/** How to draw the tile's data: only the kinds its shape allows (a list can't be a graph). */
+/** How to draw the tile's data: only the kinds its shape allows (a list can't be a graph), then
+ *  the look options that kind has for this data (stacking only with two or more series). */
 function WidgetLook({ pane, tile, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; tile: WidgetTile; onChange: (p: Pane) => void }) {
   const { t } = useTranslation()
   const { data } = useWidget(tile)
-  const ok = data ? kindsFor(data) : []
+  if (!data) return null
+  const ok = kindsFor(data)
   const picks = KIND_PICKS.filter((k) => k === 'auto' || ok.includes(k))
-  if (picks.length < 3) return null // only "automatic" and the data's own kind: nothing to choose
+  const looks = looksFor(data, resolveKind(data, pane.type))
+  const options: Record<keyof Look, readonly string[]> = { stack: STACKS, style: LINE_STYLES, trend: TRENDS }
   return (
-    <Select label={t('dashboards.form.widgetType')} allowDeselect={false} value={pane.type && picks.includes(pane.type) ? pane.type : 'auto'}
-      data={picks.map((k) => ({ value: k, label: k === 'auto' ? t('dashboards.widgetType.auto', { kind: t(`dashboards.widgetType.${ok[0]}`) }) : t(`dashboards.widgetType.${k}`) }))}
-      onChange={(v) => onChange({ ...pane, type: !v || v === 'auto' ? undefined : (v as KindPick) })} />
+    <>
+      {picks.length > 2 && (
+        <Select label={t('dashboards.form.widgetType')} allowDeselect={false} value={pane.type && picks.includes(pane.type) ? pane.type : 'auto'}
+          data={picks.map((k) => ({ value: k, label: k === 'auto' ? t('dashboards.widgetType.auto', { kind: t(`dashboards.widgetType.${ok[0]}`) }) : t(`dashboards.widgetType.${k}`) }))}
+          onChange={(v) => onChange({ ...pane, type: !v || v === 'auto' ? undefined : (v as KindPick) })} />
+      )}
+      {looks.map((key) => (
+        <div key={key}>
+          <Text size="sm" fw={500} mb={4}>{t(`dashboards.form.${key}`)}</Text>
+          <SegmentedControl fullWidth size="xs" value={pane[key] ?? options[key][0]} aria-label={t(`dashboards.form.${key}`)}
+            data={options[key].map((v) => ({ value: v, label: t(`dashboards.look.${key}.${v}`) }))}
+            onChange={(v) => onChange({ ...pane, [key]: v === options[key][0] ? undefined : v })} />
+        </div>
+      ))}
+    </>
   )
 }

@@ -67,8 +67,10 @@ TEXT_MAX = 2000
 TEXT_SIZES = ('s', 'm', 'l', 'xl')
 TEXT_ALIGN = ('start', 'center')
 # The generic widget types a tile is drawn as (#894); the browser draws each one (widgets/kinds/).
-WIDGET_TYPES = ('auto', 'stat', 'gauge', 'status', 'list', 'table', 'bar', 'column', 'pie', 'graph')
+WIDGET_TYPES = ('auto', 'stat', 'gauge', 'status', 'list', 'table', 'bar', 'column', 'histogram', 'pie', 'graph')
 LEVELS = ('auto', 's', 'm', 'l')
+# How a tile with several series or segments is drawn; the first of each is the default.
+LOOKS = {'stack': ('none', 'stacked', 'percent'), 'style': ('line', 'area'), 'trend': ('none', 'linear', 'average')}
 # The tiles a public dashboard may show: counts and switch names, nothing about people or the crew.
 PUBLIC_TILES = ('floorbit/w/switches', 'floorbit/w/seats', 'floorbit/w/down')
 # The widgets a public dashboard may show: they read only public feeds (/wall.json).
@@ -293,6 +295,12 @@ def _pane(raw):
             pane['type'] = wtype
         if level != 'auto':
             pane['level'] = level
+        for key, allowed in LOOKS.items():
+            value = raw.get(key) or allowed[0]
+            if value not in allowed:
+                raise LayoutError(f'The widget option {key} is one of: {", ".join(allowed)}.')
+            if value != allowed[0]:
+                pane[key] = value
     elif kind == 'view':
         view = str(raw.get('view') or '')
         if not ID_RE.match(view):

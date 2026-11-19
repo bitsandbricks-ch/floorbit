@@ -80,7 +80,10 @@
     "expandedHint": "With its filters and details, for a pane that fills a screen.",
     "level": "Size",
     "levelHint": "Automatic picks small, medium or large from the size of the box.",
-    "widgetType": "Show as"
+    "widgetType": "Show as",
+    "stack": "Bars and lines",
+    "style": "Lines",
+    "trend": "Trend line"
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",
@@ -162,6 +165,23 @@
     "gauge": "Gauge",
     "bar": "Horizontal bars",
     "pie": "Pie",
-    "column": "Vertical bars"
+    "column": "Vertical bars",
+    "histogram": "Histogram"
+  },
+  "look": {
+    "stack": {
+      "none": "Side by side",
+      "stacked": "Stacked",
+      "percent": "Stacked to 100 %"
+    },
+    "style": {
+      "line": "Line",
+      "area": "Area"
+    },
+    "trend": {
+      "none": "None",
+      "linear": "Straight trend",
+      "average": "Rolling average"
+    }
   }
 }

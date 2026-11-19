@@ -76,6 +76,8 @@ TILE_CHARTS = {"name": "Tile charts", "fit": True, "sections": [{"panels": [
     tile("seats", 0, 0, 6, 8, type="gauge"), tile("switch_states", 6, 0, 8, 8, type="pie"),
     tile("seats_by_block", 14, 0, 10, 8, type="bar"),
     tile("seats_by_block", 0, 8, 8, 8, type="column"), tile("traffic", 8, 8, 16, 8, type="column"),
+    tile("traffic", 0, 16, 12, 8, stack="stacked", style="area", trend="average"),
+    tile("traffic", 12, 16, 6, 8, type="histogram"), tile("traffic", 18, 16, 6, 8, type="column", stack="percent"),
 ]}]}
 SEEDED = {"tile-levels": TILE_LEVELS, "tile-charts": TILE_CHARTS}
 
