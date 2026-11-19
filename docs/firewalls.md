@@ -65,8 +65,12 @@ A seat outside them shows under **Problems › Needs attention**, with the range
 "outside every planned range", usually a router of its own) and its switch port. Three or more such
 seats behind one switch are one item for the switch: check its VLAN.
 
-Only blocks named on a range are checked. Where DHCP hands out addresses regardless of the block,
-leave the field empty and nothing is flagged. An imported range takes its seat blocks here too
+A block no range names needs nothing set up: its range is the one most of its PCs are in right now,
+once at least 3 of them are and they make 60 % of the block's PCs in a range. A seat of that block
+in another range is flagged the same way ("most of block A is in …"). A seat in no range at all is
+not judged there, since the block's range is only a guess. Where DHCP hands out addresses regardless
+of the block, or a block spans several small ranges, no range is that clear and nothing is flagged.
+Naming the blocks on a range always wins over the guess. An imported range takes its seat blocks here too
 (**Blocks**); they are kept across imports. The items name ranges, never a seat's IP.
 
 ## On the floor plan

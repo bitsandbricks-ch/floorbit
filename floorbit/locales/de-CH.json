@@ -1252,5 +1252,7 @@
  "{} looks like a desk switch or router": "{} sieht nach einem Switch oder Router am Platz aus",
  "Check them under Cables": "Unter Kabel prüfen",
  "Seat {}: a switch or router on the seat port ({} machines)": "Platz {}: ein Switch oder Router am Platz-Port ({} Geräte)",
- "Seat {}: {} machines on one seat port": "Platz {}: {} Geräte an einem Platz-Port"
+ "Seat {}: {} machines on one seat port": "Platz {}: {} Geräte an einem Platz-Port",
+ "{}: most of block {} is in {}": "{}: der Grossteil von Block {} ist in {}",
+ "Most of block {} is in {}": "Der Grossteil von Block {} ist in {}"
 }

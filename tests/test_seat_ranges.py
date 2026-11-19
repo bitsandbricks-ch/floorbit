@@ -37,10 +37,32 @@ def _range(client, cidr, fw, blocks=()):
     return r.get_json()
 
 
-def test_nothing_is_flagged_until_a_range_names_its_blocks(client, hall):
+def test_nothing_is_flagged_while_no_block_has_a_clear_range(client, hall):
     _range(client, "192.0.2.0/26", "fw-01")
     _range(client, "192.0.2.64/26", "fw-02")
-    assert seat_ranges.misplaced(load_data(), MAPPING) == []   # DHCP that mixes ranges: nobody sets blocks
+    assert seat_ranges.misplaced(load_data(), MAPPING) == []   # one or two PCs per block: too few to tell
+
+
+def test_a_block_no_range_names_gets_the_range_most_of_its_pcs_are_in(client, hall):
+    """Zero setup: four of A's five PCs are in fw-01's range, so that is A's range."""
+    _ids, mapping = hall
+    _range(client, "192.0.2.0/26", "fw-01")
+    _range(client, "192.0.2.64/26", "fw-02")
+    mapping.update({
+        "A-3": {"ip_address": "192.0.2.13", "switch": "sw-a", "port": "Gi1/0/3"},
+        "A-5": {"ip_address": "192.0.2.15", "switch": "sw-a", "port": "Gi1/0/5"},
+        "A-6": {"ip_address": "192.0.2.16", "switch": "sw-a", "port": "Gi1/0/6"},
+        "A-7": {"ip_address": "203.0.113.7", "switch": "sw-a", "port": "Gi1/0/7"},   # no range: not judged
+    })
+    found = seat_ranges.misplaced(load_data(), mapping)
+    assert [(m["seat"], m["actual"], m["inferred"]) for m in found] == [("A-2", "192.0.2.64/26", True)]
+    [item] = seat_ranges.items(load_data(), mapping)
+    assert item["title"] == "Seat A-2 is in the range 192.0.2.64/26"
+    assert item["where"] == "sw-a Gi1/0/2: most of block A is in 192.0.2.0/26"
+    # A mixed block stays quiet: 3 of 6 in one range is not 60 %.
+    mapping.update({f"A-{n}": {"ip_address": f"192.0.2.{70 + n}", "switch": "sw-a", "port": f"Gi1/0/{n}"}
+                    for n in (5, 8)})
+    assert seat_ranges.misplaced(load_data(), mapping) == []
 
 
 def test_a_seat_outside_its_blocks_ranges_is_flagged_with_the_range_it_is_in(client, hall):
