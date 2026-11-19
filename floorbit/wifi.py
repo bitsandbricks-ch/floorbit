@@ -60,8 +60,13 @@ def clean_ap(raw):
     radios.sort(key=lambda r: BANDS.index(r['band']))
     clients = _int(raw.get('clients'), 0, 100000)
     status = 'down' if str(raw.get('status') or '').lower() in ('down', 'offline', '0', 'false') else 'up'
-    return {'name': name, 'model': ' '.join(str(raw.get('model') or '').split())[:60], 'status': status,
-            'clients': clients if clients is not None else sum(r['clients'] for r in radios), 'radios': radios}
+    out = {'name': name, 'model': ' '.join(str(raw.get('model') or '').split())[:60], 'status': status,
+           'clients': clients if clients is not None else sum(r['clients'] for r in radios), 'radios': radios}
+    # The controller that streams it to Telemetry: its history is kept under that device (history()).
+    controller = ' '.join(str(raw.get('controller') or '').split())[:80]
+    if controller:
+        out['controller'] = controller
+    return out
 
 
 def ask(registry):
@@ -103,6 +108,18 @@ def ask(registry):
     with _lock:
         _cache.update(at=time.time(), value=value)
     return value
+
+
+def history(registry, hours=6):
+    """Clients on every streaming controller over time: [[unix time, clients]], oldest first. Only
+    controllers that stream to Telemetry have a history (the samples are taken there, storage.py)."""
+    from .telemetry import storage
+    controllers = sorted({a['controller'] for a in ask(registry)[0] if a.get('controller')})
+    total = {}
+    for name in controllers:
+        for at, value in storage.storage().series(name, None, 'wifi_clients', hours):
+            total[at] = total.get(at, 0) + value
+    return {'controllers': controllers, 'points': [[at, total[at]] for at in sorted(total)]}
 
 
 def agent_active():
@@ -166,4 +183,5 @@ def overview(registry, data):
         'sources': [s.name for s in registry.feeders('wifi')] + (['Local agent'] if agent_active() else []),
         'errors': errors,
         'thresholds': {'busy': BUSY, 'crowded': CROWDED},
+        'history': any(a.get('controller') for a in aps),
     }

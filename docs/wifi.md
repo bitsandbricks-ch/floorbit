@@ -35,8 +35,11 @@ top of the page.
 ## Privacy
 
 Client counts only. Floorbit never asks a controller for its client list for this page, and drops
-anything but the counts a plugin sends (client names, MACs). Nothing is stored: the counts are kept
-in memory for 20 seconds.
+anything but the counts a plugin sends (client names, MACs). A plugin's counts are not stored: they
+are kept in memory for 20 seconds. A controller that streams to Telemetry (9800, AireOS) keeps its
+counts as [telemetry series](telemetry.md#storage), like the switch ports: clients per controller
+and per AP, and each AP's busiest channel use. The expanded view draws **Clients over time** from
+them (1, 6 or 24 hours).
 
 ## Sources
 
@@ -59,4 +62,7 @@ Everyone who can see the floor plan can see this page. Settings > Features has a
 
 `GET /api/wifi?hall=`: `aps` (each with `radios`, `busy`, `on_plan` and plan coordinates `px` and
 `py`), `clients`, `up`, `down`, `busy`, `overlaps`, `bands`, `sources`, `errors`, `thresholds`, and
-the hall's `drawing`.
+the hall's `drawing`, and `history` (true when a controller streams to Telemetry).
+
+`GET /api/wifi/history?hours=`: `points` (`[unix time, clients]`, summed over the streaming
+controllers), `controllers`, `hours`.

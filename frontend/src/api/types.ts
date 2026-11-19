@@ -1388,6 +1388,8 @@ export interface WifiData {
   bands: Partial<Record<WifiBand, { clients: number; radios: number; utilization: number | null }>>
   sources: string[]; errors: string[]; thresholds: { busy: number; crowded: number }
   drawing: PlanDrawing | null; hall: string; halls: { id: string; name: string }[]
+  /** A controller streams to Telemetry, so clients over time are kept (GET /api/wifi/history). */
+  history?: boolean
 }
 
 /** Open incidents per seat and per switch id (GET /api/incidents/markers), for the crew layer. */

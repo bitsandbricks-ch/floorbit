@@ -214,6 +214,11 @@ is never asked for.
 
 ### Both
 
+Every 30 seconds the controller's numbers are stored with the rest of the telemetry: `wifi_clients`
+on the controller, and per AP (as its `port`) `clients` and `utilization` (its busiest radio). The
+[Wi-Fi view](wifi.md) draws clients over time from them, and `GET /api/telemetry/series` reads any of
+them.
+
 An AP the controller stops naming reads **down** after three minutes and leaves the list after a
 day. When a Wi-Fi plugin (Cisco WLC, UniFi, ...) names the same AP, the stream wins.
 

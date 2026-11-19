@@ -343,7 +343,7 @@ class Device:
                 radios.append({'band': band, 'channel': r.get('channel'), 'width': r.get('width'),
                                'utilization': r.get('utilization'), 'clients': r.get('clients') or 0})
             out.append({'name': ap['name'], 'model': ap.get('model') or '', 'status': 'up' if joined else 'down',
-                        'radios': radios if joined else []})
+                        'radios': radios if joined else [], 'controller': self.name})
         return out
 
     def summary(self):

@@ -62,7 +62,7 @@ def test_the_controllers_aps_in_the_picture():
     aps = {a["name"]: a for a in dev.wifi_aps(now)}
     assert aps["ap-stage"] == {"name": "ap-stage", "model": "C9136I-E", "status": "up", "radios": [
         {"band": "2.4", "channel": 6, "width": 20, "utilization": 31, "clients": 4},
-        {"band": "5", "channel": 36, "width": 80, "utilization": 78, "clients": 41}]}
+        {"band": "5", "channel": 36, "width": 80, "utilization": 78, "clients": 41}], "controller": "wlc-01"}
     assert aps["ap-hall-02"]["radios"] == [{"band": "5", "channel": 44, "width": 40, "utilization": 12, "clients": 7}]
 
 
@@ -149,7 +149,7 @@ def test_an_aireos_controller_over_snmp():
     assert dev.kind == "wlc" and dev.wifi_aps(now) == [{"name": "ap-foyer", "model": "AIR-AP2802I-E-K9", "status": "up",
                                                        "radios": [
         {"band": "2.4", "channel": 11, "width": None, "utilization": None, "clients": 0},
-        {"band": "5", "channel": 100, "width": None, "utilization": 57, "clients": 23}]}]
+        {"band": "5", "channel": 100, "width": None, "utilization": 57, "clients": 23}], "controller": "wlc-02"}]
 
 
 def test_aireos_tables_in_telegraf_even_when_librenms_polls():
@@ -162,3 +162,19 @@ def test_aireos_tables_in_telegraf_even_when_librenms_polls():
     assert not any(o.startswith("1.3.6.1.4.1.14179.2.1.4") for oids in tables.values() for o in oids)
     assert not any(i.get("name") == "fb_wlc" for i in tomllib.loads(
         telegraf.render([{**AIREOS, "wireless": False}], "http://x/write", "tok"))["inputs"]["snmp"])
+
+
+def test_clients_over_time(app_module, client, tmp_path, monkeypatch):
+    now = time.time()
+    hall(now)
+    values = storage.snapshot(now=now)
+    assert values["wlc-01||wifi_clients"] == 52.0
+    assert values["wlc-01|ap-stage|clients"] == 45.0 and values["wlc-01|ap-stage|utilization"] == 78.0
+    # Stored like any series (lite storage here), then summed over the streaming controllers.
+    storage.storage().sample(values, now - 120)
+    storage.storage().sample({**values, "wlc-01||wifi_clients": 61.0}, now - 60)
+    assert client.put("/api/settings/plugins/telemetry", json={"enabled": True}).status_code == 200
+    body = client.get("/api/wifi/history?hours=1").get_json()
+    assert body["controllers"] == ["wlc-01"] and [v for _, v in body["points"]][-2:] == [52.0, 61.0]
+    assert client.get("/api/wifi").get_json()["history"] is True
+    assert client.get("/api/telemetry/series?device=wlc-01&port=ap-stage&metric=clients").status_code == 200
