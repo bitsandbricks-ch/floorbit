@@ -1,6 +1,5 @@
 {
   "title": "Einstellungen",
-  "intro": "Gespeicherte Werte liegen auf dem Server und gehen vor Umgebungsvariablen. Setze ein Feld zurück, um wieder den Wert aus der Umgebung oder den Standard zu nutzen.",
   "wall": "Statistik-Wand für einen grossen Bildschirm:",
   "connections": "Verbindungen",
   "configured": "Eingerichtet",
@@ -302,8 +301,6 @@
     "search": "Einstellungen durchsuchen",
     "clear": "Suche leeren",
     "section": "Bereiche der Einstellungen",
-    "overview": "Übersicht",
-    "plugins": "Plugin-Einstellungen",
     "results_zero": "Keine Einstellung passt.",
     "results_one": "{{count}} Einstellung passt",
     "results_other": "{{count}} Einstellungen passen",
@@ -313,8 +310,22 @@
       "sources": "Quellen",
       "monitoring": "Überwachung",
       "alerts": "Alarme und Discord",
-      "access": "Anmeldung und Switches",
-      "other": "Weiteres"
-    }
+      "access": "Anmeldung und Zugriff",
+      "other": "Weiteres",
+      "accounts": "Konten",
+      "tenants": "Mandanten",
+      "system": "System"
+    },
+    "status": "Status",
+    "sourcesMoved": "NetBox, LibreNMS und die anderen Plugins haben ihre Einstellungen auf ihrer eigenen Seite:",
+    "toPlugins": "Plugins"
+  },
+  "kicker": "Wie dieses Floorbit arbeitet: das Event, seine Leute, Alarme und das System",
+  "tabs": {
+    "general": "Allgemein",
+    "people": "Leute",
+    "alerts": "Alarme",
+    "tenants": "Mandanten",
+    "system": "System"
   }
 }

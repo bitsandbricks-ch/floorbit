@@ -10,7 +10,7 @@ import { fetchOtherTenants, readFolded, readRail, saveFolded, saveRail, useNavPr
 import { useCloseOutside } from './closeOutside'
 import { EventPicker } from './EventPicker'
 import './nav.css'
-import { activeHref, boardHref, group, isPluginPage, linkIcon, pageIcon, TABS, type CustomLink, type NavPage } from './sections'
+import { activeHref, boardHref, group, INSIDE, isPluginPage, linkIcon, pageIcon, TABS, withParents, type CustomLink, type NavPage } from './sections'
 
 export interface LinkProps {
   href: string
@@ -64,7 +64,8 @@ export function Sidebar(props: SidebarProps) {
   const [sheetAt, setSheetAt] = useState<string | null>(null)
   const sheet = sheetAt === props.path
   const setSheet = (open: boolean) => setSheetAt(open ? props.path : null)
-  const lit = activeHref([...props.boot.pages, ...pinnedBoards(props.dashboards).filter((b) => prefs.favourites.includes(b.id)), ...(props.boot.custom ?? []).flatMap((c) => c.links)], props.path)
+  // A tab of another page (Users in Settings) lights its page's row.
+  const lit = activeHref([...withParents(props.boot.pages).filter((p) => !(p.id in INSIDE)), ...pinnedBoards(props.dashboards).filter((b) => prefs.favourites.includes(b.id)), ...(props.boot.custom ?? []).flatMap((c) => c.links)], props.path)
 
   useEffect(() => {
     if (!sheet) return

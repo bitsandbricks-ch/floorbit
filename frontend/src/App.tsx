@@ -15,8 +15,6 @@ const PluginSettings = lazy(() => import('@/pages/PluginSettings'))
 const PluginPage = lazy(() => import('@/pages/PluginPage'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
-const Teams = lazy(() => import('@/pages/Teams'))
-const SignIn = lazy(() => import('@/pages/SignIn'))
 const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
 const Security = lazy(() => import('@/pages/Security'))
@@ -49,17 +47,10 @@ const Schedule = lazy(() => import('@/pages/Schedule'))
 const FloorPlan = lazy(() => import('@/pages/FloorPlan'))
 const Checkins = lazy(() => import('@/pages/Checkins'))
 const Events = lazy(() => import('@/pages/Events'))
-const ApiTokens = lazy(() => import('@/pages/ApiTokens'))
-const Tenants = lazy(() => import('@/pages/Tenants'))
-const Audit = lazy(() => import('@/pages/Audit'))
-const Users = lazy(() => import('@/pages/Users'))
 const Login = lazy(() => import('@/pages/Login'))
 const Checkin = lazy(() => import('@/pages/Checkin'))
 const Agents = lazy(() => import('@/pages/Agents'))
 const AgentDetail = lazy(() => import('@/pages/AgentDetail'))
-const Webhooks = lazy(() => import('@/pages/Webhooks'))
-const Features = lazy(() => import('@/pages/Features'))
-const SidebarSections = lazy(() => import('@/pages/SidebarSections'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
 const Forbidden = lazy(() => import('@/pages/Forbidden'))
@@ -106,8 +97,6 @@ export default function App() {
             <Route path="/plugins/:plugin/:page" element={<PluginPage />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />
-            <Route path="/settings/teams" element={<Teams />} />
-            <Route path="/settings/sign-in" element={<SignIn />} />
             <Route path="/incidents" element={<Incidents />} />
             <Route path="/incidents/qr" element={<HelpdeskQr />} />
             <Route path="/security" element={<Security />} />
@@ -139,15 +128,8 @@ export default function App() {
             <Route path="/checkins" element={<Checkins />} />
             <Route path="/events" element={<Events />} />
             <Route path="/settings/:section?" element={<Settings />} />
-            <Route path="/settings/features" element={<Features />} />
-            <Route path="/settings/sidebar" element={<SidebarSections />} />
-            <Route path="/settings/api" element={<ApiTokens />} />
-            <Route path="/settings/tenants" element={<Tenants />} />
-            <Route path="/settings/audit" element={<Audit />} />
-            <Route path="/settings/users" element={<Users />} />
             <Route path="/settings/agents" element={<Agents />} />
             <Route path="/settings/agents/:id" element={<AgentDetail />} />
-            <Route path="/settings/webhooks" element={<Webhooks />} />
             <Route path="/settings/telemetry" element={<Telemetry />} />
             <Route path="/endpoints" element={<Endpoints />} />
             <Route path="*" element={<NotFound />} />

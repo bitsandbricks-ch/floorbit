@@ -41,9 +41,30 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'event', icon: IconCalendarEvent, pages: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events'] },
   {
     id: 'floorbit', icon: IconSettings,
-    pages: ['agents', 'plugins', 'settings', 'telemetry', 'features', 'sidebarSections', 'apiTokens', 'tenants', 'webhooks', 'users', 'teams', 'signIn', 'audit'],
+    pages: ['agents', 'plugins', 'settings', 'telemetry'],
   },
 ]
+
+/** Pages that are a tab of another page, not a row of their own: the admin pages inside Settings
+ *  (pages/Settings.tsx). "Go to" still finds them; the sidebar lights their page. */
+export const INSIDE: Record<string, string> = Object.fromEntries(
+  ['users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'features', 'sidebarSections', 'audit'].map((id) => [id, 'settings']),
+)
+
+/** The list with each tab's page in it: an account that may open a tab (Users) but not its page's
+ *  first one (the settings) still gets the page's row, leading to the first tab it may open. */
+export function withParents(pages: NavPage[]): NavPage[] {
+  const ids = new Set(pages.map((p) => p.id))
+  const out = [...pages]
+  for (const p of pages) {
+    const parent = INSIDE[p.id]
+    if (parent && !ids.has(parent)) {
+      ids.add(parent)
+      out.push({ href: p.href, id: parent, label: parent })
+    }
+  }
+  return out
+}
 
 /** Groups folded until someone opens them (or a page in them is on screen). */
 export const FOLDED = ['event']
@@ -112,7 +133,8 @@ export interface Grouped {
 }
 
 /** The server's list sorted into the sidebar: pinned first, then sections in their order, empty ones left out. */
-export function group(pages: NavPage[]): Grouped {
+export function group(all: NavPage[]): Grouped {
+  const pages = withParents(all).filter((p) => !(p.id in INSIDE))
   const byId = new Map(pages.map((p) => [p.id, p]))
   const pick = (ids: string[]) => ids.flatMap((id) => byId.get(id) ?? [])
   const known = new Set([...PINNED, ...SECTIONS.flatMap((s) => s.pages)])

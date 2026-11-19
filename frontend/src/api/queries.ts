@@ -52,6 +52,12 @@ export function usePageList(): PageLink[] {
   return usePagesQuery().data?.pages ?? []
 }
 
+/** Has the page list answered (or failed)? Until then nobody knows what this account may open. */
+export function usePageListSettled(): { settled: boolean; failed: boolean } {
+  const q = usePagesQuery()
+  return { settled: !q.isPending, failed: q.isError }
+}
+
 /** The sidebar sections admins made, as this account sees them; null until the server answers. */
 export function useCustomSections(): CustomSection[] | null {
   return usePagesQuery().data?.custom ?? null

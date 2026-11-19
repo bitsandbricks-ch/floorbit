@@ -56,10 +56,11 @@ export function useTest(changes: Changes) {
 /** The settings schema from GET /api/settings and the unsaved changes, shared by the Settings
  *  pages and each plugin's page. Saves only what changed; ``null`` resets a field to its
  *  environment variable or built-in default. */
-export function useSettingsEditor() {
+/** ``enabled`` false: don't ask the server (an account that may open Settings' people pages but not its fields). */
+export function useSettingsEditor({ enabled = true }: { enabled?: boolean } = {}) {
   const { t } = useTranslation()
   const qc = useQueryClient()
-  const query = useQuery({ queryKey: qk.settings, queryFn: () => get<SettingsAnswer>('/api/settings') })
+  const query = useQuery({ queryKey: qk.settings, queryFn: () => get<SettingsAnswer>('/api/settings'), enabled })
   const [changes, setChanges] = useState<Changes>({})
   const [saved, setSaved] = useState<string | null>(null)
   const test = useTest(changes)

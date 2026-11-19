@@ -99,4 +99,25 @@ describe('Plugins page', () => {
     expect(await screen.findByRole('heading', { name: 'Marketplace', level: 2 })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'HTTP check' })).toBeNull()
   })
+
+  it('lists the installed plugins with a newer version under Updates, with their count on the tab', async () => {
+    const market = (id: string, installed: string | null, update: string | null) => ({
+      id, name: id, description: '', author: '', homepage: '', source: '', builtin: false, installed, previous: null,
+      error: '', enabled: true, withdrawn: '', update, best: update ?? installed, listed: true, versions: [],
+    })
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: false, user: null },
+      'GET /api/settings/plugins': { plugins: [plugin] },
+      'GET /api/settings/marketplace': {
+        source: { url: '', name: '', generated: '', error: '' },
+        plugins: [market('lancache', '1.0.0', '1.1.0'), market('shelly', '1.0.0', null), market('extra', null, null)],
+      },
+    }).fn)
+    renderWithApp(<Plugins />, '/settings/plugins?tab=updates')
+    expect(await screen.findByRole('heading', { name: 'Updates', level: 2 })).toBeInTheDocument()
+    expect(await screen.findByRole('tab', { name: /Updates\s*1/ })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('lancache')).toBeInTheDocument()
+    expect(screen.queryByText('shelly')).toBeNull()
+    expect(screen.queryByText('extra')).toBeNull()
+  })
 })

@@ -70,5 +70,8 @@
     "panels": "Felder in den Seitenleisten von Plätzen, Switches und Geräten",
     "layers": "eine Ebene auf dem Hallenplan",
     "pages": "eigene Seiten in der Seitenleiste"
-  }
+  },
+  "noUpdates": "Alle installierten Plugins sind aktuell.",
+  "updatesTitle": "Aktualisierungen",
+  "updatesIntro": "Installierte Plugins mit einer neueren Version im Marktplatz."
 }
