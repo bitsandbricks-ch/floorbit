@@ -1,7 +1,7 @@
 import {
   ActionIcon, Alert, Autocomplete, Badge, Box, Button, Drawer, Group, Menu, Modal, Paper, Select, SimpleGrid, Stack, Text, TextInput, Title,
 } from '@mantine/core'
-import { useMediaQuery } from '@mantine/hooks'
+import { useElementSize, useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { IconDownload, IconFocusCentered, IconLine, IconPhoto, IconVectorBezier2, IconZoomIn, IconZoomOut } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -24,6 +24,7 @@ const COLOR: Record<string, string> = {
   '': 'var(--mantine-color-gray-5)',
 }
 const WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 100: 5 }
+const READABLE = 0.75 // the smallest scale the opening view shows names at
 
 
 type Picked = { kind: 'link'; id: string } | { kind: 'node'; name: string } | { kind: 'uplink'; id: string } | null
@@ -43,7 +44,8 @@ export default function Topology() {
   const [picked, setPicked] = useState<Picked>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [wire, setWire] = useState<{ a?: string } | null>(null)
-  const [cam, setCam] = useState<ViewBox | null>(null) // null: the whole picture
+  const [cam, setCam] = useState<ViewBox | null>(null) // null: the opening view (see `start`)
+  const { ref: paneRef, width: paneWidth } = useElementSize()
   const [drag, setDrag] = useState<{ key: string; x: number; y: number } | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const gesture = useRef<{ kind: 'pan' | 'node'; key?: string; sx: number; sy: number; ox: number; oy: number; cam: ViewBox; moved: boolean } | null>(null)
@@ -59,7 +61,16 @@ export default function Topology() {
     const boxes = [...placed.placed.values()].map((p) => ({ ...spot(p), w: NODE_W, h: NODE_H })).map((b) => ({ ...b, x: b.x + lines.dx, y: b.y + lines.dy }))
     return bounds([...boxes, ...lines.boxes.map((b) => ({ x: b.x, y: b.y, w: NODE_W, h: NODE_H }))])
   }, [placed, lines, spot])
-  const view = cam ?? base
+  // Fitted, 26 boxes in a narrow pane are too small to read (#1050): open at a readable size from the
+  // top of the network instead, and leave the whole picture to the fit button.
+  const start = useMemo<ViewBox | null>(() => {
+    if (!base || !paneWidth) return base
+    if (paneWidth / base.w >= READABLE) return base
+    // As wide as the pane shows at READABLE, and as tall as the picture, up to most of the screen.
+    const w = paneWidth / READABLE, h = Math.min(base.h, (window.innerHeight * 0.75) / READABLE)
+    return { x: base.x + (base.w - w) / 2, y: base.y, w, h }
+  }, [base, paneWidth])
+  const view = cam ?? start
   const uplink = picked?.kind === 'uplink' ? data?.uplinks.find((u) => u.id === picked.id) : undefined
   const link = picked?.kind === 'link' ? data?.links.find((l) => l.id === picked.id) : undefined
   const node = picked?.kind === 'node' ? data?.nodes.find((n) => n.name === picked.name) : undefined
@@ -148,7 +159,7 @@ export default function Topology() {
     : link ? <LinkPanel link={link} canEdit={canEdit} onEdit={() => setDraft(link)} onGone={() => setPicked(null)} />
     : node ? <NodePanel name={node.name} role={node.role} status={node.status} links={data!.links.filter((l) => l.a === node.name || l.b === node.name)}
       onPick={(id) => setPicked({ kind: 'link', id })} />
-      : <Text c="dimmed" size="sm">{t(canEdit ? 'topology.pickHintEdit' : 'topology.pickHint')}</Text>
+      : null
 
   return (
     <Layout title={t('topology.title')}>
@@ -174,13 +185,14 @@ export default function Topology() {
           <Paper withBorder radius="lg" p="md"><Text c="dimmed">{t(canEdit ? 'topology.emptyEdit' : 'topology.empty')}</Text></Paper>
         )}
         {data && placed && lines && view && base && data.links.length > 0 && (
-          <Box style={{ display: 'grid', gap: 16, gridTemplateColumns: phone ? '1fr' : 'minmax(0, 1fr) 300px' }}>
+          <Box style={{ display: 'grid', gap: 16, gridTemplateColumns: phone || !panel ? '1fr' : 'minmax(0, 1fr) 300px' }}>
             <Paper withBorder radius="lg" p="sm" style={{ position: 'relative', overflow: 'hidden' }}>
+              <div ref={paneRef} aria-hidden="true" style={{ height: 0 }} />
               <Group gap={6} mb={6} wrap="wrap">
                 <ActionIcon.Group>
                   <ActionIcon variant="default" aria-label={t('topology.zoomIn')} title={t('topology.zoomIn')} onClick={() => zoomBy(1.4)}><IconZoomIn size={16} aria-hidden="true" /></ActionIcon>
                   <ActionIcon variant="default" aria-label={t('topology.zoomOut')} title={t('topology.zoomOut')} onClick={() => zoomBy(1 / 1.4)}><IconZoomOut size={16} aria-hidden="true" /></ActionIcon>
-                  <ActionIcon variant="default" aria-label={t('topology.fit')} title={t('topology.fit')} onClick={() => setCam(null)}><IconFocusCentered size={16} aria-hidden="true" /></ActionIcon>
+                  <ActionIcon variant="default" aria-label={t('topology.fit')} title={t('topology.fit')} onClick={() => setCam(base)}><IconFocusCentered size={16} aria-hidden="true" /></ActionIcon>
                 </ActionIcon.Group>
                 {canEdit && (
                   <Button size="compact-sm" variant={wire ? 'filled' : 'default'} leftSection={<IconLine size={14} aria-hidden="true" />}
@@ -272,13 +284,13 @@ export default function Topology() {
                 })}
                 </g>
               </svg>
-              <Legend />
-              <Text size="xs" c="dimmed" mt={4}>{t(canEdit ? 'topology.howEdit' : 'topology.how')}</Text>
+              <Legend links={data.links} />
+              <Text size="xs" c="dimmed" mt={4}>{t(canEdit ? 'topology.pickHintEdit' : 'topology.pickHint')} {t(canEdit ? 'topology.howEdit' : 'topology.how')}</Text>
             </Paper>
             {phone
-              ? <Drawer opened={!!picked} onClose={() => setPicked(null)} position="bottom" size="55%"
+              ? <Drawer opened={!!panel} onClose={() => setPicked(null)} position="bottom" size="55%"
                 aria-label={link ? t('topology.link') : node?.name}>{panel}</Drawer>
-              : <Paper withBorder radius="lg" p="md" style={{ alignSelf: 'start' }}>{panel}</Paper>}
+              : panel && <Paper withBorder radius="lg" p="md" style={{ alignSelf: 'start' }}>{panel}</Paper>}
           </Box>
         )}
         {placed && placed.loose.length > 0 && data!.links.length > 0 && (
@@ -316,13 +328,20 @@ function fromSuggestion(s: LinkSuggestion): Draft {
   return { a: s.a, a_port: s.a_port, b: s.b, b_port: s.b_port, speed: s.speed, type: '' }
 }
 
-function Legend() {
+/** Only what the diagram draws: a legend entry for copper with no copper link sends people looking. */
+function Legend({ links }: { links: SwitchLink[] }) {
   const { t } = useTranslation()
-  const items: [string, string, string?][] = [
-    [t('topology.media.copper'), COLOR.cat6], [t('topology.types.fiber-sm'), COLOR['fiber-sm']],
-    [t('topology.types.fiber-mm'), COLOR['fiber-mm']], [t('topology.types.dac'), COLOR.dac],
-    [t('topology.slow'), 'var(--mantine-color-orange-6)'], [t('topology.down'), 'var(--mantine-color-red-6)', '6 4'],
+  const has = (pred: (l: SwitchLink) => boolean) => links.some(pred)
+  const all: [boolean, string, string, string?][] = [
+    [has((l) => l.type.startsWith('cat')), t('topology.media.copper'), COLOR.cat6],
+    [has((l) => l.type === 'fiber-sm'), t('topology.types.fiber-sm'), COLOR['fiber-sm']],
+    [has((l) => l.type === 'fiber-mm'), t('topology.types.fiber-mm'), COLOR['fiber-mm']],
+    [has((l) => l.type === 'dac'), t('topology.types.dac'), COLOR.dac],
+    [has((l) => l.issue === 'slow'), t('topology.slow'), 'var(--mantine-color-orange-6)'],
+    [has((l) => l.issue === 'down'), t('topology.down'), 'var(--mantine-color-red-6)', '6 4'],
   ]
+  const items = all.filter(([shown]) => shown).map(([, ...rest]) => rest as [string, string, string?])
+  const speeds = new Set(links.map((l) => l.speed).filter(Boolean)).size
   return (
     <Group gap="md" mt="xs" px={4}>
       {items.map(([label, color, dash]) => (
@@ -331,7 +350,7 @@ function Legend() {
           <Text size="xs" c="dimmed">{label}</Text>
         </Group>
       ))}
-      <Text size="xs" c="dimmed">{t('topology.thicker')}</Text>
+      {speeds > 1 && <Text size="xs" c="dimmed">{t('topology.thicker')}</Text>}
     </Group>
   )
 }
