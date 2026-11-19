@@ -93,7 +93,9 @@ class Plugin(Base):
             return []
         with state._lock:
             rows = [i for i in dev.interfaces.values() if i.name]
-            return [{'name': i.name, 'last_change': i.last_change, **summarize_port(i.librenms_row())}
+            # mac, ips, vlan, mode: what discovery takes as the interface's (inventory_discovery.py).
+            return [{'name': i.name, 'last_change': i.last_change, **summarize_port(i.librenms_row()),
+                     **dev.port_facts(i)}
                     for i in sorted(rows, key=lambda i: _natural(i.name))]
 
     def port_stats(self, hostname, interface):

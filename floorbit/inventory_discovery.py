@@ -17,6 +17,7 @@ What it keeps instead of overwriting is **drift** (issue #918): per device, each
 hostname, the management address and each interface where the inventory and the device disagree,
 with what is configured, what is actual and since when (``inventory_drift``; drift() below).
 """
+import ipaddress
 import re
 import threading
 import time
@@ -236,8 +237,61 @@ def run():
                 out[dev_id] = rows
         data['inventory_drift'] = out
         report['drift'] = len(out)
+        networks = {dev_id: networks_of(row) for dev_id, (_values, row) in found.items()}
+        data['inventory_discovered'] = {dev_id: {**n, 'at': now_text} for dev_id, n in networks.items()
+                                        if n['vlans'] or n['networks']}
+        _entries(data, networks.values(), report)
         save_data(data)
     return _keep(report)
+
+
+# ── networks and VLANs (issue #919) ──────────────────────────────────────────────────────────
+
+def networks_of(row):
+    """The VLANs ({id: name}) a device knows and the networks on its interfaces, from telemetry's facts."""
+    facts = row.get('facts') if isinstance(row.get('facts'), dict) else {}
+    vlans = facts.get('vlans') if isinstance(facts.get('vlans'), dict) else {}
+    out = {'vlans': [], 'networks': []}
+    for vid, name in vlans.items():
+        if str(vid).isdigit() and 1 <= int(vid) <= 4094:
+            out['vlans'].append({'id': int(vid), 'name': ' '.join(str(name or '').split())[:64]})
+    out['vlans'] = sorted(out['vlans'], key=lambda v: v['id'])[:4094]
+    for net in facts.get('networks') or []:
+        try:
+            out['networks'].append(str(ipaddress.ip_network(str(net), strict=False)))
+        except ValueError:
+            continue
+    out['networks'] = sorted(set(out['networks']))[:256]
+    return out
+
+
+def _entries(data, found, report):
+    """Every VLAN and network the devices know, as inventory 'VLAN or IP range' entries (the same
+    rules as a plugin's: hand changes win, nothing is deleted)."""
+    from . import inventory_scope, inventory_types
+    vlans, networks = {}, set()
+    for n in found:
+        for v in n['vlans']:
+            if v['name'] or v['id'] not in vlans:
+                vlans[v['id']] = v['name'] or vlans.get(v['id']) or ''
+        networks.update(n['networks'])
+    if not vlans and not networks:
+        return
+    feed = {'vlan': [{'ref': f'vlan-{vid}', 'name': name or f'VLAN {vid}', 'fields': {'vlan_id': vid}}
+                     for vid, name in sorted(vlans.items())]
+            + [{'ref': f'prefix-{net}', 'name': net, 'fields': {'prefix': net}} for net in sorted(networks)]}
+    try:
+        clean, skipped = inventory_types.clean_feed(feed)
+        result = inventory_types.sync_entries(data, PLUGIN, clean, skipped)
+    except inventory_scope.ScopeError as exc:
+        report['entries_error'] = str(exc)[:300]
+        return
+    report['entries'] = {k: result[k] for k in ('added', 'updated', 'gone')}
+
+
+def discovered_of(data, device_id):
+    found = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
+    return found.get(device_id) or {'vlans': [], 'networks': [], 'at': None}
 
 
 # ── drift ────────────────────────────────────────────────────────────────────────────────────

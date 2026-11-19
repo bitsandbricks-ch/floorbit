@@ -185,6 +185,10 @@ class History:
         rows = self._select('LOWER(device) = ? AND port_key = ?', (device.lower(), key), limit)
         return [_public(r) for r in rows]
 
+    def at_device(self, device, limit=LIMIT):
+        """Everything seen on one switch's ports, newest first (its MAC/IP tab)."""
+        return [_public(r) for r in self._select('LOWER(device) = ?', (str(device or '').lower(),), limit)]
+
     def at_seat(self, seat, limit=LIMIT):
         """What was on the seat's port: rows stored with the seat, and rows on the port the seat is
         on now (the patch plan or a check-in may have named it later)."""

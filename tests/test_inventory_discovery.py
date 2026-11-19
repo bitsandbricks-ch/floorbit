@@ -215,3 +215,69 @@ def test_drift_shows_where_the_inventory_and_the_device_disagree(client):
     assert listed['drift'] == 4
     all_drift = client.get('/api/inventory/drift').get_json()['devices']
     assert [d['name'] for d in all_drift] == ['sw-a-01']
+
+
+# ── interfaces, VLANs and networks (issue #919) ─────────────────────────────────────────────────
+
+def test_a_cisco_switch_says_its_ports_macs_ips_and_vlans():
+    st = State()
+    st.apply_text('\n'.join([
+        f'fb_if,{SW},index=10101,ifName=Gi1/0/1 ifOperStatus=1i',
+        f'fb_if,{SW},index=10148,ifName=Te1/0/1 ifOperStatus=1i',
+        f'fb_if,{SW},index=1010,ifName=Vlan10 ifOperStatus=1i',
+        f'fb_ifmac,{SW},index=10101 ifPhysAddress="02:00:00:aa:00:01"',
+        f'fb_ip,{SW},index=192.0.2.1 ipAdEntIfIndex=1010i,ipAdEntNetMask="255.255.255.0"',
+        f'fb_ip,{SW},index=127.0.0.1 ipAdEntIfIndex=1i,ipAdEntNetMask="255.0.0.0"',
+        f'fb_vtp,{SW},index=1.10 vtpVlanName="seats"',
+        f'fb_vtp,{SW},index=1.99 vtpVlanName="mgmt"',
+        f'fb_ifvlan,{SW},index=10101 vmVlan=10i,vlanTrunkPortDynamicStatus=2i',
+        f'fb_ifvlan,{SW},index=10148 vlanTrunkPortDynamicStatus=1i',
+    ]))
+    dev = st.devices['sw-a-01']
+    ports = {i.name: dev.port_facts(i) for i in dev.interfaces.values()}
+    assert ports['Gi1/0/1'] == {'mac': '02:00:00:aa:00:01', 'vlan': 10, 'mode': 'access'}
+    assert ports['Te1/0/1'] == {'mode': 'trunk'}
+    assert ports['Vlan10'] == {'ips': ['192.0.2.1/24']}
+    summary = dev.summary()
+    assert summary['vlans'] == {'10': 'seats', '99': 'mgmt'} and summary['networks'] == ['192.0.2.0/24']
+
+
+def test_a_qbridge_switch_says_its_access_vlans_through_the_bridge_ports():
+    st = State()
+    tags = 'device=sw-x-01,address=192.0.2.30,driver=snmp'
+    st.apply_text('\n'.join([
+        f'fb_if,{tags},index=5,ifName=ge-0/0/5 ifOperStatus=1i',
+        f'fb_bridge,{tags},index=5 ifIndex=5i',
+        f'fb_pvid,{tags},index=5 dot1qPvid=20i',
+        f'fb_qvlan,{tags},index=20 dot1qVlanStaticName="crew"',
+    ]))
+    dev = st.devices['sw-x-01']
+    assert dev.port_facts(next(iter(dev.interfaces.values()))) == {'vlan': 20}
+    assert dev.summary()['vlans'] == {'20': 'crew'}
+
+
+def test_discovery_fills_interfaces_and_the_vlan_entries(client):
+    add(client, name='sw-a-01')
+    rows = [{'hostname': 'sw-a-01', 'status': 1,
+             'facts': {'vlans': {'10': 'seats', '20': ''}, 'networks': ['192.0.2.0/24']}}]
+    ports = {'sw-a-01': [{'name': 'Gi1/0/1', 'state': 'up', 'mac': '02:00:00:aa:00:01', 'vlan': 10,
+                          'mode': 'access'},
+                         {'name': 'Vlan10', 'state': 'up', 'ips': ['192.0.2.1/24']}]}
+    before = sources.use(Telemetry(rows, ports))
+    try:
+        r = client.post('/api/inventory/sync')
+        report = next(x for x in r.get_json()['reports'] if x['plugin'] == 'discovery')
+        sw = next(d for d in client.get('/api/inventory').get_json()['devices'] if d['name'] == 'sw-a-01')
+        detail = client.get(f"/api/inventory/{sw['id']}").get_json()
+    finally:
+        sources.use(before)
+    assert report['entries']['added'] == 3
+    ifaces = {i['name']: i for i in detail['interfaces']}
+    assert (ifaces['Gi1/0/1']['mac'], ifaces['Gi1/0/1']['vlan'], ifaces['Gi1/0/1']['mode']) == (
+        '02:00:00:aa:00:01', 10, 'access')
+    assert ifaces['Vlan10']['ips'] == ['192.0.2.1/24']
+    assert detail['discovered']['vlans'] == [{'id': 10, 'name': 'seats'}, {'id': 20, 'name': ''}]
+    assert detail['discovered']['networks'] == ['192.0.2.0/24']
+    entries = client.get('/api/inventory/entries?type=vlan').get_json()
+    names = sorted(e['name'] for e in entries.get('entries', entries if isinstance(entries, list) else []))
+    assert names == ['192.0.2.0/24', 'VLAN 20', 'seats']

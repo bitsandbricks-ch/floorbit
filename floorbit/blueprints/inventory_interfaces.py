@@ -38,6 +38,7 @@ def detail(data, dev):
     out['connected'] = connected(data, dev)
     from .. import inventory_discovery
     out['drift'] = inventory_discovery.drift_of(data, dev['id'])
+    out['discovered'] = inventory_discovery.discovered_of(data, dev['id'])
     return out
 
 
