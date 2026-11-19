@@ -691,7 +691,7 @@ export interface PowerOverview {
 }
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
-export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link'
+export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'range'
   | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
   /** The switch id, or ``health:<service id>`` for a service (issue #256). */

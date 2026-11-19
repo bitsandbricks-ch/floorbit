@@ -80,7 +80,22 @@ Each firewall is also a tile on the [service health](health.md) widget (under **
 while it is up, red when it is down, saying which of its ranges failed over or have no firewall left.
 So a firewall going down pages the crew on Discord like any other service.
 
+## Seats in another block's range
+
+A seat patched to the wrong port, a port in the wrong VLAN, or a player's own switch can put a PC
+into another block's range: it works, but on the wrong firewall, and this page and the traffic per
+block are quietly wrong. The [Problems page](alerts.md) flags it as **Range** (amber):
+"Seat A-5 is in 192.0.2.64/26, not its block's 192.0.2.0/26", or one line per block and range when
+several seats are in it ("3 seats of block A are in …").
+
+Nothing to set up: a block's range is the range most of its machines are in right now (at least 3,
+and 60 % of those that are in a range). A block without such a clear picture, a seat not on the
+plan, and an address no range covers are left out. The addresses come from the
+[IP and MAC history](endpoints.md) (machines seen on a seat port in the last 15 minutes) and stay on
+the server; the problem names seats, blocks and ranges only. Code: `floorbit/range_drift.py` (issue #1062).
+
 ## Not yet
 
+- The floor plan's Firewalls layer doesn't mark the seats in another block's range yet.
 - Floorbit doesn't read the core's routing itself: "now" is what the plan and the health say the
   core should do.

@@ -23,7 +23,8 @@
     "checkin": "Check-in",
     "mapping": "Platz-Port",
     "forecast": "Prognose",
-    "log": "Log"
+    "log": "Log",
+    "range": "Bereich"
   },
   "attention": {
     "title": "Braucht Aufmerksamkeit",

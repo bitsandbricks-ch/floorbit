@@ -23,7 +23,8 @@
     "checkin": "Check-in",
     "mapping": "Seat port",
     "forecast": "Forecast",
-    "log": "Log"
+    "log": "Log",
+    "range": "Range"
   },
   "attention": {
     "title": "Needs attention",

@@ -1228,5 +1228,7 @@
  "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
  "Send an object.": "Schicke ein Objekt.",
  "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken.",
- "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({})."
+ "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({}).",
+ "Seat {} is in {}, not its block's {}": "Platz {} ist in {}, nicht im Bereich seines Blocks {}",
+ "{} seats of block {} are in {}, not {}": "{} Plätze von Block {} sind in {}, nicht in {}"
 }

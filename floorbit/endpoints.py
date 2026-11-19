@@ -201,6 +201,14 @@ class History:
         rows = self._select(' OR '.join(where), args, limit)
         return [_public(r) for r in rows]
 
+    def at_seats_now(self, now=None):
+        """{seat: ip} for the machines on seat ports seen in the last ``GAP``, the newest per seat.
+        For the crew's own checks (floorbit/range_drift.py); the IPs never leave the server."""
+        now = time.time() if now is None else now
+        rows = self.db.run("SELECT seat, ip, last_seen FROM floorbit_endpoints WHERE last_seen >= ? "
+                           "AND seat <> '' AND ip <> '' ORDER BY last_seen", (int(now - GAP),), fetch=True) or []
+        return {seat: ip for seat, ip, _seen in rows}
+
     def status(self):
         return {'store': 'database', 'written': self.written, 'open': len(self.open or {}),
                 'keep_days': keep_days(), 'error': self.error}
