@@ -118,11 +118,48 @@ platform's ingress), and its agent connects there. The flow collector of a tenan
 
 A wrong `FLOORBIT_TENANT` stops Floorbit at start.
 
+### Who may do what
+
+| Who | What they may do |
+| --- | --- |
+| **Platform admin**: an account of the default tenant with the Admin role and the platform admin flag | Settings > Tenants: add, rename, suspend and take back tenants, and set a tenant's admin. Visit every tenant that allows it. Give and take the flag on the default tenant's Users page. |
+| **Tenant admin**: an account with the Admin role in its tenant | Everything in that tenant, its accounts included. Turn platform visits into the tenant off. Nothing in other tenants. |
+| Everyone else | What their role in their tenant allows. |
+
+The first account of the default tenant (the one the first-run page makes) is a platform admin.
+Other admins of the default tenant are not, until a platform admin makes them one on
+**Settings > Users** (**Make platform admin**) or someone with a shell runs:
+
+```
+flask --app app platform-admins add <username>
+flask --app app platform-admins remove <username>
+flask --app app platform-admins list
+```
+
+Only an admin can carry the flag, and the last platform admin can't lose it: not by taking the
+flag, nor by a role change, nor by removing the account. An install that existed before the flag
+gives it once, on the upgrade, to every admin of the default tenant, so nobody loses the platform.
+The flag means nothing in any other tenant.
+
+A tenant's admins are its own Admin accounts. When a tenant is locked out (its admin left, or the
+password is gone), a platform admin opens **Set admin** on that tenant's row in Settings > Tenants
+and names an account: a new one is made as Admin, an existing one becomes Admin and gets a new
+password, and is signed out everywhere. The password shows once. The tenant's own audit log has
+"The platform set an admin", so its admins see it.
+
+Platform admins may come into a tenant to help (see "Switching tenants" below). A tenant's admins
+decide whether they may: **Settings > Users > Platform visits**, on by default. Turning it off
+hides the tenant from the platform admins' switcher and ends the visits under way at the next
+request. The default tenant is the platform's own and has no such setting.
+
+- `GET`/`PUT /api/tenant/platform-access` `{"visits": bool}` (`accounts.manage`).
+- `POST /api/platform/tenants/<id>/admin` `{"username"}`: `{admin, password, made}`.
+
 ### Adding and suspending tenants
 
-There is no sign-up. The platform's admins are the admins of the default tenant: they find
-**Settings > Tenants** (`/settings/tenants`) in the sidebar, and no other tenant has that page.
-There they add a tenant (short name, name, address and optionally a first admin, whose
+There is no sign-up. Platform admins find
+**Settings > Tenants** (`/settings/tenants`) in the sidebar; nobody else has that page, and no
+other tenant has it. There they add a tenant (short name, name, address and optionally a first admin, whose
 password is shown once), rename it, and **suspend** it. A suspended tenant's processes answer 503
 "This tenant is suspended" to everything within 10 seconds, its login page and its agents included;
 only `/healthz` stays open so Kubernetes doesn't restart it. Its data stays, and **Take back**
@@ -155,9 +192,9 @@ the account menu. Nobody on a platform with one tenant (every self-hosted instal
 It lists:
 
 - the tenants where the person has a linked account (above), where they arrive as that account;
-- for admins of the default tenant (the platform admins), every other active tenant, where they
+- for platform admins, every other active tenant that allows platform visits, where they
   arrive as `platform:<their name>`, an admin who has no account there. Each request checks that they
-  are still an admin of the default tenant, and a visit ends after 8 hours. The tenant's audit log
+  are still a platform admin and that the tenant still allows visits, and a visit ends after 8 hours. The tenant's audit log
   shows "Came in from another tenant" with that name, so its own admins see the visit.
 
 Only tenants with an address (Settings > Tenants) show up: that is where the browser goes.
@@ -194,7 +231,7 @@ Tenants on one platform share the database, Redis and often the S3 bucket and `S
 | --- | --- |
 | Documents | Every path comes from `store.tenant_path`/`event_path`, so from the tenant's folder; a configured file (`MONITORING_CACHE_FILE`, `AUDIT_FILE`, ...) goes into it too |
 | Sign-in | The session cookie names the tenant that signed it in; another tenant drops it, even with the same `SECRET_KEY` and username |
-| Switching tenants | A hand-off ticket is written into one tenant's folder, works once and only there, and a platform visit is re-checked against the default tenant on every request |
+| Switching tenants | A hand-off ticket is written into one tenant's folder, works once and only there, and a platform visit is re-checked against the default tenant and the tenant's own platform visits setting on every request |
 | API tokens, agent keys | Kept in the tenant's accounts and agent list, so another tenant doesn't know them |
 | Redis keys and live updates | Prefixed with the tenant's name; the live-update channel too |
 | S3 backups | Each tenant lists, prunes and restores only its own folder |

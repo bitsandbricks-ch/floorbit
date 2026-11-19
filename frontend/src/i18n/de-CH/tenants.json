@@ -27,5 +27,11 @@
   "madeAdmin": "Das Passwort von {{admin}}, nur jetzt sichtbar:",
   "copy": "Kopieren",
   "copied": "Kopiert",
-  "docs": "Wie Mandanten laufen und was sie trennt: docs/tenancy.md."
+  "docs": "Wie Mandanten laufen und was sie trennt: docs/tenancy.md.",
+  "setAdmin": "Admin setzen",
+  "setAdminName": "Benutzername des Admins",
+  "setAdminHelp": "Ein neues Konto wird als Admin angelegt. Ein bestehendes wird Admin, bekommt ein neues Passwort und wird überall abgemeldet. Steht im Audit-Log des Mandanten.",
+  "setAdminButton": "Admin setzen",
+  "adminMade": "{{admin}} als Admin angelegt. Das Passwort, nur jetzt sichtbar:",
+  "adminReset": "{{admin}} ist Admin mit neuem Passwort, nur jetzt sichtbar:"
 }

@@ -220,6 +220,8 @@ RULES = (
     ('/api/tenant/current', None, 'floorplan.view'),
     ('/api/tenant/mine', None, 'floorplan.view'),
     ('/api/tenant/switch', None, 'floorplan.view'),
+    # Whether the platform admins may come in: the tenant's own account managers decide.
+    ('/api/tenant/platform-access', None, 'accounts.manage'),
     # The platform's tenants (floorbit/blueprints/platform.py); only the default tenant answers.
     ('/api/platform', None, 'settings.manage'),
     ('/api/settings/audit', READ, 'audit.read'),

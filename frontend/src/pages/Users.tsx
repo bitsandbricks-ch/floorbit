@@ -1,8 +1,8 @@
-import { Alert, Badge, Button, Group, MultiSelect, Paper, PasswordInput, Select, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, MultiSelect, Paper, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { del, get, patch, post } from '@/api/client'
+import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Account, AccountsList } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
@@ -93,11 +93,13 @@ function AccountRow({ user, list, boards, onSaved }: {
           <Group gap={6}>
             <Text fw={600}>{user.display_name}</Text>
             {isMe && <Badge size="sm" variant="light">{t('users.you')}</Badge>}
+            {user.platform_admin && <Badge size="sm" variant="light" color="trace" tt="none">{t('users.platformAdmin')}</Badge>}
           </Group>
           <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>
             {user.username}
             {linked.length ? ` · ${t('users.linked', { list: linked.join(', ') })}` : ''}
-            {user.created_by ? ` · ${t('users.joinedWith', { via: user.created_by === 'discord' ? 'Discord' : label(user.created_by) })}` : ''}
+            {user.created_by === 'platform' ? ` · ${t('users.byPlatform')}`
+              : user.created_by ? ` · ${t('users.joinedWith', { via: user.created_by === 'discord' ? 'Discord' : label(user.created_by) })}` : ''}
           </Text>
         </div>
         <Select aria-label={t('users.role')} w={{ base: '100%', xs: 170 }} allowDeselect={false} disabled={isMe}
@@ -121,6 +123,15 @@ function AccountRow({ user, list, boards, onSaved }: {
             {user.dashboards?.length ? t('users.onlyDashboards', { count: user.dashboards.length }) : t('users.limitDashboards')}
           </Button>
         )}
+        {list.platform && (user.platform_admin ? (
+          <ConfirmButton size="compact-sm" variant="default" danger label={t('users.takePlatform')}
+            question={t('users.takePlatformQuestion', { name: user.display_name })}
+            loading={change.isPending} onConfirm={() => change.mutate({ platform_admin: false })} />
+        ) : user.role === 'admin' && (
+          <ConfirmButton size="compact-sm" variant="default" danger label={t('users.makePlatform')}
+            question={t('users.makePlatformQuestion', { name: user.display_name })}
+            loading={change.isPending} onConfirm={() => change.mutate({ platform_admin: true })} />
+        ))}
         <ConfirmButton size="compact-sm" variant="light" danger label={t('users.remove')} disabled={isMe}
           title={isMe ? t('users.ownAccount') : undefined} question={t('users.removeQuestion', { name: user.display_name })}
           loading={remove.isPending} onConfirm={() => remove.mutate()} />
@@ -170,6 +181,28 @@ function AddAccount({ list, onSaved }: { list: AccountsList; onSaved: (l: Accoun
   )
 }
 
+type Access = { visits: boolean; shown: boolean }
+
+/** On a tenant other than the default one: whether the platform's admins may come in. */
+function PlatformVisits() {
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+  const query = useQuery({ queryKey: qk.platformAccess, queryFn: () => get<Access>('/api/tenant/platform-access') })
+  const save = useMutation({
+    mutationFn: (visits: boolean) => put<Access>('/api/tenant/platform-access', { visits }),
+    onSuccess: (a) => qc.setQueryData(qk.platformAccess, a),
+  })
+  if (!query.data?.shown) return null
+  return (
+    <Paper withBorder radius="lg" p="md">
+      <Title order={2} size="h4" mb="xs">{t('users.platformVisits')}</Title>
+      <Switch checked={query.data.visits} disabled={save.isPending} label={t('users.platformVisitsLabel')}
+        description={t('users.platformVisitsHelp')} onChange={(e) => save.mutate(e.currentTarget.checked)} />
+      {save.error && <Text size="sm" c="down" role="alert" mt="xs">{save.error.message}</Text>}
+    </Paper>
+  )
+}
+
 /** Settings > Users: accounts, their roles and sign-in links. Admins only (the server checks). */
 export default function Users() {
   const { t } = useTranslation()
@@ -201,6 +234,7 @@ export default function Users() {
               </div>
             </Paper>
             <AddAccount list={list} onSaved={saved} />
+            <PlatformVisits />
           </>
         )}
       </Stack>

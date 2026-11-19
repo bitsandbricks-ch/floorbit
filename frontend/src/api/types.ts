@@ -450,10 +450,14 @@ export interface Account extends AccountSummary {
   created_by: string | null
   /** The dashboards this account is limited to (a wall screen, #702); empty: every one. */
   dashboards: string[]
+  /** Runs the platform: a flagged admin of the default tenant (docs/tenancy.md). */
+  platform_admin?: boolean
 }
 
 export interface AccountsList {
   users: Account[]
+  /** Whoever looks is a platform admin, so may give and take the flag. */
+  platform?: boolean
   roles: { id: string; label: string; description: string }[]
   me: string | null
   discord: boolean

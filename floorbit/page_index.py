@@ -58,7 +58,8 @@ PAGES = (
     ('/settings/sidebar', 'sidebarSections', 'Sidebar sections', lambda c, can: can('settings.manage')),
     ('/settings/api', 'apiTokens', 'API tokens', lambda c, can: can('settings.manage')),
     ('/settings/tenants', 'tenants', 'Tenants',
-     lambda c, can: can('settings.manage') and store.current_tenant() == store.DEFAULT_TENANT),
+     lambda c, can: can('settings.manage') and store.current_tenant() == store.DEFAULT_TENANT
+     and bool((c.get('current_user') or {}).get('platform_admin'))),
     ('/settings/agents', 'agents', 'Local agents', lambda c, can: can('settings.manage')),
     ('/settings/webhooks', 'webhooks', 'Webhooks', lambda c, can: can('settings.manage')),
     ('/settings/users', 'users', 'Users', lambda c, can: can('accounts.manage')),

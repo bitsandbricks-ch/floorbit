@@ -104,4 +104,51 @@ describe('Users', () => {
     await waitFor(() => expect(sent).toEqual({ dashboards: ['hall-b'] }))
     expect(await screen.findByRole('button', { name: 'Only 1 dashboard' })).toBeInTheDocument()
   })
+
+  it('gives and takes the platform admin flag, for a platform admin only', async () => {
+    let flagged = false
+    const api = fakeFetch({
+      'GET /api/auth/me': admin,
+      'GET /api/users': { ...list([account('ada', { role: 'admin', platform_admin: true }), account('bob', { role: 'admin' }),
+        account('helper1')]), platform: true },
+      'PATCH /api/users/bob': (init: RequestInit | undefined) => {
+        flagged = JSON.parse(String(init?.body)).platform_admin
+        return { body: { ...list([account('ada', { role: 'admin', platform_admin: true }),
+          account('bob', { role: 'admin', platform_admin: flagged }), account('helper1')]), platform: true } }
+      },
+      'GET /api/tenant/platform-access': { visits: true, shown: false },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Users />)
+    expect(await screen.findByText('BOB')).toBeInTheDocument()
+    expect(screen.getAllByText('Platform admin')).toHaveLength(1)
+    // Only an admin can be one: the tech gets no button.
+    expect(screen.getAllByRole('button', { name: 'Make platform admin' })).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Make platform admin' }))
+    expect(await screen.findByText(/Make BOB a platform admin\?/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, go ahead' }))
+    await waitFor(() => expect(flagged).toBe(true))
+    expect(await screen.findAllByText('Platform admin')).toHaveLength(2)
+    // Not on a tenant other than the default one: no visits card there.
+    expect(screen.queryByText('Platform visits')).not.toBeInTheDocument()
+  })
+
+  it('hides the flag from other admins and lets a tenant turn platform visits off', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': admin,
+      'GET /api/users': list([account('ada', { role: 'admin' }), account('bob', { role: 'admin' })]),
+      'GET /api/tenant/platform-access': { visits: true, shown: true },
+      'PUT /api/tenant/platform-access': (init: RequestInit | undefined) => (
+        { body: { visits: JSON.parse(String(init?.body)).visits, shown: true } }),
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Users />)
+    expect(await screen.findByText('BOB')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Make platform admin' })).not.toBeInTheDocument()
+    const visits = await screen.findByRole('switch', { name: /^Let platform admins come into this tenant/ })
+    expect(visits).toBeChecked()
+    fireEvent.click(visits)
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ visits: false }))
+    await waitFor(() => expect(visits).not.toBeChecked())
+  })
 })

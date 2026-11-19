@@ -48,6 +48,51 @@ function NewTenant({ onMade }: { onMade: (m: Made) => void }) {
   )
 }
 
+type SetAdmin = { admin: string; password: string; made: boolean }
+
+function Password({ value }: { value: string }) {
+  const { t } = useTranslation()
+  return (
+    <Group gap="xs" wrap="nowrap">
+      <Code style={{ overflowWrap: 'anywhere', minWidth: 0 }}>{value}</Code>
+      <CopyButton value={value}>
+        {({ copied, copy }) => (
+          <Button size="compact-sm" variant="default" onClick={copy}>{copied ? t('tenants.copied') : t('tenants.copy')}</Button>
+        )}
+      </CopyButton>
+    </Group>
+  )
+}
+
+/** Adds a tenant's admin, or gives an existing account the Admin role and a new password: for a tenant locked out. */
+function AdminForm({ tenant }: { tenant: Tenant }) {
+  const { t } = useTranslation()
+  const [username, setUsername] = useState('')
+  const set = useMutation({
+    mutationFn: () => post<SetAdmin>(`/api/platform/tenants/${tenant.id}/admin`, { username: username.trim() }),
+    onSuccess: () => setUsername(''),
+  })
+  return (
+    <Stack gap="xs">
+      <Group align="flex-end" gap="xs">
+        <TextInput label={t('tenants.setAdminName')} description={t('tenants.setAdminHelp')} maxLength={32}
+          autoCapitalize="none" spellCheck={false} autoComplete="off" style={{ flex: 1, minWidth: 200 }}
+          value={username} onChange={(e) => setUsername(e.currentTarget.value)} />
+        <Button loading={set.isPending} disabled={!username.trim()} onClick={() => set.mutate()}>{t('tenants.setAdminButton')}</Button>
+      </Group>
+      {set.error && <Text size="sm" c="down" role="alert">{set.error.message}</Text>}
+      {set.data && (
+        <Alert color="up" role="status">
+          <Stack gap="xs">
+            <Text size="sm">{t(set.data.made ? 'tenants.adminMade' : 'tenants.adminReset', { admin: set.data.admin })}</Text>
+            <Password value={set.data.password} />
+          </Stack>
+        </Alert>
+      )}
+    </Stack>
+  )
+}
+
 function Row({ tenant, here, onChanged }: { tenant: Tenant; here: string; onChanged: () => void }) {
   const { t } = useTranslation()
   const change = useMutation({
@@ -55,33 +100,44 @@ function Row({ tenant, here, onChanged }: { tenant: Tenant; here: string; onChan
     onSuccess: onChanged,
   })
   const suspended = tenant.status === 'suspended'
+  const [adminOpen, setAdminOpen] = useState(false)
   return (
-    <Group justify="space-between" wrap="wrap" gap="xs">
-      <Stack gap={0} style={{ minWidth: 0 }}>
-        <Group gap={6}>
-          <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{tenant.name || tenant.id}</Text>
-          <Code>{tenant.id}</Code>
-          {tenant.id === here && <Badge variant="light" color="trace" tt="none">{t('tenants.here')}</Badge>}
-          {suspended
-            ? <Badge variant="light" color="down" tt="none">{t('tenants.suspended')}</Badge>
-            : <Badge variant="light" color="up" tt="none">{t('tenants.active')}</Badge>}
-        </Group>
-        <Text size="xs" c="dimmed">
-          {tenant.id === DEFAULT ? t('tenants.defaultHelp') : (
-            tenant.url ? <Anchor href={tenant.url} size="xs" target="_blank" rel="noreferrer">{tenant.url}</Anchor> : t('tenants.noUrl')
-          )}
-        </Text>
-        {change.error && <Text size="xs" c="down" role="alert">{change.error.message}</Text>}
-      </Stack>
-      {tenant.id !== DEFAULT && (suspended ? (
-        <Button size="compact-sm" variant="default" loading={change.isPending} onClick={() => change.mutate('active')}>
-          {t('tenants.resume')}
-        </Button>
-      ) : (
-        <ConfirmButton size="compact-sm" variant="default" danger label={t('tenants.suspend')}
-          question={t('tenants.suspendQuestion', { name: tenant.name || tenant.id })} onConfirm={() => change.mutate('suspended')} />
-      ))}
-    </Group>
+    <Stack gap="xs">
+      <Group justify="space-between" wrap="wrap" gap="xs">
+        <Stack gap={0} style={{ minWidth: 0 }}>
+          <Group gap={6}>
+            <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{tenant.name || tenant.id}</Text>
+            <Code>{tenant.id}</Code>
+            {tenant.id === here && <Badge variant="light" color="trace" tt="none">{t('tenants.here')}</Badge>}
+            {suspended
+              ? <Badge variant="light" color="down" tt="none">{t('tenants.suspended')}</Badge>
+              : <Badge variant="light" color="up" tt="none">{t('tenants.active')}</Badge>}
+          </Group>
+          <Text size="xs" c="dimmed">
+            {tenant.id === DEFAULT ? t('tenants.defaultHelp') : (
+              tenant.url ? <Anchor href={tenant.url} size="xs" target="_blank" rel="noreferrer">{tenant.url}</Anchor> : t('tenants.noUrl')
+            )}
+          </Text>
+          {change.error && <Text size="xs" c="down" role="alert">{change.error.message}</Text>}
+        </Stack>
+        {tenant.id !== DEFAULT && (
+          <Group gap="xs">
+            <Button size="compact-sm" variant="default" onClick={() => setAdminOpen((o) => !o)} aria-expanded={adminOpen}>
+              {t('tenants.setAdmin')}
+            </Button>
+            {suspended ? (
+              <Button size="compact-sm" variant="default" loading={change.isPending} onClick={() => change.mutate('active')}>
+                {t('tenants.resume')}
+              </Button>
+            ) : (
+              <ConfirmButton size="compact-sm" variant="default" danger label={t('tenants.suspend')}
+                question={t('tenants.suspendQuestion', { name: tenant.name || tenant.id })} onConfirm={() => change.mutate('suspended')} />
+            )}
+          </Group>
+        )}
+      </Group>
+      {adminOpen && <AdminForm tenant={tenant} />}
+    </Stack>
   )
 }
 
@@ -108,14 +164,7 @@ export default function Tenants() {
               {made.admin && made.password && (
                 <>
                   <Text size="sm">{t('tenants.madeAdmin', { admin: made.admin })}</Text>
-                  <Group gap="xs" wrap="nowrap">
-                    <Code style={{ overflowWrap: 'anywhere', minWidth: 0 }}>{made.password}</Code>
-                    <CopyButton value={made.password}>
-                      {({ copied, copy }) => (
-                        <Button size="compact-sm" variant="default" onClick={copy}>{copied ? t('tenants.copied') : t('tenants.copy')}</Button>
-                      )}
-                    </CopyButton>
-                  </Group>
+                  <Password value={made.password} />
                 </>
               )}
             </Stack>

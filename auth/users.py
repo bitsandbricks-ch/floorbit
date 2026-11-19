@@ -136,6 +136,10 @@ class UserStore:
             }
             if created_by:   # a login provider that made this account on first sign-in
                 users[username.lower()]['created_by'] = created_by
+            if not users.keys() - {username.lower()} and _default_tenant():
+                # The install's first account runs the platform too (docs/tenancy.md); later ones
+                # only when a platform admin says so.
+                users[username.lower()][PLATFORM_FLAG] = True
             self._write_users(users)
             return dict(users[username.lower()])
 
@@ -164,6 +168,9 @@ class UserStore:
                 if _manager(user) and 'accounts.manage' not in roles.permissions_of(role) \
                         and _admin_count(users) <= 1:
                     raise UserError('This is the last admin. Make someone else admin first.')
+                if _runs_platform(user) and PLATFORM_PERMISSION not in roles.permissions_of(role) \
+                        and _platform_count(users) <= 1:
+                    raise UserError('This is the last platform admin. Make someone else platform admin first.')
                 # Sessions read the record on every request, so this applies at once.
                 user['role'] = role
             if isinstance(display_name, str):
@@ -173,6 +180,27 @@ class UserStore:
                     user['dashboards'] = list(dashboards)
                 else:
                     user.pop('dashboards', None)
+            self._write_users(users)
+            return dict(user)
+
+    def set_platform_admin(self, username, on):
+        """Give or take the platform admin flag (accounts of the default tenant only). Refuses to
+        take it from the last platform admin."""
+        if not _default_tenant():
+            raise UserError('Only accounts of the default tenant can be platform admins.')
+        with self._lock:
+            users = self._users()
+            user = users.get((username or '').lower())
+            if not user:
+                raise UserError(f'No user called {username}.')
+            if on:
+                if PLATFORM_PERMISSION not in roles.permissions_of(roles.of(user)):
+                    raise UserError('Only an admin can be a platform admin. Change the role first.')
+                user[PLATFORM_FLAG] = True
+            else:
+                if _runs_platform(user) and _platform_count(users) <= 1:
+                    raise UserError('This is the last platform admin. Make someone else platform admin first.')
+                user.pop(PLATFORM_FLAG, None)
             self._write_users(users)
             return dict(user)
 
@@ -213,6 +241,8 @@ class UserStore:
                 raise UserError(f'No user called {username}.')
             if _manager(user) and _admin_count(users) <= 1:
                 raise UserError('This is the last admin. Make someone else admin first.')
+            if _runs_platform(user) and _platform_count(users) <= 1:
+                raise UserError('This is the last platform admin. Make someone else platform admin first.')
             del users[(username or '').lower()]
             self._write_users(users)
 
@@ -242,6 +272,24 @@ def clean_nav(prefs):
     return {'favourites': favourites[:MAX_FAVOURITES], 'accordion': prefs.get('accordion') is not False}
 
 
+PLATFORM_FLAG = 'platform_admin'
+# A platform admin is an admin of the default tenant with the flag: losing the role ends it too.
+PLATFORM_PERMISSION = 'settings.manage'
+
+
+def _default_tenant():
+    from floorbit import store  # late: floorbit imports auth while it loads
+    return store.tenant_dir() == ''
+
+
+def _runs_platform(user):
+    return bool(user.get(PLATFORM_FLAG)) and PLATFORM_PERMISSION in roles.permissions_of(roles.of(user))
+
+
+def _platform_count(users):
+    return sum(1 for u in users.values() if _runs_platform(u))
+
+
 def public(user):
     """A user record without secrets, for templates and the API."""
     return {
@@ -255,5 +303,6 @@ def public(user):
         'identities': sorted((user.get('identities') or {}).keys()),
         'discord_id': (user.get('identities') or {}).get('discord', ''),
         'created_by': user.get('created_by'),
+        'platform_admin': _runs_platform(user) and _default_tenant(),
         'dashboards': list(user.get('dashboards') or []),
     }

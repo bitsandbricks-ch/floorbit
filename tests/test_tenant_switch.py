@@ -95,6 +95,7 @@ def test_a_visit_ends_when_the_platform_admin_loses_the_right(client, anon_clien
     assert anon_client.get("/api/auth/me").get_json()["user"]
     _as(monkeypatch, "default")
     users.add("other-admin", "long-enough-pass-1", role="admin")
+    users.set_platform_admin("other-admin", True)
     users.update(TEST_USER, role="viewer")
     _as(monkeypatch, "club-b")
     assert anon_client.get("/api/auth/me").get_json()["user"] is None
