@@ -11,14 +11,14 @@ signed link and no account:
 All four answer 404 while Settings > Speed tests is off.
 
 ``GET /api/speedtests?seat=``: the latest results per seat, for the crew (``incidents.work``).
-``GET /speedtests`` and ``GET /api/speedtests/summary``: the crew's page, the results side by side per
-switch (issue #434).
+``GET /api/speedtests/summary``: the crew's widget (frontend/src/pages/speedtests/SpeedtestsView.tsx), the
+results side by side per switch (issue #434).
 """
 from flask import Blueprint, Response, abort, jsonify, request
 
 from integrations import checkin, events
 
-from .. import audit, incidents, spa, speedtest
+from .. import audit, incidents, speedtest
 from ..store import load_data
 
 bp = Blueprint('speedtest', __name__)
@@ -123,11 +123,6 @@ def recent():
     if seat:
         return jsonify({'seats': {seat: kept.get(seat) or []}})
     return jsonify({'seats': kept})
-
-
-@bp.route('/speedtests')
-def speedtests_page():
-    return spa.render('Speed tests')
 
 
 @bp.route('/api/speedtests/summary', methods=['GET'])

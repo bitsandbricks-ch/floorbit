@@ -116,12 +116,11 @@ def init_theme(app, store):
 
     @app.context_processor
     def theme_context():
-        # The Kiosk dashboard is the big screen. The health wall, the stats screen and the plan are big
-        # screens too when opened with ?screen=1: they get the kiosk preset unless the theme says
-        # otherwise. Without it they are crew pages and look like the rest.
+        # The Kiosk dashboard is the big screen, and so is the plan opened with ?screen=1: they get the
+        # kiosk preset unless the theme says otherwise. Other pages are crew pages and look like the rest.
         path = request.path.rstrip('/')
         screen = request.args.get('screen') == '1'
-        big = path in ('/screen', '/dashboards/kiosk') or (path in ('/health', '/stats', '/plan') and screen)
+        big = path == '/dashboards/kiosk' or (path == '/plan' and screen)
         page = 'kiosk' if big else None
         theme = resolve(store, page=page, override=_request_override())
         theme['html_attrs'] = html_attrs(theme)

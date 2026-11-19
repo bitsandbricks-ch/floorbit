@@ -252,7 +252,7 @@ def _seed_event(now=None):
     now = time.time() if now is None else now
     from ..builtin_plugins.demo.texts import text
     words = text()
-    for part in (_seed_crew, _seed_incidents, _seed_checkins, _seed_status, _seed_dashboards,
+    for part in (_seed_crew, _seed_incidents, _seed_checkins, _seed_status,
                  _seed_schedule, _seed_settings):
         try:
             part(words, now)
@@ -361,16 +361,6 @@ def _backdate(key, part, item_id, at):
             if item.get('id') == item_id:
                 item['at'] = at
         save_data(data)
-
-
-def _seed_dashboards(words, _now):
-    from .. import dashboard_layouts
-    if dashboard_layouts.all_layouts():
-        return
-    tiles = {'noc-wall': ['problems', 'incidents', 'switches', 'seats'], 'ops-desk': ['incidents', 'problems']}
-    for layout_id, name, columns in words['layouts']:
-        dashboard_layouts.save(layout_id, {'name': name, 'columns': columns,
-                                           'tiles': [f'floorbit/w/{t}' for t in tiles[layout_id]]}, 'demo')
 
 
 def _seed_schedule(words, now):

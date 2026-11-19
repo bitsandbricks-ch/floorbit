@@ -1,23 +1,13 @@
-"""Big-screen rotation (issue #18) and the hall drawing other pages use. See docs/kiosk.md.
+"""The hall drawing the public pages use (the seat help page, Wi-Fi): seat blocks, rows and plan
+marks as SVG shapes. The big-screen rotation that lived here is now dashboards that rotate
+(``?rotate=`` on a dashboard, docs/dashboards.md)."""
+from flask import Blueprint
 
-- ``GET /screen``: rotates through views on a timer (``?views=floor,heat,stats,health&every=30``,
-  ``&hall=<id>`` for the floor plan views of another hall than the first).
-  Needs ``floorplan.view`` like the Kiosk dashboard.
-  The page is React; ``GET /api/screen`` with the same query string says what it shows.
-"""
-import re
-
-from flask import Blueprint, jsonify, request
-
-from .. import halls, icon_library, plan_marks, seat_gaps, seat_layout, spa, stacking
+from .. import halls, icon_library, plan_marks, seat_gaps, seat_layout, stacking
 from ..seat_names import block_rows, row_letters, seat_one_first
 
 bp = Blueprint('screen', __name__)
 
-# floor and heat show a hall: ?hall= picks which.
-VIEWS = {'floor': '/dashboards/kiosk', 'heat': '/plan?screen=1&layers=marks%2Cstatus',
-         'stats': '/stats?screen=1', 'health': '/health?screen=1'}
-DEFAULT_VIEWS = ('floor', 'heat', 'stats')
 # Block positions are percentages of the floor plan; the public pages draw them on a canvas this
 # big, with seats a bit larger than the editor's so they are easy to see on a phone.
 PLAN_W, PLAN_H, CELL = 1600, 1000, 32
@@ -117,35 +107,3 @@ def _marks(data, hall_id, xs, ys, public=False):
     return (out, {k: plan_marks.ICONS[k] for k in sorted(used) if k in plan_marks.ICONS},
             icon_library.data_uris(data, used))
 
-
-@bp.route('/screen')
-def screen_page():
-    """The page is React (frontend/src/pages/BigScreen.tsx), asking /api/screen what to show."""
-    html, status = spa.render('Big screen')
-    return html, status
-
-
-@bp.route('/api/screen')
-def screen_setup():
-    """What /screen rotates through, for the same query string: ``views``, ``every`` (seconds, at
-    least 10), ``theme`` and ``hall``. Unknown views are dropped; none left means the
-    default views."""
-    wanted = [v.strip() for v in (request.args.get('views') or ','.join(DEFAULT_VIEWS)).split(',')]
-    views = [v for v in wanted if v in VIEWS] or list(DEFAULT_VIEWS)
-    try:
-        every = min(600, max(10, int(request.args.get('every') or 30)))
-    except ValueError:
-        every = 30
-    theme = request.args.get('theme') or ''
-    theme = theme if re.fullmatch(r'[a-z0-9-]{1,30}', theme) else ''
-    hall = request.args.get('hall') or ''
-    hall = hall if re.fullmatch(r'[\w-]{1,40}', hall) else ''
-    urls = []
-    for v in views:
-        url = VIEWS[v]
-        if hall and v in ('floor', 'heat'):
-            url += ('&' if '?' in url else '?') + 'hall=' + hall
-        if theme:
-            url += ('&' if '?' in url else '?') + 'theme=' + theme
-        urls.append({'id': v, 'url': url})
-    return jsonify({'views': urls, 'every': every})

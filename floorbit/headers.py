@@ -3,8 +3,7 @@
 Kept small on purpose: no script-src policy yet, since the older Jinja pages still carry inline
 scripts. What is here costs nothing and closes clickjacking and MIME sniffing.
 
-Framing: crew pages may only be framed by Floorbit itself (the big-screen rotation in
-/screen, frontend/src/pages/BigScreen.tsx, frames its own pages) and by the origins in ``AUTH_TRUSTED_ORIGINS``,
+Framing: crew pages may only be framed by Floorbit itself and by the origins in ``AUTH_TRUSTED_ORIGINS``,
 which already lists the sites an admin trusts, e.g. the event website showing the status wall.
 """
 

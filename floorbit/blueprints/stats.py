@@ -1,6 +1,5 @@
 """The stats dashboard (issue #24). See docs/stats.md.
 
-- ``GET /stats``: the page; ``/stats?screen=1`` is the big-screen version for kiosk and ops screens.
 - ``GET /api/stats``: bandwidth now, the hour, the day and the event's peak, uplinks, online seats,
   port counts and top talkers. Nicks are added to the top talkers only for ``seats.view`` and never
   with ``?screen=1``, which a kiosk shows to everyone.
@@ -15,7 +14,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from integrations import events, seat_sources
 
-from .. import sources, spa
+from .. import sources
 
 bp = Blueprint('stats', __name__)
 
@@ -30,11 +29,6 @@ def _can(permission):
 
 def _stats():
     return current_app.extensions['floorbit_stats']
-
-
-@bp.route('/stats')
-def stats_page():
-    return spa.render('Stats')
 
 
 @bp.route('/api/stats', methods=['GET'])

@@ -14,7 +14,7 @@ Who may do what:
 """
 import json
 
-from flask import Blueprint, current_app, g, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from .. import audit, i18n, spa
 from .. import dashboard_core as core
@@ -387,12 +387,6 @@ def endpoint(plugin_id, endpoint_id):
     return current_app.response_class(body + '\n', mimetype='application/json')
 
 
-# ── Dashboard ─────────────────────────────────────────────────────────────────────────────
-
-@bp.route('/dashboard')
-def dashboard_page():
-    return spa.render('Dashboard')
-
 
 @bp.route('/api/plugins/menu', methods=['GET'])
 def context_menu():
@@ -507,34 +501,3 @@ def core_widget(tile):
     return jsonify(check_widget(widget, {'id': tile, 'label': '', 'size': spec['size'], 'refresh': spec['refresh']}))
 
 
-# Saved layouts (issue #103): which tiles a screen shows, in which order (floorbit/dashboard_layouts.py).
-@bp.route('/api/dashboard/layouts', methods=['GET'])
-def dashboard_layouts():
-    refused = _allowed('floorplan.view')
-    if refused:
-        return refused
-    from .. import dashboard_layouts as layouts
-    return jsonify({'layouts': layouts.all_layouts()})
-
-
-@bp.route('/api/dashboard/layouts/<layout_id>', methods=['PUT'])
-def save_dashboard_layout(layout_id):
-    from .. import dashboard_layouts as layouts
-    user = _user() or {}
-    try:
-        layout = layouts.save(layout_id, request.get_json(silent=True) or {}, user.get('username'))
-    except layouts.LayoutError as exc:
-        return _error(str(exc), exc.status)
-    audit.record('settings', 'Saved dashboard layout', g.get('audit_user'), layout['name'])
-    return jsonify(layout)
-
-
-@bp.route('/api/dashboard/layouts/<layout_id>', methods=['DELETE'])
-def delete_dashboard_layout(layout_id):
-    from .. import dashboard_layouts as layouts
-    try:
-        layouts.delete(layout_id)
-    except layouts.LayoutError as exc:
-        return _error(str(exc), exc.status)
-    audit.record('settings', 'Removed dashboard layout', g.get('audit_user'), layout_id)
-    return jsonify({'ok': True})

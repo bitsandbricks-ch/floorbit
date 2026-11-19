@@ -1,6 +1,5 @@
 """Traffic insights from NetFlow and IPFIX (issue #25). See docs/flows.md.
 
-- ``GET /traffic``: the page.
 - ``GET /api/flows``: the collector's latest summary. Hall, area and service numbers for everyone
   who may see the floor plan; per-seat volumes and which seat an anomaly is at only for
   ``seats.view``, like security findings.
@@ -9,7 +8,7 @@ import time
 
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import i18n, spa
+from .. import i18n
 from ..flows import classify, store
 
 bp = Blueprint('flows', __name__)
@@ -44,11 +43,6 @@ def public(snap, may_see_people):
                          'first_seen': a['first_seen'], 'last_seen': a['last_seen']}
                         for i, a in enumerate(snap.get('anomalies') or [])]
     return out
-
-
-@bp.route('/traffic')
-def traffic_page():
-    return spa.render('Traffic')
 
 
 @bp.route('/api/flows', methods=['GET'])

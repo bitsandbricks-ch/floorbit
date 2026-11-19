@@ -24,6 +24,12 @@ def dashboards_page():
     return spa.render('Dashboards')
 
 
+@bp.route('/widgets')
+def widgets_page():
+    # The widget gallery: what each widget shows comes from its own API, so the page holds no data.
+    return spa.render('Widgets')
+
+
 @bp.route('/dashboards/<layout_id>')
 @public_endpoint
 def dashboard_screen(layout_id):
@@ -96,7 +102,7 @@ def list_layouts():
     # A screen account limited to some dashboards (Settings > Users) sees only those.
     allowed = dashboards.allowed_for(current_user())
     layouts = [x for x in dashboards.all_layouts() if allowed is None or x['id'] in allowed]
-    return jsonify({'layouts': layouts, 'pages': list(dashboards.PAGES), 'limited': allowed is not None})
+    return jsonify({'layouts': layouts, 'limited': allowed is not None})
 
 
 @bp.route('/api/dashboards/<layout_id>', methods=['GET'])
