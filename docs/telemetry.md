@@ -22,8 +22,13 @@ history (see [Storage](#storage)).
 
 ## Set it up
 
-1. **Settings > Telemetry**: add each device. Pick it from the floor plan's switches or firewalls,
-   give its management address, its platform and how to collect from it:
+Devices are set up in the [inventory](inventory.md), nowhere else. The **Telemetry** page under
+Monitoring shows what comes in from each one.
+
+1. **The inventory**: turn the **Telemetry** feature on for a device, a tag, a group or a type, and
+   store its logins there: SNMP v3 (or v2c) for polling and traps, and an API login for NX-API
+   (NX-OS), RESTCONF (IOS-XE) or the OPNsense API. See [Devices from the inventory](#devices-from-the-inventory)
+   for the properties that say more. The ways to collect:
 
     | Way | For | Notes |
     | --- | --- | --- |
@@ -36,14 +41,16 @@ history (see [Storage](#storage)).
     | OPNsense API | OPNsense | Gateways (up, delay, loss), ARP, interface counters. A key with the Diagnostics and Status privileges only. |
     | Own Telegraf | OPNsense, pfSense | The firewall runs Telegraf (OPNsense `os-telegraf`, the pfSense Telegraf package) and sends to the collector. |
 
-    **Device setup** shows what to paste on the device for traps, MDT, gNMI, NX-API and RESTCONF.
+    A device that only sends by itself (`telemetry_drivers` of `push`, `mdt` or `traps`) needs no
+    login. **Device setup** on the Telemetry page shows what to paste on the device for traps, MDT,
+    gNMI, NX-API and RESTCONF.
 
-2. **Catalyst IOS (2960-X, 4500 on IOS-XE 3.x)** answers MAC tables one VLAN at a time. Pick
-   *MAC tables: Per VLAN* and list the seat VLANs. Floorbit then asks `community@vlan` (v2c) or the
+2. **Catalyst IOS (2960-X, 4500 on IOS-XE 3.x)** answers MAC tables one VLAN at a time. That is
+   the default on IOS; list the seat VLANs in `telemetry_vlans`. Floorbit then asks `community@vlan` (v2c) or the
    `vlan-<id>` context (v3). Nexus and IOS-XE 16+ answer Q-BRIDGE in one table.
 
 3. **Telegraf.** The local agent runs it: it is in the agent image, and the Telemetry plugin starts
-   it, writes its config from the devices here and reloads it when they change (agent.md,
+   it, writes its config from the inventory's devices and reloads it when they change (agent.md,
    ["Telegraf"](agent.md#telegraf)). Nothing to start. Publish udp/162 (traps) and tcp/57000 (MDT)
    on the agent machine if the devices send (the agent's compose file does). The Local agents page
    shows how the collector is doing (points, devices heard, which devices fail and why).
@@ -56,7 +63,7 @@ history (see [Storage](#storage)).
 ## When a device sends nothing
 
 The agent reads every line Telegraf prints and every error of the API pollers, and keeps the current
-problem per device and kind of collection. Settings > Telemetry shows it under the device, the
+problem per device and kind of collection. The Telemetry page and the device's Telemetry tab show it, the
 agent's page names the first one, and the agent's log has each new one with the device's name.
 
 | Says | What it means | What to check |
@@ -77,11 +84,9 @@ does the same for every device.
 
 ## Devices from the inventory
 
-Devices already in the inventory don't need setting up twice. Turn the **Telemetry** feature on
-for a device, a tag, a group or a type, and store its logins there: SNMP v3 (or v2c) for polling
-and traps, and an API login for NX-API (NX-OS), RESTCONF (IOS-XE) or the OPNsense API. Floorbit
-then collects from it like from a device on Settings > Telemetry, which lists these under "From
-the inventory".
+Turn the **Telemetry** feature on for a device, a tag, a group or a type, and store its logins
+there: SNMP v3 (or v2c) for polling and traps, and an API login for NX-API (NX-OS), RESTCONF
+(IOS-XE) or the OPNsense API.
 
 What it does follows the platform and the logins it finds: SNMP polling and traps with an SNMP
 login, plus the platform's API with an API login. Properties on the device (or inherited from its
@@ -96,6 +101,7 @@ the ports without typing property names, and shows the device's last word, **Tes
 | `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` |
 | `telemetry_agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
 | `telemetry_port_snmp`, `telemetry_port_gnmi`, `telemetry_port_api` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
+| `telemetry_address` | where the agent reaches the device, when not its management address |
 | `telemetry_url` | the API's full `https://` address |
 | `telemetry_mdt_node` | the node name a device sends model-driven telemetry as |
 | `telemetry_verify_tls` | `false` for an API with a self-signed certificate |
@@ -140,7 +146,7 @@ unheard. Devices without an agent are collected as above: by the agent with the 
 Neither does model-driven streaming. What comes closest:
 
 - **Their own Telegraf** every 10 s: in the firewall's Telegraf settings, add an InfluxDB output
-  to `https://<floorbit>/api/telemetry` with the token from Settings > Telemetry: as the token for
+  to `https://<floorbit>/api/telemetry` with the token from the Telemetry page (admins): as the token for
   InfluxDB v2, or as the password for v1. With a local agent, point it at `https://<agent>:8186`
   instead (plain `http://` when the agent has no certificate: set `FLOORBIT_AGENT_TLS_CERT` and
   `FLOORBIT_AGENT_TLS_KEY` on the agent), with the agent's own token (the `ingest-token` file in the agent's
@@ -200,8 +206,8 @@ accounts on the devices.
   password), never in the URL, where proxies log it.
 
 When a device refuses a login (NX-API, RESTCONF, the OPNsense API key), the collector stops trying
-that device with it: no account lockouts, no alarms on the AAA server. Change the login on
-Settings > Telemetry and it is tried again; on a local agent, **Clear, try again** on the Local
+that device with it: no account lockouts, no alarms on the AAA server. Change the login in the
+inventory and it is tried again; on a local agent, **Clear, try again** on the Local
 agents page does it too. Not even a restart tries the old login again.
 
 ## Extending it
@@ -209,7 +215,7 @@ agents page does it too. Not even a restart tries the old login again.
 Plugins can teach the collector new devices:
 
 - `floorbit.telemetry.pollers.register('mydriver', poll)`: `poll(target, now)` returns
-  `lineproto.Point`s; the driver then shows on Settings > Telemetry.
+  `lineproto.Point`s; the driver then shows on the Telemetry page.
 - `floorbit.telemetry.state.register('measurement', handler, private=False)`:
   `handler(device, point, at)` updates the device's picture. `private=True` keeps the measurement
   out of storage.
@@ -217,9 +223,9 @@ Plugins can teach the collector new devices:
 ## Watching the collector
 
 `GET /api/telemetry/status`: where it collects, devices, points received and not understood,
-storage mode and errors, and the last error per device. Settings > Telemetry shows the same, and
+storage mode and errors, and the last error per device. The Telemetry page shows the same, and
 each device's last report.
 
 The **Telemetry devices** widget (a dashboard tile, from the plugin) lists each device as up when
-it reported in the last minutes, with a link to Settings > Telemetry. On a hosted Floorbit it asks
+it reported in the last minutes, with a link to the Telemetry page. On a hosted Floorbit it asks
 the local agent.

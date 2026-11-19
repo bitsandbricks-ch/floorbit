@@ -129,7 +129,7 @@ def test_the_devices_widget_for_dashboards(plugin, client):
     now = time.time()
     state.state.apply_text(snmp_poll(now, 1000), now)
     w = client.get("/api/plugins/telemetry/widgets/devices").get_json()
-    assert w["type"] == "status" and w["link"] == "/settings/telemetry"
+    assert w["type"] == "status" and w["link"] == "/telemetry"
     assert [(i["label"], i["state"]) for i in w["items"]] == [("sw-a-01", "up")] and w["sub"] == "1 of 1 up"
 
 
@@ -375,18 +375,33 @@ def test_victoriametrics_gets_points_but_never_the_private_tables(monkeypatch):
 
 # ── the HTTP side ──────────────────────────────────────────────────────────────────────────────
 
-def test_settings_intake_and_series(client, anon_client, tmp_path):
-    made = client.post("/api/settings/telemetry/targets", json={
-        "name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp", "traps"], "platform": "ios",
-        "community": "s3cret-community", "vlans": "10, 20"})
-    assert made.status_code == 201, made.get_json()
-    entry = made.get_json()
-    assert entry["fdb"] == "cisco_vlans" and entry["vlans"] == [10, 20] and entry["secrets"] == ["community"]
-    assert "s3cret" not in client.get("/api/settings/telemetry").get_data(as_text=True)
-    bad = client.post("/api/settings/telemetry/targets", json={"name": "x y", "address": "1", "drivers": ["snmp"]})
-    assert bad.status_code == 400
-    token = client.get("/api/settings/telemetry/token").get_json()["token"]
-    conf = client.get("/api/settings/telemetry/telegraf.conf").get_data(as_text=True)
+def _inventory_switch(client, tmp_path, monkeypatch, **cred):
+    """sw-a-01 in the inventory with Telemetry on and an SNMP v2c community (or ``cred``)."""
+    from test_credentials import key_file
+    from test_inventory_scope import add, put_cred
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    dev = add(client, name="sw-a-01", mgmt_ip="192.0.2.21", platform="IOS 15.2", features={"telemetry": True},
+              properties={"telemetry_vlans": "10, 20"})
+    login = cred or {"kind": "snmp_v2c", "secret": "s3cret-community"}
+    put_cred(client, owner_type="device", owner_id=dev["id"], **login)
+    return dev
+
+
+def test_the_page_intake_and_series(app_module, client, anon_client, tmp_path, monkeypatch):
+    _inventory_switch(client, tmp_path, monkeypatch)
+    app_module.app.extensions["auth"].users.add("watcher", "role-password-1", role="viewer")
+    viewer_client = app_module.app.test_client()
+    viewer_client.post("/login", data={"username": "watcher", "password": "role-password-1"})
+    page = client.get("/api/telemetry/overview").get_json()
+    assert [d["name"] for d in page["devices"]] == ["sw-a-01"] and page["devices"][0]["drivers"] == ["snmp", "traps"]
+    assert "s3cret" not in json.dumps(page) and "community" not in json.dumps(page["devices"])
+    # The crew reads the page; the token, the config and Test now stay with admins.
+    assert viewer_client.get("/api/telemetry/overview").status_code == 200
+    for path in ("/api/telemetry/token", "/api/telemetry/telegraf.conf", "/api/telemetry/device-config?name=sw-a-01",
+                 "/api/telemetry/raw?name=sw-a-01"):
+        assert viewer_client.get(path).status_code == 403, path
+    token = client.get("/api/telemetry/token").get_json()["token"]
+    conf = client.get("/api/telemetry/telegraf.conf").get_data(as_text=True)
     assert "s3cret-community@10" in conf and f"Token {token}" in conf
     # Telegraf, no account: the token or nothing.
     body = gzip.compress(snmp_poll(1000, 1).encode())
@@ -398,34 +413,46 @@ def test_settings_intake_and_series(client, anon_client, tmp_path):
     basic = base64.b64encode(f"floorbit:{token}".encode()).decode()
     assert anon_client.post("/api/telemetry/write", data=b"pf,host=fw-01 entries=1i",
                             headers={"Authorization": f"Basic {basic}"}).status_code == 204
-    seen = client.get("/api/settings/telemetry").get_json()["seen"]
+    seen = client.get("/api/telemetry/overview").get_json()["seen"]
     assert seen["sw-a-01"]["ports"] == 2 and "fw-01" in seen
-    config = client.get(f"/api/settings/telemetry/targets/{entry['id']}/device-config?collector=192.0.2.5")
+    config = client.get("/api/telemetry/device-config?name=sw-a-01&collector=192.0.2.5")
     assert "snmp-server host 192.0.2.5" in config.get_json()["config"]
+    assert client.get("/api/telemetry/device-config?name=nope").status_code == 404
     assert client.get("/api/telemetry/series?device=sw-a-01&metric=nope").status_code == 400
     assert client.get("/api/telemetry/series?device=sw-a-01&port=Gi1/0/1&metric=in_bps").status_code == 200
-    assert client.delete(f"/api/settings/telemetry/targets/{entry['id']}").status_code == 200
     actions = [e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]]
-    assert "Added telemetry from sw-a-01" in actions and "Looked at the telemetry token" in actions
+    assert "Looked at the telemetry token" in actions
 
 
-def test_the_agent_gets_the_devices_and_sends_series(client, anon_client):
+def test_a_device_that_sends_by_itself_needs_no_login(client, tmp_path, monkeypatch):
+    from test_credentials import key_file
+    from test_inventory_scope import add
+
+    from floorbit.telemetry import targets
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    add(client, name="fw-01", mgmt_ip="192.0.2.41", role="firewall", platform="OPNsense", features={"telemetry": True},
+        properties={"telemetry_drivers": "push, snmp"})
+    add(client, name="sw-quiet", mgmt_ip="192.0.2.42", features={"telemetry": True})     # nothing to ask with
+    found = {t["name"]: t for t in targets.from_inventory()}
+    assert list(found) == ["fw-01"] and found["fw-01"]["drivers"] == ["push"] and found["fw-01"]["kind"] == "firewall"
+    assert targets.any_device()
+
+
+def test_the_agent_gets_the_devices_and_sends_series(client, anon_client, tmp_path, monkeypatch):
     from tests.test_agent import enrol
     key = enrol(client)["key"]
     head = {"Floorbit-Agent-Key": key}
     client.put("/api/settings/plugins/telemetry", json={"enabled": True})
-    client.post("/api/settings/telemetry/targets", json={
-        "name": "core-01", "address": "192.0.2.1", "drivers": ["nxapi"], "platform": "nxos",
-        "username": "ro", "password": "nx-secret"})
+    _inventory_switch(client, tmp_path, monkeypatch)
     cfg = anon_client.get("/api/agent/v1/plugins", headers=head).get_json()["plugins"]["telemetry"]
-    assert cfg["settings"]["targets"][0]["password"] == "nx-secret"     # opened for the agent only
+    assert cfg["settings"]["targets"][0]["community"] == "s3cret-community"     # opened for the agent only
     assert cfg["sends"] == {"series": {"privacy": "device"}, "endpoints": {"privacy": "device"}}
     import time
     sent = anon_client.post("/api/agent/v1/plugins/telemetry/series", headers=head, json={"payload": {
         "at": time.time(), "values": {"core-01|Eth1/1|in_bps": 1e6, "bad": 1}}})
     assert sent.status_code == 200 and sent.get_json() == {"taken": 1}
     # While an agent collects, Telegraf next to the hosted Floorbit is told to send there.
-    token = client.get("/api/settings/telemetry/token").get_json()["token"]
+    token = client.get("/api/telemetry/token").get_json()["token"]
     assert anon_client.post("/api/telemetry/write", data=b"pf,host=fw-01 entries=1i",
                             headers={"Authorization": f"Token {token}"}).status_code == 409
 
@@ -563,7 +590,7 @@ def test_a_standby_picture_is_not_answered(plugin):
 
 def test_devices_from_the_inventory_are_collected_with_their_stored_logins(client, tmp_path, monkeypatch):
     """Inventory devices with the Telemetry feature on become targets: SNMP v3 for polling and
-    traps, the API login for NX-API; a device set up on Settings > Telemetry by the same name wins."""
+    traps, the API login for NX-API."""
     from test_credentials import key_file
     from test_inventory_scope import add, put_cred, tag
 
@@ -589,14 +616,10 @@ def test_devices_from_the_inventory_are_collected_with_their_stored_logins(clien
     assert sw["platform"] == "ios" and sw["fdb"] == "cisco_vlans" and sw["drivers"] == ["snmp", "traps"]
     conf = telegraf.render(targets.all_opened(), "http://agent:8186/write", "t")
     assert "udp://192.0.2.21:161" in conf and "auth-pass-1" in conf
-    # The settings page lists them without secrets.
-    listed = client.get("/api/settings/telemetry").get_json()["inventory"]
+    # The page lists them without secrets.
+    listed = client.get("/api/telemetry/overview").get_json()["devices"]
     assert {t["name"] for t in listed} == {"core-1", "sw-a-01"}
     assert "api-pass-1" not in json.dumps(listed) and "auth-pass-1" not in json.dumps(listed)
-    # A device set up here by the same name wins.
-    client.post("/api/settings/telemetry/targets", json={"name": "sw-a-01", "address": "192.0.2.22",
-                                                         "drivers": ["snmp"], "community": "example"})
-    assert [t["address"] for t in targets.all_opened() if t["name"] == "sw-a-01"] == ["192.0.2.22"]
 
 
 def test_a_port_per_way_of_asking_and_an_agent_from_the_group(client, tmp_path, monkeypatch):
@@ -611,13 +634,13 @@ def test_a_port_per_way_of_asking_and_an_agent_from_the_group(client, tmp_path, 
                  properties={"telemetry_port_snmp": "1161", "telemetry_agent": "rack-b"})
     add(client, name="sw-b-01", mgmt_ip="192.0.2.31", platform="IOS-XE 17", group_id=hall["id"],
         properties={"telemetry_port_gnmi": "50052", "telemetry_drivers": "snmp, gnmi, restconf",
-                    "telemetry_port_api": "8443"})
+                    "telemetry_port_api": "8443", "telemetry_address": "192.0.2.131"})
     put_cred(client, owner_type="group", owner_id=hall["id"], kind="snmp_v2c", secret="example-community")
     found = {t["name"]: t for t in targets.from_inventory()}["sw-b-01"]
     assert found["ports"] == {"snmp": 1161, "gnmi": 50052, "api": 8443} and found["agent"] == "rack-b"
     conf = telegraf.render([found], "http://agent:8186/write", "t")
-    assert "udp://192.0.2.31:1161" in conf and "192.0.2.31:50052" in conf
-    assert pollers._base(found) == "https://192.0.2.31:8443"
+    assert "udp://192.0.2.131:1161" in conf and "192.0.2.131:50052" in conf
+    assert pollers._base(found) == "https://192.0.2.131:8443"
     assert targets.pinned()["sw-b-01"] == "rack-b"
 
 

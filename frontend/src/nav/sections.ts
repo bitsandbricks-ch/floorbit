@@ -35,13 +35,13 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'inventory', icon: IconServer, pages: ['inventory', 'cables', 'power'] },
   {
     id: 'monitoring', icon: IconActivityHeartbeat,
-    pages: ['networkStatus', 'topology', 'firewalls', 'services', 'gameServers', 'security', 'preflight', 'logs', 'commands', 'terminal'],
+    pages: ['networkStatus', 'topology', 'firewalls', 'telemetry', 'services', 'gameServers', 'security', 'preflight', 'logs', 'commands', 'terminal'],
   },
   { id: 'seats', icon: IconArmchair, pages: ['seatMapping', 'checkins', 'seatWalk', 'endpoints', 'tournament'] },
   { id: 'event', icon: IconCalendarEvent, pages: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events'] },
   {
     id: 'floorbit', icon: IconSettings,
-    pages: ['agents', 'plugins', 'settings', 'telemetry'],
+    pages: ['agents', 'plugins', 'settings'],
   },
 ]
 

@@ -993,20 +993,17 @@ Source: [`floorbit/blueprints/telemetry.py`](https://github.com/bitsandbricks-ch
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
-| GET | `/api/settings/telemetry` | `settings.manage` |  |
-| GET | `/api/settings/telemetry/devices` | `settings.manage` |  |
-| GET | `/api/settings/telemetry/raw` | `settings.manage` |  |
-| POST | `/api/settings/telemetry/targets` | `settings.manage` |  |
-| DELETE | `/api/settings/telemetry/targets/<target_id>` | `settings.manage` |  |
-| PUT | `/api/settings/telemetry/targets/<target_id>` | `settings.manage` |  |
-| GET | `/api/settings/telemetry/targets/<target_id>/device-config` | `settings.manage` |  |
-| GET | `/api/settings/telemetry/telegraf.conf` | `settings.manage` |  |
-| POST | `/api/settings/telemetry/test` | `settings.manage` |  |
-| GET | `/api/settings/telemetry/token` | `settings.manage` |  |
-| POST | `/api/settings/telemetry/token` | `settings.manage` |  |
 | POST | `/api/telemetry/api/v2/write` | anyone |  |
+| GET | `/api/telemetry/device-config` | `settings.manage` |  |
+| GET | `/api/telemetry/devices` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/telemetry/overview` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/telemetry/raw` | `settings.manage` |  |
 | GET | `/api/telemetry/series` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/telemetry/status` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/telemetry/telegraf.conf` | `settings.manage` |  |
+| POST | `/api/telemetry/test` | `settings.manage` |  |
+| GET | `/api/telemetry/token` | `settings.manage` |  |
+| POST | `/api/telemetry/token` | `settings.manage` |  |
 | POST | `/api/telemetry/write` | anyone |  |
 
 ## floorbit.blueprints.tenant_events

@@ -130,7 +130,7 @@ export default function App() {
             <Route path="/settings/:section?" element={<Settings />} />
             <Route path="/settings/agents" element={<Agents />} />
             <Route path="/settings/agents/:id" element={<AgentDetail />} />
-            <Route path="/settings/telemetry" element={<Telemetry />} />
+            <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/endpoints" element={<Endpoints />} />
             <Route path="*" element={<NotFound />} />
           </Route>

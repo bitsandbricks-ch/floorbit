@@ -228,7 +228,7 @@ def test_the_settings_page_shows_each_devices_problem_from_the_agent(client, mon
         "a1": {"name": "Hall agent", "connected": True, "health": {"status": "ok", "metrics": metrics}}})
     before = sources.use(Agent())
     try:
-        body = client.get("/api/settings/telemetry").get_json()
+        body = client.get("/api/telemetry/overview").get_json()
         seen = body["seen"]
     finally:
         sources.use(before)
@@ -301,17 +301,17 @@ def test_test_now_and_raw_go_through_the_agent(client, monkeypatch):
         return [{"agent": "b", "name": "Other", "result": {"ok": False, "error": "not here"}},
                 {"agent": "a", "name": "Hall 2", "result": {"ok": True, "points": 3, "name": args["name"]}}]
     monkeypatch.setattr(agent_plugins, "ask", ask)
-    assert client.post("/api/settings/telemetry/test", json={"name": "sw-a-01"}).status_code == 409   # no agent
+    assert client.post("/api/telemetry/test", json={"name": "sw-a-01"}).status_code == 409   # no agent
     monkeypatch.setattr(telemetry, "collector_here", lambda: False)
-    tested = client.post("/api/settings/telemetry/test", json={"name": "sw-a-01"}).get_json()
+    tested = client.post("/api/telemetry/test", json={"name": "sw-a-01"}).get_json()
     assert tested["agent"] == "Hall 2" and tested["points"] == 3
-    assert client.get("/api/settings/telemetry/raw?name=sw-a-01").get_json()["lines"] == ["x a=1"]
-    assert client.post("/api/settings/telemetry/test", json={}).status_code == 400
+    assert client.get("/api/telemetry/raw?name=sw-a-01").get_json()["lines"] == ["x a=1"]
+    assert client.post("/api/telemetry/test", json={}).status_code == 400
     assert asked[0] == ("call", "test", {"name": "sw-a-01"})
     actions = [e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]]
     assert "Tested telemetry from sw-a-01" in actions
 
 
 def test_the_crew_cannot_test_or_read_raw_lines(anon_client):
-    assert anon_client.post("/api/settings/telemetry/test", json={"name": "sw-a-01"}).status_code in (401, 403)
-    assert anon_client.get("/api/settings/telemetry/raw?name=sw-a-01").status_code in (401, 403)
+    assert anon_client.post("/api/telemetry/test", json={"name": "sw-a-01"}).status_code in (401, 403)
+    assert anon_client.get("/api/telemetry/raw?name=sw-a-01").status_code in (401, 403)

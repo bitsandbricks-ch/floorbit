@@ -8,8 +8,8 @@ import { ago, dateTime } from '@/lib/time'
 import { useTelemetryDevices, type DeviceProblem, type TestResult } from './api'
 
 // One device's telemetry at a glance: why it is silent, "Test now" and "Raw data". Used on
-// Settings > Telemetry and meant for a device's own Telemetry view as well; the API is
-// /api/settings/telemetry/{devices,test,raw} (floorbit/blueprints/telemetry.py).
+// the Telemetry page and meant for a device's own Telemetry view as well; the API is
+// /api/telemetry/{devices,test,raw} (floorbit/blueprints/telemetry.py).
 
 const PROBLEM_DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/telemetry.md#when-a-device-sends-nothing'
 
@@ -79,10 +79,10 @@ function TestView({ r }: { r: TestResult }) {
 export function DeviceTelemetryActions({ name }: { name: string }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState<'test' | 'raw' | null>(null)
-  const test = useMutation({ mutationFn: () => post<TestResult>('/api/settings/telemetry/test', { name }) })
+  const test = useMutation({ mutationFn: () => post<TestResult>('/api/telemetry/test', { name }) })
   const raw = useQuery({
     queryKey: qk.telemetryRaw(name), enabled: open === 'raw', refetchInterval: open === 'raw' ? 10_000 : false,
-    queryFn: () => get<{ lines: string[]; agent: string }>(`/api/settings/telemetry/raw?name=${encodeURIComponent(name)}`),
+    queryFn: () => get<{ lines: string[]; agent: string }>(`/api/telemetry/raw?name=${encodeURIComponent(name)}`),
   })
   return (
     <>

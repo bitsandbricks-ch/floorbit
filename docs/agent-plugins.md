@@ -202,7 +202,7 @@ class Plugin(Base):
 ```
 
 `self.ctx.agent_health()` has what each agent last reported about the plugin. When the agent part
-needs settings that live elsewhere (Settings > Telemetry), define `agent_settings(self, settings)`
+needs settings that live elsewhere (telemetry's devices come from the inventory), define `agent_settings(self, settings)`
 on the hosted part and return what the agent gets; call `floorbit.agent_plugins.reload_agents()`
 after they change.
 

@@ -107,7 +107,7 @@ class AgentPlugin(Base):
         except TypeError:      # an agent from before health hints
             self.ctx.health(status, message)
 
-    # settings: the devices, from Settings > Telemetry on the hosted Floorbit ------------------
+    # settings: the devices, from the hosted Floorbit's inventory ------------------
     def configure(self, settings):
         self.ctx.settings = settings
         found = settings.get('targets') if isinstance(settings, dict) else None
