@@ -304,14 +304,24 @@ That is how Floorbit knows why a device sends nothing. Telegraf's errors become 
 and kind of collection (nothing listening, no answer, login refused, no route, TLS), shown in words
 on the agent's page and next to each device under **Monitoring > Telemetry**, with what to check
 ([telemetry.md, "When a device sends nothing"](telemetry.md#when-a-device-sends-nothing)). The agent's
-log gets a line when a device is first heard or comes back, each new problem, and every five minutes
-how many points came in from how many devices:
+log gets a line when Telegraf starts, stops or reloads, when a device is first heard or comes back,
+each new problem, each **Test now** and its result, every minute what each device gave (and which gave
+nothing), and every five minutes how many points came in from how many devices:
 
 ```text
+[telemetry] Telegraf started (pid 41)
 [telemetry] sw-a-01 heard: 52 ports via snmp, 840 MACs
 [telemetry] core-01 (snmp): nothing listens for SNMP on 192.0.2.1:161: is it turned on there, and the port right?
+[telemetry] polls, last minute: 3640 points from 12 of 13 devices: sw-a-01 412, sw-a-02 398, ...
+[telemetry] nothing in the last minute from 1: core-01 (nothing listens for SNMP ...)
+[telemetry] Test now on sw-a-01 (snmp, traps)
+[telemetry] Test now on sw-a-01: 412 points in 840 ms
 [telemetry] last 5 min: 18200 points from 12 devices, 12 of 13 heard
 ```
+
+On an agent with `FLOORBIT_AGENT_LOG_LEVEL=debug`, Telegraf's own lines, each post it makes and each
+API poll round are logged too. Each line in the agent's log also carries the time and the level (the
+agent's README, "The log").
 
 **Test now** (Monitoring > Telemetry, or a device's Telemetry tab) runs Telegraf once for that one device on the agent
 and shows what came back (values, ports, the device's own name) or the exact error, in a few seconds.
