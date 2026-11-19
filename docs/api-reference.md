@@ -302,6 +302,8 @@ Source: [`floorbit/blueprints/features.py`](https://github.com/bitsandbricks-ch/
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/features` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/settings/capabilities` | `settings.manage` |  |
+| PUT | `/api/settings/capabilities/<cap_id>` | `settings.manage` |  |
 | GET | `/api/settings/features` | `settings.manage` |  |
 | PUT | `/api/settings/features` | `settings.manage` |  |
 

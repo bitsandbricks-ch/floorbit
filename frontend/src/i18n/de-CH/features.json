@@ -65,5 +65,58 @@
     "public_hall": "Der Hallenplan, den Spieler ohne Anmeldung sehen.",
     "stats_wall": "Spannende Zahlen zum Event für eine grosse Leinwand und die Teilnehmenden: heruntergeladene Daten, Bandbreiten-Spitze, Top-Games, Plätze online. Nur für die ganze Halle.",
     "schedule": "Das Programm des Events (Vorträge, Turniere, Essen, Nachtruhe) mit einer öffentlichen Countdown-Seite für Leinwände und Handys; importiert iCal."
+  },
+  "others": "Weitere Funktionen",
+  "othersIntro": "Aus heisst weg: kein Link, keine Seite, keine API, keine Arbeit im Hintergrund.",
+  "cap": {
+    "title": "Fähigkeiten",
+    "intro": "Ein Schalter für jede Sache, die die Crew braucht. Er schaltet alles ein, was dazugehört, und sagt dann, was noch fehlt.",
+    "state": {
+      "on": "An",
+      "off": "Aus",
+      "partly": "Teilweise an"
+    },
+    "partly": "Einige Teile sind aus: {{parts}}. Einschalten, um alle einzuschalten.",
+    "forced": "In der Umgebung des Servers ausgeschaltet.",
+    "needsTitle": "Was es braucht",
+    "stillNeeds": "Was {{name}} noch braucht",
+    "outside": "Wird ausserhalb von Floorbit eingestellt und kann hier nicht geprüft werden.",
+    "name": {
+      "front_door": "Eingang für Teilnehmende",
+      "checkin": "Platz-Check-in",
+      "captive_note": "Check-in-Hinweis auf Handys",
+      "logs": "Logs aus der Halle",
+      "traffic": "Verkehr aus der Halle",
+      "electrics": "Elektrik"
+    },
+    "desc": {
+      "front_door": "Der lokale Agent antwortet Teilnehmenden im Event-Netz, damit Floorbit sieht, an welchem Switch-Port ein Platz-PC hängt.",
+      "checkin": "Teilnehmende bestätigen ihren Platz mit der PIN auf der Platzkarte; Floorbit verknüpft den Platz mit seinem Switch-Port.",
+      "captive_note": "Handys und Laptops zeigen einen dezenten Hinweis, bis ihr Platz eingecheckt ist. Nichts wird gesperrt.",
+      "logs": "Switches und Firewalls senden Syslog an den lokalen Agent; die Zeilen erscheinen auf der Logs-Seite und speisen die Alarme.",
+      "traffic": "Switches und Firewalls senden NetFlow oder IPFIX an den lokalen Agent; die Verkehr-Seite zeigt die Summen.",
+      "electrics": "Strommesser an den Verteilern, auf dem Hallenplan und in den Alarmen."
+    },
+    "part": {
+      "integrations.checkin_enabled": "die Check-in-Seite",
+      "integrations.captive_enabled": "die Captive-Portal-Einstellung",
+      "captive-note": "sein Plugin",
+      "front-door": "sein Plugin",
+      "syslog-relay": "sein Plugin",
+      "netflow-relay": "sein Plugin",
+      "syslog": "die Logs-Seite",
+      "traffic": "die Verkehr-Seite",
+      "power": "die Elektrik-Seite"
+    },
+    "need": {
+      "agent": "Ein lokaler Agent: einen anmelden",
+      "agentConnected": "Ein lokaler Agent verbunden",
+      "cap.front_door": "Der Eingang für Teilnehmende eingeschaltet",
+      "cap.checkin": "Der Platz-Check-in eingeschaltet",
+      "dhcp114": "Option 114 im DHCP des Events, mit Ziel Agent",
+      "port.syslog-relay": "Ein UDP-Port für Syslog auf dem Agent",
+      "port.netflow-relay": "Ein UDP-Port für Flows auf dem Agent",
+      "powerSource": "Ein Strommesser-Plugin, etwa Shelly oder Home Assistant"
+    }
   }
 }
