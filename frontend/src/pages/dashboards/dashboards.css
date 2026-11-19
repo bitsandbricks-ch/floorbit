@@ -127,6 +127,12 @@
 }
 /* The pane's tools sit top right in the editor: keep the title and counts clear of them. */
 .fb-board-screen .fb-split-pane.selected .fb-pane-head { padding-right: 156px; }
+/* A narrow pane has no room for both: the tools drop below the head, so its title stays readable (#1153). */
+.fb-board-screen .fb-split-pane { container-type: inline-size; }
+@container (max-width: 320px) {
+  .fb-board-screen .fb-split-pane.selected .fb-pane-head { padding-right: 12px; }
+  .fb-board-screen .fb-pane-tools { top: 44px; }
+}
 .fb-board-screen .fb-pane-count { display: none; }
 
 /* Text panes: sizes follow the pane's width (container units), from desk (s) to across the hall (xl). */
