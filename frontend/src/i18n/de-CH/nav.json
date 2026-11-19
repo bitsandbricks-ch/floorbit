@@ -49,5 +49,6 @@
     "allUp": "Alles läuft",
     "agents": "Agents {{online}}/{{total}}",
     "checked": "geprüft {{ago}}"
-  }
+  },
+  "admin": "Plugins und Einstellungen"
 }

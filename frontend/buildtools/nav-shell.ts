@@ -24,7 +24,7 @@ function texts(dir: string, lang: string) {
 }
 
 export function navShell(i18nDir: string) {
-  const ids = [...new Set([...PINNED, ...TABS, ...SECTIONS.flatMap((s) => s.pages)])]
+  const ids = [...new Set([...PINNED, ...TABS, ...SECTIONS.flatMap((s) => s.pages), 'plugins', 'settings'])]
   return {
     pinned: PINNED,
     tabs: TABS,

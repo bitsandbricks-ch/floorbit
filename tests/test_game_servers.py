@@ -163,7 +163,7 @@ def test_a_server_that_does_not_answer_is_down_and_on_the_health_wall(client):
     [row] = client.get("/api/game-servers").get_json()["servers"]
     assert row["status"] == "down" and row["error"]
     [tile] = [c for c in game_servers.health_checks() if c["kind"] == "game"]
-    assert tile["status"] == "down" and tile["link"] == "/game-servers"
+    assert tile["status"] == "down" and tile["link"] == "/services"
     # A German page reads the poller's message in German.
     [german] = client.get("/api/game-servers", headers={"Accept-Language": "de-CH"}).get_json()["servers"]
     assert german["error"].startswith("Der Port hat nicht geantwortet") and german["error"] != row["error"]
