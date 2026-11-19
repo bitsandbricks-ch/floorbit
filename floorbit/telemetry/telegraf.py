@@ -45,7 +45,9 @@ FDB_FIELDS = (('dot1dTpFdbPort', '1.3.6.1.2.1.17.4.3.1.2', False, None),
               ('dot1dTpFdbStatus', '1.3.6.1.2.1.17.4.3.1.3', False, None))
 QFDB_FIELDS = (('dot1qTpFdbPort', '1.3.6.1.2.1.17.7.1.2.2.1.2', False, None),
                ('dot1qTpFdbStatus', '1.3.6.1.2.1.17.7.1.2.2.1.3', False, None))
-ARP_FIELDS = (('mac', '1.3.6.1.2.1.4.22.1.2', False, 'hwaddr'),)
+# hex, not hwaddr (deprecated) or displayhint (needs the MIBs the agent image doesn't have):
+# normalise_mac turns 021ab00a0014 into a MAC.
+ARP_FIELDS = (('mac', '1.3.6.1.2.1.4.22.1.2', False, 'hex'),)
 LLDP_FIELDS = (('lldpRemPortId', '1.0.8802.1.1.2.1.4.1.1.7', False, None),
                ('lldpRemPortDesc', '1.0.8802.1.1.2.1.4.1.1.8', False, None),
                ('lldpRemSysName', '1.0.8802.1.1.2.1.4.1.1.9', False, None))
