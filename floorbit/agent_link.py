@@ -1039,6 +1039,28 @@ def _clean_feeds(feeds):
 
 # ── The monitoring source it feeds ─────────────────────────────────────────────────────────────
 
+SET_UP_EVERY = 30         # seconds an agent's "is monitoring set up?" answer is kept
+_set_up = {'at': None, 'value': True}
+
+
+def monitoring_set_up(now=None):
+    """Has a connected agent a monitoring plugin that is set up? LibreNMS is on by default, so
+    without asking, an agent with no LibreNMS URL got the status monitor's device list call every
+    minute, and each one failed. Asked at most every SET_UP_EVERY seconds; while no agent can
+    answer, the last answer stands (an agent away is not monitoring switched off)."""
+    now = time.monotonic() if now is None else now
+    if _set_up['at'] is not None and 0 <= now - _set_up['at'] < SET_UP_EVERY:
+        return _set_up['value']
+    _set_up['at'] = now
+    if tunnel.connected_agents():
+        try:
+            _set_up['value'] = bool(ask('configured'))
+        except AgentUnavailable:
+            pass
+        except AgentError:
+            _set_up['value'] = False      # the agent answered: no monitoring plugin there
+    return _set_up['value']
+
 def monitoring_source():
     """The agent-fed monitoring source (floorbit/sources), made here to keep the import late."""
     from .plugins.base import PluginError
@@ -1059,7 +1081,7 @@ def monitoring_source():
                 raise PluginError(str(exc)) from None
 
         def enabled(self):
-            return True
+            return monitoring_set_up()
 
         def device_ports(self, hostname):
             from . import sources
