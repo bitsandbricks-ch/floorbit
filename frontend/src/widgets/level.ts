@@ -6,9 +6,9 @@ export type Level = 's' | 'm' | 'l'
 export type LevelPin = 'auto' | Level
 export const LEVEL_PINS: LevelPin[] = ['auto', 's', 'm', 'l']
 
-export type Kind = 'stat' | 'status' | 'graph' | 'table' | 'list' | 'gauge' | 'bar' | 'pie'
+export type Kind = 'stat' | 'status' | 'graph' | 'table' | 'list' | 'gauge' | 'bar' | 'column' | 'pie'
 export type KindPick = 'auto' | Kind
-export const KIND_PICKS: KindPick[] = ['auto', 'stat', 'gauge', 'status', 'list', 'table', 'bar', 'pie', 'graph']
+export const KIND_PICKS: KindPick[] = ['auto', 'stat', 'gauge', 'status', 'list', 'table', 'bar', 'column', 'pie', 'graph']
 
 /** Smallest box in px (width, height) for medium and for large. Roughly 3×2 and 6×3 cells on the
  *  12-column grid of a 1080p screen, the thresholds Mike agreed on. */
@@ -20,6 +20,7 @@ const FLOOR: Record<Kind, { m: [number, number]; l: [number, number] }> = {
   table: { m: [300, 150], l: [560, 280] },
   gauge: { m: [200, 150], l: [420, 300] },
   bar: { m: [240, 120], l: [480, 280] },
+  column: { m: [240, 140], l: [480, 280] },
   pie: { m: [280, 160], l: [480, 300] },
 }
 

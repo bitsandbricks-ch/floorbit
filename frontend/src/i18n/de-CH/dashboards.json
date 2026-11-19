@@ -160,7 +160,8 @@
     "table": "Tabelle",
     "list": "Liste",
     "gauge": "Tacho",
-    "bar": "Balken",
-    "pie": "Kreis"
+    "bar": "Waagrechte Balken",
+    "pie": "Kreis",
+    "column": "Senkrechte Balken"
   }
 }

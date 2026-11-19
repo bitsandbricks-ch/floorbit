@@ -2,6 +2,7 @@ import './widgets.css'
 import type { Widget } from '@/api/types'
 import { type Kind, type KindPick, type Level, type LevelPin, pickLevel } from './level'
 import { BarsKind } from './kinds/Bars'
+import { ColumnsKind } from './kinds/Columns'
 import { GaugeKind } from './kinds/Gauge'
 import { Graph } from './kinds/Graph'
 import { PieKind } from './kinds/Pie'
@@ -34,6 +35,7 @@ function Kind({ kind, ...props }: { kind: Kind; widget: Widget; level: Level; bo
     case 'gauge': return <GaugeKind {...props} />
     case 'graph': return <Graph {...props} />
     case 'bar': return <BarsKind {...props} />
+    case 'column': return <ColumnsKind {...props} />
     case 'pie': return <PieKind {...props} />
     default: return <RowsKind kind={kind} {...props} />
   }

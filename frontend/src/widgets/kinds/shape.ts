@@ -6,11 +6,11 @@ import type { Kind, KindPick } from '../level'
 export function kindsFor(w: Widget): Kind[] {
   switch (w.type) {
     case 'stat': return typeof w.value === 'number' && w.max != null ? ['stat', 'gauge'] : ['stat']
-    case 'status': return ['status', 'stat', 'bar', 'pie', 'list', 'table']
-    case 'list': return w.items.some((i) => i.number != null) ? ['list', 'bar', 'pie', 'stat', 'table'] : ['list', 'stat', 'table']
+    case 'status': return ['status', 'stat', 'bar', 'column', 'pie', 'list', 'table']
+    case 'list': return w.items.some((i) => i.number != null) ? ['list', 'bar', 'column', 'pie', 'stat', 'table'] : ['list', 'stat', 'table']
     case 'table': return ['table', 'stat', 'list']
-    case 'sparkline': return w.max != null ? ['graph', 'stat', 'gauge'] : ['graph', 'stat']
-    case 'series': return ['graph', 'stat']
+    case 'sparkline': return w.max != null ? ['graph', 'column', 'stat', 'gauge'] : ['graph', 'column', 'stat']
+    case 'series': return ['graph', 'column', 'stat']
     default: return ['stat']
   }
 }
@@ -142,4 +142,28 @@ export function scaleOf(w: Widget): { value: number; min: number; max: number } 
     return v == null ? null : { value: v, min: w.min ?? 0, max: w.max }
   }
   return null
+}
+
+export interface Bucket { from: number; to: number; values: (number | null)[] }
+
+/** Time data in at most ``n`` columns: each the average of the samples in its slice of time, one
+ *  value per line (null where a line has no sample in it). */
+export function bucketsOf(lines: Line[], n: number): Bucket[] {
+  const all = lines.flatMap((l) => l.points)
+  if (!all.length || n < 1) return []
+  const t0 = Math.min(...all.map((p) => p[0]))
+  const t1 = Math.max(...all.map((p) => p[0]))
+  const count = Math.max(1, Math.min(n, Math.max(...lines.map((l) => l.points.length))))
+  const step = (t1 - t0) / count || 1
+  const out: Bucket[] = Array.from({ length: count }, (_, i) => ({ from: t0 + i * step, to: t0 + (i + 1) * step, values: [] }))
+  lines.forEach((l, li) => {
+    const sums = new Array(count).fill(0), ns = new Array(count).fill(0)
+    for (const [t, v] of l.points) {
+      const i = Math.min(count - 1, Math.floor((t - t0) / step))
+      sums[i] += v
+      ns[i] += 1
+    }
+    out.forEach((b, i) => { b.values[li] = ns[i] ? sums[i] / ns[i] : null })
+  })
+  return out
 }

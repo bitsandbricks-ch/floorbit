@@ -160,7 +160,8 @@
     "table": "Table",
     "list": "List",
     "gauge": "Gauge",
-    "bar": "Bars",
-    "pie": "Pie"
+    "bar": "Horizontal bars",
+    "pie": "Pie",
+    "column": "Vertical bars"
   }
 }
