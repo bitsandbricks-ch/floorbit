@@ -283,6 +283,31 @@ Crew devices install the CA once (**Download CA** on the agent's page, `GET /api
 and then trust every agent of this Floorbit. The CA's key is sealed with the vault. A certificate set
 in the agent's environment (`FLOORBIT_AGENT_TLS_CERT`, `_TLS_KEY`) wins, for a hall that uses its own.
 
+#### A Let's Encrypt certificate for the tenant
+
+Laptops in the hall don't trust Floorbit's CA. When the platform has a domain for its agents, each
+tenant gets one certificate from Let's Encrypt for `<tenant>.agent.<domain>`, and every agent of the
+tenant serves it on the front door and the other HTTPS listeners.
+
+1. Public DNS: `agent.<domain>` and `*.agent.<domain>` as A (and AAAA) records pointing at the
+   platform, and port 80 routed to Floorbit, which answers `/.well-known/acme-challenge/<token>`
+   (Let's Encrypt's HTTP-01 check). Any tenant's process can answer for every tenant.
+2. The domain: `flask tenants agent-domain example.com` or `PUT /api/platform/agent-domain`
+   `{"domain": "example.com"}` as a platform admin. Without it nothing changes.
+3. The hall's DNS points `<tenant>.agent.<domain>` at the agent (or the agents' VRRP address).
+
+Floorbit asks Let's Encrypt within ten minutes and renews 30 days before the end, or earlier when
+Let's Encrypt's renewal window (ARI) says so. A failed try is shown on each agent's page and tried
+again after an hour. `FLOORBIT_ACME_DIRECTORY` points at another ACME server (Let's Encrypt's
+staging, a test CA).
+
+One certificate means one key for all the tenant's agents, so this key is made by Floorbit, not the
+agent: a new one on every issue, sealed with the vault. An agent gets it only encrypted to its own
+key (the one in its signing request, which still never leaves the agent; ECDH P-256, HKDF-SHA256,
+AES-256-GCM), and every hand-over is in the audit log. When an agent that had the key is revoked,
+Floorbit revokes the certificate and gets a new one with a new key, which the remaining agents fetch
+at their next pull. An agent too old to take the key keeps the CA's certificate.
+
 The agent only makes outgoing requests; nothing listens on it unless a plugin that listens is on (syslog, flows, the check-in note, the front door). It runs up to 4 calls side by side,
 so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit can't be reached,
 it tries again after 1 second, then 2, 4 and so on, up to a minute between tries, and logs each

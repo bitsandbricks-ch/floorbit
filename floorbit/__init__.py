@@ -217,6 +217,9 @@ def create_app(start_background=True):
     # The crew's walk-through check-in: seat ports are cleared a day after the event (docs/seat-walk.md).
     from . import seat_walk
     seat_walk.init_app(app, start_background=start_background)
+    # The agents' Let's Encrypt certificate, when the platform has a domain (docs/agent.md).
+    from . import public_cert
+    public_cert.init_app(app, start_background=start_background)
 
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention

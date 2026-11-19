@@ -15,11 +15,17 @@ admin can't see the platform's list.
   tenant with a new password, shown once in the answer; made when it doesn't exist yet. For a tenant
   whose admins are gone or locked out.
 
+- ``GET``/``PUT /api/platform/agent-domain`` ``{"domain"}``: the domain the agents' Let's Encrypt
+  certificates are made under (floorbit/public_cert.py); empty keeps Floorbit's own CA.
+- ``GET /.well-known/acme-challenge/<token>``: open to everyone, for Let's Encrypt's HTTP-01 check.
+
 A suspended tenant's processes answer 503 to everything but the health checks (``suspended_gate``).
 """
 import secrets
 
 from flask import Blueprint, abort, current_app, g, jsonify, request
+
+from auth import public_endpoint
 
 from .. import audit, hosting, i18n, spa, store, tenant_switch
 
@@ -28,7 +34,7 @@ bp = Blueprint('platform', __name__)
 SUSPENDED = 'This tenant is suspended on this Floorbit platform. Ask the platform admin.'
 # Kubernetes keeps asking whether the process lives: a suspended tenant's still does, and a failing
 # probe would only restart it over and over.
-OPEN_WHILE_SUSPENDED = ('/healthz', '/static/')
+OPEN_WHILE_SUSPENDED = ('/healthz', '/static/', '/.well-known/acme-challenge/')
 
 
 def _platform_only():
@@ -140,3 +146,37 @@ def suspended_gate():
 def init_app(app):
     # Before sign-in and everything else: a suspended tenant shows nothing, not even its login page.
     app.before_request_funcs.setdefault(None, []).insert(0, suspended_gate)
+
+
+@bp.route('/api/platform/agent-domain', methods=['GET'])
+def get_agent_domain():
+    _platform_only()
+    from .. import acme
+    return jsonify({'domain': hosting.agent_domain(), 'directory': acme.directory_url()})
+
+
+@bp.route('/api/platform/agent-domain', methods=['PUT'])
+def set_agent_domain():
+    """The domain for the agents' Let's Encrypt certificates (``<tenant>.agent.<domain>``); '' turns it off."""
+    _platform_only()
+    body = request.get_json(silent=True) or {}
+    try:
+        domain = hosting.set_agent_domain(body.get('domain') if isinstance(body.get('domain'), str) else '')
+    except hosting.HostingError as exc:
+        return _error(exc)
+    audit.record('settings', "Set the domain for the agents' certificates", g.get('audit_user'), domain or '(none)')
+    from .. import public_cert
+    public_cert.wake()
+    return jsonify({'domain': domain})
+
+
+@bp.route('/.well-known/acme-challenge/<token>')
+@public_endpoint
+def acme_challenge(token):
+    """Let's Encrypt checks the name is ours (HTTP-01, floorbit/acme.py). Any tenant's process
+    answers for every tenant: port 80 may reach any of them."""
+    from .. import acme
+    answer = acme.challenge_answer(token)
+    if answer is None:
+        abort(404)
+    return current_app.response_class(answer, mimetype='application/octet-stream')

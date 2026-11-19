@@ -714,6 +714,8 @@ Source: [`floorbit/blueprints/platform.py`](https://github.com/bitsandbricks-ch/
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| GET | `/api/platform/agent-domain` | `settings.manage` |  |
+| PUT | `/api/platform/agent-domain` | `settings.manage` |  |
 | GET | `/api/platform/tenants` | `settings.manage` |  |
 | POST | `/api/platform/tenants` | `settings.manage` |  |
 | PATCH | `/api/platform/tenants/<tenant_id>` | `settings.manage` |  |
