@@ -1,22 +1,23 @@
 import type { State, Tone, Widget } from '@/api/types'
 import type { Kind, KindPick } from '../level'
 
-/** What each data shape (floorbit/plugins/widgets.py) can be drawn as. The first is its own kind.
- *  A stat counts anything; only time data draws as a graph. */
-const KINDS: Record<Widget['type'], Kind[]> = {
-  stat: ['stat'],
-  status: ['status', 'stat', 'list', 'table'],
-  list: ['list', 'stat', 'table'],
-  table: ['table', 'stat', 'list'],
-  sparkline: ['graph', 'stat'],
-  series: ['graph', 'stat'],
+/** What a widget's data can be drawn as. The first is its own kind. A stat counts anything; only
+ *  time data draws as a graph; a gauge needs a scale and bars or a pie need numbers. */
+export function kindsFor(w: Widget): Kind[] {
+  switch (w.type) {
+    case 'stat': return typeof w.value === 'number' && w.max != null ? ['stat', 'gauge'] : ['stat']
+    case 'status': return ['status', 'stat', 'bar', 'pie', 'list', 'table']
+    case 'list': return w.items.some((i) => i.number != null) ? ['list', 'bar', 'pie', 'stat', 'table'] : ['list', 'stat', 'table']
+    case 'table': return ['table', 'stat', 'list']
+    case 'sparkline': return w.max != null ? ['graph', 'stat', 'gauge'] : ['graph', 'stat']
+    case 'series': return ['graph', 'stat']
+    default: return ['stat']
+  }
 }
-
-export const kindsFor = (type: Widget['type']): Kind[] => KINDS[type] ?? ['stat']
 
 /** The kind to draw: the pane's pick when the data allows it, else the data's own. */
 export function resolveKind(w: Widget, pick: KindPick = 'auto'): Kind {
-  const ok = kindsFor(w.type)
+  const ok = kindsFor(w)
   return pick !== 'auto' && ok.includes(pick) ? pick : ok[0]
 }
 
@@ -99,4 +100,46 @@ export function stateCounts(w: Widget): [State, number][] {
   const n: Partial<Record<State, number>> = {}
   for (const i of w.items) n[i.state] = (n[i.state] ?? 0) + 1
   return (Object.keys(BAD) as State[]).filter((s) => n[s]).map((s) => [s, n[s]!])
+}
+
+export interface Part { label: string; value: number; max?: number; text: string; colour: string }
+
+/** State colours, fixed like the dots: a theme never changes what "down" looks like. */
+export const STATE_COLOUR: Record<State, string> = {
+  down: 'var(--color-down)', warn: 'var(--color-warn)', unknown: 'var(--color-unknown)', up: 'var(--color-up)',
+}
+const TONE_COLOUR: Record<string, string> = { err: 'var(--color-down)', warn: 'var(--color-warn)', ok: 'var(--color-up)' }
+/** Categories that are not states: accent, trace, then colours that never read as up or down. */
+export const PALETTE = ['var(--color-bit)', 'var(--color-trace)', '#a78bfa', '#f472b6', '#fb923c', '#60a5fa', '#94a3b8']
+
+/** Numbered parts for bars and a pie: how many in each state, or a list's numbers. */
+export function partsOf(w: Widget, stateLabel: (s: State) => string, lang?: string): Part[] {
+  if (w.type === 'status') {
+    return stateCounts(w).map(([s, n]) => ({ label: stateLabel(s), value: n, text: n.toLocaleString(lang), colour: STATE_COLOUR[s] }))
+  }
+  if (w.type === 'list') {
+    return w.items.filter((i) => i.number != null).map((i, k) => ({
+      label: i.label, value: i.number!, max: i.max, text: i.value || i.number!.toLocaleString(lang),
+      colour: (i.tone && TONE_COLOUR[i.tone]) || PALETTE[i.max != null ? 0 : k % PALETTE.length],
+    }))
+  }
+  return []
+}
+
+/** A pie reads up to seven slices; the smallest rest become one "other" slice. */
+export function slices(parts: Part[], other: string, lang?: string): Part[] {
+  const sorted = [...parts].filter((p) => p.value > 0).sort((a, b) => b.value - a.value)
+  if (sorted.length <= 7) return sorted
+  const rest = sorted.slice(6).reduce((a, p) => a + p.value, 0)
+  return [...sorted.slice(0, 6), { label: other, value: rest, text: rest.toLocaleString(lang), colour: 'var(--color-faint)' }]
+}
+
+/** A stat or sparkline on its scale, for a gauge. */
+export function scaleOf(w: Widget): { value: number; min: number; max: number } | null {
+  if (w.type === 'stat' && typeof w.value === 'number' && w.max != null) return { value: w.value, min: w.min ?? 0, max: w.max }
+  if (w.type === 'sparkline' && w.max != null) {
+    const v = w.value ?? w.points[w.points.length - 1]
+    return v == null ? null : { value: v, min: w.min ?? 0, max: w.max }
+  }
+  return null
 }

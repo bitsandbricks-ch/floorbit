@@ -8,7 +8,7 @@ can be split into panes side by side or stacked. Each pane shows one thing:
 | --- | --- |
 | **Plan** | A hall's floor plan: the whole hall, one seat block, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
 | **Widget** | A rich widget from the [widget gallery](#the-widget-gallery): service health, stats, traffic, DNS, games, Wi-Fi, speed tests, power load, network status, endpoints, the LAN cache and the event in numbers. Small by default; **Show it big** draws it with everything its page used to show. |
-| **Tile** | One data widget that fits its box: Floorbit's own (problems, incidents, open incidents, switches, switch states, seats, switches down, traffic) or a plugin's. See [Tiles that fit their box](#tiles-that-fit-their-box). |
+| **Tile** | One data widget that fits its box: Floorbit's own (problems, incidents, open incidents, switches, switch states, seats, seats by block, switches down, traffic) or a plugin's. See [Tiles that fit their box](#tiles-that-fit-their-box). |
 | **Text** | Your own words: a welcome, the schedule, the Wi-Fi name. A small Markdown (`# heading`, `- list`, `**bold**`, `[link](https://example.com)`); every line stays its own line. Four sizes (S to XL) that grow with the pane, aligned left or centred. |
 
 For example: the whole hall on the left, the VIP zone zoomed in at the top right, and the network
@@ -59,8 +59,15 @@ Hover a graph (or touch it) for the time and every line's value under the pointe
 number shows in full on hover. **+N more** and the **Open big** button open the tile large over the
 dashboard; Esc goes back. **Details** jumps to the page behind it.
 
-In the pane's settings, **Show as** draws the same data as another kind where it makes sense (a
-status as a number of what is up, a list as a table), and **Size** pins small, medium or large
+In the pane's settings, **Show as** draws the same data as another kind where it makes sense:
+
+- a status as a number of what is up, as bars or as a pie of how many are in each state;
+- a number with a scale (switches up out of all, seats online) as a **gauge**;
+- a list with numbers as **bars** (an item with its own maximum, such as seats online out of a
+  block, fills its own track) or a **pie** (seven slices at most, the rest as "Other");
+- a list as a table, a table as a list.
+
+Hover a bar, a slice or the gauge for its value and share. **Size** pins small, medium or large
 instead of picking it from the box. Any box size works.
 
 ## The widget gallery

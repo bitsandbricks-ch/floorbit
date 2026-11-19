@@ -67,7 +67,7 @@ TEXT_MAX = 2000
 TEXT_SIZES = ('s', 'm', 'l', 'xl')
 TEXT_ALIGN = ('start', 'center')
 # The generic widget types a tile is drawn as (#894); the browser draws each one (widgets/kinds/).
-WIDGET_TYPES = ('auto', 'stat', 'status', 'graph', 'table', 'list')
+WIDGET_TYPES = ('auto', 'stat', 'gauge', 'status', 'list', 'table', 'bar', 'pie', 'graph')
 LEVELS = ('auto', 's', 'm', 'l')
 # The tiles a public dashboard may show: counts and switch names, nothing about people or the crew.
 PUBLIC_TILES = ('floorbit/w/switches', 'floorbit/w/seats', 'floorbit/w/down')

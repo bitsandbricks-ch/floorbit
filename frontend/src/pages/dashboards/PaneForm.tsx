@@ -192,7 +192,7 @@ function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; 
 function WidgetLook({ pane, tile, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; tile: WidgetTile; onChange: (p: Pane) => void }) {
   const { t } = useTranslation()
   const { data } = useWidget(tile)
-  const ok = data ? kindsFor(data.type) : []
+  const ok = data ? kindsFor(data) : []
   const picks = KIND_PICKS.filter((k) => k === 'auto' || ok.includes(k))
   if (picks.length < 3) return null // only "automatic" and the data's own kind: nothing to choose
   return (

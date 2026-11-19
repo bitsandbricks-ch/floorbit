@@ -25,7 +25,10 @@
     "rowsOf": "{{from}}–{{to}} von {{count}}",
     "prev": "Vorherige Seite",
     "next": "Nächste Seite",
-    "detailsNamed": "Details zu {{name}}"
+    "detailsNamed": "Details zu {{name}}",
+    "other": "Andere",
+    "gaugeLabel": "{{value}} von {{max}} ({{pct}} %)",
+    "pieLabel": "Kreis: {{parts}}"
   },
   "state": {
     "up": "Läuft",

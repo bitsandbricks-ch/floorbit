@@ -55,4 +55,26 @@ describe('FitWidget', () => {
     expect(screen.getByRole('img', { name: 'Graph: W' })).toBeInTheDocument()
     expect(screen.getByText('2 Gbit/s')).toBeInTheDocument()
   })
+
+  it('draws a stat with a scale as a gauge', () => {
+    size = { w: 300, h: 220 }
+    renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 86, unit: 'of 112', tone: '', min: 0, max: 112 }} pick="gauge" />)
+    expect(screen.getByRole('img', { name: '86 of 112 (77 %)' })).toBeInTheDocument()
+  })
+
+  it('draws numbers as bars, a block filling its own track', () => {
+    size = { w: 400, h: 200 }
+    const blocks: Widget = { ...base, type: 'list', items: [
+      { label: 'A', value: '10 / 40', tone: '', number: 10, max: 40 }, { label: 'B', value: '30 / 30', tone: '', number: 30, max: 30 }] }
+    renderWithApp(<FitWidget widget={blocks} pick="bar" />)
+    expect(screen.getByTitle('A: 10 / 40 (25 %)')).toBeInTheDocument()
+    expect(screen.getByTitle('B: 30 / 30 (100 %)')).toBeInTheDocument()
+  })
+
+  it('draws states as a pie with a legend', () => {
+    size = { w: 500, h: 220 }
+    renderWithApp(<FitWidget widget={status} pick="pie" />)
+    expect(screen.getByRole('img', { name: 'Pie: Up 28, Down 2' })).toBeInTheDocument()
+    expect(screen.getByText('30')).toBeInTheDocument()
+  })
 })
