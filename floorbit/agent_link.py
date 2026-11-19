@@ -104,8 +104,24 @@ def all_agents(data=None, now=None):
         # line cut) is gone now, as the tunnel knows, not up to a minute later.
         row['connected'] = row['connected'] and tunnel.connected(now, a['id'])
         out.append({**row, 'stats': tunnel.stats(a['id'], now), 'relays': tunnel.relays(a['id'], now),
-                    'report': tunnel.reported(a['id'], now)})
+                    'report': tunnel.reported(a['id'], now),
+                    'transport': tunnel.transport(a['id'], now) if row['connected'] else None})
     return out
+
+
+def _version_key(version):
+    parts = []
+    for bit in str(version).lstrip('v').split('.'):
+        digits = re.match(r'\d+', bit)
+        parts.append(int(digits.group()) if digits else -1)
+    return tuple(parts)
+
+
+def newest_version(agents):
+    """The highest version among the enrolled agents: the agent is released on its own, so this
+    Floorbit can't know the newest release, but one agent behind the others is worth a look."""
+    versions = [a['version'] for a in agents if a.get('version')]
+    return max(versions, key=_version_key) if versions else None
 
 
 def lan_here():
@@ -676,6 +692,15 @@ class Tunnel:
         if cluster.current is not None:
             cluster.current.agent_seen(agent, now)
         return True
+
+    def transport(self, agent, now=None):
+        """How the agent reaches this pod: "websocket" (protocol 2's link), "poll" (the HTTPS long
+        poll), or None when it talks to another pod and this one can't tell."""
+        now = time.time() if now is None else now
+        with self._cond:
+            if self._links.get(agent):
+                return 'websocket'
+        return 'poll' if self._here(now, agent) else None
 
     def linked(self, agent):
         with self._cond:

@@ -61,6 +61,7 @@ const Users = lazy(() => import('@/pages/Users'))
 const Login = lazy(() => import('@/pages/Login'))
 const Checkin = lazy(() => import('@/pages/Checkin'))
 const Agents = lazy(() => import('@/pages/Agents'))
+const AgentDetail = lazy(() => import('@/pages/AgentDetail'))
 const Webhooks = lazy(() => import('@/pages/Webhooks'))
 const Features = lazy(() => import('@/pages/Features'))
 const SidebarSections = lazy(() => import('@/pages/SidebarSections'))
@@ -159,6 +160,7 @@ export default function App() {
             <Route path="/settings/audit" element={<Audit />} />
             <Route path="/settings/users" element={<Users />} />
             <Route path="/settings/agents" element={<Agents />} />
+            <Route path="/settings/agents/:id" element={<AgentDetail />} />
             <Route path="/settings/webhooks" element={<Webhooks />} />
             <Route path="/settings/telemetry" element={<Telemetry />} />
             <Route path="/endpoints" element={<Endpoints />} />

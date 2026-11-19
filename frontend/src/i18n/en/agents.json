@@ -93,7 +93,8 @@
       "refused": "refused",
       "waiting": "waiting",
       "dropped": "dropped"
-    }
+    },
+    "none": "This agent hasn't said anything about plugin updates yet (older agents don't)."
   },
   "ha": {
     "hostedTitle": "This Floorbit",
@@ -138,6 +139,102 @@
       "no_vrrp": "Several agents answer here without VRRP: each polls the devices. Turn VRRP on for all of them, or give them different halls.",
       "split": "Two agents both think they are primary: they can't hear each other. Check the VLAN, or set FLOORBIT_AGENT_VRRP_PEERS.",
       "down": "No agent for these halls is connected."
-    }
+    },
+    "noGroups": "No agent yet, so no failover to show."
+  },
+  "needsLook": "Needs a look",
+  "pluginsShort": "Plugins",
+  "state": {
+    "ok": "Online",
+    "warn": "Online, with warnings",
+    "down": "Online, with errors",
+    "offline": "Offline"
+  },
+  "fact": {
+    "seen": "Last seen",
+    "now": "now",
+    "version": "Version",
+    "link": "Connection",
+    "up": "Running for",
+    "calls": "Last hour",
+    "callsValue_one": "1 call · {{ms}} ms",
+    "callsValue_other": "{{n}} calls · {{ms}} ms",
+    "address": "Connects from",
+    "relays": "Relays",
+    "enrolled": "Enrolled",
+    "enrolledValue": "{{date}} by {{who}}"
+  },
+  "transport": {
+    "websocket": "WebSocket (wss)",
+    "poll": "Long poll (HTTPS)",
+    "elsewhere": "Through another instance"
+  },
+  "duration": {
+    "minutes_one": "1 minute",
+    "minutes_other": "{{count}} minutes",
+    "hours_one": "1 hour",
+    "hours_other": "{{count}} hours",
+    "days_one": "1 day",
+    "days_other": "{{count}} days"
+  },
+  "problem": {
+    "offline": "Not connected since {{when}}. Pages show the last known state.",
+    "never": "Never connected. Start it with its key (Details).",
+    "pluginStopped": "{{plugin}} is not running: {{message}}",
+    "pluginError": "{{plugin}} is failing: {{message}}",
+    "pluginWarning": "{{plugin}}: {{message}}",
+    "behind": "Runs {{v}}, another agent runs {{newest}}: pull the new floorbit-agent image.",
+    "failed_one": "1 call failed in the last hour",
+    "failed_other": "{{count}} calls failed in the last hour",
+    "failedLast_one": "1 call failed in the last hour, last {{when}}: {{method}}: {{error}}",
+    "failedLast_other": "{{count}} calls failed in the last hour, last {{when}}: {{method}}: {{error}}",
+    "blocked": "{{plugin}} stopped logging in to {{device}} with {{credential}}: clear it on the agent's page."
+  },
+  "overview": {
+    "title": "Overview",
+    "online": "Online",
+    "look": "Need a look",
+    "allGood": "All fine",
+    "plugins": "Plugins healthy",
+    "pluginsSub": "over all agents",
+    "noPlugins": "No agent plugins report yet",
+    "calls": "Calls in the last hour",
+    "noFailed": "none failed"
+  },
+  "open": "Open",
+  "openNamed": "Open {{name}}",
+  "moreProblems_one": "and 1 more",
+  "moreProblems_other": "and {{count}} more",
+  "kicker": "Local agent",
+  "detailsTitle": "Details",
+  "reportTitle": "What it reports",
+  "gone": "No such agent",
+  "goneHelp": "It was revoked, or the link is wrong. The Local agents page lists every agent.",
+  "noPluginReport": "No plugin has reported yet. Agents report every half minute.",
+  "chip": {
+    "protocol": "protocol {{v}}",
+    "up": "up {{time}}"
+  },
+  "tab": {
+    "agents": "Agents ({{count}})",
+    "failover": "Failover per hall",
+    "server": "This Floorbit",
+    "overview": "Overview",
+    "plugins": "Plugins ({{count}})",
+    "updates": "Updates",
+    "settings": "Settings"
+  },
+  "col": {
+    "plugin": "Plugin",
+    "state": "State",
+    "numbers": "Numbers",
+    "lastError": "Last error"
+  },
+  "stat": {
+    "median": "answered in {{ms}} ms (median)",
+    "failed": "Failed calls",
+    "syslog": "Syslog lines",
+    "waiting": "{{n}} waiting",
+    "reconnects": "Reconnects"
   }
 }
