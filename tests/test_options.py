@@ -25,6 +25,15 @@ def test_ports_list_free_ones_first_and_say_who_holds_the_rest(client, monkeypat
     assert client.get("/api/options/ports").get_json()["options"] == []
 
 
+def test_a_port_the_source_lists_twice_is_offered_once(client, monkeypatch):
+    """A picker can't hold one value twice (#972): igb0 once, its VLAN igb0.10 still apart."""
+    class Mon:
+        def device_ports(self, host):
+            return [{"name": "igb0"}, {"name": "igb1"}, {"name": "igb0"}, {"name": "igb0.10"}]
+    monkeypatch.setattr(sources, "monitoring", lambda: Mon())
+    opts = client.get("/api/options/ports?switch=fw-01").get_json()["options"]
+    assert [o["value"] for o in opts] == ["igb0", "igb0.10", "igb1"]
+
 def test_every_list_answers(client):
     for kind in ("halls", "firewalls", "agents", "users", "teams"):
         r = client.get(f"/api/options/{kind}")

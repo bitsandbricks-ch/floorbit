@@ -125,6 +125,16 @@ class Interface:
         self.seen = 0
         self._counted = {}                # counter -> (value, time), for rates
 
+    def merge(self, other):
+        """Take what another record of this same port knows and this one doesn't yet."""
+        for slot in self.__slots__:
+            if slot in ('_counted', 'index', 'name', 'seen'):
+                continue
+            if getattr(self, slot) is None:
+                setattr(self, slot, getattr(other, slot))
+        self.seen = max(self.seen, other.seen)
+        self._counted = {**other._counted, **self._counted}
+
     def count(self, which, value, at):
         """Take a counter reading and work out its rate against the last one."""
         value = _num(value)
@@ -194,20 +204,34 @@ class Device:
     def port(self, index=None, name=None):
         """The interface by SNMP index or by name, made when new. Telegraf rows carry both; gNMI,
         MDT and our pollers only the name."""
-        if index is not None and str(index) in self.interfaces:
-            found = self.interfaces[str(index)]
-            if name and not found.name:
-                found.name = name
-            return found
-        if name:
-            for iface in self.interfaces.values():
-                if iface.name and iface.name.lower() == str(name).lower():
-                    if index is not None and iface.index is None:
-                        iface.index = str(index)
-                    return iface
-        iface = Interface(str(index) if index is not None else None, name)
-        self.interfaces[str(index) if index is not None else f'name:{name}'] = iface
+        key = str(index) if index is not None else None
+        by_index = self.interfaces.get(key) if key is not None else None
+        by_name = None
+        if name and (by_index is None or not by_index.name):
+            want = str(name).lower()
+            by_name = next((i for i in self.interfaces.values() if i.name and i.name.lower() == want), None)
+        if by_index is not None:
+            if by_name is not None and by_name is not by_index and by_name.index is None:
+                # The same port seen twice before its rows met (a firewall's own Telegraf names igb0,
+                # an SNMP row gave only its index): one port, or pickers list it twice (#972).
+                by_index.merge(by_name)
+                self._drop(by_name)
+            if name and not by_index.name:
+                by_index.name = name
+            return by_index
+        if by_name is not None:
+            if key is not None and by_name.index is None:
+                by_name.index = key
+                self._drop(by_name)
+                self.interfaces[key] = by_name   # found by its index from now on
+            return by_name
+        iface = Interface(key, name)
+        self.interfaces[key if key is not None else f'name:{name}'] = iface
         return iface
+
+    def _drop(self, iface):
+        for k in [k for k, v in self.interfaces.items() if v is iface]:
+            del self.interfaces[k]
 
     def port_name(self, key):
         """A port key (ifIndex or name) as the port's name, or None."""
