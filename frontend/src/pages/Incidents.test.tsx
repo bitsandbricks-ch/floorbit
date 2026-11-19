@@ -37,6 +37,22 @@ const routes = {
 }
 
 describe('Incident board', () => {
+  it('offers "Send to nearest tech" only while someone is on duty', async () => {
+    const lead: IncidentBoard = { ...board, can_assign_any: true,
+      incidents: [{ ...base, id: 'd1', title: 'Needs a tech', status: 'open', can_assign: true }] }
+    const lr = { ...routes, 'GET /api/incidents': lead }
+    vi.stubGlobal('fetch', fakeFetch({ ...lr, 'GET /api/dispatch/crew': { crew: [], auto: false } }).fn)
+    const first = renderWithApp(<Incidents />)
+    expect(await screen.findByText('Nobody is on duty.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Send to nearest tech' })).toBeNull()
+    first.unmount()
+
+    const kim = { username: 'kim', display_name: 'Kim', at: 'A-1', since: null, jobs: 0 }
+    vi.stubGlobal('fetch', fakeFetch({ ...lr, 'GET /api/dispatch/crew': { crew: [kim], auto: false } }).fn)
+    renderWithApp(<Incidents />)
+    expect(await screen.findByRole('button', { name: 'Send to nearest tech' })).toBeInTheDocument()
+  })
+
   it('says when an open incident has waited 10 minutes with nobody on it', async () => {
     const now = Date.now() / 1000
     const waiting: IncidentBoard = { ...board, incidents: [

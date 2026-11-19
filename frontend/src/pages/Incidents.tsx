@@ -72,6 +72,9 @@ export default function Incidents() {
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
 
+  // With nobody on duty the button could only fail, so the cards don't offer it.
+  const anyoneOnDuty = !!crew.data?.crew.length
+
   // New incidents go to the nearest free tech by themselves while this is on (issue #358).
   const auto = useMutation({
     mutationFn: (on: boolean) => put<{ auto: boolean }>('/api/dispatch/auto', { on }),
@@ -132,7 +135,7 @@ export default function Incidents() {
       />
       <Group justify="space-between" mb="sm">
         <Group gap="md">
-          <TextInput ref={filterBox} aria-label={t('incidents.filter')} aria-keyshortcuts="/" placeholder={t('incidents.filterHint')} w={240} value={filter}
+          <TextInput ref={filterBox} aria-label={t('incidents.filter')} aria-keyshortcuts="/" placeholder={t('incidents.filterHint')} w={300} value={filter}
             leftSection={<IconFilter size={14} />} rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined}
             onChange={(e) => setFilter(e.currentTarget.value)} />
           <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
@@ -188,7 +191,8 @@ export default function Incidents() {
                   {shown.map((i) => (
                     <IncidentCard key={i.id} incident={i} board={board.data} people={people.data} me={me.data?.user?.username}
                       busy={(change.isPending && change.variables?.id === i.id) || (send.isPending && send.variables === i.id)}
-                      onChange={(c) => change.mutate({ id: i.id, change: c })} onDispatch={() => send.mutate(i.id)} />
+                      onChange={(c) => change.mutate({ id: i.id, change: c })}
+                      onDispatch={anyoneOnDuty ? () => send.mutate(i.id) : undefined} />
                   ))}
                 </Stack>
               )
