@@ -619,7 +619,7 @@ Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/fl
 
 ## floorbit.blueprints.options
 
-The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, halls, firewalls, agents, users, teams, patch panels and their ports.
+The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, rows, halls, firewalls, agents, users, teams, patch panels and their ports.
 
 Source: [`floorbit/blueprints/options.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/options.py)
 
@@ -865,6 +865,7 @@ Source: [`floorbit/blueprints/seat_blocks.py`](https://github.com/bitsandbricks-
 | PUT | `/api/seat-blocks/<block_id>` | `floorplan.edit` |  |
 | POST | `/api/seat-blocks/many` | `floorplan.edit` |  |
 | POST | `/api/seat-blocks/merge` | `floorplan.edit` |  |
+| GET | `/api/seat-rows` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.seat_map

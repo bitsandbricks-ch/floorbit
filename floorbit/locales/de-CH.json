@@ -109,10 +109,7 @@
  "Check-in is disabled": "Check-in ist ausgeschaltet",
  "Admin token required": "Admin-Token nötig",
  "No check-in for that seat": "Kein Check-in für diesen Platz",
- "Pick a seat block.": "Wähle einen Sitzblock.",
  "Pick the switch the block is patched to.": "Wähle den Switch, an den der Block gepatcht ist.",
- "Rows are a number or a range, for example 1-2.": "Reihen sind eine Zahl oder ein Bereich, zum Beispiel 1-2.",
- "This block has rows 1 to {}.": "Dieser Block hat die Reihen 1 bis {}.",
  "The first port ends in a number, for example Gi1/0/1.": "Der erste Port endet mit einer Zahl, zum Beispiel Gi1/0/1.",
  "The order is rows or snake.": "Die Reihenfolge ist «Reihen» oder «Schlange».",
  "At most {} seats at once.": "Höchstens {} Plätze auf einmal.",
@@ -465,8 +462,8 @@
  "tone must be one of {}": "tone muss eines von diesen sein: {}",
  "too short": "zu kurz",
  "type must be stat, status, list, table, sparkline or series": "type muss stat, status, list, table, sparkline oder series sein",
-  "a series is a dict with label and points": "Eine Reihe ist ein Dict mit label und points",
-  "a series point is [time, value]": "Ein Punkt einer Reihe ist [Zeit, Wert]",
+ "a series is a dict with label and points": "Eine Reihe ist ein Dict mit label und points",
+ "a series point is [time, value]": "Ein Punkt einer Reihe ist [Zeit, Wert]",
  "view must be \"sessions\" or \"events\".": "view muss «sessions» oder «events» sein.",
  "{port} is the only placeholder a command can have.": "{port} ist der einzige Platzhalter, den ein Befehl haben darf.",
  "{} account(s) still have this role: {}. Give them another role first.": "{} Konto/Konten haben noch diese Rolle: {}. Gib ihnen zuerst eine andere Rolle.",
@@ -1228,5 +1225,8 @@
  "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
  "Send an object.": "Schicke ein Objekt.",
  "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken.",
- "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({})."
+ "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({}).",
+ "That row is not on the floor plan any more.": "Diese Reihe ist nicht mehr auf dem Hallenplan.",
+ "Pick a row.": "Wähle eine Reihe.",
+ "Pick the rows to patch.": "Wähle die Reihen, die gepatcht werden."
 }

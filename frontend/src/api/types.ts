@@ -1337,11 +1337,12 @@ export interface CableClash {
   seat: string; port: string; kind: 'port' | 'seat'; cable: string; imported: boolean
   other_seat?: string; other_port?: string
 }
-export interface BlockPlan { block: string; cables: PlannedCable[]; clashes: CableClash[]; created?: number; removed?: number }
+export interface BlockPlan { rows: string[]; cables: PlannedCable[]; clashes: CableClash[]; created?: number; removed?: number }
 export interface PatchRow { switch: string; port: string; seat?: string; cable?: string; state?: string; described_seat?: string }
 export interface PatchList { count: number; rows: PatchRow[] }
 export interface PatchCheck {
-  last_poll: number | null; blocks: { block: string; name: string; seats: number; up: number }[]
+  /** Each hall row's cabled seats and how many are up (#1057). */
+  last_poll: number | null; rows: { row: string; name: string; block_label: string; naming: string; seats: number; up: number }[]
   missing: PatchList; down: PatchList; unplanned: PatchList; conflicts: PatchList; unread: string[]
 }
 /** Clients on seat ports the patch plan doesn't explain (issue #473), from MAC tables and ARP. */
@@ -1363,7 +1364,7 @@ export interface SeatWalkInfo {
   /** Where laptops in the hall reach the local agent, which identifies them (null: not known). */
   agent_url: string | null; switch_lookup: boolean; monitoring: boolean; keep_hours: number
   event: { id: string; name: string; status: string }
-  block?: string; seats?: { seat: string; port: WalkPort | null }[]
+  rows?: string[]; row_names?: string[]; seats?: { seat: string; port: WalkPort | null }[]
 }
 export interface SeatWalkHello { hello: string; url: string }
 export interface SeatLocated {

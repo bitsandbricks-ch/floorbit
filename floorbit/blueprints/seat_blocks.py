@@ -147,6 +147,14 @@ def get_seat_blocks():
     return jsonify([b for b in blocks if b['hall_id'] == wanted] if wanted else blocks)
 
 
+@bp.route('/api/seat-rows', methods=['GET'])
+def get_seat_rows():
+    """The hall's rows by name, for what works a row at a time (walks, patching, the cable check)."""
+    from ..seat_names import hall_rows
+    rows = hall_rows(load_data())
+    return jsonify([{k: v for k, v in r.items() if k != 'seats'} | {'seat_count': len(r['seats'])} for r in rows])
+
+
 def make_block(body, hall_id):
     """A new block from a request or a CSV row. Raises KeyError, TypeError or ValueError."""
     return _clean({

@@ -7,15 +7,16 @@ import { Link } from 'react-router-dom'
 import { ApiError, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { BlockPlan, CableList, SeatAssigned, SeatBlock, WalkUp, WalkWatch } from '@/api/types'
+import type { BlockPlan, CableList, SeatAssigned, WalkUp, WalkWatch } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { RowsSelect } from '@/components/RowsSelect'
 
-type Setup = { block: string; switch: string; order: string }
+type Setup = { rows: string[]; switch: string; order: string }
 
 /** The walk itself: one seat at a time, and the port that just came up. */
-function Walk({ setup, seats, onStop }: { setup: Setup; seats: string[]; onStop: () => void }) {
+function Walk({ setup, seats, blockOf, onStop }: { setup: Setup; seats: string[]; blockOf: Record<string, string>; onStop: () => void }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const canEdit = useCan('floorplan.edit')
@@ -42,7 +43,7 @@ function Walk({ setup, seats, onStop }: { setup: Setup; seats: string[]; onStop:
   const next = () => { setClash(null); setAt((n) => n + 1) }
   const assign = useMutation({
     mutationFn: ({ port, swap }: { port: string; swap?: boolean }) =>
-      post<SeatAssigned>('/api/cables/assign', { seat, switch: switchName, port, swap, block: setup.block }),
+      post<SeatAssigned>('/api/cables/assign', { seat, switch: switchName, port, swap, block: blockOf[seat] }),
     onSuccess: (_r, { port }) => {
       setUsed((u) => [...u, port]); setFound((f) => ({ ...f, [seat]: port }))
       void qc.invalidateQueries({ queryKey: qk.cables }); next()
@@ -132,29 +133,28 @@ function Walk({ setup, seats, onStop }: { setup: Setup; seats: string[]; onStop:
 /** Walking the row (issue #473): plug in at each seat in turn and Floorbit names the port that came up. */
 export default function WalkRow() {
   const { t } = useTranslation()
-  const blocks = useQuery({ queryKey: qk.seatBlocks, queryFn: () => get<SeatBlock[]>('/api/seat-blocks') })
-  const [setup, setSetup] = useState<Setup>({ block: '', switch: '', order: 'rows' })
+  const [setup, setSetup] = useState<Setup>({ rows: [], switch: '', order: 'rows' })
   const [walking, setWalking] = useState(false)
-  const ready = Boolean(setup.block && setup.switch.trim())
-  // The block's seats in walking order, as the block patch plan numbers them; the ports are not used.
+  const ready = Boolean(setup.rows.length && setup.switch.trim())
+  // The rows' seats in walking order, as the patch plan numbers them; the ports are not used.
   const order = useQuery({
     queryKey: qk.walkOrder(setup),
     queryFn: () => post<BlockPlan>('/api/cables/block', { ...setup, first_port: 'Gi1/0/1', dry_run: true }),
     enabled: ready, retry: false,
   })
   const seats = (order.data?.cables ?? []).map((c) => c.seat)
-  const set = (k: keyof Setup) => (v: string | null) => setSetup((s) => ({ ...s, [k]: v ?? '' }))
+  const blockOf = Object.fromEntries((order.data?.cables ?? []).map((c) => [c.seat, c.block]))
+  const set = (k: 'switch' | 'order') => (v: string | null) => setSetup((s) => ({ ...s, [k]: v ?? '' }))
   return (
     <Layout title={t('walk.title')} back={{ href: '/cables', label: t('cables.title') }}>
       {/* On a phone in the row, the seat comes first: the intro only before the walk. */}
       <PageHead title={t('walk.title')} desc={walking ? undefined : t('walk.intro')}
         actions={walking ? undefined : <Button component={Link} to="/seat-walk" variant="default">{t('seatWalk.title')}</Button>} />
-      {walking && seats.length ? <Walk setup={setup} seats={seats} onStop={() => setWalking(false)} /> : (
+      {walking && seats.length ? <Walk setup={setup} seats={seats} blockOf={blockOf} onStop={() => setWalking(false)} /> : (
         <Paper withBorder radius="lg" p="lg">
           <Stack gap="sm">
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
-              <Select label={t('cables.block')} required searchable placeholder={t('ui.pickBlock')} value={setup.block || null} onChange={set('block')}
-                data={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.label || b.name || '–'} (${b.cols * b.rows})` }))} />
+              <RowsSelect label={t('cables.rows')} required value={setup.rows} onChange={(rows) => setSetup((s) => ({ ...s, rows }))} />
               <EntitySelect kind="switches" label={t('cables.switch')} required value={setup.switch} onChange={set('switch')} />
               <Select label={t('cables.order')} allowDeselect={false} value={setup.order} onChange={set('order')}
                 data={[{ value: 'rows', label: t('cables.orderRows') }, { value: 'snake', label: t('cables.orderSnake') }]} />

@@ -29,3 +29,26 @@ def test_the_blocks_api_gives_each_block_a_label(client):
                                           'cols': 4, 'rows': 3})
     got = client.get('/api/seat-blocks').get_json()
     assert [(b['label'], b['row_names']) for b in got] == [('E\u2013G', ['E', 'F', 'G'])]
+
+
+def test_rows_from_two_blocks_are_listed_by_name_and_patched_together(client):
+    """A block lists its rows by name, and the crew patches rows, whichever block they are in."""
+    hall_id = client.get("/api/halls").get_json()
+    hall_id = (hall_id.get("halls") if isinstance(hall_id, dict) else hall_id)[0]["id"]
+    for start, x in (("C", 0), ("E", 300)):
+        r = client.post("/api/seat-blocks", json={"x": x, "y": 0, "cols": 2, "rows": 2, "naming": "rows",
+                                                  "row_start": start, "hall_id": hall_id})
+        assert r.status_code in (200, 201), r.get_json()
+    rows = client.get("/api/seat-rows").get_json()
+    assert [r["name"] for r in rows] == ["C", "D", "E", "F"]
+    assert rows[0]["block_label"] == "C\u2013D" and rows[0]["seat_count"] == 2 and rows[0]["naming"] == "rows"
+    by_name = {r["name"]: r["id"] for r in rows}
+    plan = client.post("/api/cables/block", json={"rows": [by_name["D"], by_name["E"]], "switch": "sw-1",
+                                                  "first_port": "Gi1/0/1", "dry_run": True}).get_json()
+    assert plan["rows"] == ["D", "E"]
+    assert [(c["seat"], c["port"]) for c in plan["cables"]] == [
+        ("D-1", "Gi1/0/1"), ("D-2", "Gi1/0/2"), ("E-1", "Gi1/0/3"), ("E-2", "Gi1/0/4")]
+    walk = client.get(f"/api/seat-walk?rows={by_name['F']}").get_json()
+    assert walk["row_names"] == ["F"] and [s["seat"] for s in walk["seats"]] == ["F-1", "F-2"]
+    check = client.get("/api/cables/check").get_json()
+    assert "rows" in check

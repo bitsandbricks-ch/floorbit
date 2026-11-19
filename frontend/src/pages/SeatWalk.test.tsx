@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatLocated, SeatWalkInfo } from '@/api/types'
-import { OPTIONS } from '@/test/options'
+import { OPTIONS, pick } from '@/test/options'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import SeatWalk from './SeatWalk'
 import { leave } from './seatWalkLeave'
@@ -24,9 +24,8 @@ describe('SeatWalk', () => {
     let tries = 0
     const api = fakeFetch({
       ...OPTIONS, 'GET /api/auth/me': crew,
-      'GET /api/seat-blocks': [{ id: 'b1', name: 'A', cols: 2, rows: 1, hall_id: 'h' }],
       'GET /api/seat-walk': info,
-      'GET /api/seat-walk?block=b1&order=rows': { ...info, block: 'A', seats: [{ seat: 'A-1', port: null }, { seat: 'A-2', port: null }] },
+      'GET /api/seat-walk?rows=b1%3A1&order=rows': { ...info, rows: ['b1:1'], row_names: ['A 1'], seats: [{ seat: 'A-1', port: null }, { seat: 'A-2', port: null }] },
       'POST /api/seat-walk/locate': () => {
         tries += 1
         if (tries === 1) return { body: located('A-1', 'Gi1/0/1') }
@@ -39,8 +38,7 @@ describe('SeatWalk', () => {
     renderWithApp(<SeatWalk />)
     expect(await screen.findByText(/cleared 24 hours after it ends/)).toBeInTheDocument()
     expect(screen.getByText(/need portfast/)).toBeInTheDocument()
-    fireEvent.click(await screen.findByRole('combobox', { name: 'Seat block' }))
-    fireEvent.click(await screen.findByRole('option', { name: 'A (2)', hidden: true }))
+    await pick('Rows', 'A 1 (8 seats)')
     const macField = screen.getByRole('textbox', { name: /Laptop MAC/ })
     fireEvent.change(macField, { target: { value: 'nope' } })
     expect(await screen.findByText('That is not a MAC address.')).toBeInTheDocument()
@@ -74,15 +72,13 @@ describe('SeatWalk', () => {
   it('says why a seat failed', async () => {
     const api = fakeFetch({
       ...OPTIONS, 'GET /api/auth/me': crew,
-      'GET /api/seat-blocks': [{ id: 'b1', name: 'A', cols: 1, rows: 1, hall_id: 'h' }],
       'GET /api/seat-walk': info,
-      'GET /api/seat-walk?block=b1&order=rows': { ...info, block: 'A', seats: [{ seat: 'A-1', port: null }] },
+      'GET /api/seat-walk?rows=b1%3A1&order=rows': { ...info, rows: ['b1:1'], row_names: ['A 1'], seats: [{ seat: 'A-1', port: null }] },
       'POST /api/seat-walk/locate': () => ({ status: 409, body: { error: 'This laptop has 198.51.100.7, which is not in the seat networks.' } }),
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<SeatWalk />)
-    fireEvent.click(await screen.findByRole('combobox', { name: 'Seat block' }))
-    fireEvent.click(await screen.findByRole('option', { name: 'A (1)', hidden: true }))
+    await pick('Rows', 'A 1 (8 seats)')
     fireEvent.change(screen.getByRole('textbox', { name: /Laptop MAC/ }), { target: { value: '02:00:00:00:00:10' } })
     fireEvent.click(await screen.findByRole('button', { name: 'Start at A-1' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Locate' }))
@@ -94,9 +90,8 @@ describe('SeatWalk', () => {
   it('identifies the laptop through the local agent and carries on when it comes back', async () => {
     const routes = {
       ...OPTIONS, 'GET /api/auth/me': crew,
-      'GET /api/seat-blocks': [{ id: 'b1', name: 'A', cols: 2, rows: 1, hall_id: 'h' }],
       'GET /api/seat-walk': info,
-      'GET /api/seat-walk?block=b1&order=rows': { ...info, block: 'A', seats: [{ seat: 'A-1', port: null }, { seat: 'A-2', port: null }] },
+      'GET /api/seat-walk?rows=b1%3A1&order=rows': { ...info, rows: ['b1:1'], row_names: ['A 1'], seats: [{ seat: 'A-1', port: null }, { seat: 'A-2', port: null }] },
       'POST /api/seat-walk/hello': { hello: 'code-for-a-1-xxxxxx', url: 'http://192.0.2.2:8908/floorbit/hello/code-for-a-1-xxxxxx' },
       'POST /api/seat-walk/locate': located('A-1', 'Gi1/0/1'),
     }
@@ -105,8 +100,7 @@ describe('SeatWalk', () => {
     const went = vi.spyOn(leave, 'to').mockImplementation(() => undefined)
     renderWithApp(<SeatWalk />)
     expect(await screen.findByText('http://192.0.2.2:8908')).toBeInTheDocument()
-    fireEvent.click(await screen.findByRole('combobox', { name: 'Seat block' }))
-    fireEvent.click(await screen.findByRole('option', { name: 'A (2)', hidden: true }))
+    await pick('Rows', 'A 1 (8 seats)')
     fireEvent.click(await screen.findByRole('button', { name: 'Start at A-1' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Locate' }))
     await vi.waitFor(() => expect(went).toHaveBeenCalled())
@@ -136,8 +130,7 @@ describe('SeatWalk', () => {
 
   it('says when nobody knows where the agent is', async () => {
     const api = fakeFetch({
-      ...OPTIONS, 'GET /api/auth/me': crew,
-      'GET /api/seat-blocks': [], 'GET /api/seat-walk': { ...info, agent_url: null },
+      ...OPTIONS, 'GET /api/auth/me': crew, 'GET /api/seat-walk': { ...info, agent_url: null },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<SeatWalk />)

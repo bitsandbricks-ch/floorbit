@@ -6,9 +6,10 @@ import { useTranslation } from 'react-i18next'
 import { ApiError, del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { SeatBlock, SeatLocated, SeatWalkHello, SeatWalkInfo, WalkPort } from '@/api/types'
+import type { SeatLocated, SeatWalkHello, SeatWalkInfo, WalkPort } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { RowsSelect } from '@/components/RowsSelect'
 import { leave } from './seatWalkLeave'
 
 /** How long the page keeps asking before it says the lookup failed. Each request tries about 20 s;
@@ -32,7 +33,7 @@ export const MAC_RE = /^([0-9a-f]{2}[:-]?){5}[0-9a-f]{2}$|^([0-9a-f]{4}\.){2}[0-
  *  comes back with ?hello=<code>. Only in this tab, never shared. */
 const KEPT = 'floorbit-seat-walk'
 export type Kept = {
-  block: string; order: string; at: number; done: Done[]; previous: WalkPort | null
+  rows: string[]; order: string; at: number; done: Done[]; previous: WalkPort | null
   laptop: { mac: string; ip: string } | null; mac: string
 }
 function readKept(): Kept | null {
@@ -65,9 +66,9 @@ function takeHello(): string | null {
 }
 
 /** The walk: one seat at a time. Plug in, Locate, see the port (or why not), next seat. */
-function Walk({ info, seats, startAt, block, order, typedMac, resumed, onStop }: {
+function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: {
   info: SeatWalkInfo; seats: { seat: string; port: WalkPort | null }[]; startAt: number
-  block: string; order: string; typedMac: string
+  rows: string[]; order: string; typedMac: string
   resumed: { kept: Kept; hello: string } | null; onStop: () => void
 }) {
   const { t } = useTranslation()
@@ -99,7 +100,7 @@ function Walk({ info, seats, startAt, block, order, typedMac, resumed, onStop }:
       try {
         const made = await post<SeatWalkHello>('/api/seat-walk/hello')
         if (run.current !== mine) return
-        keep({ block, order, at, done, previous: previous.current, laptop: laptop.current, mac: typedMac })
+        keep({ rows, order, at, done, previous: previous.current, laptop: laptop.current, mac: typedMac })
         const back = `${window.location.origin}${window.location.pathname}?hello=${encodeURIComponent(made.hello)}`
         leave.to(`${made.url}?back=${encodeURIComponent(back)}`)
       } catch (e) {
@@ -137,7 +138,7 @@ function Walk({ info, seats, startAt, block, order, typedMac, resumed, onStop }:
       }
       setStatus({ kind: 'looking', started, last: result })
     }
-  }, [seat, qc, typedMac, block, order, at, done])
+  }, [seat, qc, typedMac, rows, order, at, done])
 
   // Back from the agent with this seat's code: carry on where the crew pressed Locate.
   const resumedOnce = useRef(false)
@@ -318,16 +319,15 @@ export default function SeatWalk() {
   const { t } = useTranslation()
   // Back from the local agent: the walk picks up at the seat it left.
   const [resumed] = useState(comingBack)
-  const [block, setBlock] = useState(resumed?.kept.block ?? '')
+  const [rows, setRows] = useState<string[]>(resumed?.kept.rows ?? [])
   const [order, setOrder] = useState(resumed?.kept.order ?? 'rows')
   const [skipKnown, setSkipKnown] = useState(true)
   const [walking, setWalking] = useState(!!resumed)
   const [mac, setMac] = useState(resumed?.kept.mac ?? '')
   const macOk = !mac.trim() || MAC_RE.test(mac.trim())
-  const blocks = useQuery({ queryKey: qk.seatBlocks, queryFn: () => get<SeatBlock[]>('/api/seat-blocks') })
   const info = useQuery({
-    queryKey: qk.seatWalk(block, order),
-    queryFn: () => get<SeatWalkInfo>(`/api/seat-walk${block ? `?block=${encodeURIComponent(block)}&order=${order}` : ''}`),
+    queryKey: qk.seatWalk(rows.join(','), order),
+    queryFn: () => get<SeatWalkInfo>(`/api/seat-walk${rows.length ? `?rows=${encodeURIComponent(rows.join(','))}&order=${order}` : ''}`),
   })
   const seats = info.data?.seats ?? []
   const firstOpen = skipKnown ? seats.findIndex((s) => !s.port) : 0
@@ -337,7 +337,7 @@ export default function SeatWalk() {
     <Layout title={t('seatWalk.title')} back={{ href: '/checkins', label: t('crewCheckin.title') }}>
       <PageHead title={t('seatWalk.title')} desc={walking ? undefined : t('seatWalk.intro')} />
       {walking && d && seats.length ? (
-        <Walk info={d} seats={seats} startAt={Math.max(0, firstOpen)} block={block} order={order}
+        <Walk info={d} seats={seats} startAt={Math.max(0, firstOpen)} rows={rows} order={order}
           typedMac={macOk ? mac.trim() : ''} resumed={resumed} onStop={() => { keep(null); cameBack = null; setWalking(false) }} />
       ) : (
         <Stack gap="md">
@@ -346,8 +346,7 @@ export default function SeatWalk() {
           <Paper withBorder radius="lg" p="lg">
             <Stack gap="sm">
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-                <Select label={t('seatWalk.block')} required searchable placeholder={t('ui.pickBlock')} value={block || null} onChange={(v) => setBlock(v ?? '')}
-                  data={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.label || b.name || '–'} (${b.cols * b.rows})` }))} />
+                <RowsSelect label={t('seatWalk.rows')} required value={rows} onChange={setRows} />
                 <Select label={t('seatWalk.order')} allowDeselect={false} value={order} onChange={(v) => setOrder(v ?? 'rows')}
                   data={[{ value: 'rows', label: t('seatWalk.orderRows') }, { value: 'snake', label: t('seatWalk.orderSnake') }]} />
               </SimpleGrid>

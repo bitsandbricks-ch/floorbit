@@ -42,7 +42,7 @@ def test_walk_a_row_with_the_laptop(hall, monkeypatch):
     monkeypatch.setattr(seat_walk, "_from_monitoring", lambda ip: None)
     a1, a2 = demo_seat("A-1"), demo_seat("A-2")
     block = hall.get("/api/seat-blocks").get_json()[0]["id"]
-    first = hall.get(f"/api/seat-walk?block={block}").get_json()
+    first = hall.get(f"/api/seat-walk?rows={block}:1").get_json()
     assert first["switch_lookup"] and [s["seat"] for s in first["seats"][:3]] == ["A-1", "A-2", "A-3"]
     assert first["seats"][0]["port"] is None and first["keep_hours"] == 24 and "ip" not in first
 
@@ -56,7 +56,7 @@ def test_walk_a_row_with_the_laptop(hall, monkeypatch):
     r2 = locate(hall, "A-2", a2[0], previous=r["found"], mac=a2[1], mac_ip=a2[0]).get_json()
     assert r2["ok"] and r2["found"]["port"] == a2[3] and [s["step"] for s in r2["steps"]] == ["monitoring", "switch"]
 
-    rows = {s["seat"]: s["port"] for s in hall.get(f"/api/seat-walk?block={block}").get_json()["seats"]}
+    rows = {s["seat"]: s["port"] for s in hall.get(f"/api/seat-walk?rows={block}:1").get_json()["seats"]}
     assert rows["A-1"]["port"] == a1[3] and rows["A-2"]["source"] == "walk"
     entries = hall.get("/api/settings/audit?area=check-in").get_json()["entries"]
     assert any(e["action"] == "Walk-through: seat A-1 found on its port" for e in entries)

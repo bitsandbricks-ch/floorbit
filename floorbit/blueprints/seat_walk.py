@@ -1,7 +1,8 @@
 """The crew's walk-through check-in (floorbit/seat_walk.py, docs/seat-walk.md).
 
 - ``GET /seat-walk``: the page (React).
-- ``GET /api/seat-walk?block=&order=``: the block's seats in walking order with the port each has
+- ``GET /api/seat-walk?rows=&order=``: the picked rows' seats (row ids from ``/api/seat-rows``,
+  comma-separated) in walking order with the port each has
   in this event, the local agent's address and which ways of looking a port up are on.
 - ``POST /api/seat-walk/hello``: a one-time code and the agent URL the laptop opens with it.
   ``GET /api/seat-walk/hello/<code>``: the laptop's own IP once the agent saw it.
@@ -48,10 +49,10 @@ def overview():
             'monitoring': sources.monitoring().enabled(),
             'event': {k: tenancy.current().get(k) for k in ('id', 'name', 'status')},
             'keep_hours': seat_walk.KEEP_AFTER_END // 3600}
-    block = request.args.get('block')
-    if block:
+    rows = [r for r in (request.args.get('rows') or '').split(',') if r.strip()]
+    if rows:
         try:
-            body.update(seat_walk.seats(block, request.args.get('order') or 'rows'))
+            body.update(seat_walk.seats(rows[:50], request.args.get('order') or 'rows'))
         except seat_walk.WalkError as exc:
             return jsonify({'error': str(exc)}), exc.status
     return jsonify(body)
