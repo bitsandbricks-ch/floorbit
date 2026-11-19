@@ -110,7 +110,8 @@ agent's page names the first one, and the agent's log has each new one with the 
 
 A problem goes away when the device sends again, or after three minutes without the error. One
 VLAN's or one table's problem only goes away by not coming back, since the device's other data keeps
-coming in.
+coming in. Such a device doesn't count as failing: the agent's health says "answer only in part"
+instead. A device that only sends traps isn't listed as silent when a minute passes without one.
 
 **Test now** collects from one device once, through the agent, and shows what came back or the exact
 error; **Raw data** shows the last lines Telegraf sent for it. On the agent machine,

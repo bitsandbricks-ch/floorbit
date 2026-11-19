@@ -376,7 +376,10 @@ class AgentPlugin(Base):
         online = {d.name: d for d in list(self.state.devices.values()) if d.online(now)}
         heard = len(online)
         self.log_heard(online, now)
-        found = self.problems.current(now)
+        everything = self.problems.current(now)
+        # One VLAN or table that doesn't answer isn't a failing device: it still sends the rest.
+        found = [p for p in everything if not problems_mod.partial(p)]
+        part = [p for p in everything if problems_mod.partial(p)]
         failing = len({p['device'] for p in found if p['device']})
         self.ctx.gauge('devices', count)
         self.ctx.gauge('devices_heard', heard)
@@ -407,6 +410,12 @@ class AgentPlugin(Base):
             who = first['device'] or first['driver']
             self._health('warning', f'{failing or len(found)} of {count} devices fail. {who} '
                          f'({first["driver"]}): {problems_mod.hint(first)}{more}'[:300], 'device_problems')
+        elif part:
+            first = part[0]
+            some = len({p['device'] for p in part if p['device']}) or len(part)
+            who = first['device'] or first['driver']
+            self._health('warning', f'{some} of {count} devices answer only in part. {who} '
+                         f'({first["driver"]}): {problems_mod.hint(first)}'[:300], 'device_partial')
         elif telegraf_work and quiet and not self.binary:
             self._health('warning', 'nothing from Telegraf: this agent image has no Telegraf and no telegraf '
                          f'container sends here. Update the agent image, or start the container ({DOCS})',
@@ -461,10 +470,16 @@ class AgentPlugin(Base):
         and the devices that gave nothing, with their problem."""
         counts, self.minute = self.minute['points'], {'at': now, 'points': collections.Counter()}
         with self.lock:
-            names = [t['name'] for t in self.targets if self.primary or t.get('mine')]
+            # A traps-only device speaks when something happens: a quiet minute is no news.
+            names = [t['name'] for t in self.targets if (self.primary or t.get('mine'))
+                     and not set(t.get('drivers') or []) <= {'traps'}]
         if not names and not counts:
             return
-        problem = {p['device']: problems_mod.hint(p) for p in self.problems.current(now) if p['device']}
+        # A silent device's own problem, not one of its VLANs' (those come first in the sort).
+        problem = {}
+        for p in self.problems.current(now):
+            if p['device'] and (p['device'] not in problem or not problems_mod.partial(p)):
+                problem[p['device']] = problems_mod.hint(p)
         got = [f'{n} {counts[n]}' for n in sorted(counts, key=lambda n: (-counts[n], n)) if n != '?']
         silent = [n + (f' ({problem[n]})' if n in problem else '') for n in sorted(names) if not counts.get(n)]
         line = (f'polls, last minute: {sum(counts.values())} points from {len(got)} of {len(names)} devices'

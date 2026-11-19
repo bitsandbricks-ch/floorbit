@@ -30,7 +30,8 @@ KINDS = (
     ('tls', re.compile(r'x509|certificate|tls: |handshake fail|sslerror', re.I)),
     ('refused', re.compile(r'connection refused|econnrefused', re.I)),
     ('unreachable', re.compile(r'no route to host|network is unreachable|host is down|'
-                               r'no such host|name resolution|server misbehaving', re.I)),
+                               r'no such host|name resolution|server misbehaving|name or service not known|'
+                               r'failed to resolve|temporary failure in name', re.I)),
     ('timeout', re.compile(r'timeout|timed out|deadline exceeded|no response', re.I)),
     ('listen', re.compile(r'address already in use|bind: permission denied|listen (udp|tcp)', re.I)),
 )
@@ -92,7 +93,9 @@ class Problems:
     def note(self, problem, now=None):
         """Remember one. True when it is new or changed kind (worth a line in the agent's log)."""
         now = time.time() if now is None else now
-        key = (problem.get('device') or '', problem['driver'])
+        # One table's or VLAN's problem is kept apart from the device's own, so a device that goes
+        # silent altogether is still said (and logged), not hidden behind "no answer for VLAN 1".
+        key = (problem.get('device') or '', problem['driver'], scope(problem))
         with self._lock:
             old = self._found.get(key)
             first = old['since'] if old and old['kind'] == problem['kind'] else now
@@ -143,6 +146,17 @@ def _partial(problem):
     return bool(problem.get('vlan') or problem.get('table'))
 
 
+def partial(problem):
+    """Is it one VLAN's or one table's problem, while the device may well send the rest?"""
+    return _partial(problem)
+
+
+def scope(problem):
+    if problem.get('vlan'):
+        return 'vlan'
+    return problem.get('table') or ''
+
+
 def hint(problem, port=None):
     """One plain sentence on what to look at. English: the hosted side translates by ``kind``."""
     where = problem.get('address') or 'the device'
@@ -153,7 +167,8 @@ def hint(problem, port=None):
     if problem['kind'] == 'timeout' and driver == 'snmp' and problem.get('vlan'):
         vlan = problem['vlan']
         return (f'no answer from {where} for VLAN {vlan} (community@{vlan}, or context vlan-{vlan} with SNMPv3): '
-                f'does the switch have that VLAN? Its other SNMP data still comes in')
+                f'if its other data comes in, the switch doesn\'t have that VLAN (fix telemetry_vlans), or the '
+                f'SNMPv3 user may not read vlan- contexts')
     if problem['kind'] == 'timeout' and driver == 'snmp' and problem.get('table'):
         return (f'no answer from {where} while reading {problem["table"]}: if its other data comes in, the walk '
                 f'is too slow (a big table, or SNMP rate limited on the device); if nothing comes in, check '
