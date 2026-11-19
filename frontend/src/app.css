@@ -997,17 +997,3 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 @media (min-width: 62em) {
   .fb-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 }
-
-/* Services (issue #889): one list of every service, one row each, the whole width. */
-.fb-service-list { overflow: hidden; }
-.fb-service-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) 140px 300px; gap: 16px; align-items: center; padding: 10px 16px; }
-.fb-service-row + .fb-service-row { border-top: 1px solid var(--color-line); }
-.fb-service-name { display: flex; gap: 10px; align-items: center; min-width: 0; }
-.fb-service-value { min-width: 0; }
-.fb-service-spark { height: 28px; }
-@media (max-width: 48em) {
-  .fb-service-row { grid-template-columns: 1fr auto; gap: 6px 12px; }
-  .fb-service-value { grid-column: 1 / -1; grid-row: 2; }
-  .fb-service-spark { display: none; }
-  .fb-service-actions { grid-column: 2; grid-row: 1; }
-}
