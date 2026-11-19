@@ -22,6 +22,8 @@ export type DataColumn<T> = {
   /** CSS width, e.g. 44 or '20%'. */
   width?: number | string
   mono?: boolean
+  /** Lets long text (a log message, a description) wrap; other cells stay on one line. */
+  wrap?: boolean
   /** Left out on a phone, where the table keeps only what names the row. */
   hideOnPhone?: boolean
 }
@@ -29,7 +31,8 @@ export type DataColumn<T> = {
 export type DataTableProps<T> = {
   rows: T[]
   columns: DataColumn<T>[]
-  rowKey: (row: T) => string
+  /** A stable id per row; the index is there for lists without one, such as log lines. */
+  rowKey: (row: T, index: number) => string
   /** The table's accessible name. */
   label: string
   /** Sorted by this column first. */
@@ -45,6 +48,8 @@ export type DataTableProps<T> = {
    *  Off where several tables share one page, such as a dashboard. */
   urlState?: boolean
   density?: 'default' | 'compact'
+  /** striped rows, for long uniform lists such as logs. */
+  striped?: boolean
   /** Below this width the table scrolls sideways instead of squeezing. */
   minWidth?: number
   /** Drawn without the bordered box, for tables that already sit inside one. */
@@ -56,7 +61,7 @@ export type DataTableProps<T> = {
  *  and the count. Search and filters sit above it on the page, and narrow `rows`. */
 export function DataTable<T>(props: DataTableProps<T>) {
   const { rows, columns, rowKey, label, defaultSort, pageSize = 50, empty, count, rowStyle, urlState = true,
-    density = 'default', minWidth, bare, className } = props
+    density = 'default', minWidth, bare, className, striped } = props
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const initialSort: SortingState = defaultSort ? [{ id: defaultSort.id, desc: !!defaultSort.desc }] : []
@@ -112,7 +117,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     state: { sorting, pagination },
     onSortingChange: (u) => setSorting(typeof u === 'function' ? u(sorting) : u),
     onPaginationChange: (u) => setPage((typeof u === 'function' ? u(pagination) : u).pageIndex),
-    getRowId: (row) => rowKey(row),
+    getRowId: (row, index) => rowKey(row, index),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -123,11 +128,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
   if (!rows.length) return <>{empty ?? <Text c="dimmed">{t('table.empty')}</Text>}</>
 
   const byId = new Map(columns.map((c) => [c.id, c]))
-  const cellClass = (c?: DataColumn<T>) => [c?.hideOnPhone && 'fb-dt-phone-hide', c?.mono && 'fb-dt-mono'].filter(Boolean).join(' ') || undefined
+  const cellClass = (c?: DataColumn<T>) => [c?.hideOnPhone && 'fb-dt-phone-hide', c?.mono && 'fb-dt-mono', c?.wrap && 'fb-dt-wrap'].filter(Boolean).join(' ') || undefined
   const body = (
     // On a phone the columns marked hideOnPhone go, so the rest fit without the wide minimum.
     <div className="fb-dt-scroll" style={minWidth ? ({ '--fb-dt-min': `${minWidth}px` } as CSSProperties) : undefined}>
-      <Table highlightOnHover verticalSpacing={density === 'compact' ? 4 : 8} fz="sm" aria-label={label}
+      <Table highlightOnHover striped={striped} verticalSpacing={density === 'compact' ? 4 : 8} fz="sm" aria-label={label}
         className={['fb-dt', density === 'compact' && 'is-compact', className].filter(Boolean).join(' ')}>
         <Table.Thead>
           {table.getHeaderGroups().map((hg) => (
