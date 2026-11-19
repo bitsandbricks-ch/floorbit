@@ -175,10 +175,16 @@ def test_a_link_down_trap_changes_the_port_at_once(plugin):
     state.state.apply_text('snmp_trap,source=192.0.2.21,oid=.1.3.6.1.6.3.1.1.5.3,driver=traps '
                            '.1.3.6.1.2.1.2.2.1.1.10101=10101i', now + 1)
     assert plugin.port_stats("sw-a-01", "Gi1/0/1")["state"] == "down"
+    # As the agent's Telegraf (gosmi, no MIB files) sends it: names are iso.3.6.1..., an
+    # ifOperStatus.10101 next to the index must not be taken for it.
+    state.state.apply_text('snmp_trap,source=192.0.2.21,name=iso.3.6.1.6.3.1.1.5.4,oid=.1.3.6.1.6.3.1.1.5.4,'
+                           'driver=traps iso.3.6.1.2.1.1.3.0=59777i,iso.3.6.1.2.1.2.2.1.8.10101=1i,'
+                           'iso.3.6.1.2.1.2.2.1.1.10101=10101i,iso.3.6.1.2.1.31.1.1.1.1.10101="Gi1/0/1"', now + 2)
+    assert plugin.port_stats("sw-a-01", "Gi1/0/1")["state"] == "up"
     # Traps carry no token: one from an address nobody set up adds nothing.
     state.state.apply_text('snmp_trap,source=198.51.100.66,oid=.1.3.6.1.6.3.1.1.5.3,driver=traps '
-                           '.1.3.6.1.2.1.2.2.1.1.1=1i', now + 2)
-    state.state.apply_text('fb_mdt_if,mdt_source=rogue,name=Eth1/1 state/oper-status="UP"', now + 2)
+                           '.1.3.6.1.2.1.2.2.1.1.1=1i', now + 3)
+    state.state.apply_text('fb_mdt_if,mdt_source=rogue,name=Eth1/1 state/oper-status="UP"', now + 3)
     assert set(state.state.devices) == {"sw-a-01"}
 
 
@@ -237,6 +243,8 @@ def test_telegraf_config_per_driver():
              "priv_password": "p" * 12, "fdb": "qbridge", "username": "telemetry", "password": "x"}
     conf = telegraf.render([catalyst, nexus], "http://agent:8186/write", "fbt_token")
     assert 'Authorization = "Token fbt_token"' in conf
+    # Traps must not need net-snmp's snmptranslate, which the agent image doesn't carry.
+    assert 'snmp_translator = "gosmi"' in conf
     assert 'community = "pub\\"lic@10"' in conf and 'community = "pub\\"lic@20"' in conf
     assert conf.count('name = "fb_fdb"') == 2 and 'name = "fb_qfdb"' in conf
     assert 'agents = ["udp://[2001:db8::1]:161"]' in conf and 'sec_level = "authPriv"' in conf
