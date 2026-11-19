@@ -555,6 +555,25 @@ def _agents():
     return [{**a, 'outdated': agent_link.outdated(a.get('protocol'))} for a in agent_link.all_agents()]
 
 
+def _dns():
+    dns = current_app.extensions.get('floorbit_dns')
+    return dns.snapshot(core.DNS_HOURS) if dns else None
+
+
+def _games():
+    from .. import features, games
+    from .flows import current
+    ext = current_app.extensions
+    return games.insights(ext.get('floorbit_dns') if features.on('dns') else None,
+                          current() if features.on('traffic') else None, ext.get('floorbit_lancache'), core.DNS_HOURS)
+
+
+def _wifi():
+    from .. import wifi
+    from ..store import load_data
+    return wifi.overview(_registry(), load_data())
+
+
 # Floorbit's own tiles (dashboard_core.TILES): one builder each, None when this account may not see it.
 CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switches': _switches_tile,
               'seats': _seats_tile, 'down': _down_tile, 'switch_states': _switch_states_tile,
@@ -573,7 +592,13 @@ CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switche
               'internet_uplinks': lambda user: core.internet_uplinks_widget(_lang(), _services()),
               'lancache': lambda user: core.lancache_widget(_lang(), _lancache()),
               'power_circuits': lambda user: core.power_circuits_widget(_lang(), _power()),
-              'agents': lambda user: core.agents_widget(_lang(), _agents())}
+              'agents': lambda user: core.agents_widget(_lang(), _agents()),
+              'dns_lookups': lambda user: core.dns_lookups_widget(_lang(), _dns()),
+              'dns_sites': lambda user: core.dns_sites_widget(_lang(), _dns()),
+              'dns_blocked': lambda user: core.dns_blocked_widget(_lang(), _dns()),
+              'launchers': lambda user: core.launchers_widget(_lang(), _games()),
+              'wifi_clients': lambda user: core.wifi_clients_widget(_lang(), _wifi()),
+              'wifi_aps': lambda user: core.wifi_aps_widget(_lang(), _wifi())}
 
 
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])

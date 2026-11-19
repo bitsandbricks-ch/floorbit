@@ -58,5 +58,6 @@ export function PieKind({ widget, level, box }: { widget: Widget; level: Level; 
 
 /** The whole in the middle of the ring: short (1.1T, not 1,105,774,540,503), so it fits. */
 function centre(total: number, lang: string, style: { decimals?: number; short?: boolean }) {
-  return formatValue(total, '', lang, { short: true, ...style }).value
+  // Spread would let an unset ``short`` (undefined) switch it back off.
+  return formatValue(total, '', lang, { short: true, decimals: style.decimals }).value
 }

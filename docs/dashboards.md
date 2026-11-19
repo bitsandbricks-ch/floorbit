@@ -8,7 +8,7 @@ can be split into panes side by side or stacked. Each pane shows one thing:
 | --- | --- |
 | **Plan** | A hall's floor plan: the whole hall, one seat block, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
 | **Widget** | A rich widget from the [widget gallery](#the-widget-gallery): service health, stats, traffic, DNS, games, Wi-Fi, speed tests, power load, network status, endpoints, the LAN cache and the event in numbers. Small by default; **Show it big** draws it with everything its page used to show. |
-| **Tile** | One data widget that fits its box: Floorbit's own (problems, incidents, open incidents, switches, switch states, seats, seats by block, switches down, traffic, bandwidth, peak, ports, uplinks, busiest seats, internet uplinks, LAN cache, agents, and with their feature on: service health, power load, and traffic by kind, top services, traffic by area, and what looks odd) or a plugin's. See [Tiles that fit their box](#tiles-that-fit-their-box). |
+| **Tile** | One data widget that fits its box: Floorbit's own (problems, incidents, open incidents, switches, switch states, seats, seats by block, switches down, traffic, bandwidth, peak, ports, uplinks, busiest seats, internet uplinks, LAN cache, agents, and with their feature on: service health, power load, DNS lookups, top and blocked sites, game launchers, Wi-Fi clients and access points, and traffic by kind, top services, traffic by area, and what looks odd) or a plugin's. See [Tiles that fit their box](#tiles-that-fit-their-box). |
 | **Text** | Your own words: a welcome, the schedule, the Wi-Fi name. A small Markdown (`# heading`, `- list`, `**bold**`, `[link](https://example.com)`); every line stays its own line. Four sizes (S to XL) that grow with the pane, aligned left or centred. |
 
 For example: the whole hall on the left, the VIP zone zoomed in at the top right, and the network
@@ -130,9 +130,9 @@ deleting your version brings the ready-made one back.
 | **Kiosk** | The big screen in the hall (below). Public. |
 | **Overview** | Seats, bandwidth, switches, incidents, agents and the LAN cache as numbers; the plan, service health and switches down; switch states, traffic over time, uplinks, the busiest seats, traffic by kind and what looks odd. |
 | **Service health** | Services up, switches, LAN cache and agents as numbers; every check worst first, internet uplinks and switches down; the health wall with each check's numbers below. |
-| **Network** | Switches, seats, bandwidth and ports; traffic over time, switches down, uplinks, the busiest seats and switch states; Wi-Fi, endpoints and network status. |
+| **Network** | Switches, seats, bandwidth and ports; traffic over time, switches down, uplinks, the busiest seats and switch states; Wi-Fi clients and access points, endpoints and network status. |
 | **Services** | Services up, the LAN cache and agents; service health and internet uplinks; the services and LAN cache settings and details below. |
-| **Traffic** | Bandwidth, the peak and what looks odd; traffic over time and by kind; top services, traffic by area and the busiest seats; DNS, games and speed tests. |
+| **Traffic** | Bandwidth, the peak and what looks odd; traffic over time and by kind; top services, traffic by area and the busiest seats; DNS lookups, the LAN cache, top and blocked sites, game launchers, and speed tests. |
 | **Power load** | Every circuit's load, fullest first, then the boards in detail. |
 | **Event in numbers** | The stats wall for the hall and attendees' phones. Public, fit to screen. |
 

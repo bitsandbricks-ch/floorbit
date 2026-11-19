@@ -36,6 +36,13 @@ TEXTS = {
            'no_cache': 'No LAN cache set up', 'power_circuits': 'Power load', 'tripped': 'tripped',
            'no_circuits': 'No circuits set up', 'agents': 'Agents', 'agents_unit': 'of {n} online',
            'agents_sub': '{outdated} need an update', 'no_agents': 'No agent yet',
+           'dns_lookups': 'DNS lookups', 'dns_sub': '{blocked} blocked ({share} %) in {hours} h',
+           'no_dns': 'No DNS logs yet', 'dns_sites': 'Top sites', 'dns_blocked': 'Blocked sites',
+           'lookups': '{n} lookups', 'launchers': 'Game launchers',
+           'launcher_value': '{cache} from the cache · {seats} seats',
+           'launcher_cache': '{cache} from the cache', 'no_games': 'No game traffic yet',
+           'wifi_clients': 'Wi-Fi clients', 'wifi_sub': '2.4 GHz: {b24} · 5 GHz: {b5}', 'no_wifi': 'No Wi-Fi data yet',
+           'wifi_aps': 'Access points', 'ap_clients': '{n} clients', 'busy': 'busy',
            'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'downloads': 'Downloads', 'updates': 'Updates',
                    'web': 'Web', 'other': 'Other'}},
     'de': {'problems': 'Probleme jetzt', 'incidents': 'Störungen', 'down': 'ausgefallen', 'open': 'offen',
@@ -65,6 +72,14 @@ TEXTS = {
            'no_cache': 'Kein LAN-Cache eingerichtet', 'power_circuits': 'Stromlast', 'tripped': 'ausgelöst',
            'no_circuits': 'Keine Stromkreise eingerichtet', 'agents': 'Agenten', 'agents_unit': 'von {n} online',
            'agents_sub': '{outdated} brauchen ein Update', 'no_agents': 'Noch kein Agent',
+           'dns_lookups': 'DNS-Anfragen', 'dns_sub': '{blocked} blockiert ({share} %) in {hours} Std.',
+           'no_dns': 'Noch keine DNS-Logs', 'dns_sites': 'Top-Sites', 'dns_blocked': 'Blockierte Sites',
+           'lookups': '{n} Anfragen', 'launchers': 'Game-Launcher',
+           'launcher_value': '{cache} aus dem Cache · {seats} Plätze',
+           'launcher_cache': '{cache} aus dem Cache', 'no_games': 'Noch kein Game-Verkehr',
+           'wifi_clients': 'WLAN-Clients', 'wifi_sub': '2.4 GHz: {b24} · 5 GHz: {b5}',
+           'no_wifi': 'Noch keine WLAN-Daten',
+           'wifi_aps': 'Access Points', 'ap_clients': '{n} Clients', 'busy': 'ausgelastet',
            'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'downloads': 'Downloads', 'updates': 'Updates',
                    'web': 'Web', 'other': 'Anderes'}},
 }
@@ -97,6 +112,13 @@ TILES = {
     'lancache': {'label': 'lancache', 'size': 'small', 'refresh': 60},
     'power_circuits': {'label': 'power_circuits', 'size': 'small', 'refresh': 30, 'feature': 'power'},
     'agents': {'label': 'agents', 'size': 'small', 'refresh': 30},
+    # DNS, games and Wi-Fi (#1045): hall-wide numbers only, as on their pages.
+    'dns_lookups': {'label': 'dns_lookups', 'size': 'small', 'refresh': 60, 'feature': 'dns'},
+    'dns_sites': {'label': 'dns_sites', 'size': 'small', 'refresh': 60, 'feature': 'dns'},
+    'dns_blocked': {'label': 'dns_blocked', 'size': 'small', 'refresh': 60, 'feature': 'dns'},
+    'launchers': {'label': 'launchers', 'size': 'small', 'refresh': 60, 'feature': 'games'},
+    'wifi_clients': {'label': 'wifi_clients', 'size': 'small', 'refresh': 30, 'feature': 'wifi'},
+    'wifi_aps': {'label': 'wifi_aps', 'size': 'small', 'refresh': 30, 'feature': 'wifi'},
 }
 MAX_DOWN = 20   # a big screen reads a short list; the rest is "+ n more"
 
@@ -456,3 +478,82 @@ def agents_widget(lang, agents):
     return {'type': 'stat', 'value': online, 'unit': text['agents_unit'].format(n=len(agents)),
             'tone': 'err' if online < len(agents) else 'ok', 'min': 0, 'max': len(agents), 'link': '/agents',
             'sub': text['agents_sub'].format(outdated=outdated) if outdated else ''}
+
+
+DNS_HOURS = 24   # the DNS and games tiles look at the last day, like their pages do by default
+
+
+def dns_lookups_widget(lang, dns):
+    """How many lookups the hall made in the last day, and how many were blocked."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not dns or not dns.get('lookups'):
+        return {'type': 'stat', 'value': 0, 'unit': '', 'sub': text['no_dns'], 'link': '/dashboards/traffic'}
+    return {'type': 'stat', 'value': dns['lookups'], 'unit': '', 'link': '/dashboards/traffic',
+            'sub': text['dns_sub'].format(blocked=dns.get('blocked', 0), hours=DNS_HOURS,
+                                          share=round((dns.get('block_share') or 0) * 100, 1))}
+
+
+def _sites(text, rows, key):
+    return [{'label': r.get('site') or '', 'value': text['lookups'].format(n=r.get(key, 0)), 'number': r.get(key, 0)}
+            for r in rows]
+
+
+def dns_sites_widget(lang, dns):
+    """The sites the hall looks up most (only those 5+ seats looked up: dns.py's privacy rule)."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not dns:
+        return {'type': 'list', 'items': [], 'sub': text['no_dns'], 'link': '/dashboards/traffic'}
+    return {'type': 'list', 'items': _sites(text, dns.get('sites') or [], 'lookups'), 'link': '/dashboards/traffic'}
+
+
+def dns_blocked_widget(lang, dns):
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not dns:
+        return {'type': 'list', 'items': [], 'sub': text['no_dns'], 'link': '/dashboards/traffic'}
+    return {'type': 'list', 'items': _sites(text, dns.get('blocked_sites') or [], 'blocked'),
+            'link': '/dashboards/traffic'}
+
+
+def launchers_widget(lang, games):
+    """Steam, Epic, Battle.net, ...: how much each pulled, and how much of it the LAN cache served."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    found = (games or {}).get('launchers') or []
+    if not found:
+        return {'type': 'list', 'items': [], 'sub': text['no_games'], 'link': '/dashboards/traffic'}
+    items = []
+    for g in sorted(found, key=lambda g: -((g.get('cache_hit_bytes') or 0) + (g.get('cache_miss_bytes') or 0))):
+        total = (g.get('cache_hit_bytes') or 0) + (g.get('cache_miss_bytes') or 0)
+        seats = g.get('traffic_seats') or g.get('dns_seats_max') or 0
+        # Under 5 seats the pages say nothing about how many (dns.py and flows' privacy rule).
+        value = text['launcher_value' if seats else 'launcher_cache'].format(cache=size(g.get('cache_hit_bytes')),
+                                                                              seats=seats)
+        items.append({'label': g.get('name') or '', 'number': total, 'value': value})
+    return {'type': 'list', 'items': items, 'link': '/dashboards/traffic'}
+
+
+def wifi_clients_widget(lang, wifi):
+    """Clients on the Wi-Fi now, by band."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not wifi or not wifi.get('aps'):
+        return {'type': 'stat', 'value': NONE, 'unit': '', 'sub': text['no_wifi'], 'link': '/dashboards/network'}
+    bands = wifi.get('bands') or {}
+    return {'type': 'stat', 'value': wifi.get('clients') or 0, 'unit': '', 'link': '/dashboards/network',
+            'sub': text['wifi_sub'].format(b24=(bands.get('2.4') or {}).get('clients', 0),
+                                           b5=(bands.get('5') or {}).get('clients', 0))}
+
+
+def wifi_aps_widget(lang, wifi):
+    """Every access point, down and busy ones first, with its clients."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not wifi or not wifi.get('aps'):
+        return {'type': 'status', 'items': [], 'sub': text['no_wifi'], 'link': '/dashboards/network'}
+    items = []
+    for ap in wifi['aps']:
+        state = 'down' if ap.get('status') == 'down' else 'warn' if ap.get('busy') else \
+            'up' if ap.get('status') == 'up' else 'unknown'
+        detail = text['ap_clients'].format(n=ap.get('clients') or 0)
+        items.append({'label': ap.get('name') or '', 'state': state,
+                      'detail': f"{detail} · {text['busy']}" if state == 'warn' else detail})
+    order = {'down': 0, 'warn': 1, 'unknown': 2, 'up': 3}
+    items.sort(key=lambda i: (order[i['state']], i['label']))
+    return {'type': 'status', 'items': items, 'link': '/dashboards/network'}

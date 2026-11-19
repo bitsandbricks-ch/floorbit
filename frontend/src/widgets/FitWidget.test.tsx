@@ -82,7 +82,7 @@ describe('FitWidget', () => {
     size = { w: 500, h: 220 }
     const mix: Widget = { ...base, type: 'list', items: [{ label: 'Web', value: '360 GB', tone: '', number: 3.6e11 },
       { label: 'Gaming', value: '183 GB', tone: '', number: 1.83e11 }] }
-    renderWithApp(<FitWidget widget={mix} pick="pie" />)
+    renderWithApp(<FitWidget widget={mix} pick="pie" look={{ number: { decimals: undefined, short: undefined } }} />)
     expect(screen.getByText('543G')).toBeInTheDocument()
   })
 

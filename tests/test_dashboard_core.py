@@ -151,7 +151,8 @@ def test_seats_by_block_say_when_nobody_knows():
 
 
 STATS_TILES = ["bandwidth", "peak", "ports", "uplinks", "top_ports", "traffic_mix", "flow_services", "traffic_areas",
-               "anomalies", "service_health", "internet_uplinks", "lancache", "power_circuits", "agents"]
+               "anomalies", "service_health", "internet_uplinks", "lancache", "power_circuits", "agents",
+               "dns_lookups", "dns_sites", "dns_blocked", "launchers", "wifi_clients", "wifi_aps"]
 SNAP = {"now": {"t": 160, "down": 4.8e9, "up": 9.4e9, "online": 93,
                 "ports_up": 138, "ports_down": 598, "ports_errors": 1},
         "peak": {"bps": 16e9, "at": 100}, "day": {"peak_bps": 15.5e9},
@@ -228,6 +229,30 @@ def test_the_service_views_are_split_into_tiles():
     assert (agents["value"], agents["unit"], agents["tone"]) == (1, "of 2 online", "err")
     assert agents["sub"] == "1 need an update"
     assert dashboard_core.agents_widget("en", [])["sub"] == "No agent yet"
+
+
+def test_dns_games_and_wifi_are_split_into_tiles():
+    dns = {"lookups": 576, "blocked": 44, "block_share": 0.0764,
+           "sites": [{"site": "steamcontent.com", "lookups": 120}],
+           "blocked_sites": [{"site": "ads.example", "blocked": 32}]}
+    assert dashboard_core.dns_lookups_widget("en", dns)["sub"] == "44 blocked (7.6 %) in 24 h"
+    assert dashboard_core.dns_lookups_widget("de", None)["sub"] == "Noch keine DNS-Logs"
+    assert dashboard_core.dns_sites_widget("en", dns)["items"] == [
+        {"label": "steamcontent.com", "value": "120 lookups", "number": 120}]
+    assert dashboard_core.dns_blocked_widget("en", dns)["items"][0]["number"] == 32
+    games = {"launchers": [{"name": "Epic", "cache_hit_bytes": 1e9, "cache_miss_bytes": 0, "traffic_seats": 3},
+                           {"name": "Steam", "cache_hit_bytes": 4.5e11, "cache_miss_bytes": 1e11, "traffic_seats": 17}]}
+    items = dashboard_core.launchers_widget("en", games)["items"]
+    assert [i["label"] for i in items] == ["Steam", "Epic"] and items[0]["value"] == "450 GB from the cache · 17 seats"
+    wifi = {"clients": 289, "bands": {"2.4": {"clients": 70}, "5": {"clients": 219}},
+            "aps": [{"name": "ap-01", "status": "up", "clients": 19}, {"name": "ap-stage", "status": "up", "busy": True,
+                                                                         "clients": 40},
+                    {"name": "ap-02", "status": "down", "clients": 0}]}
+    assert dashboard_core.wifi_clients_widget("en", wifi)["sub"] == "2.4 GHz: 70 · 5 GHz: 219"
+    aps = dashboard_core.wifi_aps_widget("en", wifi)["items"]
+    assert [(a["label"], a["state"]) for a in aps] == [("ap-02", "down"), ("ap-stage", "warn"), ("ap-01", "up")]
+    assert aps[1]["detail"] == "40 clients · busy"
+    assert dashboard_core.wifi_aps_widget("en", {})["sub"] == "No Wi-Fi data yet"
 
 
 @pytest.mark.parametrize("tile", STATS_TILES)
