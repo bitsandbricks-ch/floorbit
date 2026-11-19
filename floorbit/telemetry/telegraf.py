@@ -85,6 +85,17 @@ PVID_FIELDS = (('dot1qPvid', '1.3.6.1.2.1.17.7.1.4.5.1.1', False, None),)       
 VTP_FIELDS = (('vtpVlanName', '1.3.6.1.4.1.9.9.46.1.3.1.1.4', False, None),)          # index: domain.VLAN
 CISCO_IF_VLAN = (('vmVlan', '1.3.6.1.4.1.9.9.68.1.2.2.1.2', False, None),             # access VLAN
                  ('vlanTrunkPortDynamicStatus', '1.3.6.1.4.1.9.9.46.1.6.1.1.14', False, None))   # 1: trunking
+# POWER-ETHERNET-MIB (RFC 3621), index group.port: PoE per port and each power supply's budget.
+POE_FIELDS = (('pethPsePortAdminEnable', '1.3.6.1.2.1.105.1.1.1.3', False, None),        # 1: on
+              ('pethPsePortDetectionStatus', '1.3.6.1.2.1.105.1.1.1.6', False, None),    # 3: delivering
+              ('pethPsePortPowerClassifications', '1.3.6.1.2.1.105.1.1.1.10', False, None))   # 1-5: class 0-4
+# CISCO-POWER-ETHERNET-EXT-MIB extends the same rows: the draw, and the ENTITY-MIB row of the port.
+CISCO_POE = (('cpeExtPsePortPwrAllocated', '1.3.6.1.4.1.9.9.402.1.2.1.7', False, None),        # mW
+             ('cpeExtPsePortPwrConsumption', '1.3.6.1.4.1.9.9.402.1.2.1.9', False, None),      # mW
+             ('cpeExtPsePortEntPhyIndex', '1.3.6.1.4.1.9.9.402.1.2.1.11', False, None))
+PSE_FIELDS = (('pethMainPsePower', '1.3.6.1.2.1.105.1.3.1.1.2', False, None),                  # W
+              ('pethMainPseOperStatus', '1.3.6.1.2.1.105.1.3.1.1.3', False, None),             # 1: on
+              ('pethMainPseConsumptionPower', '1.3.6.1.2.1.105.1.3.1.1.4', False, None))       # W
 HR_DEVICE_FIELDS = (('hrDeviceType', '1.3.6.1.2.1.25.3.2.1.2', False, None),      # processors: the CPU
                     ('hrDeviceDescr', '1.3.6.1.2.1.25.3.2.1.3', False, None))
 
@@ -189,6 +200,11 @@ def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
         lines.append('  name = "fb_tables"')
         _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
         _table(lines, 'fb_arp', ARP_FIELDS)
+        if t.get('kind', 'switch') == 'switch':
+            _table(lines, 'fb_poe', POE_FIELDS)
+            if cisco:
+                _table(lines, 'fb_poe', CISCO_POE)
+            _table(lines, 'fb_pse', PSE_FIELDS)
         _table(lines, 'fb_lldp', LLDP_FIELDS)
         _table(lines, 'fb_lldp_loc', LLDP_LOCAL_FIELDS)
         if cisco:
