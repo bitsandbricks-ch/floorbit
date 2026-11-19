@@ -158,6 +158,9 @@
     "status": "Status",
     "graph": "Diagramm",
     "table": "Tabelle",
-    "list": "Liste"
+    "list": "Liste",
+    "gauge": "Tacho",
+    "bar": "Balken",
+    "pie": "Kreis"
   }
 }

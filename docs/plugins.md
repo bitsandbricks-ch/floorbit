@@ -248,9 +248,9 @@ this site.
 
 | Type | Fields |
 | --- | --- |
-| `stat` | `value`, `unit`, `tone` (`ok`, `warn`, `err` or empty) |
+| `stat` | `value`, `unit`, `tone` (`ok`, `warn`, `err` or empty); optional `min`, `max` (shows as a gauge) |
 | `status` | `items`: `label`, `state` (`up`, `down`, `warn`, `unknown`), `detail` |
-| `list` | `items`: `label`, `value`, `tone` |
+| `list` | `items`: `label`, `value`, `tone`; optional `number` and `max` (shows as bars or a pie) |
 | `table` | `columns`: `key`, `label`; `rows` |
 | `sparkline` | `points`, `value`, `unit`, `min`, `max` |
 | `series` | `series`: up to 4 of `label`, `points` (`[unix seconds, value]`, oldest first); `unit` |

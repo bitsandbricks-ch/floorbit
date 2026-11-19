@@ -252,3 +252,14 @@ def test_a_series_is_lines_of_time_and_value():
         except WidgetError:
             continue
         raise AssertionError(bad)
+
+
+def test_gauge_and_bar_numbers_are_optional_and_checked():
+    from floorbit.plugins.widgets import WidgetError, check_widget
+    stat = check_widget({"type": "stat", "value": 3, "min": 0, "max": 10}, {"id": "s"})
+    assert (stat["min"], stat["max"]) == (0, 10)
+    items = check_widget({"type": "list", "items": [{"label": "A", "value": "3", "number": 3, "max": 8},
+                                                    {"label": "B", "value": "x"}]}, {"id": "l"})["items"]
+    assert items[0]["number"] == 3 and items[0]["max"] == 8 and "number" not in items[1]
+    with pytest.raises(WidgetError):
+        check_widget({"type": "list", "items": [{"label": "A", "number": float("nan")}]}, {"id": "l"})

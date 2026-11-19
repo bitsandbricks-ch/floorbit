@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Widget } from '@/api/types'
-import { formatValue, kindsFor, resolveKind, rowsOf, stateCounts, statOf } from './shape'
+import { formatValue, kindsFor, partsOf, resolveKind, rowsOf, scaleOf, slices, stateCounts, statOf } from './shape'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
 const status: Widget = { ...base, type: 'status', items: [
@@ -10,7 +10,7 @@ const labels = { name: 'Name', value: 'Value', state: 'Detail' }
 
 describe('widget shapes', () => {
   it('only offers kinds the data can be drawn as', () => {
-    expect(kindsFor('series')).toEqual(['graph', 'stat'])
+    expect(kindsFor({ ...base, type: 'series', unit: '', series: [] })).toEqual(['graph', 'stat'])
     expect(resolveKind(status, 'graph')).toBe('status')
     expect(resolveKind(status, 'stat')).toBe('stat')
   })
@@ -28,5 +28,25 @@ describe('widget shapes', () => {
   it('reads the latest value of a series', () => {
     const w: Widget = { ...base, type: 'series', unit: 'bit/s', series: [{ label: 'Down', points: [[1, 10], [2, 2000]] }] }
     expect(statOf(w, 'en')).toMatchObject({ value: '2', unit: 'kbit/s' })
+  })
+  it('offers a gauge only with a scale, bars and a pie only with numbers', () => {
+    expect(kindsFor({ ...base, type: 'stat', value: 3, unit: '', tone: '' })).toEqual(['stat'])
+    expect(kindsFor({ ...base, type: 'stat', value: 3, unit: '', tone: '', max: 10 })).toEqual(['stat', 'gauge'])
+    const plain: Widget = { ...base, type: 'list', items: [{ label: 'a', value: 'x', tone: '' }] }
+    expect(kindsFor(plain)).not.toContain('bar')
+    expect(resolveKind(plain, 'pie')).toBe('list')
+  })
+  it('reads parts from states and from numbers, a max making a bar gauge', () => {
+    const name = (s: string) => s
+    expect(partsOf(status, name).map((p) => [p.label, p.value])).toEqual([['down', 1], ['warn', 1], ['up', 1]])
+    const blocks: Widget = { ...base, type: 'list', items: [{ label: 'A', value: '2 / 3', tone: '', number: 2, max: 3 }] }
+    expect(partsOf(blocks, name)[0]).toMatchObject({ label: 'A', value: 2, max: 3, text: '2 / 3' })
+    expect(scaleOf({ ...base, type: 'stat', value: 5, unit: '', tone: '', max: 20 })).toEqual({ value: 5, min: 0, max: 20 })
+  })
+  it('keeps a pie to seven slices, the rest as other', () => {
+    const parts = Array.from({ length: 10 }, (_, i) => ({ label: `p${i}`, value: i + 1, text: '', colour: '' }))
+    const out = slices(parts, 'Other', 'en')
+    expect(out).toHaveLength(7)
+    expect(out[6]).toMatchObject({ label: 'Other', value: 1 + 2 + 3 + 4 })
   })
 })

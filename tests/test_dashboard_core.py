@@ -2,6 +2,7 @@
 
 from floorbit import dashboard_core
 from floorbit.plugins import validate
+from floorbit.plugins.widgets import check_widget
 from tests.conftest import TEST_USER
 
 
@@ -47,7 +48,7 @@ def test_only_people_who_see_the_board_get_the_incident_tile(app_module, client)
     viewer = _login(app_module, "vic", "viewer")
     tiles = viewer.get("/api/dashboard").get_json()["tiles"]
     assert [t["id"] for t in tiles if t["plugin"] == "floorbit"] == [
-        "problems", "switches", "seats", "down", "switch_states", "traffic"]
+        "problems", "switches", "seats", "down", "switch_states", "traffic", "seats_by_block"]
     assert viewer.get("/api/dashboard/floorbit/incidents").status_code == 404
     assert viewer.get("/api/dashboard/floorbit/open_incidents").status_code == 404
     assert viewer.get("/api/dashboard/floorbit/problems").status_code == 200
@@ -59,10 +60,11 @@ def test_no_plugin_may_take_the_id():
 
 def test_switch_and_seat_tiles(client):
     ids = [t["id"] for t in client.get("/api/dashboard").get_json()["tiles"] if t["plugin"] == "floorbit"]
-    assert ids == ["problems", "incidents", "switches", "seats", "down", "switch_states", "open_incidents", "traffic"]
+    assert ids == ["problems", "incidents", "switches", "seats", "down", "switch_states", "open_incidents", "traffic",
+                   "seats_by_block"]
     assert dashboard_core.switches_widget("en", {"online": 40, "offline": 2, "unknown": 1}) == {
         "type": "stat", "value": 40, "unit": "of 43 up", "tone": "err", "sub": "2 offline · 1 not known",
-        "link": "/problems"}
+        "link": "/problems", "min": 0, "max": 43}
     assert dashboard_core.switches_widget("en", {"online": 3, "offline": 0, "unknown": 0})["tone"] == "ok"
     assert dashboard_core.switches_widget("de", {"online": 0, "offline": 0, "unknown": 0})["unit"] == "von 0 online"
     unknown = dashboard_core.seats_widget("en", None, 120)
@@ -130,3 +132,27 @@ def test_traffic_is_two_lines_over_time():
 def test_the_traffic_tile_answers_with_no_reads_yet(client):
     body = client.get("/api/dashboard/floorbit/traffic").get_json()
     assert body["type"] == "series" and all(v == 0 for s in body["series"] for _t, v in s["points"])
+
+
+def test_seats_by_block_are_numbers_out_of_each_block():
+    blocks = {"B": {"B1", "B2"}, "A": {"A1", "A2", "A3"}, "A10": {"A101"}}
+    body = dashboard_core.seats_by_block_widget("en", blocks, {"A1", "A3", "B2"})
+    assert [i["label"] for i in body["items"]] == ["A", "B", "A10"]
+    assert body["items"][0] == {"label": "A", "value": "2 / 3", "number": 2, "max": 3}
+    assert check_widget(body, {"id": "x"})["items"][0]["number"] == 2
+
+
+def test_seats_by_block_say_when_nobody_knows():
+    body = dashboard_core.seats_by_block_widget("de", {"A": {"A1"}}, None)
+    assert body["items"] == [{"label": "A", "value": "? / 1"}]
+    assert body["sub"].startswith("Gerade nicht bekannt")
+
+
+def test_the_seats_by_block_tile_answers(client):
+    body = client.get("/api/dashboard/floorbit/seats_by_block").get_json()
+    assert body["type"] == "list"
+
+
+def test_switch_and_seat_stats_carry_their_scale_for_a_gauge():
+    body = dashboard_core.switches_widget("en", {"online": 3, "offline": 1, "unknown": 0})
+    assert (body["min"], body["max"]) == (0, 4)

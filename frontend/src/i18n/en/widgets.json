@@ -25,7 +25,10 @@
     "rowsOf": "{{from}}–{{to}} of {{count}}",
     "prev": "Previous page",
     "next": "Next page",
-    "detailsNamed": "Details of {{name}}"
+    "detailsNamed": "Details of {{name}}",
+    "other": "Other",
+    "gaugeLabel": "{{value}} of {{max}} ({{pct}} %)",
+    "pieLabel": "Pie: {{parts}}"
   },
   "state": {
     "up": "Up",

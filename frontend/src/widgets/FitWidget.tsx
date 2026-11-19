@@ -1,7 +1,10 @@
 import './widgets.css'
 import type { Widget } from '@/api/types'
-import { type KindPick, type LevelPin, pickLevel } from './level'
+import { type Kind, type KindPick, type Level, type LevelPin, pickLevel } from './level'
+import { BarsKind } from './kinds/Bars'
+import { GaugeKind } from './kinds/Gauge'
 import { Graph } from './kinds/Graph'
+import { PieKind } from './kinds/Pie'
 import { RowsKind } from './kinds/Rows'
 import { resolveKind } from './kinds/shape'
 import { StatKind } from './kinds/Stat'
@@ -16,13 +19,22 @@ export function FitWidget({ widget, pick = 'auto', pin = 'auto', onMore }: {
   const kind = resolveKind(widget, pick)
   const level = pickLevel(kind, box.w, box.h, pin)
   return (
-    <div className={`fb-w fb-w-${kind} fb-w-level-${level}`} data-kind={kind} data-level={level}>
+    <div className={`fb-w fb-w-is-${kind} fb-w-level-${level}`} data-kind={kind} data-level={level}>
       <div className="fb-w-area" ref={ref}>
-        {box.w > 0 && (kind === 'stat' ? <StatKind widget={widget} level={level} box={box} />
-          : kind === 'graph' ? <Graph widget={widget} level={level} box={box} />
-            : <RowsKind widget={widget} kind={kind} level={level} box={box} onMore={onMore} />)}
+        {box.w > 0 && <Kind kind={kind} widget={widget} level={level} box={box} onMore={onMore} />}
       </div>
       {level !== 's' && widget.sub && <div className="fb-w-sub" title={widget.sub}>{widget.sub}</div>}
     </div>
   )
+}
+
+function Kind({ kind, ...props }: { kind: Kind; widget: Widget; level: Level; box: { w: number; h: number }; onMore?: () => void }) {
+  switch (kind) {
+    case 'stat': return <StatKind {...props} />
+    case 'gauge': return <GaugeKind {...props} />
+    case 'graph': return <Graph {...props} />
+    case 'bar': return <BarsKind {...props} />
+    case 'pie': return <PieKind {...props} />
+    default: return <RowsKind kind={kind} {...props} />
+  }
 }

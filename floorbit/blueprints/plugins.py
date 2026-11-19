@@ -479,6 +479,18 @@ def _seats_tile(user):
     return core.seats_widget(_lang(), None if online is None else len(online & seats), len(seats))
 
 
+def _seats_by_block_tile(user):
+    from .. import seat_names
+    from ..store import load_data
+    from .stats_wall import online_seats
+    online, _last = online_seats()
+    blocks = {}
+    for block in load_data().get('seat_blocks') or []:
+        if block.get('name'):
+            blocks.setdefault(str(block['name']), set()).update(s.upper() for s in seat_names.seats(block))
+    return core.seats_by_block_widget(_lang(), blocks, online)
+
+
 def _down_tile(user):
     return core.down_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].statuses)
 
@@ -498,7 +510,8 @@ def _traffic_tile(user):
 # Floorbit's own tiles (dashboard_core.TILES): one builder each, None when this account may not see it.
 CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switches': _switches_tile,
               'seats': _seats_tile, 'down': _down_tile, 'switch_states': _switch_states_tile,
-              'open_incidents': _open_incidents_tile, 'traffic': _traffic_tile}
+              'open_incidents': _open_incidents_tile, 'traffic': _traffic_tile,
+              'seats_by_block': _seats_by_block_tile}
 
 
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])

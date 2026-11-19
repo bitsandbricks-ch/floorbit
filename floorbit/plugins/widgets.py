@@ -3,12 +3,15 @@
 No plugin code runs in the browser, and text is always shown as text, never as HTML.
 Shapes (each may also have ``sub``, a short line under it, and ``link``, a path on this site):
 
-    {"type": "stat", "value": 42, "unit": "Mbit/s", "tone": "ok|warn|err|"}
+    {"type": "stat", "value": 42, "unit": "Mbit/s", "tone": "ok|warn|err|", "min": 0, "max": 100}
     {"type": "status", "items": [{"label": "DNS", "state": "up|down|warn|unknown", "detail": "12 ms"}]}
-    {"type": "list", "items": [{"label": "sw-a-01", "value": "3 errors", "tone": "warn"}]}
+    {"type": "list", "items": [{"label": "sw-a-01", "value": "3 errors", "tone": "warn", "number": 3, "max": 48}]}
     {"type": "table", "columns": [{"key": "name", "label": "Name"}], "rows": [{"name": "..."}]}
     {"type": "sparkline", "points": [1, 3, 2], "value": 2, "unit": "%", "min": 0, "max": 100}
     {"type": "series", "unit": "bit/s", "series": [{"label": "Download", "points": [[1763560000, 4.2e9], ...]}]}
+
+``min`` and ``max`` on a stat let it show as a gauge; ``number`` (and ``max``) on list items let a
+list show as bars or a pie. All of them are optional.
 
 A ``series`` is up to four lines over time: each point is ``[unix seconds, value]``, oldest first.
 The dashboard's graph widget draws it with a crosshair that names each line's value on hover.
@@ -55,6 +58,14 @@ def _number(value):
     return value
 
 
+def _numbers(raw, out, keys):
+    """Copies the optional numbers ``keys`` from ``raw`` into ``out``."""
+    for key in keys:
+        if raw.get(key) is not None:
+            out[key] = _number(raw[key])
+    return out
+
+
 def _list(raw, key):
     value = raw.get(key) or []
     if not isinstance(value, list):
@@ -73,6 +84,7 @@ def check_widget(raw, item):
         value = raw.get('value')
         out.update(value=value if _finite(value) else _text(value, 40),
                    unit=_text(raw.get('unit'), 20), tone=_tone(raw.get('tone')))
+        _numbers(raw, out, ('min', 'max'))
     elif kind == 'status':
         items = []
         for i in _list(raw, 'items')[:MAX_ITEMS]:
@@ -82,9 +94,13 @@ def check_widget(raw, item):
             items.append({'label': _text(i.get('label'), 80), 'state': state, 'detail': _text(i.get('detail'), 120)})
         out['items'] = items
     elif kind == 'list':
-        out['items'] = [{'label': _text(i.get('label'), 80), 'value': _text(i.get('value'), 80),
-                         'tone': _tone(i.get('tone'))}
-                        for i in _list(raw, 'items')[:MAX_ITEMS] if isinstance(i, dict)]
+        items = []
+        for i in _list(raw, 'items')[:MAX_ITEMS]:
+            if isinstance(i, dict):
+                item = {'label': _text(i.get('label'), 80), 'value': _text(i.get('value'), 80),
+                        'tone': _tone(i.get('tone'))}
+                items.append(_numbers(i, item, ('number', 'max')))
+        out['items'] = items
     elif kind == 'table':
         cols = [{'key': _text(c.get('key'), 40), 'label': _text(c.get('label') or c.get('key'), 40)}
                 for c in _list(raw, 'columns')[:12] if isinstance(c, dict) and c.get('key')]
@@ -95,9 +111,7 @@ def check_widget(raw, item):
                        for r in _list(raw, 'rows')[:MAX_ITEMS] if isinstance(r, dict)]
     elif kind == 'sparkline':
         out['points'] = [_number(p) for p in _list(raw, 'points')[-MAX_POINTS:]]
-        for key in ('value', 'min', 'max'):
-            if raw.get(key) is not None:
-                out[key] = _number(raw[key])
+        _numbers(raw, out, ('value', 'min', 'max'))
         out['unit'] = _text(raw.get('unit'), 20)
     elif kind == 'series':
         lines = []

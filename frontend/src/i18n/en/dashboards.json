@@ -158,6 +158,9 @@
     "status": "Status",
     "graph": "Graph",
     "table": "Table",
-    "list": "List"
+    "list": "List",
+    "gauge": "Gauge",
+    "bar": "Bars",
+    "pie": "Pie"
   }
 }

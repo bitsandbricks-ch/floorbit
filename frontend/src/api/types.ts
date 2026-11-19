@@ -33,9 +33,11 @@ interface WidgetBase {
 
 export type Widget = WidgetBase &
   (
-    | { type: 'stat'; value: number | string; unit: string; tone: Tone }
+    /** ``min`` and ``max`` let a stat show as a gauge. */
+    | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number }
     | { type: 'status'; items: { label: string; state: State; detail: string }[] }
-    | { type: 'list'; items: { label: string; value: string; tone: Tone }[] }
+    /** ``number`` (and ``max``) on items let a list show as bars or a pie. */
+    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number }[] }
     | {
         type: 'table'
         columns: { key: string; label: string }[]

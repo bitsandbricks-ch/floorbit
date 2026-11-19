@@ -21,7 +21,8 @@ TEXTS = {
            'just_now': 'just now', 'mins': '{n} min', 'hours': '{h} h {m} min', 'more': '+ {n} more',
            'switch_states': 'Switch states', 'down_for': 'down {t}', 'open_incidents': 'Open incidents',
            'col_what': 'What', 'col_where': 'Where', 'col_open': 'Open for', 'switch_at': 'Switch {name}',
-           'seat_at': 'Seat {seat}', 'traffic': 'Traffic', 'download': 'Download', 'upload': 'Upload'},
+           'seat_at': 'Seat {seat}', 'traffic': 'Traffic', 'download': 'Download', 'upload': 'Upload',
+           'seats_by_block': 'Seats online by block'},
     'de': {'problems': 'Probleme jetzt', 'incidents': 'Störungen', 'down': 'ausgefallen', 'open': 'offen',
            'switches': 'Switches', 'switches_unit': 'von {n} online',
            'switches_sub': '{offline} offline · {unknown} unbekannt',
@@ -34,7 +35,8 @@ TEXTS = {
            'hours': '{h} Std. {m} Min.', 'more': '+ {n} weitere',
            'switch_states': 'Switch-Status', 'down_for': 'aus seit {t}', 'open_incidents': 'Offene Störungen',
            'col_what': 'Was', 'col_where': 'Wo', 'col_open': 'Offen seit', 'switch_at': 'Switch {name}',
-           'seat_at': 'Platz {seat}', 'traffic': 'Verkehr', 'download': 'Download', 'upload': 'Upload'},
+           'seat_at': 'Platz {seat}', 'traffic': 'Verkehr', 'download': 'Download', 'upload': 'Upload',
+           'seats_by_block': 'Plätze online nach Block'},
 }
 # One line per tile: its id, the text key of its label, its size and how often it reloads (seconds).
 # blueprints/plugins.py core_widget() has the matching builder. The Widgets gallery lists them all.
@@ -48,6 +50,7 @@ TILES = {
     'switch_states': {'label': 'switch_states', 'size': 'small', 'refresh': 15},
     'open_incidents': {'label': 'open_incidents', 'size': 'small', 'refresh': 30},
     'traffic': {'label': 'traffic', 'size': 'wide', 'refresh': 30},
+    'seats_by_block': {'label': 'seats_by_block', 'size': 'small', 'refresh': 30},
 }
 MAX_DOWN = 20   # a big screen reads a short list; the rest is "+ n more"
 
@@ -68,7 +71,7 @@ def switches_widget(lang, counts):
     return {'type': 'stat', 'value': counts.get('online', 0), 'unit': text['switches_unit'].format(n=total),
             'tone': 'err' if counts.get('offline') else 'ok' if total and counts.get('online') == total else '',
             'sub': text['switches_sub'].format(offline=counts.get('offline', 0), unknown=counts.get('unknown', 0)),
-            'link': '/problems'}
+            'link': '/problems', 'min': 0, 'max': total}
 
 
 def _down_for(text, seconds):
@@ -102,7 +105,24 @@ def seats_widget(lang, online, total):
     """``online`` is how many seats are online now, or None when nobody knows."""
     text = TEXTS.get(lang, TEXTS['en'])
     return {'type': 'stat', 'value': '?' if online is None else online, 'unit': text['seats_unit'].format(n=total),
-            'tone': '', 'sub': text['unknown'] if online is None else text['seats_sub'], 'link': '/plan'}
+            'tone': '', 'sub': text['unknown'] if online is None else text['seats_sub'], 'link': '/plan',
+            'min': 0, 'max': total}
+
+
+def seats_by_block_widget(lang, blocks, online):
+    """Seats online per seat block, as numbers out of the block's seats, so it draws as bars.
+    ``blocks`` is block name -> its seat numbers; ``online`` the seats online now, or None."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    items = []
+    for name in sorted(blocks, key=lambda n: (len(n), n)):
+        seats = blocks[name]
+        if online is None:
+            items.append({'label': name, 'value': f'? / {len(seats)}'})
+            continue
+        n = len(seats & online)
+        items.append({'label': name, 'value': f'{n} / {len(seats)}', 'number': n, 'max': len(seats)})
+    return {'type': 'list', 'items': items, 'link': '/plan',
+            'sub': text['unknown'] if online is None else text['seats_sub']}
 
 
 def problems_widget(lang, may_see_people):
