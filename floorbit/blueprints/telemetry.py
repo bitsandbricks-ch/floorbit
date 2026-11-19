@@ -231,7 +231,9 @@ def _ask_agents(op, name):
     try:
         answers = agent_plugins.ask(spec, 'call', op, {'name': name})
     except PluginError as exc:
-        return None, (jsonify({'error': str(exc)}), 502)
+        # The details stay in the server log: the page only needs to know the agent didn't answer.
+        print(f'[telemetry] asking the agents to {op} {name} failed: {exc}')
+        return None, (jsonify({'error': 'No local agent answered. Is one connected?'}), 502)
     # An agent that doesn't collect from it answers {ok: False, error}; one that does has points or lines.
     good = [a for a in answers if isinstance(a.get('result'), dict)
             and ('points' in a['result'] or a['result'].get('known'))]
