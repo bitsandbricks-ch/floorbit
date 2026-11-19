@@ -119,6 +119,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   status colours (up, down, warn, unknown, disabled) are fixed and never themable.
 - **Panels are calm:** a fill one slight step from the page, a thin line, 8px corners, no shadow;
   pages and dashboards share the look (`--color-surface`, `--radius-card`).
+  A boxed section of a page is a `Panel` (title, optional line under it, buttons on the right);
+  a bare `Paper` belongs only inside a component.
 - **Type:** Geist for text and titles, Geist Mono only for numbers. Square status "bits" and the
   floor-tile grid are the recurring motifs.
 - **Customising** is accent and highlight colour, logos, square mark and name. No theme presets.

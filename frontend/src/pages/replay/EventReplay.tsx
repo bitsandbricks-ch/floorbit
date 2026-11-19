@@ -1,8 +1,10 @@
-import { ActionIcon, Button, Group, Paper, SegmentedControl, SimpleGrid, Slider, Stack, Text, Title } from '@mantine/core'
+import { ActionIcon, Button, Group, SegmentedControl, SimpleGrid, Slider, Stack, Text, Title } from '@mantine/core'
 import { IconDownload, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlayerSkipBack } from '@tabler/icons-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EventReplayData } from '@/api/types'
+import { StatCard } from '@/components/StatCard'
+import { Panel } from '@/components/ui'
 import { bps } from '../stats/format'
 import { heatmap, sampleAt, when, type HeatMetric } from './model'
 import { Chart, Plan } from './Plan'
@@ -81,7 +83,7 @@ export function EventReplay({ data }: { data: EventReplayData }) {
 
   return (
     <Stack gap="md">
-      <Paper withBorder radius="lg" p="md">
+      <Panel>
         <Group gap="sm" wrap="nowrap" align="center">
           <ActionIcon size="lg" variant="default" aria-label={t('replay.restart')} onClick={() => seek(start)}>
             <IconPlayerSkipBack size={18} />
@@ -98,49 +100,45 @@ export function EventReplay({ data }: { data: EventReplayData }) {
           <SegmentedControl size="xs" value={speed} onChange={setSpeed} aria-label={t('replay.speed')}
             data={EVENT_SPEEDS.map((s) => ({ value: String(s), label: t(`replay.speed${s}`) }))} />
         </Group>
-      </Paper>
+      </Panel>
 
       <SimpleGrid cols={{ base: 2, sm: 4 }}>
-        <Paper withBorder radius="lg" p="sm"><Text size="xs" c="dimmed">{t('replay.online')}</Text><Text fw={700} size="xl">{t('replay.ofSeats', { on: on.size, total: seats })}</Text></Paper>
-        <Paper withBorder radius="lg" p="sm"><Text size="xs" c="dimmed">{t('replay.bandwidth')}</Text><Text fw={700} size="xl">{frame ? bps(frame.down + frame.up) : '–'}</Text></Paper>
-        <Paper withBorder radius="lg" p="sm"><Text size="xs" c="dimmed">{t('replay.peak')}</Text><Text fw={700} size="xl">{peak ? bps(peak.bps) : '–'}</Text>{peak && <Text size="xs" c="dimmed">{when(peak.at)}</Text>}</Paper>
-        <Paper withBorder radius="lg" p="sm"><Text size="xs" c="dimmed">{t('replay.incidents')}</Text><Text fw={700} size="xl">{rings.size}</Text></Paper>
+        <StatCard label={t('replay.online')} value={t('replay.ofSeats', { on: on.size, total: seats })} />
+        <StatCard label={t('replay.bandwidth')} value={frame ? bps(frame.down + frame.up) : '–'} />
+        <StatCard label={t('replay.peak')} value={peak ? bps(peak.bps) : '–'} sub={peak ? when(peak.at) : undefined} />
+        <StatCard label={t('replay.incidents')} value={String(rings.size)} />
       </SimpleGrid>
 
-      <Paper withBorder radius="lg" p="md">
+      <Panel>
         {data.drawing ? <Plan drawing={data.drawing} on={on} rings={rings} label={t('replay.planLabel', { time: when(time) })} />
           : <Text c="dimmed">{t('replay.noPlan')}</Text>}
         <Group gap="md" mt="xs">
           <Text size="xs" c="dimmed"><span className="fb-replay-key on" /> {t('replay.online')}</Text>
           <Text size="xs" c="dimmed"><span className="fb-replay-key ring" /> {t('replay.openIncident')}</Text>
         </Group>
-      </Paper>
+      </Panel>
 
       {frames.length > 1 && (
-        <Paper withBorder radius="lg" p="md">
-          <Text size="sm" fw={600} mb={6}>{t('replay.chart')}</Text>
+        <Panel title={t('replay.chart')}>
           <Chart samples={frames} peak={peak} start={start} end={end} t={time} onSeek={seek} label={t('replay.chartLabel')} />
-        </Paper>
+        </Panel>
       )}
 
-      <Paper withBorder radius="lg" p="md">
-        <Group justify="space-between" mb={6} gap="sm">
-          <Text size="sm" fw={600}>{t('replay.event.heatmap')}</Text>
-          <SegmentedControl size="xs" value={metric} onChange={(v) => setMetric(v as HeatMetric)} aria-label={t('replay.event.metric')}
-            data={METRICS.map((m) => ({ value: m, label: t(`replay.event.${m}`) }))} />
-        </Group>
+      <Panel title={t('replay.event.heatmap')} actions={
+        <SegmentedControl size="xs" value={metric} onChange={(v) => setMetric(v as HeatMetric)} aria-label={t('replay.event.metric')}
+          data={METRICS.map((m) => ({ value: m, label: t(`replay.event.${m}`) }))} />
+      }>
         <Heatmap data={data} metric={metric} t={time} onSeek={seek} label={t('replay.event.heatmapLabel', { metric: t(`replay.event.${metric}`) })} />
-      </Paper>
+      </Panel>
 
-      <Paper withBorder radius="lg" p="md">
-        <Text size="sm" fw={600} mb={6}>{t('replay.event.export')}</Text>
+      <Panel title={t('replay.event.export')}>
         <Group gap="sm">
           <Button component="a" href="/api/replay/event.json" download variant="default" leftSection={<IconDownload size={16} />}>
             {t('replay.event.json')}
           </Button>
         </Group>
         <Text size="xs" c="dimmed" mt="xs">{t('replay.event.exportHint')}</Text>
-      </Paper>
+      </Panel>
       <Text size="xs" c="dimmed">{t('replay.event.kept')}</Text>
     </Stack>
   )
