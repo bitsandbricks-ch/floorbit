@@ -192,6 +192,13 @@ CPUs, the Cisco memory pool); with LibreNMS it takes what LibreNMS knows of the 
   **VLAN or IP range** entries, with the same rules as a plugin's: what you change stays, nothing
   is deleted. A device's own list is `discovered` in `GET /api/inventory/<id>`; what was plugged
   into its ports is `GET /api/endpoints?device=<name>` ([IP and MAC history](endpoints.md)).
+- The optics ENTITY-MIB lists (module or port rows with a serial and a model like `SFP-10G-SR`,
+  `GLC-LH-SMD` or `QSFP-40G-SR4`) become **Transceiver** entries, one per serial, with the device,
+  the port it sits in (ENTITY-MIB's alias mapping, its parent's, or the same name), and form
+  factor, media and speed read from the model. An optic moved to another port or switch follows.
+  A device's own list is `discovered.transceivers`.
+- A device that didn't answer keeps what it said last, so its optics and VLANs aren't marked gone
+  while it is away.
 - The platform it finds (Cisco IOS, IOS-XE, NX-OS, Linux, ...) also sets what telemetry does
   automatically for the device, such as MAC tables per VLAN on Catalyst IOS.
 

@@ -121,7 +121,7 @@ where it comes from. A device's tab also shows its last word, **Test now**, **Ra
 | `telemetry_verify_tls` | `false` for an API with a self-signed certificate |
 
 Every five minutes SNMP polling also asks what the device is (sysDescr, sysLocation, the chassis
-model and serial from ENTITY-MIB, memory and disks from HOST-RESOURCES-MIB, the Cisco memory pool,
+model and serial and the optics from ENTITY-MIB, memory and disks from HOST-RESOURCES-MIB, the Cisco memory pool,
 which also gives the memory use), and per port its MAC, IPv4 addresses, VLAN and access or trunk
 mode, with the device's VLAN names. [Discovery](inventory.md#discovery) fills the inventory device
 from it.

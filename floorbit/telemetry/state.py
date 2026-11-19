@@ -31,6 +31,9 @@ EXPIRE_EVERY = 10      # seconds between passes that drop rows past TABLE_TTL
 MIN_RATE_GAP = 2.0     # seconds between two counter readings worth a rate
 TABLE_TTL = 600        # seconds a MAC, ARP or neighbour row lives without being seen again
 MAX_ENTITY = 2000      # ENTITY-MIB rows kept per device: a big chassis lists every optic and sensor
+MAX_OPTICS = 500       # transceivers reported per device
+# An optic by its model, description or name: SFP-10G-SR, GLC-LH-SMD, "1000BaseSX SFP", QSFP-40G-SR4, ...
+OPTIC = re.compile(r'SFP|GBIC|XFP|CFP|TRANSCEIVER|GLC-|BASE-?[A-Z]{1,3}\d?\b|TWINAX', re.I)
 STALE = 180            # a device that sent nothing for this long reads as offline
 OPER = {1: 'up', 2: 'down', 3: 'testing', 4: 'unknown', 5: 'dormant', 6: 'notPresent', 7: 'lowerLayerDown'}
 DUPLEX = {1: 'unknown', 2: 'halfDuplex', 3: 'fullDuplex'}
@@ -175,7 +178,8 @@ class Device:
         self.cdp = {}
         self.gateways = {}                # name -> {status, delay_ms, loss_pct, seen}
         self.facts = {}                   # what it is, for discovery: see facts()
-        self._entity = {}                 # ENTITY-MIB index -> row, until the chassis is known
+        self._entity = {}                 # ENTITY-MIB index -> row: the chassis, modules, optics
+        self._entity_if = {}              # ENTITY-MIB index -> ifIndex (entAliasMappingTable)
         self._storage = {}                # hrStorage index -> (kind, bytes)
         self._processors = {}             # hrDevice index -> description
         self.if_facts = {}                # ifIndex -> {mac, ips {address: prefix}, vlan, mode}
@@ -222,6 +226,39 @@ class Device:
             out['ips'] = [f'{ip}/{prefix}' for ip, prefix in sorted(facts['ips'].items())]
         return out
 
+    def transceivers(self):
+        """The optics ENTITY-MIB lists, for discovery: [{port, model, descr, serial}]. An optic is a
+        module or port row with a serial whose name, model or description reads like one."""
+        out = []
+        for index, row in sorted(self._entity.items(), key=lambda kv: _natural_index(kv[0])):
+            if _num(row.get('entPhysicalClass')) not in (9, 10):              # module, port
+                continue
+            serial = _text(row.get('entPhysicalSerialNum'))
+            model, descr = _text(row.get('entPhysicalModelName')), _text(row.get('entPhysicalDescr'))
+            name = _text(row.get('entPhysicalName'))
+            if not serial or not OPTIC.search(f'{model} {descr} {name}'):
+                continue
+            out.append({'port': self._entity_port(index, name), 'model': model[:80], 'descr': descr[:120],
+                        'serial': serial[:64]})
+            if len(out) >= MAX_OPTICS:
+                break
+        return out
+
+    def _entity_port(self, index, name):
+        """The interface an optic sits in: its own alias mapping, its parent's (Cisco maps the port
+        row, not the module in it), or an interface of the same name."""
+        seen = set()
+        while index and index not in seen and len(seen) < 4:
+            seen.add(index)
+            if index in self._entity_if:
+                port = self.port_name(self._entity_if[index])
+                if port:
+                    return port
+            parent = _num((self._entity.get(index) or {}).get('entPhysicalContainedIn'))
+            index = str(int(parent)) if parent else None
+        wanted = str(name or '').lower()
+        return next((i.name for i in self.interfaces.values() if wanted and (i.name or '').lower() == wanted), '')
+
     def summary(self):
         """What the device said it is (``fb_facts`` and its tables), as discovery takes it: model,
         serial, software, descr, location, memory_mb, disk_gb, cores, cpu. Only what it said."""
@@ -250,6 +287,9 @@ class Device:
                     networks.add(str(ipaddress.ip_network(f'{ip}/{prefix}', strict=False)))
         if networks:
             out['networks'] = sorted(networks)
+        optics = self.transceivers()
+        if optics:
+            out['transceivers'] = optics
         if self._processors:
             out['cores'] = len(self._processors)
             names = [d for d in self._processors.values() if d]
@@ -428,6 +468,19 @@ def _entity(dev, point, at):
     if index not in dev._entity and len(dev._entity) >= MAX_ENTITY:
         return True
     dev._entity.setdefault(index, {}).update(point.fields)
+    return True
+
+
+def _entalias(dev, point, at):
+    """entAliasMappingTable: which ifIndex an ENTITY-MIB row is. The value is the OID of ifIndex.N,
+    numeric or named as Telegraf's gosmi writes it without MIBs (``iso.3.6.1...``)."""
+    parts = str(_index(point) or '').split('.')
+    value = str(point.fields.get('entAliasMappingIdentifier') or '')
+    match = re.search(r'(?:^|\.)(?:3\.6\.1\.2\.1\.2\.2\.1\.1|ifIndex)\.(\d+)$', value)
+    if not parts[0] or not match:
+        return bool(parts[0])
+    if parts[0] in dev._entity_if or len(dev._entity_if) < MAX_ENTITY:
+        dev._entity_if[parts[0]] = match.group(1)
     return True
 
 
@@ -784,7 +837,8 @@ _HANDLERS = {
     'fb_bridge': _bridge, 'fb_fdb': _fdb, 'fb_qfdb': _qfdb, 'fb_arp': _arp, 'fb_lldp': _lldp,
     'fb_lldp_loc': _lldp_local, 'fb_cdp': _cdp, 'snmp_trap': _trap, 'fb_gateway': _gateway,
     'cpu': _fw_cpu, 'mem': _fw_mem, 'net': _fw_net, 'pf': _fw_pf, 'system': _fw_system,
-    'fb_facts': _facts, 'fb_entity': _entity, 'fb_storage': _storage, 'fb_hrdevice': _hrdevice, 'fb_mem': _mem,
+    'fb_facts': _facts, 'fb_entity': _entity, 'fb_entalias': _entalias, 'fb_storage': _storage,
+    'fb_hrdevice': _hrdevice, 'fb_mem': _mem,
     'fb_ifmac': _ifmac, 'fb_ip': _ip, 'fb_vtp': _vtp, 'fb_qvlan': _qvlan, 'fb_ifvlan': _ifvlan, 'fb_pvid': _pvid,
 }
 
@@ -804,7 +858,7 @@ def register(measurement, handler, private=False):
 # Measurements that name people's machines (MACs, IPs): never stored as series (storage.py).
 # The facts are text that never changes: not series either.
 PRIVATE = frozenset({'fb_fdb', 'fb_qfdb', 'fb_arp', 'fb_bridge', 'fb_lldp', 'fb_lldp_loc', 'fb_cdp',
-                     'fb_facts', 'fb_entity', 'fb_storage', 'fb_hrdevice', 'fb_ifmac', 'fb_ip', 'fb_vtp',
+                     'fb_facts', 'fb_entity', 'fb_entalias', 'fb_storage', 'fb_hrdevice', 'fb_ifmac', 'fb_ip', 'fb_vtp',
                      'fb_qvlan', 'fb_ifvlan', 'fb_pvid'})
 
 state = State()
