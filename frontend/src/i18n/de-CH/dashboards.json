@@ -143,7 +143,9 @@
     "start": "Links",
     "center": "Zentriert"
   },
-  "fit": "An Bildschirm anpassen",
+  "layout": "Layout",
+  "layoutPage": "Seite: scrollt",
+  "layoutScreen": "Bildschirm: passt",
   "frame": "Kopfzeile und Statuszeile im Vollbild",
   "nextBoard": "Danach: {{name}}",
   "large": {

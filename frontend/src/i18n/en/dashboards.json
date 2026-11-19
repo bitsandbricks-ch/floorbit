@@ -143,7 +143,9 @@
     "start": "Left",
     "center": "Centre"
   },
-  "fit": "Fit to screen",
+  "layout": "Layout",
+  "layoutPage": "Page: scrolls",
+  "layoutScreen": "Screen: fits",
   "frame": "Header and status line in full screen",
   "nextBoard": "Next: {{name}}",
   "large": {

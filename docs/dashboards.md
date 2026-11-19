@@ -28,8 +28,10 @@ layer at the bottom right.
   one it is just a divider line. Sections fold (the arrow before the title), move up and down, and
   can be removed with their widgets. Folding on a screen is only for whoever looks at it; folding
   in the editor is saved.
-- **Fit to screen** stretches the rows so the whole dashboard fills the screen, for a wall. Without
-  it, rows have a fixed height and the page scrolls, like a dashboard on your own monitor.
+- **Layout**: **Screen** fits the whole dashboard into the space it has, nothing scrolls: under
+  the top bar in the app, the whole screen on a wall. Widgets drop a level when their rows get
+  short. **Page** gives rows a fixed height and scrolls like any other page. New dashboards start as
+  a Page. On a phone, both scroll, one widget per row.
 - Click a pane to set it up in the panel on the right.
 - **Split right** and **Split down** cut a pane in two; drag the border between two panes to resize
   them. Up to 40 panes on a dashboard, splits up to four deep.
@@ -173,7 +175,7 @@ deleting your version brings the ready-made one back.
 | **Services** | Services up, the LAN cache and agents; service health and internet uplinks; the services and LAN cache settings and details below. |
 | **Traffic** | Bandwidth, the peak and what looks odd; traffic over time and by kind; top services, traffic by area and the busiest seats; DNS lookups, the LAN cache, top and blocked sites, game launchers, and speed tests. |
 | **Power load** | Every circuit's load, fullest first, then the boards in detail. |
-| **Event in numbers** | The stats wall for the hall and attendees' phones. Public, fit to screen. |
+| **Event in numbers** | The stats wall for the hall and attendees' phones. Public, Screen layout. |
 
 ## Kiosk
 

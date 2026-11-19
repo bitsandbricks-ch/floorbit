@@ -2,7 +2,8 @@ import { Button, Select } from '@mantine/core'
 import { IconClock, IconMaximize, IconPencil, IconPin, IconPinnedOff } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { useMediaQuery } from '@mantine/hooks'
 import { Link, useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -14,6 +15,7 @@ import { readBoot, useNavPrefs } from '@/nav/boot'
 import { type Board, TIME_RANGES, type TimeRange, boardName } from '../dashboards/model'
 import { ScreenContext } from '../dashboards/screen'
 import { GridView } from '../dashboards/GridView'
+import { useFillHeight } from '../dashboards/fill'
 import '../dashboards/dashboards.css'
 
 /** One dashboard inside the app's frame, with the sidebar: the same widgets as on a big screen,
@@ -38,6 +40,11 @@ export function BoardPage({ id, title, kicker }: { id: string; title?: string; k
     else next.delete('range')
     return next
   }, { replace: true })
+  // Screen dashboards fit under the top bar like on a wall; phones always scroll (#923).
+  const phone = useMediaQuery('(max-width: 48em)', false, { getInitialValueInEffect: false })
+  const fit = !!q.data?.fit && !phone
+  const [area, setArea] = useState<HTMLDivElement | null>(null)
+  const height = useFillHeight(area, fit)
   return (
     <Layout title={name}>
       <PageHead
@@ -62,9 +69,9 @@ export function BoardPage({ id, title, kicker }: { id: string; title?: string; k
       {q.isPending && <LoadingState />}
       <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
       {q.data && (
-        <div className="fb-board-inline">
+        <div ref={setArea} className={`fb-board-inline${fit ? ' fit' : ''}`} style={fit && height ? { height } : undefined}>
           <ScreenContext.Provider value={source}>
-            <GridView sections={q.data.sections} fit={false} cycle={q.data.cycle} />
+            <GridView sections={q.data.sections} fit={fit} cycle={q.data.cycle} />
           </ScreenContext.Provider>
         </div>
       )}

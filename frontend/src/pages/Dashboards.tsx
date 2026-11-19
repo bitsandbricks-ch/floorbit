@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, NumberInput, Paper, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { IconArrowRight, IconDeviceTv, IconLayoutGridAdd, IconPencil, IconPlus, IconSeparator } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -113,7 +113,8 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
   const qc = useQueryClient()
   const [name, setName] = useState(board?.name ?? '')
   const [sections, setSections] = useState<Section[]>(() => board?.sections ?? starterSections())
-  const [fit, setFit] = useState(board?.fit ?? true)
+  // New dashboards start as a Page (scrolls); a wall picks Screen (#923).
+  const [fit, setFit] = useState(board?.fit ?? false)
   const [cycle, setCycle] = useState<number | ''>(board?.cycle ?? '')
   const [range, setRange] = useState<TimeRange | undefined>(board?.range)
   const [open, setOpen] = useState(board?.public ?? false)
@@ -169,7 +170,8 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
           disabled={total(sections) >= MAX_PANELS || full}>{t('dashboards.edit.addWidget')}</Button>
         <Button size="xs" variant="default" leftSection={<IconSeparator size={16} />} onClick={addSection}
           disabled={sections.length >= MAX_SECTIONS}>{t('dashboards.edit.addSection')}</Button>
-        <Switch size="sm" label={t('dashboards.fit')} checked={fit} onChange={(e) => setFit(e.currentTarget.checked)} />
+        <SegmentedControl size="xs" aria-label={t('dashboards.layout')} value={fit ? 'screen' : 'page'} onChange={(v) => setFit(v === 'screen')}
+          data={[{ value: 'page', label: t('dashboards.layoutPage') }, { value: 'screen', label: t('dashboards.layoutScreen') }]} />
         <Switch size="sm" label={t('dashboards.frame')} checked={frame} onChange={(e) => setFrame(e.currentTarget.checked)} />
         <Switch size="sm" label={t('dashboards.public')} description={t('dashboards.publicHint')} checked={open}
           onChange={(e) => setOpen(e.currentTarget.checked)} style={{ maxWidth: 360 }} />

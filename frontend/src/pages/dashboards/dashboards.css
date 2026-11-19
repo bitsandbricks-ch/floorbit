@@ -111,11 +111,12 @@
 @media (max-width: 48em) {
   /* Phones: parts stack, each a usable height. */
   .fb-board-show { height: auto; min-height: 100vh; }
-  .fb-board-show .fb-split { flex-direction: column; height: auto; }
-  .fb-board-show .fb-split-part { flex-basis: auto !important; min-height: 60vh; }
-  .fb-board-show .fb-grid-section { flex: none !important; }
-  .fb-board-show .fb-grid-body { display: flex; flex-direction: column; }
-  .fb-board-show .fb-grid-item { min-height: max(calc(var(--rows) * 40px), 30vh); }
+  .fb-board-show .fb-split, .fb-board-inline .fb-split { flex-direction: column; height: auto; }
+  .fb-board-show .fb-split-part, .fb-board-inline .fb-split-part { flex-basis: auto !important; min-height: 60vh; }
+  .fb-board-show .fb-grid-section, .fb-board-inline .fb-grid-section { flex: none !important; }
+  /* One widget per row, in the app too (#923). */
+  .fb-board-show .fb-grid-body, .fb-board-inline .fb-grid-body { display: flex; flex-direction: column; }
+  .fb-board-show .fb-grid-item, .fb-board-inline .fb-grid-item { min-height: max(calc(var(--rows) * 40px), 30vh); }
 }
 /* The pane's tools sit top right in the editor: keep the title and counts clear of them. */
 .fb-board-screen .fb-pane-head { padding-right: 156px; }
@@ -145,3 +146,6 @@
 .fb-grid-large-body { flex: 1; display: flex; flex-direction: column; min-height: calc(100vh - 200px); }
 .fb-grid-large.fit .fb-grid-large-body { min-height: 0; }
 .fb-grid-large-body > .fb-pane { flex: 1; min-height: 0; }
+
+/* A Screen dashboard inside the app: its area ends above the status line (height set in BoardPage). */
+.fb-board-inline.fit { display: flex; min-height: 0; }
