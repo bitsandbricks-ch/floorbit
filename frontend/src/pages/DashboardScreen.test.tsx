@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -133,5 +133,53 @@ describe('Dashboard screen', () => {
     expect(await screen.findByText('No connection to the server: showing what was last read.')).toBeInTheDocument()
     expect(screen.getByText('Welcome')).toBeInTheDocument()
     expect(screen.queryByText(/Something went wrong/)).not.toBeInTheDocument()
+  })
+
+  it('offers a crew member who may edit to make a scrolling dashboard fit the screen', async () => {
+    let page = { ...board, fit: false, public: false }
+    const editor = { enabled: true, user: { username: 'ana', display_name: 'Ana', role: 'lead', permissions: ['floorplan.edit'] } }
+    const api = fakeFetch({
+      'GET /api/dashboards/kiosk/public': { status: 404, body: { error: 'not public' } },
+      'GET /api/dashboards/kiosk': () => ({ body: page }),
+      'PUT /api/dashboards/kiosk': (init: RequestInit | undefined) => ({ body: (page = { ...page, ...JSON.parse(String(init?.body)) }) }),
+      'GET /api/auth/me': editor,
+      'GET /api/version': { app: '1' },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    show()
+    fireEvent.click(await screen.findByRole('button', { name: 'Make it a Screen' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toMatchObject({ fit: true, name: 'Kiosk', public: false }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Make it a Screen' })).not.toBeInTheDocument())
+  })
+
+  it('asks no one who can not edit', async () => {
+    const page = { ...board, fit: false }
+    const viewer = { enabled: true, user: { username: 'vi', display_name: 'Vi', role: 'viewer', permissions: [] } }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board: page, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': page,
+      'GET /api/auth/me': viewer,
+      'GET /api/version': { app: '1' },
+    }).fn)
+    show()
+    expect(await screen.findByText('Welcome')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Make it a Screen' })).not.toBeInTheDocument()
+  })
+
+  it('stops asking on this screen once kept a Page', async () => {
+    const page = { ...board, fit: false }
+    const editor = { enabled: true, user: { username: 'ana', display_name: 'Ana', role: 'lead', permissions: ['floorplan.edit'] } }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board: page, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': page,
+      'GET /api/auth/me': editor,
+      'GET /api/version': { app: '1' },
+    }).fn)
+    localStorage.removeItem('fb.keepPage.kiosk')
+    show()
+    fireEvent.click(await screen.findByRole('button', { name: 'Keep it a Page' }))
+    expect(screen.queryByRole('button', { name: 'Make it a Screen' })).not.toBeInTheDocument()
+    expect(localStorage.getItem('fb.keepPage.kiosk')).toBe('1')
+    localStorage.removeItem('fb.keepPage.kiosk')
   })
 })

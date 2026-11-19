@@ -17,6 +17,11 @@
   "delete": "Löschen",
   "clock": "Uhrzeit",
   "stale": "Keine Verbindung zum Server: Angezeigt wird der letzte Stand.",
+  "suggestScreen": {
+    "text": "Dieses Dashboard ist eine Seite: Es scrollt, also bleibt auf einem Bildschirm, den niemand bedient, ein Teil unsichtbar. Als Bildschirm passt es hinein.",
+    "make": "Zum Bildschirm machen",
+    "keep": "Als Seite lassen"
+  },
   "canvasHint": "Zieh ein Widget am Griff, ändere die Grösse an der Ecke (mit der Tastatur: Pfeile, Shift+Pfeile). Klick es an, um es einzurichten oder zu teilen. Höchstens {{max}} Widgets auf {{cols}} Spalten.",
   "edit": {
     "pick": "Diesen Bereich einrichten",

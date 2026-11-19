@@ -35,7 +35,9 @@ layer at the bottom right.
 - **Layout**: **Screen** fits the whole dashboard into the space it has, nothing scrolls: under
   the top bar in the app, the whole screen on a wall. Widgets drop a level when their rows get
   short. **Page** gives rows a fixed height and scrolls like any other page. New dashboards start as
-  a Page. On a phone, both scroll, one widget per row.
+  a Page. On a phone, both scroll, one widget per row. A Page opened full screen (or in a
+  rotation) offers whoever may edit it **Make it a Screen**; **Keep it a Page** stops asking on
+  that screen.
 - Click a pane to set it up in the panel on the right.
 - **Split right** and **Split down** cut a pane in two; drag the border between two panes to resize
   them. Up to 40 panes on a dashboard, splits up to four deep.

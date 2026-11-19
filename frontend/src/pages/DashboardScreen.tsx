@@ -1,13 +1,13 @@
-import { Text } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
+import { Button, Group, Text } from '@mantine/core'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { get } from '@/api/client'
+import { get, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { useTenantEvents } from '@/api/tenantEvents'
-import { useProblems } from '@/api/queries'
+import { useCan, useProblems } from '@/api/queries'
 import type { Problem } from '@/api/types'
 import { StatusLine } from '@/components/StatusLine'
 import { ago, clock, formatWhen } from '@/lib/time'
@@ -97,9 +97,40 @@ export default function DashboardScreen() {
           <AutoPage.Provider value={WALL_PAGE_SECONDS}><GridView sections={q.data.sections} fit={q.data.fit} cycle={q.data.cycle} backAfter={60} /></AutoPage.Provider>
         </ScreenContext.Provider>
       )}
+      {q.data && !q.data.fit && !anonymous && <SuggestScreen board={q.data} />}
       {q.data && frame && !anonymous && !open.isPending && <StatusLine />}
       {!(q.data && frame) && <Text className="fb-board-clock" fw={800} aria-label={t('dashboards.clock')}>{clock(now, i18n.language)}</Text>}
     </main>
+  )
+}
+
+const keep = (id: string) => `fb.keepPage.${id}`
+
+/** A Page dashboard on a whole screen scrolls, and on a wall nobody scrolls: offer the Screen layout
+ *  to whoever may edit it, once (#923). "Keep it" is remembered on this screen. */
+function SuggestScreen({ board }: { board: Board }) {
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+  const canEdit = useCan('floorplan.edit')
+  const [kept, setKept] = useState(() => { try { return localStorage.getItem(keep(board.id)) === '1' } catch { return false } })
+  const save = useMutation({
+    mutationFn: () => put<Board>(`/api/dashboards/${encodeURIComponent(board.id)}`, {
+      name: board.name, sections: board.sections, fit: true, public: board.public,
+      ...(board.cycle ? { cycle: board.cycle } : {}), ...(board.range ? { range: board.range } : {}), ...(board.frame === false ? { frame: false } : {}),
+    }),
+    onSuccess: (saved) => { qc.setQueryData(qk.board(board.id), saved); void qc.invalidateQueries({ queryKey: qk.boards }) },
+  })
+  if (!canEdit || kept) return null
+  const stay = () => { try { localStorage.setItem(keep(board.id), '1') } catch { /* private window: asks again next time */ } setKept(true) }
+  return (
+    <div className="fb-board-suggest" role="status">
+      <Text size="sm">{t('dashboards.suggestScreen.text')}</Text>
+      <Group gap="xs" wrap="nowrap">
+        <Button size="xs" loading={save.isPending} onClick={() => save.mutate()}>{t('dashboards.suggestScreen.make')}</Button>
+        <Button size="xs" variant="default" onClick={stay}>{t('dashboards.suggestScreen.keep')}</Button>
+      </Group>
+      {save.error && <Text size="xs" className="fb-tone-err" role="alert">{save.error.message}</Text>}
+    </div>
   )
 }
 

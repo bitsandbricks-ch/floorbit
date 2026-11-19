@@ -17,6 +17,11 @@
   "delete": "Delete",
   "clock": "Time",
   "stale": "No connection to the server: showing what was last read.",
+  "suggestScreen": {
+    "text": "This dashboard is a Page: it scrolls, so on a screen nobody touches part of it stays out of sight. As a Screen it fits.",
+    "make": "Make it a Screen",
+    "keep": "Keep it a Page"
+  },
   "canvasHint": "Drag a widget by its handle, resize it by its corner (with the keyboard: arrows, Shift+arrows). Click it to set it up or split it. At most {{max}} widgets on {{cols}} columns.",
   "edit": {
     "pick": "Set up this pane",
