@@ -299,9 +299,6 @@ class CrewBridge:
         if incident.get('assignee') and status != 'open':
             fields.append({'name': 'With', 'value': str(_name(incident['assignee'], self.users))[:60],
                            'inline': True})
-        zone = self._match_zone(incident)
-        if zone:
-            fields.append({'name': 'Match seat', 'value': str(zone)[:60], 'inline': True})
         if int(incident.get('reports') or 1) > 1:
             fields.append({'name': 'Reports', 'value': str(incident['reports']), 'inline': True})
         embed = {'title': f"{'✅' if status == 'fixed' else '🔧'} {incident.get('title') or 'Incident'}"[:250],
@@ -320,16 +317,6 @@ class CrewBridge:
             row.append({'type': 2, 'style': 5, 'label': 'Open in Floorbit', 'url': _public_url() + '/incidents'})
         return {'embeds': [embed], 'components': [{'type': 1, 'components': row}] if row else [],
                 'allowed_mentions': {'parse': []}}
-
-    @staticmethod
-    def _match_zone(incident):
-        if not incident.get('seat'):
-            return None
-        try:
-            from floorbit import tournament
-            return tournament.zone_of(incident['seat'])
-        except Exception:  # noqa: BLE001  # the zone is a nicety; the message goes out without it
-            return None
 
     def changes(self, before, incident):
         """Thread lines for what happened since the last sync."""

@@ -7,6 +7,9 @@
   (floorbit/inventory_discovery.py). Editors and up.
 - ``GET /api/inventory/log``: the last syncs. Editors and up.
 - ``GET /api/inventory/drift``: where devices and the inventory disagree (discovery). Viewers and up.
+- ``GET /api/inventory/discovery``: discovery's actions per kind of device, their schedules and last
+  runs. Viewers and up. ``PUT /api/inventory/discovery/actions/<id>``: an action's schedule (admins).
+  ``POST /api/inventory/discovery/run``: run now, all or some actions, all devices or one (editors).
 """
 import threading
 
@@ -219,6 +222,53 @@ def sync_now():
         with inventory_discovery.running:
             reports.append(inventory_discovery.run())
     return jsonify({'reports': reports, 'sources': _sources(load_data())})
+
+
+@bp.route('/api/inventory/discovery', methods=['GET'])
+def discovery_actions():
+    """What discovery does per kind of device, each action's schedule and last run."""
+    data = load_data()
+    return jsonify({'available': inventory_discovery.available(), 'actions': inventory_discovery.actions(data),
+                    'last_run': inventory_discovery.last(data)})
+
+
+@bp.route('/api/inventory/discovery/actions/<action_id>', methods=['PUT'])
+def discovery_schedule(action_id):
+    """An action's schedule: ``{"minutes": 30}``, 0 for off, null for the default. Admins."""
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or 'minutes' not in body:
+        return jsonify({'error': 'Send the minutes between runs (0 for off, null for the default).'}), 400
+    with data_lock:
+        data = load_data()
+        if inventory_discovery.action(action_id) is None:
+            return jsonify({'error': 'No such discovery action.'}), 404
+        problem = inventory_discovery.set_minutes(data, action_id, body['minutes'])
+        if problem:
+            return jsonify({'error': problem}), 400
+        save_data(data)
+    return jsonify({'actions': inventory_discovery.actions(data)})
+
+
+@bp.route('/api/inventory/discovery/run', methods=['POST'])
+def discovery_run():
+    """Run now: every action, or ``{"actions": [...]}``, on every device or ``{"device": id}``."""
+    body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict):
+        return jsonify({'error': 'Send an object.'}), 400
+    wanted = body.get('actions')
+    if wanted is not None and (not isinstance(wanted, list) or not wanted
+                               or any(inventory_discovery.action(a) is None for a in wanted)):
+        return jsonify({'error': 'No such discovery action.'}), 400
+    devices = None
+    if body.get('device') is not None:
+        if inventory.find(load_data(), str(body['device'])) is None:
+            return jsonify({'error': 'No such device'}), 404
+        devices = {str(body['device'])}
+    if not inventory_discovery.available():
+        return jsonify({'error': 'No monitoring source is set up, so there is nothing to discover.'}), 400
+    with inventory_discovery.running:
+        report = inventory_discovery.run(set(wanted) if wanted else None, devices)
+    return jsonify({'report': report, 'actions': inventory_discovery.actions(load_data())})
 
 
 @bp.route('/api/inventory/drift', methods=['GET'])

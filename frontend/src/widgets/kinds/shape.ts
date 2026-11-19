@@ -6,11 +6,11 @@ import type { Kind, KindPick } from '../level'
 export function kindsFor(w: Widget): Kind[] {
   switch (w.type) {
     case 'stat': return typeof w.value === 'number' && w.max != null ? ['stat', 'gauge'] : ['stat']
-    case 'status': return ['status', 'stat', 'bar', 'pie', 'list', 'table']
-    case 'list': return w.items.some((i) => i.number != null) ? ['list', 'bar', 'pie', 'stat', 'table'] : ['list', 'stat', 'table']
-    case 'table': return ['table', 'stat', 'list']
-    case 'sparkline': return w.max != null ? ['graph', 'stat', 'gauge'] : ['graph', 'stat']
-    case 'series': return ['graph', 'stat']
+    case 'status': return ['status', 'stat', 'bar', 'column', 'pie', 'list', 'table']
+    case 'list': return w.items.some((i) => i.number != null) ? ['list', 'bar', 'column', 'pie', 'histogram', 'stat', 'table'] : ['list', 'stat', 'table']
+    case 'table': return numberColumns(w).length ? ['table', 'bar', 'column', 'histogram', 'stat', 'list'] : ['table', 'stat', 'list']
+    case 'sparkline': return w.max != null ? ['graph', 'column', 'histogram', 'stat', 'gauge'] : ['graph', 'column', 'histogram', 'stat']
+    case 'series': return ['graph', 'column', 'histogram', 'stat']
     default: return ['stat']
   }
 }
@@ -102,7 +102,39 @@ export function stateCounts(w: Widget): [State, number][] {
   return (Object.keys(BAD) as State[]).filter((s) => n[s]).map((s) => [s, n[s]!])
 }
 
-export interface Part { label: string; value: number; max?: number; text: string; colour: string }
+export interface Segment { label: string; value: number; colour: string }
+/** One bar: its value, or (a table row) the sum of its segments, one per number column. */
+export interface Part { label: string; value: number; max?: number; text: string; colour: string; segments?: Segment[] }
+
+/** How bars and lines with more than one series sit: next to each other (or over each other, for
+ *  lines), stacked, or stacked to 100 %. */
+export type Stack = 'none' | 'stacked' | 'percent'
+export const STACKS: Stack[] = ['none', 'stacked', 'percent']
+export type LineStyle = 'line' | 'area'
+export const LINE_STYLES: LineStyle[] = ['line', 'area']
+/** A dashed line over each series: a straight fit over the time shown, or a rolling average. */
+export type Trend = 'none' | 'linear' | 'average'
+export const TRENDS: Trend[] = ['none', 'linear', 'average']
+export interface Look { stack?: Stack; style?: LineStyle; trend?: Trend }
+
+/** Which look options mean something for this data drawn as this kind: stacking needs two or
+ *  more series (or number columns), the line style needs a graph, a trend needs time. */
+export function looksFor(w: Widget, kind: Kind): (keyof Look)[] {
+  const timed = w.type === 'series' || w.type === 'sparkline'
+  const many = w.type === 'series' ? w.series.length > 1 : numberColumns(w).length > 1
+  const out: (keyof Look)[] = []
+  if (many && ['graph', 'column', 'bar'].includes(kind)) out.push('stack')
+  if (kind === 'graph') out.push('style')
+  if (timed && (kind === 'graph' || kind === 'column')) out.push('trend')
+  return out
+}
+
+/** Columns of a table where every row holds a plain number. */
+export function numberColumns(w: Widget): string[] {
+  if (w.type !== 'table' || !w.rows.length) return []
+  return w.columns.map((c) => c.key).filter((k) => w.rows.every((r) => isNumber(r[k])))
+}
+const isNumber = (v: string | undefined) => v != null && v.trim() !== '' && Number.isFinite(Number(v))
 
 /** State colours, fixed like the dots: a theme never changes what "down" looks like. */
 export const STATE_COLOUR: Record<State, string> = {
@@ -123,6 +155,17 @@ export function partsOf(w: Widget, stateLabel: (s: State) => string, lang?: stri
       colour: (i.tone && TONE_COLOUR[i.tone]) || PALETTE[i.max != null ? 0 : k % PALETTE.length],
     }))
   }
+  if (w.type === 'table') {
+    const nums = numberColumns(w)
+    if (!nums.length) return []
+    const name = w.columns.find((c) => !nums.includes(c.key))?.key
+    return w.rows.map((r, k) => {
+      const segments = nums.map((key, i) => ({ label: w.columns.find((c) => c.key === key)!.label, value: Number(r[key]), colour: PALETTE[i % PALETTE.length] }))
+      const value = segments.reduce((a, g) => a + g.value, 0)
+      return { label: name ? r[name] ?? '' : String(k + 1), value, text: value.toLocaleString(lang), colour: PALETTE[0],
+        ...(segments.length > 1 ? { segments } : {}) }
+    })
+  }
   return []
 }
 
@@ -142,4 +185,107 @@ export function scaleOf(w: Widget): { value: number; min: number; max: number } 
     return v == null ? null : { value: v, min: w.min ?? 0, max: w.max }
   }
   return null
+}
+
+export interface Bucket { from: number; to: number; values: (number | null)[] }
+
+/** Time data in at most ``n`` columns: each the average of the samples in its slice of time, one
+ *  value per line (null where a line has no sample in it). */
+export function bucketsOf(lines: Line[], n: number): Bucket[] {
+  const all = lines.flatMap((l) => l.points)
+  if (!all.length || n < 1) return []
+  const t0 = Math.min(...all.map((p) => p[0]))
+  const t1 = Math.max(...all.map((p) => p[0]))
+  const count = Math.max(1, Math.min(n, Math.max(...lines.map((l) => l.points.length))))
+  const step = (t1 - t0) / count || 1
+  const out: Bucket[] = Array.from({ length: count }, (_, i) => ({ from: t0 + i * step, to: t0 + (i + 1) * step, values: [] }))
+  lines.forEach((l, li) => {
+    const sums = new Array(count).fill(0), ns = new Array(count).fill(0)
+    for (const [t, v] of l.points) {
+      const i = Math.min(count - 1, Math.floor((t - t0) / step))
+      sums[i] += v
+      ns[i] += 1
+    }
+    out.forEach((b, i) => { b.values[li] = ns[i] ? sums[i] / ns[i] : null })
+  })
+  return out
+}
+
+/** Stacked lines: per sample of the longest line, each line's [time, bottom, top]. Lines are read
+ *  at the nearest sample, so lines sampled at slightly different times still stack. */
+export function stackLines(lines: Line[], mode: Stack): [number, number, number][][] {
+  if (!lines.length) return []
+  const base = lines.reduce((a, b) => (b.points.length > a.points.length ? b : a))
+  const at = (pts: [number, number][], t: number) =>
+    pts.length ? pts.reduce((a, b) => (Math.abs(b[0] - t) < Math.abs(a[0] - t) ? b : a))[1] : 0
+  const values = base.points.map(([t]) => lines.map((l) => Math.max(0, at(l.points, t))))
+  return lines.map((_, li) => base.points.map(([t], k) => {
+    const row = values[k]
+    const sum = row.reduce((a, v) => a + v, 0) || 1
+    const scale = mode === 'percent' ? 100 / sum : 1
+    const lo = row.slice(0, li).reduce((a, v) => a + v, 0) * scale
+    return [t, lo, lo + row[li] * scale] as [number, number, number]
+  }))
+}
+
+/** All the numbers a widget holds, for a histogram: a list's or table's numbers, or every sample. */
+export function valuesOf(w: Widget): number[] {
+  switch (w.type) {
+    case 'list': return w.items.filter((i) => i.number != null).map((i) => i.number!)
+    case 'table': { const k = numberColumns(w)[0]; return k ? w.rows.map((r) => Number(r[k])) : [] }
+    case 'sparkline': return w.points
+    case 'series': return w.series.flatMap((l) => l.points.map((p) => p[1]))
+    default: return []
+  }
+}
+
+export interface Bin { from: number; to: number; count: number }
+
+/** Values counted in ranges of a round width (1, 2 or 5 times a power of ten), about the square
+ *  root of the count of ranges and at most ``most``. */
+export function binsOf(values: number[], most = 20): Bin[] {
+  if (!values.length) return []
+  const lo = Math.min(...values), hi = Math.max(...values)
+  if (lo === hi) return [{ from: lo, to: hi, count: values.length }]
+  const want = Math.max(2, Math.min(most, Math.ceil(Math.sqrt(values.length))))
+  const raw = (hi - lo) / want
+  const mag = 10 ** Math.floor(Math.log10(raw))
+  const step = [1, 2, 5, 10].map((f) => f * mag).find((x) => x >= raw)!
+  const start = Math.floor(lo / step) * step
+  const n = Math.max(1, Math.ceil((hi - start) / step + 1e-9))
+  const bins: Bin[] = Array.from({ length: n }, (_, i) => ({ from: start + i * step, to: start + (i + 1) * step, count: 0 }))
+  for (const v of values) bins[Math.min(n - 1, Math.floor((v - start) / step))].count++
+  return bins
+}
+
+/** The trend of one line, at its own sample times. A rolling average spans about a twelfth of the
+ *  samples (at least three); a linear fit is the least-squares line. */
+export function trendOf(points: [number, number][], mode: Trend): [number, number][] {
+  if (mode === 'none' || points.length < 2) return []
+  if (mode === 'average') {
+    const half = Math.max(1, Math.round(points.length / 24))
+    return points.map(([t], i) => {
+      const win = points.slice(Math.max(0, i - half), i + half + 1)
+      return [t, win.reduce((a, p) => a + p[1], 0) / win.length]
+    })
+  }
+  const n = points.length
+  const mx = points.reduce((a, p) => a + p[0], 0) / n
+  const my = points.reduce((a, p) => a + p[1], 0) / n
+  const sxx = points.reduce((a, p) => a + (p[0] - mx) ** 2, 0)
+  const slope = sxx ? points.reduce((a, p) => a + (p[0] - mx) * (p[1] - my), 0) / sxx : 0
+  return [points[0], points[n - 1]].map(([t]) => [t, my + slope * (t - mx)] as [number, number])
+}
+
+/** A part's tooltip: its value, its share of its own max, and each segment. */
+export function partTip(part: Part, pct: number): string {
+  const head = part.max != null ? `${part.label}: ${part.text} (${Math.round(pct)} %)` : `${part.label}: ${part.text}`
+  return part.segments ? `${head}\n${part.segments.map((g) => `${g.label}: ${g.value}`).join('\n')}` : head
+}
+
+
+/** Where a tooltip sits: right of what it describes in the left half, left of it in the right
+ *  half, so a wide tooltip never runs out of the box. */
+export function tipAt(from: number, to: number, width: number): { left?: number; right?: number } {
+  return to <= width / 2 ? { left: Math.max(0, to) } : { right: Math.max(0, width - from) }
 }

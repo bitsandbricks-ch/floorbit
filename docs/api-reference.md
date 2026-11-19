@@ -442,6 +442,9 @@ Source: [`floorbit/blueprints/inventory.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/inventory` | `floorplan.edit` |  |
 | DELETE | `/api/inventory/<device_id>` | `floorplan.edit` |  |
 | PATCH | `/api/inventory/<device_id>` | `floorplan.edit` |  |
+| GET | `/api/inventory/discovery` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/inventory/discovery/actions/<action_id>` | `settings.manage` |  |
+| POST | `/api/inventory/discovery/run` | `floorplan.edit` |  |
 | GET | `/api/inventory/drift` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/inventory/log` | `floorplan.edit` |  |
 | POST | `/api/inventory/sync` | `floorplan.edit` |  |
@@ -1091,21 +1094,6 @@ Source: [`floorbit/blueprints/topology.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/links/layout` | `floorplan.edit` |  |
 | PUT | `/api/links/layout` | `floorplan.edit` |  |
 | GET | `/api/links/ports` | `floorplan.edit` |  |
-
-## floorbit.blueprints.tournament
-
-Tournament awareness (issue #31): match zones and QoS hints. Rules in floorbit/tournament.py.
-
-Source: [`floorbit/blueprints/tournament.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/tournament.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/tournament` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `tournament` |
-| GET | `/api/tournament/qos` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `tournament` |
-| GET | `/api/tournament/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `tournament` |
-| POST | `/api/tournament/zones` | `floorplan.edit` | `tournament` |
-| DELETE | `/api/tournament/zones/<zone_id>` | `floorplan.edit` | `tournament` |
-| PATCH | `/api/tournament/zones/<zone_id>` | `floorplan.edit` | `tournament` |
 
 ## floorbit.blueprints.webhooks
 

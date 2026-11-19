@@ -470,3 +470,71 @@ def test_discovery_keeps_a_firewalls_routes(client):
     finally:
         sources.use(before)
     assert detail['discovered']['routes'] == routes[:1]
+
+
+# ── actions per kind of device, each on its own clock (issue #919) ─────────────────────────────
+
+def test_each_action_has_its_own_schedule_and_admins_change_it(client, app_module):
+    from tests.test_rbac import sign_in_as
+    actions = {a['id']: a for a in client.get('/api/inventory/discovery').get_json()['actions']}
+    assert list(actions) == ['identity', 'interfaces', 'networks', 'optics', 'poe', 'routes']
+    assert [actions[a]['minutes'] for a in ('identity', 'interfaces', 'optics')] == [60, 15, 60]
+    assert actions['routes']['roles'] == ['firewall'] and actions['poe']['roles'] == ['switch']
+    r = client.put('/api/inventory/discovery/actions/poe', json={'minutes': 5})
+    assert r.status_code == 200 and next(a for a in r.get_json()['actions'] if a['id'] == 'poe')['minutes'] == 5
+    assert client.put('/api/inventory/discovery/actions/routes', json={'minutes': 0}).status_code == 200
+    for bad in (2, -1, 'often', True, 99999):
+        assert client.put('/api/inventory/discovery/actions/poe', json={'minutes': bad}).status_code == 400
+    assert client.put('/api/inventory/discovery/actions/nope', json={'minutes': 5}).status_code == 404
+    actions = {a['id']: a for a in client.get('/api/inventory/discovery').get_json()['actions']}
+    assert (actions['poe']['minutes'], actions['routes']['minutes'], actions['routes']['custom']) == (5, 0, True)
+    client.put('/api/inventory/discovery/actions/poe', json={'minutes': None})
+    assert client.get('/api/inventory/discovery').get_json()['actions'][4]['minutes'] == 15
+    # A tech sees the schedule but doesn't change it; a lead runs discovery but doesn't schedule it.
+    tech = sign_in_as(app_module, 'te8', 'tech')
+    assert tech.get('/api/inventory/discovery').status_code == 200
+    assert tech.post('/api/inventory/discovery/run', json={}).status_code == 403
+    lead = sign_in_as(app_module, 'le8', 'lead')
+    assert lead.put('/api/inventory/discovery/actions/poe', json={'minutes': 30}).status_code == 403
+
+
+def test_the_schedule_runs_only_the_actions_that_are_due(client):
+    from floorbit.store import load_data
+    before = sources.use(Telemetry([], {}))
+    try:
+        first = inventory_discovery.tick()
+        assert set(first['actions']) == set(inventory_discovery.ACTION_IDS)
+        later = inventory_discovery.tick(now=time.time() + 15 * 60 + 5)        # the hourly ones aren't due
+        assert set(later['actions']) == {'interfaces', 'networks', 'poe', 'routes'}
+        assert set(load_data()['inventory_discovery_runs']) == set(inventory_discovery.ACTION_IDS)
+    finally:
+        sources.use(before)
+
+
+def test_run_now_for_one_action_on_one_device(client):
+    sw = add(client, name='sw-a-01')
+    fw = add(client, name='fw-01', role='firewall')
+    rows = [{'hostname': 'sw-a-01', 'status': 1, 'facts': {'model': 'WS-C2960X-48FPD-L', 'poe': {'budget_w': 740}}},
+            {'hostname': 'fw-01', 'status': 1,
+             'facts': {'model': 'A1', 'routes': [{'network': '0.0.0.0/0', 'next_hop': '203.0.113.1'}]}}]
+    before = sources.use(Telemetry(rows, {}))
+    try:
+        r = client.post('/api/inventory/discovery/run', json={'actions': ['poe'], 'device': sw['id']})
+        assert r.status_code == 200
+        report = r.get_json()['report']
+        assert report['actions'] == {'poe': {'devices': 1, 'changed': 1}} and report['devices'] == [sw['id']]
+        detail = client.get(f"/api/inventory/{sw['id']}").get_json()
+        assert detail['discovered']['poe'] == {'budget_w': 740.0, 'used_w': 0.0}
+        assert detail['model'] == ''                                     # identity didn't run
+        assert client.get(f"/api/inventory/{fw['id']}").get_json()['discovered']['routes'] == []
+        # A run for one device doesn't move the schedule.
+        assert all(a['last'] is None for a in r.get_json()['actions'])
+        # Routes are only a firewall's: on a switch the action does nothing.
+        r = client.post('/api/inventory/discovery/run', json={'actions': ['routes', 'identity']})
+        assert r.get_json()['report']['actions']['routes']['devices'] == 1
+        assert client.get(f"/api/inventory/{fw['id']}").get_json()['discovered']['routes'][0]['network'] == '0.0.0.0/0'
+        assert client.get(f"/api/inventory/{sw['id']}").get_json()['discovered']['poe']['budget_w'] == 740.0
+        assert client.post('/api/inventory/discovery/run', json={'actions': ['nope']}).status_code == 400
+        assert client.post('/api/inventory/discovery/run', json={'device': 'nope'}).status_code == 404
+    finally:
+        sources.use(before)

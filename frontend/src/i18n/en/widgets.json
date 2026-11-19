@@ -28,7 +28,16 @@
     "detailsNamed": "Details of {{name}}",
     "other": "Other",
     "gaugeLabel": "{{value}} of {{max}} ({{pct}} %)",
-    "pieLabel": "Pie: {{parts}}"
+    "pieLabel": "Pie: {{parts}}",
+    "columnsLabel": "Columns: {{name}}",
+    "histogramLabel": "Histogram: {{name}}, {{count}} values",
+    "binTip": "{{range}}: {{count}}",
+    "values_one": "{{count}} value",
+    "values_other": "{{count}} values",
+    "trend": {
+      "linear": "Trend",
+      "average": "Average"
+    }
   },
   "state": {
     "up": "Up",

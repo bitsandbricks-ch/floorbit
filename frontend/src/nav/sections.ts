@@ -55,7 +55,7 @@ export const HUBS: Record<string, string[]> = {
   console: ['commands', 'terminal'],
   dashboards: ['widgets'],
   settings: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'features', 'sidebarSections', 'audit'],
-  event: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events', 'tournament'],
+  event: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events'],
 }
 
 /** Hubs that draw their tabs themselves (pages/Settings.tsx). */
@@ -110,7 +110,7 @@ const ICONS: Record<string, Icon> = {
   dns: IconWorldWww, games: IconDeviceGamepad2, gameServers: IconServer2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
   commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk,
   preflight: IconChecklist, templates: IconTemplate,
-  tournament: IconTrophy, schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
+  schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
   report: IconReport, events: IconArchive, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight, sidebarSections: IconLayoutSidebar,
   apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }

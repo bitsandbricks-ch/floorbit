@@ -80,7 +80,10 @@
     "expandedHint": "Mit Filtern und Details, für einen Bereich, der einen Bildschirm füllt.",
     "level": "Grösse",
     "levelHint": "Automatisch wählt klein, mittel oder gross nach der Grösse des Felds.",
-    "widgetType": "Zeigen als"
+    "widgetType": "Zeigen als",
+    "stack": "Balken und Linien",
+    "style": "Linien",
+    "trend": "Trendlinie"
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
@@ -160,7 +163,25 @@
     "table": "Tabelle",
     "list": "Liste",
     "gauge": "Tacho",
-    "bar": "Balken",
-    "pie": "Kreis"
+    "bar": "Waagrechte Balken",
+    "pie": "Kreis",
+    "column": "Senkrechte Balken",
+    "histogram": "Histogramm"
+  },
+  "look": {
+    "stack": {
+      "none": "Nebeneinander",
+      "stacked": "Gestapelt",
+      "percent": "Gestapelt auf 100 %"
+    },
+    "style": {
+      "line": "Linie",
+      "area": "Fläche"
+    },
+    "trend": {
+      "none": "Keine",
+      "linear": "Gerader Trend",
+      "average": "Gleitender Durchschnitt"
+    }
   }
 }

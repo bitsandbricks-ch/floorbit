@@ -63,9 +63,20 @@ In the pane's settings, **Show as** draws the same data as another kind where it
 
 - a status as a number of what is up, as bars or as a pie of how many are in each state;
 - a number with a scale (switches up out of all, seats online) as a **gauge**;
-- a list with numbers as **bars** (an item with its own maximum, such as seats online out of a
-  block, fills its own track) or a **pie** (seven slices at most, the rest as "Other");
+- a list with numbers as **horizontal bars** or **vertical bars** (an item with its own maximum,
+  such as seats online out of a block, fills its own track) or a **pie** (seven slices at most, the
+  rest as "Other");
+- a graph as **vertical bars**: each bar is the average of its slice of time, one bar per line;
+- numbers or samples as a **histogram**: how many values fall in each range (ranges of a round
+  width, such as 0–5, 5–10);
+- a table with number columns as bars, one segment per column;
 - a list as a table, a table as a list.
+
+Where the data has two or more lines (download and upload) or number columns, **Bars and lines**
+puts them **side by side**, **stacked**, or **stacked to 100 %** to show each one's share. A graph
+draws as a **line** or an **area**. **Trend line** adds a dashed line over each line of a graph or
+time bars: a **straight trend** over the time shown, or a **rolling average** that smooths the
+spikes. The options only show where they mean something for the data.
 
 Hover a bar, a slice or the gauge for its value and share. **Size** pins small, medium or large
 instead of picking it from the box. Any box size works.

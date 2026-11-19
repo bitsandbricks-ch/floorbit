@@ -62,13 +62,12 @@ def _board_user():
     return user
 
 
-def _view(user, incident, match=None, notes=None, outages=None):
+def _view(user, incident, notes=None, outages=None):
     seat = incident.get('seat') or ''
     # The seat's crew note (issue #204). Everyone on the board works incidents, which is what notes need.
     note = (seat_notes.all_notes() if notes is None else notes).get(seat) if seat else None
     return {**incident, 'can_work': incidents.can_work(user, incident),
             'can_assign': incidents.can_assign(user, incident.get('team')),
-            'match': (match or {}).get(seat),
             'seat_note': {k: note.get(k) for k in ('text', 'by', 'at')} if note else None,
             # The seat's switch is down right now (issue #386): part of an outage, not a cable.
             'outage': (outages or {}).get(seat) if incident.get('status') != 'fixed' else None,
@@ -123,16 +122,13 @@ def qr_page():
 # ── The board ──────────────────────────────────────────────────────────────────
 @bp.route('/api/incidents', methods=['GET'])
 def list_incidents():
-    from ..tournament import match_seats
     user = _board_user()
     all_teams = teams.all_teams()
-    match = match_seats()
     notes = seat_notes.all_notes()
-    # Match seats (issue #31) on top of each column; the board keeps the newest-first order otherwise.
-    items = sorted(incidents.list_all(), key=lambda i: (i['status'] == 'fixed', not match.get(i.get('seat') or '')))
+    items = sorted(incidents.list_all(), key=lambda i: i['status'] == 'fixed')
     outages = _outages(items)
     return jsonify({
-        'incidents': [_view(user, i, match, notes, outages) for i in items],
+        'incidents': [_view(user, i, notes, outages) for i in items],
         'teams': [{'id': t['id'], 'name': t['name'], 'depth': t['depth']} for t in teams.tree()],
         'workable_teams': sorted(incidents.workable_teams(user)),
         'assign_teams': sorted(t for t in all_teams if incidents.can_assign(user, t)),

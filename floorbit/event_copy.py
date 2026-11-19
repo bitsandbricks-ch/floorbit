@@ -21,7 +21,7 @@ PARTS = {
     'cables': ('cables', 'cable_routes', 'patch_panels'),
     'power': ('power',),
     'services': ('firewalls', 'services', 'game_servers'),
-    'schedule': ('schedule', 'tournament'),
+    'schedule': ('schedule',),
 }
 MODES = ('replace', 'merge')
 

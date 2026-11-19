@@ -29,7 +29,6 @@ shift handover. **Past events** needs the **event report**. The page says why su
 | `security` | `/security`, `/api/security` |
 | `ports` | `/api/ports` (port actions on the floor plan) |
 | `power` | `/power`, `/api/power` |
-| `tournament` | `/tournament`, `/api/tournament` |
 | `replay` | `/replay`, `/api/replay` |
 | `report` | `/report`, `/api/report` |
 | `past_events` | `/events`, `/api/past-events` |

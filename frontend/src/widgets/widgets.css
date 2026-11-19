@@ -99,3 +99,32 @@ button.fb-w-more:hover { text-decoration: underline; }
 .fb-w-pie-legend span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fb-w-pie-legend b { font-variant-numeric: tabular-nums; }
 .fb-w-pie-legend em { font-style: normal; color: var(--color-muted); min-width: 4ch; text-align: right; }
+
+/* Columns: vertical bars */
+.fb-w-cols-wrap { display: flex; flex-direction: column; min-height: 0; }
+.fb-w-cols { display: flex; align-items: flex-end; gap: 6px; min-width: 0; }
+.fb-w-col { flex: 1 1 0; min-width: 22px; max-width: 72px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.fb-w-col-value { font-size: 11px; color: var(--color-muted); font-variant-numeric: tabular-nums; height: 14px; white-space: nowrap; }
+.fb-w-col-track { width: 100%; display: flex; align-items: flex-end; border-radius: 3px; overflow: hidden; }
+.fb-w-col-track.gauge { background: var(--color-line); }
+.fb-w-col-fill { display: block; width: 100%; border-radius: 3px; min-height: 2px; }
+.fb-w-col-label { font-size: 12px; height: 18px; line-height: 18px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-w-col-more { align-self: center; white-space: nowrap; }
+.fb-w-col-hot { fill: var(--color-line); fill-opacity: 0.6; }
+.fb-w-fill.area { fill-opacity: 0.18; }
+.fb-w-fill.stacked { fill-opacity: 0.45; }
+.fb-w-trend { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 6 4; opacity: 0.9; }
+.fb-w-tip-trend { color: var(--color-muted); }
+.fb-w-hist { gap: 2px; }
+.fb-w-hist .fb-w-col { max-width: none; }
+.fb-w-col.hot .fb-w-col-fill { filter: brightness(1.25); }
+.fb-w-seg { display: block; width: 100%; }
+.fb-w-bar-track .fb-w-seg { height: 100%; width: auto; }
+.fb-w-group { display: flex; align-items: flex-end; gap: 1px; width: 100%; height: 100%; }
+.fb-w-group > span { flex: 1; border-radius: 2px 2px 0 0; min-height: 2px; }
+.fb-w-hgroup { display: flex; flex-direction: column; justify-content: center; gap: 1px; height: 100%; }
+.fb-w-hgroup > span { display: block; height: 3px; border-radius: 2px; min-width: 2px; }
+.fb-w-seg-legend { flex: none; height: 20px; }
+.fb-w-stack { display: flex; flex-direction: column; background: none !important; overflow: hidden; }
+.fb-w-hstack { display: flex; background: none !important; overflow: hidden; }
+.fb-w-bar-track.grouped { height: 14px; }

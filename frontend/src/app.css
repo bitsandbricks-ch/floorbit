@@ -10,6 +10,9 @@ body {
 .mantine-Card-root {
   background-color: var(--color-surface);
   border-color: var(--color-line);
+  /* One panel look on every page and dashboard (issue #934): 8px corners, flat. */
+  border-radius: var(--radius-card);
+  box-shadow: none;
 }
 
 .mantine-Input-input {
@@ -268,7 +271,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-health-group h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); }
 .fb-health-grid { display: grid; grid-template-columns: repeat(var(--n, 1), 250px); gap: 12px; }
 .fb-health-tile {
-  display: grid; gap: 6px; align-content: start; padding: 12px 14px; border-radius: 10px;
+  display: grid; gap: 6px; align-content: start; padding: 12px 14px; border-radius: var(--radius-card);
   background: var(--color-surface); border: 1px solid var(--color-line); border-left: 6px solid var(--color-unknown);
 }
 .fb-health-tile.up { border-left-color: var(--color-up); }
@@ -305,7 +308,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 /* Stats dashboard (pages/Stats.tsx) */
 .fb-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .fb-stats-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 0; }
-.fb-stat { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 12px; padding: 12px 14px; }
+.fb-stat { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 12px 14px; }
 .fb-stat dt { color: var(--color-muted); font-size: 13px; }
 .fb-stat dd { margin: 2px 0 0; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .fb-stat span { color: var(--color-muted); font-size: 13px; }
@@ -317,11 +320,11 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-stat-up { border-left: 4px solid var(--color-up); }
 .fb-stat-warn { border-left: 4px solid var(--color-warn); }
 .fb-stat-down { border-left: 4px solid var(--color-down); }
-.fb-stat-link { color: inherit; text-decoration: none; display: block; border-radius: 12px; }
+.fb-stat-link { color: inherit; text-decoration: none; display: block; border-radius: var(--radius-card); }
 .fb-stat-link .fb-stat { height: 100%; }
 .fb-stat-link:hover .fb-stat, .fb-stat-link:focus-visible .fb-stat { border-color: var(--color-bit); }
 .fb-stat-row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
-.fb-stats-panel { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.fb-stats-panel { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 14px 16px; min-width: 0; }
 .fb-stats-panel.wide { grid-column: 1 / -1; }
 .fb-stats-panel h2 { margin: 0 0 8px; font-size: 16px; }
 .fb-stats-chart { margin: 0; }
@@ -368,7 +371,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-flow-anomalies .when { color: var(--color-muted); margin-left: auto; font-size: 13px; }
 
 /* Event replay (pages/Replay.tsx): the hall plan drawn like the attendee view. */
-.fb-replay-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: 10px; }
+.fb-replay-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: var(--radius-card); }
 .fb-replay-plan .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
 .fb-replay-plan .cell { fill: var(--color-surface); stroke: var(--color-line); transition: fill .25s; }
 .fb-replay-plan .cell.on { fill: var(--color-up); stroke: var(--color-up); }
@@ -392,7 +395,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-report-chart .incidents { fill: var(--color-warn); }
 .fb-report-key.incidents { background: var(--color-warn); }
 .fb-report-key.bar { background: color-mix(in srgb, var(--color-bit) 30%, transparent); }
-.fb-job-plan { width: 100%; height: auto; max-height: 55vh; background: var(--color-raised); border-radius: 10px; }
+.fb-job-plan { width: 100%; height: auto; max-height: 55vh; background: var(--color-raised); border-radius: var(--radius-card); }
 .fb-job-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
 .fb-job-plan .cell.hit { fill: var(--color-down); stroke: var(--color-down); }
 .fb-job-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
@@ -400,11 +403,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-job-plan .route { stroke: var(--color-trace); stroke-width: 5; stroke-dasharray: 14 10; stroke-linecap: round; }
 .fb-job-plan .you { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 4; }
 .fb-job-plan .you-label { fill: var(--color-trace); font: 700 30px var(--font-sans); text-anchor: middle; }
-.fb-match-plan { width: 100%; height: auto; max-height: 60vh; background: var(--color-raised); border-radius: 10px; }
-.fb-match-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
-.fb-match-plan .cell.match { fill: var(--color-warn); stroke: var(--color-warn); }
-.fb-match-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
-.fb-match-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: var(--color-warn); }
 
 /* Pre-flight verdict (issue #35): the whole banner says go or no-go. */
 .fb-preflight-verdict.ready { border-color: var(--color-up); background: color-mix(in srgb, var(--color-up) 10%, transparent); }
@@ -435,7 +433,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 /* Logs page on phones (pages/Logs.tsx) */
 .fb-log-lines { list-style: none; margin: 0; padding: 0; }
 .fb-log-line { padding: 8px 0; border-bottom: 1px solid var(--mantine-color-default-border); }
-.fb-wifi-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: 10px; display: block; }
+.fb-wifi-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: var(--radius-card); display: block; }
 .fb-wifi-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
 .fb-wifi-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
 .fb-wifi-plan .heat { pointer-events: none; }
@@ -518,7 +516,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-edit-draft line, .fb-edit-draft rect { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 2; }
 .fb-edit-draft circle { fill: var(--color-bit); }
 .fb-edit-draft text { fill: var(--color-fg); paint-order: stroke; stroke: var(--color-ink); stroke-width: 3px; font-weight: 600; }
-.fb-plan-wrap { position: relative; height: 68vh; min-height: 320px; background: var(--color-raised); border: 1px solid var(--color-line); border-radius: 12px; overflow: hidden; }
+.fb-plan-wrap { position: relative; height: 68vh; min-height: 320px; background: var(--color-raised); border: 1px solid var(--color-line); border-radius: var(--radius-card); overflow: hidden; }
 .fb-plan-wrap > svg.fb-plan { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
 .fb-plan-wrap > svg.fb-plan:focus-visible { box-shadow: inset 0 0 0 3px var(--color-bit); }
 .fb-plan-wrap > svg.fb-plan:active { cursor: grabbing; }
@@ -537,7 +535,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .chk { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 1.5; stroke-linejoin: round; }
 .fb-plan .prob circle { fill: var(--color-down); stroke: var(--color-ink); stroke-width: 1.5; }
 .fb-plan .prob text { fill: #fff; font: 800 11px var(--font-sans); text-anchor: middle; pointer-events: none; }
-.fb-plan .match { fill: none; stroke: var(--color-warn); stroke-width: 3.5; }
 .fb-plan .fwr { fill: none; stroke-width: 3; }
 .fb-plan .fwr.fw-failover { stroke: var(--color-warn); stroke-dasharray: 4 3; }
 .fb-plan .fwr.fw-down { stroke: var(--color-down); }
@@ -693,7 +690,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-link-history .off { fill: var(--color-down); }
 .fb-link-history .axis { stroke: var(--color-line); stroke-width: 1; vector-effect: non-scaling-stroke; }
 /* The Seats view's list (issue #169). */
-.fb-seat-list { min-width: 0; background: var(--color-raised); border: 1px solid var(--color-line); border-radius: 12px; padding: 10px 12px; }
+.fb-seat-list { min-width: 0; background: var(--color-raised); border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 10px 12px; }
 .fb-seat-list tr.sel td { background: color-mix(in srgb, var(--color-bit) 18%, transparent); }
 .fb-seat-list-seat:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; border-radius: 4px; }
 .fb-seat-list td { white-space: nowrap; }

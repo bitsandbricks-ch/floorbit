@@ -19,7 +19,7 @@ from flask import current_app
 
 from integrations import checkin, config, seat_sources
 
-from . import firewalls, halls, incidents, inventory, links, seat_notes, seat_search, speedtest, tournament
+from . import firewalls, halls, incidents, inventory, links, seat_notes, seat_search, speedtest
 from .blueprints.screen import CELL, PLAN_H, PLAN_W, plan
 from .store import load_data
 
@@ -221,7 +221,7 @@ def hall_for(seat=None, switch=None, data=None):
 
 
 # What a seat on a public screen says (a public dashboard, docs/dashboards.md): online or not, taken,
-# checked in and its traffic. Not its problems, notes or tournament match: those are the crew's.
+# checked in and its traffic. Not its problems or notes: those are the crew's.
 PUBLIC_SEAT = ('state', 'taken', 'checked_in', 'bps')
 
 
@@ -250,7 +250,6 @@ def view(hall_id=None, now=None, seat=None, switch=None, public=False):
     problems = _problems()
     checked = _checked_in()
     taken = _taken()
-    match = tournament.match_seats(data)
     stats = _ext('floorbit_stats')
     changed = stats.changed_since(now - RECENT) if stats else {}
     notes = seat_notes.all_notes(data)
@@ -267,8 +266,6 @@ def view(hall_id=None, now=None, seat=None, switch=None, public=False):
                 row['taken'] = True
             if problems.get(s):
                 row['problems'] = problems[s]
-            if s in match:
-                row['match'] = match[s]
             if online and s in online:
                 row['bps'] = int(online[s] or 0)
             if s in changed:
@@ -337,7 +334,6 @@ def details(seat, people, crew=False):
         'fixed_before': {'count': len(fixed), 'last': {'title': fixed[0]['title'], 'fixed_at': fixed[0].get('fixed_at')}
                          if fixed else None},
         'attention': attention,
-        'match': tournament.zone_of(seat, data),
         'checked_in': None if checked is None else seat in checked,
         'last_read': last,
         'people': bool(people),

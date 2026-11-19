@@ -43,7 +43,7 @@ behind it.
 | --- | --- | --- |
 | **Kept** | Floor plan editor, inventory, monitoring, incidents, check-in, seat walk-through, dashboards and big-screen walls (NOC monitors), seat help page, crew schedule, crew Discord bot | The crew's daily work |
 | **Shrunk** | Speedtest (limited, per seat), event replay (whole-event recording only), Marketplace (official signed plugins only), network status page (no maintenance, feeds or switch names) | Useful, but not worth their old size |
-| **Cut** | Tournament brackets, runbooks, find-your-seat, public agenda, attendee Discord use, build planner, teardown, gear lending, inventory of items (gear), AI or LLM features | Attendee or club features outside the ops job |
+| **Cut** | Tournament brackets and match seats, runbooks, find-your-seat, public agenda, attendee Discord use, build planner, teardown, gear lending, inventory of items (gear), AI or LLM features | Attendee or club features outside the ops job |
 | **Not now** | Seatbit integration; the Lock and Load backend (it is reworked in 2027) | Later, if at all |
 
 Cut features are not re-added. "Inventory" means network devices and what belongs to them (cables,
@@ -117,6 +117,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Dark first;** light and system theme per person. Colours only through brand tokens (`--ui-*`,
   `--brand-*`). Bit Green is the accent, Trace Cyan is only for selection and seat-to-port traces,
   status colours (up, down, warn, unknown, disabled) are fixed and never themable.
+- **Panels are calm:** a fill one slight step from the page, a thin line, 8px corners, no shadow;
+  pages and dashboards share the look (`--color-surface`, `--radius-card`).
 - **Type:** Geist for text and titles, Geist Mono only for numbers. Square status "bits" and the
   floor-tile grid are the recurring motifs.
 - **Customising** is accent and highlight colour, logos, square mark and name. No theme presets.

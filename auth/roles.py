@@ -266,7 +266,6 @@ RULES = (
     ('/api/plan-locks', WRITE, 'floorplan.edit'),
     ('/api/halls', WRITE, 'floorplan.edit'),
     ('/api/templates', WRITE, 'floorplan.edit'),
-    ('/api/tournament', WRITE, 'floorplan.edit'),
     ('/api/inventory/log', READ, 'floorplan.edit'),
     # Stored credentials on devices, groups and tags: set by admins, like switch logins (floorbit/inventory_scope.py).
     # The shared icon library: admins upload SVGs, everyone who sees the plan sees them.
@@ -275,6 +274,8 @@ RULES = (
     # What fields each type of inventory entry has: admins, like the settings.
     ('/api/inventory/types', WRITE, 'settings.manage'),
     ('/api/inventory/credentials', WRITE, 'settings.manage'),
+    # How often each discovery action runs is a setting; running one now is any editor's.
+    ('/api/inventory/discovery/actions', WRITE, 'settings.manage'),
     ('/api/inventory/credentials', READ, 'floorplan.edit'),
     # A device blocked after a failed login: any tech clears it once the login is fixed.
     ('/api/inventory/blocks', None, 'ports.act'),

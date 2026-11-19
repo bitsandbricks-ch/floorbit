@@ -48,9 +48,9 @@ export function SeatList({ data, filter, selected, onSelect }: {
 
   const csv = () => {
     const cell = (v: string | number) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
-    const lines = [['seat', 'state', 'problems', 'bps', ...(data.checkin ? ['checked_in'] : []), 'match', 'note']]
+    const lines = [['seat', 'state', 'problems', 'bps', ...(data.checkin ? ['checked_in'] : []), 'note']]
     for (const [seat, s] of rows) {
-      lines.push([seat, s.state, String(s.problems ?? 0), String(s.bps ?? ''), ...(data.checkin ? [s.checked_in ? 'yes' : 'no'] : []), s.match ?? '', s.note ? 'yes' : 'no'])
+      lines.push([seat, s.state, String(s.problems ?? 0), String(s.bps ?? ''), ...(data.checkin ? [s.checked_in ? 'yes' : 'no'] : []), s.note ? 'yes' : 'no'])
     }
     const url = URL.createObjectURL(new Blob([lines.map((l) => l.map(cell).join(',')).join('\n') + '\n'], { type: 'text/csv' }))
     const a = document.createElement('a')
@@ -76,7 +76,6 @@ export function SeatList({ data, filter, selected, onSelect }: {
               {head('bps', t('plan.traffic'), true)}
               {head('changed', t('plan.list.changed'))}
               {data.checkin && <Table.Th>{t('plan.checkin')}</Table.Th>}
-              <Table.Th>{t('plan.list.match')}</Table.Th>
               {head('note', t('plan.list.note'))}
             </Table.Tr>
           </Table.Thead>
@@ -96,7 +95,6 @@ export function SeatList({ data, filter, selected, onSelect }: {
                 <Table.Td ta="right">{s.bps ? rate(s.bps) : '–'}</Table.Td>
                 <Table.Td>{s.changed ? t('plan.list.ago', { count: minutesAgo(s.changed) }) : '–'}</Table.Td>
                 {data.checkin && <Table.Td>{s.checked_in ? t('plan.yes') : t('plan.no')}</Table.Td>}
-                <Table.Td>{s.match ?? '–'}</Table.Td>
                 <Table.Td>{s.note ? t('plan.yes') : '–'}</Table.Td>
               </Table.Tr>
             ))}
