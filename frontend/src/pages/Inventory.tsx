@@ -1,10 +1,10 @@
 import {
-  ActionIcon, Alert, Anchor, Badge, Box, Button, Chip, Group, Menu, Modal, MultiSelect, Pagination, Paper, Select, Switch, Table, Tabs, Text,
-  TextInput, Tooltip, UnstyledButton,
+  ActionIcon, Alert, Anchor, Badge, Box, Button, Chip, Group, Menu, Modal, MultiSelect, Select, Switch, Tabs, Text,
+  TextInput, Tooltip,
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  IconAlertTriangle, IconCategory, IconChevronDown, IconChevronUp, IconDots, IconIcons, IconLock, IconMapPin, IconPlus, IconRefresh, IconSearch,
+  IconAlertTriangle, IconCategory, IconDots, IconIcons, IconLock, IconMapPin, IconPlus, IconRefresh, IconSearch,
 } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
@@ -15,6 +15,7 @@ import { qk } from '@/api/keys'
 import { useCan, useInventory } from '@/api/queries'
 import type { Device, InventoryField, InventorySource, SyncReport } from '@/api/types'
 import { Layout } from '@/components/Layout'
+import { DataTable } from '@/components/DataTable'
 import { PageHead } from '@/components/PageHead'
 import { DeviceForm } from './inventory/DeviceForm'
 import type { ScopeTarget } from './inventory/ScopeEditor'
@@ -28,29 +29,11 @@ import { groupAndBelow, groupTree, useInventoryGroups, useInventoryTypes } from 
 import { LoadingState } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 
-const PAGE = 50
 const BIT: Record<string, string> = { online: '', offline: 'is-down', unknown: 'is-off' }
-type SortKey = 'name' | 'role' | 'group' | 'model' | 'mgmt_ip' | 'ports'
 
 function portsText(d: Device) {
   if (d.ports) return `${d.ports.up}/${d.ports.total}`
   return d.interface_count ? String(d.interface_count) : '–'
-}
-
-/** Natural order for names and addresses (sw-2 before sw-10, 198.51.100.9 before .10). */
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
-
-function sortDevices(list: Device[], sort: { key: SortKey; desc: boolean }, groups: { id: string; name: string }[]) {
-  const value = (d: Device): string | number => {
-    if (sort.key === 'group') return groups.find((g) => g.id === d.group_id)?.name ?? ''
-    if (sort.key === 'ports') return d.ports ? d.ports.up / Math.max(1, d.ports.total) : -1
-    return d[sort.key] ?? ''
-  }
-  const out = [...list].sort((a, b) => {
-    const x = value(a), y = value(b)
-    return typeof x === 'number' && typeof y === 'number' ? x - y : collator.compare(String(x), String(y))
-  })
-  return sort.desc ? out.reverse() : out
 }
 
 /** Where the inventory comes from and when it last synced, as one small chip: red when a sync failed. */
@@ -108,8 +91,6 @@ export default function Inventory() {
   const [group, setGroup] = useState<GroupFilter>(null)
   const [tagFilter, setTagFilter] = useState<string[]>([])
   const [state, setState] = useState<string | null>(null)
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'name', desc: false })
-  const [page, setPage] = useState(1)
   const [removing, setRemoving] = useState<Device | null>(null)
   const groupsQuery = useInventoryGroups()
   const overview = groupsQuery.data
@@ -182,22 +163,11 @@ export default function Inventory() {
   })
   const roleCounts = new Map<string, number>()
   for (const d of filtered) roleCounts.set(d.role, (roleCounts.get(d.role) ?? 0) + 1)
-  const devices = sortDevices(filtered.filter((d) => !role || d.role === role), sort, groups)
-  const pages = Math.max(1, Math.ceil(devices.length / PAGE))
-  const shown = devices.slice((Math.min(page, pages) - 1) * PAGE, Math.min(page, pages) * PAGE)
+  const devices = filtered.filter((d) => !role || d.role === role)
   const groupName = (id?: string | null) => groups.find((g) => g.id === id)?.name ?? ''
   const tagOf = (id: string) => overview?.tags.find((x) => x.id === id)
   const otherTypes = types.filter((x) => x.sort !== 'device' && x.count > 0)
   const deviceCount = types.find((x) => x.sort === 'device')?.count ?? all.length
-  const sortBy = (key: SortKey) => { setSort((s) => ({ key, desc: s.key === key ? !s.desc : false })); setPage(1) }
-  const th = (key: SortKey, label: string) => (
-    <Table.Th aria-sort={sort.key === key ? (sort.desc ? 'descending' : 'ascending') : undefined}>
-      <UnstyledButton onClick={() => sortBy(key)} className="fb-sort">
-        {label}{sort.key === key && (sort.desc ? <IconChevronDown size={12} /> : <IconChevronUp size={12} />)}
-      </UnstyledButton>
-    </Table.Th>
-  )
-
   // Groups, tags and the defaults have their own pages.
   const openScope = (target: ScopeTarget) => navigate(
     target.kind === 'defaults' ? '/inventory/defaults'
@@ -241,7 +211,7 @@ export default function Inventory() {
           )
         }
       />
-      <Tabs value={typeTab} onChange={(v) => { setTypeTab(v ?? 'device'); setPage(1) }} mb="md">
+      <Tabs value={typeTab} onChange={(v) => { setTypeTab(v ?? 'device') }} mb="md">
         <Tabs.List>
           <Tabs.Tab value="device" rightSection={<Text span size="xs" c="dimmed">{deviceCount}</Text>}>{t('inventory.types.devices')}</Tabs.Tab>
           {otherTypes.map((x) => (
@@ -256,8 +226,8 @@ export default function Inventory() {
       {typeTab === 'groups' && overview ? (
         <Box maw={520}>
           <GroupTree overview={overview} total={all.length} group={group} tags={tagFilter} canEdit={canEdit}
-            onGroup={(g) => { setGroup(g); setTypeTab('device'); setPage(1) }}
-            onTags={(tg) => { setTagFilter(tg); setTypeTab('device'); setPage(1) }} onEdit={openScope} />
+            onGroup={(g) => { setGroup(g); setTypeTab('device') }}
+            onTags={(tg) => { setTagFilter(tg); setTypeTab('device') }} onEdit={openScope} />
         </Box>
       ) : typeTab !== 'device' && currentType && overview ? (
         <EntriesView key={typeTab} type={currentType} overview={overview} group={group} tags={tagFilter} canEdit={canEdit} onOpen={(id) => navigate(entryPath(typeTab, id))} sourceName={sourceName} />
@@ -268,25 +238,25 @@ export default function Inventory() {
           placeholder={t('inventory.searchPlaceholder')}
           leftSection={<IconSearch size={16} />}
           value={query}
-          onChange={(e) => { setQuery(e.currentTarget.value); setPage(1) }}
+          onChange={(e) => { setQuery(e.currentTarget.value) }}
           style={{ flex: '1 1 240px', maxWidth: 360 }}
         />
         <Select aria-label={t('inventory.groups.one')} placeholder={t('inventory.anyGroup')} clearable w={170}
           data={[...groupTree(groups).map(({ group: g, depth }) => ({ value: g.id, label: `${'  '.repeat(depth)}${g.name}` })),
             ...(groups.length ? [{ value: 'none', label: t('inventory.groups.none') }] : [])]}
-          value={group} onChange={(v) => { setGroup(v); setPage(1) }} />
+          value={group} onChange={(v) => { setGroup(v) }} />
         {!!overview?.tags.length && (
           <MultiSelect aria-label={t('inventory.tags.label')} placeholder={tagFilter.length ? undefined : t('inventory.anyTag')} clearable w={200}
-            data={overview.tags.map((x) => ({ value: x.id, label: x.name }))} value={tagFilter} onChange={(v) => { setTagFilter(v); setPage(1) }} />
+            data={overview.tags.map((x) => ({ value: x.id, label: x.name }))} value={tagFilter} onChange={(v) => { setTagFilter(v) }} />
         )}
         <Select aria-label={t('inventory.state.label')} placeholder={t('inventory.state.any')} clearable w={150}
           data={(['online', 'offline', 'unknown'] as const).map((v) => ({ value: v, label: t(`inventory.state.${v}`) }))}
-          value={state} onChange={(v) => { setState(v); setPage(1) }} />
+          value={state} onChange={(v) => { setState(v) }} />
         <Switch label={t('inventory.showHidden')} checked={showHidden} onChange={(e) => setShowHidden(e.currentTarget.checked)} />
         {data && <SyncChip sources={data.sources} every={data.every} />}
       </Group>
       {data && filtered.length > 0 && (
-        <Chip.Group value={role ?? ''} onChange={(v) => { setRole((v as string) || null); setPage(1) }}>
+        <Chip.Group value={role ?? ''} onChange={(v) => { setRole((v as string) || null) }}>
           <Group gap={6} mb="sm">
             <Chip value="" size="sm" variant="outline">{t('inventory.allCount', { count: filtered.length })}</Chip>
             {[...roleCounts.entries()].sort((a, b) => b[1] - a[1]).map(([r, n]) => (
@@ -302,96 +272,75 @@ export default function Inventory() {
         </Alert>
       )}
       {data && (
-        devices.length === 0 ? (
-          <Text c="dimmed">{data.devices.length ? t('inventory.noMatch') : t('inventory.empty')}</Text>
-        ) : (
-          <>
-            <Paper withBorder>
-              <Table.ScrollContainer minWidth={860}>
-                <Table highlightOnHover verticalSpacing={8} fz="sm" className="fb-inventory-table">
-                  <Table.Thead>
-                    <Table.Tr>
-                      {th('name', t('inventory.field.name'))}
-                      {th('role', t('inventory.field.role'))}
-                      {th('group', t('inventory.groups.one'))}
-                      {th('model', t('inventory.field.model'))}
-                      {th('mgmt_ip', t('inventory.field.mgmt_ip'))}
-                      {th('ports', t('inventory.ports'))}
-                      <Table.Th>{t('inventory.fedBy')}</Table.Th>
-                      <Table.Th w={44} />
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {shown.map((d) => {
-                      const look = effectiveLook(d, groups)
-                      return (
-                        <Table.Tr key={d.id} style={d.hidden ? { opacity: 0.6 } : undefined}>
-                          <Table.Td>
-                            <Group gap={8} wrap="nowrap">
-                              <Tooltip label={t(`inventory.state.${d.state ?? 'unknown'}`)}>
-                                <span className={`fb-bit ${BIT[d.state ?? 'unknown']}`} aria-label={t(`inventory.state.${d.state ?? 'unknown'}`)} />
-                              </Tooltip>
-                              <DeviceIcon icon={look.icon || roleIcon(d.role)} color={look.color} size={20} />
-                              <Anchor component={Link} to={devicePath(d.id)} fw={600}>{d.name}</Anchor>
-                              {d.placed && (
-                                <Tooltip label={t('inventory.placed')}>
-                                  <IconMapPin size={14} className="fb-dim" aria-label={t('inventory.placed')} />
-                                </Tooltip>
-                              )}
-                              {!!d.blocked && (
-                                <Tooltip label={t('inventory.blocks.title')}>
-                                  <IconAlertTriangle size={14} className="fb-tone-err" aria-label={t('inventory.blocks.title')} />
-                                </Tooltip>
-                              )}
-                              {d.locked.length > 0 && (
-                                <Tooltip label={d.locked.map((f) => t(`inventory.field.${f}`)).join(', ')}>
-                                  <IconLock size={14} aria-label={d.locked.map((f) => t(`inventory.field.${f}`)).join(', ')} />
-                                </Tooltip>
-                              )}
-                              {(d.tags ?? []).map((tid) => tagOf(tid) && (
-                                <Badge key={tid} size="xs" tt="none" variant="light" color={tagOf(tid)?.color || 'gray'}>{tagOf(tid)?.name}</Badge>
-                              ))}
-                            </Group>
-                          </Table.Td>
-                          <Table.Td>{t(`inventory.role.${d.role}`, { defaultValue: d.role })}</Table.Td>
-                          <Table.Td>{groupName(d.group_id)}</Table.Td>
-                          <Table.Td>{d.model}</Table.Td>
-                          <Table.Td ff="monospace">{d.mgmt_ip}</Table.Td>
-                          <Table.Td ff="monospace">{portsText(d)}</Table.Td>
-                          <Table.Td>
-                            <Group gap={4} wrap="nowrap">
-                              {d.sources.length === 0 && <Badge variant="outline" color="gray" tt="none">{t('inventory.manual')}</Badge>}
-                              {d.sources.map((src) => <Badge key={src} variant="light" color="trace" tt="none">{sourceName(src)}</Badge>)}
-                              {d.gone.map((src) => <Badge key={`gone-${src}`} variant="light" color="warn" tt="none">{t('inventory.gone', { source: sourceName(src) })}</Badge>)}
-                              {d.hidden && <Badge variant="outline" color="gray" tt="none">{t('inventory.hidden')}</Badge>}
-                            </Group>
-                          </Table.Td>
-                          <Table.Td>
-                            <Menu position="bottom-end">
-                              <Menu.Target>
-                                <ActionIcon variant="subtle" color="gray" aria-label={t('inventory.rowMenu', { name: d.name })}><IconDots size={16} /></ActionIcon>
-                              </Menu.Target>
-                              <Menu.Dropdown>
-                                <Menu.Item component={Link} to={devicePath(d.id)}>{t('inventory.open')}</Menu.Item>
-                                {canEdit && (d.hidden
-                                  ? <Menu.Item onClick={() => unhide.mutate(d)}>{t('inventory.unhide')}</Menu.Item>
-                                  : <Menu.Item color="down" onClick={() => setRemoving(d)}>{d.sources.length ? t('inventory.hide') : t('inventory.delete')}</Menu.Item>)}
-                              </Menu.Dropdown>
-                            </Menu>
-                          </Table.Td>
-                        </Table.Tr>
-                      )
-                    })}
-                  </Table.Tbody>
-                </Table>
-              </Table.ScrollContainer>
-            </Paper>
-            <Group justify="space-between" mt="sm">
-              <Text size="sm" c="dimmed">{t('inventory.count', { count: devices.length })}</Text>
-              {pages > 1 && <Pagination size="sm" total={pages} value={Math.min(page, pages)} onChange={setPage} />}
-            </Group>
-          </>
-        )
+        <DataTable
+          label={t('inventory.title')}
+          rows={devices}
+          rowKey={(d) => d.id}
+          defaultSort={{ id: 'name' }}
+          minWidth={860}
+          rowStyle={(d) => (d.hidden ? { opacity: 0.6 } : undefined)}
+          empty={<Text c="dimmed">{data.devices.length ? t('inventory.noMatch') : t('inventory.empty')}</Text>}
+          count={(n) => t('inventory.count', { count: n })}
+          columns={[
+            { id: 'name', header: t('inventory.field.name'), sort: (d) => d.name, cell: (d) => {
+              const look = effectiveLook(d, groups)
+              return (
+                <Group gap={8} wrap="nowrap">
+                  <Tooltip label={t(`inventory.state.${d.state ?? 'unknown'}`)}>
+                    <span className={`fb-bit ${BIT[d.state ?? 'unknown']}`} aria-label={t(`inventory.state.${d.state ?? 'unknown'}`)} />
+                  </Tooltip>
+                  <DeviceIcon icon={look.icon || roleIcon(d.role)} color={look.color} size={20} />
+                  <Anchor component={Link} to={devicePath(d.id)} fw={600}>{d.name}</Anchor>
+                  {d.placed && (
+                    <Tooltip label={t('inventory.placed')}>
+                      <IconMapPin size={14} className="fb-dim" aria-label={t('inventory.placed')} />
+                    </Tooltip>
+                  )}
+                  {!!d.blocked && (
+                    <Tooltip label={t('inventory.blocks.title')}>
+                      <IconAlertTriangle size={14} className="fb-tone-err" aria-label={t('inventory.blocks.title')} />
+                    </Tooltip>
+                  )}
+                  {d.locked.length > 0 && (
+                    <Tooltip label={d.locked.map((f) => t(`inventory.field.${f}`)).join(', ')}>
+                      <IconLock size={14} aria-label={d.locked.map((f) => t(`inventory.field.${f}`)).join(', ')} />
+                    </Tooltip>
+                  )}
+                  {(d.tags ?? []).map((tid) => tagOf(tid) && (
+                    <Badge key={tid} size="xs" tt="none" variant="light" color={tagOf(tid)?.color || 'gray'}>{tagOf(tid)?.name}</Badge>
+                  ))}
+                </Group>
+              )
+            } },
+            { id: 'role', header: t('inventory.field.role'), sort: (d) => t(`inventory.role.${d.role}`, { defaultValue: d.role }),
+              cell: (d) => t(`inventory.role.${d.role}`, { defaultValue: d.role }) },
+            { id: 'group', header: t('inventory.groups.one'), sort: (d) => groupName(d.group_id), cell: (d) => groupName(d.group_id), hideOnPhone: true },
+            { id: 'model', header: t('inventory.field.model'), sort: (d) => d.model ?? '', cell: (d) => d.model, hideOnPhone: true },
+            { id: 'mgmt_ip', header: t('inventory.field.mgmt_ip'), sort: (d) => d.mgmt_ip ?? '', cell: (d) => d.mgmt_ip, mono: true, hideOnPhone: true },
+            { id: 'ports', header: t('inventory.ports'), sort: (d) => (d.ports ? d.ports.up / Math.max(1, d.ports.total) : -1), cell: portsText, mono: true },
+            { id: 'source', header: t('inventory.fedBy'), hideOnPhone: true, cell: (d) => (
+              <Group gap={4} wrap="nowrap">
+                {d.sources.length === 0 && <Badge variant="outline" color="gray" tt="none">{t('inventory.manual')}</Badge>}
+                {d.sources.map((src) => <Badge key={src} variant="light" color="trace" tt="none">{sourceName(src)}</Badge>)}
+                {d.gone.map((src) => <Badge key={`gone-${src}`} variant="light" color="warn" tt="none">{t('inventory.gone', { source: sourceName(src) })}</Badge>)}
+                {d.hidden && <Badge variant="outline" color="gray" tt="none">{t('inventory.hidden')}</Badge>}
+              </Group>
+            ) },
+            { id: 'menu', header: null, width: 44, cell: (d) => (
+              <Menu position="bottom-end">
+                <Menu.Target>
+                  <ActionIcon variant="subtle" color="gray" aria-label={t('inventory.rowMenu', { name: d.name })}><IconDots size={16} /></ActionIcon>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item component={Link} to={devicePath(d.id)}>{t('inventory.open')}</Menu.Item>
+                  {canEdit && (d.hidden
+                    ? <Menu.Item onClick={() => unhide.mutate(d)}>{t('inventory.unhide')}</Menu.Item>
+                    : <Menu.Item color="down" onClick={() => setRemoving(d)}>{d.sources.length ? t('inventory.hide') : t('inventory.delete')}</Menu.Item>)}
+                </Menu.Dropdown>
+              </Menu>
+            ) },
+          ]}
+        />
       )}
       </>)}
       <Modal opened={!!removing} onClose={() => setRemoving(null)} centered

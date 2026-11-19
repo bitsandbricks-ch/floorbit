@@ -105,6 +105,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   what exists: `EntitySelect`, `ConfirmButton`/`ConfirmIcon`, `DateTimeInput`, `PageTabs`,
   `SidePanel`, `StatCard`, the telemetry components. New visual blocks become shared components or
   widgets.
+- **One table.** Every table is `DataTable` (`frontend/src/components/DataTable.tsx`): sorting,
+  paging, the empty state and the count, with the view kept in the address. The dashboard's table
+  widget wraps the same component; pages never embed widgets. Fix it once and every table follows
+  (#1015).
 - **Where code goes:** a new API area is a blueprint, a new page is a React page with English and
   German texts, a new editor feature is a file in `frontend/src/pages/plan/edit/`, new on-plan data is
   a layer. Prefer a new file per feature over growing a shared one.

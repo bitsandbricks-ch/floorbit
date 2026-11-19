@@ -16,7 +16,7 @@ The **Inventory** page is one list with a tab per type (Devices, then any other 
 entries) and a **Groups and tags** tab. The device list shows each device's live state (the status
 monitor's dot), its role, group, model, management IP, how many of its ports are up (from the last
 read of the placed switches) and which plugin feeds it. Every column sorts; search, group, tag,
-state and role filter it, 50 rows to a page. A small chip next to the filters says when the
+state and role filter it, 50 rows to a page, and the sort and page stay in the address (`?sort=-ports&page=2`). A small chip next to the filters says when the
 plugins last synced (red when a sync failed; hover for each plugin and the schedule). Picking a
 group or tag on the Groups and tags tab goes back to the list, filtered.
 
