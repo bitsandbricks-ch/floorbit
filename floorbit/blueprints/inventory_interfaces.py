@@ -36,6 +36,8 @@ def detail(data, dev):
     out['blocks'] = inventory_scope.blocks(data, dev['id'])
     out['runs_here'] = runs_here(data, dev)
     out['connected'] = connected(data, dev)
+    from .. import inventory_discovery
+    out['drift'] = inventory_discovery.drift_of(data, dev['id'])
     return out
 
 

@@ -358,6 +358,10 @@
       "label": "Inventory sync (minutes)",
       "help": "How often the inventory plugins (NetBox) are synced on their own, 5 or more. 0 is off: only Sync now."
     },
+    "integrations_discovery_minutes": {
+      "label": "Discovery (minutes)",
+      "help": "How often inventory devices are filled from the monitoring source (model, serial, software, memory, disks, location, interfaces), 5 or more. Values set by hand stay. 0 is off: only Sync now."
+    },
     "integrations_public_url": {
       "label": "Public URL",
       "help": "Where people open the floor plan; used for links in alerts."

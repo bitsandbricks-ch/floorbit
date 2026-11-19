@@ -358,6 +358,10 @@
       "label": "Inventar-Sync (Minuten)",
       "help": "Wie oft die Inventar-Plugins (NetBox) von selbst synchronisiert werden, 5 oder mehr. 0 heisst aus: nur «Jetzt synchronisieren»."
     },
+    "integrations_discovery_minutes": {
+      "label": "Discovery (Minuten)",
+      "help": "Wie oft Inventar-Geräte aus der Monitoring-Quelle gefüllt werden (Modell, Seriennummer, Software, Speicher, Disks, Standort, Schnittstellen), 5 oder mehr. Von Hand gesetzte Werte bleiben. 0 heisst aus: nur «Jetzt synchronisieren»."
+    },
     "integrations_public_url": {
       "label": "Öffentliche URL",
       "help": "Wo man den Hallenplan öffnet; für Links in Meldungen."

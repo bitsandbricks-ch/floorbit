@@ -3,6 +3,7 @@
 Every ``INVENTORY_SYNC_MINUTES`` the cluster's leader runs the same sync as **Sync now**, so a
 switch added in NetBox shows up without anyone pressing the button. Off (0) by default. The clock
 counts from the newest sync in the log, by hand or not, so a sync someone just ran isn't repeated.
+The same loop runs discovery (inventory_discovery.py) on its own clock, on by default.
 """
 import calendar
 import threading
@@ -72,6 +73,8 @@ def _loop(app, stop):
             if cluster.leading():   # several pods sync once
                 with app.app_context():
                     tick()
+                    from . import inventory_discovery
+                    inventory_discovery.tick()
         except Exception as exc:  # noqa: BLE001  # the loop must outlive one bad sync
             print(f'[inventory] scheduled sync failed: {exc}')
 

@@ -129,6 +129,7 @@ export function DeviceForm({
             {field('mgmt_ip', { mono: true, placeholder: '192.0.2.10' })}
             {field('hall')}
           </Group>
+          {field('location')}
           <Select
             label={t('inventory.field.status')}
             data={[

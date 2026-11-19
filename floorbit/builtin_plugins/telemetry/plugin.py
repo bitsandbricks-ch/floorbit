@@ -72,10 +72,12 @@ class Plugin(Base):
             return []
         with state._lock:
             found = list(state.devices.values())
+            facts = {d.name: d.summary() for d in found}
         problems = _problems()
+        # facts: what the device said it is, for discovery (floorbit/inventory_discovery.py).
         out = [{'hostname': d.name, 'display': d.name, 'sysName': d.sys_name or d.name, 'ip': d.address,
                 'status': 1 if d.online() else 0, 'source': 'telemetry', 'driver': d.driver, 'kind': d.kind,
-                'seen': d.seen or None, 'problems': problems.pop(d.name, []), **_counts(d)}
+                'seen': d.seen or None, 'problems': problems.pop(d.name, []), 'facts': facts[d.name], **_counts(d)}
                for d in sorted(found, key=lambda d: d.name)]
         # A device that never sent anything has no picture yet, but may well have a problem.
         out += [{'hostname': name, 'display': name, 'sysName': name, 'ip': rows[0].get('address') or '',

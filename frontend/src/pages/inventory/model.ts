@@ -4,7 +4,7 @@ export type Draft = Record<InventoryField, string>
 
 const EMPTY: Draft = {
   name: '', role: 'switch', model: '', serial: '', mgmt_ip: '', hall: '', status: '', notes: '',
-  platform: '', os: '', cpu: '', cores: '', memory_mb: '', disk_gb: '', host: '',
+  platform: '', os: '', cpu: '', cores: '', memory_mb: '', disk_gb: '', host: '', location: '',
 }
 
 /** Roles whose specs (platform, OS, CPU, memory, ...) the form shows without asking. */
@@ -28,7 +28,7 @@ export function matches(device: Device, query: string, role: string | null) {
   if (role && device.role !== role) return false
   const q = query.trim().toLowerCase()
   if (!q) return true
-  return [device.name, device.model, device.serial, device.mgmt_ip, device.hall, device.status, device.notes, device.platform, device.os, device.host]
+  return [device.name, device.model, device.serial, device.mgmt_ip, device.hall, device.status, device.notes, device.platform, device.os, device.host, device.location]
     .some((v) => (v || '').toLowerCase().includes(q))
 }
 
