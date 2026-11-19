@@ -70,8 +70,18 @@ the address and looks for that MAC in the switches' MAC tables (or the monitorin
   blocked for about 30 seconds after the cable goes in.
 - **Wi-Fi off.** The laptop's address must be the one on the cable. With `CHECKIN_ALLOWED_NETWORKS`
   set, the page refuses addresses outside the seat networks.
-- **A local agent** with its captive port on and its address in the hall set, or the laptop's MAC
-  typed in.
+- **A local agent** in the hall, or the laptop's MAC typed in.
+
+## Walking with several people
+
+Pick your rows and press **Start**. The page then watches for the cable: plug it into the seat's
+socket and the page finds the port on its own and moves on to the next seat. There is no Locate
+button to press while it watches (it stays for a manual retry after five minutes without a port).
+
+Several people can walk at once, each with their own rows. The page lists every row in the hall with
+how many of its seats have a port, who walks it and at which seat they are now. A row someone else
+walks can't be started twice; **Take them over** moves those rows to you, for when the other walker
+left without stopping. A walk that has not said where it is for ten minutes counts as ended.
 
 ## Per event, cleared a day after
 

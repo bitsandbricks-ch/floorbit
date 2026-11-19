@@ -1365,7 +1365,14 @@ export interface SeatWalkInfo {
   agent_url: string | null; through_agent?: boolean; switch_lookup: boolean; monitoring: boolean; keep_hours: number
   event: { id: string; name: string; status: string }
   rows?: string[]; row_names?: string[]; seats?: { seat: string; port: WalkPort | null }[]
+  /** Every hall row: how far the walk got and who walks it now (#1000). */
+  hall?: WalkHallRow[]
 }
+export interface WalkHallRow {
+  id: string; name: string; block_label: string; naming: string; seats: number; found: number
+  walker: { id: string; who: string; seat: string | null } | null
+}
+export interface SeatWalker { id: string; who: string; rows: string[]; seat: string | null }
 /** ip: the page came through an agent, the laptop is known at once; else url: the agent to open once. */
 export interface SeatWalkHello { hello: string; url?: string; ip?: string }
 export interface SeatLocated {

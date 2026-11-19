@@ -897,6 +897,9 @@ Source: [`floorbit/blueprints/seat_walk.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/seat-walk/hello` | `seats.edit` |  |
 | GET | `/api/seat-walk/hello/<token>` | `seats.view` |  |
 | POST | `/api/seat-walk/locate` | `seats.edit` |  |
+| POST | `/api/seat-walk/walkers` | `seats.edit` |  |
+| DELETE | `/api/seat-walk/walkers/<walker_id>` | `seats.edit` |  |
+| PUT | `/api/seat-walk/walkers/<walker_id>` | `seats.edit` |  |
 
 ## floorbit.blueprints.security
 

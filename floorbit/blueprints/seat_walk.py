@@ -12,6 +12,10 @@
   for about 20 seconds; ``retry`` says whether trying again is worth it. Or ``mac`` with ``mac_typed``:
   the crew typed the laptop's MAC, no agent needed.
 - ``DELETE /api/seat-walk/<seat>``: forget the seat's port (a wrong one).
+- ``POST /api/seat-walk/walkers``: ``{"rows", "take"}``: start walking these rows (409 with ``held``
+  when someone else walks one, unless ``take``). ``PUT /api/seat-walk/walkers/<id>``: ``{"seat"}``:
+  where the walker is now (and that they still are). ``DELETE``: the walk ends. The overview's
+  ``hall`` lists every row with its progress and walker (floorbit/seat_walkers.py, issue #1000).
 
 The laptop is always identified through the local agent, also when Floorbit runs in the hall: the
 agent sees the laptop's own address, Floorbit may see a proxy's or the hall's public one.
@@ -20,9 +24,9 @@ Reading needs ``seats.view`` (it names the laptop's MAC), changing ``seats.edit`
 """
 from flask import Blueprint, current_app, g, jsonify, request
 
-from integrations import checkin
+from integrations import checkin, events
 
-from .. import seat_walk, sources, spa, tenancy
+from .. import seat_walk, seat_walkers, sources, spa, tenancy
 from ..store import load_data
 
 bp = Blueprint('seat_walk', __name__)
@@ -50,6 +54,7 @@ def overview():
             'monitoring': sources.monitoring().enabled(),
             'event': {k: tenancy.current().get(k) for k in ('id', 'name', 'status')},
             'keep_hours': seat_walk.KEEP_AFTER_END // 3600}
+    body['hall'] = seat_walkers.hall(load_data(), checkin.learned_ports())
     rows = [r for r in (request.args.get('rows') or '').split(',') if r.strip()]
     if rows:
         try:
@@ -132,4 +137,46 @@ def get_hello(token):
 def forget(seat):
     if not checkin.forget_port(seat.strip().upper()):
         return jsonify({'error': 'That seat has no learned port'}), 404
+    return jsonify({'ok': True})
+
+
+def _walk_error(exc):
+    body = {'error': str(exc)}
+    if exc.held:
+        body['held'] = exc.held
+    return jsonify(body), exc.status
+
+
+@bp.route('/api/seat-walk/walkers', methods=['POST'])
+def start_walk():
+    body = request.get_json(silent=True) or {}
+    rows = body.get('rows') if isinstance(body.get('rows'), list) else []
+    from ..seat_names import pick_rows
+    try:
+        pick_rows(load_data(), rows)
+    except ValueError:
+        return jsonify({'error': 'That row is not on the floor plan any more.'}), 404
+    try:
+        walker = seat_walkers.claim(rows, _who(), take=bool(body.get('take')))
+    except seat_walkers.ClaimError as exc:
+        return _walk_error(exc)
+    events.publish('seat-walk.changed', {})
+    return jsonify(walker), 201
+
+
+@bp.route('/api/seat-walk/walkers/<walker_id>', methods=['PUT'])
+def walker_at(walker_id):
+    body = request.get_json(silent=True) or {}
+    try:
+        walker = seat_walkers.at_seat(walker_id, body.get('seat'))
+    except seat_walkers.ClaimError as exc:
+        return _walk_error(exc)
+    events.publish('seat-walk.changed', {})
+    return jsonify(walker)
+
+
+@bp.route('/api/seat-walk/walkers/<walker_id>', methods=['DELETE'])
+def end_walk(walker_id):
+    seat_walkers.release(walker_id)
+    events.publish('seat-walk.changed', {})
     return jsonify({'ok': True})
