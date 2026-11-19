@@ -77,7 +77,7 @@ def _health(muted):
                      else f"{c['name']}: {'down' if c['status'] == 'down' else 'needs a look'}")
             out.append({'id': key, 'kind': 'health', 'level': c['status'],
                         'title': title,
-                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/health',
+                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/services',
                         'mute_id': key, 'name': c['name'], 'muted': _muted(muted.get(key))})
     return out
 

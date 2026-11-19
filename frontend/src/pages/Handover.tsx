@@ -169,7 +169,7 @@ export default function Handover() {
                 <Stack gap={6}>
                   {d.mutes.map((m) => (
                     <Group key={`${m.kind}-${m.name}`} gap="sm" wrap="nowrap" align="baseline">
-                      <Anchor href={m.kind === 'health' ? '/health' : `/plan?switch=${encodeURIComponent(m.name)}`} fw={600} style={{ whiteSpace: 'nowrap' }}>{m.name}</Anchor>
+                      <Anchor href={m.kind === 'health' ? '/services' : `/plan?switch=${encodeURIComponent(m.name)}`} fw={600} style={{ whiteSpace: 'nowrap' }}>{m.name}</Anchor>
                       <Text size="sm" style={{ flex: 1, overflowWrap: 'anywhere' }}>
                         {t('handover.mutedUntil', { until: when(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}
                       </Text>
