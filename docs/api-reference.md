@@ -1078,21 +1078,6 @@ Source: [`floorbit/blueprints/topology.py`](https://github.com/bitsandbricks-ch/
 | PUT | `/api/links/layout` | `floorplan.edit` |  |
 | GET | `/api/links/ports` | `floorplan.edit` |  |
 
-## floorbit.blueprints.tournament
-
-Tournament awareness (issue #31): match zones and QoS hints. Rules in floorbit/tournament.py.
-
-Source: [`floorbit/blueprints/tournament.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/tournament.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/tournament` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `tournament` |
-| GET | `/api/tournament/qos` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `tournament` |
-| GET | `/api/tournament/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `tournament` |
-| POST | `/api/tournament/zones` | `floorplan.edit` | `tournament` |
-| DELETE | `/api/tournament/zones/<zone_id>` | `floorplan.edit` | `tournament` |
-| PATCH | `/api/tournament/zones/<zone_id>` | `floorplan.edit` | `tournament` |
-
 ## floorbit.blueprints.webhooks
 
 Outgoing webhooks (issue #40). Rules in floorbit/webhooks.py, docs in docs/api.md#webhooks.

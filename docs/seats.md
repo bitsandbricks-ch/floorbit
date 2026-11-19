@@ -157,7 +157,6 @@ theme and for colour-blind eyes:
 | Dashed outline | **Unknown:** there is no recent port read, or Floorbit doesn't know its port yet. |
 | Cyan corner | **Checked in** (only with [seat check-in](integrations.md#seat-check-in-page) on). |
 | Red "!" | An open incident at the seat, or port trouble from the needs-attention list. |
-| Amber frame | A **match seat**: the seat is in a [match zone](tournament.md). |
 
 A port read counts as recent for three needs-attention intervals (`ATTENTION_INTERVAL`, 2 minutes
 by default). After that every seat is unknown and the page says so, rather than showing seats as
@@ -187,7 +186,7 @@ A block where a quarter of its seats or more have problems (two at least) gets a
 every zoom level. That many at once usually has one cause, such as the block's switch or its power.
 
 **Show** dims every seat except the ones with problems, offline seats, seats that changed lately,
-match seats, seats with a note or checked-in seats. Each choice shows how many seats it matches in
+seats with a note or checked-in seats. Each choice shows how many seats it matches in
 this hall, so "Offline 0" answers the question without a click. The **with problems** count above
 the plan is a shortcut: click it to show only those seats, and again to show all. The choice is kept in the address
 (`/plan?show=offline`), so a reload or a link sent to another tech keeps it, and switching halls does too. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
@@ -249,7 +248,7 @@ itself never carries names.
 ## List
 
 **Map / List** switches the plan for a table of the hall's seats: seat, state, problems, traffic,
-check-in, match zone and whether the crew left a note. Click a column to sort (problems, traffic and
+check-in and whether the crew left a note. Click a column to sort (problems, traffic and
 notes start with the most), and the
 **Show** filter applies here too, so "every offline seat" is two clicks. Click a seat to open the
 inspector. **CSV** downloads what the list shows. `/plan?view=list` opens the page as a list; it is
@@ -258,7 +257,7 @@ also the plain way through the hall for screen readers and small phones.
 ## The inspector
 
 Clicking a seat opens one panel with everything about it: state, block, switch and port, traffic
-now, check-in, match zone, open incidents and needs-attention items, how often an incident was
+now, check-in, open incidents and needs-attention items, how often an incident was
 fixed at the seat before (with the latest one), and links to the seat in the editor and to its
 incidents (the board filtered to the seat, `/incidents?q=seat:D-6`). A seat that keeps breaking usually has a cable or port
 to swap. On a phone it opens from the bottom.
@@ -282,8 +281,7 @@ marked, so a slow result from before a cable swap isn't read as slow now.
 Techs can act from the panel too, with the same rules as the editor:
 
 - **Bounce port** (needs `ports.act` and a port actions plugin, see [Port actions](ports.md)):
-  asks for the tech's own switch login when the plugin needs one, never stores it, and asks again
-  for a match seat.
+  asks for the tech's own switch login when the plugin needs one and never stores it.
 - **Flag for a tech** (needs `incidents.work`): opens a "Tech visit" incident at the seat with a
   note, like the editor's flag.
 

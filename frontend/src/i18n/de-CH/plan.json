@@ -17,7 +17,6 @@
     "problems": "Probleme",
     "offline": "Offline",
     "recent": "Kürzlich geändert",
-    "match": "Matchplätze",
     "note": "Mit Notiz",
     "checked_in": "Eingecheckt"
   },
@@ -59,7 +58,6 @@
   "checkedIn": "Eingecheckt",
   "problemsN_one": "{{count}} Problem",
   "problemsN_other": "{{count}} Probleme",
-  "matchIn": "Match: {{zone}}",
   "legend": "Legende",
   "legendItem": {
     "online": "Online: Port aktiv",
@@ -67,7 +65,6 @@
     "unknown": "Unbekannt: keine aktuelle Abfrage oder Port nicht bekannt",
     "checkedIn": "Eingecheckt",
     "problem": "Offenes Problem",
-    "match": "Matchplatz",
     "recent": "Verbindung in den letzten 15 Minuten geändert",
     "note": "Crew-Notiz"
   },
@@ -126,7 +123,6 @@
     "label": "Plätze",
     "seat": "Platz",
     "state": "Zustand",
-    "match": "Match",
     "count_one": "{{count}} Platz",
     "count_other": "{{count}} Plätze",
     "changed": "Geändert",

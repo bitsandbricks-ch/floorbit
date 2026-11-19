@@ -132,15 +132,12 @@ def _forecast():
 
 
 def _attention():
-    from .tournament import match_seats
     watch = current_app.extensions.get('floorbit_attention')
-    match = match_seats()
     out = []
     for a in (watch.snapshot()['items'] if watch else []):
         link = _on_plan(seat=a.get('seat'), switch=a.get('switch') or a['switch_id'])
         out.append({'id': f"attention:{a['id']}", 'kind': a['kind'], 'level': 'warn', 'title': a['title'],
-                    'where': a['where'], 'since': a['since'], 'link': link, 'switch_id': a['switch_id'],
-                    'match': match.get(a.get('seat') or '')})
+                    'where': a['where'], 'since': a['since'], 'link': link, 'switch_id': a['switch_id']})
     return out
 
 
@@ -148,12 +145,10 @@ def _logs(may_see_people):
     """Syslog lines that matched a known pattern (floorbit/log_alerts.py), as port trouble."""
     from . import features, inventory
     from .store import load_data
-    from .tournament import match_seats
     receiver = current_app.extensions.get('floorbit_syslog')
     if not receiver or not features.on('syslog'):
         return []
     by_name = {d['name'].lower(): d['id'] for d in inventory.devices(load_data())}
-    match = match_seats()
     out = []
     for a in receiver.alert_items():
         switch_id = by_name.get(a['device'].lower())
@@ -165,7 +160,7 @@ def _logs(may_see_people):
         else:
             link = _on_plan(seat=a['seat'], switch=a['device']) if a['seat'] or switch_id else ''
         out.append({'id': a['id'], 'kind': 'log', 'level': 'warn', 'title': title, 'where': where,
-                    'since': a['since'], 'link': link, 'switch_id': switch_id, 'match': match.get(a['seat'] or '')})
+                    'since': a['since'], 'link': link, 'switch_id': switch_id})
     return out
 
 
@@ -181,9 +176,7 @@ def current(may_see_people):
               'muted': sum(bool(p.get('muted')) for p in items)}
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
-    # Match seats (issue #31) first: a tournament player losing their link can't wait.
-    attention = sorted(_attention() + _logs(may_see_people), key=lambda p: (not p.get('match'), -(p['since'] or 0)))
-    counts['match'] = sum(bool(p.get('match')) for p in attention)
+    attention = sorted(_attention() + _logs(may_see_people), key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
     mutes = [{'switch_id': k, 'kind': 'health' if k.startswith(alerting.service_key('')) else 'switch', **v}
              for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]

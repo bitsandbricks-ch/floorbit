@@ -8,7 +8,7 @@ is in `integrations/crew.py` and `floorbit/blueprints/crew.py` (issue #32).
 ## What it does
 
 - **New incident:** a message with what is wrong, where (seat, switch or circuit), the team, the
-  status and, on a [match seat](tournament.md), the zone. A thread opens under it, named after the
+  status. A thread opens under it, named after the
   place and the title. The first note goes into the thread.
 - **Changes:** the message is edited to show the new status and who has the incident. The thread gets
   one line per change: someone took it, it was sent to a tech ([dispatch](dispatch.md)), it is back

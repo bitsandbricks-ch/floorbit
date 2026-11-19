@@ -43,10 +43,8 @@ def test_an_old_read_says_unknown(client, hall):
     assert out["monitoring"] is False and {s["state"] for s in out["seats"].values()} == {"unknown"}
 
 
-def test_match_zone_and_checkin(client, hall, monkeypatch):
-    client.post("/api/tournament/zones", json={"name": "Main stage", "seats": "D-1..D-4"})
+def test_checkin_off(client, hall, monkeypatch):
     out = client.get("/api/plan").get_json()
-    assert out["seats"]["D-2"]["match"] == "Main stage" and "match" not in out["seats"]["D-6"]
     assert out["checkin"] is False
 
 
