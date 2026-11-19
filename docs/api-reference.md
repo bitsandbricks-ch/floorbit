@@ -162,6 +162,9 @@ Source: [`floorbit/blueprints/cables.py`](https://github.com/bitsandbricks-ch/fl
 | POST | `/api/cables/block` | `floorplan.edit` | `cables` |
 | GET | `/api/cables/check` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
 | GET | `/api/cables/clients` | `seats.view` | `cables` |
+| GET | `/api/cables/clients/ignored` | `seats.view` | `cables` |
+| POST | `/api/cables/clients/ignored` | `floorplan.edit` | `cables` |
+| DELETE | `/api/cables/clients/ignored/<mac>` | `floorplan.edit` | `cables` |
 | POST | `/api/cables/import` | `floorplan.edit` | `cables` |
 | GET | `/api/cables/labels.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
 | GET | `/api/cables/walk` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
