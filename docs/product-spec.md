@@ -45,6 +45,7 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 | **One database layer** | SQLite by default, Postgres for bigger or hosted installs, same migrations. No JSON-file backend. See [database.md](database.md). |
 | **Valkey for cache and live only** | Durable data goes to the database; Valkey holds cache, live updates and pub/sub (env stays `REDIS_*`). |
 | **Agent plugins configured from the app** | The agent reads no plugin settings from its own env; the hosted side hands them over. |
+| **Agent settings from the app, env wins** | An agent's own settings are set on its page in Floorbit; a value its own env sets wins and the page shows each value's source. Its safety limits (actions, plugin updates, networks it may reach) are env-only, so a stolen login can't widen them. Floorbit rolls keys (the agent fetches them) and signs agent certificates with its own CA; private keys stay on the agent. |
 
 ### Building blocks
 

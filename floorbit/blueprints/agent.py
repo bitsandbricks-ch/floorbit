@@ -168,9 +168,9 @@ def ca_certificate():
 @bp.route('/api/agents/<agent_id>/settings', methods=['GET'])
 def settings_page(agent_id):
     """The agent's Settings tab: its settings, this agent's plugin settings, key and certificate."""
-    from .. import agent_settings
+    from .. import agent_settings, i18n
     try:
-        return jsonify(agent_settings.page(agent_id))
+        return jsonify(agent_settings.page(agent_id, lang=i18n.language(request.headers.get('Accept-Language'))))
     except agent_link.AgentError as exc:
         return jsonify({'error': str(exc)}), exc.status
 
@@ -189,7 +189,8 @@ def settings_change(agent_id):
                      fields=changed)
         agent_plugins.reload_agents()
         events.publish('agents.changed', {})
-    return jsonify(agent_settings.page(agent_id))
+    from .. import i18n
+    return jsonify(agent_settings.page(agent_id, lang=i18n.language(request.headers.get('Accept-Language'))))
 
 
 @bp.route('/api/agents/<agent_id>/roll', methods=['POST'])

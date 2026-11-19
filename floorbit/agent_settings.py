@@ -40,6 +40,10 @@ FIELDS = [
     {'key': 'vrrp_id', 'env': 'FLOORBIT_AGENT_VRRP_ID', 'type': 'int', 'default': 51, 'min': 1, 'max': 255,
      'restart': True},
     {'key': 'vrrp_peers', 'env': 'FLOORBIT_AGENT_VRRP_PEERS', 'type': 'ips', 'default': [], 'restart': True},
+    {'key': 'log_level', 'env': 'FLOORBIT_AGENT_LOG_LEVEL', 'type': 'choice', 'default': 'info',
+     'options': ['debug', 'info', 'warning', 'error'], 'restart': False},
+    {'key': 'log_summary', 'env': 'FLOORBIT_AGENT_LOG_SUMMARY', 'type': 'int', 'default': 300,
+     'min': 0, 'max': 86400, 'restart': True},
 ]
 BY_KEY = {f['key']: f for f in FIELDS}
 # Only the agent's own environment sets these; Floorbit shows what the agent reports.
@@ -85,6 +89,10 @@ def clean(field, raw):
                 raise AgentError(f'{key}: "{item[:60]}" is not valid.') from None
         return items
     val = str(raw).strip()
+    if t == 'choice':
+        if val not in field['options']:
+            raise AgentError(f"{key} must be one of {', '.join(field['options'])}.")
+        return val
     if '\n' in val or '\x00' in val or len(val) > 300:
         raise AgentError(f'{key} is not valid.')
     if t == 'url' and not re.match(r'^https?://[A-Za-z0-9.:\[\]-]{1,120}(/[^\s]{0,60})?$', val):
@@ -217,7 +225,7 @@ def update(agent_id, settings=None, plugins=None, registry=None):
     return found['name'], changed
 
 
-def page(agent_id, registry=None):
+def page(agent_id, registry=None, lang='en'):
     """What the agent's Settings tab shows: the fields, Floorbit's values, each plugin's default and
     this agent's overrides. Where each value really comes from is in the agent's report."""
     from . import agent_plugins
@@ -228,11 +236,15 @@ def page(agent_id, registry=None):
     specs = {s.id: s for s in agent_plugins.agent_specs(registry)}
     for pid, fields in plugin_fields(registry).items():
         defaults = registry.settings_of(specs[pid]) if pid in specs else {}
+        spec = specs.get(pid)
+
+        def text(value, spec=spec):
+            return registry.text(spec, value, lang) if spec is not None and isinstance(value, str) else value
         plugins.append({
-            'id': pid, 'name': specs[pid].name if pid in specs else pid,
-            'fields': [{'key': f['key'].split('.', 2)[2], 'label': f['label'], 'type': f['type'],
-                        'help': f.get('help'), 'min': f.get('min'), 'max': f.get('max'),
-                        'options': f.get('options'), 'placeholder': f.get('placeholder'),
+            'id': pid, 'name': text(spec.name) if spec else pid,
+            'fields': [{'key': f['key'].split('.', 2)[2], 'label': text(f['label']), 'type': f['type'],
+                        'help': text(f.get('help')), 'min': f.get('min'), 'max': f.get('max'),
+                        'options': f.get('options'), 'placeholder': text(f.get('placeholder')),
                         'default': defaults.get(f['key'].split('.', 2)[2])} for f in fields],
             'values': theirs.get(pid, {}),
         })
