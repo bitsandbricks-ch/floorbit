@@ -50,8 +50,9 @@
   "count": {
     "checkedIn": "Checked in",
     "pins": "{{used}} of {{total}} seat PINs used",
+    "pinsNone": "No seat cards with PINs yet",
     "verified": "Port found",
-    "learned": "{{count}} seats with a learned port",
+    "learned": "{{count}} seat ports learned from check-ins",
     "pending": "Looking for the port",
     "pendingSub": "{{count}} gave up after 15 min",
     "notWired": "Not wired",

@@ -97,7 +97,7 @@ export default function Checkins() {
           <>
             <div className="fb-stat-row">
               <StatCard label={t('crewCheckin.count.checkedIn')} value={num(d.counts.checked_in)}
-                sub={t('crewCheckin.count.pins', { used: d.counts.pins - d.counts.unused_pins, total: d.counts.pins })} />
+                sub={d.counts.pins ? t('crewCheckin.count.pins', { used: d.counts.pins - d.counts.unused_pins, total: d.counts.pins }) : t('crewCheckin.count.pinsNone')} />
               <StatCard label={t('crewCheckin.count.verified')} value={num(d.counts.verified)} tone={d.counts.verified ? 'up' : undefined}
                 sub={t('crewCheckin.count.learned', { count: d.counts.learned })} />
               <StatCard label={t('crewCheckin.count.pending')} value={num(d.counts.pending)}
