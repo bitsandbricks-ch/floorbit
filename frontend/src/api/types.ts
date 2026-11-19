@@ -685,7 +685,8 @@ export interface PowerOverview {
   crit: number
   last_poll: number | null
   plugins: number
-  blocks: { id: string; name: string; rows: number }[]
+  /** label: the name, or the row letters of a block named by its rows; row_names: each row, top first. */
+  blocks: { id: string; name: string; label: string; rows: number; row_names: string[] }[]
   can_edit: boolean
   can_read: boolean
 }
@@ -1373,7 +1374,8 @@ export interface SeatLocated {
 }
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 /** A switch login Floorbit keeps (issue #474): never the password. */
-export interface SeatBlock { id: string; name: string; cols: number; rows: number; hall_id: string }
+/** label: what pickers show: the name, or the row letters (C–D) of a block named by its rows. */
+export interface SeatBlock { id: string; name: string; label: string; row_names: string[]; cols: number; rows: number; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */
 export type WifiBand = '2.4' | '5' | '6'

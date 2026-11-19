@@ -328,6 +328,7 @@ def plan_block(body, data=None):
     ``body``: ``block`` (id), ``switch``, ``first_port`` (the port of the first seat; the last number
     counts up), ``order`` (``rows``: each row the same way; ``snake``: every other row back),
     ``reverse`` (start at the last seat), ``rows`` (``"1-2"``; all when empty)."""
+    from . import seat_names
     from .seat_names import block_rows
     data = load_data() if data is None else data
     block = next((b for b in data.get('seat_blocks') or [] if b.get('id') == body.get('block')), None)
@@ -356,7 +357,7 @@ def plan_block(body, data=None):
     width = len(m.group(2)) if m.group(2).startswith('0') else 0     # Eth01 -> Eth02, not Eth2
     planned = [{'seat': seat.upper(), 'switch': switch, 'port': f'{prefix}{start + n:0{width}d}',
                 'block': block['id']} for n, seat in enumerate(seats)]
-    return {'block': block.get('name') or '', 'cables': planned, 'clashes': _clashes(planned, all_cables(data))}
+    return {'block': seat_names.label(block), 'cables': planned, 'clashes': _clashes(planned, all_cables(data))}
 
 
 def _replaced(cable, planned_seats, block_id):

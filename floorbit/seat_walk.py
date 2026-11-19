@@ -367,6 +367,7 @@ def save(seat, port, by, now=None):
 
 def seats(block_id, order='rows', data=None):
     """The block's seats in walking order, each with the port it has in this event so far."""
+    from . import seat_names
     from .seat_names import block_rows
     data = load_data() if data is None else data
     block = next((b for b in data.get('seat_blocks') or [] if b.get('id') == block_id), None)
@@ -378,7 +379,7 @@ def seats(block_id, order='rows', data=None):
     for i, row in enumerate(block_rows(block)):
         out += list(reversed(row)) if order == 'snake' and i % 2 else row
     learned = checkin.learned_ports()
-    return {'block': block.get('name') or '', 'seats': [
+    return {'block': seat_names.label(block), 'seats': [
         {'seat': s.upper(), 'port': ({k: learned[s.upper()].get(k) for k in ('switch', 'port', 'learned_at', 'source')}
                                      if s.upper() in learned else None)} for s in out]}
 

@@ -26,7 +26,8 @@ def check(port_reads, read_switches, data=None):
     from .syslog import canonical_port  # syslog reads attention, which reads this: late
     data = load_data() if data is None else data
     all_cables = cables_mod.all_cables(data)
-    names = {b.get('id'): b.get('name') or '' for b in data.get('seat_blocks') or []}
+    from .seat_names import label
+    names = {b.get('id'): label(b) for b in data.get('seat_blocks') or []}
     blocks, missing, down, conflicts, unread = {}, [], [], [], set()
     cabled = set()
     seat_switches = set()

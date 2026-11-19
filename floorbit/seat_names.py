@@ -70,6 +70,23 @@ def row_letters(block):
     return [row_letter(start + (rows - 1 - r if flip else r)) for r in range(rows)]
 
 
+def label(block):
+    """What people call a block: its name, or for a block named by its rows (which has none), the
+    row letters it holds (C to D, with an en dash). Never empty for a block with rows, so no picker
+    shows a dash."""
+    if block.get('name'):
+        return str(block['name'])
+    letters = sorted(row_letters(block), key=letter_index)
+    if not letters:
+        return ''
+    return letters[0] if len(letters) == 1 else f'{letters[0]}\u2013{letters[-1]}'
+
+
+def row_names(block):
+    """Each row's name, top row of the block first: its letter in a ``rows`` block, else 1, 2, ..."""
+    return row_letters(block) or [str(n + 1) for n in range(int(block.get('rows') or 0))]
+
+
 def seat_one_first(block):
     """Is seat 1 of each row in the block's first column? Decides where "start" puts a row letter."""
     first = _quarter(block) in (0, 1)

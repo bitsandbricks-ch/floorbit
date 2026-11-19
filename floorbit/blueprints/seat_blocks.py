@@ -139,7 +139,10 @@ def _clash_error(seat):
 def get_seat_blocks():
     """All seat blocks, or with ``?hall=<id>`` only that hall's."""
     data = load_data()
-    blocks = with_hall(stacking.by_z(data.get('seat_blocks', [])), data)
+    from ..seat_names import label, row_names
+    # label: what pickers show (a block named by its rows has no name); row_names: each row's.
+    blocks = [{**b, 'label': label(b), 'row_names': row_names(b)}
+              for b in with_hall(stacking.by_z(data.get('seat_blocks', [])), data)]
     wanted = request.args.get('hall')
     return jsonify([b for b in blocks if b['hall_id'] == wanted] if wanted else blocks)
 
