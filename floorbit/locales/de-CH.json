@@ -1214,5 +1214,6 @@
  "Discovery runs at most every {} minutes.": "Discovery läuft höchstens alle {} Minuten.",
  "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
  "Send an object.": "Schicke ein Objekt.",
- "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken."
+ "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken.",
+ "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({})."
 }

@@ -5,3 +5,4 @@
 - Telemetry: a device whose one VLAN or table doesn't answer no longer counts as a failing device on the agent; a device that goes silent altogether is still reported next to it.
 - Telemetry: NX-API, RESTCONF and OPNsense API errors say why ("Connection refused", "Name or service not known") instead of only "ConnectionError", and a wrong name counts as "no route".
 - Telemetry: traps-only devices are no longer reported as silent every minute.
+- SSH: a failed connection says why ("nothing listens on the SSH port", "the name does not resolve", "no route to it") instead of an exception name, and a session that breaks off after the login no longer says the switch could not be reached.
