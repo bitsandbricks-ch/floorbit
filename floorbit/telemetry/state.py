@@ -244,6 +244,12 @@ class State:
 
     def _device_for(self, tags):
         name = tags.get('device') or tags.get('host')
+        if name and not tags.get('device') and name not in self.devices:
+            # A firewall's own Telegraf names itself by its host name, often the full one
+            # (fw-01.example.org); the device set up here is fw-01.
+            short = name.split('.')[0]
+            if short in self.devices:
+                name = short
         if not name:
             # Traps and MDT dial-out carry no token and only say where they came from: taken only
             # from a device set up with that address or MDT node name, so a spoofed sender can't
