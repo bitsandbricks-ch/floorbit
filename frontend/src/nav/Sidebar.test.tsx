@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import '@/i18n'
-import type { NavBoot } from './boot'
+import { resetNavPrefs, type NavBoot } from './boot'
 import { activeHref, group, isServerPage } from './sections'
 import { Sidebar, type LinkProps } from './Sidebar'
 
@@ -24,6 +24,7 @@ function sidebar(path = '/problems', extra: Partial<Parameters<typeof Sidebar>[0
 const main = () => screen.getByRole('navigation', { name: 'Main' })
 
 afterEach(() => {
+  resetNavPrefs()
   vi.unstubAllGlobals()
   localStorage.clear()
   document.cookie = 'floorbit_nav=; max-age=0; path=/'
@@ -32,15 +33,16 @@ afterEach(() => {
 describe('sections', () => {
   it('puts plugin pages in their own section, never under "more"', () => {
     const g = group([...pages, { href: '/plugins/gs/overview', id: 'plugin:gs:overview', label: 'Game servers', icon: 'gamepad' }])
-    expect(g.sections.map((s) => s.id)).toEqual(['network', 'admin', 'plugins', 'more'])
+    expect(g.sections.map((s) => s.id)).toEqual(['live', 'monitoring', 'floorbit', 'plugins', 'more'])
     expect(g.sections.find((s) => s.id === 'plugins')?.pages.map((p) => p.label)).toEqual(['Game servers'])
   })
 
-  it('pins the everyday pages and folds the rest into sections, a new page into "more"', () => {
+  it('pins the start pages and sorts the rest into groups, a new page into "more"', () => {
     const g = group(pages)
-    expect(g.pinned.map((p) => p.id)).toEqual(['floorPlan', 'problems', 'incidents'])
+    expect(g.pinned.map((p) => p.id)).toEqual(['floorPlan'])
     expect(g.sections.map((s) => [s.id, s.pages.map((p) => p.id)])).toEqual([
-      ['network', ['widgets', 'topology']], ['admin', ['settings', 'agents']], ['more', ['brandNew']],
+      ['live', ['incidents', 'problems', 'widgets']], ['monitoring', ['topology']], ['floorbit', ['agents', 'settings']],
+      ['more', ['brandNew']],
     ])
   })
 
@@ -67,30 +69,28 @@ describe('Sidebar', () => {
     expect(row).toHaveTextContent('3 down')
   })
 
-  it('opens the section of the page on screen, and folds it when another opens', () => {
+  it('shows every group open, folds one on a click, and remembers it on this browser', () => {
     sidebar('/topology')
     expect(within(main()).getByRole('link', { name: 'Topology' })).toHaveAttribute('aria-current', 'page')
-    const network = within(main()).getByRole('button', { name: 'Network' })
-    const admin = within(main()).getByRole('button', { name: 'Settings' })
-    expect(network).toHaveAttribute('aria-expanded', 'true')
-    fireEvent.click(admin)
-    expect(admin).toHaveAttribute('aria-expanded', 'true')
-    expect(network).toHaveAttribute('aria-expanded', 'false')
+    const live = within(main()).getByRole('button', { name: 'Live' })
+    expect(live).toHaveAttribute('aria-expanded', 'true')
     expect(within(main()).getByRole('link', { name: 'Settings' })).toBeInTheDocument()
-    fireEvent.click(admin)
-    expect(admin).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(live)
+    expect(live).toHaveAttribute('aria-expanded', 'false')
+    expect(within(main()).queryByRole('link', { name: /Incidents/ })).not.toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('floorbit-nav-folded')!)).toContain('live')
+    // The group with the page on screen stays open.
+    const monitoring = within(main()).getByRole('button', { name: 'Monitoring' })
+    fireEvent.click(monitoring)
+    expect(monitoring).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it('keeps several sections open when folding is switched off', () => {
-    sidebar('/topology')
-    fireEvent.click(within(main()).getByRole('button', { name: 'Signed in as kim' }))
-    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Fold other sections when one opens' }))
-    expect(JSON.parse(localStorage.getItem('floorbit-nav-prefs')!)).toEqual({ favourites: [], accordion: false })
-    const admin = within(main()).getByRole('button', { name: 'Settings' })
-    fireEvent.click(admin)
-    expect(admin).toHaveAttribute('aria-expanded', 'true')
-    expect(within(main()).getByRole('button', { name: 'Network' })).toHaveAttribute('aria-expanded', 'true')
-    expect(JSON.parse(localStorage.getItem('floorbit-nav-open')!)).toEqual(['admin'])
+  it('starts with the Event group folded', () => {
+    render(<Sidebar boot={{ ...boot, pages: [...pages, { href: '/replay', id: 'replay', label: 'Event replay' }] }} path="/problems" renderLink={link} onGoTo={() => {}} />)
+    const event = within(main()).getByRole('button', { name: 'Event' })
+    expect(event).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(event)
+    expect(within(main()).getByRole('link', { name: 'Event replay' })).toBeInTheDocument()
   })
 
   it('pins favourites to the top, saved with the account when signed in', () => {
@@ -109,24 +109,33 @@ describe('Sidebar', () => {
     expect(localStorage.getItem('floorbit-nav-prefs')).toBeNull()
   })
 
-  it('folds to icons, keeps that in a cookie, and lists a section in a flyout', () => {
+  it('lists pinned dashboards with the favourites, lit while one is on screen', () => {
+    render(<Sidebar boot={{ ...boot, prefs: { favourites: ['dashboard:hall-b'], accordion: true } }} path="/dashboards/view/hall-b"
+      renderLink={link} onGoTo={() => {}} dashboards={[{ id: 'hall-b', name: 'Hall B' }, { id: 'ops', name: 'Ops desk' }]} />)
+    const favs = within(main()).getByRole('list', { name: 'Favourites' })
+    const row = within(favs).getByRole('link', { name: 'Hall B' })
+    expect(row).toHaveAttribute('href', '/dashboards/view/hall-b')
+    expect(row).toHaveAttribute('aria-current', 'page')
+    expect(within(main()).queryByRole('link', { name: 'Ops desk' })).not.toBeInTheDocument()
+  })
+
+  it('folds to icons, keeps that in a cookie, and shows every page as an icon with its name', () => {
     sidebar('/problems')
     fireEvent.click(within(main()).getByRole('button', { name: 'Collapse the sidebar' }))
     expect(main()).toHaveAttribute('data-state', 'rail')
     expect(document.cookie).toContain('floorbit_nav=rail')
-    fireEvent.click(within(main()).getByRole('button', { name: 'Network' }))
-    expect(within(main()).getByText('Widgets')).toBeInTheDocument()
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(within(main()).queryByText('Widgets')).not.toBeInTheDocument()
+    expect(within(main()).queryByRole('button', { name: 'Live' })).not.toBeInTheDocument()
+    expect(within(main()).getByRole('link', { name: 'Widgets' })).toHaveAttribute('title', 'Widgets')
   })
 
   it('opens everything in a sheet from the phone bar', () => {
     sidebar('/problems')
     const bar = screen.getByRole('navigation', { name: 'Main pages' })
-    expect(within(bar).getAllByRole('link').map((a) => a.textContent)).toEqual(['Floor plan', 'Problems', 'Incidents'])
+    expect(within(bar).getAllByRole('link').map((a) => a.textContent)).toEqual(['Floor plan', 'Incidents', 'Problems'])
     fireEvent.click(within(bar).getByRole('button', { name: 'Menu' }))
     const sheet = screen.getByRole('dialog', { name: 'Menu' })
-    expect(within(sheet).getByRole('button', { name: 'Network' })).toBeInTheDocument()
+    expect(within(sheet).getByRole('button', { name: 'Monitoring' })).toBeInTheDocument()
+    expect(within(sheet).getByRole('button', { name: /Go to/ })).toBeInTheDocument()
     fireEvent.click(within(sheet).getByRole('button', { name: 'Close the menu' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
@@ -140,14 +149,16 @@ describe('Sidebar', () => {
   })
 
   it('switches to another tenant of someone on a platform with several tenants', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        here: 'club-a', tenants: [
-          { id: 'club-b', name: 'Club B', url: 'https://b.example.com', how: 'account' },
-          { id: 'club-c', name: 'Club C', url: 'https://c.example.com', how: 'platform' },
-        ],
-      })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ url: 'https://b.example.com/switch/arrive?ticket=abc' })))
+    const fetchMock = vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(
+      url === '/api/tenant/mine'
+        ? {
+            here: 'club-a', tenants: [
+              { id: 'club-b', name: 'Club B', url: 'https://b.example.com', how: 'account' },
+              { id: 'club-c', name: 'Club C', url: 'https://c.example.com', how: 'platform' },
+            ],
+          }
+        : url === '/api/tenant/switch' ? { url: 'https://b.example.com/switch/arrive?ticket=abc' } : {},
+    ))))
     vi.stubGlobal('fetch', fetchMock)
     const assign = vi.fn()
     vi.stubGlobal('location', { ...window.location, assign })
@@ -157,7 +168,8 @@ describe('Sidebar', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Club B/ }))
     await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('https://b.example.com/switch/arrive?ticket=abc'))
     expect(fetchMock).toHaveBeenCalledWith('/api/tenant/mine', expect.anything())
-    expect(JSON.parse(fetchMock.mock.calls[1][1].body as string)).toEqual({ tenant: 'club-b' })
+    const call = fetchMock.mock.calls.find((c) => c[0] === '/api/tenant/switch') as unknown as [string, RequestInit]
+    expect(JSON.parse(call[1].body as string)).toEqual({ tenant: 'club-b' })
   })
 
   it('shows no switcher when there is no other tenant to go to', async () => {
@@ -169,21 +181,36 @@ describe('Sidebar', () => {
   })
 
   it('tells a platform admin visiting that they are one, and offers no switching on', () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi.fn(() => Promise.resolve(new Response('{}')))
     vi.stubGlobal('fetch', fetchMock)
     render(<Sidebar boot={{ ...boot, tenants: true, user: { name: 'Kim', username: 'platform:kim', platform: true } }}
       path="/problems" renderLink={link} onGoTo={() => {}} />)
     fireEvent.click(within(main()).getByRole('button', { name: 'Signed in as platform:kim' }))
     expect(screen.getByText('Visiting as platform admin')).toBeInTheDocument()
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/tenant/mine', expect.anything())
   })
 
   it('asks for other tenants only on a platform with several tenants', () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi.fn(() => Promise.resolve(new Response('{}')))
     vi.stubGlobal('fetch', fetchMock)
     sidebar()
     expect(within(main()).queryByRole('button', { name: /This tenant/ })).not.toBeInTheDocument()
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalledWith('/api/tenant/mine', expect.anything())
+  })
+
+  it('shows the event this browser works on and switches to another', async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response(JSON.stringify({
+      live: 'e1', current: 'e1', events: [
+        { id: 'e1', name: 'Spring LAN', status: 'live' }, { id: 'e2', name: 'Autumn LAN', status: 'planning' },
+      ],
+    }))))
+    vi.stubGlobal('fetch', fetchMock)
+    sidebar()
+    const picker = await within(main()).findByRole('button', { name: /Spring LAN/ })
+    fireEvent.click(picker)
+    expect(screen.getByRole('menuitemradio', { name: /Spring LAN/ })).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /Autumn LAN/ }))
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/tenant/current', expect.objectContaining({ body: JSON.stringify({ event: 'e2' }) })))
   })
 })
 
@@ -217,7 +244,7 @@ describe('skip link', () => {
     const out = within(main()).getByRole('link', { name: 'Grafana' })
     expect(out).toHaveAttribute('target', '_blank')
     expect(out).toHaveAttribute('rel', 'noopener noreferrer')
-    // The page link keeps its built-in section too.
-    expect(within(main()).getByRole('button', { name: 'Network' })).toHaveAttribute('aria-expanded', 'false')
+    // The page link keeps its built-in group too.
+    expect(within(main()).getByRole('button', { name: 'Live' })).toHaveAttribute('aria-expanded', 'true')
   })
 })

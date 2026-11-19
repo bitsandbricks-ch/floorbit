@@ -8,7 +8,7 @@ import {
 import { readFileSync } from 'fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { CUSTOM_ICONS, PINNED, SECTIONS, pageIcon, sectionIcon } from '../src/nav/sections'
+import { CUSTOM_ICONS, PINNED, SECTIONS, TABS, pageIcon, sectionIcon } from '../src/nav/sections'
 import type { Icon } from '@tabler/icons-react'
 
 const svg = (icon: Icon, size: number, className?: string) =>
@@ -24,10 +24,10 @@ function texts(dir: string, lang: string) {
 }
 
 export function navShell(i18nDir: string) {
-  const ids = [...PINNED, ...SECTIONS.flatMap((s) => s.pages)]
+  const ids = [...new Set([...PINNED, ...TABS, ...SECTIONS.flatMap((s) => s.pages)])]
   return {
     pinned: PINNED,
-    tabs: ['floorPlan', 'seats', 'problems', 'incidents'],
+    tabs: TABS,
     sections: SECTIONS.map((s) => ({ id: s.id, pages: s.pages })),
     icons: {
       // Rows: 18 px in the sidebar; the phone bar uses 22 px.

@@ -1,0 +1,86 @@
+import { fireEvent, screen, within } from '@testing-library/react'
+import { useState } from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { crumbsFor } from '@/nav/crumbs'
+import { fakeFetch, renderWithApp } from '@/test/render'
+import { Layout } from './Layout'
+import { PageTabs } from './PageTabs'
+import { usePageTab } from './pageTab'
+import { SidePanel } from './SidePanel'
+import { TopBar } from './TopBar'
+
+afterEach(() => vi.unstubAllGlobals())
+
+const pages = [
+  { href: '/overview', id: 'overview', label: 'Overview' },
+  { href: '/topology', id: 'topology', label: 'Topology' },
+  { href: '/settings/agents', id: 'agents', label: 'Local agents' },
+  { href: '/plugins/gs/overview', id: 'plugin:gs:overview', label: 'Game servers' },
+]
+const problems = {
+  problems: [
+    { id: 'a', kind: 'switch', level: 'warn', title: 'Uplink at 1G', where: 'sw-c-02', since: 1, link: '/problems' },
+    { id: 'b', kind: 'switch', level: 'down', title: 'fw-07 down', where: 'Hall 2', since: 2, link: '/topology' },
+  ],
+  counts: { down: 1, warn: 1, muted: 0 }, mutes: [], quiet_hours: false, checked_at: 3, can_mute: false,
+}
+
+describe('breadcrumbs', () => {
+  it('names the group and the page, and plugins under Plugins', () => {
+    expect(crumbsFor(pages, '/topology')).toEqual({ section: 'monitoring', page: pages[1] })
+    expect(crumbsFor(pages, '/settings/agents/rack-a')).toEqual({ section: 'floorbit', page: pages[2] })
+    expect(crumbsFor(pages, '/plugins/gs/overview').section).toBe('plugins')
+    expect(crumbsFor(pages, '/nowhere')).toEqual({ section: null, page: null })
+  })
+})
+
+describe('top bar', () => {
+  it('shows where you are, a sub page under its page, and the problems behind the bell', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/problems': problems }).fn)
+    renderWithApp(<><TopBar pages={pages} /><Layout title="Rack A"><p>agent</p></Layout></>, '/settings/agents/rack-a')
+    const crumbs = screen.getByRole('navigation', { name: 'Where you are' })
+    expect(crumbs).toHaveTextContent('Floorbit')
+    expect(within(crumbs).getByRole('link', { name: 'Local agents' })).toHaveAttribute('href', '/settings/agents')
+    expect(within(crumbs).getByText('Rack A')).toHaveAttribute('aria-current', 'page')
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifications (2)' }))
+    const rows = await screen.findAllByRole('link', { name: /down|Uplink/ })
+    // What is down comes first.
+    expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining('fw-07 down'), expect.stringContaining('Uplink at 1G')])
+  })
+})
+
+function Tabs() {
+  const [tab, setTab] = usePageTab(['agents', 'failover'])
+  return (
+    <>
+      <PageTabs label="Agents" value={tab} onChange={setTab}
+        tabs={[{ id: 'agents', label: 'Agents', count: 3 }, { id: 'failover', label: 'Failover', alert: 'warn' }]} />
+      <p>on {tab}</p>
+    </>
+  )
+}
+
+describe('page tabs', () => {
+  it('keeps the tab in the address, with counts and arrow keys', () => {
+    vi.stubGlobal('fetch', fakeFetch({}).fn)
+    renderWithApp(<Tabs />, '/settings/agents?tab=failover')
+    expect(screen.getByRole('tab', { name: /Failover/ })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: /Agents/ })).toHaveTextContent('3')
+    fireEvent.keyDown(screen.getByRole('tab', { name: /Failover/ }), { key: 'ArrowRight' })
+    expect(screen.getByText('on agents')).toBeInTheDocument()
+  })
+})
+
+function Peek() {
+  const [open, setOpen] = useState(true)
+  return <SidePanel opened={open} onClose={() => setOpen(false)} title="sw-c-02" kicker="Switch" href="/inventory?device=sw-c-02"><p>ports</p></SidePanel>
+}
+
+describe('side panel', () => {
+  it('peeks at a thing and leads on to its page', async () => {
+    vi.stubGlobal('fetch', fakeFetch({}).fn)
+    renderWithApp(<Peek />)
+    expect(await screen.findByText('ports')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/inventory?device=sw-c-02')
+  })
+})

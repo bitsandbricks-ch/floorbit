@@ -24,8 +24,102 @@ body {
 
 /* The sidebar (src/nav/nav.css) beside the page. */
 .fb-shell { display: flex; min-height: 100vh; min-height: 100dvh; }
-.fb-shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.fb-shell-main > .fb-attribution { margin-top: auto; }
+.fb-shell-main {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  /* The floor tiles: a faint grid behind every page, Floorbit's own mark. */
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-line) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-line) 45%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-attachment: local;
+}
+.fb-shell-main > .fb-status { margin-top: auto; }
+
+/* The top bar (components/TopBar.tsx): where you are, "Go to", the bell. Desktops only; phones
+   have their own header and the bottom bar. */
+.fb-topbar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px;
+  height: 48px; padding: 0 16px 0 24px; border-bottom: 1px solid var(--color-line); background: var(--color-ink);
+}
+.fb-crumbs { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: var(--fs-md); color: var(--color-muted); white-space: nowrap; overflow: hidden; }
+.fb-crumbs b { color: var(--color-fg); font-weight: 550; overflow: hidden; text-overflow: ellipsis; }
+.fb-crumbs a { color: var(--color-muted); text-decoration: none; }
+.fb-crumbs a:hover { color: var(--color-fg); text-decoration: underline; }
+.fb-crumb-sep { flex: none; color: var(--color-faint); }
+.fb-topbar-search {
+  display: flex; align-items: center; gap: 8px; width: min(360px, 34vw); height: 32px; padding: 0 8px 0 10px;
+  border: 1px solid var(--color-line); border-radius: var(--ui-radius); background: var(--color-surface);
+  color: var(--color-faint); font: inherit; font-size: 13px; cursor: pointer; text-align: left;
+}
+.fb-topbar-search span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-topbar-search:hover { border-color: color-mix(in srgb, var(--color-fg) 22%, var(--color-line)); color: var(--color-muted); }
+.fb-topbar-bell { position: relative; }
+.fb-topbar-count {
+  position: absolute; top: 2px; right: 0; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-pill);
+  background: var(--color-warn); color: #111; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.fb-topbar-count.is-down { background: var(--color-down); color: #fff; }
+@media (max-width: 767.98px) { .fb-topbar { display: none; } }
+
+/* The status line under every page (components/StatusLine.tsx), with the attribution at its end. */
+.fb-status {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; min-height: 32px; padding: 4px 16px 4px 24px;
+  border-top: 1px solid var(--color-line); background: var(--color-ink);
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--color-muted);
+}
+.fb-status-item { display: inline-flex; align-items: center; gap: 7px; color: inherit; text-decoration: none; }
+a.fb-status-item:hover { color: var(--color-fg); }
+.fb-status-grow { flex: 1; }
+.fb-status .fb-attribution { padding: 0; align-items: center; }
+.fb-status .fb-version { flex-basis: auto; font-size: 11px; }
+@media (max-width: 767.98px) {
+  .fb-status { padding: 8px 16px; justify-content: center; }
+  .fb-status-grow { display: none; }
+}
+
+/* The side panel (components/SidePanel.tsx): a quick look from the right. */
+.fb-side { background: var(--color-surface); border-left: 1px solid var(--color-line); }
+.fb-side-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--color-line); background: var(--color-surface); align-items: flex-start; }
+.fb-side-body { padding: 0; }
+.fb-side-actions { padding: 12px 18px; border-bottom: 1px solid var(--color-line); }
+.fb-side-content { padding: 14px 18px 24px; }
+
+/* The bell's list. */
+.fb-notify-list { list-style: none; margin: -6px -10px 0; padding: 0; }
+.fb-notify-row {
+  display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border-radius: var(--ui-radius);
+  color: var(--color-fg); text-decoration: none;
+}
+.fb-notify-row:hover { background: var(--color-raised); }
+.fb-notify-row .fb-bit { margin-top: 5px; }
+.fb-notify-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.fb-notify-text b { font-weight: 550; font-size: var(--fs-md); }
+.fb-notify-text small { font-size: var(--fs-sm); color: var(--color-muted); }
+.fb-notify-when { flex: none; font-family: var(--font-mono); font-size: 11.5px; color: var(--color-faint); margin-top: 2px; }
+.fb-notify-empty { padding: 8px 0; }
+
+/* A page's tabs (components/PageTabs.tsx): one row under the header, scrolling sideways when full. */
+.fb-ptabs {
+  display: flex; gap: 2px; margin: 0 0 18px; border-bottom: 1px solid var(--color-line);
+  overflow-x: auto; scrollbar-width: none;
+}
+.fb-ptabs::-webkit-scrollbar { display: none; }
+.fb-ptab {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px; margin-bottom: -1px;
+  border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--color-muted);
+  font: inherit; font-size: var(--ui-font); font-weight: 500; cursor: pointer; white-space: nowrap;
+}
+.fb-ptab:hover { color: var(--color-fg); }
+.fb-ptab[aria-selected="true"] { color: var(--color-fg); font-weight: 600; border-bottom-color: var(--color-bit); }
+.fb-ptab-count { font-size: 11px; color: var(--color-faint); font-family: var(--font-mono); }
+
+/* The page header (components/PageHead.tsx). */
+.fb-pagehead-kicker { font-size: 12.5px; }
+.fb-pagehead-icon {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
+  border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-muted);
+}
 
 /* The page title as a bar of its own on phones; desktops show the page's PageHead, so the
    heading stays for screen readers only. */
@@ -68,7 +162,7 @@ body {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 32px 64px;
+  padding: 24px 28px 48px;
   box-sizing: border-box;
 }
 .fb-main-wide { max-width: none; }
@@ -101,6 +195,8 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-up a { display: inline-flex; align-items: center; gap: 4px; color: var(--color-muted); text-decoration: none; }
 .fb-up a:hover { color: var(--color-fg); text-decoration: underline; }
 @media (max-width: 767.98px) { .fb-up { margin: 0 0 8px; } }
+/* Desktops have the breadcrumbs in the top bar instead. */
+@media (min-width: 768px) { .fb-up { display: none; } }
 
 .fb-dot {
   display: inline-block;
@@ -147,7 +243,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-qr-pin { display: grid; gap: 2px; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--color-line); overflow-wrap: anywhere; }
 .fb-qr-pin b { font-family: var(--font-mono); font-size: 16px; letter-spacing: 0.15em; color: var(--color-fg); }
 @media print {
-  .fb-header, .fb-no-print, .fb-attribution, .fb-nav-slot, .fb-tabbar { display: none !important; }
+  .fb-header, .fb-topbar, .fb-status, .fb-no-print, .fb-attribution, .fb-nav-slot, .fb-tabbar { display: none !important; }
   body { background: #fff !important; }
   .fb-qr-sheet { grid-template-columns: repeat(4, 1fr); }
   .fb-qr { border-color: #999; }
@@ -770,7 +866,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
    the plan from edge to edge below it, panels docked to the sides. Nothing on the page scrolls;
    the plan pans and zooms, the panels scroll on their own. */
 .fb-shell-main:has(> .fb-main-full) { height: 100vh; height: 100dvh; overflow: hidden; }
-.fb-shell-main:has(> .fb-main-full) > .fb-attribution { display: none; }
+.fb-shell-main:has(> .fb-main-full) > .fb-status { display: none; }
 @media (max-width: 767.98px) {
   .fb-shell-main:has(> .fb-main-full) { height: calc(100dvh - var(--fb-tabbar-h) - env(safe-area-inset-bottom)); }
 }

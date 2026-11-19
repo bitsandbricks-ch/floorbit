@@ -10,11 +10,12 @@
   "appearance": "Appearance",
   "problemsDown": "{{count}} down",
   "sections": {
-    "helpdesk": "Helpdesk",
-    "network": "Network",
-    "build": "Build",
+    "live": "Live",
+    "inventory": "Inventory",
+    "monitoring": "Monitoring",
+    "seats": "Seats",
     "event": "Event",
-    "admin": "Settings",
+    "floorbit": "Floorbit",
     "plugins": "Plugins",
     "more": "More"
   },
@@ -24,11 +25,28 @@
   "favourites": "Favourites",
   "favAdd": "Add {{page}} to favourites",
   "favRemove": "Remove {{page}} from favourites",
-  "accordion": "Fold other sections when one opens",
   "skip": "Skip to content",
   "switchTenant": "Switch tenant",
   "thisTenant": "This tenant",
   "asPlatform": "as platform admin",
   "switching": "Switching…",
-  "platformVisit": "Visiting as platform admin"
+  "platformVisit": "Visiting as platform admin",
+  "event": "Event",
+  "eventPick": "Switch event",
+  "eventAll": "All events",
+  "notifications": "Notifications",
+  "breadcrumbs": "Where you are",
+  "statusLine": "Status",
+  "notify": {
+    "checked": "Checked {{ago}}",
+    "all": "All problems",
+    "settings": "Notification settings",
+    "empty": "Nothing needs a look."
+  },
+  "status": {
+    "problems": "{{down}} down · {{warn}} need a look",
+    "allUp": "Everything up",
+    "agents": "Agents {{online}}/{{total}}",
+    "checked": "checked {{ago}}"
+  }
 }

@@ -1,9 +1,10 @@
 import { Alert, Badge, Button, Group, NumberInput, Paper, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
-import { IconDeviceTv, IconLayoutGridAdd, IconPencil, IconPlus, IconSeparator } from '@tabler/icons-react'
+import { IconArrowRight, IconDeviceTv, IconLayoutGridAdd, IconPencil, IconPlus, IconSeparator } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { boardHref } from '@/nav/sections'
 import { del, get, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
@@ -70,7 +71,9 @@ export default function Dashboards() {
                 </Text>
               </div>
               <Group gap="xs">
-                <Button size="xs" component="a" href={`/dashboards/${encodeURIComponent(b.id)}`} leftSection={<IconDeviceTv size={14} />}>{t('dashboards.open')}</Button>
+                {/* Inside the app with the sidebar; the big screen is the second way in. */}
+                <Button size="xs" component={Link} to={boardHref(b.id)} rightSection={<IconArrowRight size={14} aria-hidden="true" />}>{t('ui.open')}</Button>
+                <Button size="xs" variant="default" component="a" href={`/dashboards/${encodeURIComponent(b.id)}`} leftSection={<IconDeviceTv size={14} />}>{t('board.bigScreen')}</Button>
                 {canEdit && <Button size="xs" variant="default" leftSection={<IconPencil size={14} />} onClick={() => open(b.id)}>{t('dashboards.editOne')}</Button>}
               </Group>
             </Stack>

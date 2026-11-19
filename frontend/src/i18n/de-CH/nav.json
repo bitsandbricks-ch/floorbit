@@ -10,13 +10,14 @@
   "appearance": "Darstellung",
   "problemsDown": "{{count}} ausgefallen",
   "sections": {
-    "helpdesk": "Helpdesk",
-    "network": "Netzwerk",
-    "build": "Aufbau",
+    "live": "Live",
+    "inventory": "Inventar",
+    "monitoring": "Überwachung",
+    "seats": "Plätze",
     "event": "Event",
-    "admin": "Einstellungen",
+    "floorbit": "Floorbit",
     "plugins": "Plugins",
-    "more": "Weitere"
+    "more": "Mehr"
   },
   "search": "Seiten, Plätze und Switches suchen",
   "quick": "Wichtigste Seiten",
@@ -24,11 +25,28 @@
   "favourites": "Favoriten",
   "favAdd": "{{page}} zu den Favoriten",
   "favRemove": "{{page}} aus den Favoriten entfernen",
-  "accordion": "Andere Bereiche zuklappen, wenn einer aufgeht",
   "skip": "Zum Inhalt springen",
   "switchTenant": "Mandant wechseln",
   "thisTenant": "Dieser Mandant",
   "asPlatform": "als Plattform-Admin",
   "switching": "Wechsle…",
-  "platformVisit": "Zu Besuch als Plattform-Admin"
+  "platformVisit": "Zu Besuch als Plattform-Admin",
+  "event": "Event",
+  "eventPick": "Event wechseln",
+  "eventAll": "Alle Events",
+  "notifications": "Benachrichtigungen",
+  "breadcrumbs": "Wo du bist",
+  "statusLine": "Status",
+  "notify": {
+    "checked": "Geprüft {{ago}}",
+    "all": "Alle Probleme",
+    "settings": "Benachrichtigungen einstellen",
+    "empty": "Nichts braucht einen Blick."
+  },
+  "status": {
+    "problems": "{{down}} ausgefallen · {{warn}} brauchen einen Blick",
+    "allUp": "Alles läuft",
+    "agents": "Agents {{online}}/{{total}}",
+    "checked": "geprüft {{ago}}"
+  }
 }

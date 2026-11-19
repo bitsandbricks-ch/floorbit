@@ -14,6 +14,7 @@
     "notify": "Notification settings"
   },
   "pages": {
+    "overview": "Overview",
     "floorPlan": "Floor plan",
     "seats": "Seats",
     "dashboards": "Dashboards",
