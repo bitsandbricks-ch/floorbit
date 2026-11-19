@@ -20,6 +20,9 @@ For admins (``settings.manage``):
 - ``POST /api/settings/telemetry/targets``, ``PUT|DELETE /api/settings/telemetry/targets/<id>``.
 - ``GET /api/settings/telemetry/targets/<id>/device-config``: what to paste on the device.
 - ``GET|POST /api/settings/telemetry/token``: show the ingest token, or make a new one.
+- ``GET /api/settings/telemetry/devices``: each device's last word and its problems.
+- ``POST /api/settings/telemetry/test`` ``{"name"}``: collect from one device now, through the agent.
+- ``GET /api/settings/telemetry/raw?name=``: the last lines the agent got from one device.
 - ``GET /api/settings/telemetry/telegraf.conf``: Telegraf's config, secrets in it, for a
   Telegraf that doesn't run in the sidecar.
 
@@ -121,7 +124,10 @@ def telemetry_page():
 
 
 def _devices():
-    """What each configured device sent last, for the page."""
+    """What each configured device sent last, and why it sends nothing, for the page. While an
+    agent collects, the picture lives there: asked through its link."""
+    if not telemetry.collector_here():
+        return _devices_on_agent()
     out = {}
     with state_mod.state._lock:
         for dev in state_mod.state.devices.values():
@@ -131,10 +137,52 @@ def _devices():
     return out
 
 
+def _agent_numbers():
+    """What each agent's telemetry plugin last reported: is Telegraf posting, and is it forwarded."""
+    from .. import agent_plugins
+    out = []
+    for agent_id, row in agent_plugins.health_of('telemetry').items():
+        health = row.get('health') or {}
+        m = health.get('metrics') or {}
+        out.append({'id': agent_id, 'name': row.get('name') or agent_id, 'connected': bool(row.get('connected')),
+                    'status': health.get('status') or '', 'primary': bool(m.get('primary', 1)),
+                    'points': int(m.get('points') or 0),
+                    'series': int(m.get('series') or 0), 'sent': int(m.get('sent') or 0),
+                    'heard': int(m.get('devices_heard') or 0), 'failing': int(m.get('devices_failing') or 0),
+                    'quiet': int(m['telegraf_quiet_seconds']) if 'telegraf_quiet_seconds' in m else None,
+                    'refused': int(m.get('refused_writes') or 0), 'bad_lines': int(m.get('bad_lines') or 0)})
+    return sorted(out, key=lambda a: (not a['primary'], a['name']))
+
+
+def _devices_on_agent():
+    from .. import sources
+    from ..plugins.base import PluginError
+    try:
+        found = sources.monitoring().devices() or []
+    except PluginError:
+        return {}
+    out = {}
+    for d in found if isinstance(found, list) else []:
+        if not isinstance(d, dict) or d.get('source') != 'telemetry' or not d.get('hostname'):
+            continue
+        problems = [p for p in d.get('problems') or [] if isinstance(p, dict)]
+        row = {'seen': d.get('seen'), 'online': bool(d.get('status')), 'problems': problems[:10]}
+        # Counts only from an agent that sends them (older ones don't): the page leaves them out then.
+        row.update({k: d[k] for k in ('ports', 'macs', 'arp', 'neighbours') if isinstance(d.get(k), int)})
+        out[str(d['hostname'])] = row
+    return out
+
+
 @bp.route('/api/settings/telemetry', methods=['GET'])
 def settings_view():
+    seen, status = _devices(), telemetry.status()
+    if not telemetry.collector_here():
+        # This Floorbit's own counters stay at 0 while an agent collects: count what the agent heard.
+        status.update(devices=sum(1 for d in seen.values() if d.get('seen')), points=None, agents=_agent_numbers())
+        if status['agents']:
+            status['points'] = sum(a['points'] for a in status['agents'])
     return jsonify({'targets': targets.listing(), 'inventory': targets.inventory_listing(),
-                    'seen': _devices(), 'status': telemetry.status(),
+                    'seen': seen, 'status': status,
                     'drivers': list(targets.DRIVERS), 'platforms': list(targets.PLATFORMS),
                     'kinds': list(targets.KINDS), 'fdb_modes': list(targets.FDB_MODES),
                     'ports': {'traps': 162, 'mdt': telegraf.MDT_PORT}})
@@ -159,6 +207,70 @@ def _tell_agents():
     from .. import agent_link, agent_plugins
     if agent_link.active():
         agent_plugins.reload_agents()
+
+
+@bp.route('/api/settings/telemetry/devices', methods=['GET'])
+def devices_view():
+    """Each device's last word and its problems: what a device's Telemetry view shows."""
+    return jsonify({'devices': _devices()})
+
+
+def _ask_agents(op, name):
+    """Ask the agents' telemetry part ``op`` about one device: the first one that collects from it
+    answers. (answer, agent name) or a Flask error reply."""
+    from flask import current_app
+
+    from .. import agent_plugins
+    from ..plugins.base import PluginError
+    if telemetry.collector_here():
+        message = 'Test now and raw data need a local agent: none collects for this Floorbit.'
+        return None, (jsonify({'error': message}), 409)
+    spec = current_app.extensions['floorbit_plugins'].specs.get('telemetry')
+    if spec is None:
+        return None, (jsonify({'error': 'The Telemetry plugin is missing.'}), 404)
+    try:
+        answers = agent_plugins.ask(spec, 'call', op, {'name': name})
+    except PluginError as exc:
+        return None, (jsonify({'error': str(exc)}), 502)
+    # An agent that doesn't collect from it answers {ok: False, error}; one that does has points or lines.
+    good = [a for a in answers if isinstance(a.get('result'), dict)
+            and ('points' in a['result'] or a['result'].get('known'))]
+    if good:
+        return good[0], None
+    errors = [a.get('error') or (a.get('result') or {}).get('error') for a in answers]
+    return None, (jsonify({'error': f'No local agent collects from {name}.',
+                           'detail': '; '.join(e for e in errors if e)[:500]}), 404)
+
+
+def _device_name():
+    body = request.get_json(silent=True) if request.method == 'POST' else request.args
+    name = str((body or {}).get('name') or '').strip()
+    return name[:120]
+
+
+@bp.route('/api/settings/telemetry/test', methods=['POST'])
+def test_device():
+    """Collect from one device now, through the agent, and say what came back or why nothing did."""
+    name = _device_name()
+    if not name:
+        return jsonify({'error': 'Which device?'}), 400
+    answer, error = _ask_agents('test', name)
+    if error:
+        return error
+    audit.record('telemetry', f'Tested telemetry from {name}', g.get('audit_user'), answer['name'])
+    return jsonify({**answer['result'], 'agent': answer['name']})
+
+
+@bp.route('/api/settings/telemetry/raw', methods=['GET'])
+def raw_lines():
+    """The last lines the agent got from one device, as Telegraf sent them."""
+    name = _device_name()
+    if not name:
+        return jsonify({'error': 'Which device?'}), 400
+    answer, error = _ask_agents('raw', name)
+    if error:
+        return error
+    return jsonify({**answer['result'], 'agent': answer['name']})
 
 
 @bp.route('/api/settings/telemetry/targets', methods=['POST'])

@@ -42,21 +42,38 @@ history (see [Storage](#storage)).
    *MAC tables: Per VLAN* and list the seat VLANs. Floorbit then asks `community@vlan` (v2c) or the
    `vlan-<id>` context (v3). Nexus and IOS-XE 16+ answer Q-BRIDGE in one table.
 
-3. **Start Telegraf.**
-    - Self-hosted with Docker: `docker compose --profile telemetry up -d`. Floorbit writes
-      `/app/state/telegraf/telegraf.conf` and Telegraf reloads it when the devices change. Publish
-      udp/162 (traps) and tcp/57000 (MDT) to the machine if the devices send.
+3. **Telegraf.** The local agent runs it: it is in the agent image, and the Telemetry plugin starts
+   it, writes its config from the devices here and reloads it when they change (agent.md,
+   ["Telegraf"](agent.md#telegraf)). Nothing to start. Publish udp/162 (traps) and tcp/57000 (MDT)
+   on the agent machine if the devices send (the agent's compose file does). The Local agents page
+   shows how the collector is doing (points, devices heard, which devices fail and why).
     - Kubernetes: see [`deploy/kubernetes/telemetry.yaml`](https://github.com/bitsandbricks-ch/floorbit/blob/master/deploy/kubernetes/telemetry.yaml).
-    - Hosted with a local agent: the Telemetry plugin's agent part is the collector. Run Telegraf
-      next to the agent (`docker compose --profile telemetry up -d` in the agent's folder); the
-      agent writes its config into the shared state volume and takes its line protocol on port
-      8186. Monitoring calls through the agent are answered from what the devices sent (leave
-      LibreNMS unset on the agent). The Local agents page shows how the collector is doing (points,
-      devices heard, errors, whether Telegraf is quiet).
     - Your own Telegraf: **Download telegraf.conf** and point its HTTP output at Floorbit.
 
 4. **Settings > Plugins**: turn on **Telemetry**. If LibreNMS is set up too, LibreNMS still wins
    (plugins are tried in id order); clear LibreNMS's URL to switch.
+
+## When a device sends nothing
+
+The agent reads every line Telegraf prints and every error of the API pollers, and keeps the current
+problem per device and kind of collection. Settings > Telemetry shows it under the device, the
+agent's page names the first one, and the agent's log has each new one with the device's name.
+
+| Says | What it means | What to check |
+| --- | --- | --- |
+| Nothing listens on *address* | The device answered "port closed" (ICMP port unreachable, TCP reset) | SNMP, gNMI or the API is off on the device, listens on another port, or only on another address (`snmp-server` on a management VRF) |
+| No answer from *address* | Nothing came back in time | For SNMP a wrong community or SNMPv3 login looks exactly like this (the device stays silent), as does an ACL that doesn't list the agent's address; for the others, a firewall on the way |
+| Refused the login | The device said no to the user, password, SNMPv3 keys or API key | The login on the device or in Floorbit; refused logins aren't tried again until cleared (agent-plugins.md, "Failed logins") |
+| No route to *address* | The agent's machine can't reach that network | The address, and the agent machine's routes or VLAN |
+| TLS failed | The certificate didn't check out | The device's certificate, or turn off **Check TLS** for it |
+| Cannot open its listening port | Telegraf can't take traps or MDT | Another program holds the port in the container, or an old telegraf container still runs |
+
+A problem goes away when the device sends again, or after three minutes without the error.
+
+**Test now** collects from one device once, through the agent, and shows what came back or the exact
+error; **Raw data** shows the last lines Telegraf sent for it. On the agent machine,
+`docker compose exec agent telegraf --config /app/state/plugins/telemetry/own-telegraf/telegraf.conf --test`
+does the same for every device.
 
 ## Devices from the inventory
 

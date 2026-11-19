@@ -256,6 +256,76 @@ docker-compose.agent.yml pull && docker compose -f docker-compose.agent.yml up -
 **Local agents** page shows each agent's version, and **Update** next to one that speaks an older
 agent protocol than this Floorbit.
 
+## Ports
+
+The agent connects out and needs no open port for its own work. Each port below belongs to a plugin
+that listens in the hall; publish it (the `ports:` of the agent in `docker-compose.agent.yml`, or the
+agent repository's `compose.yml`) when you use that plugin, and point the devices at the agent
+machine's address. Inside the container the ports are above 1024, so the agent runs as a normal user;
+the left side of a mapping is what the devices send to.
+
+| Port in the container | Published as | Plugin | What sends to it | Published by default |
+| --- | --- | --- | --- | --- |
+| 9520/tcp | `127.0.0.1:9520` | the agent itself | `/healthz`, `/metrics` for Prometheus | yes, this machine only |
+| 1162/udp | `162/udp` | Telemetry | SNMP traps from switches and firewalls | yes |
+| 57000/tcp | `57000` | Telemetry | Cisco model-driven telemetry, dial-out (gRPC) | yes |
+| 8186/tcp | `8186` | Telemetry | a firewall's own Telegraf (OPNsense, pfSense) | no |
+| 5514/udp | `514/udp` | Syslog from the hall | syslog from switches, firewalls, DHCP | no |
+| 2055/udp | `2055/udp` | Traffic from the hall | NetFlow v5/v9 and IPFIX exports | no |
+| 8908/tcp | through the reverse proxy | Check-in note on phones | phones and laptops (RFC 8908), via DHCP option 114 | no |
+| 8443/tcp | `80` or `443` | Front door for attendees | attendees' browsers | no |
+
+Another trap receiver on the same machine (LibreNMS's snmptrapd) already holds 162: set
+`TRAP_PUBLISH_PORT` to another port and point the devices there, or send traps to one of the two.
+
+**What to check, port by port.** Each plugin's numbers are on **Settings > Local agents**, on the
+agent's page, and in `/metrics` as `floorbit_agent_plugin_<name>{plugin="<id>"}`:
+
+| Port | Check | Works when |
+| --- | --- | --- |
+| 9520 | `curl -s http://127.0.0.1:9520/healthz` on the agent machine | it answers 200 with `"ok": true` |
+| 162/udp, 57000 | `docker compose logs agent \| grep telemetry` after a port goes down and up on a switch | the port changes on the floor plan within seconds; Telegraf's own complaints show in the agent's log with the device's name |
+| 8186 | from the firewall: `curl -s -o /dev/null -w '%{http_code}' http://<agent>:8186/ping` | `204` |
+| 514/udp | `logger -n <agent> -P 514 -d "floorbit test"` from any machine | the line is on the Logs page; `received` grows for `syslog-relay` |
+| 2055/udp | a router's flow export pointed at it | `packets` grows for `netflow-relay`; the Traffic page fills after a minute |
+| 8908 | `curl -s http://<agent>:8908/.well-known/captive-portal` | a JSON answer with `captive` in it |
+| 8443 | open `http://<agent>/` from a seat | the check-in page |
+
+## Telegraf
+
+Device telemetry (SNMP polling and traps, gNMI, Cisco MDT; [telemetry.md](telemetry.md)) is
+collected by [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/). The agent image
+carries it, and the **Telemetry** plugin runs it inside the agent: there is no second container to
+start and no Compose profile. The plugin writes Telegraf's config from the devices set up in Floorbit,
+starts Telegraf, tells it to reload when the devices change, starts it again when it stops, and
+reads every line it prints.
+
+That is how Floorbit knows why a device sends nothing. Telegraf's errors become a problem per device
+and kind of collection (nothing listening, no answer, login refused, no route, TLS), shown in words
+on the agent's page and next to each device under **Settings > Telemetry**, with what to check
+([telemetry.md, "When a device sends nothing"](telemetry.md#when-a-device-sends-nothing)). The agent's
+log gets a line when a device is first heard or comes back, each new problem, and every five minutes
+how many points came in from how many devices:
+
+```text
+[telemetry] sw-a-01 heard: 52 ports via snmp, 840 MACs
+[telemetry] core-01 (snmp): nothing listens for SNMP on 192.0.2.1:161: is it turned on there, and the port right?
+[telemetry] last 5 min: 18200 points from 12 devices, 12 of 13 heard
+```
+
+**Test now** (Settings > Telemetry, per device) runs Telegraf once for that one device on the agent
+and shows what came back (values, ports, the device's own name) or the exact error, in a few seconds.
+**Raw data** shows the last lines the agent received from a device, as Telegraf sent them. Both are
+asked of the agent when you open them; nothing extra is stored.
+
+**Coming from a telegraf container.** Earlier agent releases needed a `telegraf` service next to the
+agent (`docker compose --profile telemetry up -d`). Remove that service from your compose file and
+run `docker compose up -d --remove-orphans`, so the old container goes too and frees ports 162 and
+57000 for the agent. If it keeps running, the agent refuses what it sends (it has a new token) and
+the Telemetry plugin says so on the agent's page. To keep Telegraf in its own container anyway, set
+`FLOORBIT_TELEGRAF=sidecar` on the agent: it then writes `/app/state/plugins/telemetry/telegraf.conf`
+for that container and runs none itself.
+
 ## The inventory through the agent
 
 Turn the event's inventory plugin on under Settings > Plugins (NetBox, with its URL and token);

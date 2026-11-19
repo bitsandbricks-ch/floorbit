@@ -3,7 +3,28 @@ import type { Agent, AgentPluginHealth } from '@/api/types'
 import { ago } from '@/lib/time'
 
 export type Tone = 'up' | 'warn' | 'down'
-export interface Problem { tone: 'warn' | 'down'; text: string; blocked?: boolean }
+export interface Problem { tone: 'warn' | 'down'; text: string; blocked?: boolean; link?: HintLink }
+export interface HintLink { href: string; internal: boolean }
+
+const AGENT_DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/agent.md'
+/** Where each health hint (floorbit/plugins/agent.py, Health.set) sends the tech to fix it. */
+const HINT_LINKS: Record<string, HintLink> = {
+  telegraf_missing: { href: `${AGENT_DOCS}#telegraf`, internal: false },
+  telegraf_stopped: { href: `${AGENT_DOCS}#telegraf`, internal: false },
+  telegraf_sidecar_left: { href: `${AGENT_DOCS}#telegraf`, internal: false },
+  telegraf_quiet: { href: '/settings/telemetry', internal: true },
+  device_problems: { href: '/settings/telemetry', internal: true },
+}
+
+/** What a plugin says about itself: the translated sentence for a known hint, else its own words. */
+export function pluginSays(p: AgentPluginHealth, t: TFunction): { text: string; detail: string; link?: HintLink } {
+  const key = p.hint ? `agents.hint.${p.hint}` : ''
+  if (key && t(key, { defaultValue: '' })) {
+    // The agent's own words still say which device and why: kept as the detail.
+    return { text: t(key), detail: p.message, link: HINT_LINKS[p.hint!] }
+  }
+  return { text: p.message, detail: '' }
+}
 
 /** Version strings compared number by number ("0.10.0" after "0.9.3"); anything else counts low. */
 export function compareVersions(a: string, b: string): number {
@@ -35,8 +56,14 @@ export function problems(agent: Agent, newest: string | null | undefined, protoc
   }
   for (const [id, p] of plugins(agent)) {
     if (!p.running && p.status !== 'off') out.push({ tone: 'down', text: t('agents.problem.pluginStopped', { plugin: id, message: p.message || '–' }) })
-    else if (p.status === 'error') out.push({ tone: 'down', text: t('agents.problem.pluginError', { plugin: id, message: p.message || p.errors[p.errors.length - 1]?.error || '–' }) })
-    else if (p.status === 'warning') out.push({ tone: 'warn', text: t('agents.problem.pluginWarning', { plugin: id, message: p.message || '–' }) })
+    else if (p.status === 'error') {
+      const says = pluginSays(p, t)
+      out.push({ tone: 'down', text: t('agents.problem.pluginError', { plugin: id, message: says.text || p.errors[p.errors.length - 1]?.error || '–' }), link: says.link })
+    }
+    else if (p.status === 'warning') {
+      const says = pluginSays(p, t)
+      out.push({ tone: 'warn', text: t('agents.problem.pluginWarning', { plugin: id, message: says.text || '–' }), link: says.link })
+    }
   }
   for (const [id, p] of plugins(agent)) {
     for (const b of p.auth_blocked ?? []) {

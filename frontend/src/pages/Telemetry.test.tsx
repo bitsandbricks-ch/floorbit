@@ -40,6 +40,18 @@ describe('Telemetry', () => {
     expect(await screen.findByText('fbt_example')).toBeInTheDocument()
   })
 
+  it('says why a device sends nothing, in words', async () => {
+    const problem = { driver: 'snmp', kind: 'refused', address: '192.0.2.1:161', since: 1_763_100_000, at: 1_763_100_060, count: 3,
+      detail: 'agent udp://192.0.2.1:161: performing get on field sysName: recvfrom: connection refused' }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin, 'GET /api/options/switches': { options: [] },
+      'GET /api/settings/telemetry': { ...settings, seen: { 'core-01': { seen: null, online: false, problems: [problem] } } },
+    }).fn)
+    renderWithApp(<Telemetry />)
+    expect(await screen.findByText(/SNMP polling: nothing listens on 192.0.2.1:161/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'What to check' })).toHaveAttribute('href', expect.stringContaining('#when-a-device-sends-nothing'))
+  })
+
   it('keeps a stored secret when the field is left empty', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': admin, 'GET /api/settings/telemetry': settings,

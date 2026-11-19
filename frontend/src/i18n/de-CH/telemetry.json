@@ -63,5 +63,49 @@
   "download": "telegraf.conf herunterladen",
   "pasteTitle": "{{name}} einrichten",
   "pasteIntro": "Füge das auf dem Gerät ein, damit es an den Sammler sendet. Ergänze die Teile in spitzen Klammern.",
-  "pasteNothing": "Für diese Wege ist auf dem Gerät nichts einzurichten: der Sammler fragt es ab."
+  "pasteNothing": "Für diese Wege ist auf dem Gerät nichts einzurichten: der Sammler fragt es ab.",
+  "problem": {
+    "refused": "{{driver}}: Auf {{address}} hört nichts. Ist es auf dem Gerät eingeschaltet, und stimmt der Port?",
+    "timeout": "{{driver}}: Keine Antwort von {{address}}. Ist es vom Agent aus erreichbar, und stimmt der Port?",
+    "timeout_snmp": "SNMP: Keine Antwort von {{address}}. Prüfe die Community oder das SNMPv3-Login und ob eine ACL den Agent durchlässt.",
+    "auth": "{{driver}}: {{address}} hat das Login abgelehnt. Prüfe Benutzer und Passwort (oder die SNMPv3-Schlüssel).",
+    "unreachable": "{{driver}}: Der Agent hat keine Route zu {{address}}. Prüfe die Adresse und das Netz des Agents.",
+    "tls": "{{driver}}: TLS mit {{address}} ist fehlgeschlagen. Prüfe sein Zertifikat oder schalte die TLS-Prüfung für es aus.",
+    "listen": "{{driver}}: Telegraf kann seinen Port nicht öffnen. Benutzt ihn ein anderes Programm?",
+    "other": "{{driver}}: {{detail}}",
+    "docs": "Was prüfen"
+  },
+  "test": {
+    "button": "Jetzt testen",
+    "title": "{{name}} testen",
+    "running": "Frage das Gerät über den Agent…",
+    "ok": "Antwortet",
+    "partly": "Antwortet, mit Problemen",
+    "nothing": "Nichts zurückgekommen",
+    "took": "über {{agent}}, {{ms}} ms",
+    "got_one": "1 Wert, {{ports}} Ports",
+    "got_other": "{{count}} Werte, {{ports}} Ports"
+  },
+  "raw": {
+    "button": "Rohdaten",
+    "title": "Rohdaten von {{name}}",
+    "none": "Von diesem Gerät ist noch nichts angekommen.",
+    "help": "Die letzten Zeilen, die {{agent}} von ihm bekommen hat, so wie Telegraf sie geschickt hat. Lädt alle 10 Sekunden neu.",
+    "show_one": "Die Rohzeile zeigen",
+    "show_other": "Die {{count}} Rohzeilen zeigen",
+    "hide": "Rohzeilen verbergen"
+  },
+  "agentNumbers": {
+    "standby": "Standby",
+    "offline": "offline",
+    "posting": "Telegraf hat vor {{s}} s geliefert",
+    "quiet": "zuletzt nichts von Telegraf",
+    "points": "{{n}} Werte empfangen",
+    "heard": "{{n}} Geräte gehört",
+    "series": "{{n}} Reihen",
+    "sent": "{{n}}× an Floorbit gesendet",
+    "failing": "{{n}} Geräte fallen aus",
+    "refused": "{{refused}} Lieferungen abgewiesen, {{bad}} Zeilen nicht verstanden"
+  },
+  "heard": "Gehört {{when}}"
 }

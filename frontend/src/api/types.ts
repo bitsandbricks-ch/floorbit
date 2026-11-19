@@ -1811,6 +1811,8 @@ export interface AgentReport {
 export interface AgentPluginHealth {
   status: 'ok' | 'warning' | 'error' | 'off'
   message: string
+  /** A code the page turns into a translated sentence with a link (agents.hint.*), when known. */
+  hint?: string
   running: boolean
   metrics: Record<string, number>
   errors: { at: number | null; error: string }[]

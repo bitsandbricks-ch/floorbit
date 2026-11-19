@@ -10,7 +10,7 @@ import time
 import pytest
 
 from floorbit.plugins.agent import MemoryContext
-from floorbit.telemetry import lineproto, pollers, state, storage, telegraf
+from floorbit.telemetry import lineproto, pollers, state, storage, supervisor, telegraf
 
 # These run the plugins the way the local agent does (tests/conftest.py, lan_here).
 pytestmark = pytest.mark.usefixtures("lan_here")
@@ -30,6 +30,8 @@ def fresh(tmp_path, monkeypatch):
     monkeypatch.delenv("FLOORBIT_VICTORIAMETRICS_URL", raising=False)
     monkeypatch.delenv("FLOORBIT_VICTORIALOGS_URL", raising=False)
     monkeypatch.setenv("FLOORBIT_TELEGRAF_CONF", str(tmp_path / "telegraf" / "telegraf.conf"))
+    # The agent part runs Telegraf when the machine has it: these tests leave it to a sidecar.
+    monkeypatch.setattr(supervisor, "binary", lambda: None)
     state.state.reset()
     storage.reset()
     yield

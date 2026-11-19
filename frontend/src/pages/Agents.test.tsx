@@ -54,6 +54,23 @@ describe('Agents', () => {
     expect(api.calls.find((c) => c.method === 'POST' && c.path === '/api/agents')?.body).toEqual({ name: 'Autumn LAN' })
   })
 
+  it('says what to do about a plugin warning, in words and with a link', async () => {
+    const agent = busyAgent()
+    agent.report!.plugins = {
+      telemetry: { status: 'warning', hint: 'telegraf_missing', message: 'nothing from Telegraf', running: true, metrics: {}, errors: [] },
+      dns: { status: 'warning', hint: 'device_problems', message: '1 of 2 devices fail', running: true, metrics: {}, errors: [] },
+    }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin, 'GET /api/halls': halls,
+      'GET /api/agents': { agents: [agent], connected: true, max: 10, server_version: '0.1.0', protocol: 2, newest_version: '0.9.0' },
+    }).fn)
+    renderWithApp(<Agents />)
+    const card = await screen.findByRole('article', { name: 'Spring LAN, hall 2' })
+    expect(within(card).getByText(/telemetry: Nothing from Telegraf: this agent image has no Telegraf/)).toBeInTheDocument()
+    expect(within(card).getByRole('link', { name: 'How to fix' })).toHaveAttribute('href', expect.stringContaining('docs/agent.md#telegraf'))
+    expect(within(card).getByRole('link', { name: 'Show devices' })).toHaveAttribute('href', '/settings/telemetry')
+  })
+
   it('flags an agent behind the newest one', async () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': admin, 'GET /api/halls': halls,

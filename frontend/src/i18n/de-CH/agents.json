@@ -236,5 +236,14 @@
     "syslog": "Syslog-Zeilen",
     "waiting": "{{n}} wartend",
     "reconnects": "Neuverbindungen"
+  },
+  "hint": {
+    "telegraf_missing": "Nichts von Telegraf: Dieses Agent-Image hat kein Telegraf, und kein telegraf-Container sendet an ihn. Hol das neuste floorbit-agent-Image (es betreibt Telegraf selbst).",
+    "telegraf_stopped": "Telegraf läuft auf diesem Agent nicht. Seine letzte Zeile steht unten, den Rest zeigt das Log des Agents.",
+    "telegraf_sidecar_left": "Ein anderes Telegraf (der alte telegraf-Container) sendet noch an diesen Agent. Entferne ihn aus der Compose-Datei und führe docker compose up -d --remove-orphans aus.",
+    "telegraf_quiet": "Telegraf läuft, aber es ist noch nichts angekommen. Vielleicht antworten die Geräte nicht: Prüfe ihre Adressen und Logins.",
+    "device_problems": "Einige Geräte senden nichts. Einstellungen > Telemetrie zeigt jedes und warum.",
+    "howToFix": "So behebst du es",
+    "showDevices": "Geräte zeigen"
   }
 }

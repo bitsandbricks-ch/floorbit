@@ -79,11 +79,14 @@ def _table(lines, name, fields):
 
 def _snmp_head(lines, t, interval, community=None, context=None):
     lines.append('[[inputs.snmp]]')
+    # Telegraf's log names the input by its alias: the agent tells each device's errors apart.
+    lines.append(f'  alias = {q(t["name"])}')
     lines.append(f'  agents = [{q("udp://" + _host(t["address"]) + ":" + str(t.get("port") or SNMP_PORT))}]')
     lines.append(f'  interval = {q(interval)}')
     lines.append('  timeout = "5s"')
     lines.append('  retries = 1')
-    lines.append('  agent_host_tag = "agent_host"')
+    # "source", as Telegraf 2.0 wants it; state.py reads either.
+    lines.append('  agent_host_tag = "source"')
     if t.get('snmp_version') == '3':
         lines.append('  version = 3')
         lines.append(f'  sec_name = {q(t.get("sec_name") or t.get("username") or "")}')
@@ -148,7 +151,8 @@ def snmp(t, interval='30s', tables_interval='60s'):
 
 def gnmi(t, interval='10s'):
     port = t.get('port') or GNMI_PORT.get(t.get('platform'), 50051)
-    lines = ['[[inputs.gnmi]]', f'  addresses = [{q(_host(t["address"]) + ":" + str(port))}]',
+    lines = ['[[inputs.gnmi]]', f'  alias = {q(t["name"])}',
+             f'  addresses = [{q(_host(t["address"]) + ":" + str(port))}]',
              f'  username = {q(t.get("username") or "")}', f'  password = {q(t.get("password") or "")}',
              f'  encoding = {q("json_ietf" if t.get("platform") == "iosxe" else "json")}',
              '  redial = "10s"', '  tls_enable = true',
@@ -170,9 +174,13 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
     lines = ['# Made by Floorbit from Settings > Telemetry (docs/telemetry.md). Changes here are',
              '# overwritten: change the devices there instead.', '',
              '[agent]', f'  interval = {q(interval)}', '  round_interval = true', '  flush_interval = "5s"',
-             '  metric_buffer_limit = 100000', '  omit_hostname = true', '',
+             '  metric_buffer_limit = 100000', '  omit_hostname = true',
+             # Said out loud, so Telegraf 1.40 doesn't warn about its coming default (no aggregators here).
+             '  skip_processors_after_aggregators = false', '',
              '[[outputs.http]]', f'  url = {q(output_url)}', '  method = "POST"', '  data_format = "influx"',
-             '  content_encoding = "gzip"', '  timeout = "10s"',
+             # No gzip: with it Telegraf sends the body in chunks without a length, which older agents
+             # dropped (a broken pipe in Telegraf's log). The agent is on the same host or LAN anyway.
+             '  timeout = "10s"',
              *(['  insecure_skip_verify = true'] if output_insecure else []), '  [outputs.http.headers]',
              f'    Authorization = {q("Token " + token)}', '']
     traps = [t for t in targets if 'traps' in t['drivers']]
@@ -183,7 +191,8 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
         if 'gnmi' in t['drivers']:
             lines += [*gnmi(t), '']
     if traps and listen_traps:
-        lines += ['[[inputs.snmp_trap]]', f'  service_address = {q(f"udp://:{TRAP_PORT}")}', '  timeout = "5s"']
+        lines += ['[[inputs.snmp_trap]]', '  alias = "traps"', f'  service_address = {q(f"udp://:{TRAP_PORT}")}',
+                  '  timeout = "5s"']
         v3 = next((t for t in traps if t.get('snmp_version') == '3'), None)
         if v3:
             lines += ['  version = "3"', f'  sec_name = {q(v3.get("sec_name") or v3.get("username") or "")}',
@@ -195,7 +204,8 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
                           f'  priv_password = {q(v3["priv_password"])}']
         lines += ['  [inputs.snmp_trap.tags]', '    driver = "traps"', '']
     if mdt and listen_mdt:
-        lines += ['[[inputs.cisco_telemetry_mdt]]', '  transport = "grpc"', f'  service_address = {q(f":{MDT_PORT}")}',
+        lines += ['[[inputs.cisco_telemetry_mdt]]', '  alias = "mdt"', '  transport = "grpc"',
+                  f'  service_address = {q(f":{MDT_PORT}")}',
                   '  source_field_name = "mdt_source"']
         cert, key = os.environ.get(MDT_CERT_ENV), os.environ.get(MDT_KEY_ENV)
         if cert and key:

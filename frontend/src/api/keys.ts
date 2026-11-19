@@ -53,6 +53,8 @@ export const qk = {
   tenants: ['platform', 'tenants'] as const,
   audit: ['audit'] as const,
   agents: ['agents'] as const,
+  telemetryDevices: ['telemetry-devices'] as const,
+  telemetryRaw: (name: string) => ['telemetry-raw', name] as const,
   webhooks: ['webhooks'] as const,
   gameServers: ['game-servers'] as const,
   firewalls: ['firewalls'] as const,

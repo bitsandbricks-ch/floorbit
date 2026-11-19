@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom'
 import { Field } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { agentHref, type AgentRow } from './data'
-import { behind, PLUGIN_COLOR, plugins, stateKey, upText } from './model'
+import { HintAnchor } from './HintAnchor'
+import { behind, PLUGIN_COLOR, pluginSays, plugins, stateKey, upText } from './model'
 
 const SHOWN_PROBLEMS = 3
 
@@ -58,7 +59,7 @@ export function AgentCard({ row, newest, hallNames }: { row: AgentRow; newest?: 
           <Group gap={6} wrap="wrap" aria-label={t('agents.pluginsShort')}>
             {list.map(([id, p]) => (
               <Badge key={id} variant="light" color={PLUGIN_COLOR[p.status] ?? 'gray'} tt="none"
-                title={[t(p.running ? `agents.pluginStatus.${p.status}` : 'agents.pluginNotRunning'), p.message].filter(Boolean).join(' · ')}>
+                title={[t(p.running ? `agents.pluginStatus.${p.status}` : 'agents.pluginNotRunning'), pluginSays(p, t).text].filter(Boolean).join(' · ')}>
                 {id}
               </Badge>
             ))}
@@ -68,7 +69,7 @@ export function AgentCard({ row, newest, hallNames }: { row: AgentRow; newest?: 
         {problems.length > 0 && (
           <Stack gap={4} aria-label={t('agents.needsLook')}>
             {problems.slice(0, SHOWN_PROBLEMS).map((p, i) => (
-              <Text key={i} size="xs" c={p.tone} style={{ overflowWrap: 'anywhere' }}>{p.text}</Text>
+              <Text key={i} size="xs" c={p.tone} style={{ overflowWrap: 'anywhere' }}>{p.text}{p.link && <>{' '}<HintAnchor link={p.link} /></>}</Text>
             ))}
             {problems.length > SHOWN_PROBLEMS && (
               <Text size="xs" c="dimmed">{t('agents.moreProblems', { count: problems.length - SHOWN_PROBLEMS })}</Text>

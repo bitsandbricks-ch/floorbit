@@ -356,6 +356,8 @@ def clean_health(raw):
                              for b in blocks[:50] if isinstance(b, dict) and b.get('device')],
             'status': h.get('status') if h.get('status') in STATUSES else 'error',
             'message': str(h.get('message') or '')[:300],
+            # A code the page translates (floorbit/plugins/agent.py, Health.set); never shown raw.
+            'hint': h['hint'] if isinstance(h.get('hint'), str) and NAME_RE.match(h['hint']) else '',
             'running': bool(h.get('running')),
             'metrics': {k: v for k, v in list(metrics.items())[:40] if NAME_RE.match(str(k)) and _number(v)},
             'errors': [{'at': e['at'] if _number(e.get('at')) else None, 'error': str(e.get('error') or '')[:300]}
