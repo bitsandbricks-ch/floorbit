@@ -1201,5 +1201,6 @@
  "{} must be host:port or off.": "{} muss host:port oder off sein.",
  "{} takes at most {} entries.": "{} nimmt höchstens {} Einträge.",
  "{}: \"{}\" is not valid.": "{}: «{}» ist nicht gültig.",
- "Telemetry does not collect from that device. Turn it on in the inventory.": "Von diesem Gerät sammelt die Telemetrie nicht. Schalte sie im Inventar ein."
+ "Telemetry does not collect from that device. Turn it on in the inventory.": "Von diesem Gerät sammelt die Telemetrie nicht. Schalte sie im Inventar ein.",
+ "{} must be one of {}.": "{} muss eines davon sein: {}."
 }
