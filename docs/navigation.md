@@ -5,21 +5,35 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
 
 ## Sidebar
 
-- **Go to** at the top opens the search for any page, seat or switch (also **Ctrl K**, **⌘K** on a Mac).
+- The **event** you work on is at the top: click it to switch to another event of this tenant.
 - **Favourites** come first: the star on a row (it shows when you point at the row) pins that page
-  there, and a second click takes it off again. They are kept with your account, so they follow you
-  to every browser (`GET` and `PUT /api/auth/me/nav`); without sign-in this browser keeps them.
-- **Floor plan**, **Seats**, **Dashboard**, **Problems** and **Incidents** are always at the top.
-  Problems shows how many switches are down.
-- The other pages are folded into sections: **Helpdesk**, **Network**, **Build**,
-  **Event** and **Settings**. The section of the page you are on is open. Opening another section
-  folds the open one, so the sidebar stays short. Turn that off in the account menu (**Fold other
-  sections when one opens**) to keep several open; they then stay open on this browser.
-- The button at the bottom folds the sidebar to icons, and back. On icons, a section opens as a
-  list beside the sidebar. The choice is kept in a cookie (`floorbit_nav`), so every page starts
-  with the same width.
-- Your name at the bottom opens the account menu: language, folding sections, light or dark theme, notifications,
+  there, and a second click takes it off again. A dashboard's **Pin to sidebar** puts it there too.
+  They are kept with your account, so they follow you to every browser (`GET` and
+  `PUT /api/auth/me/nav`); without sign-in this browser keeps them.
+- **Overview** and **Floor plan** are always at the top.
+- The other pages are in groups: **Live**, **Inventory**, **Monitoring**, **Seats**, **Event** and
+  **Floorbit** (Agents, Plugins, Settings). A click on a group's name folds it, and this browser
+  remembers it. The group of the page on screen is always open.
+- The button at the bottom folds the sidebar to icons, and back. The choice is kept in a cookie
+  (`floorbit_nav`), so every page starts with the same width.
+- Your name at the bottom opens the account menu: language, light or dark theme, notifications,
   the crew notice (leads) and **Sign out**.
+
+Above each page a bar shows where you are (group, page, sub page), **Go to** (**Ctrl K**, **⌘K** on
+a Mac) for any page, seat or switch, and the bell with what needs a look.
+
+## Settings and Plugins
+
+**Settings** is one page with tabs: **General** (the event, its look, seat sources, monitoring),
+**People** (users, roles and teams, sign-in, API tokens), **Alerts** (Discord, crew alerts,
+webhooks), **Tenants** and **System** (status, backup, caching, features, sidebar sections, the
+audit log). Each part keeps its own address (`/settings/users`, `/settings/audit`, ...), and the
+search on top finds any field. An account sees only the tabs it may open: someone who manages
+accounts but not settings gets People alone.
+
+**Plugins** (`/settings/plugins`) has **Installed**, **Marketplace** and **Updates** (installed
+plugins with a newer version). NetBox, LibreNMS and every other plugin keep their settings on their
+own plugin page.
 
 ## Your own sections
 
@@ -41,14 +55,12 @@ The sidebar lists only the pages this account may open and the features that are
 list as **Go to** (`GET /api/pages`). A page Floorbit doesn't sort into a section yet shows under
 **More**.
 
-Between the React pages only the page changes: the sidebar stays, nothing reloads. The floor plan,
-Settings, users and the audit log are drawn by the server and load as a whole page, with the same
-sidebar.
+Between the React pages only the page changes: the sidebar stays, nothing reloads.
 
 ## Phones
 
-Below 768 px the sidebar becomes a bar at the bottom with **Floor plan**, **Seats**, **Problems**,
-**Incidents** and **Menu**. **Menu** opens everything else as a sheet from the left, with the
+Below 768 px the sidebar becomes a bar at the bottom with **Overview**, **Floor plan**,
+**Incidents**, **Problems** and **Menu**. **Menu** opens everything else as a sheet from the left, with the
 search and the account menu. The brand and a search button sit at the top of each page.
 
 ## For developers
@@ -66,6 +78,7 @@ takes it over in one commit. The server picks the language from the `floorbit_la
 frontend writes it) or `Accept-Language`. A change to the sidebar's markup in `Sidebar.tsx` needs
 the same change in `nav.markup()`.
 
-A new page goes into `floorbit/page_index.py` as before, and into a section in
-`frontend/src/nav/sections.ts` (with an icon). Pages Flask draws itself are listed in
+A new page goes into `floorbit/page_index.py` as before, and into a group in
+`frontend/src/nav/sections.ts` (with an icon). A page that is a tab of another one (the admin pages
+in Settings) goes into `INSIDE` there instead, and into `PAGES` and `TABS` in `pages/Settings.tsx`. Pages Flask draws itself are listed in
 `isServerPage()` there, so links to them load the whole page.
