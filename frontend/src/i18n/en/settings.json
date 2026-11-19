@@ -11,11 +11,13 @@
   "test": "Test connection",
   "testing": "Testing…",
   "source": {
-    "saved": "Saved",
-    "env": "From env",
+    "saved": "Set here",
+    "env": "Set by the server's environment",
+    "hosted": "Set by the hosted Floorbit",
     "default": "Default"
   },
-  "envSet": "is set",
+  "envTip": "From the environment variable {{env}}. Change it where the server is started.",
+  "envOverridden": "Set here, so the environment variable {{env}} is not used. Reset to go back to it.",
   "unsaved": "Unsaved",
   "willReset": "Will reset",
   "reset": "Reset",
