@@ -41,7 +41,9 @@
     "block": "Seat block",
     "zone": "Zone",
     "box": "My view",
-    "blockName": "Block {{name}}"
+    "blockName": "Block {{name}}",
+    "rows": "Rows {{rows}}",
+    "fromSeat": "Block at seat {{seat}}"
   },
   "labels": {
     "auto": "By zoom",

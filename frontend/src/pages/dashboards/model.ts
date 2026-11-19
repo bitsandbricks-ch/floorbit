@@ -1,4 +1,4 @@
-import type { PlanDrawing } from '@/api/types'
+import type { PlanDrawing, PlanShape } from '@/api/types'
 import type { View } from '../plan/model'
 import type { PresetId } from '../plan/layers'
 import type { LabelMode } from '../plan/labels'
@@ -214,7 +214,7 @@ export function areaView(area: Area, drawing: PlanDrawing): View | null {
     return z ? pad({ x: z.x, y: z.y, w: z.w ?? 0, h: z.h ?? 0 }, 24) : null
   }
   if (area.kind === 'block') {
-    const b = drawing.shapes.find((s) => s.name === area.id)
+    const b = findBlock(drawing, area.id)
     if (!b) return null
     return contentBox({ ...drawing, shapes: [b], marks: [] }, 24)
   }
@@ -242,4 +242,23 @@ export function seatsIn(drawing: PlanDrawing, view: View): string[] {
 export function displayOf(p: Extract<Pane, { kind: 'tile' }>): Display {
   const { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero } = p
   return { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero }
+}
+
+/** A seat block by its id, or by its name (panes saved before blocks were picked by id). */
+export function findBlock(drawing: PlanDrawing, ref: string): PlanShape | undefined {
+  return drawing.shapes.find((s) => s.id === ref) ?? drawing.shapes.find((s) => s.name && s.name === ref)
+}
+
+/** What to call a seat block: its name, or the letters of its rows when the rows carry the names
+ *  (a block named by row has no name of its own), or its first seat. */
+export function blockLabel(b: PlanShape): { name: string } | { rows: string } | { seat: string } {
+  if (b.name) return { name: b.name }
+  const letters = [...new Set((b.rows ?? []).map((r) => r.text))]
+  if (letters.length) return { rows: letters.length > 1 ? `${letters[0]}–${letters[letters.length - 1]}` : letters[0] }
+  return { seat: b.cells[0]?.seat ?? '' }
+}
+
+export function blockText(t: (k: string, o?: Record<string, string>) => string, b: PlanShape): string {
+  const l = blockLabel(b)
+  return 'name' in l ? l.name : 'rows' in l ? t('dashboards.area.rows', { rows: l.rows }) : t('dashboards.area.fromSeat', { seat: l.seat })
 }

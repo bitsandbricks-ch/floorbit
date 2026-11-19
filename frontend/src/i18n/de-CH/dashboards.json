@@ -41,7 +41,9 @@
     "block": "Sitzblock",
     "zone": "Zone",
     "box": "Meine Ansicht",
-    "blockName": "Block {{name}}"
+    "blockName": "Block {{name}}",
+    "rows": "Reihen {{rows}}",
+    "fromSeat": "Block ab Platz {{seat}}"
   },
   "labels": {
     "auto": "Nach Zoom",

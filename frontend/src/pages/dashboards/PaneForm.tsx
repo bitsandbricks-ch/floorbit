@@ -15,7 +15,7 @@ import { usePaneData } from '@/widgets/usePaneData'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
-import { type Area, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, planPane } from './model'
+import { type Area, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane } from './model'
 import { pluginName } from '@/lib/pluginName'
 import { DisplayFields } from './DisplayFields'
 
@@ -93,7 +93,9 @@ function PlanFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'plan' }>;
   })
   const drawing = q.data?.drawing
   const zones = (drawing?.marks ?? []).filter((m) => m.kind === 'zone' && m.id)
-  const blocks = (drawing?.shapes ?? []).filter((b) => b.name)
+  // Blocks named by row have no name of their own: list every block, by id, named by its rows.
+  const blocks = (drawing?.shapes ?? []).filter((b) => b.id || b.name)
+    .map((b) => ({ value: b.id ?? b.name, label: blockText(t, b) }))
   const setArea = (area: Area) => onChange({ ...pane, area })
   return (
     <>
@@ -105,14 +107,14 @@ function PlanFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'plan' }>;
           data={(['hall', 'block', 'zone', 'box'] as const).map((k) => ({ value: k, label: t(`dashboards.area.${k}`) }))}
           onChange={(v) => {
             if (v === 'hall') setArea({ kind: 'hall' })
-            else if (v === 'block') setArea({ kind: 'block', id: blocks[0]?.name ?? '' })
+            else if (v === 'block') setArea({ kind: 'block', id: blocks[0]?.value ?? '' })
             else if (v === 'zone') setArea({ kind: 'zone', id: zones[0]?.id ?? '' })
             else if (drawing) setArea({ kind: 'box', ...(areaView({ kind: 'hall' }, drawing) ?? { x: 0, y: 0, w: 1600, h: 1000 }) })
           }} />
       </div>
       {pane.area.kind === 'block' && (
-        <Select label={t('dashboards.area.block')} allowDeselect={false} searchable placeholder={t('ui.pickBlock')} value={pane.area.id || null}
-          data={blocks.map((b) => b.name)} nothingFoundMessage={t('dashboards.form.noBlocks')}
+        <Select label={t('dashboards.area.block')} allowDeselect={false} searchable placeholder={t('ui.pickBlock')} value={(drawing && findBlock(drawing, pane.area.id)?.id) || pane.area.id || null}
+          data={blocks} nothingFoundMessage={t('dashboards.form.noBlocks')}
           onChange={(v) => v && setArea({ kind: 'block', id: v })} />
       )}
       {pane.area.kind === 'zone' && (zones.length

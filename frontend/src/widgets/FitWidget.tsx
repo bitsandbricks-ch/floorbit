@@ -14,22 +14,29 @@ import { StatKind } from './kinds/Stat'
 import { useBox } from './useBox'
 
 const NO_STYLE = {}
+/** The sub line under a widget: its 12px text plus the 4px gap (widgets.css). */
+const SUB_H = 20
 
 /** A widget that fits its box (issue #924): the kind the pane picked (or the data's own), at the
  *  level the box allows (or the pane pins). Nothing inside scrolls; what doesn't fit is "+N more". */
 export function FitWidget({ widget, pick = 'auto', pin = 'auto', look, onMore }: {
   widget: Widget; pick?: KindPick; pin?: LevelPin; look?: Look; onMore?: () => void
 }) {
-  const [ref, box] = useBox<HTMLDivElement>()
+  // The level comes from the whole widget, which doesn't change with the level. Measuring only the
+  // drawing area flapped (issue #1010): at M the sub line takes room, the area shrinks below M,
+  // S hides the sub line, the area grows back to M, and so on.
+  const [ref, whole] = useBox<HTMLDivElement>()
   const kind = resolveKind(widget, pick)
-  const level = pickLevel(kind, box.w, box.h, pin)
+  const level = pickLevel(kind, whole.w, whole.h, pin)
+  const sub = level !== 's' && !!widget.sub
+  const box = { w: whole.w, h: Math.max(0, whole.h - (sub ? SUB_H : 0)) }
   return (
     <NumberStyleContext.Provider value={look?.number ?? NO_STYLE}>
-    <div className={`fb-w fb-w-is-${kind} fb-w-level-${level}`} data-kind={kind} data-level={level}>
-      <div className="fb-w-area" ref={ref}>
+    <div className={`fb-w fb-w-is-${kind} fb-w-level-${level}`} data-kind={kind} data-level={level} ref={ref}>
+      <div className="fb-w-area">
         {box.w > 0 && <Kind kind={kind} widget={widget} level={level} box={box} look={look} onMore={onMore} />}
       </div>
-      {level !== 's' && widget.sub && <div className="fb-w-sub" title={widget.sub}>{widget.sub}</div>}
+      {sub && <div className="fb-w-sub" title={widget.sub}>{widget.sub}</div>}
     </div>
     </NumberStyleContext.Provider>
   )

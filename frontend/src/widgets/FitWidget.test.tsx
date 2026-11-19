@@ -133,4 +133,17 @@ describe('FitWidget', () => {
     renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 0, unit: '', tone: 'err', text: 'Down' }} />)
     expect(screen.getByText('Down')).toBeInTheDocument()
   })
+
+  it('picks its level from the whole widget, so a sub line can not make it flap (#1010)', () => {
+    // The drawing area is 20px shorter than the widget when the sub line shows: a level taken from
+    // the area would drop to small, hide the sub line, and grow back.
+    const spy = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('fb-w-area') ? 140 : 160
+    })
+    size = { w: 300, h: 160 }
+    const { container } = renderWithApp(<FitWidget widget={{ ...base, sub: 'From the last port read', type: 'stat', value: 9, unit: '', tone: '' }} />)
+    expect(container.querySelector('.fb-w')?.getAttribute('data-level')).toBe('m')
+    expect(screen.getByText('From the last port read')).toBeInTheDocument()
+    spy.mockImplementation(() => size.h)
+  })
 })

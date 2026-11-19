@@ -24,7 +24,7 @@ function Framed({ title, hide, className = '', actions, fit, children }: {
 }) {
   return (
     <div className={`fb-pane ${className}${!title || hide ? ' fb-pane-nohead' : ''}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
-      {title && !hide && <div className="fb-pane-head"><Text fw={800} className="fb-pane-title" truncate>{title}</Text>{actions && <div className="fb-pane-actions">{actions}</div>}</div>}
+      {title && !hide && <div className="fb-pane-head"><Text fw={600} className="fb-pane-title" truncate>{title}</Text>{actions && <div className="fb-pane-actions">{actions}</div>}</div>}
       <div className={`fb-pane-body ${fit ? 'fb-pane-fit' : 'fb-pane-scroll'}${hide ? ' fb-pane-headless' : ''}`}>{children}</div>
     </div>
   )
