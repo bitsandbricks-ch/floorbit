@@ -2,7 +2,11 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Device, DeviceDetail, InventoryList, InventoryOverview } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
+import { Route, Routes } from 'react-router-dom'
 import Inventory from './Inventory'
+import DevicePage from './inventory/DevicePage'
+import EntryPage from './inventory/EntryPage'
+import ScopePage from './inventory/ScopePage'
 import { matches } from './inventory/model'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -83,6 +87,17 @@ const editor = {
   user: { username: 'ed', display_name: 'Ed', role: 'lead', permissions: ['floorplan.view', 'floorplan.edit'] },
 }
 
+/** The inventory with its item pages, so a click on a name opens the device's page. */
+function app(route = '/inventory') {
+  return renderWithApp(
+    <Routes>
+      <Route path="/inventory" element={<Inventory />} />
+      <Route path="/inventory/devices/:id" element={<DevicePage />} />
+      <Route path="/inventory/groups/:id" element={<ScopePage kind="group" />} />
+      <Route path="/inventory/entries/:type/:id" element={<EntryPage />} />
+    </Routes>, route)
+}
+
 describe('matches', () => {
   it('searches name, model, serial and IP, and filters by role', () => {
     expect(matches(fed, 'foc1', null)).toBe(true)
@@ -95,18 +110,18 @@ describe('matches', () => {
 describe('Inventory page', () => {
   it('lists devices with where they come from and what was changed by hand', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview }).fn)
-    renderWithApp(<Inventory />)
-    const row = (await screen.findByRole('button', { name: 'Stage switch' })).closest('tr')!
+    app()
+    const row = (await screen.findByRole('link', { name: 'Stage switch' })).closest('tr')!
     expect(within(row).getByText('NetBox')).toBeInTheDocument()
     expect(within(row).getByLabelText('Name')).toBeInTheDocument()   // the lock icon
-    const handRow = screen.getByRole('button', { name: 'sw-hand' }).closest('tr')!
+    const handRow = screen.getByRole('link', { name: 'sw-hand' }).closest('tr')!
     expect(within(handRow).getByText('By hand')).toBeInTheDocument()
     expect(screen.getByText('2 devices')).toBeInTheDocument()
   })
 
   it('says when the inventory syncs on its own', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': { ...list, every: 15 }, 'GET /api/inventory/groups': overview }).fn)
-    renderWithApp(<Inventory />)
+    app()
     expect(await screen.findByText('Syncs on its own every 15 minutes.')).toBeInTheDocument()
   })
 
@@ -118,8 +133,8 @@ describe('Inventory page', () => {
       'GET /api/inventory/netbox-12': fedDetail,
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Inventory />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Stage switch' }))
+    app()
+    fireEvent.click(await screen.findByRole('link', { name: 'Stage switch' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }))
     expect(await screen.findByText('Changed by hand. NetBox says: sw-a-01')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: "Use NetBox's value" }))
@@ -134,8 +149,8 @@ describe('Inventory page', () => {
       'GET /api/inventory/h1': { ...fedDetail, ...hand, blocks: [] },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Inventory />)
-    fireEvent.click(await screen.findByRole('button', { name: 'sw-hand' }))
+    app()
+    fireEvent.click(await screen.findByRole('link', { name: 'sw-hand' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }))
     fireEvent.change(await screen.findByLabelText('Model'), { target: { value: 'X1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -152,7 +167,7 @@ describe('Inventory page', () => {
       'POST /api/icons': () => { uploaded = true; return { status: 201, body: rack } },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Inventory />)
+    app()
     fireEvent.click(await screen.findByRole('button', { name: 'Icons' }))
     const dialog = await screen.findByRole('dialog', { name: 'Icon library' })
     expect(await within(dialog).findByText('No icons uploaded yet.')).toBeInTheDocument()
@@ -177,7 +192,7 @@ describe('Inventory page', () => {
       'PATCH /api/inventory/entries/rack/r1': { ...rack, fields: { height_u: '47' } },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Inventory />)
+    app()
     fireEvent.click(await screen.findByRole('tab', { name: /Rack or location/ }))
     expect(await screen.findByText('42')).toBeInTheDocument()     // the default shows in the list
     fireEvent.click(screen.getByRole('button', { name: 'R1' }))
@@ -193,7 +208,7 @@ describe('Inventory page', () => {
       'fetch',
       fakeFetch({ 'GET /api/auth/me': { enabled: true, user: { ...editor.user, role: 'viewer', permissions: ['floorplan.view'] } }, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview }).fn,
     )
-    renderWithApp(<Inventory />)
+    app()
     expect(await screen.findByText('Stage switch')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add device' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'New group' })).toBeNull()
@@ -208,21 +223,21 @@ describe('Inventory page', () => {
         'POST /api/inventory/sync': { reports: [{ plugin: 'netbox', at: 'x', added: 2, updated: 1, gone: 0, locked: 1 }] },
       }).fn,
     )
-    renderWithApp(<Inventory />)
+    app()
     fireEvent.click(await screen.findByRole('button', { name: 'Sync now' }))
     expect(await screen.findByText('✓ Synced: 2 added, 1 updated, 0 gone, 1 edited fields kept.')).toBeInTheDocument()
   })
 
   it('filters by group (with the groups below it) and by tag', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview }).fn)
-    renderWithApp(<Inventory />)
-    await screen.findByRole('button', { name: 'sw-hand' })
+    app()
+    await screen.findByRole('link', { name: 'sw-hand' })
     fireEvent.click(await screen.findByRole('button', { name: /^Hall A/ }))
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'sw-hand' })).toBeNull())
-    expect(screen.getByRole('button', { name: 'Stage switch' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'sw-hand' })).toBeNull())
+    expect(screen.getByRole('link', { name: 'Stage switch' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /No group/ }))
-    expect(await screen.findByRole('button', { name: 'sw-hand' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Stage switch' })).toBeNull()
+    expect(await screen.findByRole('link', { name: 'sw-hand' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Stage switch' })).toBeNull()
   })
 
   it('opens a device with its interfaces, where its settings come from, and a blocked login to clear', async () => {
@@ -235,8 +250,8 @@ describe('Inventory page', () => {
       'POST /api/inventory/blocks/clear': { cleared: 1 },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Inventory />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Stage switch' }))
+    app()
+    fireEvent.click(await screen.findByRole('link', { name: 'Stage switch' }))
     expect(await screen.findByText('Stored login blocked')).toBeInTheDocument()
     expect(screen.getByText('Authentication failed')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }))
@@ -270,8 +285,8 @@ describe('Inventory page', () => {
       'PATCH /api/inventory/netbox-12': { ok: true },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Inventory />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Stage switch' }))
+    app()
+    fireEvent.click(await screen.findByRole('link', { name: 'Stage switch' }))
     fireEvent.click(await screen.findByRole('tab', { name: 'Telemetry' }))
     expect(await screen.findByText(/The Telemetry feature is off/)).toBeInTheDocument()
     // Empty here: the group's port shows, and where it comes from.
@@ -297,8 +312,8 @@ describe('Inventory page', () => {
       'POST /api/inventory/netbox-12/interfaces': { added: [] },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Inventory />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Stage switch' }))
+    app()
+    fireEvent.click(await screen.findByRole('link', { name: 'Stage switch' }))
     fireEvent.click(await screen.findByRole('tab', { name: /Interfaces/ }))
     fireEvent.change(await screen.findByLabelText('Interfaces'), { target: { value: 'Gi1/0/1-48' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
@@ -314,11 +329,32 @@ describe('Inventory page', () => {
       'POST /api/inventory/groups': { ...overview.groups[1], id: 'g3', name: 'Core', parent_id: 'g1' },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Inventory />)
+    app()
     fireEvent.click(await screen.findByRole('button', { name: 'New group' }))
-    const panel = await screen.findByRole('dialog')
-    fireEvent.change(within(panel).getAllByRole('textbox')[0], { target: { value: 'Core' } })
-    fireEvent.click(within(panel).getByRole('button', { name: 'Create' }))
+    // A new group opens on its own page.
+    fireEvent.change((await screen.findAllByRole('textbox', { name: 'Name' }))[0], { target: { value: 'Core' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toMatchObject({ name: 'Core', parent_id: null, tags: [] }))
+  })
+
+  it("opens a device's own page from its address, with the plan and its group a click away", async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'GET /api/inventory/netbox-12': { ...fedDetail, blocks: [] }, 'GET /api/inventory/credentials': { credentials: [] },
+    }).fn)
+    app('/inventory/devices/netbox-12')
+    expect((await screen.findAllByRole('heading', { name: /Stage switch/ })).length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: 'On the plan' })).toHaveAttribute('href', '/plan?switch=Stage%20switch')
+    expect(screen.getByText('192.0.2.5', { selector: '.fb-chip-value' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).toBeNull()                    // a page, not a side panel
+    fireEvent.click(screen.getByRole('link', { name: 'Hall A' }))
+    expect((await screen.findAllByRole('textbox', { name: 'Name' }))[0]).toHaveValue('Hall A')
+  })
+
+  it('says so when a device is gone', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory/groups': overview }).fn)
+    app('/inventory/devices/nope')
+    expect(await screen.findByText('This item is not in the inventory')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to the inventory' })).toHaveAttribute('href', '/inventory')
   })
 })

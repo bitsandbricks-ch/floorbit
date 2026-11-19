@@ -976,3 +976,17 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-time-chart .dot { fill: var(--color-bit); }
 .fb-time-chart .axis { stroke: var(--color-line); stroke-width: 1; }
 .fb-time-chart figcaption { display: flex; justify-content: space-between; gap: 8px; color: var(--color-muted); font-size: 12px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+/* An inventory item's own page (pages/inventory/DevicePage.tsx): facts as chips under the title,
+   and the overview in a wide and a narrow column. */
+.fb-chips { row-gap: 6px; }
+.fb-chip {
+  display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 8px;
+  border: 1px solid var(--color-line); border-radius: 6px; font-size: 12.5px;
+}
+.fb-chip-label { color: var(--color-muted); }
+.fb-chip-value { font-weight: 550; overflow-wrap: anywhere; }
+.fb-detail-grid { display: grid; gap: var(--mantine-spacing-md); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 62em) {
+  .fb-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+}

@@ -14,6 +14,9 @@ const Plugins = lazy(() => import('@/pages/Plugins'))
 const PluginSettings = lazy(() => import('@/pages/PluginSettings'))
 const PluginPage = lazy(() => import('@/pages/PluginPage'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
+const DevicePage = lazy(() => import('@/pages/inventory/DevicePage'))
+const ScopePage = lazy(() => import('@/pages/inventory/ScopePage'))
+const EntryPage = lazy(() => import('@/pages/inventory/EntryPage'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
 const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
@@ -96,6 +99,11 @@ export default function App() {
             <Route path="/settings/plugins/:id" element={<PluginSettings />} />
             <Route path="/plugins/:plugin/:page" element={<PluginPage />} />
             <Route path="/inventory" element={<Inventory />} />
+            <Route path="/inventory/devices/:id" element={<DevicePage />} />
+            <Route path="/inventory/groups/:id" element={<ScopePage kind="group" />} />
+            <Route path="/inventory/tags/:id" element={<ScopePage kind="tag" />} />
+            <Route path="/inventory/defaults" element={<ScopePage kind="defaults" />} />
+            <Route path="/inventory/entries/:type/:id" element={<EntryPage />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />
             <Route path="/incidents" element={<Incidents />} />
             <Route path="/incidents/qr" element={<HelpdeskQr />} />

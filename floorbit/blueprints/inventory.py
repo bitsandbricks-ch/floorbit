@@ -142,7 +142,9 @@ def _sources(data):
 
 
 @bp.route('/inventory')
-def inventory_page():
+@bp.route('/inventory/<path:_item>')
+def inventory_page(_item=None):
+    """The list, and each device's, group's, tag's and entry's own page (the React app routes them)."""
     return spa.render('Inventory')
 
 

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { InventoryOverview } from '@/api/types'
 import { DeviceIcon } from './icons'
 import { groupTree } from './scope'
-import type { ScopeTarget } from './GroupPanel'
+import type { ScopeTarget } from './ScopeEditor'
 
 export type GroupFilter = null | 'none' | string
 
