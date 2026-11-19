@@ -1425,6 +1425,17 @@ export interface StatusUpdate {
   area: string
 }
 
+/** One count of every service (issue #1037): the health wall's checks, each internet site a row. */
+export interface ServiceSummaryRow {
+  id: string; name: string; kind: string; status: ServiceStatus; summary: string; link: string
+}
+export interface ServiceSummary {
+  rows: ServiceSummaryRow[]
+  total: number
+  counts: Record<ServiceStatus, number>
+  by_kind: Record<string, Record<ServiceStatus | 'total', number>>
+}
+
 export interface StatusPageData {
   state: StatusState
   auto_state: StatusState

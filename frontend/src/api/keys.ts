@@ -59,6 +59,7 @@ export const qk = {
   gameServers: ['game-servers'] as const,
   firewalls: ['firewalls'] as const,
   services: ['services'] as const,
+  serviceSummary: ['services', 'summary'] as const,
   topology: ['topology'] as const,
   preflight: ['preflight'] as const,
   incidentPeople: ['incidents', 'people'] as const,

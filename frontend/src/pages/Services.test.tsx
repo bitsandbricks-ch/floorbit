@@ -153,3 +153,26 @@ describe('Services', () => {
     }))
   })
 })
+
+describe('Services counts what the health panes count (#1037)', () => {
+  it('lists DHCP and firewalls from the shared summary and counts them', async () => {
+    const summary = {
+      rows: [
+        { id: 'firewall:1', name: 'fw-03', kind: 'firewall', status: 'down', summary: '1 range failed over', link: '/firewalls' },
+        { id: 'dhcp-players', name: 'DHCP players', kind: 'dhcp', status: 'warn', summary: '24 of 120 leases left', link: '' },
+        { id: 'uplink:u1', name: 'Provider A', kind: 'uplink', status: 'warn', summary: '', link: '/services' },
+      ],
+      total: 3, counts: { up: 0, warn: 2, down: 1, unknown: 0 }, by_kind: {},
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/services': data, 'GET /api/game-servers': noGames,
+      'GET /api/services/summary': summary }).fn)
+    renderWithApp(<Services />)
+    const fw = await screen.findByRole('group', { name: 'fw-03' })
+    expect(within(fw).getByText('1 range failed over')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Firewalls' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'DHCP' })).toBeInTheDocument()
+    // Uplinks come from the page's own list, not twice: 4 own rows + fw-03 + DHCP players.
+    expect(screen.getByText('All 6')).toBeInTheDocument()
+    expect(screen.getAllByRole('group', { name: 'Provider A' })).toHaveLength(1)
+  })
+})
