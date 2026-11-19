@@ -144,6 +144,8 @@
     "center": "Centre"
   },
   "fit": "Fit to screen",
+  "frame": "Header and status line in full screen",
+  "nextBoard": "Next: {{name}}",
   "section": {
     "new": "New section",
     "untitled": "Section title (empty: just a divider)",

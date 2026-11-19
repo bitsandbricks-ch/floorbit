@@ -117,13 +117,14 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
   const [cycle, setCycle] = useState<number | ''>(board?.cycle ?? '')
   const [range, setRange] = useState<TimeRange | undefined>(board?.range)
   const [open, setOpen] = useState(board?.public ?? false)
+  const [frame, setFrame] = useState(board?.frame !== false)
   const [selected, setSelected] = useState<Spot | null>({ section: 0, panel: 0, path: [] })
   const node = selected ? sections[selected.section]?.panels[selected.panel]?.node : undefined
   const picked = node && selected ? at(node, selected.path) : null
   const done = () => { void qc.invalidateQueries({ queryKey: qk.boards }); onDone() }
   const id = board?.id ?? slug(name)
   const save = useMutation({
-    mutationFn: () => put<Board>(`/api/dashboards/${id}`, { name, sections, fit, public: open, ...(cycle ? { cycle } : {}), ...(range ? { range } : {}) }),
+    mutationFn: () => put<Board>(`/api/dashboards/${id}`, { name, sections, fit, public: open, ...(cycle ? { cycle } : {}), ...(range ? { range } : {}), ...(frame ? {} : { frame: false }) }),
     onSuccess: done,
   })
   const drop = useMutation({ mutationFn: () => del(`/api/dashboards/${board!.id}`), onSuccess: done })
@@ -169,6 +170,7 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
         <Button size="xs" variant="default" leftSection={<IconSeparator size={16} />} onClick={addSection}
           disabled={sections.length >= MAX_SECTIONS}>{t('dashboards.edit.addSection')}</Button>
         <Switch size="sm" label={t('dashboards.fit')} checked={fit} onChange={(e) => setFit(e.currentTarget.checked)} />
+        <Switch size="sm" label={t('dashboards.frame')} checked={frame} onChange={(e) => setFrame(e.currentTarget.checked)} />
         <Switch size="sm" label={t('dashboards.public')} description={t('dashboards.publicHint')} checked={open}
           onChange={(e) => setOpen(e.currentTarget.checked)} style={{ maxWidth: 360 }} />
         <Text size="xs" c="dimmed" style={{ flex: 1, minWidth: 200 }}>{t('dashboards.canvasHint', { max: MAX_PANELS, cols: COLS })}</Text>

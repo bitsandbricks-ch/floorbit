@@ -6,7 +6,9 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { ErrorBanner, LoadingState } from '@/components/ui'
-import { clock } from '@/lib/time'
+import { useTenantEvents } from '@/api/tenantEvents'
+import { StatusLine } from '@/components/StatusLine'
+import { clock, formatWhen } from '@/lib/time'
 import { type Board, TIME_RANGES, type TimeRange, boardName } from './dashboards/model'
 import { nextInRotation, publicUrl, ScreenContext } from './dashboards/screen'
 import { GridView } from './dashboards/GridView'
@@ -71,8 +73,11 @@ export default function DashboardScreen() {
     return () => window.clearInterval(timer)
   }, [])
   useEffect(() => { if (q.data) document.title = `${boardName(t, q.data)} · Floorbit` }, [q.data, t])
+  // On unless the dashboard switched it off; the status line needs an account, a public wall shows the header only.
+  const frame = q.data?.frame !== false
   return (
-    <main className={`fb-board-show${idle ? ' idle' : ''}${q.data && !q.data.fit ? ' scroll' : ''}`}>
+    <main className={`fb-board-show${idle ? ' idle' : ''}${q.data && !q.data.fit ? ' scroll' : ''}${frame ? ' framed' : ''}`}>
+      {q.data && frame && <ScreenHead name={boardName(t, q.data)} next={next} now={now} account={!anonymous} />}
       {(open.isPending || q.isPending) && <LoadingState />}
       {/* A big screen that read the board once keeps showing it while the server is away (a restart,
           the Wi-Fi): a small note instead of a banner that pushed the panes aside. */}
@@ -83,7 +88,47 @@ export default function DashboardScreen() {
           <GridView sections={q.data.sections} fit={q.data.fit} cycle={q.data.cycle} />
         </ScreenContext.Provider>
       )}
-      <Text className="fb-board-clock" fw={800} aria-label={t('dashboards.clock')}>{clock(now, i18n.language)}</Text>
+      {q.data && frame && !anonymous && !open.isPending && <StatusLine />}
+      {!(q.data && frame) && <Text className="fb-board-clock" fw={800} aria-label={t('dashboards.clock')}>{clock(now, i18n.language)}</Text>}
     </main>
   )
+}
+
+/** The slim line above a full-screen dashboard: what it is, which event and day, what comes next
+ *  in a rotation, and the clock (mocks, scene 6). */
+function ScreenHead({ name, next, now, account }: { name: string; next: string | null; now: Date; account: boolean }) {
+  const { t, i18n } = useTranslation()
+  const after = useQuery({
+    queryKey: [...qk.board(next ?? ''), 'name'],
+    // Plain fetches: a public wall must not be sent to the sign-in page for a name.
+    queryFn: async () => {
+      for (const url of [publicUrl(next!), ...(account ? [`/api/dashboards/${encodeURIComponent(next!)}`] : [])]) {
+        const res = await fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } }).catch(() => null)
+        const body = res?.ok ? await res.json() as { board?: Board | null } & Partial<Board> : null
+        const board = body && ('board' in body ? body.board : (body as Board))
+        if (board?.name) return boardName(t, board)
+      }
+      return next!
+    },
+    enabled: !!next,
+    staleTime: 300_000,
+  })
+  return (
+    <header className="fb-screen-head">
+      <b className="fb-screen-name">{name}</b>
+      {account && <EventName />}
+      <span>{formatWhen(now, { weekday: 'short', day: '2-digit', month: '2-digit' }, i18n.language)}</span>
+      <span className="fb-screen-grow" />
+      {next && <span className="fb-screen-next">{t('dashboards.nextBoard', { name: after.data ?? next })}</span>}
+      <b className="fb-screen-clock" aria-label={t('dashboards.clock')}>{clock(now, i18n.language)}</b>
+    </header>
+  )
+}
+
+/** The event's name; the event list needs an account. */
+function EventName() {
+  const { t } = useTranslation()
+  const events = useTenantEvents()
+  const event = events?.events?.find((e) => e.id === events.current)
+  return event ? <span>{event.name || t('tenantEvents.unnamed')}</span> : null
 }

@@ -495,6 +495,9 @@ def clean(body):
         if body['range'] not in RANGES:
             raise LayoutError(f'A time range is one of: {", ".join(RANGES)}.')
         out['range'] = body['range']
+    # Full screen shows a header and the status line unless the dashboard switches them off (#927).
+    if body.get('frame') is False:
+        out['frame'] = False
     return out
 
 
@@ -730,7 +733,7 @@ def public_board(layout):
     (the screen says they need an account), plan panes draw the public marks only."""
     sections = [{**sec, 'panels': [{**p, 'node': _public_node(p['node'])} for p in sec['panels']]}
                 for sec in layout['sections']]
-    head = {k: layout[k] for k in ('id', 'name', 'fit', 'cycle', 'range') if k in layout}
+    head = {k: layout[k] for k in ('id', 'name', 'fit', 'cycle', 'range', 'frame') if k in layout}
     return {**head, 'public': True, 'sections': sections}
 
 

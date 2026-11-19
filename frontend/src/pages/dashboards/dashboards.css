@@ -94,6 +94,17 @@
 .fb-board-stale { position: absolute; left: 50%; transform: translateX(-50%); bottom: 1.4vh; z-index: 4;
   font-size: clamp(14px, 1.1vw, 28px); color: var(--color-down); padding: 2px 10px; border-radius: 8px;
   background: color-mix(in srgb, var(--color-raised) 85%, transparent); }
+/* Full screen with its frame: header, the panes, the status line (issue #927). Type grows with
+   the screen so the header reads from across the hall. */
+.fb-board-show.framed { flex-direction: column; gap: 1vh; }
+.fb-board-show.framed > .fb-grid { min-height: 0; }
+.fb-board-show.framed > .fb-status { margin: 0 -1vw -1vh; font-size: clamp(12px, .8vw, 22px); }
+.fb-screen-head { display: flex; align-items: baseline; gap: 1.2vw; padding: .2vh .3vw; color: var(--color-muted);
+  font-size: clamp(13px, 1vw, 28px); white-space: nowrap; overflow: hidden; }
+.fb-screen-name { color: var(--color-fg); font-size: 1.25em; overflow: hidden; text-overflow: ellipsis; }
+.fb-screen-grow { flex: 1; }
+.fb-board-show.framed .fb-board-stale { bottom: 5vh; }
+.fb-screen-clock { color: var(--color-fg); font-size: 1.25em; font-variant-numeric: tabular-nums; }
 .fb-board-show .fb-plan-zoom { transition: opacity .3s; }
 .fb-board-show.idle, .fb-board-show.idle * { cursor: none !important; }
 .fb-board-show.idle .fb-plan-zoom { opacity: 0; pointer-events: none; }

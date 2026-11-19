@@ -144,6 +144,8 @@
     "center": "Zentriert"
   },
   "fit": "An Bildschirm anpassen",
+  "frame": "Kopfzeile und Statuszeile im Vollbild",
+  "nextBoard": "Danach: {{name}}",
   "section": {
     "new": "Neuer Abschnitt",
     "untitled": "Titel des Abschnitts (leer: nur eine Trennlinie)",

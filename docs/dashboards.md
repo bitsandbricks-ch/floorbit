@@ -212,7 +212,11 @@ It narrows what the account's role allows; the rest of the role stays as it is. 
 
 ## On the screen
 
-**Open full screen** opens `/dashboards/<id>`: no sidebar, a clock in the corner, the pointer hides
+**Open full screen** opens `/dashboards/<id>`: the same panes without the sidebar, framed by a
+slim header (the dashboard's name, the event, the day, the next dashboard of a `?rotate=` list and
+the clock) and the status line at the bottom. A public screen nobody signed in to shows the header
+without the event and the status line. Switch **Header and status line in full screen** off in the
+dashboard's settings for just the panes and a clock in the corner. The pointer hides
 after three seconds, and the page reloads itself after a Floorbit update. Saved changes reach the
 screen within a minute. Someone at the screen can drag and zoom a plan pane; it goes back to its
 area after a minute. On a phone the panes are stacked.

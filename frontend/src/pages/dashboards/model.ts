@@ -94,6 +94,8 @@ export interface Board {
   cycle?: number
   /** The time every graph shows unless its pane picks its own; a viewer can change it for themselves. */
   range?: TimeRange
+  /** Full screen shows a header (name, event, day, next, clock) and the status line; false hides both. */
+  frame?: false
   updated_at?: number
   by?: string | null
   /** Ready-made (the Kiosk): saving under its id keeps your own version instead. */

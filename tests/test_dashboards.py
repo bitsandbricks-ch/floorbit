@@ -427,3 +427,12 @@ def test_a_dashboard_sets_the_time_its_graphs_show(client):
     assert client.get("/api/dashboards/times/public").get_json()["board"]["range"] == "6h"
     assert client.put("/api/dashboards/times", json={**body, "range": "week"}).status_code == 400
     assert "range" not in client.put("/api/dashboards/times", json={**body, "range": ""}).get_json()
+
+
+def test_a_dashboard_can_hide_its_full_screen_header(client):
+    body = {"name": "Wall", "public": True, "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4,
+            "node": {"pane": {"kind": "text", "text": "Hi"}}}]}]}
+    # On by default: nothing is stored until a dashboard switches it off.
+    assert "frame" not in client.put("/api/dashboards/wall", json=body).get_json()
+    assert client.put("/api/dashboards/wall", json={**body, "frame": False}).get_json()["frame"] is False
+    assert client.get("/api/dashboards/wall/public").get_json()["board"]["frame"] is False
