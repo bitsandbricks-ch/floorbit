@@ -122,7 +122,7 @@ class Runner:
         if spec is None or not registry.enabled(spec):
             return
         settings = registry.settings_of(spec)
-        endpoints.history().record(clients.sightings(state_mod.state, settings.get('uplink_macs') or 8,
+        endpoints.history().record(clients.sightings(state_mod.state,
                                                      settings.get('exclude') or ()), now)
 
     def _blocks(self):

@@ -21,10 +21,11 @@ from concurrent.futures import ThreadPoolExecutor
 from . import cables as cables_mod
 from . import sources
 from .dhcp_leases import leases
+from .edge_ports import EDGE_PORT_MACS
 from .store import load_data
 
 MAX_LISTED = 200
-UPLINK_MACS = 4          # more MACs than this on one port: an uplink or a desk switch, not a seat
+UPLINK_MACS = EDGE_PORT_MACS     # more MACs than this on one port: not a seat (floorbit/edge_ports.py)
 MIN_AGE = 120            # seconds between reads: LibreNMS itself refreshes MAC tables only when it polls
 WORKERS = 4              # switches read side by side: LibreNMS answers one FDB in about a second
 

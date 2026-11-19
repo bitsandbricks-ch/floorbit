@@ -75,13 +75,15 @@ flowchart TD
   arp -- yes --> mac["MAC"]
   mac --> fdb["Every MAC table (FDB) that holds this MAC"]
   fdb --> drop["Skip ports matching the exclude list"]
-  drop --> pick["Sort: non-uplink ports first<br/>(not an LLDP/CDP neighbour, at most<br/>uplink_macs = 8 MACs), then fewest MACs"]
+  drop --> pick["Sort: non-uplink ports first<br/>(not an LLDP/CDP neighbour, at most<br/>EDGE_PORT_MACS = 4 MACs), then fewest MACs"]
   pick --> ans["switch, port, VLAN, macs_on_port"]
 ```
 
 Every switch between the core and the seat learns the MAC too, on its uplink, so the port with the
-fewest MACs is the seat's. Check-in then only counts it as `verified` when `macs_on_port` is 4 or
-fewer.
+fewest MACs is the seat's. One rule says what a seat's port is: at most 4 MACs (one PC and its
+VMs), `floorbit/edge_ports.py`. Check-in only counts a port as `verified` when it passes, the seat
+walk refuses one that doesn't, and Telemetry, the IP/MAC history and the planned lookups treat a
+port above it as an uplink.
 
 ## Crew seat walk
 
@@ -107,14 +109,15 @@ flowchart TD
   same1 -- "yes: stale" --> mon
   same1 -- no --> save
   one -- no --> mon["Monitoring resolve_ip<br/>(only as fresh as its last read)"]
-  mon --> same2{"Found, and not<br/>the last seat's port?"}
+  mon --> same2{"Found, at most 4 MACs on it,<br/>and not the last seat's port?"}
   same2 -- yes --> save["learn_port(seat, port, source = walk)"]
   same2 -- no --> retry["Try again in 3 s,<br/>up to 20 s"]
   retry --> ipok
 ```
 
-The monitoring step doesn't check how many MACs are on the port, unlike check-in, so it can take an
-uplink when the access switch hasn't seen the laptop ([#954](https://github.com/bitsandbricks-ch/floorbit/issues/954)).
+The monitoring step refuses a port with more than 4 MACs: when the access switch hasn't seen the
+laptop (not polled, or its entry aged out), only an uplink still has the MAC, and that is never the
+seat's port. The walk keeps the MAC and tries again.
 
 ## Who reads the seat's port
 

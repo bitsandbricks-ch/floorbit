@@ -153,7 +153,8 @@ class Monitor:
 
     def resolve_ip(self, ip, search_device=None):
         port = self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]
-        return port and {"device_name": port[0], "port": port[1], "mac": "02:00:00:00:00:99"}
+        return port and {"device_name": port[0], "port": port[1], "mac": "02:00:00:00:00:99",
+                         **({"macs_on_port": port[2]} if len(port) > 2 else {})}
 
 
 def test_an_old_mac_table_naming_the_last_seat_is_waited_out(app_module, monkeypatch):
@@ -174,6 +175,30 @@ def test_an_old_mac_table_naming_the_last_seat_is_waited_out(app_module, monkeyp
                              sleep=lambda s: None, clock=lambda: next(ticks))
     # Never the last seat's port: after the try budget the page is told to try again.
     assert r["found"] is None and r["stale"] and r["tries"] > 1
+
+
+def test_an_uplink_from_monitoring_is_never_the_seats_port(app_module, monkeypatch):
+    """Issue #954: the access switch hasn't seen the laptop, only the distribution trunk still has
+    its MAC. That port isn't saved; the next answer from the access port is."""
+    from floorbit import sources
+    monitor = Monitor([("dist-01", "Te1/1/1", 40), ("dist-01", "Te1/1/1", 40), ("sw-a-01", "Gi1/0/2", 1)])
+    monkeypatch.setattr(sources, "monitoring", lambda: monitor)
+    ticks = iter(range(0, 1000, 3))
+    with app_module.app.app_context():
+        first = seat_walk.locate_once("192.0.2.50", mac="02:00:00:00:00:99")
+        assert first["found"] is None
+        assert {"step": "monitoring", "ok": False, "how": "uplink"} in first["steps"]
+        r = seat_walk.locate("192.0.2.50", None, sleep=lambda s: None, clock=lambda: next(ticks))
+    assert r["found"] == {"switch": "sw-a-01", "port": "Gi1/0/2"} and r["how"] == "monitoring"
+
+
+def test_one_rule_for_a_seats_port():
+    """Issue #954: check-in, the walk, the history and the lookups share one limit."""
+    from floorbit import edge_ports, port_clients
+    from floorbit.builtin_plugins.librenms import client
+    from floorbit.telemetry import lookup
+    assert edge_ports.is_edge(4) and not edge_ports.is_edge(5) and edge_ports.is_edge(None)
+    assert client.EDGE_PORT_MACS == port_clients.UPLINK_MACS == lookup.UPLINK_MACS == edge_ports.EDGE_PORT_MACS
 
 
 def test_mac_tables_skip_uplinks_and_other_macs():

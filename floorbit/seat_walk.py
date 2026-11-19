@@ -31,7 +31,7 @@ import time
 
 from integrations import checkin
 
-from . import audit, cables, inventory, sources
+from . import audit, cables, edge_ports, inventory, sources
 from .store import load_data
 
 ATTEMPT_SECONDS = 20       # one request keeps trying this long; the page asks again after
@@ -197,6 +197,11 @@ def _from_monitoring(ip):
         found = found.get('value')       # a stale answer: the last good one
     if not isinstance(found, dict) or not found.get('port'):
         return None
+    if not edge_ports.is_edge(found.get('macs_on_port')):
+        # Only an uplink or a desk switch still has the MAC (the access switch aged it out or
+        # isn't polled): saving that as the seat's port would be wrong. The MAC still helps the
+        # switch lookup that comes next.
+        return {'switch': None, 'port': None, 'mac': _mac(found.get('mac')), 'uplink': True}
     return {'switch': found.get('device_name') or _short(found.get('hostname')), 'port': found['port'],
             'mac': _mac(found.get('mac'))}
 
@@ -227,9 +232,13 @@ def locate_once(ip, registry=None, account=None, previous=None, likely=(), mac=N
         with contextlib.suppress(Exception):
             ip = sources.monitoring().ip_for_mac(mac) or ip
     port = _from_monitoring(ip) if ip else None
-    steps.append({'step': 'monitoring', 'ok': bool(port)})
     if port and port.get('mac') and not mac:
         mac = port['mac']
+    if port and port.get('uplink'):
+        steps.append({'step': 'monitoring', 'ok': False, 'how': 'uplink'})
+        port = None
+    else:
+        steps.append({'step': 'monitoring', 'ok': bool(port)})
     if port and _same(port, previous):
         stale, port = True, None
     if port:

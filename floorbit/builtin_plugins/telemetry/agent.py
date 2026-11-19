@@ -352,7 +352,7 @@ class AgentPlugin(Base):
     def send_endpoints(self, now):
         from floorbit.telemetry import clients
         settings = self.ctx.settings or {}
-        rows = clients.sightings(self.state, settings.get('uplink_macs') or 8, settings.get('exclude') or ())
+        rows = clients.sightings(self.state, settings.get('exclude') or ())
         if rows:
             for start in range(0, len(rows), ENDPOINTS_PER_SEND):   # in parts, as the series
                 self.ctx.send('endpoints', {'at': now, 'rows': rows[start:start + ENDPOINTS_PER_SEND]})
