@@ -185,6 +185,10 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
              '# overwritten: change the devices there instead.', '',
              '[agent]', f'  interval = {q(interval)}', '  round_interval = true', '  flush_interval = "5s"',
              '  metric_buffer_limit = 100000', '  omit_hostname = true',
+             # gosmi: Telegraf's own MIB reader. The default (netsnmp) runs net-snmp's snmptranslate
+             # for every trap and drops the trap when it can't name an OID, and the agent image has
+             # neither it nor the MIB files. Every OID here is numeric, so polling doesn't change.
+             '  snmp_translator = "gosmi"',
              # Said out loud, so Telegraf 1.40 doesn't warn about its coming default (no aggregators here).
              '  skip_processors_after_aggregators = false', '',
              '[[outputs.http]]', f'  url = {q(output_url)}', '  method = "POST"', '  data_format = "influx"',

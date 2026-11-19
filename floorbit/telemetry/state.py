@@ -34,6 +34,8 @@ DUPLEX = {1: 'unknown', 2: 'halfDuplex', 3: 'fullDuplex'}
 LINK_DOWN = '1.3.6.1.6.3.1.1.5.3'
 LINK_UP = '1.3.6.1.6.3.1.1.5.4'
 IF_INDEX_OID = '1.3.6.1.2.1.2.2.1.1'
+IF_NAME_OID = '1.3.6.1.2.1.31.1.1.1.1'
+IF_DESCR_OID = '1.3.6.1.2.1.2.2.1.2'
 
 
 def _key(name):
@@ -495,6 +497,20 @@ def _cdp(dev, point, at):
     return True
 
 
+def _numeric(key):
+    """A trap varbind's name as a dotted OID: Telegraf's gosmi translator names an OID it has no
+    MIB for ``iso.3.6.1...``, older setups ``.1.3.6.1...``; a name from a MIB stays as it is."""
+    key = str(key).lstrip('.')
+    return '1.' + key[4:] if key.startswith('iso.') else key
+
+
+def _varbind(fields, name, oid):
+    """A varbind by its MIB name or, without MIBs, by its OID (``<oid>.<row>``)."""
+    if name in fields:
+        return fields[name]
+    return next((v for k, v in fields.items() if _numeric(k).startswith(oid + '.')), None)
+
+
 def _trap(dev, point, at):
     """linkUp / linkDown: the port changes now, not at the next poll."""
     t, f = point.tags, point.fields
@@ -505,12 +521,11 @@ def _trap(dev, point, at):
         oper = 'up'
     else:
         return True                       # another trap: the device spoke, nothing to change
-    index = f.get('ifIndex')
-    if index is None:
-        index = next((v for k, v in f.items() if k.lstrip('.').startswith(IF_INDEX_OID) or k.endswith('ifIndex')), None)
+    index = _varbind(f, 'ifIndex', IF_INDEX_OID)
     if index is None:
         return True
-    iface = dev.port(str(int(_num(index))) if _num(index) is not None else index, f.get('ifName') or f.get('ifDescr'))
+    label = _varbind(f, 'ifName', IF_NAME_OID) or _varbind(f, 'ifDescr', IF_DESCR_OID)
+    iface = dev.port(str(int(_num(index))) if _num(index) is not None else index, label)
     iface.oper = oper
     iface.last_change = at
     return True
