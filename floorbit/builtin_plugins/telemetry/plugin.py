@@ -25,10 +25,12 @@ class Plugin(Base):
         """What the agent part gets: the devices it collects from (an agent named on a device takes
         it alone, targets.for_agent), secrets opened, sent over the agent's link only. The plugin's
         own settings (uplink limit, ignored ports) too."""
-        from floorbit import agent_link
-        from floorbit.telemetry import targets
+        from floorbit import agent_link, sources
+        from floorbit.telemetry import polling, targets
         connected = agent_link.tunnel.connected_agents() if agent_id is not None else set()
-        return {**settings, 'targets': targets.for_agent(targets.all_opened(), agent_id, connected)}
+        plan = polling.plan(sources.registry)
+        found = polling.apply(targets.for_agent(targets.all_opened(), agent_id, connected), plan)
+        return {**settings, 'targets': found, 'polling': plan, 'tables_interval': polling.tables_interval(plan)}
 
     def agent_series(self, agent, payload):
         """The agent's per-port and per-device numbers, for the history here."""

@@ -166,21 +166,24 @@ def _host(address):
 
 
 def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
-    """Polling for one device: ports every ``interval``, tables (ARP, MAC, neighbours) less often,
-    and what the device is (model, serial, software, memory, disks) every ``facts_interval``."""
+    """Polling for one device: ports every ``interval`` (unless ``poll_ports`` is False), tables (ARP,
+    MAC, neighbours) every ``tables_interval`` (unless ``tables`` is False), and what the device is
+    (model, serial, software, memory, disks) every ``facts_interval``."""
     lines = []
     cisco = t.get('platform') in ('nxos', 'iosxe', 'ios')
-    _snmp_head(lines, t, interval)
-    lines.append('  name = "fb_system"')
-    for field, oid in (('sysName', '1.3.6.1.2.1.1.5.0'), ('sysUpTime', '1.3.6.1.2.1.1.3.0')):
-        lines += ['  [[inputs.snmp.field]]', f'    name = {q(field)}', f'    oid = {q(oid)}']
-    _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
-    _table(lines, 'fb_if', IF_FIELDS)
-    _table(lines, 'fb_if', DUPLEX_FIELDS)
-    _table(lines, 'fb_cpu', CISCO_CPU if cisco else HOST_CPU)
-    if cisco:
-        _table(lines, 'fb_mem', CISCO_MEM)
-    lines.append('')
+    # poll_ports False: LibreNMS polls the ports (floorbit/telemetry/polling.py), traps still come here.
+    if t.get('poll_ports', True):
+        _snmp_head(lines, t, interval)
+        lines.append('  name = "fb_system"')
+        for field, oid in (('sysName', '1.3.6.1.2.1.1.5.0'), ('sysUpTime', '1.3.6.1.2.1.1.3.0')):
+            lines += ['  [[inputs.snmp.field]]', f'    name = {q(field)}', f'    oid = {q(oid)}']
+        _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
+        _table(lines, 'fb_if', IF_FIELDS)
+        _table(lines, 'fb_if', DUPLEX_FIELDS)
+        _table(lines, 'fb_cpu', CISCO_CPU if cisco else HOST_CPU)
+        if cisco:
+            _table(lines, 'fb_mem', CISCO_MEM)
+        lines.append('')
     _snmp_head(lines, t, facts_interval)
     lines.append('  name = "fb_facts"')
     for field, oid in FACT_FIELDS:

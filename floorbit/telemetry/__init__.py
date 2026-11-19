@@ -53,9 +53,12 @@ def conf_path():
 
 def render_here(target_list=None):
     """Telegraf's config for the sidecar next to this Floorbit. ``target_list``: secrets open."""
-    target_list = targets.all_opened() if target_list is None else target_list
+    from .. import sources
+    from . import polling
+    plan = polling.plan(sources.registry)
+    target_list = polling.apply(targets.all_opened() if target_list is None else target_list, plan)
     output = os.environ.get(OUTPUT_ENV) or 'http://floorbit:5000/api/telemetry/write'
-    return telegraf.render(target_list, output, targets.ingest_token())
+    return telegraf.render(target_list, output, targets.ingest_token(), tables_interval=polling.tables_interval(plan))
 
 
 def write_conf(text=None):
