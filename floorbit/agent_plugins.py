@@ -28,6 +28,9 @@ MAX_PLUGINS_REPORTED = 40
 # answers the hosted side's monitoring, inventory, health, DNS, Wi-Fi and port calls.
 LOCAL_AREAS = ('monitoring', 'inventory', 'health', 'dns', 'wifi', 'ports')
 NEVER_LOCAL = ('demo',)
+# Whose plugins an agent runs: Floorbit's own and the signed official Marketplace ones, whose bundles
+# the agents check against the keys in their image. Never community plugins (docs/plugin-spec.md).
+AGENT_TRUST = ('builtin', 'official')
 
 
 def _registry():
@@ -148,7 +151,7 @@ def bundle_file(name):
 
 
 def local_config(registry=None):
-    """``{id: {"settings": {full settings key: value}}}`` for the built-in plugins that are on here
+    """``{id: {"settings": {full settings key: value}}}`` for the built-in and official plugins on here
     and answer for the hall (LOCAL_AREAS), with an agent part or not: telemetry is both, and the
     agent's own monitoring source. Empty values are left out: the
     plugin's default applies."""
@@ -157,7 +160,7 @@ def local_config(registry=None):
         return {}
     out = {}
     for spec in sorted(registry.specs.values(), key=lambda s: s.id):
-        if (spec.error or spec.trust != 'builtin' or spec.id in NEVER_LOCAL
+        if (spec.error or spec.trust not in AGENT_TRUST or spec.id in NEVER_LOCAL
                 or not set(spec.manifest.get('uses') or ()) & set(LOCAL_AREAS) or not registry.enabled(spec)):
             continue
         keys = registry._core_fields(spec) + [f"plugin.{spec.id}.{f['key']}" for f in spec.items('settings')]
@@ -536,7 +539,7 @@ def _owner(registry, key):
 
 
 def _runs_on_agent(spec):
-    return spec.trust == 'builtin' and spec.id not in NEVER_LOCAL and bool(
+    return spec.trust in AGENT_TRUST and spec.id not in NEVER_LOCAL and bool(
         spec.agent or set(spec.manifest.get('uses') or ()) & set(LOCAL_AREAS))
 
 

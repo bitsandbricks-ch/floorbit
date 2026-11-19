@@ -15,25 +15,13 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
 
-from floorbit.builtin_plugins.librenms.ports import summarize_port
 from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
-from floorbit.sources import normalise_mac
+from floorbit.plugins.helpers import match_device, normalise_mac, parse_switches, summarize_port, uplink_pattern
 
 RATE_RE = re.compile(r'^([\d.]+)\s*([KMG]?)bps$', re.IGNORECASE)
 UNITS = {'': 1, 'K': 1e3, 'M': 1e6, 'G': 1e9}
 PARALLEL = 16
-
-
-def parse_switches(raw):
-    out = []
-    for item in raw or []:
-        name, sep, url = str(item).partition('=')
-        parts = urlsplit(url.strip())
-        if not sep or not name.strip() or parts.scheme not in ('http', 'https') or not parts.netloc:
-            raise PluginError(f'"{item}" is not Name=https://address')
-        out.append({'name': name.strip(), 'url': f'{parts.scheme}://{parts.netloc}'})
-    return out
 
 
 def link_speed(rate):
@@ -81,9 +69,8 @@ class Plugin(Base):
             return list(pool.map(safe, switches))
 
     def _find(self, hostname):
-        from integrations.monitor import StatusMonitor
         switches = self._switches()
-        found = StatusMonitor.match(hostname, [{'hostname': s['name'], 'display': s['name']} for s in switches])
+        found = match_device(hostname, [{'hostname': s['name'], 'display': s['name']} for s in switches])
         return next((s for s in switches if found and s['name'] == found['hostname']), None)
 
     # the monitoring interface ----------------------------------------------------------------
@@ -168,11 +155,10 @@ class Plugin(Base):
         return out
 
     def resolve_ip(self, ip_address, search_device=None):
-        from floorbit.stats import _uplink_re
         mac = next((e['mac_address'] for e in self.arp(ip_address) if e['ipv4_address'] == ip_address), None)
         if not mac:
             return None
-        uplink = _uplink_re()
+        uplink = uplink_pattern()
         switches = self._switches()
 
         def where(switch):

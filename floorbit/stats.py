@@ -16,12 +16,9 @@ someone resets the peak or starts a new event), so a restart doesn't lose them. 
 numbers, seats and ports, never who sits there: nicks are added at request time for
 ``seats.view`` only.
 """
-import re
 import threading
 import time
 from collections import deque
-
-from integrations import config
 
 from . import database, store
 
@@ -45,11 +42,8 @@ def _num(value):
 
 
 def _uplink_re():
-    pattern = config.get('STATS_UPLINK_PATTERN') or r'uplink|trunk'
-    try:
-        return re.compile(pattern, re.IGNORECASE)
-    except re.error:
-        return re.compile(r'uplink|trunk', re.IGNORECASE)
+    from .plugins.helpers import uplink_pattern
+    return uplink_pattern()
 
 
 class Stats:

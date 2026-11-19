@@ -49,6 +49,18 @@ Python packages: a plugin may import the Python standard library and what Floorb
 (`requests`, `PyYAML`, `cryptography`, `paramiko`, ...: `requirements.txt`). It can't install more.
 If a plugin needs a package, it goes into Floorbit's requirements through a pull request there.
 
+From Floorbit itself a plugin imports `floorbit.plugins.base` (`Plugin`, `PluginError`),
+`floorbit.plugins.agent` for its part on the agent, and `floorbit.plugins.helpers`, nothing deeper.
+Everything else in Floorbit can change in any release; these names stay:
+
+| Helper | What it does |
+| --- | --- |
+| `summarize_port(port)` | A port in LibreNMS's field names (`ifName`, `ifOperStatus`, `ifInOctets_rate`, ...) as the inspector shows it. |
+| `match_device(name, devices)` | The device for a floor-plan switch name: display name, then hostname or sysName, then the short name. |
+| `normalise_mac(mac)` | `aa:bb:cc:dd:ee:ff`, or `None`. |
+| `uplink_pattern()` | The admin's uplink and trunk pattern, compiled: never place a seat on a port it matches. |
+| `parse_switches(lines)` | A `list` setting of `Name=https://address` lines as `[{name, url}]`. |
+
 ## What it can add
 
 ### Settings and secrets
