@@ -15,7 +15,7 @@ def test_page_loads_the_built_assets(client, app_module, tmp_path, monkeypatch):
         'index.html': {'file': 'assets/index-abc.js', 'css': ['assets/index-abc.css'], 'imports': ['_shared.js']},
         '_shared.js': {'file': 'assets/shared.js', 'css': ['assets/shared.css']},
     })
-    resp = client.get('/dashboard')
+    resp = client.get('/widgets')
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
     assert '<script type="module" src="/static/app/assets/index-abc.js">' in html

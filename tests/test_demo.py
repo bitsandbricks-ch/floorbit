@@ -201,8 +201,6 @@ def test_the_event_so_far_fills_the_crew_pages(demo, app_module):
     assert not seats['E-7'].get('switch')
     history = demo.get('/api/checkins/history').get_json()
     assert history['total'] > 50 and 'moved' in repr(history['rows'])
-    layouts = demo.get('/api/dashboard/layouts').get_json()
-    assert {'noc-wall', 'ops-desk'} <= {lay['id'] for lay in (layouts.get('layouts') or layouts)}
     items = demo.get('/api/schedule').get_json()['items']
     assert len(items) == 8 and items[-1]['title'] == 'Doors close'
     # A second layout run never adds them twice.
@@ -218,7 +216,7 @@ def test_the_demo_speaks_swiss_german_when_asked(monkeypatch):
     assert texts.text()['main_hall'] == 'Main hall'
     english, german = texts.TEXTS['en'], texts.TEXTS['de']
     assert english.keys() == german.keys() and 'ß' not in repr(german)
-    for key in ('incidents', 'schedule', 'status_updates', 'layouts'):
+    for key in ('incidents', 'schedule', 'status_updates'):
         assert len(english[key]) == len(german[key]), key
 
 

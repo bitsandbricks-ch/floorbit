@@ -65,7 +65,6 @@ def hall(client, app_module):
 
 
 def test_off_by_default(anon_client, hall):
-    assert anon_client.get("/wall").status_code == 404
     assert anon_client.get("/wall.json").status_code == 404
 
 
@@ -86,16 +85,14 @@ def test_the_wall_shows_numbers_and_no_people(client, anon_client, hall):
     assert body["downloaded"] == round(2.4e9 * 590 / 8)
     assert body["loyal_block"]["name"] == "A" and body["loyal_block"]["share"] == 0.6
     assert body["peak"]["bps"] >= 3e9
-    # The page is React (PublicWall.test.tsx draws it from this JSON); it holds no data itself.
-    page = anon_client.get("/wall")
-    assert page.status_code in (200, 503)
+    # The widget is React (EventNumbersView draws it from this JSON).
     for private in ("sw-a-01", "Gi1/0", "A-1"):
-        assert private not in page.get_data(as_text=True) and private not in str(body)
+        assert private not in str(body)
 
 
 def test_an_empty_event_says_so(client, anon_client, hall):
     client.put("/api/settings", json={"public.stats_wall": True})
     body = anon_client.get("/wall.json").get_json()
-    # What PublicWall.tsx reads as "nothing to show yet". On failure, show which fact was not
+    # What EventNumbersView.tsx reads as "nothing to show yet". On failure, show which fact was not
     # empty: it failed once on Postgres (issue #508).
     assert not (body["online"] or body["downloaded"] or body["peak"] or body["games"]), body
