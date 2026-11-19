@@ -997,3 +997,16 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 @media (min-width: 62em) {
   .fb-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 }
+
+/* A settings row (#994): what it is and its help on the left, the control on the right, every
+   control the same width, so a wide screen doesn't leave half the panel empty. One column on phones. */
+.fb-setting-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 8px 32px; align-items: start;
+  padding: 14px 0; border-top: 1px solid var(--mantine-color-default-border);
+}
+.fb-setting-rows > :first-child .fb-setting-row, .fb-setting-rows > .fb-setting-row:first-child { border-top: 0; padding-top: 4px; }
+.fb-setting-about { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 640px; }
+.fb-setting-control { min-width: 0; display: flex; justify-content: flex-start; }
+@media (max-width: 48em) {
+  .fb-setting-row { grid-template-columns: minmax(0, 1fr); }
+}
