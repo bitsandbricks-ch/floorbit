@@ -81,108 +81,21 @@ nothing typed on the floor plan can change a query.
 Prometheus keeps no ARP or MAC tables. Finding which port an IP is on (the check-in page, a seat's
 port) needs a seat source or the seat mapping.
 
-## Built in: UniFi
+## In the Marketplace
 
-For halls built from UniFi switches (#39). Off until an admin turns it on under **Settings >
-Plugins**. It reads the UniFi Network controller's own API and needs a local account with the
-**View Only** role. It signs in for each read and signs out again.
+These integrations used to be built in and now install from the [Marketplace](marketplace.md).
+Each repository's README says what it reads and which settings it takes.
 
-| Floorbit needs | From |
-| --- | --- |
-| Is the switch online | `stat/device`: `state` (switches only, `type` `usw`) |
-| CPU, memory, temperature | `system-stats`, `general_temperature` |
-| Port state, speed, duplex, traffic, errors | the switch's `port_table` |
-| Which port an IP or MAC is on | `stat/sta`: the client's `sw_mac` and `sw_port` |
-
-UniFi calls a port "Port 7". A name given to it in the controller, like "Seat A1", becomes the
-port's description, and the seat inspector finds the port by either. Players on Wi-Fi have no switch
-port.
-
-Settings:
-
-- **Controller URL:** the console or the Network application, with no path.
-- **UniFi OS console:** on for a Dream Machine, a Cloud Key Gen2 or a UniFi OS server; off for the
-  older Network application on port 8443.
-- **Username and password:** the View Only account.
-- **Site:** the short name from the controller's URL. Default `default`.
-- **Verify TLS:** consoles ship with a self-signed certificate. Turn this off only on a network you
-  trust.
-
-## Built in: MikroTik
-
-For MikroTik switches and routers running RouterOS 7 (#39). Off until an admin turns it on under
-**Settings > Plugins**. Each device is its own API, so the plugin lists them as `Name=URL`, for
-example `sw-a-01=https://192.0.2.21`. The names must match the floor plan. Add the router too, so
-its ARP table can be searched.
-
-| Floorbit needs | From |
-| --- | --- |
-| Is the switch answering, CPU and memory | `/rest/system/resource` |
-| Ports: state, disabled, comment, error counters | `/rest/interface` (Ethernet ports only) |
-| Traffic | `interface/monitor-traffic` (once) |
-| Link speed and duplex | `interface/ethernet/monitor` (once) |
-| Which port an IP is on | `/rest/ip/arp` on every listed device, then `/rest/interface/bridge/host` |
-
-When the player's MAC shows up on several switches, the access port wins. Ports whose comment
-matches the uplink pattern (`STATS_UPLINK_PATTERN`, default `uplink|trunk`) are skipped, so comment
-your uplinks.
-
-Use an account in a group with only `read` and `api` (or `rest-api`) rights. The only POSTs are the
-two monitor commands, and they change nothing. Devices are asked in parallel, 16 at a time. A
-device that doesn't answer within the timeout reads as offline, and the plugin's log says why.
-RouterOS serves the REST API over its `www-ssl` service, which needs a certificate.
-
-## Built in: Zabbix
-
-For halls that already watch their switches in Zabbix (#39). Off until an admin turns it on under
-**Settings > Plugins**. It calls the front end's JSON-RPC API (`api_jsonrpc.php`, Zabbix 6.4 or
-newer) with an API token, and only uses `*.get` methods.
-
-| Floorbit needs | From |
-| --- | --- |
-| Switches | `host.get` for the hosts in one host group (default `Switches`) |
-| Reachable or not | the availability of the host's SNMP interface |
-| Port state, traffic, speed, errors | `item.get`: the `net.if.status`, `net.if.in`, `net.if.out`, `net.if.speed`, `net.if.in.errors` and `net.if.out.errors` items that Zabbix's SNMP templates create for each discovered port |
-
-The port name and description come from the item names ("Interface Gi1/0/1(Seat A1): ...").
-Hosts that are not monitored in Zabbix read as unknown. Zabbix keeps no ARP or MAC tables, so
-finding which port an IP is on needs another source.
-
-Create the token for a user whose role can only read the switches' host group.
-
-## Built in: Aruba AOS-CX
-
-For halls with Aruba CX switches (#39). Off until an admin turns it on under **Settings > Plugins**.
-Every switch is listed as `Name=https://address`; Floorbit talks to each switch's REST API
-(`/rest/v10.08`, AOS-CX 10.08 or newer) and only reads.
-
-| Floorbit needs | From |
-| --- | --- |
-| Reachable or not | `GET system` answers |
-| Port state, speed, duplex, traffic, errors | `GET system/interfaces?depth=2` (physical ports only, not VLAN interfaces or LAGs) |
-| Which port an IP is on | the ARP table in `system/vrfs/default/neighbors` on any listed switch, then the MAC in `system/vlans/<id>/macs` on each switch. Ports whose description matches the uplink pattern are skipped, so the access port wins over the core's uplink |
-
-Each read signs in and signs out again, because AOS-CX allows only a few sessions per user and a
-poll that kept them open would lock the account out. Give Floorbit a local user with the
-read-only `operators` group. **VLANs** limits the MAC lookup to the seat VLANs; without it every
-VLAN on the switch is asked, which takes longer on big switches.
-
-## Built in: AdGuard Home
-
-Reads AdGuard Home's query log for [DNS analytics](dns.md). Turn it on under Settings > Plugins and
-set the URL of its web interface (for example `http://dns.example.com:3000`), a username and a
-password. The query log must be on in AdGuard Home. Floorbit reads `GET /control/querylog` back to
-where it was the last time, at most 10,000 lookups a poll, and counts as blocked what AdGuard
-filtered by a block list, safe browsing, parental control or a blocked service. Rewrites and safe
-search are not blocks.
-
-## Built in: Pi-hole
-
-Reads Pi-hole's query log (Pi-hole 6 and newer) for [DNS analytics](dns.md). Set the URL of its web
-interface (without `/admin`) and an app password (Settings > Web interface / API in Pi-hole). Each
-poll signs in, reads `GET /api/queries` since the last poll (at most 20,000 lookups) and signs out
-again, because Pi-hole allows only a few sessions at once. Lookups blocked by gravity, regex or deny
-lists, or blocked upstream, count as blocked.
+| Plugin | Feeds | Repository |
+| --- | --- | --- |
+| UniFi | monitoring, Wi-Fi | [floorbit-plugin-unifi](https://github.com/bitsandbricks-ch/floorbit-plugin-unifi) |
+| MikroTik | monitoring | [floorbit-plugin-mikrotik](https://github.com/bitsandbricks-ch/floorbit-plugin-mikrotik) |
+| Zabbix | monitoring | [floorbit-plugin-zabbix](https://github.com/bitsandbricks-ch/floorbit-plugin-zabbix) |
+| Aruba AOS-CX | monitoring | [floorbit-plugin-aruba](https://github.com/bitsandbricks-ch/floorbit-plugin-aruba) |
+| AdGuard Home | [DNS analytics](dns.md) | [floorbit-plugin-adguard-home](https://github.com/bitsandbricks-ch/floorbit-plugin-adguard-home) |
+| Pi-hole | [DNS analytics](dns.md) | [floorbit-plugin-pihole](https://github.com/bitsandbricks-ch/floorbit-plugin-pihole) |
+| LAN cache | [LAN cache](lancache.md) | [floorbit-plugin-lancache](https://github.com/bitsandbricks-ch/floorbit-plugin-lancache) |
+| Shelly, Home Assistant | [power](power.md) | [floorbit-plugin-shelly](https://github.com/bitsandbricks-ch/floorbit-plugin-shelly), [floorbit-plugin-home-assistant](https://github.com/bitsandbricks-ch/floorbit-plugin-home-assistant) |
 
 ## Built in: Grafana Loki
 

@@ -22,7 +22,7 @@ numbers and its last errors. The same numbers are on the agent's `/metrics`
 
 ### Plugins without an agent part
 
-LibreNMS, NetBox, Pi-hole, AdGuard Home, the health checks and the other built-in plugins that
+LibreNMS, NetBox, the health checks, the other built-in plugins and official Marketplace plugins that
 answer for the hall (monitoring, inventory, health, DNS, Wi-Fi, ports) also follow the hosted
 Floorbit: what is on there is turned on in the agent, with the settings saved there. The agent
 does the same for a plugin with an agent part that also answers for the hall (telemetry is the

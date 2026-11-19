@@ -1,6 +1,6 @@
 # Marketplace
 
-Optional integrations (the LAN cache, Shelly, Home Assistant, and more to come) live in
+Optional integrations (the LAN cache, Shelly, Home Assistant, UniFi, Aruba, MikroTik, Zabbix, Pi-hole, AdGuard Home) live in
 repositories of their own and are installed from a signed Marketplace, the same way Hubra and
 labdex do it. NetBox, LibreNMS, telemetry, the syslog and NetFlow relays and the health checks stay
 built in.

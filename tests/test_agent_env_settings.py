@@ -12,26 +12,26 @@ URL = "/api/agent/v1/env-settings"
 
 def test_an_agents_environment_sets_up_what_nobody_set_up_here(client, anon_client):
     key = enrol(client)["key"]
-    body = {"settings": {"plugin.pihole.url": "https://pihole.example.com", "plugin.pihole.password": "t0ken",
+    body = {"settings": {"plugin.prometheus.url": "https://prometheus.example.com", "plugin.prometheus.token": "t0ken",
                          "plugin.syslog-relay.port": 5514, "no.such.key": "x"},
             "plugins": ["http-check"]}
     got = anon_client.post(URL, json=body, headers=head(key)).get_json()
-    assert got == {"imported": ["http-check", "pihole", "syslog-relay"], "skipped": {}}
+    assert got == {"imported": ["http-check", "prometheus", "syslog-relay"], "skipped": {}}
     registry = sources.registry
     store = registry.settings_store
-    assert store.get("plugin.pihole.url") == "https://pihole.example.com"
-    assert store.get("plugin.pihole.password") == "t0ken"
+    assert store.get("plugin.prometheus.url") == "https://prometheus.example.com"
+    assert store.get("plugin.prometheus.token") == "t0ken"
     assert store.get("plugin.syslog-relay.port") == 5514
-    assert all(registry.enabled(registry.specs[p]) for p in ("pihole", "syslog-relay", "http-check"))
+    assert all(registry.enabled(registry.specs[p]) for p in ("prometheus", "syslog-relay", "http-check"))
     rows = [r for r in audit.read(area="plugins")[0] if r["action"] == "Took over plugin settings from an agent"]
-    assert {r["target"] for r in rows} == {"pihole", "syslog-relay", "http-check"}
+    assert {r["target"] for r in rows} == {"prometheus", "syslog-relay", "http-check"}
     assert all(r["user"] == "agent Demo LAN 2026" for r in rows)
     assert "t0ken" not in str(rows)                     # names only, never values
 
     # Sent again (a restart): what is set up here now stays as it is.
     body["settings"]["plugin.syslog-relay.port"] = 9999
     again = anon_client.post(URL, json=body, headers=head(key)).get_json()
-    assert again["imported"] == [] and set(again["skipped"]) == {"http-check", "pihole", "syslog-relay"}
+    assert again["imported"] == [] and set(again["skipped"]) == {"http-check", "prometheus", "syslog-relay"}
     assert store.get("plugin.syslog-relay.port") == 5514
 
 
