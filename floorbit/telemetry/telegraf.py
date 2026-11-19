@@ -16,6 +16,16 @@ MDT_PORT = 57000
 MDT_CERT_ENV = 'FLOORBIT_TELEGRAF_MDT_CERT'     # paths as Telegraf sees them
 MDT_KEY_ENV = 'FLOORBIT_TELEGRAF_MDT_KEY'
 MDT_CA_ENV = 'FLOORBIT_TELEGRAF_MDT_CA'        # only devices with a certificate from this CA
+# What a Catalyst 9800 streams for the Wi-Fi view: counts, never its client list (docs/wifi.md).
+WLC_PATHS = {
+    'fb_wlc_ap': 'Cisco-IOS-XE-wireless-access-point-oper:access-point-oper-data/capwap-data',
+    'fb_wlc_radio': 'Cisco-IOS-XE-wireless-access-point-oper:access-point-oper-data/radio-oper-data',
+    'fb_wlc_rrm': 'Cisco-IOS-XE-wireless-rrm-oper:rrm-oper-data/rrm-measurement',
+}
+# The same, as the controller's "filter xpath" takes them (with the YANG modules' prefixes).
+WLC_XPATHS = ('/wireless-access-point-oper:access-point-oper-data/capwap-data',
+              '/wireless-access-point-oper:access-point-oper-data/radio-oper-data',
+              '/wireless-rrm-oper:rrm-oper-data/rrm-measurement')
 GNMI_PORT = {'nxos': 50051, 'iosxe': 9339}
 # A port per way of asking (SNMP on 1161 doesn't send gNMI there too); none set: the usual one.
 PORT_KINDS = ('snmp', 'gnmi', 'api')
@@ -320,6 +330,10 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
                   '    fb_mdt_iosxe_if = "Cisco-IOS-XE-interfaces-oper:interfaces/interface"',
                   '    fb_mdt_nxos_if = "sys/intf"',
                   '    fb_mdt_iosxe_arp = "Cisco-IOS-XE-arp-oper:arp-data/arp-vrf/arp-oper"',
+                  # A Catalyst 9800 wireless controller (state.py _wlc_*): its APs, radios and their load.
+                  f'    fb_wlc_ap = {q(WLC_PATHS["fb_wlc_ap"])}',
+                  f'    fb_wlc_radio = {q(WLC_PATHS["fb_wlc_radio"])}',
+                  f'    fb_wlc_rrm = {q(WLC_PATHS["fb_wlc_rrm"])}',
                   '  [inputs.cisco_telemetry_mdt.tags]', '    driver = "mdt"', '']
     if not any(line.startswith('[[inputs.') for line in lines):
         # Telegraf won't start without an input: one that never sends anything keeps it waiting.
@@ -349,11 +363,17 @@ def device_config(t, collector):
                        '    path openconfig-interfaces:interfaces/interface/state\n'
                        '  subscription 1\n    dst-grp 1\n    snsr-grp 1 sample-interval 10000')
         elif t.get('platform') == 'iosxe':
+            receiver = (f' receiver ip address {collector} {MDT_PORT} protocol '
+                        + ('grpc-tls profile <trustpoint>' if tls else 'grpc-tcp'))
             out.append('telemetry ietf subscription 101\n encoding encode-kvgpb\n'
                        ' filter xpath /interfaces-ios-xe-oper:interfaces/interface\n stream yang-push\n'
-                       ' update-policy periodic 1000\n'
-                       f' receiver ip address {collector} {MDT_PORT} protocol '
-                       + ('grpc-tls profile <trustpoint>' if tls else 'grpc-tcp'))
+                       ' update-policy periodic 1000\n' + receiver)
+            if t.get('wireless'):
+                # update-policy is in centiseconds: APs every 30 s, enough for the Wi-Fi view.
+                for number, xpath in enumerate(WLC_XPATHS, start=102):
+                    out.append(f'telemetry ietf subscription {number}\n encoding encode-kvgpb\n'
+                               f' filter xpath {xpath}\n stream yang-push\n'
+                               ' update-policy periodic 3000\n' + receiver)
     if 'gnmi' in t['drivers']:
         if t.get('platform') == 'nxos':
             out.append('feature grpc\ngrpc port 50051\ngrpc certificate <trustpoint>\nfeature openconfig')

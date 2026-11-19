@@ -10,7 +10,8 @@
   point every 15 minutes for ``FLOORBIT_TELEMETRY_DAYS`` (2).
 - Logs are not telemetry: the syslog goes to VictoriaLogs or Loki through their logs plugins.
 
-MAC tables, ARP and neighbours (state.PRIVATE) are never stored: they name the people at the seats.
+MAC tables, ARP, neighbours and a wireless controller's client list (state.private) are never
+stored: they name the people at the seats.
 Redis is not used for any of it.
 """
 import os
@@ -107,7 +108,7 @@ class Storage:
         url = vm_url()
         if not url:
             return 0
-        lines = [lineproto.format_point(p) for p in points if p.measurement not in state_mod.PRIVATE]
+        lines = [lineproto.format_point(p) for p in points if not state_mod.private(p.measurement)]
         return self._vm_write(url, lines)
 
     def _vm_write(self, url, lines):

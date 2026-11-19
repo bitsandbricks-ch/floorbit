@@ -8,7 +8,8 @@ Plugins with ``uses: [wifi]`` answer ``wifi_aps()`` with one entry per access po
 Floorbit keeps client counts only: whatever else a plugin sends (client names, MACs) is dropped
 here and never stored. APs are matched by name to the inventory, and an AP placed on the floor
 plan is drawn there. Answers are kept for ``CACHE_SECONDS`` so a room of open pages asks the
-controller once.
+controller once. A controller that streams to Telemetry (a Catalyst 9800's MDT) comes first: an AP
+it names is not taken again from a plugin.
 """
 import math
 import threading
@@ -17,6 +18,7 @@ import time
 from .plugins import PluginError
 
 BANDS = ('2.4', '5', '6')
+STREAMED = 'telemetry'    # the plugin whose APs come from the controller's stream (a Catalyst 9800's MDT)
 CACHE_SECONDS = 20
 MAX_APS = 2000
 BUSY = 70          # channel utilization (%) past which an AP is busy
@@ -76,7 +78,8 @@ def ask(registry):
         except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
             feeds = []
             errors.append(f'Local agent: {exc}')
-        for feed in feeds:
+        # The controller's own stream (Telemetry) is newer than a plugin's poll: its APs win.
+        for feed in sorted(feeds, key=lambda f: f.get('plugin') != STREAMED):
             if 'error' in feed:
                 errors.append(f"{feed['name']} (local agent): {feed['error']}")
                 continue
@@ -86,7 +89,7 @@ def ask(registry):
                 if ap and ap['name'].lower() not in aps and len(aps) < MAX_APS:
                     aps[ap['name'].lower()] = {**ap, 'source': f"{feed['name']} (local agent)"}
     from . import agent_link
-    for spec in registry.feeders('wifi'):
+    for spec in sorted(registry.feeders('wifi'), key=lambda s: s.id != STREAMED):
         if spec.id in answered or not agent_link.may_call_here(spec):
             continue
         try:

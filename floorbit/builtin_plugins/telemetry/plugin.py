@@ -87,6 +87,14 @@ class Plugin(Base):
                  'problems': rows} for name, rows in sorted(problems.items()) if name]
         return out
 
+    def wifi_aps(self):
+        """The access points of the wireless controllers that stream (a Catalyst 9800's MDT), for
+        the Wi-Fi view: floorbit/wifi.py takes these before a controller plugin's."""
+        if not state.collecting:
+            return []
+        with state._lock:
+            return [ap for d in sorted(state.devices.values(), key=lambda d: d.name) for ap in d.wifi_aps()]
+
     def device_ports(self, hostname):
         if not state.collecting:
             return []

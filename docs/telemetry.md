@@ -173,6 +173,42 @@ device's ports (`device_ports`), and the switch's budget in discovery's `discove
 A login the device refuses is blocked on the inventory device, like any stored login: it isn't
 tried again until a tech clears it or the password changes.
 
+## Wireless controllers: Catalyst 9800
+
+A Catalyst 9800 (the 9800-CL VM or the appliances) streams its access points over the same MDT
+dial-out as the switches, and the [Wi-Fi view](wifi.md) shows them: each AP up or down, and per
+radio its band, channel, width, channel utilization and client count, every 30 seconds.
+
+1. Add the controller to the inventory with platform **IOS-XE** and its model (`C9800-CL-K9`,
+   `C9800-40-K9`, ...): the model tells Floorbit it is a wireless controller. Turn the Telemetry
+   feature on and choose **MDT** as the way to collect.
+2. Paste **Device setup** from its Telemetry tab on the controller. Besides the interfaces it
+   subscribes to three paths, every 30 seconds:
+
+   | Path | What Floorbit takes |
+   | --- | --- |
+   | `/wireless-access-point-oper:access-point-oper-data/capwap-data` | each joined AP: name, model, joined or not |
+   | `/wireless-access-point-oper:access-point-oper-data/radio-oper-data` | each radio: band, channel, width, on or off |
+   | `/wireless-rrm-oper:rrm-oper-data/rrm-measurement` | each radio: channel utilization, clients |
+
+   ```
+   telemetry ietf subscription 102
+    encoding encode-kvgpb
+    filter xpath /wireless-access-point-oper:access-point-oper-data/capwap-data
+    stream yang-push
+    update-policy periodic 3000
+    receiver ip address 192.0.2.10 57000 protocol grpc-tcp
+   ```
+
+An AP the controller stops naming reads **down** after three minutes and leaves the list after a
+day. When a Wi-Fi plugin (Cisco WLC, UniFi, ...) names the same AP, the stream wins.
+
+The controller's client list is never subscribed to. Should a controller stream one anyway (a
+`client-oper` path), it is neither understood nor stored.
+
+<!-- TODO(Mike): checked against the YANG models only; confirm the field names on a live 9800-CL
+with "Raw data" before the first event (docs: floorbit-wlc-telemetry). -->
+
 ## Two agents (VRRP)
 
 With two or more local agents sharing virtual IPs (the agent's `docs/vrrp.md`, active/passive or
@@ -261,6 +297,8 @@ accounts on the devices.
   authPriv (SHA/AES, the default for v3) wherever the devices allow it.
 - **Traps and Cisco MDT** carry no token, so Floorbit only takes them from a device set up here
   with that address (or MDT node name). Anything else is counted as unknown and dropped.
+- **A wireless controller's client list** (`client-oper` paths) is dropped before storage, whatever
+  alias it comes under.
 - **Cisco MDT over TLS:** plain gRPC lets anyone on the management network send counters. Give
   Telegraf a certificate (`FLOORBIT_TELEGRAF_MDT_CERT`, `FLOORBIT_TELEGRAF_MDT_KEY`, paths as
   Telegraf sees them, and `FLOORBIT_TELEGRAF_MDT_CA` to take only devices with a certificate from
