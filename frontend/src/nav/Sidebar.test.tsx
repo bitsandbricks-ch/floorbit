@@ -33,7 +33,7 @@ afterEach(() => {
 describe('sections', () => {
   it('puts plugin pages in their own section, never under "more"', () => {
     const g = group([...pages, { href: '/plugins/gs/overview', id: 'plugin:gs:overview', label: 'Game servers', icon: 'gamepad' }])
-    expect(g.sections.map((s) => s.id)).toEqual(['live', 'monitoring', 'floorbit', 'plugins', 'more'])
+    expect(g.sections.map((s) => s.id)).toEqual(['work', 'monitoring', 'screens', 'floorbit', 'plugins', 'more'])
     expect(g.sections.find((s) => s.id === 'plugins')?.pages.map((p) => p.label)).toEqual(['Game servers'])
   })
 
@@ -41,7 +41,7 @@ describe('sections', () => {
     const g = group(pages)
     expect(g.pinned.map((p) => p.id)).toEqual(['floorPlan'])
     expect(g.sections.map((s) => [s.id, s.pages.map((p) => p.id)])).toEqual([
-      ['live', ['incidents', 'problems', 'widgets']], ['monitoring', ['topology']], ['floorbit', ['agents', 'settings']],
+      ['work', ['incidents', 'problems']], ['monitoring', ['topology', 'agents']], ['screens', ['widgets']], ['floorbit', ['settings']],
       ['more', ['brandNew']],
     ])
   })
@@ -64,7 +64,7 @@ describe('sections', () => {
 describe('Sidebar', () => {
   it('shows the Settings tabs (Users) as the Settings row, lit while one is on screen', () => {
     const withUsers = [...pages, { href: '/settings/users', id: 'users', label: 'Users' }]
-    expect(group(withUsers).sections.find((s) => s.id === 'floorbit')?.pages.map((p) => p.id)).toEqual(['agents', 'settings'])
+    expect(group(withUsers).sections.find((s) => s.id === 'floorbit')?.pages.map((p) => p.id)).toEqual(['settings'])
     render(<Sidebar boot={{ ...boot, pages: withUsers }} path="/settings/users" renderLink={link} onGoTo={() => {}} />)
     expect(within(main()).queryByRole('link', { name: 'Users' })).toBeNull()
     expect(within(main()).getByRole('link', { name: /Settings/ })).toHaveAttribute('aria-current', 'page')
@@ -80,13 +80,13 @@ describe('Sidebar', () => {
   it('shows every group open, folds one on a click, and remembers it on this browser', () => {
     sidebar('/topology')
     expect(within(main()).getByRole('link', { name: 'Topology' })).toHaveAttribute('aria-current', 'page')
-    const live = within(main()).getByRole('button', { name: 'Live' })
+    const live = within(main()).getByRole('button', { name: 'Work' })
     expect(live).toHaveAttribute('aria-expanded', 'true')
     expect(within(main()).getByRole('link', { name: 'Settings' })).toBeInTheDocument()
     fireEvent.click(live)
     expect(live).toHaveAttribute('aria-expanded', 'false')
     expect(within(main()).queryByRole('link', { name: /Incidents/ })).not.toBeInTheDocument()
-    expect(JSON.parse(localStorage.getItem('floorbit-nav-folded')!)).toContain('live')
+    expect(JSON.parse(localStorage.getItem('floorbit-nav-folded')!)).toContain('work')
     // The group with the page on screen stays open.
     const monitoring = within(main()).getByRole('button', { name: 'Monitoring' })
     fireEvent.click(monitoring)
@@ -132,7 +132,7 @@ describe('Sidebar', () => {
     fireEvent.click(within(main()).getByRole('button', { name: 'Collapse the sidebar' }))
     expect(main()).toHaveAttribute('data-state', 'rail')
     expect(document.cookie).toContain('floorbit_nav=rail')
-    expect(within(main()).queryByRole('button', { name: 'Live' })).not.toBeInTheDocument()
+    expect(within(main()).queryByRole('button', { name: 'Work' })).not.toBeInTheDocument()
     expect(within(main()).getByRole('link', { name: 'Widgets' })).toHaveAttribute('title', 'Widgets')
   })
 
@@ -253,6 +253,6 @@ describe('skip link', () => {
     expect(out).toHaveAttribute('target', '_blank')
     expect(out).toHaveAttribute('rel', 'noopener noreferrer')
     // The page link keeps its built-in group too.
-    expect(within(main()).getByRole('button', { name: 'Live' })).toHaveAttribute('aria-expanded', 'true')
+    expect(within(main()).getByRole('button', { name: 'Work' })).toHaveAttribute('aria-expanded', 'true')
   })
 })

@@ -11,8 +11,10 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
   They are kept with your account, so they follow you to every browser (`GET` and
   `PUT /api/auth/me/nav`); without sign-in this browser keeps them.
 - **Overview** and **Floor plan** are always at the top.
-- The other pages are in groups: **Live**, **Inventory**, **Monitoring**, **Seats**, **Event** and
-  **Floorbit** (Agents, Plugins, Settings). A click on a group's name folds it, and this browser
+- The other pages are in groups: **Work** (incidents, problems, jobs, handover), **Monitoring**
+  (services, network, firewalls, agents, ...), **Seats and inventory**, **Tools** (switch commands
+  and terminal, pre-flight, logs), **Screens** (dashboards and widgets), **Event** (folded until
+  you open it) and **Floorbit** (Plugins, Settings). A click on a group's name folds it, and this browser
   remembers it. The group of the page on screen is always open.
 - The button at the bottom folds the sidebar to icons, and back. The choice is kept in a cookie
   (`floorbit_nav`), so every page starts with the same width.

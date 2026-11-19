@@ -17,7 +17,7 @@ export interface NavPage {
   icon?: string
 }
 
-export type SectionId = 'live' | 'inventory' | 'monitoring' | 'seats' | 'event' | 'floorbit' | 'plugins' | 'more'
+export type SectionId = 'work' | 'monitoring' | 'places' | 'tools' | 'screens' | 'event' | 'floorbit' | 'plugins' | 'more'
 
 /** A plugin's own page (plugin.yaml ``pages:``), which goes into the Plugins section. */
 export const isPluginPage = (id: string) => id.startsWith('plugin:')
@@ -28,21 +28,21 @@ export const PINNED = ['overview', 'floorPlan']
 /** The phone's bottom bar: the pages crews open most; everything else is behind "Menu". */
 export const TABS = ['overview', 'floorPlan', 'incidents', 'problems']
 
-/** The groups, in the sidebar's order (docs: the UI rework's page map). A page the server lists
- *  that isn't here lands in "more", so a new page shows up before anyone sorts it in. */
+/** The groups, in the sidebar's order (issue #892): the work that comes in, what is watched, the
+ *  places and things on the floor, tools for the crew, big screens, then the event and Floorbit
+ *  itself. A page the server lists that isn't here lands in "more", so a new page shows up before
+ *  anyone sorts it in. */
 export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
-  { id: 'live', icon: IconBroadcast, pages: ['incidents', 'problems', 'jobs', 'handover', 'dashboards', 'widgets'] },
-  { id: 'inventory', icon: IconServer, pages: ['inventory', 'cables', 'power'] },
+  { id: 'work', icon: IconLifebuoy, pages: ['incidents', 'problems', 'jobs', 'handover'] },
   {
     id: 'monitoring', icon: IconActivityHeartbeat,
-    pages: ['networkStatus', 'topology', 'firewalls', 'telemetry', 'services', 'gameServers', 'security', 'preflight', 'logs', 'commands', 'terminal'],
+    pages: ['services', 'networkStatus', 'topology', 'firewalls', 'gameServers', 'security', 'agents', 'telemetry'],
   },
-  { id: 'seats', icon: IconArmchair, pages: ['seatMapping', 'checkins', 'seatWalk', 'endpoints', 'tournament'] },
-  { id: 'event', icon: IconCalendarEvent, pages: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events'] },
-  {
-    id: 'floorbit', icon: IconSettings,
-    pages: ['agents', 'plugins', 'settings'],
-  },
+  { id: 'places', icon: IconArmchair, pages: ['seatMapping', 'inventory', 'cables', 'power', 'checkins', 'seatWalk', 'endpoints'] },
+  { id: 'tools', icon: IconTools, pages: ['commands', 'terminal', 'preflight', 'logs'] },
+  { id: 'screens', icon: IconDeviceTv, pages: ['dashboards', 'widgets'] },
+  { id: 'event', icon: IconCalendarEvent, pages: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events', 'tournament'] },
+  { id: 'floorbit', icon: IconSettings, pages: ['plugins', 'settings'] },
 ]
 
 /** Pages that are a tab of another page, not a row of their own: the admin pages inside Settings

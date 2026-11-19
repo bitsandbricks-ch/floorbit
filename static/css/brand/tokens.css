@@ -104,6 +104,7 @@
   /* Controls on the React pages (frontend/src/ui.css): one look for inputs, dropdowns, menus
    * and tabs everywhere. */
   --ui-font: var(--fs-md);
+  --fs-nav: 15px;
   --ui-radius: var(--radius-bit);
   --ui-control-h: 2.25rem;
   --ui-control-h-sm: 1.875rem;

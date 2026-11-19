@@ -28,7 +28,7 @@ const problems = {
 describe('breadcrumbs', () => {
   it('names the group and the page, and plugins under Plugins', () => {
     expect(crumbsFor(pages, '/topology')).toEqual({ section: 'monitoring', page: pages[1] })
-    expect(crumbsFor(pages, '/settings/agents/rack-a')).toEqual({ section: 'floorbit', page: pages[2] })
+    expect(crumbsFor(pages, '/settings/agents/rack-a')).toEqual({ section: 'monitoring', page: pages[2] })
     expect(crumbsFor(pages, '/plugins/gs/overview').section).toBe('plugins')
     expect(crumbsFor(pages, '/nowhere')).toEqual({ section: null, page: null })
   })
@@ -46,7 +46,7 @@ describe('top bar', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/problems': problems }).fn)
     renderWithApp(<><TopBar pages={pages} /><Layout title="Rack A"><p>agent</p></Layout></>, '/settings/agents/rack-a')
     const crumbs = screen.getByRole('navigation', { name: 'Where you are' })
-    expect(crumbs).toHaveTextContent('Floorbit')
+    expect(crumbs).toHaveTextContent('Monitoring')
     expect(within(crumbs).getByRole('link', { name: 'Local agents' })).toHaveAttribute('href', '/settings/agents')
     expect(within(crumbs).getByText('Rack A')).toHaveAttribute('aria-current', 'page')
     fireEvent.click(await screen.findByRole('button', { name: 'Notifications (2)' }))
@@ -57,10 +57,11 @@ describe('top bar', () => {
 
   it('says a section once when its page has the same name', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/problems': problems }).fn)
-    const inventory = { href: '/inventory', id: 'inventory', label: 'Inventory' }
-    renderWithApp(<><TopBar pages={[inventory]} /><Layout title="core-01"><p>device</p></Layout></>, '/inventory/devices/d1')
+    // A plugin's page called "Plugins" sits in the Plugins section.
+    const own = { href: '/plugins/kit/home', id: 'plugin:kit:home', label: 'Plugins' }
+    renderWithApp(<><TopBar pages={[own]} /><Layout title="core-01"><p>device</p></Layout></>, '/plugins/kit/home/d1')
     const crumbs = screen.getByRole('navigation', { name: 'Where you are' })
-    expect(crumbs).toHaveTextContent(/^Inventorycore-01$/)
+    expect(crumbs).toHaveTextContent(/^Pluginscore-01$/)
   })
 })
 
