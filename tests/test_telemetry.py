@@ -463,6 +463,7 @@ def test_a_device_that_sends_by_itself_needs_no_login(client, tmp_path, monkeypa
     add(client, name="sw-quiet", mgmt_ip="192.0.2.42", features={"telemetry": True})     # nothing to ask with
     found = {t["name"]: t for t in targets.from_inventory()}
     assert list(found) == ["fw-01"] and found["fw-01"]["drivers"] == ["push"] and found["fw-01"]["kind"] == "firewall"
+    assert found["fw-01"]["facts_every"]["routes"] == 15 * 60          # discovery's clock, by device type
     assert targets.any_device()
 
 
@@ -839,3 +840,38 @@ def test_victoriametrics_names_agent_numbers_by_agent(monkeypatch):
     assert sent[0] == "fb_agent_points,agent=ab12 value=3.0 1000000000000"
     assert store.series("agent:ab12", None, "points", hours=1, now=2000) == [[1000, 3.0]]
     assert asked == ['fb_agent_points_value{agent="ab12"}']
+
+
+def test_what_a_device_is_is_read_as_often_as_discovery_uses_it():
+    """Issue #967: the fact tables follow the discovery actions' clocks, not a fixed five minutes."""
+    import tomllib
+    switch = {"id": "a", "name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp"], "platform": "ios",
+              "kind": "switch", "community": "public", "tables": False,
+              "facts_every": {"identity": 3600, "interfaces": 900, "networks": 900, "optics": 3600, "routes": 0}}
+    facts = [i for i in tomllib.loads(telegraf.render([switch], "http://x/write", "tok"))["inputs"]["snmp"]
+             if i["name"] == "fb_facts"]
+    by_clock = {i["interval"]: sorted(t["name"] for t in i.get("table", [])) for i in facts}
+    assert by_clock == {"900s": ["fb_ifmac", "fb_ifvlan", "fb_ip", "fb_vtp"], "3600s": ["fb_entalias", "fb_entity"]}
+    assert [i["interval"] for i in facts if i.get("field")] == ["3600s"]          # sysDescr & co with identity
+    # A table two actions share takes the shorter clock; an action that is off reads nothing.
+    shared = {**switch, "facts_every": {"identity": 3600, "optics": 1800}}
+    facts = [i for i in tomllib.loads(telegraf.render([shared], "http://x/write", "tok"))["inputs"]["snmp"]
+             if i["name"] == "fb_facts"]
+    assert {i["interval"]: sorted(t["name"] for t in i.get("table", [])) for i in facts} == {
+        "1800s": ["fb_entalias", "fb_entity"], "3600s": []}
+    off = {**switch, "facts_every": dict.fromkeys(switch["facts_every"], 0)}
+    assert 'name = "fb_facts"' not in telegraf.render([off], "http://x/write", "tok")
+    # Without a schedule (a Floorbit that sends none): everything every five minutes, as before.
+    plain = {k: v for k, v in switch.items() if k != "facts_every"}
+    facts = [i for i in tomllib.loads(telegraf.render([plain], "http://x/write", "tok"))["inputs"]["snmp"]
+             if i["name"] == "fb_facts"]
+    assert [i["interval"] for i in facts] == ["300s"]
+
+
+def test_the_targets_carry_discoverys_schedule_per_device_type():
+    from floorbit import inventory_discovery
+    data = {inventory_discovery.SCHEDULES: {"optics": 0, "networks": 30}}
+    switch = inventory_discovery.facts_every(data, "switch")
+    assert switch["optics"] == 0 and switch["networks"] == 1800 and switch["identity"] == 3600
+    assert switch["routes"] == 0                                    # routes are read from firewalls only
+    assert inventory_discovery.facts_every(data, "firewall")["routes"] == 15 * 60

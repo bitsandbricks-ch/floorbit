@@ -172,6 +172,48 @@ def _host(address):
     return f'[{address}]' if ':' in address else address
 
 
+FACT_TABLE_FIELDS = {
+    'fb_entity': ENTITY_FIELDS, 'fb_entalias': ENT_ALIAS_FIELDS, 'fb_ifmac': IF_MAC_FIELDS, 'fb_ip': IP_FIELDS,
+    'fb_route': ROUTE_FIELDS, 'fb_vtp': VTP_FIELDS, 'fb_ifvlan': CISCO_IF_VLAN, 'fb_storage': STORAGE_FIELDS,
+    'fb_hrdevice': HR_DEVICE_FIELDS, 'fb_qvlan': QVLAN_FIELDS, 'fb_bridge': BRIDGE_FIELDS, 'fb_pvid': PVID_FIELDS,
+}
+# What each discovery action needs from a device (inventory_discovery.ACTIONS), read as often as the
+# action runs (issue #967): a table two actions share takes the shorter clock, and one only off
+# actions need isn't read. 'fields' are the scalars (sysDescr, sysLocation, ...).
+FACT_TABLES = {
+    'identity': ('fields', 'fb_entity', 'fb_storage', 'fb_hrdevice'),
+    'interfaces': ('fb_ifmac',),
+    'networks': ('fb_ip', 'fb_vtp', 'fb_ifvlan', 'fb_qvlan', 'fb_bridge', 'fb_pvid'),
+    'optics': ('fb_entity', 'fb_entalias'),
+    'routes': ('fb_route',),
+}
+
+
+def _fact_tables(t, cisco):
+    """The fact tables this device is read for, in order."""
+    out = ['fields', 'fb_entity', 'fb_entalias', 'fb_ifmac', 'fb_ip']
+    if t.get('kind') == 'firewall':
+        out.append('fb_route')
+    out += ['fb_vtp', 'fb_ifvlan'] if cisco else ['fb_storage', 'fb_hrdevice', 'fb_qvlan', 'fb_bridge', 'fb_pvid']
+    return out
+
+
+def _fact_groups(t, cisco, default):
+    """[(interval, [tables])], one Telegraf input per clock. Without a schedule from discovery
+    (``facts_every``), everything on ``default`` as before."""
+    tables = _fact_tables(t, cisco)
+    every = t.get('facts_every')
+    if not isinstance(every, dict):
+        return [(default, tables)]
+    clock = {}
+    for name in tables:
+        seconds = [int(every.get(a) or 0) for a, needs in FACT_TABLES.items() if name in needs]
+        seconds = [s for s in seconds if s > 0]
+        if seconds:
+            clock.setdefault(min(seconds), []).append(name)
+    return [(f'{s}s', clock[s]) for s in sorted(clock)]
+
+
 def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
     """Polling for one device: ports every ``interval`` (unless ``poll_ports`` is False), tables (ARP,
     MAC, neighbours) every ``tables_interval`` (unless ``tables`` is False), and what the device is
@@ -191,26 +233,19 @@ def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
         if cisco:
             _table(lines, 'fb_mem', CISCO_MEM)
         lines.append('')
-    _snmp_head(lines, t, facts_interval)
-    lines.append('  name = "fb_facts"')
-    for field, oid in FACT_FIELDS:
-        lines += ['  [[inputs.snmp.field]]', f'    name = {q(field)}', f'    oid = {q(oid)}']
-    _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
-    _table(lines, 'fb_entity', ENTITY_FIELDS)
-    _table(lines, 'fb_entalias', ENT_ALIAS_FIELDS)
-    _table(lines, 'fb_ifmac', IF_MAC_FIELDS)
-    _table(lines, 'fb_ip', IP_FIELDS)
-    if t.get('kind') == 'firewall':
-        _table(lines, 'fb_route', ROUTE_FIELDS)
-    if cisco:
-        _table(lines, 'fb_vtp', VTP_FIELDS)
-        _table(lines, 'fb_ifvlan', CISCO_IF_VLAN)
-    else:
-        _table(lines, 'fb_storage', STORAGE_FIELDS)
-        _table(lines, 'fb_hrdevice', HR_DEVICE_FIELDS)
-        _table(lines, 'fb_qvlan', QVLAN_FIELDS)
-        _table(lines, 'fb_bridge', BRIDGE_FIELDS)
-        _table(lines, 'fb_pvid', PVID_FIELDS)
+    for every, tables in _fact_groups(t, cisco, facts_interval):
+        _snmp_head(lines, t, every)
+        lines.append('  name = "fb_facts"')
+        if 'fields' in tables:
+            for field, oid in FACT_FIELDS:
+                lines += ['  [[inputs.snmp.field]]', f'    name = {q(field)}', f'    oid = {q(oid)}']
+        _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
+        for name in tables:
+            if name != 'fields':
+                _table(lines, name, FACT_TABLE_FIELDS[name])
+        lines.append('')
+    if lines and lines[-1] == '':
+        lines.pop()
     if t.get('tables', True):
         lines.append('')
         _snmp_head(lines, t, tables_interval)
