@@ -53,6 +53,7 @@
   "seat": "Platz",
   "port": "Port",
   "time": "Zeit",
+  "doneList": "Gefundene Plätze",
   "agentAt": "Laptops werden über den lokalen Agent erkannt unter",
   "agentNone": "Kein lokaler Agent hat gemeldet, wo Laptops ihn erreichen.",
   "noAgent": "Floorbit weiss nicht, wo Laptops in der Halle den lokalen Agent erreichen. Setze FLOORBIT_AGENT_LAN_URL beim Agent (oder SEAT_WALK_AGENT_URL hier) oder tippe unten die MAC des Laptops ein.",
