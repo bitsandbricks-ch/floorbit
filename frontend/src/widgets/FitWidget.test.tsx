@@ -4,6 +4,7 @@ import type { Widget } from '@/api/types'
 import { renderWithApp } from '@/test/render'
 import { clock } from '@/lib/time'
 import { FitWidget } from './FitWidget'
+import { LevelReport } from './levelReport'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
 const items = Array.from({ length: 30 }, (_, i) => ({ label: `sw-${String(i).padStart(2, '0')}`, state: i < 2 ? 'down' : 'up', detail: '' }) as const)
@@ -23,6 +24,13 @@ describe('FitWidget', () => {
     renderWithApp(<FitWidget widget={status} />)
     expect(document.querySelector('[data-level]')).toHaveAttribute('data-level', 's')
     expect(screen.getByText('28')).toBeInTheDocument()
+  })
+
+  it('tells the dashboard editor the level it drew at', () => {
+    size = { w: 300, h: 140 }
+    const report = vi.fn()
+    renderWithApp(<LevelReport.Provider value={report}><FitWidget widget={status} /></LevelReport.Provider>)
+    expect(report).toHaveBeenLastCalledWith('m')
   })
 
   it('shows the rows that fit and how many more, worst first', () => {

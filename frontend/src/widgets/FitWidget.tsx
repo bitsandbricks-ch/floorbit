@@ -12,6 +12,8 @@ import { type Look, resolveKind } from './kinds/shape'
 import { NumberStyleContext } from './kinds/display'
 import { StatKind } from './kinds/Stat'
 import { useBox } from './useBox'
+import { LevelReport } from './levelReport'
+import { useContext, useEffect } from 'react'
 
 const NO_STYLE = {}
 /** The sub line under a widget: its 12px text plus the 4px gap (widgets.css). */
@@ -28,6 +30,8 @@ export function FitWidget({ widget, pick = 'auto', pin = 'auto', look, onMore }:
   const [ref, whole] = useBox<HTMLDivElement>()
   const kind = resolveKind(widget, pick)
   const level = pickLevel(kind, whole.w, whole.h, pin)
+  const report = useContext(LevelReport)
+  useEffect(() => { if (whole.w) report?.(level) }, [report, level, whole.w])
   // A stat with nothing to show ("–") keeps its sub line even when small: it says why.
   const empty = widget.type === 'stat' && widget.value === '–'
   const sub = !!widget.sub && (level !== 's' || empty)

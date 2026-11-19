@@ -149,3 +149,10 @@
 
 /* A Screen dashboard inside the app: its area ends above the status line (height set in BoardPage). */
 .fb-board-inline.fit { display: flex; min-height: 0; }
+
+/* Editor: the level a widget draws at, and the panel's size in cells while its corner moves (#928). */
+.fb-pane-level { position: absolute; left: 8px; bottom: 8px; z-index: 3; font-size: 11px; font-weight: 700; padding: 1px 7px;
+  border-radius: 999px; color: var(--color-muted); background: color-mix(in srgb, var(--color-raised) 90%, transparent);
+  border: 1px solid var(--color-line); pointer-events: none; }
+.fb-grid-size { position: absolute; right: 10px; bottom: 26px; z-index: 5; font-size: 12px; font-weight: 700; padding: 2px 8px;
+  border-radius: 6px; color: var(--color-on-bit); background: var(--color-bit); pointer-events: none; }

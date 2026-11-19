@@ -103,6 +103,8 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
 }) {
   const { t } = useTranslation()
   const body = useRef<HTMLDivElement>(null)
+  // The panel being resized: its size in cells shows on it while the corner moves (#928).
+  const [sizing, setSizing] = useState<number | null>(null)
   // Drags in grid cells: pointer travel over one cell's width (or one row's height) moves a cell.
   const drag = (i: number, mode: 'move' | 'size') => (e: React.PointerEvent<HTMLElement>) => {
     if (!editing || !body.current) return
@@ -120,7 +122,8 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
       const dx = Math.round((ev.clientX - x0) / col), dy = Math.round((ev.clientY - y0) / row)
       editing.onPlace(index, i, mode === 'move' ? { x: start.x + dx, y: start.y + dy } : { w: start.w + dx, h: start.h + dy }, base)
     }
-    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up) }
+    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); setSizing(null) }
+    if (mode === 'size') setSizing(i)
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
   }
@@ -155,6 +158,7 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
                 <button type="button" className="fb-grid-grip" aria-label={t('dashboards.edit.move')} title={t('dashboards.edit.moveHint')}
                   onPointerDown={drag(i, 'move')} onKeyDown={keys(i)}><IconGripVertical size={16} /></button>
                 <span className="fb-grid-corner" aria-hidden="true" onPointerDown={drag(i, 'size')} />
+                {sizing === i && <span className="fb-grid-size" role="status">{t('dashboards.edit.cells', { w: p.w, h: p.h })}</span>}
               </>
             )}
           </div>

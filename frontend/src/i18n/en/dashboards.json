@@ -27,7 +27,8 @@
     "addWidget": "Add widget",
     "addSection": "Add section",
     "move": "Move widget",
-    "moveHint": "Drag to move. Arrow keys move it, Shift+arrows resize it."
+    "moveHint": "Drag to move. Arrow keys move it, Shift+arrows resize it.",
+    "cells": "{{w}} × {{h}} cells"
   },
   "kind": {
     "plan": "Plan",

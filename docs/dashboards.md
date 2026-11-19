@@ -23,7 +23,9 @@ layer at the bottom right.
 - **Add widget** puts an empty widget in the first free spot of the picked section. Drag a widget by
   its handle (top left) and resize it by its corner (bottom right); the others make room and
   everything floats up, on a grid of 24 columns. With the keyboard: focus the handle, then the arrow
-  keys move it and Shift with the arrow keys resizes it. Up to 24 widgets.
+  keys move it and Shift with the arrow keys resizes it. Up to 24 widgets. While you resize, the
+  size in cells shows on the widget, and each widget shows the level it draws at (Small, Medium,
+  Large) at the bottom left, so you see what the box gives before you save.
 - **Add section** starts a named section below the others. A section's title is optional: without
   one it is just a divider line. Sections fold (the arrow before the title), move up and down, and
   can be removed with their widgets. Folding on a screen is only for whoever looks at it; folding
