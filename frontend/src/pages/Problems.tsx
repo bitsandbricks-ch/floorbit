@@ -11,7 +11,7 @@ import { useProblems } from '@/api/queries'
 import type { Problem } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
 import { ErrorBanner } from '@/components/ui'
@@ -184,7 +184,7 @@ export default function Problems() {
           {data.quiet_hours && <Alert color="gray" variant="light">{t('problems.quiet')}</Alert>}
           <div className="fb-stat-row" aria-live="polite">
             {(['down', 'warn', 'muted'] as const).map((k) => (
-              <StatCard key={k} label={t(`problems.card.${k}`)} value={String(data.counts[k] ?? 0)}
+              <StatTile key={k} label={t(`problems.card.${k}`)} value={String(data.counts[k] ?? 0)}
                 tone={data.counts[k] && k !== 'muted' ? k : undefined} />
             ))}
           </div>
