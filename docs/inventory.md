@@ -155,6 +155,8 @@ page, or the sync button on the floor plan). Floorbit merges them with these rul
 - Every device remembers which plugins feed it and the last values each one sent.
 - Every sync is logged: added, updated, joined, gone, and how many hand-edited fields it kept.
   The Inventory page shows the last sync per plugin; `GET /api/inventory/log` has the history.
+  It lists only the sources that are set up or have synced: NetBox once its URL and token are
+  set, the local agent once it has fed devices or a sync through it failed.
 
 Bad entries from a plugin (no ID, no name, an IP that isn't one) are skipped and counted, never
 stored.
