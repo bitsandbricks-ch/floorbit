@@ -9,10 +9,9 @@ someone gave it in the controller ("Seat A1") becomes its description.
 import contextlib
 import re
 
-from floorbit.builtin_plugins.librenms.ports import summarize_port
 from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
-from floorbit.sources import normalise_mac
+from floorbit.plugins.helpers import match_device, normalise_mac, summarize_port
 
 SITE_RE = re.compile(r'^[a-zA-Z0-9_-]{1,64}\Z')
 SWITCH_TYPES = ('usw',)   # access points and gateways are not on the floor plan's switch layer
@@ -74,9 +73,8 @@ class Plugin(Base):
                  'status': 1 if d.get('state') == 1 else 0, 'source': 'unifi'} for d in self._switches()]
 
     def _find(self, hostname, switches=None):
-        from integrations.monitor import StatusMonitor
         switches = self._switches() if switches is None else switches
-        found = StatusMonitor.match(hostname, [{**d, 'hostname': d['name'], 'display': d['name']} for d in switches])
+        found = match_device(hostname, [{**d, 'hostname': d['name'], 'display': d['name']} for d in switches])
         return next((d for d in switches if found and d['name'] == found['name']), None)
 
     @staticmethod

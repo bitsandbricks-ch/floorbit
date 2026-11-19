@@ -18,11 +18,9 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from urllib.parse import quote, unquote, urlsplit
 
-from floorbit.builtin_plugins.librenms.ports import summarize_port
-from floorbit.builtin_plugins.mikrotik.plugin import parse_switches
 from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
-from floorbit.sources import normalise_mac
+from floorbit.plugins.helpers import match_device, normalise_mac, parse_switches, summarize_port, uplink_pattern
 
 API = '/rest/v10.08'
 PARALLEL = 16
@@ -91,9 +89,8 @@ class Plugin(Base):
             return list(pool.map(safe, switches))
 
     def _find(self, hostname):
-        from integrations.monitor import StatusMonitor
         switches = self._switches()
-        found = StatusMonitor.match(hostname, [{'hostname': s['name'], 'display': s['name']} for s in switches])
+        found = match_device(hostname, [{'hostname': s['name'], 'display': s['name']} for s in switches])
         return next((s for s in switches if found and s['name'] == found['hostname']), None)
 
     # the monitoring interface ----------------------------------------------------------------
@@ -180,11 +177,10 @@ class Plugin(Base):
         return out
 
     def resolve_ip(self, ip_address, search_device=None):
-        from floorbit.stats import _uplink_re
         mac = next((e['mac_address'] for e in self.arp(ip_address) if e['ipv4_address'] == ip_address), None)
         if not mac:
             return None
-        uplink = _uplink_re()
+        uplink = uplink_pattern()
         wanted = [str(v).strip() for v in self.settings.get('vlans') or [] if str(v).strip().isdigit()]
 
         def where(http, switch):

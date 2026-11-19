@@ -8,9 +8,9 @@ for every discovered port: ``net.if.status``, ``net.if.in``, ``net.if.out`` (bit
 """
 import re
 
-from floorbit.builtin_plugins.librenms.ports import summarize_port
 from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
+from floorbit.plugins.helpers import match_device, summarize_port
 
 ITEM_NAME_RE = re.compile(r'^Interface\s+(?P<name>[^():]+?)\s*(?:\((?P<alias>[^)]*)\))?\s*:')
 KEY_RE = re.compile(r'^net\.if\.(?P<what>status|in|out|speed|in\.errors|out\.errors)\[')
@@ -70,8 +70,7 @@ class Plugin(Base):
         return out
 
     def _find(self, hostname):
-        from integrations.monitor import StatusMonitor
-        return StatusMonitor.match(hostname, self.devices())
+        return match_device(hostname, self.devices())
 
     def _ports(self, hostid):
         items = self._call('item.get', {'hostids': [hostid], 'output': ['key_', 'name', 'lastvalue'],
