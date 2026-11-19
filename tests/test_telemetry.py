@@ -86,7 +86,8 @@ def mac_tables(at):
     lines.append(f"fb_if,{CORE},index=436207616,ifName=Eth1/1 ifOperStatus=1i {int(at * 1e9)}")
     lines.append(f"fb_cdp,{CORE},index=436207616.1 "
                  f"cdpCacheDeviceId=\"sw-a-01\",cdpCacheDevicePort=\"Gi1/0/48\" {int(at * 1e9)}")
-    lines.append(f"fb_arp,{CORE},index=436207616.192.0.2.40 mac=\"02:00:00:00:00:07\" {int(at * 1e9)}")
+    # The MAC as Telegraf's "hex" conversion sends it.
+    lines.append(f"fb_arp,{CORE},index=436207616.192.0.2.40 mac=\"020000000007\" {int(at * 1e9)}")
     return "\n".join(lines)
 
 
@@ -241,7 +242,7 @@ def test_telegraf_config_per_driver():
     assert 'agents = ["udp://[2001:db8::1]:161"]' in conf and 'sec_level = "authPriv"' in conf
     assert 'addresses = ["[2001:db8::1]:50051"]' in conf and 'origin = "openconfig"' in conf
     assert '[[inputs.snmp_trap]]' in conf and '[[inputs.cisco_telemetry_mdt]]' in conf
-    assert 'conversion = "hwaddr"' in conf and 'name = "fb_cdp"' in conf
+    assert 'conversion = "hex"' in conf and 'name = "fb_cdp"' in conf
     import tomllib
     tomllib.loads(conf)                                  # Telegraf's config is TOML: it must parse
     paste = telegraf.device_config(nexus, "192.0.2.5")
