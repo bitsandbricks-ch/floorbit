@@ -9,5 +9,28 @@
   "addNamed": "{{name}} einem Dashboard hinzufügen",
   "addTo": "Zum Dashboard hinzufügen",
   "added": "Zu {{name}} hinzugefügt.",
-  "noBoards": "Noch keine Dashboards"
+  "noBoards": "Noch keine Dashboards",
+  "kind": {
+    "of": "von {{count}}",
+    "noData": "Noch keine Daten.",
+    "noRows": "Gerade nichts da.",
+    "maxAvg": "max {{max}} · Ø {{avg}}",
+    "graphLabel": "Diagramm: {{name}}",
+    "top": "Spitze {{value}}",
+    "name": "Name",
+    "value": "Wert",
+    "detail": "Detail",
+    "filter": "Filtern",
+    "more": "+{{count}} weitere",
+    "rowsOf": "{{from}}–{{to}} von {{count}}",
+    "prev": "Vorherige Seite",
+    "next": "Nächste Seite",
+    "detailsNamed": "Details zu {{name}}"
+  },
+  "state": {
+    "up": "Läuft",
+    "down": "Ausgefallen",
+    "warn": "Warnung",
+    "unknown": "Unbekannt"
+  }
 }

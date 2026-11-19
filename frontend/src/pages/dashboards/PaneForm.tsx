@@ -4,10 +4,12 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useDashboard } from '@/api/queries'
-import type { SeatViewData } from '@/api/types'
+import { useDashboard, useWidget } from '@/api/queries'
+import type { SeatViewData, WidgetTile } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { VIEWS } from '@/widgets/views'
+import { KIND_PICKS, LEVEL_PINS, type KindPick, type LevelPin } from '@/widgets/level'
+import { kindsFor } from '@/widgets/kinds/shape'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
@@ -167,10 +169,35 @@ function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; 
   const { t } = useTranslation()
   const { data } = useDashboard()
   const tiles = (data?.tiles ?? []).filter((x) => x.kind !== 'action')
+  const tile = tiles.find((x) => `${x.plugin}/w/${x.id}` === pane.tile) as WidgetTile | undefined
   return (
-    <Select label={t('dashboards.form.tile')} allowDeselect={false} searchable value={pane.tile || null}
-      nothingFoundMessage={t('dashboards.form.noTiles')}
-      data={tiles.map((x) => ({ value: `${x.plugin}/w/${x.id}`, label: `${x.label} · ${pluginName(t, x.plugin, x.plugin_name)}` }))}
-      onChange={(v) => v && onChange({ ...pane, tile: v })} />
+    <>
+      <Select label={t('dashboards.form.tile')} allowDeselect={false} searchable value={pane.tile || null}
+        nothingFoundMessage={t('dashboards.form.noTiles')}
+        data={tiles.map((x) => ({ value: `${x.plugin}/w/${x.id}`, label: `${x.label} · ${pluginName(t, x.plugin, x.plugin_name)}` }))}
+        onChange={(v) => v && onChange({ kind: 'tile', tile: v, title: pane.title, hide_title: pane.hide_title })} />
+      {tile && <WidgetLook pane={pane} tile={tile} onChange={onChange} />}
+      <div>
+        <Text size="sm" fw={500} mb={4}>{t('dashboards.form.level')}</Text>
+        <SegmentedControl fullWidth size="xs" value={pane.level ?? 'auto'} aria-label={t('dashboards.form.level')}
+          data={LEVEL_PINS.map((l) => ({ value: l, label: t(`dashboards.level.${l}`) }))}
+          onChange={(v) => onChange({ ...pane, level: v === 'auto' ? undefined : (v as LevelPin) })} />
+        <Text size="xs" c="dimmed" mt={4}>{t('dashboards.form.levelHint')}</Text>
+      </div>
+    </>
+  )
+}
+
+/** How to draw the tile's data: only the kinds its shape allows (a list can't be a graph). */
+function WidgetLook({ pane, tile, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; tile: WidgetTile; onChange: (p: Pane) => void }) {
+  const { t } = useTranslation()
+  const { data } = useWidget(tile)
+  const ok = data ? kindsFor(data.type) : []
+  const picks = KIND_PICKS.filter((k) => k === 'auto' || ok.includes(k))
+  if (picks.length < 3) return null // only "automatic" and the data's own kind: nothing to choose
+  return (
+    <Select label={t('dashboards.form.widgetType')} allowDeselect={false} value={pane.type && picks.includes(pane.type) ? pane.type : 'auto'}
+      data={picks.map((k) => ({ value: k, label: k === 'auto' ? t('dashboards.widgetType.auto', { kind: t(`dashboards.widgetType.${ok[0]}`) }) : t(`dashboards.widgetType.${k}`) }))}
+      onChange={(v) => onChange({ ...pane, type: !v || v === 'auto' ? undefined : (v as KindPick) })} />
   )
 }

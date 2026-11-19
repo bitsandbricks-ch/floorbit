@@ -3,6 +3,7 @@ import type { View } from '../plan/model'
 import type { PresetId } from '../plan/layers'
 import type { LabelMode } from '../plan/labels'
 import type { Section } from './grid'
+import type { KindPick, LevelPin } from '@/widgets/level'
 
 /** Dashboards (floorbit/dashboards.py): widgets on a grid (grid.ts), each one pane or panes split
  *  side by side or stacked, saved under a name. */
@@ -30,7 +31,9 @@ type Head = { title?: string; hide_title?: boolean }
 
 export type Pane = Head & (
   | { kind: 'plan'; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode; marks?: MarksMode }
-  | { kind: 'tile'; tile: string }
+  /** ``type`` draws the data as another kind (a status as a count), ``level`` pins S, M or L
+   *  instead of picking it from the box (issue #924). Both are left out when automatic. */
+  | { kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin }
   /** ``expanded``: the widget at its big size right on the grid (a pane that fills a screen). */
   | { kind: 'view'; view: string; expanded?: boolean }
   | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }

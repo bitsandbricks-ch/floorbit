@@ -77,7 +77,10 @@
     "marks": "Plan-Markierungen",
     "marksHint": "Öffentliche: nur die Markierungen aus Übersicht und Sicherheit, für einen Bildschirm, an dem Leute vorbeigehen.",
     "expanded": "Gross zeigen",
-    "expandedHint": "Mit Filtern und Details, für einen Bereich, der einen Bildschirm füllt."
+    "expandedHint": "Mit Filtern und Details, für einen Bereich, der einen Bildschirm füllt.",
+    "level": "Grösse",
+    "levelHint": "Automatisch wählt klein, mittel oder gross nach der Grösse des Felds.",
+    "widgetType": "Zeigen als"
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
@@ -142,5 +145,19 @@
     "traffic": "Traffic",
     "power": "Stromlast",
     "event": "Der Event in Zahlen"
+  },
+  "level": {
+    "auto": "Automatisch",
+    "s": "Klein",
+    "m": "Mittel",
+    "l": "Gross"
+  },
+  "widgetType": {
+    "auto": "Automatisch ({{kind}})",
+    "stat": "Zahl",
+    "status": "Status",
+    "graph": "Diagramm",
+    "table": "Tabelle",
+    "list": "Liste"
   }
 }

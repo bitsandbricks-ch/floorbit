@@ -237,3 +237,18 @@ def test_a_read_that_overlapped_a_change_is_not_kept(app_module, monkeypatch):
     monkeypatch.setattr(store, 'read_json', slow_read)
     assert 'sample-x' not in registry._all()
     assert registry._record('sample-x') == {'enabled': True}
+
+
+def test_a_series_is_lines_of_time_and_value():
+    from floorbit.plugins.widgets import WidgetError, check_widget
+    raw = {"type": "series", "unit": "ms", "series": [{"label": "DNS", "points": [[1, 12], [2, 14.5]]}] * 6}
+    out = check_widget(raw, {"id": "t"})
+    assert len(out["series"]) == 4 and out["series"][0] == {"label": "DNS", "points": [[1, 12], [2, 14.5]]}
+    for bad in ({"type": "series", "series": [{"label": "x", "points": [[1]]}]},
+                {"type": "series", "series": [{"label": "x", "points": [[1, float("nan")]]}]},
+                {"type": "series", "series": ["x"]}):
+        try:
+            check_widget(bad, {"id": "t"})
+        except WidgetError:
+            continue
+        raise AssertionError(bad)

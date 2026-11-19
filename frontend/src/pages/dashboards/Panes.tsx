@@ -1,10 +1,10 @@
 import { ActionIcon, Loader, Modal, Stack, Text, Tooltip } from '@mantine/core'
-import { IconArrowsMaximize } from '@tabler/icons-react'
+import { IconArrowsMaximize, IconExternalLink } from '@tabler/icons-react'
 import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDashboard, useFeaturesOff } from '@/api/queries'
+import { useDashboard, useFeaturesOff, useWidget } from '@/api/queries'
 import type { Tile, WidgetTile } from '@/api/types'
-import { WidgetCard } from '@/widgets/TileCard'
+import { FitWidget } from '@/widgets/FitWidget'
 import type { Pane } from './model'
 import { PlanPane } from './PlanPane'
 import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
@@ -17,13 +17,14 @@ function Note({ children }: { children: React.ReactNode }) {
   return <Text c="dimmed" className="fb-pane-note">{children}</Text>
 }
 
-function Framed({ title, hide, className = '', actions, children }: {
-  title?: string; hide?: boolean; className?: string; actions?: React.ReactNode; children: React.ReactNode
+/** ``fit``: the body never scrolls; what it holds sizes itself to the box (widgets, issue #924). */
+function Framed({ title, hide, className = '', actions, fit, children }: {
+  title?: string; hide?: boolean; className?: string; actions?: React.ReactNode; fit?: boolean; children: React.ReactNode
 }) {
   return (
     <div className={`fb-pane ${className}${!title || hide ? ' fb-pane-nohead' : ''}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
-      {title && !hide && <div className="fb-pane-head"><Text fw={800} className="fb-pane-title" truncate>{title}</Text>{actions}</div>}
-      <div className={`fb-pane-body fb-pane-scroll${hide ? ' fb-pane-headless' : ''}`}>{children}</div>
+      {title && !hide && <div className="fb-pane-head"><Text fw={800} className="fb-pane-title" truncate>{title}</Text>{actions && <div className="fb-pane-actions">{actions}</div>}</div>}
+      <div className={`fb-pane-body ${fit ? 'fb-pane-fit' : 'fb-pane-scroll'}${hide ? ' fb-pane-headless' : ''}`}>{children}</div>
     </div>
   )
 }
@@ -36,7 +37,7 @@ function PublicTilePane({ pane, id }: { pane: Extract<Pane, { kind: 'tile' }>; i
     plugin, plugin_name: 'Floorbit', id: name, label: tiles[pane.tile] ?? name, size: 'small', refresh: 15,
     url: publicUrl(id, `/tiles/${encodeURIComponent(name)}`),
   }
-  return <Framed title={pane.title} hide={pane.hide_title}><WidgetCard tile={tile} /></Framed>
+  return <TileWidgetPane pane={pane} tile={tile} />
 }
 
 function TilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
@@ -48,10 +49,47 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   const { t } = useTranslation()
   const { data, isPending } = useDashboard()
   const tile = data?.tiles.find((x) => tileKey(x) === pane.tile)
+  if (tile && tile.kind !== 'action') return <TileWidgetPane pane={pane} tile={tile as WidgetTile} />
   return (
     <Framed title={pane.title} hide={pane.hide_title}>
+      {isPending ? <Loader size="sm" aria-label={t('common.loading')} /> : <Note>{t('dashboards.pane.tileGone')}</Note>}
+    </Framed>
+  )
+}
+
+/** A data widget in its pane: it fits the box at the level the box allows. "+N more" and the
+ *  button open it large over the dashboard; Esc goes back. */
+function TileWidgetPane({ pane, tile }: { pane: Extract<Pane, { kind: 'tile' }>; tile: WidgetTile }) {
+  const { t } = useTranslation()
+  const [big, setBig] = useState(false)
+  const { data, error, isPending } = useWidget(tile)
+  const title = pane.title ?? tile.label
+  const link = data?.link && data.link.startsWith('/') ? data.link : ''
+  return (
+    <Framed title={title} hide={pane.hide_title} fit actions={data && (
+      <>
+        {link && (
+          <Tooltip label={t('common.details')}>
+            <ActionIcon component="a" href={link} variant="subtle" color="gray" size="sm" aria-label={t('widgets.kind.detailsNamed', { name: title })}>
+              <IconExternalLink size={15} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+        <Tooltip label={t('dashboards.pane.openBig')}>
+          <ActionIcon variant="subtle" color="gray" size="sm" aria-label={t('dashboards.pane.openBigNamed', { name: title })} onClick={() => setBig(true)}>
+            <IconArrowsMaximize size={15} />
+          </ActionIcon>
+        </Tooltip>
+      </>
+    )}>
       {isPending ? <Loader size="sm" aria-label={t('common.loading')} />
-        : tile && tile.kind !== 'action' ? <WidgetCard tile={tile as WidgetTile} /> : <Note>{t('dashboards.pane.tileGone')}</Note>}
+        : error && !data ? <Text size="sm" className="fb-tone-err fb-pane-note" role="alert">✕ {error.message}</Text>
+          : data ? <FitWidget widget={data} pick={pane.type} pin={pane.level} onMore={() => setBig(true)} /> : null}
+      {big && data && (
+        <Modal opened onClose={() => setBig(false)} title={title} size="90%" centered classNames={{ body: 'fb-w-big' }}>
+          <FitWidget widget={data} pick={pane.type} pin="l" />
+        </Modal>
+      )}
     </Framed>
   )
 }

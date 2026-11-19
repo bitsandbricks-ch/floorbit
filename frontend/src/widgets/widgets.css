@@ -1,0 +1,62 @@
+/* Widgets that fit their box (FitWidget, issue #924). Nothing scrolls inside; sizes follow the
+   box through container units, so a wall screen and a laptop both read well. */
+.fb-pane-fit { overflow: hidden; padding: 0 12px 10px; display: flex; }
+.fb-pane-actions { display: flex; gap: 2px; flex: none; align-self: center; }
+
+.fb-w { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; gap: 4px; }
+.fb-w-area { flex: 1; min-height: 0; min-width: 0; position: relative; overflow: hidden; container-type: size; display: flex; }
+.fb-w-area > * { flex: 1; min-width: 0; }
+.fb-w-sub { flex: none; font-size: 12px; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fb-w-empty { margin: auto; color: var(--color-muted); font-size: 14px; text-align: center; }
+
+/* Stat */
+.fb-w-stat { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-height: 0; }
+.fb-w-stat-main { display: flex; align-items: baseline; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.fb-w-stat-value { font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+  font-size: clamp(22px, min(26cqh, 18cqw), 120px); }
+.fb-w-stat-unit { color: var(--color-muted); font-weight: 500; font-size: clamp(12px, min(9cqh, 6cqw), 32px); }
+.fb-w-counts { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-muted); font-size: clamp(12px, 6cqh, 18px);
+  font-variant-numeric: tabular-nums; }
+.fb-w-counts .fb-dot { vertical-align: 0; }
+
+/* Rows: status, list, table */
+.fb-w-rows { display: flex; flex-direction: column; min-height: 0; }
+.fb-w-filter { flex: none; margin-bottom: 6px; }
+.fb-w-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; }
+.fb-w-table th, .fb-w-table td { height: 28px; padding: 0 8px 0 0; text-align: left; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; border-bottom: 1px solid color-mix(in srgb, var(--color-line) 60%, transparent); }
+.fb-w-table th { color: var(--color-muted); font-weight: 600; font-size: 12px; }
+.fb-w-table tr:last-child td { border-bottom: 0; }
+.fb-w-table .fb-dot { margin-right: 8px; vertical-align: 0; }
+.fb-w-plain td.fb-w-side { text-align: right; color: var(--color-muted); font-family: var(--mantine-font-family-monospace); width: 45%; }
+.fb-w-plain td.fb-w-side[class*='fb-tone-'] { color: inherit; }
+.fb-w-sort { font: inherit; color: inherit; }
+.fb-w-sort:hover { color: var(--color-fg); }
+.fb-w-more { flex: none; height: 28px; display: flex; align-items: center; font-size: 13px; color: var(--color-bit); }
+button.fb-w-more:hover { text-decoration: underline; }
+.fb-w-pager { flex: none; height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 12px;
+  color: var(--color-muted); margin-top: auto; }
+.fb-w-pager span { margin-right: 6px; font-variant-numeric: tabular-nums; }
+
+/* Graph */
+.fb-w-graph, .fb-w-graph-s { display: flex; flex-direction: column; min-height: 0; }
+.fb-w-graph-s { justify-content: space-between; gap: 4px; }
+.fb-w-legend { flex: none; height: 20px; display: flex; gap: 14px; font-size: 12px; color: var(--color-muted); overflow: hidden; white-space: nowrap; }
+.fb-w-legend i, .fb-w-tip i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+.fb-w-legend b { color: var(--color-fg); margin-left: 6px; font-variant-numeric: tabular-nums; }
+.fb-w-legend em { font-style: normal; margin-left: 8px; }
+.fb-w-plot { position: relative; flex: 1; min-height: 0; touch-action: pan-y; }
+.fb-w-plot svg, .fb-w-graph-s svg { display: block; overflow: visible; }
+.fb-w-line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.fb-w-fill { fill: currentColor; fill-opacity: 0.12; stroke: none; }
+.fb-w-base { stroke: var(--color-line); }
+.fb-w-cross { stroke: var(--color-muted); stroke-dasharray: 3 3; }
+.fb-w-tip { position: absolute; top: 4px; z-index: 2; min-width: 150px; padding: 6px 8px; border-radius: 6px; font-size: 12px;
+  background: var(--color-surface); border: 1px solid var(--color-line); pointer-events: none; }
+.fb-w-tip > div { display: flex; align-items: center; white-space: nowrap; }
+.fb-w-tip b { margin-left: auto; padding-left: 12px; font-variant-numeric: tabular-nums; }
+.fb-w-tip-when { color: var(--color-muted); margin-bottom: 2px; }
+.fb-w-axis { flex: none; height: 18px; display: flex; justify-content: space-between; font-size: 11px; color: var(--color-faint); }
+
+/* Make large: the same widget, at its large level, filling most of the screen. */
+.fb-w-big { height: 72vh; display: flex; }

@@ -4,7 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import DashboardScreen from './DashboardScreen'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+
+/** jsdom lays nothing out: give tile boxes a medium size, so a tile draws its rows. */
+function layOut() {
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(400)
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(240)
+}
 
 const panel = (x: number, pane: object) => ({ x, y: 0, w: 8, h: 12, node: { pane } })
 const board = {
@@ -26,6 +32,7 @@ describe('Dashboard screen', () => {
       },
     })
     vi.stubGlobal('fetch', api.fn)
+    layOut()
     show()
     expect(await screen.findByText('sw-a-01')).toBeInTheDocument()
     expect(screen.getByText('Switches down')).toBeInTheDocument()

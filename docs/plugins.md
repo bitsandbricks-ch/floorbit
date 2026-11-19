@@ -253,8 +253,11 @@ this site.
 | `list` | `items`: `label`, `value`, `tone` |
 | `table` | `columns`: `key`, `label`; `rows` |
 | `sparkline` | `points`, `value`, `unit`, `min`, `max` |
+| `series` | `series`: up to 4 of `label`, `points` (`[unix seconds, value]`, oldest first); `unit` |
 
-Every widget can also have `sub` (a line under it) and `link`.
+Every widget can also have `sub` (a line under it) and `link`. On a dashboard, a widget is drawn
+small, medium or large to fit its box ([Dashboards](dashboards.md#tiles-that-fit-their-box)): send
+all your rows, Floorbit shows what fits.
 
 The same widgets fill the boxes a plugin adds to side panels (`panels:`).
 

@@ -8,6 +8,10 @@ Shapes (each may also have ``sub``, a short line under it, and ``link``, a path 
     {"type": "list", "items": [{"label": "sw-a-01", "value": "3 errors", "tone": "warn"}]}
     {"type": "table", "columns": [{"key": "name", "label": "Name"}], "rows": [{"name": "..."}]}
     {"type": "sparkline", "points": [1, 3, 2], "value": 2, "unit": "%", "min": 0, "max": 100}
+    {"type": "series", "unit": "bit/s", "series": [{"label": "Download", "points": [[1763560000, 4.2e9], ...]}]}
+
+A ``series`` is up to four lines over time: each point is ``[unix seconds, value]``, oldest first.
+The dashboard's graph widget draws it with a crosshair that names each line's value on hover.
 """
 import math
 
@@ -15,6 +19,7 @@ TONES = ('', 'ok', 'warn', 'err')
 STATES = ('up', 'down', 'warn', 'unknown')
 MAX_ITEMS = 50
 MAX_POINTS = 500
+MAX_SERIES = 4
 
 
 class WidgetError(ValueError):
@@ -94,6 +99,19 @@ def check_widget(raw, item):
             if raw.get(key) is not None:
                 out[key] = _number(raw[key])
         out['unit'] = _text(raw.get('unit'), 20)
+    elif kind == 'series':
+        lines = []
+        for line in _list(raw, 'series')[:MAX_SERIES]:
+            if not isinstance(line, dict):
+                raise WidgetError('a series is a dict with label and points')
+            points = []
+            for p in _list(line, 'points')[-MAX_POINTS:]:
+                if not (isinstance(p, (list, tuple)) and len(p) == 2):
+                    raise WidgetError('a series point is [time, value]')
+                points.append([_number(p[0]), _number(p[1])])
+            lines.append({'label': _text(line.get('label'), 40), 'points': points})
+        out['series'] = lines
+        out['unit'] = _text(raw.get('unit'), 20)
     else:
-        raise WidgetError('type must be stat, status, list, table or sparkline')
+        raise WidgetError('type must be stat, status, list, table, sparkline or series')
     return out

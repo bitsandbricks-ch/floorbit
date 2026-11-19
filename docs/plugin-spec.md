@@ -90,7 +90,7 @@ and dark, on phones and big screens.
 
 | Can ship | Status | Limits and checks |
 | --- | --- | --- |
-| Dashboard tiles (`widgets:`): `stat`, `status`, `list`, `table`, `sparkline` | Ships | `small` or `wide`, refreshed every `refresh` seconds: a whole number, kept between 10 and 86,400 (a day). Up to 50 rows, 12 columns, 500 points; links only to paths on this site. Usable on [dashboards](dashboards.md) and kiosk walls. |
+| Dashboard tiles (`widgets:`): `stat`, `status`, `list`, `table`, `sparkline`, `series` | Ships | `small` or `wide`, refreshed every `refresh` seconds: a whole number, kept between 10 and 86,400 (a day). Up to 50 rows, 12 columns, 500 points, 4 lines in a series; links only to paths on this site. Usable on [dashboards](dashboards.md) and kiosk walls. |
 | Its page under Settings > Plugins | Ships | Floorbit builds it: what it may touch, settings, Test, actions, log, the agents that run it. |
 | An icon (`icon:`) | Ships | A name from Floorbit's icon set (the sidebar's and the inventory's icons), shown in the plugin list and the Marketplace. A name Floorbit doesn't know is refused at load. No SVG or image files: a plugin never ships something the browser draws as is. |
 | Side panel boxes (`panels:` for a `seat`, `switch` or `device`) | Ships | A widget in the side panel when that thing is open: the plan's seat and switch panels, the inventory's device panel. `panel_<id>(target)` gets `{kind, id}` and returns a widget, within the same time budget as a tile. Each entry names its permission; unknown keys in an entry are refused. |

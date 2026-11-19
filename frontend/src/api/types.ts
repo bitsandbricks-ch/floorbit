@@ -42,6 +42,8 @@ export type Widget = WidgetBase &
         rows: Record<string, string>[]
       }
     | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
+    /** Up to four lines of [unix seconds, value], oldest first. */
+    | { type: 'series'; series: { label: string; points: [number, number][] }[]; unit: string }
   )
 
 /** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */

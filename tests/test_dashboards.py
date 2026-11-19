@@ -278,3 +278,18 @@ def test_the_widget_gallery_needs_an_account(client, anon_client, app_module, mo
     assert client.get("/widgets").status_code in (200, 503)   # 503: no frontend build in CI
     monkeypatch.setattr(app_module.app.extensions["auth"], "public_read", False)
     assert anon_client.get("/widgets").status_code in (302, 401)
+
+
+def test_a_tile_pane_keeps_its_widget_type_and_size(client):
+    def save(pane):
+        body = {"name": "Types", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {"pane": pane}}]}]}
+        return client.put("/api/dashboards/types", json=body)
+    r = save({"kind": "tile", "tile": "floorbit/w/switch_states", "type": "status", "level": "m"})
+    assert r.status_code == 200
+    assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == {
+        "kind": "tile", "tile": "floorbit/w/switch_states", "type": "status", "level": "m"}
+    # The defaults stay out of the saved layout.
+    r = save({"kind": "tile", "tile": "floorbit/w/seats", "type": "auto", "level": "auto"})
+    assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == {"kind": "tile", "tile": "floorbit/w/seats"}
+    assert "widget type" in save({"kind": "tile", "tile": "floorbit/w/seats", "type": "pie3d"}).get_json()["error"]
+    assert "widget size" in save({"kind": "tile", "tile": "floorbit/w/seats", "level": "xl"}).get_json()["error"]
