@@ -47,6 +47,7 @@ validation:
   links: {not_found: warn, anchors: warn}
 nav:
   - Home: index.md
+  - Product spec: product-spec.md
   - Navigation: navigation.md
   - Set up:
       - Install with Docker Compose: install.md
