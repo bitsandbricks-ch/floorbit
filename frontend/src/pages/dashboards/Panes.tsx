@@ -70,7 +70,8 @@ function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>
   const { data, error, isPending, dropped } = usePaneData(useWidgets(tiles), pane, tiles.map((x) => x.label), displayOf(pane))
   const title = pane.title ?? tiles.map((x) => x.label).join(' · ')
   const look = { stack: pane.stack, style: pane.style, trend: pane.trend, legend: pane.legend,
-    thresholds: pane.threshold_mode === 'percent' ? undefined : pane.thresholds, number: { decimals: pane.decimals, short: pane.short } }
+    thresholds: pane.threshold_mode === 'percent' ? undefined : pane.thresholds, number: { decimals: pane.decimals, short: pane.short },
+    axis: { min: pane.y_min, max: pane.y_max, log: pane.y_log } }
   const link = data?.link && data.link.startsWith('/') ? data.link : ''
   return (
     <Framed title={title} hide={pane.hide_title} fit actions={data && (

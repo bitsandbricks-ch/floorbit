@@ -243,8 +243,8 @@ export function seatsIn(drawing: PlanDrawing, view: View): string[] {
 
 /** The display part of a tile pane, for widgets/kinds/display.ts. */
 export function displayOf(p: Extract<Pane, { kind: 'tile' }>): Display {
-  const { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero } = p
-  return { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero }
+  const { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero, overrides } = p
+  return { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero, overrides }
 }
 
 /** A seat block by its id, or by its name (panes saved before blocks were picked by id). */

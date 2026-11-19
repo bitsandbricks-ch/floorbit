@@ -1233,5 +1233,11 @@
  "No such widget.": "Kein solches Widget.",
  "Floorbit keeps at most {} widgets.": "Floorbit speichert höchstens {} Widgets.",
  "{} still show this widget. Clone it there or take it off first.": "{} zeigen dieses Widget noch. Klone es dort oder entferne es zuerst.",
- "Pick a saved widget.": "Wähle ein gespeichertes Widget."
+ "Pick a saved widget.": "Wähle ein gespeichertes Widget.",
+ "An axis end must be a number.": "Ein Achsenende muss eine Zahl sein.",
+ "The axis maximum must be above its minimum.": "Das Achsenmaximum muss über dem Minimum liegen.",
+ "A log scale starts above 0.": "Eine logarithmische Skala beginnt über 0.",
+ "A widget has at most {} series settings.": "Ein Widget hat höchstens {} Einstellungen pro Reihe.",
+ "Pick the series a setting is for.": "Wähle die Reihe, für die eine Einstellung gilt.",
+ "A series colour is one of: {}.": "Eine Reihenfarbe ist eine von: {}."
 }

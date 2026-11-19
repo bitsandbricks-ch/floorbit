@@ -358,3 +358,28 @@ def test_a_tile_pane_keeps_how_it_shows_its_numbers(client):
     assert "whole number" in error(limit=0)
     assert "Sort" in error(sort="random")
     assert "mappings" in error(mappings=[{"text": "x"}] * 11)
+
+
+def test_a_tile_pane_keeps_its_axis_and_series_settings(client):
+    def save(**extra):
+        body = {"name": "Axis", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {
+            "pane": {"kind": "tile", "tile": "floorbit/w/traffic", **extra}}}]}]}
+        return client.put("/api/dashboards/axis", json=body)
+    shown = {"y_min": 1, "y_max": 10e9, "y_log": True, "overrides": [
+        {"match": "Download", "name": "Down", "colour": "cyan"}, {"match": "Upload", "hide": True}]}
+    r = save(**shown)
+    assert r.status_code == 200, r.get_json()
+    pane = r.get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert pane == {"kind": "tile", "tile": "floorbit/w/traffic", **shown}
+    # A setting that changes nothing is dropped.
+    r = save(overrides=[{"match": "Upload", "name": " "}], y_log=False)
+    assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == {"kind": "tile", "tile": "floorbit/w/traffic"}
+
+    def error(**extra):
+        return save(**extra).get_json()["error"]
+    assert "above its minimum" in error(y_min=5, y_max=5)
+    assert "above 0" in error(y_log=True, y_min=0)
+    assert "must be a number" in error(y_max="lots")
+    assert "series colour" in error(overrides=[{"match": "Download", "colour": "red"}])
+    assert "Pick the series" in error(overrides=[{"name": "x"}])
+    assert "series settings" in error(overrides=[{"match": "a", "hide": True}] * 11)

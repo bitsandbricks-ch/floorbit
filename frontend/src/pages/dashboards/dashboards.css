@@ -124,3 +124,6 @@
 .fb-pane-text.fb-text-center .fb-pane-body > * { flex: none; margin-block: auto; }
 .fb-pane-text.fb-text-center .fb-markdown ul, .fb-pane-text.fb-text-center .fb-markdown ol { display: inline-block; text-align: left; }
 .fb-pane-headless { padding-top: 12px; }
+/* The colour a series setting picks, shown in its picker. */
+.fb-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.fb-series-row { padding-left: 8px; border-left: 2px solid var(--color-line); }

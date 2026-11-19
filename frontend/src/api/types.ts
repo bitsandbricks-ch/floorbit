@@ -38,7 +38,7 @@ export type Widget = WidgetBase &
     | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number; text?: string }
     | { type: 'status'; items: { label: string; state: State; detail: string }[] }
     /** ``number`` (and ``max``) on items let a list show as bars or a pie. */
-    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number }[] }
+    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number; colour?: string }[] }
     | {
         type: 'table'
         columns: { key: string; label: string }[]
@@ -46,7 +46,7 @@ export type Widget = WidgetBase &
       }
     | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
     /** Up to four lines of [unix seconds, value], oldest first. */
-    | { type: 'series'; series: { label: string; points: [number, number][] }[]; unit: string }
+    | { type: 'series'; series: { label: string; points: [number, number][]; colour?: string }[]; unit: string }
   )
 
 /** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */

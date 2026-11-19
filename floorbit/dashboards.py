@@ -63,6 +63,9 @@ TONES = ('', 'ok', 'warn', 'err')
 SORTS = ('value-desc', 'value-asc', 'name-asc', 'name-desc')
 MAX_STEPS = 5
 MAX_MAPPINGS = 10
+MAX_OVERRIDES = 10
+# The graph colours a series can be given (frontend PALETTE, in that order).
+COLOURS = ('green', 'cyan', 'violet', 'pink', 'orange', 'blue', 'grey')
 KEY_RE = re.compile(r'^[\w.-]{1,64}\Z')
 SPLITS = ('row', 'column')
 AREAS = ('hall', 'block', 'zone', 'box')
@@ -610,6 +613,50 @@ def _display(raw):
         out['limit'] = _num(raw['limit'], 'Show at most', 1, 100, whole=True)
     if raw.get('hide_zero'):
         out['hide_zero'] = True
+    out.update(_axis(raw))
+    overrides = _overrides(raw.get('overrides'))
+    if overrides:
+        out['overrides'] = overrides
+    return out
+
+
+def _axis(raw):
+    """A graph's value axis: fixed ends and a log scale (issue #960); left out when automatic."""
+    out = {}
+    for end in ('y_min', 'y_max'):
+        if raw.get(end) is not None:
+            out[end] = _num(raw[end], 'An axis end')
+    if 'y_min' in out and 'y_max' in out and out['y_min'] >= out['y_max']:
+        raise LayoutError('The axis maximum must be above its minimum.')
+    if raw.get('y_log'):
+        if out.get('y_min', 1) <= 0:
+            raise LayoutError('A log scale starts above 0.')
+        out['y_log'] = True
+    return out
+
+
+def _overrides(raw):
+    """Per series or row, found by its label: another name, a colour, or hidden (issue #960)."""
+    if raw in (None, []):
+        return []
+    if not isinstance(raw, list) or len(raw) > MAX_OVERRIDES or not all(isinstance(o, dict) for o in raw):
+        raise LayoutError(f'A widget has at most {MAX_OVERRIDES} series settings.')
+    out = []
+    for o in raw:
+        entry = {'match': _text(o.get('match'), 80)}
+        if not entry['match']:
+            raise LayoutError('Pick the series a setting is for.')
+        name = _text(o.get('name'), 40)
+        if name:
+            entry['name'] = name
+        if o.get('colour'):
+            if o['colour'] not in COLOURS:
+                raise LayoutError(f'A series colour is one of: {", ".join(COLOURS)}.')
+            entry['colour'] = o['colour']
+        if o.get('hide'):
+            entry['hide'] = True
+        if len(entry) > 1:
+            out.append(entry)
     return out
 
 

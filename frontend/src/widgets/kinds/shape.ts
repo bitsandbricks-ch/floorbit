@@ -97,7 +97,9 @@ export function rowsOf(w: Widget, labels: { name: string; value: string; state: 
   }
 }
 
-export interface Line { label: string; points: [number, number][] }
+/** ``colour``: a pane's per-series setting (#960); otherwise the palette in order. */
+export interface Line { label: string; points: [number, number][]; colour?: string }
+export const lineColour = (l: Line, i: number) => l.colour ?? PALETTE[i % PALETTE.length]
 
 /** Lines over time. A sparkline has no times: its points are evenly spaced. */
 export function linesOf(w: Widget): { lines: Line[]; unit: string; timed: boolean } {
@@ -129,7 +131,9 @@ export type Trend = 'none' | 'linear' | 'average'
 export const TRENDS: Trend[] = ['none', 'linear', 'average']
 /** ``legend``: the calculations each line's legend entry shows, instead of the latest value (and
  *  max and average at large). */
-export interface Look { stack?: Stack; style?: LineStyle; trend?: Trend; legend?: Calc[]; thresholds?: Threshold[]; number?: NumberStyle }
+/** ``axis``: a graph's fixed value ends and log scale (#960). */
+export interface Axis { min?: number; max?: number; log?: boolean }
+export interface Look { stack?: Stack; style?: LineStyle; trend?: Trend; legend?: Calc[]; thresholds?: Threshold[]; number?: NumberStyle; axis?: Axis }
 
 /** Which look options mean something for this data drawn as this kind: stacking needs two or
  *  more series (or number columns), the line style needs a graph, a trend needs time. */
@@ -169,7 +173,7 @@ export function partsOf(w: Widget, stateLabel: (s: State) => string, lang?: stri
   if (w.type === 'list') {
     return w.items.filter((i) => i.number != null).map((i, k) => ({
       label: i.label, value: i.number!, max: i.max, text: i.value || i.number!.toLocaleString(lang),
-      colour: (i.tone && TONE_COLOUR[i.tone]) || PALETTE[each ? k % PALETTE.length : 0],
+      colour: i.colour || (i.tone && TONE_COLOUR[i.tone]) || PALETTE[each ? k % PALETTE.length : 0],
     }))
   }
   if (w.type === 'table') {

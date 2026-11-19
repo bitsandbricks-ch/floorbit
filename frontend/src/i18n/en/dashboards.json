@@ -247,6 +247,28 @@
       "value-asc": "Smallest first",
       "name-asc": "Name A–Z",
       "name-desc": "Name Z–A"
+    },
+    "axis": "Value axis",
+    "axisHint": "Fixed ends keep graphs on a wall comparable; values outside sit on the edge.",
+    "yMin": "From",
+    "yMax": "Up to",
+    "yLog": "Log scale (for values far apart, like bytes)",
+    "series": "Series",
+    "rowsLook": "Rows",
+    "seriesHint": "Rename, recolour or hide one, found by its name in the data.",
+    "seriesPick": "Series",
+    "seriesName": "Show as",
+    "colourAuto": "Auto",
+    "hide": "Hide",
+    "addSeries": "Add a setting",
+    "colours": {
+      "green": "Green",
+      "cyan": "Cyan",
+      "violet": "Violet",
+      "pink": "Pink",
+      "orange": "Orange",
+      "blue": "Blue",
+      "grey": "Grey"
     }
   }
 }

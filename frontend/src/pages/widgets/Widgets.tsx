@@ -205,7 +205,7 @@ function Editor({ draft, onClose, onSaved }: { draft: Draft; onClose: () => void
             onChange={(e) => setName(e.currentTarget.value)} />
           <TileField pane={pane} onChange={(p) => p.kind === 'tile' && setPane(p)} />
         </Stack>
-        <Stack gap="xs">
+        <Stack gap="xs" className="fb-widget-editor-side">
           <Text size="sm" fw={500}>{t('widgets.preview')}</Text>
           <div className="fb-widget-editor-preview">
             {pane.tile ? <PaneView pane={followed({ name: name || t('widgets.title'), pane }, {})} />

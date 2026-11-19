@@ -69,6 +69,13 @@ describe('FitWidget', () => {
     expect(cols.container.querySelector('.fb-w-axis span')?.textContent).toBe(clock(1800000000))
   })
 
+  it('keeps a fixed axis top a pane sets', () => {
+    size = { w: 900, h: 500 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 1], [1800003600, 2]] }] }
+    const { container } = renderWithApp(<FitWidget widget={series} look={{ axis: { min: 1, max: 1000, log: true } }} />)
+    expect(container.querySelectorAll('.fb-w-axis span')[1].textContent).toContain('1,000')
+  })
+
   it('draws a stat with a scale as a gauge', () => {
     size = { w: 300, h: 220 }
     renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 86, unit: 'of 112', tone: '', min: 0, max: 112 }} pick="gauge" />)

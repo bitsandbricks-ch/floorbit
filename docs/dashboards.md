@@ -105,6 +105,11 @@ Under **Numbers and colours** in a tile pane's settings:
   red.
 - **Sort**, **Show at most** and **Hide rows that are 0** pick which rows a list or table shows:
   biggest first and at most five is a top 5.
+- **Value axis** (graphs) fixes where the axis starts and ends, so graphs side by side on a wall
+  compare, and **Log scale** draws values far apart (bytes, lookups) readably. Values outside the
+  ends sit on the edge.
+- **Series** (graphs) or **Rows** (lists) set one by its name in the data: **Show as** another
+  name, a colour of its own, or **Hide**. A setting whose series is gone stays until you remove it.
 
 Hover a bar, a slice or the gauge for its value and share. **Size** pins small, medium or large
 instead of picking it from the box. Any box size works.

@@ -247,6 +247,28 @@
       "value-asc": "Kleinste zuerst",
       "name-asc": "Name A–Z",
       "name-desc": "Name Z–A"
+    },
+    "axis": "Werteachse",
+    "axisHint": "Feste Enden machen Grafiken auf einer Wand vergleichbar; Werte ausserhalb liegen am Rand.",
+    "yMin": "Von",
+    "yMax": "Bis",
+    "yLog": "Logarithmische Skala (für weit auseinanderliegende Werte wie Bytes)",
+    "series": "Reihen",
+    "rowsLook": "Zeilen",
+    "seriesHint": "Eine umbenennen, umfärben oder ausblenden, gefunden über ihren Namen in den Daten.",
+    "seriesPick": "Reihe",
+    "seriesName": "Anzeigen als",
+    "colourAuto": "Automatisch",
+    "hide": "Ausblenden",
+    "addSeries": "Einstellung hinzufügen",
+    "colours": {
+      "green": "Grün",
+      "cyan": "Cyan",
+      "violet": "Violett",
+      "pink": "Rosa",
+      "orange": "Orange",
+      "blue": "Blau",
+      "grey": "Grau"
     }
   }
 }
