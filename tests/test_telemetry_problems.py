@@ -352,7 +352,7 @@ def test_a_vlan_that_does_not_answer_is_named_and_does_not_flap():
     assert found["device"] == "access-a1" and found["vlan"] == 1 and found["table"] == "fb_bridge"
     assert found["kind"] == "timeout"
     hint = problems.hint(found)
-    assert "VLAN 1" in hint and "community@1" in hint and "ACL" not in hint and "telemetry_vlans" in hint
+    assert "VLAN 1" in hint and "community@1" in hint and "ACL" not in hint and "telemetry.snmp.vlans" in hint
     # A walk that times out without a VLAN: not blamed on the login alone.
     walk = problems.parse_line(VLAN_TIMEOUT.replace("access-a1@vlan1", "access-a1"))
     assert "vlan" not in walk and "fb_bridge" in problems.hint(walk)

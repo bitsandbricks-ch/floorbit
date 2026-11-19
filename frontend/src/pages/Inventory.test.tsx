@@ -268,12 +268,12 @@ describe('Inventory page', () => {
   it('sets telemetry up on the Telemetry tab: automatic from its software, chosen ways, agent and ports over the group', async () => {
     const hallA = { type: 'group' as const, id: 'g1', name: 'Hall A' }
     const detail: DeviceDetail = {
-      ...fedDetail, blocks: [], properties: { telemetry_port_gnmi: '50052' },
+      ...fedDetail, blocks: [], properties: { 'telemetry.gnmi.port': '50052' },
       resolved: {
         ...fedDetail.resolved,
         properties: {
-          telemetry_port_snmp: { value: '1161', from: hallA },
-          telemetry_port_gnmi: { value: '50052', from: { type: 'device', id: 'netbox-12', name: 'Stage switch' } },
+          'telemetry.snmp.port': { value: '1161', from: hallA },
+          'telemetry.gnmi.port': { value: '50052', from: { type: 'device', id: 'netbox-12', name: 'Stage switch' } },
         },
         features: { ...fedDetail.resolved.features, telemetry: { on: true, from: hallA } },
       },
@@ -313,7 +313,7 @@ describe('Inventory page', () => {
     fireEvent.click(await screen.findByRole('option', { name: /Rack A/, hidden: true }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
-      properties: { telemetry_agent: 'a1', telemetry_port_api: '8443', telemetry_drivers: 'snmp traps mdt' },
+      properties: { 'telemetry.agent': 'a1', 'telemetry.api.port': '8443', 'telemetry.drivers': 'snmp traps mdt' },
       features: { ...detail.features, telemetry: null },
     }))
   })

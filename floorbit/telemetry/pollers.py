@@ -244,7 +244,7 @@ POLLERS = {'nxapi': nxapi, 'restconf': restconf, 'opnsense': opnsense}
 def register(driver, poller):
     """Add an API driver (docs/telemetry.md, "Extending it"): ``poller(target, now)`` returns
     lineproto.Points and raises PollError with a message for the crew. The driver can then be
-    picked for a device in the inventory (telemetry_drivers)."""
+    picked for a device in the inventory (telemetry.drivers)."""
     from . import targets
     POLLERS[driver] = poller
     if driver not in targets.DRIVERS:

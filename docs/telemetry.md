@@ -71,14 +71,14 @@ in from each device (find and filter by problems or never heard), the collector'
     | OPNsense API | OPNsense | Gateways (up, delay, loss), ARP, interface counters. A key with the Diagnostics and Status privileges only. |
     | Own Telegraf | OPNsense, pfSense | The firewall runs Telegraf (OPNsense `os-telegraf`, the pfSense Telegraf package) and sends to the collector. |
 
-    A device that only sends by itself (`telemetry_drivers` of `push`, `mdt` or `traps`) needs no
+    A device that only sends by itself (`telemetry.drivers` of `push`, `mdt` or `traps`) needs no
     login. **Device setup** on the device's Telemetry tab shows what to paste on the device for traps, MDT,
     gNMI, NX-API and RESTCONF.
 
 2. **Catalyst IOS (2960-X, 4500 on IOS-XE 3.x)** answers MAC tables one VLAN at a time. That is
    the default on IOS; Floorbit reads the VLANs the switch lists itself (discovery's VTP walk, without
    the reserved 1002 to 1005), else the VLANs on its interfaces, or the ones listed in
-   `telemetry_vlans`. Floorbit then asks `community@vlan` (v2c) or the
+   `telemetry.snmp.vlans`. Floorbit then asks `community@vlan` (v2c) or the
    `vlan-<id>` context (v3). A VLAN the switch doesn't have gets no answer at all, so each VLAN is
    its own poll and a problem names it ("no answer for VLAN 30"). Nexus and IOS-XE 16+ answer Q-BRIDGE in one table.
 
@@ -103,7 +103,7 @@ agent's page names the first one, and the agent's log has each new one with the 
 | --- | --- | --- |
 | Nothing listens on *address* | The device answered "port closed" (ICMP port unreachable, TCP reset) | SNMP, gNMI or the API is off on the device, listens on another port, or only on another address (`snmp-server` on a management VRF) |
 | No answer from *address* | Nothing came back in time | For SNMP a wrong community or SNMPv3 login looks exactly like this (the device stays silent), as does an ACL that doesn't list the agent's address; for the others, a firewall on the way |
-| No answer for VLAN *n* | The switch answers SNMP, but not `community@n` (or the `vlan-n` context) | The switch doesn't have that VLAN (fix `telemetry_vlans`), or with SNMPv3 the user's group doesn't allow the `vlan-` contexts |
+| No answer for VLAN *n* | The switch answers SNMP, but not `community@n` (or the `vlan-n` context) | The switch doesn't have that VLAN (fix `telemetry.snmp.vlans`), or with SNMPv3 the user's group doesn't allow the `vlan-` contexts |
 | No answer while reading *table* | A table walk timed out | If the device's other data comes in, the walk is too slow: a very big table, or SNMP rate limited on the device. If nothing comes in, as "No answer" above |
 | Refused the login | The device said no to the user, password, SNMPv3 keys or API key | The login on the device or in Floorbit; refused logins aren't tried again until cleared (agent-plugins.md, "Failed logins") |
 | No route to *address* | The agent's machine can't reach that network | The address, and the agent machine's routes or VLAN |
@@ -141,19 +141,21 @@ The **Telemetry** tab of a device, a group, a tag or All devices sets all of it 
 property names: on, off or inherit; **Automatic** or **Choose** the ways to collect; MAC tables,
 VLANs, the MDT node, the agent, the address and the ports. An empty field shows what applies and
 where it comes from. A device's tab also shows its last word, **Test now**, **Raw data** and
-**Device setup**. The tab writes these properties, which a type can set too:
+**Device setup**. The tab writes these properties, which a type can set too. They sit under
+`telemetry.` like the property levels (inventory.md, "Properties in three levels"); the older names
+without the namespace (`telemetry_vlans`, `telemetry_port_snmp`, ...) are moved once when Floorbit starts.
 
 | Property | What |
 | --- | --- |
-| `telemetry_drivers` | the ways to collect, like `snmp, traps, gnmi` (instead of the automatic ones) |
-| `telemetry_fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
-| `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs the switch lists, else the ones on its interfaces) |
-| `telemetry_agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
-| `telemetry_port_snmp`, `telemetry_port_gnmi`, `telemetry_port_api` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
-| `telemetry_address` | where the agent reaches the device, when not its management address |
-| `telemetry_url` | the API's full `https://` address |
-| `telemetry_mdt_node` | the node name a device sends model-driven telemetry as (default: its name) |
-| `telemetry_verify_tls` | `false` for an API with a self-signed certificate |
+| `telemetry.drivers` | the ways to collect, like `snmp, traps, gnmi` (instead of the automatic ones) |
+| `telemetry.snmp.fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
+| `telemetry.snmp.vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs the switch lists, else the ones on its interfaces) |
+| `telemetry.agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
+| `telemetry.snmp.port`, `telemetry.gnmi.port`, `telemetry.api.port` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
+| `telemetry.address` | where the agent reaches the device, when not its management address |
+| `telemetry.api.url` | the API's full `https://` address |
+| `telemetry.mdt.node` | the node name a device sends model-driven telemetry as (default: its name) |
+| `telemetry.verify_tls` | `false` for an API with a self-signed certificate |
 
 Every five minutes SNMP polling also asks what the device is (sysDescr, sysLocation, the chassis
 model and serial and the optics from ENTITY-MIB, memory and disks from HOST-RESOURCES-MIB, the Cisco memory pool,
@@ -200,7 +202,7 @@ Nothing comes in twice on the hosted side either:
 
 ## One agent per device
 
-A device with an agent (`telemetry_agent`, the Telemetry tab) is collected by that agent alone, even
+A device with an agent (`telemetry.agent`, the Telemetry tab) is collected by that agent alone, even
 when it stands by for another one, and calls about the device (its ports, its clients) go there.
 Give a hall's group its hall's agent, and each agent polls only its own switches. While that agent
 is away, its devices go back to the others like devices without an agent, so they aren't left

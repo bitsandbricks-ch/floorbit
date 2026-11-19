@@ -542,7 +542,7 @@ def drift(dev, values, row, port_source=None):
         out.append({'kind': 'hostname', 'field': 'name', 'configured': dev['name'],
                     'actual': str(sys_name)[:80]})
     ip = str(row.get('ip') or '').strip()
-    natted = (dev.get('properties') or {}).get('telemetry_address')     # reached elsewhere on purpose
+    natted = (dev.get('properties') or {}).get('telemetry.address')     # reached elsewhere on purpose
     if ip and dev.get('mgmt_ip') and ip != dev['mgmt_ip'] and not natted:
         out.append({'kind': 'address', 'field': 'mgmt_ip', 'configured': dev['mgmt_ip'], 'actual': ip})
     if port_source:
