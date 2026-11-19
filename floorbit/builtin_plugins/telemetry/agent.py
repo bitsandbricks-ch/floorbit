@@ -219,9 +219,10 @@ class AgentPlugin(Base):
                 return 400, 'bad gzip'
         if len(body) > MAX_BODY:
             return 413, 'too large'
-        if which == 'push' and self.binary and b',device=' in body:
-            # Polled with Floorbit's config but not by the Telegraf in here: a sidecar left over from an
-            # older compose file. Refused, so a device isn't polled twice, and the warning names it.
+        if which == 'push' and self.binary and b',driver=snmp' in body:
+            # SNMP polled with Floorbit's config but not by the Telegraf in here: a sidecar left over
+            # from an older compose file. Refused, so a device isn't polled twice, and the warning
+            # names it. (Streams relayed with this token, as the test lab does, carry other drivers.)
             self.ctx.counter('sidecar_writes')
             return 401, 'Telegraf runs in the agent now: remove the telegraf container'
         taken = self.take(body.decode('utf-8', 'replace'))

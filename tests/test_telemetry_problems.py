@@ -132,7 +132,7 @@ def test_the_agent_runs_telegraf_and_says_which_device_fails(tmp_path, monkeypat
         assert row[0]["hostname"] == "sw-a-01" and row[0]["problems"][0]["kind"] == "refused"
         # The device sends after all: the problem is over.
         token = (tmp_path / "own-telegraf-token").read_text()
-        line = b"fb_if,device=sw-a-01,agent_host=192.0.2.21,ifIndex=1,ifName=Gi1/0/1 ifOperStatus=1i"
+        line = b"fb_if,device=sw-a-01,driver=snmp,agent_host=192.0.2.21,ifIndex=1,ifName=Gi1/0/1 ifOperStatus=1i"
         time.sleep(1.1)
         assert ctx.handler("POST", "/write", {"Authorization": f"Token {token}"}, line)[0] == 204
         assert plugin.problems.current() == []
@@ -142,6 +142,8 @@ def test_the_agent_runs_telegraf_and_says_which_device_fails(tmp_path, monkeypat
         push = (tmp_path / "ingest-token").read_text()
         fw = b"pf,host=fw-01.example.org entries=12i"
         assert ctx.handler("POST", "/write", {"Authorization": f"Token {push}"}, fw)[0] == 204
+        stream = b"fb_gnmi_if,device=sw-a-01,driver=gnmi,name=Ethernet1/1 state/counters/in-octets=1i"
+        assert ctx.handler("POST", "/write", {"Authorization": f"Token {push}"}, stream)[0] == 204
         # A sidecar left from an older compose file polls with Floorbit's config and that token:
         # refused, so nothing is polled twice, and named.
         assert ctx.handler("POST", "/write", {"Authorization": f"Token {push}"}, line)[0] == 401
