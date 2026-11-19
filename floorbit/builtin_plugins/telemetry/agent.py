@@ -70,7 +70,10 @@ class AgentPlugin(Base):
         self.raw = {}                # device -> deque of its last lines, for "Raw data"
         self.heard_now = set()       # devices heard since the last look: logged when new or back
         self.summary = {'at': time.time(), 'points': 0, 'devices': set()}
-        self.token = self._token()
+        # Telegraf in here sends with its own token; devices that push themselves (a firewall's own
+        # Telegraf, docs/telemetry.md) keep using ingest-token.
+        self.push_token = self._token('ingest-token')
+        self.token = self._token('own-telegraf-token') if self.binary else self.push_token
         self.targets = []
         self.primary = self.state.collecting = self.is_primary()
         self.configure(self.settings)
@@ -114,12 +117,10 @@ class AgentPlugin(Base):
         self.write_conf()
         return True
 
-    def _token(self):
-        """The token Telegraf sends here with. Kept in the plugin's own folder, so a restart doesn't
-        need a new Telegraf config; it never leaves the agent."""
-        # Its own token when Telegraf runs in here: a sidecar still running from an older compose
-        # file sends with the old one, is refused, and the warning says to remove it.
-        path = os.path.join(self.ctx.state_dir or '.', 'own-telegraf-token' if self.binary else 'ingest-token')
+    def _token(self, name):
+        """A token kept in the plugin's own folder, so a restart doesn't need a new Telegraf config;
+        it never leaves the agent."""
+        path = os.path.join(self.ctx.state_dir or '.', name)
         try:
             with open(path, encoding='utf-8') as f:
                 token = f.read().strip()
@@ -207,7 +208,8 @@ class AgentPlugin(Base):
             return 204, b''
         if method != 'POST' or route not in ('/write', '/api/v2/write'):
             return 404, 'not found'
-        if not self._authorised(path, headers):
+        which = self._authorised(path, headers)
+        if which is None:
             self.ctx.counter('refused_writes')
             return 401, 'bad token'
         if (headers.get('Content-Encoding') or headers.get('content-encoding') or '').lower() == 'gzip':
@@ -217,6 +219,11 @@ class AgentPlugin(Base):
                 return 400, 'bad gzip'
         if len(body) > MAX_BODY:
             return 413, 'too large'
+        if which == 'push' and self.binary and b',device=' in body:
+            # Polled with Floorbit's config but not by the Telegraf in here: a sidecar left over from an
+            # older compose file. Refused, so a device isn't polled twice, and the warning names it.
+            self.ctx.counter('sidecar_writes')
+            return 401, 'Telegraf runs in the agent now: remove the telegraf container'
         taken = self.take(body.decode('utf-8', 'replace'))
         return (204, b'') if taken is not None else (400, 'nothing understood')
 
@@ -229,7 +236,12 @@ class AgentPlugin(Base):
         elif scheme.lower() == 'basic':
             with contextlib.suppress(ValueError):
                 given.add(base64.b64decode(value).decode().partition(':')[2])
-        return any(secrets.compare_digest(g, self.token) for g in given if g)
+        for g in given:
+            if g and secrets.compare_digest(g, self.token):
+                return 'own'
+            if g and secrets.compare_digest(g, self.push_token):
+                return 'push'
+        return None
 
     def take(self, text, now=None):
         self.keep_raw(text)
@@ -327,9 +339,9 @@ class AgentPlugin(Base):
         if self.telegraf:
             self.ctx.gauge('telegraf_restarts', self.telegraf.exits)
         quiet = self.last_write is None or now - self.last_write > QUIET_AFTER
-        refused = self.health_number('refused_writes')
-        sidecar_left = self.binary and refused > self.refused_seen
-        self.refused_seen = refused
+        sidecar = self.health_number('sidecar_writes')
+        sidecar_left = self.binary and sidecar > self.refused_seen
+        self.refused_seen = sidecar
         if not count:
             self._health('ok', 'no devices set up')
         elif not self.primary:
@@ -339,8 +351,8 @@ class AgentPlugin(Base):
             self._health('error', f'Telegraf does not run (exit code {self.telegraf.last_exit[1]}): {last}'[:300],
                          'telegraf_stopped')
         elif sidecar_left:
-            self._health('warning', 'another Telegraf (the old telegraf container?) still sends here with an old '
-                         f'token: remove it from the compose file ({DOCS})', 'telegraf_sidecar_left')
+            self._health('warning', 'another Telegraf (the old telegraf container?) still polls and sends here: '
+                         f'remove it from the compose file ({DOCS})', 'telegraf_sidecar_left')
         elif found:
             first = found[0]
             more = f' (and {len(found) - 1} more)' if len(found) > 1 else ''

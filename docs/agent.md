@@ -321,7 +321,7 @@ asked of the agent when you open them; nothing extra is stored.
 **Coming from a telegraf container.** Earlier agent releases needed a `telegraf` service next to the
 agent (`docker compose --profile telemetry up -d`). Remove that service from your compose file and
 run `docker compose up -d --remove-orphans`, so the old container goes too and frees ports 162 and
-57000 for the agent. If it keeps running, the agent refuses what it sends (it has a new token) and
+57000 for the agent. If it keeps running, the agent refuses what it polls (Telegraf in the agent does that now) and
 the Telemetry plugin says so on the agent's page. To keep Telegraf in its own container anyway, set
 `FLOORBIT_TELEGRAF=sidecar` on the agent: it then writes `/app/state/plugins/telemetry/telegraf.conf`
 for that container and runs none itself.
