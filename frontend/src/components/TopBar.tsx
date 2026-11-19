@@ -15,7 +15,7 @@ const isLocalPath = (href: string) => /^\/(?!\/)/.test(href)
 const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
 /** The bar above every crew page on a desktop: where you are, "Go to" and the notifications. */
-export function TopBar({ pages }: { pages: NavPage[] }) {
+export function TopBar({ pages, onSlot }: { pages: NavPage[]; onSlot?: (el: HTMLElement | null) => void }) {
   const { t } = useTranslation()
   const path = useLocation().pathname
   const title = usePageTitle()
@@ -26,8 +26,9 @@ export function TopBar({ pages }: { pages: NavPage[] }) {
   const label = page ? (isPluginPage(page.id) ? page.label : t(`goto.pages.${page.id}`, { defaultValue: page.label })) : null
   // "Inventory > Inventory" says nothing twice: a section named like its page is left out.
   const section = crumbs.section && t(`nav.sections.${crumbs.section}`) !== label ? crumbs.section : null
-  // A sub page (one agent, one device): its own title after the page it belongs to.
-  const sub = page && page.href !== path && title && title !== label ? title : null
+  // The page's own title after its row: a sub page (one agent, one device), or a tab of a row
+  // (Helpdesk > Problems). The breadcrumb is the page's only title on a computer (issue #932).
+  const sub = page && title && title !== label ? title : null
   const count = (problems?.counts.down ?? 0) + (problems?.counts.warn ?? 0)
   return (
     <header className="fb-topbar">
@@ -44,9 +45,11 @@ export function TopBar({ pages }: { pages: NavPage[] }) {
           <b aria-current="page">{label ?? title}</b>
         )}
       </nav>
-      <button type="button" className="fb-topbar-search" onClick={openGoTo} aria-keyshortcuts="Control+K Meta+K">
+      {/* The page's own buttons (PageHead puts them here). */}
+      <div ref={onSlot} className="fb-topbar-actions" />
+      <button type="button" className="fb-topbar-search" onClick={openGoTo} aria-keyshortcuts="Control+K Meta+K"
+        aria-label={t('nav.search')} title={t('nav.search')}>
         <IconSearch size={15} aria-hidden="true" />
-        <span>{t('nav.search')}</span>
         <kbd className="fb-nav-kbd">{mac ? '⌘K' : 'Ctrl K'}</kbd>
       </button>
       <button

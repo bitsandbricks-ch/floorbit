@@ -46,12 +46,14 @@ body {
 .fb-crumbs a { color: var(--color-muted); text-decoration: none; }
 .fb-crumbs a:hover { color: var(--color-fg); text-decoration: underline; }
 .fb-crumb-sep { flex: none; color: var(--color-faint); }
+.fb-topbar-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.fb-topbar-actions:empty { display: none; }
+.fb-topbar-actions .mantine-Button-root { height: 32px; }
 .fb-topbar-search {
-  display: flex; align-items: center; gap: 8px; width: min(360px, 34vw); height: 32px; padding: 0 8px 0 10px;
+  display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px 0 10px;
   border: 1px solid var(--color-line); border-radius: var(--ui-radius); background: var(--color-surface);
   color: var(--color-faint); font: inherit; font-size: 13px; cursor: pointer; text-align: left;
 }
-.fb-topbar-search span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fb-topbar-search:hover { border-color: color-mix(in srgb, var(--color-fg) 22%, var(--color-line)); color: var(--color-muted); }
 .fb-topbar-bell { position: relative; }
 .fb-topbar-count {

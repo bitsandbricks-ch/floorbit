@@ -1,6 +1,6 @@
 import { Alert, Badge, Button, Group, Kbd, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconArrowsExchange, IconDownload, IconFilter, IconHandGrab, IconListCheck, IconPlus, IconQrcode } from '@tabler/icons-react'
+import { IconDownload, IconFilter, IconHandGrab, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -24,8 +24,6 @@ const FIXED_SHOWN = 20
 /** The incident board: open, being worked, fixed. Seat reports from the QR helpdesk land here too. */
 export default function Incidents() {
   const { t } = useTranslation()
-  const dispatchOn = useFeature('dispatch')
-  const handoverOn = useFeature('handover')
   const helpdeskOn = useFeature('helpdesk')
   const client = useQueryClient()
   const board = useIncidents()
@@ -116,16 +114,7 @@ export default function Incidents() {
         desc={t('incidents.intro')}
         actions={
           <>
-            {dispatchOn && (
-              <Button variant="default" component="a" href="/jobs" leftSection={<IconListCheck size={16} />}>
-                {t('incidents.myJobs')}
-              </Button>
-            )}
-            {handoverOn && (
-              <Button variant="default" component="a" href="/handover" leftSection={<IconArrowsExchange size={16} />}>
-                {t('incidents.handover')}
-              </Button>
-            )}
+            {/* My jobs and the handover are Helpdesk's tabs now (issue #892). */}
             {board.data?.can_assign_any && helpdeskOn && (
               <Button variant="default" component="a" href="/incidents/qr" leftSection={<IconQrcode size={16} />}>
                 {t('incidents.qrCodes')}
