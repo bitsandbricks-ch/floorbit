@@ -5,7 +5,7 @@ import { qk } from '@/api/keys'
 // The telemetry device API (floorbit/blueprints/telemetry.py) for the components next to this file.
 
 /** Why a device sends nothing, as the collector saw it (floorbit/telemetry/problems.py). */
-export interface DeviceProblem { driver: string; kind: string; address: string; detail: string; since?: number; at?: number; count?: number; hint?: string }
+export interface DeviceProblem { driver: string; kind: string; address: string; detail: string; since?: number; at?: number; count?: number; hint?: string; vlan?: number; table?: string }
 /** What GET /api/telemetry/devices says about one device. */
 export interface DeviceSeen { seen: number | null; online: boolean; ports?: number; macs?: number; arp?: number; neighbours?: number; problems?: DeviceProblem[] }
 

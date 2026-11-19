@@ -252,7 +252,7 @@ def _problems():
     from floorbit.telemetry import problems as problems_mod
     out = {}
     for p in state.problems.current() if state.problems is not None else []:
-        row = {k: p.get(k) for k in ('driver', 'kind', 'address', 'detail', 'since', 'at', 'count')}
+        row = {k: p.get(k) for k in ('driver', 'kind', 'address', 'detail', 'since', 'at', 'count', 'vlan', 'table')}
         out.setdefault(p['device'], []).append({**row, 'hint': problems_mod.hint(p)})
     return out
 
