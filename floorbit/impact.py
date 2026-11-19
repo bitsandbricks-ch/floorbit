@@ -136,7 +136,8 @@ def failures(data, offline, down_links):
         return nodes - _reached(roots, edges, dn, dl) - dn - everyone
 
     def seats_of(boxes):
-        return sorted(set().union(*(by_switch.get(b, set()) for b in boxes)) if boxes else set())
+        from .page_index import _seat_key  # C-9 before C-10
+        return sorted(set().union(*(by_switch.get(b, set()) for b in boxes)) if boxes else set(), key=_seat_key)
 
     shown = {short(d['name']): d['name'] for d in inventory.devices(data) if d.get('name')}
     named = lambda boxes: sorted(shown.get(b, b) for b in boxes)   # noqa: E731
