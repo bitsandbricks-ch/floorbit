@@ -4,7 +4,7 @@ import { IconChevronLeft, IconSearch } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { inApp } from '@/nav/sections'
-import { readBoot, readRail } from '@/nav/boot'
+import { readRail } from '@/nav/boot'
 import { usePageList } from '@/api/queries'
 import { openGoTo } from '@/nav/goto'
 import { AppNav } from './AppNav'
@@ -38,8 +38,9 @@ export function AppShell({ children }: { children?: ReactNode }) {
   const { t } = useTranslation()
   const { pathname, search } = useLocation()
   const params = new URLSearchParams(search)
-  const listed = usePageList()
-  const pages = listed.length ? listed : readBoot().pages
+  // The API's list only: the breadcrumbs link to its pages, and the list in the page (#fb-nav-data)
+  // is text from the document.
+  const pages = usePageList()
   // A wall screen or a print sheet is the page alone: no sidebar, banners or footer on the TV or the paper.
   if (params.get('screen') === '1' || params.get('print') === '1') {
     return <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
