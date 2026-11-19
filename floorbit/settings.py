@@ -588,6 +588,7 @@ def create_settings_blueprint(store, on_change, get_redis=None, redis_info=None)
         }
 
     @bp.route('/settings')
+    @bp.route('/settings/')   # a typed or pasted trailing slash opens the same page (#997)
     def settings_page():
         # The React page (frontend/src/pages/Settings.tsx).
         from floorbit import spa

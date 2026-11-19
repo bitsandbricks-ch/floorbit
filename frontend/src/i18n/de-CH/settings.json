@@ -11,11 +11,13 @@
   "test": "Verbindung testen",
   "testing": "Teste…",
   "source": {
-    "saved": "Gespeichert",
-    "env": "Aus Umgebung",
+    "saved": "Hier gesetzt",
+    "env": "Von der Server-Umgebung gesetzt",
+    "hosted": "Vom gehosteten Floorbit gesetzt",
     "default": "Standard"
   },
-  "envSet": "ist gesetzt",
+  "envTip": "Aus der Umgebungsvariable {{env}}. Ändere sie dort, wo der Server gestartet wird.",
+  "envOverridden": "Hier gesetzt, die Umgebungsvariable {{env}} wird deshalb nicht verwendet. Zurücksetzen, um sie wieder zu nutzen.",
   "unsaved": "Nicht gespeichert",
   "willReset": "Wird zurückgesetzt",
   "reset": "Zurücksetzen",

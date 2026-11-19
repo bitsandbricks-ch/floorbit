@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, ColorInput, FileButton, Group, Image, NumberInput, Paper, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, ThemeIcon } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, ColorInput, FileButton, Group, Image, NumberInput, Paper, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, ThemeIcon, Tooltip } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
 import { IconCircleCheck, IconCircleX, IconDownload, IconUpload } from '@tabler/icons-react'
 import { useState, type ReactNode } from 'react'
@@ -178,19 +178,28 @@ export function FieldRow({ field, info, change, onChange, onReset, onUndo }: {
     <Stack gap={4} data-key={field.key}>
       {input}
       <Group gap="xs">
-        {dirty
-          ? <Badge size="sm" variant="light" color="warn" tt="none">{t(resetting ? 'settings.willReset' : 'settings.unsaved')}</Badge>
-          : <Badge size="sm" variant="light" color={info.source === 'saved' ? 'bit' : 'gray'} tt="none">{t(`settings.source.${info.source}`)}</Badge>}
-        {field.env && <Text size="xs" c="dimmed" ff="monospace">{field.env}{info.env_set ? ` ${t('settings.envSet')}` : ''}</Text>}
+        {dirty && <Badge size="sm" variant="light" color="warn" tt="none">{t(resetting ? 'settings.willReset' : 'settings.unsaved')}</Badge>}
+        {dirty && <Anchor component="button" type="button" size="xs" onClick={onUndo}>{t('settings.undo')}</Anchor>}
+        {!dirty && <SourceTag info={info} env={field.env ?? undefined} />}
         {info.source === 'saved' && !dirty && (
           <Anchor component="button" type="button" size="xs" onClick={onReset}>
             {t(field.type === 'secret' ? 'settings.removeSecret' : 'settings.reset')}
           </Anchor>
         )}
-        {dirty && <Anchor component="button" type="button" size="xs" onClick={onUndo}>{t('settings.undo')}</Anchor>}
       </Group>
     </Stack>
   )
+}
+
+/** Where a value comes from, said only when it isn't the default; the env var name is for whoever runs the server, so it waits in a tooltip (#992). */
+function SourceTag({ info, env }: { info: Value; env?: string }) {
+  const { t } = useTranslation()
+  if (info.source === 'default') return null
+  const text = <Text size="xs" c="dimmed" data-source={info.source}>{t(`settings.source.${info.source}`)}</Text>
+  const tip = env && (info.source === 'env' || info.env_set)
+    ? t(info.source === 'env' ? 'settings.envTip' : 'settings.envOverridden', { env })
+    : null
+  return tip ? <Tooltip label={tip} withArrow multiline maw={320}><span tabIndex={0}>{text}</span></Tooltip> : text
 }
 
 function ImageField({ common, value, onChange }: { common: { label: string; description?: string; disabled: boolean }; value: string; onChange: (v: string) => void }) {

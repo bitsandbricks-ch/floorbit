@@ -17,3 +17,7 @@ def test_they_need_settings_manage(app_module):
     anonymous = app_module.app.test_client()
     for path in ('/settings/netbox', '/settings/plugins/http-check'):
         assert anonymous.get(path).status_code in (302, 401, 403), path
+
+
+def test_a_trailing_slash_opens_settings_too(client):
+    assert b'<title>Settings' in client.get('/settings/').data
