@@ -36,7 +36,6 @@ const Templates = lazy(() => import('@/pages/Templates'))
 const Replay = lazy(() => import('@/pages/Replay'))
 const Report = lazy(() => import('@/pages/Report'))
 const Jobs = lazy(() => import('@/pages/Jobs'))
-const Tournament = lazy(() => import('@/pages/Tournament'))
 const Handover = lazy(() => import('@/pages/Handover'))
 const Preflight = lazy(() => import('@/pages/Preflight'))
 const Cables = lazy(() => import('@/pages/Cables'))
@@ -123,7 +122,6 @@ export default function App() {
             <Route path="/replay" element={<Replay />} />
             <Route path="/report" element={<Report />} />
             <Route path="/jobs" element={<Jobs />} />
-            <Route path="/tournament" element={<Tournament />} />
             <Route path="/handover" element={<Handover />} />
             <Route path="/preflight" element={<Preflight />} />
             <Route path="/cables" element={<Cables />} />

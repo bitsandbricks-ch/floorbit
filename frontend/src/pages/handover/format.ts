@@ -25,7 +25,7 @@ export function byLine(fixed: HandoverIncident[], t: T): string {
 export function summaryText(d: HandoverData, note: string, t: T, length: (s: number) => string): string {
   const where = (i: HandoverIncident) => i.where.kind === 'seat' ? t('incidents.seat', { seat: i.where.name })
     : i.where.kind === 'circuit' ? t('incidents.circuit', { name: i.where.name }) : t('incidents.switch', { name: i.where.name })
-  const item = (i: HandoverIncident) => `- ${i.title} (${[where(i), i.assignee, i.match].filter(Boolean).join(', ')})`
+  const item = (i: HandoverIncident) => `- ${i.title} (${[where(i), i.assignee].filter(Boolean).join(', ')})`
   const c = d.counts
   const lines = [
     `${t('handover.title')}: ${t('handover.since', { when: when(d.since) })}`,

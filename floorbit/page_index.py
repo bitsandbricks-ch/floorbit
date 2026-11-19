@@ -42,7 +42,6 @@ PAGES = (
     ('/checkins', 'checkins', 'Check-in', lambda c, can: can('seats.view') and _checkin_on()),
     ('/seat-walk', 'seatWalk', 'Seat walk-through', lambda c, can: can('seats.edit')),
     ('/preflight', 'preflight', 'Pre-flight check', lambda c, can: c['feature_on']('preflight')),
-    ('/tournament', 'tournament', 'Tournament seats', lambda c, can: c['feature_on']('tournament')),
     ('/schedule', 'schedule', 'Schedule', lambda c, can: c['feature_on']('schedule')),
     ('/timeline', 'timeline', 'Event changelog', lambda c, can: c['feature_on']('timeline') and can('audit.read')),
     ('/telemetry', 'telemetry', 'Telemetry', None),

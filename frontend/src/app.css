@@ -403,11 +403,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-job-plan .route { stroke: var(--color-trace); stroke-width: 5; stroke-dasharray: 14 10; stroke-linecap: round; }
 .fb-job-plan .you { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 4; }
 .fb-job-plan .you-label { fill: var(--color-trace); font: 700 30px var(--font-sans); text-anchor: middle; }
-.fb-match-plan { width: 100%; height: auto; max-height: 60vh; background: var(--color-raised); border-radius: var(--radius-card); }
-.fb-match-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
-.fb-match-plan .cell.match { fill: var(--color-warn); stroke: var(--color-warn); }
-.fb-match-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
-.fb-match-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: var(--color-warn); }
 
 /* Pre-flight verdict (issue #35): the whole banner says go or no-go. */
 .fb-preflight-verdict.ready { border-color: var(--color-up); background: color-mix(in srgb, var(--color-up) 10%, transparent); }
@@ -540,7 +535,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-plan .chk { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 1.5; stroke-linejoin: round; }
 .fb-plan .prob circle { fill: var(--color-down); stroke: var(--color-ink); stroke-width: 1.5; }
 .fb-plan .prob text { fill: #fff; font: 800 11px var(--font-sans); text-anchor: middle; pointer-events: none; }
-.fb-plan .match { fill: none; stroke: var(--color-warn); stroke-width: 3.5; }
 .fb-plan .fwr { fill: none; stroke-width: 3; }
 .fb-plan .fwr.fw-failover { stroke: var(--color-warn); stroke-dasharray: 4 3; }
 .fb-plan .fwr.fw-down { stroke: var(--color-down); }

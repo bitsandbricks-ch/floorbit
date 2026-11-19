@@ -222,6 +222,13 @@ def _no_attendee_programme(data):
             data['app_settings'].pop(key, None)
 
 
+def _no_match_seats(data):
+    """Tournament seats (match zones) were removed: their zones and their feature switch go."""
+    data.pop('tournament', None)
+    if isinstance(data.get('features'), dict):
+        data['features'].pop('tournament', None)
+
+
 def _platform_admins(data):
     """Platform admins became a flag of their own (auth/users.py): before, every admin of the default
     tenant was one. They keep it, so nobody loses the Tenants page; take it away on the Users page.
@@ -241,7 +248,7 @@ def _platform_admins(data):
 
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
          _no_runbooks, _no_seat_finder, _small_status_page, _no_attendee_programme,
-         _platform_admins)
+         _platform_admins, _no_match_seats)
 CURRENT = len(STEPS)
 
 

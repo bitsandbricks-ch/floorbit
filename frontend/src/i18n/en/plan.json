@@ -17,7 +17,6 @@
     "problems": "Problems",
     "offline": "Offline",
     "recent": "Changed lately",
-    "match": "Match seats",
     "note": "Has a note",
     "checked_in": "Checked in"
   },
@@ -59,7 +58,6 @@
   "checkedIn": "Checked in",
   "problemsN_one": "{{count}} problem",
   "problemsN_other": "{{count}} problems",
-  "matchIn": "Match: {{zone}}",
   "legend": "Legend",
   "legendItem": {
     "online": "Online: port up",
@@ -67,7 +65,6 @@
     "unknown": "Unknown: no recent read or no known port",
     "checkedIn": "Checked in",
     "problem": "Open problem",
-    "match": "Match seat",
     "recent": "Link changed in the last 15 minutes",
     "note": "Crew note"
   },
@@ -126,7 +123,6 @@
     "label": "Seats",
     "seat": "Seat",
     "state": "State",
-    "match": "Match",
     "count_one": "{{count}} seat",
     "count_other": "{{count}} seats",
     "changed": "Changed",

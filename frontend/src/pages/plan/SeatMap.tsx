@@ -40,7 +40,6 @@ export function SeatGlyph({ seat, size, detail, traffic = false, route, checkin 
       {seat.changed && <rect className="recent" x={i - 5} y={i - 5} width={s + 10} height={s + 10} rx={7} />}
       {mark && <rect className={`pl pl-${mark}`} x={i - 3.5} y={i - 3.5} width={s + 7} height={s + 7} rx={6} />}
       {route && <rect className={`fwr fw-${route}`} x={i - 3.5} y={i - 3.5} width={s + 7} height={s + 7} rx={6} />}
-      {seat.match && <rect className="match" x={i - 2.5} y={i - 2.5} width={s + 5} height={s + 5} rx={5} />}
       <rect className={`seat s-${seat.state}${heat ? ' heat' : ''}`} x={i} y={i} width={s} height={s} rx={3} style={heat ? { fill: heat } : undefined} />
       {seat.state === 'offline' && <line className="slash" x1={i + 4} y1={i + s - 4} x2={i + s - 4} y2={i + 4} />}
       {detail && seat.note && <polygon className="note" points={`${i},${i + s * 0.58} ${i + s * 0.42},${i + s} ${i},${i + s}`} />}
@@ -305,7 +304,6 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
     t(`plan.state.${seat.state}`),
     seat.checked_in ? t('plan.checkedIn') : null,
     seat.problems ? t('plan.problemsN', { count: seat.problems }) : null,
-    seat.match ? t('plan.matchIn', { zone: seat.match }) : null,
     seat.bps ? rate(seat.bps) : null,
     seat.changed ? t('plan.changedAgo', { count: minutesAgo(seat.changed) }) : null,
     seat.note ? t('plan.hasNote') : null,

@@ -13,9 +13,9 @@ const data: HandoverData = {
   since: now - 3600, now, discord: true,
   previous: { id: 'h1', at: now - 3600, since: now - 7200, by: 'Ben', note: 'Row B switch is flaky.', counts },
   incidents: {
-    open: [{ id: 'i1', title: 'No link', where: { kind: 'seat', name: 'A-1' }, status: 'open', assignee: null, team: null, created_at: now - 60, fixed_at: null, match: 'Main stage' }],
+    open: [{ id: 'i1', title: 'No link', where: { kind: 'seat', name: 'A-1' }, status: 'open', assignee: null, team: null, created_at: now - 60, fixed_at: null }],
     opened: 2,
-    fixed: [{ id: 'i2', title: 'Slow', where: { kind: 'seat', name: 'A-2' }, status: 'fixed', assignee: 'ana', team: null, created_at: now - 600, fixed_at: now - 30, match: null }],
+    fixed: [{ id: 'i2', title: 'Slow', where: { kind: 'seat', name: 'A-2' }, status: 'fixed', assignee: 'ana', team: null, created_at: now - 600, fixed_at: now - 30 }],
   },
   outages: [{ switch_id: 's1', name: 'sw-b-01', down_at: now - 120, back_at: null, down_s: 120 }],
   changes: [{ at: now - 300, user: 'lea', area: 'ports', action: 'Bounced port', target: 'A-1' }],
@@ -41,7 +41,6 @@ describe('Shift handover', () => {
     renderWithApp(<Handover />)
     expect(await screen.findByText('Row B switch is flaky.')).toBeInTheDocument()
     expect(screen.getByText('No link')).toBeInTheDocument()
-    expect(screen.getByText('Main stage')).toBeInTheDocument()
     expect(screen.getByText('sw-b-01')).toBeInTheDocument()
     expect(screen.getByText('Bounced port: A-1')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Seat notes from this shift' })).toBeInTheDocument()
@@ -63,7 +62,7 @@ describe('Shift handover', () => {
     const text = writeText.mock.calls[0][0] as string
     expect(text).toMatch(/^Shift handover: Since /)
     expect(text).toContain('Incidents open: 1 · New this shift: 2 · Fixed this shift: 1 · Switch outages: 1 · Problems now: 3')
-    expect(text).toContain('Still open:\n- No link (Seat A-1, Main stage)')
+    expect(text).toContain('Still open:\n- No link (Seat A-1)')
     expect(text).toContain('Fixed this shift:\nBy: ana 1\n- Slow (Seat A-2, ana)')
     expect(text).toMatch(/Switch outages:\n- sw-b-01: down since .+ \(2 min\)/)
     expect(text.endsWith('Note for the next shift:\nWatch row B')).toBe(true)
@@ -131,7 +130,7 @@ describe('Shift handover', () => {
   })
   it('marks incidents that have waited 10 minutes with nobody on them', async () => {
     const waiting: HandoverData = { ...data, counts: { ...counts, open: 2, waiting: 1 }, incidents: { ...data.incidents, open: [
-      { ...data.incidents.open[0], id: 'w1', title: 'Old one', match: null, created_at: now - 25 * 60 },
+      { ...data.incidents.open[0], id: 'w1', title: 'Old one', created_at: now - 25 * 60 },
       data.incidents.open[0],
     ] } }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/handover': waiting }).fn)

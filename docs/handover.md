@@ -10,8 +10,7 @@ last handover. It also gives them a place to leave a note for the next shift. Is
   now and changes. Under incidents open it says how many have waited 10 minutes or more with
   nobody on them, and under fixed this shift how fast: **half within 14 min** (the median from
   filed to fixed, so one long job doesn't skew it). The copied text and the Discord post say both too.
-- **Still open:** every incident not fixed yet. Those on [match seats](tournament.md) are listed
-  first, then open before taken, oldest first. One nobody has taken for 10 minutes has the
+- **Still open:** every incident not fixed yet, open before taken, oldest first. One nobody has taken for 10 minutes has the
   board's **Waiting 25 min** tag.
 - **Fixed this shift**, with who fixed how many: **By: kim 4 · ana 2 · nobody named 1** (in the copied text too).
 - **Switch outages** since the last handover, how long they lasted, and those still down.

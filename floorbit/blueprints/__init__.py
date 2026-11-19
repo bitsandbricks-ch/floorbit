@@ -75,7 +75,6 @@ from . import (
                terminal,
                timeline,
                topology,
-               tournament,
                webhooks,
                wifi,
 )
@@ -88,7 +87,7 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_gro
        health.bp, ports.bp, commands.bp, terminal.bp, configs.bp, security.bp, power.bp, problems.bp, setup.bp,
        stats.bp, flows.bp, dns.bp, games.bp, game_servers.bp, services.bp,
        logs.bp, screen.bp, halls.bp, layout_templates.bp,
-       replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, preflight.bp,
+       replay.bp, report.bp, dispatch.bp, crew.bp, handover.bp, preflight.bp,
        cables.bp, cable_plan.bp, seat_walk.bp, past_events.bp, tenant_events.bp, tenant_switch.bp, platform.bp,
        features.bp, firewalls.bp, api_tokens.bp, agent.bp, agent_plugins.bp, telemetry.bp, endpoints.bp, webhooks.bp,
        wifi.bp,

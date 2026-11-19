@@ -20,7 +20,7 @@ import { PluginPanels } from '@/pages/plugins/PluginPanels'
 
 const TONE: Record<SeatState, string> = { online: 'up', offline: 'down', unknown: 'gray' }
 
-/** Everything about one seat in one place: state, port, check-in, match, incidents and, with
+/** Everything about one seat in one place: state, port, check-in, incidents and, with
  *  seats.view, who sits there. */
 export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: () => void; onBlock?: (block: string) => void }) {
   const { t } = useTranslation()
@@ -56,7 +56,6 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
           <Group gap="xs">
             <Badge color={TONE[d.state]} variant={d.state === 'online' ? 'filled' : 'outline'}>{t(`plan.state.${d.state}`)}</Badge>
             {d.checked_in && <Badge color="trace" variant="light">{t('plan.checkedIn')}</Badge>}
-            {d.match && <Badge color="warn" variant="light">{t('plan.matchIn', { zone: d.match })}</Badge>}
             {problems > 0 && <Badge color="down" variant="light">{t('plan.problemsN', { count: problems })}</Badge>}
           </Group>
           <Table withRowBorders={false} verticalSpacing={4}>
@@ -151,7 +150,6 @@ const SAMPLES: { key: string; seat: PlanSeat }[] = [
   { key: 'unknown', seat: { state: 'unknown' } },
   { key: 'checkedIn', seat: { state: 'online', checked_in: true } },
   { key: 'problem', seat: { state: 'offline', problems: 1 } },
-  { key: 'match', seat: { state: 'online', match: 'x' } },
   { key: 'recent', seat: { state: 'offline', changed: 1 } },
   { key: 'note', seat: { state: 'online', note: true } },
 ]
