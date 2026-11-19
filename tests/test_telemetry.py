@@ -209,6 +209,20 @@ def test_a_firewalls_own_telegraf(plugin):
     assert plugin.devices()[0]["kind"] == "firewall"
 
 
+def test_a_firewall_that_sends_its_full_host_name(plugin):
+    """os-telegraf on OPNsense names itself fw-01.example.org; the device set up is fw-01."""
+    import time
+    now = time.time()
+    state.state.know([{"name": "fw-01", "address": "192.0.2.41", "kind": "firewall", "drivers": ["push"]}])
+    state.state.apply_text("cpu,host=fw-01.example.org,cpu=cpu-total usage_idle=75\n"
+                           "pf,host=fw-01.example.org entries=12345i", now)
+    assert plugin.device_details("fw-01")["states"] == 12345
+    assert "fw-01.example.org" not in state.state.devices
+    # A host nobody set up keeps its own name.
+    state.state.apply_text("pf,host=fw-09.example.org entries=1i", now)
+    assert "fw-09.example.org" in state.state.devices
+
+
 # ── Telegraf's config ──────────────────────────────────────────────────────────────────────────
 
 def test_telegraf_config_per_driver():
