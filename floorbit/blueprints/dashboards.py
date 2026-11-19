@@ -3,6 +3,8 @@
 - ``GET /dashboards``: the list and the editor; ``GET /dashboards/<id>``: one dashboard full screen.
 - ``GET /api/dashboards``, ``GET /api/dashboards/<id>``: everyone who sees the floor plan.
 - ``PUT``/``DELETE /api/dashboards/<id>``: floorplan.edit (auth/roles.py).
+- ``GET /api/widgets``: the saved widgets, with the dashboards that show each; ``POST /api/widgets`` and
+  ``PUT``/``DELETE /api/widgets/<id>``: floorplan.edit, like the dashboards (floorbit/saved_widgets.py).
 - ``GET /api/dashboards/<id>/public`` and its ``/plan`` and ``/tiles/<tile>``: a public dashboard for a
   screen nobody signed in to, trimmed to what anyone may see (dashboards.public_board). Open to all.
 """
@@ -10,7 +12,7 @@ from flask import Blueprint, abort, current_app, g, jsonify, redirect, request, 
 
 from auth import current_user, public_endpoint, roles
 
-from .. import audit, dashboards, seat_view, spa
+from .. import audit, dashboards, saved_widgets, seat_view, spa
 
 bp = Blueprint('dashboards', __name__)
 
@@ -132,4 +134,34 @@ def delete_layout(layout_id):
     except dashboards.LayoutError as exc:
         return _error(str(exc), exc.status)
     audit.record('settings', 'Removed dashboard', g.get('audit_user'), layout_id)
+    return jsonify({'ok': True})
+
+
+@bp.route('/api/widgets', methods=['GET'])
+def list_widgets():
+    from ..store import load_data
+    data = load_data()
+    return jsonify({'widgets': [{**w, 'used_on': saved_widgets.used_on(w['id'], data)}
+                                for w in saved_widgets.all_widgets(data)]})
+
+
+@bp.route('/api/widgets', methods=['POST'])
+@bp.route('/api/widgets/<widget_id>', methods=['PUT'])
+def save_widget(widget_id=None):
+    user = g.get('audit_user')
+    try:
+        widget = saved_widgets.save(widget_id, request.get_json(silent=True), user)
+    except saved_widgets.WidgetError as exc:
+        return _error(str(exc), exc.status)
+    audit.record('settings', 'Saved widget', user, widget['name'])
+    return jsonify(widget), 200 if widget_id else 201
+
+
+@bp.route('/api/widgets/<widget_id>', methods=['DELETE'])
+def delete_widget(widget_id):
+    try:
+        saved_widgets.delete(widget_id)
+    except saved_widgets.WidgetError as exc:
+        return _error(str(exc), exc.status)
+    audit.record('settings', 'Removed widget', g.get('audit_user'), widget_id)
     return jsonify({'ok': True})

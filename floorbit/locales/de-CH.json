@@ -1226,5 +1226,12 @@
  "Discovery runs at most every {} minutes.": "Discovery läuft höchstens alle {} Minuten.",
  "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
  "Send an object.": "Schicke ein Objekt.",
- "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken."
+ "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken.",
+ "Send the widget as a JSON object.": "Schicke das Widget als JSON-Objekt.",
+ "Give the widget a name.": "Gib dem Widget einen Namen.",
+ "Pick what the widget shows.": "Wähle, was das Widget zeigt.",
+ "No such widget.": "Kein solches Widget.",
+ "Floorbit keeps at most {} widgets.": "Floorbit speichert höchstens {} Widgets.",
+ "{} still show this widget. Clone it there or take it off first.": "{} zeigen dieses Widget noch. Klone es dort oder entferne es zuerst.",
+ "Pick a saved widget.": "Wähle ein gespeichertes Widget."
 }

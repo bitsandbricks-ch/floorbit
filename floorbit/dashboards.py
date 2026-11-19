@@ -55,7 +55,7 @@ MAX_DEPTH = 4
 ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}\Z')
 TILE_RE = re.compile(r'^[\w.-]{1,64}/w/[\w.-]{1,64}\Z')
 REF_RE = re.compile(r'^[\w .:-]{1,120}\Z')
-KINDS = ('plan', 'tile', 'view', 'text', 'empty')
+KINDS = ('plan', 'tile', 'widget', 'view', 'text', 'empty')
 # What a tile pane may calculate (issue #959); the browser does the maths on the widgets' data.
 CALCS = ('count', 'sum', 'avg', 'min', 'max', 'first', 'last')
 MAX_ALSO = 3
@@ -223,10 +223,31 @@ def _saved(data=None):
 
 
 def all_layouts(data=None):
-    """The saved dashboards, then the ready-made ones nobody replaced (``builtin``: true)."""
+    """The saved dashboards, then the ready-made ones nobody replaced (``builtin``: true). A widget
+    pane carries its saved widget as ``saved`` ({name, pane}, None when it was removed), so a
+    screen draws it without asking again; saving drops it (``_pane`` keeps known keys only)."""
+    from . import saved_widgets
+    data = load_data() if data is None else data
     saved = _saved(data)
     taken = {x.get('id') for x in saved}
-    return saved + [{'id': k, **copy.deepcopy(v), 'builtin': True} for k, v in BUILTIN.items() if k not in taken]
+    layouts = saved + [{'id': k, **copy.deepcopy(v), 'builtin': True} for k, v in BUILTIN.items() if k not in taken]
+    widgets = saved_widgets.by_id(data)
+    return [_with_widgets(x, widgets) for x in layouts]
+
+
+def _with_widgets(layout, widgets):
+    def node(n):
+        if 'pane' not in n:
+            return {**n, 'children': [node(c) for c in n['children']]}
+        pane = n['pane']
+        if pane.get('kind') != 'widget':
+            return n
+        found = widgets.get(pane['widget'])
+        return {**n, 'pane': {**pane, 'saved': {'name': found['name'], 'pane': found['pane']} if found else None}}
+    if 'sections' not in layout:
+        return layout
+    return {**layout, 'sections': [{**sec, 'panels': [{**p, 'node': node(p['node'])} for p in sec.get('panels') or []]}
+                                   for sec in layout['sections']]}
 
 
 def get(layout_id, data=None):
@@ -348,6 +369,12 @@ def _pane(raw):
                 pane[key] = value
         pane.update(_shaping(raw, tile))
         pane.update(_display(raw))
+    elif kind == 'widget':
+        # A saved widget (saved_widgets.py), followed as it changes; a missing one says so on screen.
+        widget = str(raw.get('widget') or '')
+        if not ID_RE.match(widget):
+            raise LayoutError('Pick a saved widget.')
+        pane['widget'] = widget
     elif kind == 'view':
         view = str(raw.get('view') or '')
         if not ID_RE.match(view):
@@ -587,7 +614,9 @@ def _display(raw):
 
 
 def pane_tiles(pane):
-    """Every tile a tile pane reads."""
+    """Every tile a tile pane, or the saved widget a widget pane shows, reads."""
+    if pane.get('kind') == 'widget':
+        pane = (pane.get('saved') or {}).get('pane') or {}
     return [pane['tile'], *pane.get('also', [])] if pane.get('kind') == 'tile' else []
 
 
@@ -599,6 +628,14 @@ def _public_node(node):
     head = {k: pane[k] for k in ('title', 'hide_title') if k in pane}
     if kind == 'plan':
         return {'pane': {**pane, 'marks': 'none' if pane.get('marks') == 'none' else 'public'}}
+    if kind == 'widget':
+        # A screen nobody signed in to gets the widget's tile pane itself, not the saved widgets.
+        saved = pane.get('saved') or {}
+        tiles = pane_tiles(pane)
+        if tiles and all(t in PUBLIC_TILES for t in tiles):
+            return {'pane': {**saved['pane'], 'title': pane.get('title') or saved['name'],
+                             **{k: pane[k] for k in ('hide_title',) if k in pane}}}
+        return {'pane': {'kind': 'private', **head}}
     if kind in ('text', 'empty') or (kind == 'tile' and all(t in PUBLIC_TILES for t in pane_tiles(pane))) or (
             kind == 'view' and pane['view'] in PUBLIC_VIEWS):
         return {'pane': pane}
@@ -620,6 +657,13 @@ def _panes(node):
     else:
         for child in node['children']:
             yield from _panes(child)
+
+
+def layout_panes(layout):
+    """Every pane of a dashboard, in all its sections."""
+    for sec in layout.get('sections') or []:
+        for panel in sec.get('panels') or []:
+            yield from _panes(panel['node'])
 
 
 def public_panes(layout):
