@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Anchor, Badge, Button, Group, Stack, Table, Tabs, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
+import { ActionIcon, Alert, Anchor, Badge, Box, Button, Group, Stack, Tabs, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconPlugConnectedX, IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -226,24 +226,15 @@ function Portal({ portal }: { portal: CheckinOverview['portal'] }) {
       ) : (
         <>
           <Text size="sm" c="dimmed">{t('crewCheckin.portalLast', { when: ago(last.at, i18n.language), count: last.done })}</Text>
-          <Table striped maw={640}>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>{t('crewCheckin.col.when')}</Table.Th>
-                <Table.Th>{t('crewCheckin.col.agent')}</Table.Th>
-                <Table.Th>{t('crewCheckin.col.done')}</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {portal.fetches.map((f, i) => (
-                <Table.Tr key={`${f.at}-${i}`}>
-                  <Table.Td>{ago(f.at, i18n.language)}</Table.Td>
-                  <Table.Td>{f.agent ?? '–'}</Table.Td>
-                  <Table.Td>{f.done}</Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+          <Box maw={640}>
+            <DataTable rows={portal.fetches} rowKey={(f, i) => `${f.at}-${i}`} label={t('crewCheckin.tab.portal')} urlState={false}
+              pageSize={20} striped density="compact"
+              columns={[
+                { id: 'when', header: t('crewCheckin.col.when'), cell: (f) => ago(f.at, i18n.language) },
+                { id: 'agent', header: t('crewCheckin.col.agent'), cell: (f) => f.agent ?? '–' },
+                { id: 'done', header: t('crewCheckin.col.done'), numeric: true, cell: (f) => f.done },
+              ]} />
+          </Box>
         </>
       )}
     </Stack>

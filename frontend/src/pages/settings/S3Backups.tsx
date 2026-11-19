@@ -1,9 +1,10 @@
-import { Alert, Anchor, Badge, Button, Group, Stack, Table, Text } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Stack, Text, VisuallyHidden } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { IconCloudUpload, IconDownload, IconLock, IconRestore } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
+import { DataTable } from '@/components/DataTable'
 import { Panel } from '@/components/ui'
 import { ago, dateTime } from '@/lib/time'
 import { bytes } from '@/pages/traffic/format'
@@ -76,40 +77,29 @@ export function S3BackupPanel() {
           )}
           {d.error && <Alert color="down" variant="light">{d.error}</Alert>}
           {d.backups.length > 0 ? (
-            <Table.ScrollContainer minWidth={420}>
-              <Table verticalSpacing={6} fz="sm">
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>{t('settings.s3.made')}</Table.Th>
-                    <Table.Th>{t('settings.s3.size')}</Table.Th>
-                    <Table.Th />
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {d.backups.map((b) => (
-                    <Table.Tr key={b.key}>
-                      <Table.Td>
-                        {dateTime(new Date(b.made))}
-                        {b.encrypted && <IconLock size={12} style={{ marginLeft: 6, verticalAlign: -1 }} aria-label={t('settings.s3.encrypted')} />}
-                      </Table.Td>
-                      <Table.Td>{bytes(b.size)}</Table.Td>
-                      <Table.Td>
-                        <Group gap={4} justify="flex-end" wrap="nowrap">
-                          <Button size="compact-xs" variant="subtle" component="a" leftSection={<IconDownload size={14} />}
-                            href={`/api/settings/backup/s3/download?key=${encodeURIComponent(b.key)}`} download>
-                            {t('settings.s3.download')}
-                          </Button>
-                          <Button size="compact-xs" variant="subtle" color="down" leftSection={<IconRestore size={14} />}
-                            onClick={() => { setResult(null); setPending(b) }}>
-                            {t('settings.s3.restore')}
-                          </Button>
-                        </Group>
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            </Table.ScrollContainer>
+            <DataTable rows={d.backups} rowKey={(b) => b.key} label={t('settings.s3.title')} urlState={false} pageSize={20} minWidth={420}
+              density="compact" defaultSort={{ id: 'made', desc: true }}
+              columns={[
+                { id: 'made', header: t('settings.s3.made'), descFirst: true, sort: (b) => new Date(b.made).getTime(), cell: (b) => (
+                  <>
+                    {dateTime(new Date(b.made))}
+                    {b.encrypted && <IconLock size={12} style={{ marginLeft: 6, verticalAlign: -1 }} aria-label={t('settings.s3.encrypted')} />}
+                  </>
+                ) },
+                { id: 'size', header: t('settings.s3.size'), numeric: true, descFirst: true, sort: (b) => b.size, cell: (b) => bytes(b.size) },
+                { id: 'actions', header: <VisuallyHidden>{t('settings.s3.download')}</VisuallyHidden>, cell: (b) => (
+                  <Group gap={4} justify="flex-end" wrap="nowrap">
+                    <Button size="compact-xs" variant="subtle" component="a" leftSection={<IconDownload size={14} />}
+                      href={`/api/settings/backup/s3/download?key=${encodeURIComponent(b.key)}`} download>
+                      {t('settings.s3.download')}
+                    </Button>
+                    <Button size="compact-xs" variant="subtle" color="down" leftSection={<IconRestore size={14} />}
+                      onClick={() => { setResult(null); setPending(b) }}>
+                      {t('settings.s3.restore')}
+                    </Button>
+                  </Group>
+                ) },
+              ]} />
           ) : !d.error && <Text size="sm" c="dimmed">{t('settings.s3.none')}</Text>}
           {pending && (
             <Alert color="warn" variant="light" role="alertdialog" aria-label={t('settings.s3.restore')}>

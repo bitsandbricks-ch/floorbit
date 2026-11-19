@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Badge, Button, Group, Loader, Paper, Select, Stack, Table, Text, TextInput, Title, Tooltip } from '@mantine/core'
+import { ActionIcon, Alert, Badge, Button, Group, Loader, Paper, Select, Stack, Text, TextInput, Title, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -9,6 +9,7 @@ import { qk } from '@/api/keys'
 import { useAccounts, useRoles, useTeams } from '@/api/queries'
 import type { RoleInfo, Team } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { RoleForm, type RoleDraft } from './teams/RoleForm'
@@ -85,61 +86,40 @@ export default function Teams() {
       {roles.isPending ? (
         <Loader size="sm" />
       ) : (
-        // One card per role on a phone (fb-table-stack) instead of a table to scroll sideways.
-        <Paper withBorder radius="lg" px={{ base: 'sm', sm: 0 }}>
-          <Table verticalSpacing="sm" className="fb-table-stack">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>{t('teams.role')}</Table.Th>
-                <Table.Th>{t('teams.permissions')}</Table.Th>
-                <Table.Th>{t('teams.accounts')}</Table.Th>
-                <Table.Th />
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {(roles.data?.roles ?? []).map((r) => (
-                <Table.Tr key={r.id}>
-                  <Table.Td>
-                    <Group gap={6}>
-                      <Text fw={600}>{r.label}</Text>
-                      {r.builtin && (
-                        <Badge size="xs" variant="light" color="gray">
-                          {t('teams.builtin')}
-                        </Badge>
-                      )}
-                    </Group>
-                    <Text size="xs" c="dimmed">
-                      {t(`teams.roleText.${r.id}`, { defaultValue: r.description })}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap={4}>
-                      {r.permissions.map((p) => (
-                        <Tooltip key={p} label={t(`teams.permission.${p.replace('.', '_')}`, { defaultValue: p })}>
-                          <Badge size="sm" variant="outline" color="gray" tt="none">
-                            {t(`teams.permissionShort.${p.replace('.', '_')}`, { defaultValue: p })}
-                          </Badge>
-                        </Tooltip>
-                      ))}
-                    </Group>
-                  </Table.Td>
-                  <Table.Td data-label={t('teams.accounts')}>{r.users}</Table.Td>
-                  <Table.Td className="fb-stack-actions">
-                    {!r.builtin && (
-                      <Group gap={4} wrap="nowrap">
-                        <Button size="xs" variant="default" onClick={() => { setEditing(r); setFormError(null); form.open() }}>
-                          {t('teams.edit')}
-                        </Button>
-                        <ConfirmButton size="xs" variant="subtle" danger label={t('teams.delete')}
-                          question={t('teams.deleteRoleQuestion', { role: r.label })} onConfirm={() => deleteRole.mutate(r.id)} />
-                      </Group>
-                    )}
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Paper>
+        // One card per role on a phone instead of a table to scroll sideways.
+        <DataTable rows={roles.data?.roles ?? []} rowKey={(r) => r.id} label={t('teams.roles')} urlState={false} pageSize={0} cards
+          columns={[
+            { id: 'role', header: t('teams.role'), card: 'inline', wrap: true, cell: (r) => (
+              <>
+                <Group gap={6}>
+                  <Text fw={600}>{r.label}</Text>
+                  {r.builtin && <Badge size="xs" variant="light" color="gray">{t('teams.builtin')}</Badge>}
+                </Group>
+                <Text size="xs" c="dimmed">{t(`teams.roleText.${r.id}`, { defaultValue: r.description })}</Text>
+              </>
+            ) },
+            { id: 'permissions', header: t('teams.permissions'), wrap: true, cell: (r) => (
+              <Group gap={4}>
+                {r.permissions.map((p) => (
+                  <Tooltip key={p} label={t(`teams.permission.${p.replace('.', '_')}`, { defaultValue: p })}>
+                    <Badge size="sm" variant="outline" color="gray" tt="none">
+                      {t(`teams.permissionShort.${p.replace('.', '_')}`, { defaultValue: p })}
+                    </Badge>
+                  </Tooltip>
+                ))}
+              </Group>
+            ) },
+            { id: 'accounts', header: t('teams.accounts'), card: 'label', numeric: true, cell: (r) => r.users },
+            { id: 'actions', header: <VisuallyHidden>{t('teams.edit')}</VisuallyHidden>, card: 'actions', cell: (r) => !r.builtin && (
+              <Group gap={4} wrap="nowrap" justify="flex-end">
+                <Button size="xs" variant="default" onClick={() => { setEditing(r); setFormError(null); form.open() }}>
+                  {t('teams.edit')}
+                </Button>
+                <ConfirmButton size="xs" variant="subtle" danger label={t('teams.delete')}
+                  question={t('teams.deleteRoleQuestion', { role: r.label })} onConfirm={() => deleteRole.mutate(r.id)} />
+              </Group>
+            ) },
+          ]} />
       )}
 
       <Title order={2} size="h3" mt="xl" mb="xs">
