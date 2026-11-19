@@ -1,9 +1,10 @@
 import { Alert, Anchor, Badge, Button, Group, Paper, Select, Stack, Text, Title } from '@mantine/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post } from '@/api/client'
 import { PluginIcon } from './icon'
+import { MARKET_KEY as KEY, useMarketplace } from './market'
 import { qk } from '@/api/keys'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { LoadingState } from '@/components/ui'
@@ -53,7 +54,6 @@ export type MarketPlugin = {
 export type MarketSource = { url: string; name: string; generated: string; error: string }
 export type MarketCatalog = { source: MarketSource; plugins: MarketPlugin[] }
 
-const KEY = ['marketplace'] as const
 
 /** "What it may touch", before it is installed (docs/plugin-spec.md, "Permissions it asks for"). */
 export function Touches({ touches }: { touches: MarketTouches }) {
@@ -220,14 +220,13 @@ function Entry({ plugin }: { plugin: MarketPlugin }) {
   )
 }
 
-/** The signed plugin index (docs/marketplace.md): install, update, roll back and remove. */
-export default function Marketplace() {
+/** The signed plugin index (docs/marketplace.md): install, update, roll back and remove.
+ *  ``updates``: only the installed plugins with a newer version (the Plugins page's Updates tab). */
+export default function Marketplace({ updates = false }: { updates?: boolean }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
-  const { data, error, isPending, isFetching } = useQuery({
-    queryKey: KEY,
-    queryFn: () => get<MarketCatalog>('/api/settings/marketplace'),
-  })
+  const { data, error, isPending, isFetching } = useMarketplace()
+  const shown = (data?.plugins ?? []).filter((p) => !updates || (p.installed && p.update))
   const refresh = useMutation({
     mutationFn: () => get<MarketCatalog>('/api/settings/marketplace?refresh=1'),
     onSuccess: (fresh) => qc.setQueryData(KEY, fresh),
@@ -236,14 +235,14 @@ export default function Marketplace() {
     <Stack gap="md" aria-labelledby="mk-title">
       <Group justify="space-between" wrap="wrap">
         <Title order={2} size="h3" id="mk-title">
-          {t('marketplace.title')}
+          {t(updates ? 'marketplace.updatesTitle' : 'marketplace.title')}
         </Title>
         <Button variant="default" size="compact-sm" loading={refresh.isPending || (isFetching && !isPending)} onClick={() => refresh.mutate()}>
           {t('marketplace.refresh')}
         </Button>
       </Group>
       <Text size="sm" c="dimmed">
-        {t('marketplace.intro')}
+        {t(updates ? 'marketplace.updatesIntro' : 'marketplace.intro')}
       </Text>
       {isPending && <LoadingState />}
       {error && (
@@ -256,7 +255,7 @@ export default function Marketplace() {
           {data.source.error}
         </Alert>
       )}
-      {data && (data.plugins.length ? data.plugins.map((p) => <Entry key={p.id} plugin={p} />) : <Text>{t('marketplace.empty')}</Text>)}
+      {data && (shown.length ? shown.map((p) => <Entry key={p.id} plugin={p} />) : <Text>{t(updates ? 'marketplace.noUpdates' : 'marketplace.empty')}</Text>)}
     </Stack>
   )
 }

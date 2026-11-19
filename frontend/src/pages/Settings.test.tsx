@@ -14,78 +14,96 @@ const admin = { enabled: true, user: { username: 'ada', display_name: 'Ada', rol
 const answer: SettingsAnswer = {
   sections: [
     { id: 'netbox', title: 'NetBox', description: 'Inventory.' },
+    { id: 'general', title: 'Event', description: 'The event.' },
+    { id: 'discord', title: 'Discord', description: 'Alerts to Discord.' },
     { id: 'cache', title: 'Caching', description: 'TTL.' },
   ],
   fields: [
-    { key: 'netbox.url', section: 'netbox', label: 'URL', type: 'url', env: 'NETBOX_URL' },
-    { key: 'netbox.token', section: 'netbox', label: 'API token', type: 'secret', env: 'NETBOX_TOKEN' },
+    { key: 'netbox.url', section: 'netbox', label: 'NetBox URL', type: 'url', env: 'NETBOX_URL' },
+    { key: 'event.name', section: 'general', label: 'Event name', type: 'text', env: 'EVENT_NAME' },
+    { key: 'discord.url', section: 'discord', label: 'Webhook URL', type: 'url', env: 'DISCORD_URL' },
+    { key: 'discord.token', section: 'discord', label: 'Bot token', type: 'secret', env: 'DISCORD_TOKEN' },
     { key: 'cache.ttl_arp', section: 'cache', label: 'ARP table TTL', type: 'int', env: 'CACHE_TTL_ARP', unit: 'seconds', min: 1, max: 86400 },
   ],
   values: {
     'netbox.url': { source: 'saved', value: 'https://netbox.example.com' },
-    'netbox.token': { source: 'env', is_set: true, env: 'NETBOX_TOKEN', env_set: true },
+    'event.name': { source: 'saved', value: 'Example LAN' },
+    'discord.url': { source: 'default', value: '' },
+    'discord.token': { source: 'env', is_set: true, env: 'DISCORD_TOKEN', env_set: true },
     'cache.ttl_arp': { source: 'default', value: 300 },
   },
   status: { netbox_enabled: true, librenms_enabled: false, redis: { connected: true, host: 'redis', port: 6379 } },
 }
 
 describe('Settings', () => {
-  it('saves only the fields that changed, and resets a saved one to its default', async () => {
-    const api = fakeFetch({
-      'GET /api/auth/me': admin, 'GET /api/settings': answer, 'PUT /api/settings': answer,
-      'POST /api/settings/test/netbox': { ok: true, message: 'Connected, 12 switches' },
-    })
+  it('keeps changes across tabs and sections, and saves only the fields that changed', async () => {
+    const api = fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer, 'PUT /api/settings': answer })
     vi.stubGlobal('fetch', api.fn)
     page()
-    expect(await screen.findByText('Not configured, no live status')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Download backup' })).toHaveAttribute('href', '/api/settings/backup')
-    // One section at a time: the fields are on their section's page.
-    expect(screen.queryByLabelText('ARP table TTL')).toBeNull()
+    // General opens first, on its first section; NetBox is a plugin, so not here.
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset' }))
+    expect(screen.getByRole('tab', { name: /General/ })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByRole('link', { name: 'NetBox' })).toBeNull()
 
+    fireEvent.click(screen.getByRole('tab', { name: /System/ }))
+    expect(await screen.findByText('Not configured, no live status')).toBeInTheDocument()
     fireEvent.click(screen.getAllByRole('link', { name: 'Caching' })[0])
     fireEvent.change(await screen.findByLabelText('ARP table TTL'), { target: { value: '600' } })
-    // Unsaved changes stay while moving to another section.
-    fireEvent.click(screen.getAllByRole('link', { name: 'NetBox' })[0])
-    fireEvent.click(await screen.findByRole('button', { name: 'Reset' }))
     expect(await screen.findByText('2 unsaved changes')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }))
-    expect(await screen.findByText('Connected, 12 switches')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.some((c) => c.method === 'PUT')).toBe(true))
-    const put = api.calls.find((c) => c.method === 'PUT')
-    expect(put?.body).toEqual({ 'cache.ttl_arp': 600, 'netbox.url': null })
+    expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ 'cache.ttl_arp': 600, 'event.name': null })
     expect(await screen.findByText('Saved. Changes apply immediately.')).toBeInTheDocument()
   })
 
   it('does not save a value the server would refuse', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer }).fn)
-    page('/settings/netbox')
-    fireEvent.change(await screen.findByLabelText('URL'), { target: { value: 'netbox.example.com' } })
+    page('/settings/discord')
+    expect(await screen.findByRole('tab', { name: /Alerts/ })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.change(await screen.findByLabelText('Webhook URL'), { target: { value: 'discord.example.com' } })
     expect(await screen.findByText('Not a valid value')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
   })
 
   it('says when a saved secret no longer opens, until a new one is typed', async () => {
-    const broken = { ...answer, values: { ...answer.values, 'netbox.token': { source: 'saved' as const, is_set: false, unreadable: true } } }
+    const broken = { ...answer, values: { ...answer.values, 'discord.token': { source: 'saved' as const, is_set: false, unreadable: true } } }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': broken }).fn)
-    page('/settings/netbox')
+    page('/settings/discord')
     expect(await screen.findByText("Saved, but it doesn't open with the current secret key. Enter it again.")).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('API token'), { target: { value: 'token-example' } })
+    fireEvent.change(screen.getByLabelText('Bot token'), { target: { value: 'token-example' } })
     await waitFor(() => expect(screen.queryByText(/doesn't open with the current secret key/)).toBeNull())
   })
 
   it('finds a field by its words or env var, and opens an old #sec- link on its section', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer }).fn)
-    page('/settings#sec-netbox')
-    expect(await screen.findByLabelText('URL')).toBeInTheDocument()
+    page('/settings#sec-discord')
+    expect(await screen.findByLabelText('Webhook URL')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Search settings'), { target: { value: 'cache_ttl' } })
     expect(await screen.findByLabelText('ARP table TTL')).toBeInTheDocument()
-    expect(screen.queryByLabelText('URL')).toBeNull()
+    expect(screen.queryByLabelText('Webhook URL')).toBeNull()
     expect(screen.getByText('1 setting matches')).toBeInTheDocument()
+    // A plugin's field is found too, and leads to its plugin page.
+    fireEvent.change(screen.getByLabelText('Search settings'), { target: { value: 'netbox_url' } })
+    expect(await screen.findByRole('link', { name: 'NetBox' })).toHaveAttribute('href', '/settings/plugins/netbox')
     fireEvent.change(screen.getByLabelText('Search settings'), { target: { value: 'nothing like this' } })
     expect(await screen.findByText('No setting matches.')).toBeInTheDocument()
+  })
+
+  it('opens an admin page inside its tab, and shows people pages to an account that may not change settings', async () => {
+    const people = { enabled: true, user: { username: 'ada', display_name: 'Ada', role: 'lead', permissions: ['floorplan.view', 'accounts.manage'] } }
+    const api = fakeFetch({
+      'GET /api/auth/me': people,
+      'GET /api/pages': { pages: [{ href: '/settings/users', id: 'users', label: 'Users' }, { href: '/settings/teams', id: 'teams', label: 'Roles and teams' }] },
+      'GET /api/auth/users': { users: [], roles: [], teams: [], can_manage: true },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    page('/settings/teams')
+    expect(await screen.findByRole('tab', { name: /People/ })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByRole('tab', { name: /General/ })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Users' })).toHaveAttribute('href', '/settings/users')
+    expect(await screen.findByRole('heading', { name: 'Roles and teams', level: 3 })).toBeInTheDocument()
+    expect(api.calls.some((c) => c.path === '/api/settings')).toBe(false)
   })
 
   it('works out the contrast like the server', () => {

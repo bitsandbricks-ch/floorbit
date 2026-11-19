@@ -13,6 +13,7 @@ import { DatabaseBanner } from './DatabaseBanner'
 import { EventBanner } from './EventBanner'
 import { PageError } from './PageError'
 import { rememberPage } from './pages'
+import { useInPanel } from './panel'
 import { setPageTitle } from './pageTitle'
 import { StatusLine } from './StatusLine'
 import { TopBar } from './TopBar'
@@ -85,11 +86,14 @@ export function Layout({ title, back, count, wide, full, children }: {
   title: string; back?: { href: string; label: string }; count?: number; wide?: boolean; full?: boolean; children: ReactNode
 }) {
   const path = useLocation().pathname
-  useEffect(() => rememberPage(path), [path])
+  const inPanel = useInPanel()
+  useEffect(() => { if (!inPanel) rememberPage(path) }, [path, inPanel])
   useEffect(() => {
+    if (inPanel) return
     document.title = `${count ? `(${count}) ` : ''}${title} · Floorbit`
     setPageTitle(title)
-  }, [title, count])
+  }, [title, count, inPanel])
+  if (inPanel) return <>{children}</>
   const up = back && back.href !== '/' ? back : null
   return (
     <main className={full ? 'fb-main fb-main-full' : wide ? 'fb-main fb-main-wide' : 'fb-main'}>

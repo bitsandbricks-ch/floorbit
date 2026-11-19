@@ -1,11 +1,13 @@
 import { Anchor, Badge, CloseButton, Grid, NavLink, Select, Stack, Text, TextInput } from '@mantine/core'
-import { IconPuzzle, IconSearch } from '@tabler/icons-react'
-import { useMemo, useState } from 'react'
+import { IconSearch } from '@tabler/icons-react'
+import { lazy, Suspense, useMemo, useState, type ComponentType, type LazyExoticComponent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useFeature } from '@/api/queries'
-import { Layout } from '@/components/Layout'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useFeature, usePageList, usePageListSettled } from '@/api/queries'
+import { Layout, PageSkeleton } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { PageTabs } from '@/components/PageTabs'
+import { InPanel } from '@/components/panel'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { BackupPanel, Connections, SectionPanel, SettingsForm } from './settings/editor'
 import { S3BackupPanel } from './settings/S3Backups'
@@ -13,33 +15,64 @@ import { k, keys, sectionTitle, useSettingsEditor, type SettingsAnswer, type Set
 
 export type { SettingsAnswer }
 
-const OVERVIEW = 'overview'
-// Which group each section is listed under. A section not named here (a new one) goes under Other.
-const GROUPS: [string, string[]][] = [
-  ['event', [OVERVIEW, 'appearance', 'display', 'floorplan', 'cabling', 'public', 'speedtest', 'general', 'backup']],
-  ['sources', ['netbox', 'librenms', 'seats', 'checkin', 'cache']],
-  ['monitoring', ['monitor', 'live', 'attention', 'health', 'power', 'insights', 'syslog', 'metrics']],
-  ['alerts', ['discord', 'crew']],
-  ['access', ['signin', 'switchtools']],
+/** The admin pages that live in a Settings tab, by their address under /settings/ and the page
+ *  (floorbit/page_index.py) whose permission shows them. */
+const PAGES: Record<string, { page: string; title: string; Body: LazyExoticComponent<ComponentType> }> = {
+  users: { page: 'users', title: 'users.title', Body: lazy(() => import('./Users')) },
+  teams: { page: 'teams', title: 'teams.title', Body: lazy(() => import('./Teams')) },
+  'sign-in': { page: 'signIn', title: 'signin.title', Body: lazy(() => import('./SignIn')) },
+  api: { page: 'apiTokens', title: 'api.title', Body: lazy(() => import('./ApiTokens')) },
+  webhooks: { page: 'webhooks', title: 'webhooks.title', Body: lazy(() => import('./Webhooks')) },
+  tenants: { page: 'tenants', title: 'tenants.title', Body: lazy(() => import('./Tenants')) },
+  features: { page: 'features', title: 'features.title', Body: lazy(() => import('./Features')) },
+  sidebar: { page: 'sidebarSections', title: 'sidebarSections.title', Body: lazy(() => import('./SidebarSections')) },
+  audit: { page: 'audit', title: 'audit.title', Body: lazy(() => import('./Audit')) },
+}
+const STATUS = 'status'
+
+export type TabId = 'general' | 'people' | 'alerts' | 'tenants' | 'system'
+
+/** The tabs, each a list of groups of entries: a settings section (by its id), an admin page
+ *  (PAGES) or the status. A section no tab names (a new one) lands in General under Other.
+ *  NetBox and LibreNMS are plugins: their settings are on the Plugins page. */
+const TABS: { id: TabId; groups: [string, string[]][] }[] = [
+  {
+    id: 'general', groups: [
+      ['event', ['general', 'appearance', 'display', 'floorplan', 'cabling', 'public', 'speedtest']],
+      ['sources', ['seats', 'checkin']],
+      ['monitoring', ['monitor', 'live', 'attention', 'health', 'power', 'insights', 'syslog', 'metrics']],
+    ],
+  },
+  { id: 'people', groups: [['accounts', ['users', 'teams']], ['access', ['sign-in', 'signin', 'switchtools', 'api']]] },
+  { id: 'alerts', groups: [['alerts', ['discord', 'crew', 'webhooks']]] },
+  { id: 'tenants', groups: [['tenants', ['tenants']]] },
+  { id: 'system', groups: [['system', [STATUS, 'backup', 'cache', 'features', 'sidebar', 'audit']]] },
 ]
+// Sections shown elsewhere: plugins on their own page, NetBox and LibreNMS as plugins too.
+const ELSEWHERE = new Set(['netbox', 'librenms'])
 const isPluginSection = (id: string) => id.startsWith('plugin-')
 
 type Section = SettingsAnswer['sections'][number]
+type Group = { group: string; items: string[] }
 
-function useNav(d: SettingsAnswer | undefined) {
+/** The tabs this account sees, with the entries it may open: sections when it may change
+ *  settings, pages when the server lists them. */
+function useTabs(d: SettingsAnswer | undefined, listed: Set<string>) {
   return useMemo(() => {
-    const own = (d?.sections ?? []).filter((s) => !isPluginSection(s.id))
+    const own = (d?.sections ?? []).filter((s) => !isPluginSection(s.id) && !ELSEWHERE.has(s.id))
     const byId = new Map(own.map((s) => [s.id, s]))
-    const placed = new Set<string>()
-    const groups = GROUPS.map(([group, ids]) => {
-      const items = ids.filter((id) => id === OVERVIEW || byId.has(id))
-      items.forEach((id) => placed.add(id))
-      return { group, items }
-    })
-    const rest = own.map((s) => s.id).filter((id) => !placed.has(id))
-    if (rest.length) groups.push({ group: 'other', items: rest })
-    return { groups: groups.filter((g) => g.items.length), byId }
-  }, [d])
+    const placed = new Set(TABS.flatMap((tab) => tab.groups.flatMap(([, ids]) => ids)))
+    const can = (id: string) => (id in PAGES ? listed.has(PAGES[id].page) : id === STATUS ? !!d : byId.has(id))
+    const tabs = TABS.map((tab) => {
+      const groups: Group[] = tab.groups.map(([group, ids]) => ({ group, items: ids.filter(can) }))
+      if (tab.id === 'general') {
+        const rest = own.map((s) => s.id).filter((id) => !placed.has(id))
+        if (rest.length) groups.push({ group: 'other', items: rest })
+      }
+      return { id: tab.id, groups: groups.filter((g) => g.items.length) }
+    }).filter((tab) => tab.groups.length)
+    return { tabs, byId }
+  }, [d, listed])
 }
 
 /** Fields whose label, help, env var or section title has every word typed. */
@@ -65,8 +98,13 @@ function matches(ed: SettingsEditor, query: string, t: ReturnType<typeof useTran
   return d.sections.filter((s) => hits.has(s.id)).map((s) => ({ section: s, only: hits.get(s.id)! }))
 }
 
-/** Settings: one page per section, a list of them on the side, and a search over every field.
- *  Plugin settings are on each plugin's page (PluginSettings.tsx). */
+/** Where a section's settings are edited: plugins and the plugin-run sources on their plugin page. */
+const sectionHref = (s: Section) =>
+  isPluginSection(s.id) ? `/settings/plugins/${s.id.slice('plugin-'.length)}` : ELSEWHERE.has(s.id) ? `/settings/plugins/${s.id}` : null
+
+/** Settings: one page with tabs (General, People, Alerts, Tenants, System). Each tab lists its
+ *  sections and admin pages on the side; the address names the one on screen (/settings/users),
+ *  so every old link still opens the right place. A search over every field sits on top. */
 export default function Settings() {
   const { t } = useTranslation()
   const wall = useFeature('stats_wall')
@@ -75,86 +113,117 @@ export default function Settings() {
   // Older links point at a section of the one long page: /settings#sec-floorplan.
   const { hash } = useLocation()
   const wanted = param ?? (hash.startsWith('#sec-') ? hash.slice('#sec-'.length) : undefined)
-  const ed = useSettingsEditor()
+  const pages = usePageList()
+  const listed = useMemo(() => new Set(pages.map((p) => p.id)), [pages])
+  // Accounts that may manage people but not settings see the people pages only. Without the
+  // list (it failed), try: the server says no if it must.
+  const list = usePageListSettled()
+  const mayEdit = list.settled && (list.failed || listed.has('settings'))
+  const ed = useSettingsEditor({ enabled: mayEdit })
   const d = ed.d
-  const nav = useNav(d)
+  const { tabs, byId } = useTabs(d, listed)
   const [query, setQuery] = useState('')
-  const active = wanted && nav.byId.has(wanted) ? wanted : OVERVIEW
   const results = matches(ed, query, t)
 
-  const label = (id: string) => (id === OVERVIEW ? t('settings.nav.overview') : sectionTitle(t, nav.byId.get(id) as Section))
-  const unsavedIn = (id: string) => (d ? Object.keys(ed.changes).filter((key) => d.fields.find((f) => f.key === key)?.section === id).length : 0)
-  const go = (id: string) => { setQuery(''); navigate(id === OVERVIEW ? '/settings' : `/settings/${id}`) }
+  const entries = tabs.flatMap((tab) => tab.groups.flatMap((g) => g.items.map((id) => ({ id, tab: tab.id }))))
+  const active = entries.find((e) => e.id === wanted) ?? entries[0]
+  const tab = tabs.find((x) => x.id === active?.tab)
+  // /settings is the first section; an account without settings opens its pages by their own address.
+  const hrefOf = (id: string) => (id === entries[0]?.id && byId.has(id) ? '/settings' : `/settings/${id}`)
+  const go = (id: string) => { setQuery(''); navigate(hrefOf(id)) }
 
-  const search = (
+  const label = (id: string) =>
+    id in PAGES ? t(PAGES[id].title) : id === STATUS ? t('settings.nav.status') : sectionTitle(t, byId.get(id) as Section)
+  const unsavedIn = (id: string) => (d ? Object.keys(ed.changes).filter((key) => d.fields.find((f) => f.key === key)?.section === id).length : 0)
+  const unsavedTab = (id: TabId) => tabs.find((x) => x.id === id)?.groups.reduce((n, g) => n + g.items.reduce((m, i) => m + unsavedIn(i), 0), 0) ?? 0
+
+  const search = d && (
     <TextInput leftSection={<IconSearch size={16} />} placeholder={t('settings.nav.search')} aria-label={t('settings.nav.search')}
-      value={query} onChange={(e) => setQuery(e.currentTarget.value)}
+      value={query} onChange={(e) => setQuery(e.currentTarget.value)} w={260} size="sm"
       rightSection={query ? <CloseButton size="sm" aria-label={t('settings.nav.clear')} onClick={() => setQuery('')} /> : undefined} />
   )
 
+  const body = (id: string) => {
+    if (id in PAGES) {
+      const { Body } = PAGES[id]
+      return <InPanel.Provider value><Suspense fallback={<PageSkeleton />}><Body /></Suspense></InPanel.Provider>
+    }
+    return (
+      <SettingsForm ed={ed}>
+        {id === STATUS ? (
+          <>
+            {d && <Connections status={d.status} test={ed.test} />}
+            <Text size="sm" c="dimmed">
+              {t('settings.nav.sourcesMoved')} <Anchor component={Link} to="/settings/plugins">{t('settings.nav.toPlugins')}</Anchor>
+            </Text>
+            {wall && <Text size="sm" c="dimmed">{t('settings.wall')} <Anchor href="/wall">/wall</Anchor></Text>}
+            <Text size="sm" c="dimmed">{t('settings.nav.whereFrom')}</Text>
+          </>
+        ) : (
+          <>
+            <SectionPanel ed={ed} section={byId.get(id) as Section} />
+            {id === 'backup' && <><BackupPanel /><S3BackupPanel /></>}
+          </>
+        )}
+      </SettingsForm>
+    )
+  }
+
+  const one = tab && tab.groups.length === 1 && tab.groups[0].items.length === 1
+  // The tab title and the breadcrumbs name the part on screen: Settings › Users.
+  const title = active && active.id !== entries[0]?.id ? label(active.id) : t('settings.title')
   return (
-    <Layout title={t('settings.title')}>
-      <PageHead title={t('settings.title')} desc={t('settings.intro')} />
-      <ErrorBanner error={ed.query.error} onRetry={() => void ed.query.refetch()} mb="md" />
-      {ed.query.isPending && <LoadingState rows={4} />}
-      {d && (
-        <Grid gap="lg">
-          <Grid.Col span={{ base: 12, md: 3 }}>
-            <Stack gap="sm" className="fb-settings-nav">
-              {search}
-              <Select hiddenFrom="md" aria-label={t('settings.nav.section')} allowDeselect={false} value={active}
-                data={nav.groups.map((g) => ({ group: t(`settings.nav.groups.${g.group}`), items: g.items.map((id) => ({ value: id, label: label(id) })) }))}
-                onChange={(v) => v && go(v)} />
-              <nav aria-label={t('settings.nav.section')}>
-                <Stack gap={2} visibleFrom="md">
-                  {nav.groups.map((g) => (
-                    <div key={g.group}>
-                      <Text size="xs" fw={700} c="dimmed" tt="uppercase" px="sm" mt="xs" mb={2}>{t(`settings.nav.groups.${g.group}`)}</Text>
-                      {g.items.map((id) => {
-                        const n = unsavedIn(id)
-                        return (
-                          <NavLink key={id} variant="light" color="bit" py={6} style={{ borderRadius: 8 }} href={id === OVERVIEW ? '/settings' : `/settings/${id}`} label={label(id)}
-                            active={!results && id === active} aria-current={!results && id === active ? 'page' : undefined}
-                            onClick={(e) => { e.preventDefault(); go(id) }}
-                            rightSection={n ? <Badge size="xs" color="warn" variant="light" aria-label={t('settings.unsavedCount', { count: n })}>{n}</Badge> : undefined} />
-                        )
-                      })}
-                    </div>
-                  ))}
-                  <NavLink variant="light" py={6} style={{ borderRadius: 8 }} href="/settings/plugins" label={t('settings.nav.plugins')} leftSection={<IconPuzzle size={16} />} mt="xs" />
-                </Stack>
-              </nav>
-            </Stack>
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 9 }}>
-            <SettingsForm ed={ed}>
-              {results ? (
-                <>
-                  <Text size="sm" c="dimmed" role="status">{t('settings.nav.results', { count: results.reduce((n, r) => n + r.only.size, 0) })}</Text>
-                  {results.map(({ section, only }) => (
-                    <SectionPanel key={section.id} ed={ed} section={section} only={only}
-                      title={isPluginSection(section.id)
-                        ? <Anchor href={`/settings/plugins/${section.id.slice('plugin-'.length)}`} inherit>{sectionTitle(t, section)}</Anchor>
-                        : sectionTitle(t, section)} />
-                  ))}
-                </>
-              ) : active === OVERVIEW ? (
-                <>
-                  {wall && <Text size="sm" c="dimmed">{t('settings.wall')} <Anchor href="/wall">/wall</Anchor></Text>}
-                  <Connections status={d.status} test={ed.test} />
-                  <BackupPanel />
-                  <S3BackupPanel />
-                  <Text size="sm" c="dimmed">{t('settings.nav.whereFrom')}</Text>
-                </>
-              ) : (
-                <>
-                  <SectionPanel ed={ed} section={nav.byId.get(active) as Section} />
-                  {active === 'backup' && <S3BackupPanel />}
-                </>
-              )}
-            </SettingsForm>
-          </Grid.Col>
-        </Grid>
+    <Layout title={title}>
+      <PageHead title={t('settings.title')} kicker={t('settings.kicker')} actions={search} />
+      <ErrorBanner error={mayEdit ? ed.query.error : null} onRetry={() => void ed.query.refetch()} mb="md" />
+      {!list.settled || (mayEdit && ed.query.isPending) ? <LoadingState rows={4} /> : !active ? null : results ? (
+        <SettingsForm ed={ed}>
+          <Text size="sm" c="dimmed" role="status">{t('settings.nav.results', { count: results.reduce((n, r) => n + r.only.size, 0) })}</Text>
+          {results.map(({ section, only }) => {
+            const href = sectionHref(section)
+            return (
+              <SectionPanel key={section.id} ed={ed} section={section} only={only}
+                title={href ? <Anchor component={Link} to={href} inherit>{sectionTitle(t, section)}</Anchor> : sectionTitle(t, section)} />
+            )
+          })}
+        </SettingsForm>
+      ) : (
+        <>
+          <PageTabs label={t('settings.title')} value={active.tab} onChange={(id) => {
+            const first = tabs.find((x) => x.id === id)?.groups[0]?.items[0]
+            if (first) go(first)
+          }} tabs={tabs.map((x) => ({ id: x.id, label: t(`settings.tabs.${x.id}`), alert: unsavedTab(x.id) ? 'warn' : null }))} />
+          <div role="tabpanel" aria-labelledby={`fb-tab-${active.tab}`} className="fb-settings-panel">
+            {one ? body(active.id) : (
+              <Grid gap="lg">
+                <Grid.Col span={{ base: 12, md: 3 }}>
+                  <Select hiddenFrom="md" aria-label={t('settings.nav.section')} allowDeselect={false} value={active.id}
+                    data={tab!.groups.map((g) => ({ group: t(`settings.nav.groups.${g.group}`), items: g.items.map((id) => ({ value: id, label: label(id) })) }))}
+                    onChange={(v) => v && go(v)} />
+                  <nav aria-label={t('settings.nav.section')} className="fb-settings-nav">
+                    <Stack gap={2} visibleFrom="md">
+                      {tab!.groups.map((g) => (
+                        <div key={g.group}>
+                          {tab!.groups.length > 1 && <Text size="xs" fw={700} c="dimmed" tt="uppercase" px="sm" mt="xs" mb={2}>{t(`settings.nav.groups.${g.group}`)}</Text>}
+                          {g.items.map((id) => {
+                            const n = unsavedIn(id)
+                            return (
+                              <NavLink key={id} variant="light" color="bit" py={6} style={{ borderRadius: 8 }} href={hrefOf(id)} label={label(id)}
+                                active={id === active.id} aria-current={id === active.id ? 'page' : undefined}
+                                onClick={(e) => { e.preventDefault(); go(id) }}
+                                rightSection={n ? <Badge size="xs" color="warn" variant="light" aria-label={t('settings.unsavedCount', { count: n })}>{n}</Badge> : undefined} />
+                            )
+                          })}
+                        </div>
+                      ))}
+                    </Stack>
+                  </nav>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 9 }}>{body(active.id)}</Grid.Col>
+              </Grid>
+            )}
+          </div>
+        </>
       )}
     </Layout>
   )

@@ -1,9 +1,8 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Switch, Tabs, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { IconSearch } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
 import { post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { usePluginLog, usePlugins } from '@/api/queries'
@@ -11,8 +10,11 @@ import type { ActionResult, PluginInfo } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { PageTabs } from '@/components/PageTabs'
+import { usePageTab } from '@/components/pageTab'
 import { LoadingState } from '@/components/ui'
 import Marketplace from './plugins/Marketplace'
+import { useMarketplace } from './plugins/market'
 import { pluginName } from '@/lib/pluginName'
 import { PluginIcon } from './plugins/icon'
 
@@ -186,9 +188,8 @@ export default function Plugins() {
   const [query, setQuery] = useState('')
   const [show, setShow] = useState<Show>('all')
   // ?tab=marketplace opens the marketplace straight away, e.g. from a link in the docs.
-  const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'marketplace' ? 'marketplace' : 'installed'
-  const setTab = (v: string) => setParams(v === 'marketplace' ? { tab: v } : {}, { replace: true })
+  const [tab, setTab] = usePageTab(['installed', 'marketplace', 'updates'])
+  const updates = (useMarketplace().data?.plugins ?? []).filter((p) => p.installed && p.update).length
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   const shown = (data?.plugins ?? []).filter((p) => {
     if (show === 'on' ? !p.enabled : show === 'off' ? p.enabled : false) return false
@@ -196,21 +197,19 @@ export default function Plugins() {
     return words.every((w) => text.includes(w))
   })
   return (
-    <Layout title={t('plugins.title')} back={{ href: '/settings', label: t('common.settings') }}>
+    <Layout title={t('plugins.title')}>
       <PageHead
         title={t('plugins.title')}
-        desc={
-          <>
-            {t('plugins.intro')} <Anchor href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/plugins.md">docs/plugins.md</Anchor>
-          </>
-        }
+        kicker={t('plugins.kicker')}
+        actions={<Button component="a" variant="default" size="xs" href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/plugins.md">{t('plugins.docs')}</Button>}
       />
-      <Tabs value={tab} onChange={(v) => setTab(v === 'marketplace' ? 'marketplace' : 'installed')} keepMounted={false}>
-        <Tabs.List mb="md">
-          <Tabs.Tab value="installed">{t('plugins.installedTitle')}</Tabs.Tab>
-          <Tabs.Tab value="marketplace">{t('marketplace.title')}</Tabs.Tab>
-        </Tabs.List>
-        <Tabs.Panel value="installed">
+      <PageTabs label={t('plugins.title')} value={tab} onChange={setTab} tabs={[
+        { id: 'installed', label: t('plugins.installedTitle'), count: data?.plugins.length ?? null },
+        { id: 'marketplace', label: t('marketplace.title') },
+        { id: 'updates', label: t('plugins.updates'), count: updates || null, alert: updates ? 'warn' : null },
+      ]} />
+      <div role="tabpanel" aria-labelledby={`fb-tab-${tab}`}>
+        {tab === 'installed' && <>
           {isPending && <LoadingState />}
           {error && (
             <Alert color="down" role="alert">
@@ -234,11 +233,10 @@ export default function Plugins() {
               </SimpleGrid>
             </Stack>
           )}
-        </Tabs.Panel>
-        <Tabs.Panel value="marketplace">
-          <Marketplace />
-        </Tabs.Panel>
-      </Tabs>
+        </>}
+        {tab === 'marketplace' && <Marketplace />}
+        {tab === 'updates' && <Marketplace updates />}
+      </div>
     </Layout>
   )
 }

@@ -62,6 +62,14 @@ describe('sections', () => {
 })
 
 describe('Sidebar', () => {
+  it('shows the Settings tabs (Users) as the Settings row, lit while one is on screen', () => {
+    const withUsers = [...pages, { href: '/settings/users', id: 'users', label: 'Users' }]
+    expect(group(withUsers).sections.find((s) => s.id === 'floorbit')?.pages.map((p) => p.id)).toEqual(['agents', 'settings'])
+    render(<Sidebar boot={{ ...boot, pages: withUsers }} path="/settings/users" renderLink={link} onGoTo={() => {}} />)
+    expect(within(main()).queryByRole('link', { name: 'Users' })).toBeNull()
+    expect(within(main()).getByRole('link', { name: /Settings/ })).toHaveAttribute('aria-current', 'page')
+  })
+
   it('marks the page on screen and shows how many switches are down', () => {
     sidebar('/problems', { down: 3 })
     const row = within(main()).getByRole('link', { name: /Problems/ })

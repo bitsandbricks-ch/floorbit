@@ -70,5 +70,8 @@
     "panels": "boxes in the side panels of seats, switches and devices",
     "layers": "a layer on the floor plan",
     "pages": "pages of its own in the sidebar"
-  }
+  },
+  "noUpdates": "Every installed plugin is up to date.",
+  "updatesTitle": "Updates",
+  "updatesIntro": "Installed plugins with a newer version in the marketplace."
 }

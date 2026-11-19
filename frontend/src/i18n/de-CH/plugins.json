@@ -1,6 +1,5 @@
 {
   "title": "Plugins",
-  "intro": "Plugins bringen Aktionen, Dashboard-Kacheln und Datenquellen. Jedes zeigt, worauf es zugreifen darf. NetBox und LibreNMS sind von Anfang an eingeschaltet, die anderen zuerst ausgeschaltet. Weitere gibt es im Reiter Marketplace.",
   "none": "Es sind keine Plugins installiert.",
   "on": "Ein",
   "off": "Aus",
@@ -51,5 +50,8 @@
     "services": "Dienste",
     "game-servers": "Gameserver",
     "firewalls": "Firewalls"
-  }
+  },
+  "kicker": "Womit Floorbit spricht: Quellen, Überwachung und Erweiterungen",
+  "docs": "Wie Plugins funktionieren",
+  "updates": "Aktualisierungen"
 }

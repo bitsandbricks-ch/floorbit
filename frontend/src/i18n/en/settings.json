@@ -1,6 +1,5 @@
 {
   "title": "Settings",
-  "intro": "Saved values are stored on the server and override environment variables. Reset a field to go back to its environment or default value.",
   "wall": "Stats wall for a big screen:",
   "connections": "Connections",
   "configured": "Configured",
@@ -302,8 +301,6 @@
     "search": "Search settings",
     "clear": "Clear search",
     "section": "Settings sections",
-    "overview": "Overview",
-    "plugins": "Plugin settings",
     "results_zero": "No setting matches.",
     "results_one": "{{count}} setting matches",
     "results_other": "{{count}} settings match",
@@ -313,8 +310,22 @@
       "sources": "Sources",
       "monitoring": "Monitoring",
       "alerts": "Alerts and Discord",
-      "access": "Sign-in and switches",
-      "other": "Other"
-    }
+      "access": "Sign-in and access",
+      "other": "Other",
+      "accounts": "Accounts",
+      "tenants": "Tenants",
+      "system": "System"
+    },
+    "status": "Status",
+    "sourcesMoved": "NetBox, LibreNMS and the other plugins have their settings on their own page:",
+    "toPlugins": "Plugins"
+  },
+  "kicker": "How this Floorbit works: the event, its people, alerts and the system",
+  "tabs": {
+    "general": "General",
+    "people": "People",
+    "alerts": "Alerts",
+    "tenants": "Tenants",
+    "system": "System"
   }
 }
