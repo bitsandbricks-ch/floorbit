@@ -5,13 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useDashboard } from '@/api/queries'
-import type { DashboardLayout, SeatViewData } from '@/api/types'
+import type { SeatViewData } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { VIEWS } from '@/widgets/views'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
-import { type Area, MARKS_MODES, type MarksMode, PAGES, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, planPane } from './model'
+import { type Area, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, planPane } from './model'
 import { pluginName } from '@/lib/pluginName'
 
 const FILTERS: PlanFilter[] = ['all', 'problems', 'offline', 'recent', 'note', 'checked_in']
@@ -22,8 +22,6 @@ function blank(kind: PaneKind, title?: string, hide?: boolean): Pane {
   switch (kind) {
     case 'plan': return planPane(base)
     case 'tile': return { kind, tile: '', ...base }
-    case 'dashboard': return { kind, layout: '', ...base }
-    case 'page': return { kind, page: 'health', ...base }
     case 'view': return { kind, view: VIEWS[0]?.id ?? '', ...base }
     case 'text': return { kind, text: '', size: 'l', align: 'start', ...base }
     default: return { kind: 'empty', ...base }
@@ -35,7 +33,7 @@ export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) =
   const { t } = useTranslation()
   return (
     <Stack gap="sm">
-      {/* Seven kinds no longer fit a segmented control in the side panel. */}
+      {/* Five kinds don't fit a segmented control in the side panel. */}
       <Select label={t('dashboards.form.kind')} allowDeselect={false} value={pane.kind}
         data={PANE_KINDS.map((k) => ({ value: k, label: t(`dashboards.kind.${k}`) }))}
         onChange={(v) => v && onChange(blank(v as PaneKind, pane.title, pane.hide_title))} />
@@ -48,16 +46,14 @@ export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) =
       {pane.kind === 'view' && (
         <Select label={t('dashboards.form.view')} allowDeselect={false} searchable value={pane.view || null}
           nothingFoundMessage={t('dashboards.form.noViews')}
-          data={VIEWS.map((v) => ({ value: v.id, label: t(v.label), group: t(`dashboards.area.${v.area}`, { defaultValue: v.area }) }))}
+          data={VIEWS.map((v) => ({ value: v.id, label: t(v.label), group: t(`dashboards.widgetArea.${v.area}`) }))}
           onChange={(v) => v && onChange({ ...pane, view: v })} />
       )}
-      {pane.kind === 'tile' && <TileField pane={pane} onChange={onChange} />}
-      {pane.kind === 'dashboard' && <DashboardField pane={pane} onChange={onChange} />}
-      {pane.kind === 'page' && (
-        <Select label={t('dashboards.form.page')} allowDeselect={false} value={pane.page}
-          data={PAGES.map((p) => ({ value: p, label: t(`dashboards.page.${p}`) }))}
-          onChange={(v) => v && onChange({ ...pane, page: v as typeof pane.page })} />
+      {pane.kind === 'view' && (
+        <Switch label={t('dashboards.form.expanded')} description={t('dashboards.form.expandedHint')} checked={!!pane.expanded}
+          onChange={(e) => onChange({ ...pane, expanded: e.currentTarget.checked || undefined })} />
       )}
+      {pane.kind === 'tile' && <TileField pane={pane} onChange={onChange} />}
     </Stack>
   )
 }
@@ -176,16 +172,5 @@ function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; 
       nothingFoundMessage={t('dashboards.form.noTiles')}
       data={tiles.map((x) => ({ value: `${x.plugin}/w/${x.id}`, label: `${x.label} · ${pluginName(t, x.plugin, x.plugin_name)}` }))}
       onChange={(v) => v && onChange({ ...pane, tile: v })} />
-  )
-}
-
-function DashboardField({ pane, onChange }: { pane: Extract<Pane, { kind: 'dashboard' }>; onChange: (p: Pane) => void }) {
-  const { t } = useTranslation()
-  const layouts = useQuery({ queryKey: qk.dashboardLayouts, queryFn: () => get<{ layouts: DashboardLayout[] }>('/api/dashboard/layouts') })
-  return (
-    <Select label={t('dashboards.form.dashboard')} allowDeselect={false} value={pane.layout || null}
-      nothingFoundMessage={t('dashboards.form.noDashboards')}
-      data={(layouts.data?.layouts ?? []).map((l) => ({ value: l.id, label: l.name }))}
-      onChange={(v) => v && onChange({ ...pane, layout: v })} />
   )
 }

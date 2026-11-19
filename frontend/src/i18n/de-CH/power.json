@@ -69,5 +69,8 @@
   "cancel": "Abbrechen",
   "trippedNote": "Ausgelöst: {{who}}, {{ago}}",
   "removeBoardConfirm": "{{name}} entfernen? Seine Stromkreise müssen zuerst weg sein.",
-  "removeCircuitConfirm": "{{name}} entfernen?"
+  "removeCircuitConfirm": "{{name}} entfernen?",
+  "allFine": "Alle Stromkreise sind in Ordnung.",
+  "manage": "Verteiler und Stromkreise",
+  "loadTitle": "Stromlast"
 }

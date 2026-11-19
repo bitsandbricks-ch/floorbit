@@ -2,24 +2,33 @@ import { Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
-import type { Board } from './dashboards/model'
-import { publicUrl, ScreenContext } from './dashboards/screen'
+import { type Board, boardName } from './dashboards/model'
+import { nextInRotation, publicUrl, ScreenContext } from './dashboards/screen'
 import { GridView } from './dashboards/GridView'
 import { useIdle } from './plan/idle'
 import { updated, useReloadOnUpdate } from './plan/update'
 import './dashboards/dashboards.css'
 
 /** One dashboard on a whole screen (``/dashboards/<id>``): no sidebar, the cursor hides while nobody
- *  moves it, and the page reloads itself after an update. */
+ *  moves it, and the page reloads itself after an update. ``?rotate=a,b,c&every=30`` moves on to the
+ *  next dashboard every so many seconds (10 to 600), for a wall that shows several. */
 export default function DashboardScreen() {
   const { t, i18n } = useTranslation()
   const { id = '' } = useParams()
   const [params] = useSearchParams()
+  const navigate = useNavigate()
+  const next = nextInRotation(params.get('rotate'), id)
+  const every = Math.min(600, Math.max(10, Number(params.get('every')) || 30))
+  useEffect(() => {
+    if (!next) return undefined
+    const timer = window.setTimeout(() => navigate(`/dashboards/${encodeURIComponent(next)}?${params.toString()}`, { replace: true }), every * 1000)
+    return () => window.clearTimeout(timer)
+  }, [next, every, navigate, params])
   // First ask the open feed: a public dashboard on a screen nobody signed in to reads only that.
   // A plain fetch, since the API client sends a 401 to the sign-in page.
   const open = useQuery({
@@ -59,7 +68,7 @@ export default function DashboardScreen() {
     const timer = window.setInterval(() => setNow(new Date()), 10_000)
     return () => window.clearInterval(timer)
   }, [])
-  useEffect(() => { if (q.data) document.title = `${q.data.name} · Floorbit` }, [q.data])
+  useEffect(() => { if (q.data) document.title = `${boardName(t, q.data)} · Floorbit` }, [q.data, t])
   return (
     <main className={`fb-board-show${idle ? ' idle' : ''}${q.data && !q.data.fit ? ' scroll' : ''}`}>
       {(open.isPending || q.isPending) && <LoadingState />}

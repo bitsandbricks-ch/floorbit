@@ -1,5 +1,5 @@
 import { Button, Group, Loader, SegmentedControl, Text } from '@mantine/core'
-import { IconFileText, IconMaximize, IconPlayerPlay } from '@tabler/icons-react'
+import { IconFileText, IconPlayerPlay } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,13 +9,12 @@ import { useLiveEvent } from '@/api/live'
 import { useCan, useFeature, useStats } from '@/api/queries'
 import type { StatsData, StatsSample } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import type { ViewProps } from '@/widgets/views'
 import { StatCard } from '@/components/StatCard'
-import { Compare } from './stats/Compare'
-import { Forecast } from './stats/Forecast'
-import { bps } from './stats/format'
-import { onPlan } from './plan/links'
+import { Compare } from './Compare'
+import { Forecast } from './Forecast'
+import { bps } from './format'
+import { onPlan } from '../plan/links'
 import { ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
 
@@ -147,14 +146,13 @@ function OnlineLine({ series }: { series: StatsSample[] }) {
 }
 
 /** Bandwidth now, the hour, the day and the event's peak, uplinks and top talkers (issue #24).
- *  ``?screen=1`` is the big version for a kiosk or ops screen: no header and no nicks. */
-export default function Stats() {
+ *  Small, the busiest rows only and no nicks, for a wall; opened up, everything with the peak reset. */
+export default function StatsView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const replayOn = useFeature('replay')
   const reportOn = useFeature('report')
   const client = useQueryClient()
-  const screen = new URLSearchParams(window.location.search).get('screen') === '1'
-  const stats = useStats(screen)
+  const stats = useStats(!expanded)
   const canReset = useCan('settings.manage')
   useLiveEvent('stats.changed', () => void client.invalidateQueries({ queryKey: qk.statsAll }))
   const reset = useMutation({
@@ -162,33 +160,13 @@ export default function Stats() {
     onSuccess: () => void client.invalidateQueries({ queryKey: qk.statsAll }),
   })
   const error = stats.error ?? reset.error
-  const body = (
-    <>
-      <ErrorBanner error={error} mb="md" />
-      {stats.isPending ? <Loader size="sm" /> : stats.data && <Board data={stats.data} screen={screen} />}
-    </>
-  )
   const updated = stats.data?.last_poll ? t('stats.updated', { time: clock(stats.data.last_poll) }) : null
-
-  if (screen) {
-    return (
-      <main className="fb-health-screen fb-stats-screen">
-        <header>
-          <h1>{t('stats.title')}</h1>
-          {updated && <span>{updated}</span>}
-        </header>
-        {body}
-      </main>
-    )
-  }
   return (
-    <Layout title={t('stats.title')} back={{ href: '/', label: t('common.floorPlan') }}>
-      <PageHead title={t('stats.title')} desc={t('stats.intro')}
-        actions={
+    <>
+      {expanded && (
+        <Group justify="space-between" mb="sm" wrap="wrap">
+          <Text size="sm" c="dimmed">{updated}</Text>
           <Group gap="xs">
-            <Button variant="default" component="a" href="/stats?screen=1" leftSection={<IconMaximize size={16} />}>
-              {t('stats.screen')}
-            </Button>
             {replayOn && (
               <Button variant="default" component="a" href="/replay" leftSection={<IconPlayerPlay size={16} />}>
                 {t('stats.replay')}
@@ -204,10 +182,10 @@ export default function Stats() {
                 onConfirm={() => reset.mutate()} loading={reset.isPending} />
             )}
           </Group>
-        }
-      />
-      {updated && <Text size="sm" c="dimmed" mb="sm">{updated}</Text>}
-      {body}
-    </Layout>
+        </Group>
+      )}
+      <ErrorBanner error={error} mb="md" />
+      {stats.isPending ? <Loader size="sm" aria-label={t('common.loading')} /> : stats.data && <Board data={stats.data} screen={!expanded} />}
+    </>
   )
 }

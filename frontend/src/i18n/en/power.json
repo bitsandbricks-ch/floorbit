@@ -69,5 +69,8 @@
   "cancel": "Cancel",
   "trippedNote": "Tripped: {{who}}, {{ago}}",
   "removeBoardConfirm": "Remove {{name}}? Its circuits must be gone first.",
-  "removeCircuitConfirm": "Remove {{name}}?"
+  "removeCircuitConfirm": "Remove {{name}}?",
+  "allFine": "Every circuit is fine.",
+  "manage": "Boards and circuits",
+  "loadTitle": "Power load"
 }

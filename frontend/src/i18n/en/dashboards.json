@@ -8,8 +8,6 @@
   "panes_one": "{{count}} pane",
   "panes_other": "{{count}} panes",
   "updated": "changed {{when}}",
-  "tiles": "Looking for the plugin tiles?",
-  "tilesLink": "Tile dashboard",
   "name": "Name",
   "namePlaceholder": "Main hall wall",
   "cycle": "Rotate halls every (seconds)",
@@ -35,8 +33,6 @@
     "plan": "Plan",
     "view": "Widget",
     "tile": "Tile",
-    "dashboard": "Tiles",
-    "page": "Page",
     "empty": "Empty",
     "text": "Text"
   },
@@ -51,12 +47,6 @@
     "auto": "By zoom",
     "all": "Always",
     "none": "Never"
-  },
-  "page": {
-    "health": "Service health",
-    "stats": "Stats",
-    "wall": "Public stats wall",
-    "status": "Status page"
   },
   "form": {
     "label": "Pane settings",
@@ -77,9 +67,6 @@
     "useView": "Use this view",
     "tile": "Tile",
     "noTiles": "No tiles. Turn on a plugin with tiles under Settings > Plugins.",
-    "dashboard": "Tile layout",
-    "noDashboards": "No tile layouts saved yet.",
-    "page": "Page",
     "view": "Widget",
     "noViews": "No widgets yet.",
     "hideTitle": "Hide the title",
@@ -88,7 +75,9 @@
     "size": "Text size",
     "align": "Alignment",
     "marks": "Plan marks",
-    "marksHint": "Public: only the Overview and Safety marks, for a screen people walk past."
+    "marksHint": "Public: only the Overview and Safety marks, for a screen people walk past.",
+    "expanded": "Show it big",
+    "expandedHint": "With its filters and details, for a pane that fills a screen."
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",
@@ -97,11 +86,13 @@
     "problems_one": "{{count}} with problems",
     "problems_other": "{{count}} with problems",
     "tileGone": "This tile is gone (plugin off or removed).",
-    "dashboardGone": "This tile layout is gone.",
     "empty": "Empty pane",
     "viewGone": "This widget is gone.",
     "noText": "Write something in the pane's settings.",
-    "private": "Needs an account: not shown on a public screen."
+    "private": "Needs an account: not shown on a public screen.",
+    "openBig": "Open big",
+    "openBigNamed": "Open {{name}} big",
+    "viewOff": "This widget's feature is turned off (Settings > Features)."
   },
   "textSize": {
     "s": "S",
@@ -133,5 +124,23 @@
     "all": "All",
     "public": "Public",
     "none": "None"
+  },
+  "widgetArea": {
+    "all": "All",
+    "network": "Network",
+    "services": "Services",
+    "traffic": "Traffic",
+    "power": "Power",
+    "plugins": "Plugins"
+  },
+  "builtinName": {
+    "kiosk": "Kiosk",
+    "overview": "Overview",
+    "health": "Service health",
+    "network": "Network",
+    "services": "Services",
+    "traffic": "Traffic",
+    "power": "Power load",
+    "event": "Event in numbers"
   }
 }

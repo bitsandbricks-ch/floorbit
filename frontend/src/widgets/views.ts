@@ -17,11 +17,27 @@ export interface ViewDef {
   label: string
   /** The permission it needs (auth/roles.py); the server checks its data calls either way. */
   permission?: string
+  /** The feature it belongs to (Settings > Features): off, the gallery leaves it out. */
+  feature?: string
   load: () => Promise<{ default: ComponentType<ViewProps> }>
 }
 
 export const VIEWS: ViewDef[] = [
+  { id: 'health', area: 'services', label: 'health.title', feature: 'health', load: () => import('@/pages/health/HealthView') },
+  { id: 'services', area: 'services', label: 'services.title', load: () => import('@/pages/services/ServicesView') },
   { id: 'lancache', area: 'services', label: 'lancache.title', load: () => import('@/pages/lancache/LancacheView') },
+  { id: 'stats', area: 'network', label: 'stats.title', load: () => import('@/pages/stats/StatsView') },
+  { id: 'network-status', area: 'network', label: 'status.title', feature: 'status_page', permission: 'incidents.work',
+    load: () => import('@/pages/status/NetworkStatusView') },
+  { id: 'wifi', area: 'network', label: 'wifi.title', feature: 'wifi', load: () => import('@/pages/wifi/WifiView') },
+  { id: 'endpoints', area: 'network', label: 'endpoints.title', permission: 'seats.view', load: () => import('@/pages/endpoints/EndpointsView') },
+  { id: 'traffic', area: 'traffic', label: 'traffic.title', feature: 'traffic', load: () => import('@/pages/traffic/TrafficView') },
+  { id: 'dns', area: 'traffic', label: 'dns.title', feature: 'dns', load: () => import('@/pages/dns/DnsView') },
+  { id: 'games', area: 'traffic', label: 'games.title', feature: 'games', load: () => import('@/pages/games/GamesView') },
+  { id: 'speedtests', area: 'traffic', label: 'speedtests.title', feature: 'helpdesk', permission: 'incidents.work',
+    load: () => import('@/pages/speedtests/SpeedtestsView') },
+  { id: 'event-numbers', area: 'network', label: 'publicWall.title', feature: 'stats_wall', load: () => import('@/pages/wall/EventNumbersView') },
+  { id: 'power-load', area: 'power', label: 'power.loadTitle', feature: 'power', load: () => import('@/pages/power/PowerLoadView') },
 ]
 
 /** Each view's component, loaded on first use. */

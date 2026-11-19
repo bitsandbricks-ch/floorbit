@@ -8,8 +8,6 @@
   "panes_one": "{{count}} Bereich",
   "panes_other": "{{count}} Bereiche",
   "updated": "geändert {{when}}",
-  "tiles": "Suchst du die Plugin-Kacheln?",
-  "tilesLink": "Kachel-Dashboard",
   "name": "Name",
   "namePlaceholder": "Haupthalle Wand",
   "cycle": "Hallen wechseln alle (Sekunden)",
@@ -35,8 +33,6 @@
     "plan": "Plan",
     "view": "Widget",
     "tile": "Kachel",
-    "dashboard": "Kacheln",
-    "page": "Seite",
     "empty": "Leer",
     "text": "Text"
   },
@@ -51,12 +47,6 @@
     "auto": "Nach Zoom",
     "all": "Immer",
     "none": "Nie"
-  },
-  "page": {
-    "health": "Dienst-Status",
-    "stats": "Statistik",
-    "wall": "Öffentliche Statistik-Wand",
-    "status": "Statusseite"
   },
   "form": {
     "label": "Bereich-Einstellungen",
@@ -77,9 +67,6 @@
     "useView": "Diese Ansicht übernehmen",
     "tile": "Kachel",
     "noTiles": "Keine Kacheln. Schalte unter Einstellungen > Plugins ein Plugin mit Kacheln ein.",
-    "dashboard": "Kachel-Layout",
-    "noDashboards": "Noch keine Kachel-Layouts gespeichert.",
-    "page": "Seite",
     "view": "Widget",
     "noViews": "Noch keine Widgets.",
     "hideTitle": "Titel ausblenden",
@@ -88,7 +75,9 @@
     "size": "Textgrösse",
     "align": "Ausrichtung",
     "marks": "Plan-Markierungen",
-    "marksHint": "Öffentliche: nur die Markierungen aus Übersicht und Sicherheit, für einen Bildschirm, an dem Leute vorbeigehen."
+    "marksHint": "Öffentliche: nur die Markierungen aus Übersicht und Sicherheit, für einen Bildschirm, an dem Leute vorbeigehen.",
+    "expanded": "Gross zeigen",
+    "expandedHint": "Mit Filtern und Details, für einen Bereich, der einen Bildschirm füllt."
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
@@ -97,11 +86,13 @@
     "problems_one": "{{count}} mit Problemen",
     "problems_other": "{{count}} mit Problemen",
     "tileGone": "Diese Kachel gibt es nicht mehr (Plugin aus oder entfernt).",
-    "dashboardGone": "Dieses Kachel-Layout gibt es nicht mehr.",
     "empty": "Leerer Bereich",
     "viewGone": "Dieses Widget gibt es nicht mehr.",
     "noText": "Schreib etwas in die Einstellungen des Bereichs.",
-    "private": "Braucht ein Konto: auf einem öffentlichen Bildschirm nicht gezeigt."
+    "private": "Braucht ein Konto: auf einem öffentlichen Bildschirm nicht gezeigt.",
+    "openBig": "Gross öffnen",
+    "openBigNamed": "{{name}} gross öffnen",
+    "viewOff": "Die Funktion dieses Widgets ist ausgeschaltet (Einstellungen > Funktionen)."
   },
   "textSize": {
     "s": "S",
@@ -133,5 +124,23 @@
     "all": "Alle",
     "public": "Öffentliche",
     "none": "Keine"
+  },
+  "widgetArea": {
+    "all": "Alle",
+    "network": "Netzwerk",
+    "services": "Dienste",
+    "traffic": "Traffic",
+    "power": "Strom",
+    "plugins": "Plugins"
+  },
+  "builtinName": {
+    "kiosk": "Kiosk",
+    "overview": "Übersicht",
+    "health": "Dienste-Status",
+    "network": "Netzwerk",
+    "services": "Dienste",
+    "traffic": "Traffic",
+    "power": "Stromlast",
+    "event": "Der Event in Zahlen"
   }
 }

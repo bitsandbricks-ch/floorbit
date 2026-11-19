@@ -5,9 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { CacheRow, GamesData, LancacheData } from '@/api/types'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
-import { bytes } from './traffic/format'
+import type { ViewProps } from '@/widgets/views'
+import { bytes } from '../traffic/format'
 import { ErrorBanner } from '@/components/ui'
 import { StatCard } from '@/components/StatCard'
 import { dayClock } from '@/lib/time'
@@ -131,7 +130,7 @@ function Caches({ caches }: { caches: CacheRow[] }) {
   )
 }
 
-function Board({ data }: { data: GamesData }) {
+function Board({ data, compact }: { data: GamesData; compact: boolean }) {
   const { t } = useTranslation()
   const c = data.cache
   return (
@@ -144,13 +143,13 @@ function Board({ data }: { data: GamesData }) {
         </SimpleGrid>
       )}
       <div className="fb-stats">
-        {data.sources.cache && <CacheChart cache={c} />}
-        <Launchers data={data} />
+        {!compact && data.sources.cache && <CacheChart cache={c} />}
+        {!compact && <Launchers data={data} />}
         {data.games.length > 0 && (
           <section className="fb-stats-panel" aria-labelledby="games-games">
             <h2 id="games-games">{t('games.games')}</h2>
             <ol className="fb-stats-top">
-              {data.games.map((g) => (
+              {data.games.slice(0, compact ? 8 : undefined).map((g) => (
                 <li key={g.name}>
                   <span className="name">{g.name} <small>· {t('games.seats', { count: g.seats })}</small></span>
                   <span className="value">{bytes(g.bytes)}</span>
@@ -160,39 +159,36 @@ function Board({ data }: { data: GamesData }) {
             <Text size="xs" c="dimmed" mt={6}>{t('games.gamesText')}</Text>
           </section>
         )}
-        {data.other_caches.length > 0 && <Caches caches={data.other_caches} />}
+        {!compact && data.other_caches.length > 0 && <Caches caches={data.other_caches} />}
       </div>
     </>
   )
 }
 
 /** What the hall plays and downloads, and what the LAN cache saved (issue #88). Hall-wide only. */
-export default function Games() {
+export default function GamesView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const [hours, setHours] = useState(24)
   const query = useQuery({ queryKey: qk.games(hours), queryFn: () => get<GamesData>(`/api/games?hours=${hours}`), refetchInterval: 60_000 })
   const data = query.data
   const none = data && !data.sources.dns && !data.sources.traffic && !data.sources.cache
   return (
-    <Layout title={t('games.title')} back={{ href: '/traffic', label: t('games.trafficPage') }}>
-      <PageHead title={t('games.title')} desc={t('games.intro')}
-        actions={
+    <>
+      {expanded && (
+        <Group justify="space-between" mb="sm" wrap="wrap">
+          <Text size="sm" c="dimmed">
+            {data ? [data.sources.cache && t('games.fromCacheSource'), data.sources.traffic && t('games.fromTrafficSource'),
+              data.sources.dns && t('games.fromDnsSource')].filter(Boolean).join(' · ') : ''}
+          </Text>
           <SegmentedControl value={String(hours)} onChange={(v) => setHours(Number(v))} aria-label={t('games.range')}
             data={RANGES.map((h) => ({ value: String(h), label: t(`games.hours.${h}`) }))} />
-        } />
+        </Group>
+      )}
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {data?.cache.error && <Alert color="warn" mb="md">{t('games.cacheError', { message: data.cache.error })}</Alert>}
       {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : none ? (
         <Alert color="gray" variant="light">{t('games.noSources')} <Anchor href={DOCS}>docs/games.md</Anchor></Alert>
-      ) : (
-        <>
-          <Text size="sm" c="dimmed" mb="sm">
-            {[data.sources.cache && t('games.fromCacheSource'), data.sources.traffic && t('games.fromTrafficSource'),
-              data.sources.dns && t('games.fromDnsSource')].filter(Boolean).join(' · ')}
-          </Text>
-          <Board data={data} />
-        </>
-      )}
-    </Layout>
+      ) : <Board data={data} compact={!expanded} />}
+    </>
   )
 }
