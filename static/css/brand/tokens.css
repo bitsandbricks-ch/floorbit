@@ -31,7 +31,8 @@
   --theme-accent: #2ee59d;     /* Bit Green: brand, primary buttons, focus */
   --theme-on-accent: #0b0b0f;  /* text on accent fills */
   --theme-bg: #0b0b0f;         /* page */
-  --theme-surface: #16161d;    /* cards, panels, inspector */
+  /* Panels are a slight step from the page, not a block of their own (Mike, issue #934). */
+  --theme-surface: #111117;    /* cards, panels, inspector */
   --theme-fg: #f4f4f5;         /* text */
   --theme-font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --theme-font-mono: "Geist Mono", ui-monospace, monospace;
@@ -84,7 +85,7 @@
 
   /* Shape (Seatbit values) */
   --radius-bit: 0.375rem;
-  --radius-card: 0.875rem;
+  --radius-card: 0.5rem;       /* 8px: panels, cards, dialogs (issue #934) */
   --radius-pill: 999px;
 
   /* Type */
@@ -113,7 +114,8 @@
   --ui-focus: 0 0 0 2px var(--color-ink), 0 0 0 4px color-mix(in srgb, var(--color-bit) 70%, transparent);
   --ui-pop-radius: 0.625rem;
   --ui-pop-pad: 0.25rem;
-  --ui-pop-bg: var(--color-surface);
+  /* Menus float over panels, so they keep a clear step up. */
+  --ui-pop-bg: color-mix(in srgb, var(--color-fg) 4%, var(--color-surface));
   --ui-pop-border: 1px solid var(--color-line);
   --ui-pop-shadow: 0 12px 32px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
   --ui-option-h: 2rem;
