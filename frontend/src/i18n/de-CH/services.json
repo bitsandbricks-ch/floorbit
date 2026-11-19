@@ -1,6 +1,6 @@
 {
   "title": "Dienste",
-  "intro": "Die Internetleitungen, die DNS-Resolver, die Websites, die Spieler brauchen, und der LAN-Cache: ob sie antworten, wie voll die Leitungen sind und wie schnell.",
+  "intro": "Alles, wovon der Event ausser den Switches abhängt: die Internetleitungen, die DNS-Resolver, die Websites, die Spieler brauchen, der LAN-Cache und die Gameserver. Ob sie antworten, wie voll und wie schnell.",
   "uplinks": "Internetleitungen",
   "resolvers": "DNS-Resolver",
   "lanCache": "LAN-Cache",
@@ -8,8 +8,6 @@
   "editUplink": "Leitung ändern",
   "addResolver": "Resolver hinzufügen",
   "editResolver": "Resolver ändern",
-  "noUplinks": "Noch keine Internetleitungen. Füge jede Leitung mit ihrem Router-Port und ihrer Kapazität hinzu.",
-  "noResolvers": "Noch keine Resolver. Füge die Resolver hinzu, die die Spieler nutzen, mit einem Namen zum Nachschlagen.",
   "noLanCache": "Floorbit liest kein LAN-Cache-Log. Setze LANCACHE_LOG auf das Zugriffslog des Caches (und LANCACHE_CACHE_DIR für seine Platte).",
   "viaAgent": "Der lokale Agent schickt die Prüfungen, aus dem Eventnetz.",
   "status": {
@@ -55,11 +53,39 @@
   "addSite": "Website hinzufügen",
   "editSite": "Website ändern",
   "addCommon": "Die üblichen hinzufügen",
-  "noSites": "Noch keine Websites. Füge die hinzu, die Spieler brauchen, wie Game-Stores und Voice-Chat, um zu sehen, wenn eine davon weg ist und nicht das ganze Internet.",
   "sitePlaceholder": "Steam",
   "host": "Host",
   "hostHelp": "Floorbit verbindet sich ein paarmal damit, für die Zeit und den Verlust.",
   "nothing": "Noch keine Internetleitungen, Resolver oder Websites eingerichtet.",
   "allUp": "Alle Leitungen, Resolver und Websites laufen.",
-  "manage": "Dienste einrichten"
+  "manage": "Dienste einrichten",
+  "add": "Dienst hinzufügen",
+  "addWhich": "Welche Art Dienst?",
+  "types": {
+    "uplink": "Internetleitung",
+    "dns": "DNS-Resolver",
+    "site": "Website",
+    "lancache": "LAN-Cache",
+    "game": "Gameserver"
+  },
+  "groups": {
+    "uplink": "Internetleitungen",
+    "dns": "DNS-Resolver",
+    "site": "Websites",
+    "lancache": "LAN-Cache",
+    "game": "Gameserver"
+  },
+  "search": "Dienste suchen",
+  "show": "Zeigen",
+  "filter": {
+    "all": "Alle {{count}}",
+    "notUp": "Nicht ok {{count}}",
+    "up": "Läuft {{count}}"
+  },
+  "groupBy": "Gruppieren nach",
+  "byType": "Nach Art",
+  "byState": "Nach Zustand",
+  "noMatch": "Kein Dienst passt.",
+  "empty": "Noch wird nichts überwacht.",
+  "emptyAdmin": "Noch wird nichts überwacht. Füge die Internetleitungen, die Resolver der Spieler, die Websites, die sie brauchen, und die Gameserver hinzu, oder beginne mit den üblichen Websites."
 }

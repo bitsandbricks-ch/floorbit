@@ -1,13 +1,16 @@
 import {
-  Alert, Badge, Button, Group, Modal, NumberInput, Paper, Progress, Select, SimpleGrid, Stack, Text, TextInput, Title,
+  Alert, Badge, Button, Group, Menu, Modal, NumberInput, Paper, Progress, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput, Title,
 } from '@mantine/core'
+import { IconPlus, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { DnsResolver, InternetSite, IspUplink, LanCacheState, ServiceStatus, Services as ServicesData } from '@/api/types'
+import type {
+  DnsResolver, GameServer, GameServerList, InternetSite, IspUplink, LanCacheState, ServiceStatus, Services as ServicesData,
+} from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -15,19 +18,41 @@ import { Sparkline } from '@/widgets/Sparkline'
 import { bps } from './stats/format'
 import { bytes } from './traffic/format'
 import { EntitySelect } from '@/components/EntitySelect'
+import { RconConsole, ServerModal } from './services/GameServerParts'
 
 const TONE: Record<ServiceStatus, string> = { up: 'up', warn: 'warn', down: 'down', unknown: 'gray' }
+const BIT: Record<ServiceStatus, string> = { up: '', warn: 'is-warn', down: 'is-down', unknown: 'is-off' }
 
 type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'; item: DnsResolver | null }
-  | { kind: 'sites'; item: InternetSite | null } | null
+  | { kind: 'sites'; item: InternetSite | null } | { kind: 'game'; item: GameServer | null } | null
 
-/** The internet lines, the DNS resolvers, the sites players need and the LAN cache (issue #471):
- *  are they up, how full, how fast. */
+/** Every kind of service, in the order the page groups them. The LAN cache comes from its log
+ *  or plugin, so nobody adds one here. */
+const TYPES = ['uplink', 'dns', 'site', 'lancache', 'game'] as const
+type ServiceType = typeof TYPES[number]
+const STATES: ServiceStatus[] = ['down', 'warn', 'unknown', 'up']
+
+/** One row of the list, whatever kind of service it is. */
+interface Row {
+  key: string; type: ServiceType; name: string; status: ServiceStatus; target: string
+  value: string | null; unit: string | null; note: string | null; points: number[]
+  edit?: () => void; game?: GameServer
+}
+
+/** Internet lines, DNS resolvers, the sites players need, the LAN cache and the game servers
+ *  (issues #471, #472, #889): one list, grouped by type or state, with one "Add service". */
 export default function Services() {
   const { t } = useTranslation()
   const canEdit = useCan('floorplan.edit')
+  const canSetUp = useCan('settings.manage')
+  const canRcon = useCan('games.rcon')
   const q = useQuery({ queryKey: qk.services, queryFn: () => get<ServicesData>('/api/services'), refetchInterval: 15_000 })
+  const games = useQuery({ queryKey: qk.gameServers, queryFn: () => get<GameServerList>('/api/game-servers'), refetchInterval: 15_000 })
   const [editing, setEditing] = useState<Editing>(null)
+  const [console_, setConsole] = useState<GameServer | null>(null)
+  const [search, setSearch] = useState('')
+  const [shown, setShown] = useState<'all' | 'notUp' | 'up'>('all')
+  const [by, setBy] = useState<'type' | 'state'>('type')
   const data = q.data
   const qc = useQueryClient()
   const check = useMutation({
@@ -38,67 +63,202 @@ export default function Services() {
     mutationFn: () => post<ServicesData>('/api/services/sites/common', {}),
     onSuccess: (fresh) => qc.setQueryData(qk.services, fresh),
   })
-  const sites = data?.sites ?? []
-  const any = !!data && data.uplinks.length + data.resolvers.length + sites.length > 0
+  const rows = toRows(t, data, games.data, {
+    uplink: canEdit ? (u) => setEditing({ kind: 'uplinks', item: u }) : undefined,
+    dns: canEdit ? (r) => setEditing({ kind: 'resolvers', item: r }) : undefined,
+    site: canEdit ? (s) => setEditing({ kind: 'sites', item: s }) : undefined,
+    game: canSetUp ? (g) => setEditing({ kind: 'game', item: g }) : undefined,
+  })
+  const needle = search.trim().toLowerCase()
+  const matching = rows.filter((r) => (shown === 'all' || (shown === 'up') === (r.status === 'up'))
+    && (!needle || `${r.name} ${r.target} ${t(`services.types.${r.type}`)}`.toLowerCase().includes(needle)))
+  const groups = by === 'type'
+    ? TYPES.map((k) => ({ id: k, title: t(`services.groups.${k}`), rows: matching.filter((r) => r.type === k) }))
+    : STATES.map((k) => ({ id: k, title: t(`services.status.${k}`), rows: matching.filter((r) => r.status === k) }))
+  const notUp = rows.filter((r) => r.status !== 'up').length
+  const adds = [
+    canEdit && { type: 'uplink', open: () => setEditing({ kind: 'uplinks', item: null }) },
+    canEdit && { type: 'dns', open: () => setEditing({ kind: 'resolvers', item: null }) },
+    canEdit && { type: 'site', open: () => setEditing({ kind: 'sites', item: null }) },
+    canSetUp && { type: 'game', open: () => setEditing({ kind: 'game', item: null }) },
+  ].filter(Boolean) as { type: ServiceType; open: () => void }[]
+  const loaded = !!data && !!games.data
   return (
     <Layout title={t('services.title')}>
       <PageHead title={t('services.title')} desc={t('services.intro')}
-        actions={canEdit && any && <Button variant="default" loading={check.isPending} onClick={() => check.mutate()}>{t('services.checkNow')}</Button>} />
-      <Stack gap="lg">
-        {q.error && <Alert color="down" role="alert">{q.error.message}</Alert>}
-        {data && (
+        actions={(
           <>
-            <Section title={t('services.uplinks')} add={canEdit ? () => setEditing({ kind: 'uplinks', item: null }) : undefined}
-              addLabel={t('services.addUplink')} empty={data.uplinks.length === 0 ? t('services.noUplinks') : null}>
-              {data.uplinks.map((u) => (
-                <UplinkCard key={u.id} uplink={u} onEdit={canEdit ? () => setEditing({ kind: 'uplinks', item: u }) : undefined} />
-              ))}
-            </Section>
-            <Section title={t('services.resolvers')} add={canEdit ? () => setEditing({ kind: 'resolvers', item: null }) : undefined}
-              addLabel={t('services.addResolver')} empty={data.resolvers.length === 0 ? t('services.noResolvers') : null}>
-              {data.resolvers.map((r) => (
-                <ResolverCard key={r.id} resolver={r} onEdit={canEdit ? () => setEditing({ kind: 'resolvers', item: r }) : undefined} />
-              ))}
-            </Section>
-            <Section title={t('services.sites')} add={canEdit ? () => setEditing({ kind: 'sites', item: null }) : undefined}
-              addLabel={t('services.addSite')} empty={sites.length === 0 ? t('services.noSites') : null}
-              extra={canEdit && sites.length === 0 && (
-                <Button size="compact-md" variant="default" loading={common.isPending} onClick={() => common.mutate()}>{t('services.addCommon')}</Button>
-              )}>
-              {sites.map((s) => (
-                <SiteCard key={s.id} site={s} onEdit={canEdit ? () => setEditing({ kind: 'sites', item: s }) : undefined} />
-              ))}
-            </Section>
-            {common.error && <Alert color="down" role="alert">{common.error.message}</Alert>}
-            <Section title={t('services.lanCache')} empty={data.lan_cache ? null : t('services.noLanCache')}>
-              {data.lan_cache && <LanCacheCard cache={data.lan_cache} />}
-            </Section>
-            {data.via_agent && <Text size="sm" c="dimmed">{t('services.viaAgent')}</Text>}
+            {canEdit && rows.length > 0 && <Button variant="default" loading={check.isPending} onClick={() => check.mutate()}>{t('services.checkNow')}</Button>}
+            {adds.length > 0 && (
+              <Menu position="bottom-end">
+                <Menu.Target><Button leftSection={<IconPlus size={16} />}>{t('services.add')}</Button></Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>{t('services.addWhich')}</Menu.Label>
+                  {adds.map((a) => <Menu.Item key={a.type} onClick={a.open}>{t(`services.types.${a.type}`)}</Menu.Item>)}
+                </Menu.Dropdown>
+              </Menu>
+            )}
           </>
+        )} />
+      <Stack gap="lg">
+        {(q.error || games.error) && <Alert color="down" role="alert">{(q.error || games.error)!.message}</Alert>}
+        {loaded && rows.length === 0 && (
+          <Paper withBorder p="md">
+            <Stack gap="xs" align="flex-start">
+              <Text c="dimmed">{t(adds.length ? 'services.emptyAdmin' : 'services.empty')}</Text>
+              {canEdit && (
+                <Button size="compact-md" variant="default" loading={common.isPending} onClick={() => common.mutate()}>{t('services.addCommon')}</Button>
+              )}
+            </Stack>
+          </Paper>
         )}
+        {common.error && <Alert color="down" role="alert">{common.error.message}</Alert>}
+        {rows.length > 0 && (
+          <Group gap="sm" wrap="wrap">
+            <TextInput leftSection={<IconSearch size={16} />} placeholder={t('services.search')} aria-label={t('services.search')}
+              value={search} onChange={(e) => setSearch(e.currentTarget.value)} style={{ flex: '1 1 220px', maxWidth: 360 }} />
+            <SegmentedControl value={shown} onChange={(v) => setShown(v as typeof shown)} aria-label={t('services.show')} data={[
+              { value: 'all', label: t('services.filter.all', { count: rows.length }) },
+              { value: 'notUp', label: t('services.filter.notUp', { count: notUp }) },
+              { value: 'up', label: t('services.filter.up', { count: rows.length - notUp }) },
+            ]} />
+            <Select aria-label={t('services.groupBy')} w={170} allowDeselect={false} value={by} onChange={(v) => setBy((v ?? 'type') as typeof by)}
+              data={[{ value: 'type', label: t('services.byType') }, { value: 'state', label: t('services.byState') }]} />
+          </Group>
+        )}
+        {rows.length > 0 && matching.length === 0 && <Text c="dimmed">{t('services.noMatch')}</Text>}
+        {groups.filter((g) => g.rows.length).map((g) => (
+          <Stack key={g.id} gap="xs" component="section" aria-label={g.title}>
+            <Group gap="xs">
+              <Title order={2} size="h4">{g.title}</Title>
+              <Badge variant="default" radius="sm">{g.rows.length}</Badge>
+            </Group>
+            <Paper withBorder className="fb-service-list">
+              {g.rows.map((r) => (
+                <ServiceRow key={r.key} row={r} showType={by === 'state'} canRcon={canRcon} onConsole={() => r.game && setConsole(r.game)} />
+              ))}
+            </Paper>
+          </Stack>
+        ))}
+        {(data?.via_agent || games.data?.via_agent) && <Text size="sm" c="dimmed">{t('services.viaAgent')}</Text>}
+        {data && !data.lan_cache && rows.length > 0 && <Text size="sm" c="dimmed">{t('services.noLanCache')}</Text>}
       </Stack>
       {editing?.kind === 'uplinks' && data && <UplinkModal uplink={editing.item} ports={data.probe_ports} devices={data.devices} onClose={() => setEditing(null)} />}
       {editing?.kind === 'resolvers' && <ResolverModal resolver={editing.item} onClose={() => setEditing(null)} />}
       {editing?.kind === 'sites' && data && <SiteModal site={editing.item} ports={data.probe_ports} onClose={() => setEditing(null)} />}
+      {editing?.kind === 'game' && <ServerModal server={editing.item} onClose={() => setEditing(null)} />}
+      {console_ && <RconConsole server={console_} onClose={() => setConsole(null)} />}
     </Layout>
   )
 }
 
-function Section({ title, add, addLabel, empty, extra, children }: {
-  title: string; add?: () => void; addLabel?: string; empty: string | null; extra?: React.ReactNode; children: React.ReactNode
-}) {
+type T = (key: string, opts?: Record<string, unknown>) => string
+
+/** The page's rows from the two lists: the headline number, a line under it and the sparkline. */
+function toRows(t: T, d: ServicesData | undefined, g: GameServerList | undefined, edit: {
+  uplink?: (u: IspUplink) => void; dns?: (r: DnsResolver) => void; site?: (s: InternetSite) => void; game?: (s: GameServer) => void
+}): Row[] {
+  const failed = (status: ServiceStatus, error: string) => (status === 'down' || status === 'unknown' ? error || t('services.notChecked') : null)
+  const rows: Row[] = []
+  for (const u of d?.uplinks ?? []) {
+    const portDown = u.port_state === 'down' || u.port_state === 'disabled'
+    const used = portDown ? null : u.utilization ?? null
+    rows.push({
+      key: `u-${u.id}`, type: 'uplink', name: u.name, status: u.status, target: `${u.device} ${u.port} · ${bps(u.capacity_mbps * 1e6)}`,
+      value: used != null ? `${Math.round(used * 100)}%` : null, unit: used != null ? t('services.used') : null,
+      note: portDown ? t('services.portDown') : [
+        used != null && t('services.inOut', { in: bps(u.in_bps), out: bps(u.out_bps) }),
+        u.latency_ms != null && t('services.latency', { ms: u.latency_ms }),
+        u.loss != null && t('services.loss', { pct: Math.round(u.loss * 100) }),
+      ].filter(Boolean).join(' · ') || u.error || null,
+      points: u.history.map(([, ms]) => ms ?? 0), edit: edit.uplink && (() => edit.uplink!(u)),
+    })
+  }
+  for (const r of d?.resolvers ?? []) {
+    const ok = r.status === 'up' || r.status === 'warn'
+    rows.push({
+      key: `r-${r.id}`, type: 'dns', name: r.name, status: r.status, target: `${r.address} · ${r.lookup}`,
+      value: ok ? `${r.latency_ms} ms` : null, unit: null,
+      note: ok ? t('services.answers', { count: r.answers ?? 0 }) : failed(r.status, r.error),
+      points: r.history.map(([, ms]) => ms ?? 0), edit: edit.dns && (() => edit.dns!(r)),
+    })
+  }
+  for (const s of d?.sites ?? []) {
+    const ok = s.status === 'up' || s.status === 'warn'
+    rows.push({
+      key: `s-${s.id}`, type: 'site', name: s.name, status: s.status, target: s.port === 443 ? s.host : `${s.host}:${s.port}`,
+      value: ok ? `${s.latency_ms} ms` : null, unit: null,
+      note: ok ? (s.loss ? t('services.loss', { pct: Math.round(s.loss * 100) }) : null) : failed(s.status, s.error),
+      points: s.history.map(([, ms]) => ms ?? 0), edit: edit.site && (() => edit.site!(s)),
+    })
+  }
+  const c = d?.lan_cache
+  if (c) {
+    rows.push({
+      key: 'lancache', type: 'lancache', name: t('services.lanCache'), status: c.status, target: c.demo ? t('services.demo') : t('services.thisHour'),
+      value: c.hit_ratio != null ? `${Math.round(c.hit_ratio * 100)}%` : null, unit: t('services.fromDisk'),
+      note: [t('services.served', { bytes: bytes(c.served_bytes), rate: bps(c.bps) }),
+        c.disk && t('services.diskUsed', { used: bytes(c.disk.used), total: bytes(c.disk.total) }), c.error].filter(Boolean).join(' · '),
+      points: [],
+    })
+  }
+  for (const s of g?.servers ?? []) {
+    const info = s.status === 'up' ? s.info : null
+    rows.push({
+      key: `g-${s.id}`, type: 'game', name: s.name, status: s.status, target: [s.game || s.info?.game, `${s.host}:${s.port}`].filter(Boolean).join(' · '),
+      value: info && s.query !== 'tcp' ? `${info.players}/${info.max_players}` : null, unit: info && s.query !== 'tcp' ? t('gameServers.players') : null,
+      note: info ? [info.map && t('gameServers.map', { map: info.map }), info.ping_ms != null && `${info.ping_ms} ms`, info.version].filter(Boolean).join(' · ')
+        : s.error || t('gameServers.notAsked'),
+      points: s.query !== 'tcp' ? s.history.map(([, n]) => n ?? 0) : [], edit: edit.game && (() => edit.game!(s)), game: s,
+    })
+  }
+  return rows
+}
+
+/** One service on one line: state, name and where it is, the number that matters, its recent
+ *  history and what can be done with it. */
+function ServiceRow({ row: r, showType, canRcon, onConsole }: { row: Row; showType: boolean; canRcon: boolean; onConsole: () => void }) {
+  const { t } = useTranslation()
+  const qc = useQueryClient()
+  // Ask this one game server now instead of waiting for the next poll (after a restart, say).
+  const check = useMutation({
+    mutationFn: () => post(`/api/game-servers/check/${r.game!.id}`, {}),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.gameServers }),
+  })
+  const bad = r.status === 'down' || r.status === 'unknown'
   return (
-    <Stack gap="sm">
-      <Group justify="space-between">
-        <Title order={2} size="h3">{title}</Title>
-        <Group gap="xs">
-          {extra}
-          {add && <Button size="compact-md" variant="default" onClick={add}>{addLabel}</Button>}
-        </Group>
+    <div className="fb-service-row" role="group" aria-label={r.name} data-status={r.status}>
+      <div className="fb-service-name">
+        <span className={`fb-bit ${BIT[r.status]}`} aria-hidden="true" />
+        <div style={{ minWidth: 0 }}>
+          <Group gap={8} wrap="nowrap">
+            <Text fw={600} truncate>{r.name}</Text>
+            <Badge size="sm" variant="light" color={TONE[r.status]}>{t(`services.status.${r.status}`)}</Badge>
+          </Group>
+          <Text size="sm" c="dimmed" ff="monospace" truncate>{showType ? `${t(`services.types.${r.type}`)} · ${r.target}` : r.target}</Text>
+        </div>
+      </div>
+      <div className="fb-service-value">
+        {r.value && (
+          <Group gap={6} align="baseline" wrap="nowrap">
+            <Text fw={700} fz="xl" lh={1}>{r.value}</Text>
+            {r.unit && <Text size="sm" c="dimmed">{r.unit}</Text>}
+          </Group>
+        )}
+        {r.note && <Text size="sm" c={bad ? 'down' : r.status === 'warn' && !r.value ? 'warn' : undefined} lineClamp={2}>{r.note}</Text>}
+      </div>
+      <div className="fb-service-spark">{r.points.length > 1 && <Sparkline points={r.points} min={0} />}</div>
+      <Group gap={4} className="fb-service-actions" wrap="nowrap" justify="flex-end">
+        {r.game && canRcon && (
+          <>
+            <Button size="compact-sm" variant="default" disabled={!r.game.rcon} onClick={onConsole}
+              title={r.game.rcon ? undefined : t('gameServers.noRcon')}>{t('gameServers.console')}</Button>
+            <Button size="compact-sm" variant="subtle" loading={check.isPending} onClick={() => check.mutate()}>{t('gameServers.checkNow')}</Button>
+          </>
+        )}
+        {r.edit && <Button size="compact-sm" variant="subtle" onClick={r.edit}>{t('services.edit')}</Button>}
       </Group>
-      {empty ? <Paper withBorder radius="lg" p="md"><Text c="dimmed">{empty}</Text></Paper>
-        : <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">{children}</SimpleGrid>}
-    </Stack>
+    </div>
   )
 }
 

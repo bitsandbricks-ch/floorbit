@@ -1,13 +1,13 @@
 # Game servers
 
-**Network › Game servers** (`/game-servers`) shows the hall's game servers: whether each one is up, how
-many players are on it, which map it runs and how fast it answers, with the players over the last
-half hour. The crew sends RCON commands from the same page. The servers also show as tiles on the
+The hall's game servers are rows on the [Services](services.md) page (`/services`, issue #889): whether
+each one is up, how many players are on it, which map it runs and how fast it answers, with the
+players over the last half hour. The crew sends RCON commands from the same row. The servers also show as tiles on the
 [service health wall](health.md), so a server that stops answering pages the crew like DHCP or DNS would.
 
 ## Adding a server
 
-Admins (`settings.manage`) press **Add game server** and give:
+Admins (`settings.manage`) press **Add service › Game server** and give:
 
 | Field | What |
 | --- | --- |

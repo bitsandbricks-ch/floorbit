@@ -19,7 +19,7 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
   Incidents, My jobs, Handover and Status updates; **Network** has Topology, Firewalls and
   Security; **Seats** has Seat mapping, Check-in, the seat walk-through and IP and MAC history;
   **Inventory** has Cables and Electrics; **Switch console** has the switch commands and the
-  terminal; **Services** has Game servers; **Agents** has Telemetry; **Dashboards** has Widgets.
+  terminal; **Agents** has Telemetry; **Dashboards** has Widgets.
   Each tab keeps its own address.
 - **Settings** is the gear at the foot, next to your name. The event's own pages (schedule,
   changelog, replay, report, floor plan templates) are in the event menu at the top.

@@ -1,9 +1,16 @@
 # Services
 
-Network › Services (`/services`, issue #471): the internet lines, the DNS resolvers, the internet sites
-players need and the LAN cache, with whether they answer, how full the lines are and how fast. Lines
-and resolvers also show on the [service health](health.md) widget and so in its alerts; the sites show
-there as one tile.
+Monitoring › Services (`/services`, issues #471, #889): the internet lines, the DNS resolvers, the
+internet sites players need, the LAN cache and the [game servers](game-servers.md), with whether they
+answer, how full the lines are and how fast. Lines and resolvers also show on the
+[service health](health.md) widget and so in its alerts; the sites show there as one tile.
+
+The page is one list, one row per service: its state, name and address, the number that matters
+(how full, how fast, how many players), the last half hour as a line, and what can be done with it.
+Rows are grouped by type, or by state (down first). A search box and **All / Not up / Up** narrow the
+list. **Add service** asks which kind first: an internet line, a DNS resolver or an internet site
+(`floorplan.edit`), or a game server (`settings.manage`). The LAN cache comes from its log, so it
+isn't added here.
 
 ## Internet lines
 
