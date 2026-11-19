@@ -78,13 +78,13 @@
   "search": "Search services",
   "show": "Show",
   "filter": {
-    "all": "All {{count}}",
-    "notUp": "Not up {{count}}",
-    "up": "Up {{count}}"
+    "all": "All",
+    "notUp": "Not up",
+    "up": "Up"
   },
   "groupBy": "Group by",
-  "byType": "Group by type",
-  "byState": "Group by state",
+  "byType": "Type",
+  "byState": "State",
   "noMatch": "No service matches.",
   "empty": "Nothing is watched yet.",
   "emptyAdmin": "Nothing is watched yet. Add the internet lines, the resolvers players use, the sites they need and the game servers, or start with the usual sites."

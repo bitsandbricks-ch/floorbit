@@ -1,7 +1,7 @@
 import {
-  Alert, Button, Group, Menu, Modal, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput,
+  Alert, Button, Group, Menu, Modal, NumberInput, Paper, Select, SimpleGrid, Stack, Text, TextInput,
 } from '@mantine/core'
-import { IconPlus, IconSearch } from '@tabler/icons-react'
+import { IconPlus } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -19,6 +19,8 @@ import { STATES, TYPES, serviceRows } from '@/widgets/serviceRows'
 import type { ServiceType } from '@/widgets/serviceRows'
 import { EntitySelect } from '@/components/EntitySelect'
 import { RconConsole, ServerModal } from './services/GameServerParts'
+import { FilterBar } from '@/components/FilterBar'
+import { useFilters } from '@/components/useFilters'
 
 
 type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'; item: DnsResolver | null }
@@ -35,9 +37,10 @@ export default function Services() {
   const games = useQuery({ queryKey: qk.gameServers, queryFn: () => get<GameServerList>('/api/game-servers'), refetchInterval: 15_000 })
   const [editing, setEditing] = useState<Editing>(null)
   const [console_, setConsole] = useState<GameServer | null>(null)
-  const [search, setSearch] = useState('')
-  const [shown, setShown] = useState<'all' | 'notUp' | 'up'>('all')
-  const [by, setBy] = useState<'type' | 'state'>('type')
+  const filters = useFilters({ shown: 'all', by: 'type' })
+  const { search } = filters
+  const shown = filters.values.shown as 'all' | 'notUp' | 'up'
+  const by = filters.values.by as 'type' | 'state'
   const data = q.data
   const qc = useQueryClient()
   const check = useMutation({
@@ -99,17 +102,16 @@ export default function Services() {
         )}
         {common.error && <Alert color="down" role="alert">{common.error.message}</Alert>}
         {rows.length > 0 && (
-          <Group gap="sm" wrap="wrap">
-            <TextInput leftSection={<IconSearch size={16} />} placeholder={t('services.search')} aria-label={t('services.search')}
-              value={search} onChange={(e) => setSearch(e.currentTarget.value)} style={{ flex: '1 1 220px', maxWidth: 360 }} />
-            <SegmentedControl value={shown} onChange={(v) => setShown(v as typeof shown)} aria-label={t('services.show')} data={[
-              { value: 'all', label: t('services.filter.all', { count: rows.length }) },
-              { value: 'notUp', label: t('services.filter.notUp', { count: notUp }) },
-              { value: 'up', label: t('services.filter.up', { count: rows.length - notUp }) },
-            ]} />
-            <Select aria-label={t('services.groupBy')} w={170} allowDeselect={false} value={by} onChange={(v) => setBy((v ?? 'type') as typeof by)}
-              data={[{ value: 'type', label: t('services.byType') }, { value: 'state', label: t('services.byState') }]} />
-          </Group>
+          <FilterBar state={filters} searchLabel={t('services.search')} filters={[
+            { id: 'shown', label: t('services.show'), options: [
+              { value: 'all', label: t('services.filter.all'), count: rows.length },
+              { value: 'notUp', label: t('services.filter.notUp'), count: notUp },
+              { value: 'up', label: t('services.filter.up'), count: rows.length - notUp },
+            ] },
+            { id: 'by', label: t('services.groupBy'), options: [
+              { value: 'type', label: t('services.byType') }, { value: 'state', label: t('services.byState') },
+            ] },
+          ]} />
         )}
         {rows.length > 0 && matching.length === 0 && <Text c="dimmed">{t('services.noMatch')}</Text>}
         {groups.filter((g) => g.rows.length).map((g) => (

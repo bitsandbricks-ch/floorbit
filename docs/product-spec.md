@@ -166,6 +166,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   (the sidebar is 15px).
 - **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
   for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
+- **Lists filter the same way:** a search field and a chip per filter with counts (`FilterBar`),
+  kept in the address (`useFilters`) so a link or a reload shows the same view.
 - **Deletes ask first** (`ConfirmButton`), never `window.confirm`, `alert` or `prompt`.
 - **Languages:** English and Swiss German everywhere (pages, server errors, Discord, logs); standard
   German is derived. No "ß". Terms: Sitzblock, Störung, Hallenplan, Mandant.
