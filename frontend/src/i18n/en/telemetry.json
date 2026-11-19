@@ -113,5 +113,6 @@
   "showSilent": "Never heard",
   "edit": "Set up and test",
   "open": "Open",
+  "tableLabel": "Telemetry devices",
   "noMatch": "No device matches."
 }
