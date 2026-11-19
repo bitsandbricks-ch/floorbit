@@ -198,10 +198,6 @@ SCHEDULES = 'inventory_discovery_schedules'      # {action: minutes} set by an a
 RUNS = 'inventory_discovery_runs'                # {action: {at, devices, changed}}
 
 
-class DiscoveryError(ValueError):
-    pass
-
-
 def action(action_id):
     return next((a for a in ACTIONS if a['id'] == action_id), None)
 
@@ -227,20 +223,22 @@ def actions(data):
 
 
 def set_minutes(data, action_id, minutes):
-    """An admin's schedule for one action: minutes (0 = off), or None for the default."""
+    """An admin's schedule for one action: minutes (0 = off), or None for the default. Returns
+    what is wrong with it, or None when it is saved (a fixed text: nothing of the request echoes)."""
     if action(action_id) is None:
-        raise DiscoveryError('No such discovery action.')
+        return 'No such discovery action.'
     if not isinstance(data.get(SCHEDULES), dict):
         data[SCHEDULES] = {}
     saved = data[SCHEDULES]
     if minutes is None:
         saved.pop(action_id, None)
-        return
+        return None
     if isinstance(minutes, bool) or not isinstance(minutes, int) or minutes < 0 or minutes > MAX_MINUTES:
-        raise DiscoveryError(f'Minutes are a whole number from 0 (off) to {MAX_MINUTES}.')
+        return f'Minutes are a whole number from 0 (off) to {MAX_MINUTES}.'
     if 0 < minutes < MIN_MINUTES:
-        raise DiscoveryError(f'Discovery runs at most every {MIN_MINUTES} minutes.')
+        return f'Discovery runs at most every {MIN_MINUTES} minutes.'
     saved[action_id] = minutes
+    return None
 
 
 def due_actions(data, now):

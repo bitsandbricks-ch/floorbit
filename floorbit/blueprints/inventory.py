@@ -242,10 +242,9 @@ def discovery_schedule(action_id):
         data = load_data()
         if inventory_discovery.action(action_id) is None:
             return jsonify({'error': 'No such discovery action.'}), 404
-        try:
-            inventory_discovery.set_minutes(data, action_id, body['minutes'])
-        except inventory_discovery.DiscoveryError as exc:
-            return jsonify({'error': str(exc)}), 400
+        problem = inventory_discovery.set_minutes(data, action_id, body['minutes'])
+        if problem:
+            return jsonify({'error': problem}), 400
         save_data(data)
     return jsonify({'actions': inventory_discovery.actions(data)})
 
