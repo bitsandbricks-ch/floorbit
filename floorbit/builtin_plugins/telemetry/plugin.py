@@ -69,9 +69,16 @@ class Plugin(Base):
             return []
         with state._lock:
             found = list(state.devices.values())
-        return [{'hostname': d.name, 'display': d.name, 'sysName': d.sys_name or d.name, 'ip': d.address,
-                 'status': 1 if d.online() else 0, 'source': 'telemetry', 'driver': d.driver, 'kind': d.kind}
-                for d in sorted(found, key=lambda d: d.name)]
+        problems = _problems()
+        out = [{'hostname': d.name, 'display': d.name, 'sysName': d.sys_name or d.name, 'ip': d.address,
+                'status': 1 if d.online() else 0, 'source': 'telemetry', 'driver': d.driver, 'kind': d.kind,
+                'seen': d.seen or None, 'problems': problems.pop(d.name, []), **_counts(d)}
+               for d in sorted(found, key=lambda d: d.name)]
+        # A device that never sent anything has no picture yet, but may well have a problem.
+        out += [{'hostname': name, 'display': name, 'sysName': name, 'ip': rows[0].get('address') or '',
+                 'status': 0, 'source': 'telemetry', 'driver': rows[0]['driver'], 'kind': '', 'seen': None,
+                 'problems': rows} for name, rows in sorted(problems.items()) if name]
+        return out
 
     def device_ports(self, hostname):
         if not state.collecting:
@@ -98,9 +105,9 @@ class Plugin(Base):
             return {}
         dev = self._device(hostname)
         if dev is None:
-            return {'status': 'unknown', 'hostname': hostname}
+            return {'status': 'unknown', 'hostname': hostname, 'problems': _problems().get(hostname, [])}
         result = {'status': 'online' if dev.online() else 'offline', 'hostname': hostname, 'ip': dev.address,
-                  'source': 'telemetry', 'driver': dev.driver}
+                  'source': 'telemetry', 'driver': dev.driver, 'problems': _problems().get(dev.name, [])}
         for key, value in (('cpu_load', dev.cpu), ('mem_percent', dev.mem), ('uptime', dev.uptime),
                            ('states', dev.states)):
             if value is not None:
@@ -220,6 +227,24 @@ class Plugin(Base):
 
 
 REPLAY = 6 * 3600     # an agent's spool may bring batches this old
+
+
+def _counts(dev):
+    """What came in, for Settings > Telemetry on a Floorbit whose agent collects."""
+    with state._lock:
+        return {'ports': len(dev.interfaces), 'macs': len(dev.fdb), 'arp': len(dev.arp),
+                'neighbours': len(dev.lldp) + len(dev.cdp)}
+
+
+def _problems():
+    """{device: [problem]} from the collector here (floorbit/telemetry/problems.py), with the
+    hint in words; the hosted page translates by ``kind``."""
+    from floorbit.telemetry import problems as problems_mod
+    out = {}
+    for p in state.problems.current() if state.problems is not None else []:
+        row = {k: p.get(k) for k in ('driver', 'kind', 'address', 'detail', 'since', 'at', 'count')}
+        out.setdefault(p['device'], []).append({**row, 'hint': problems_mod.hint(p)})
+    return out
 
 
 def _when(payload):

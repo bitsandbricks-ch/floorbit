@@ -985,11 +985,14 @@ Source: [`floorbit/blueprints/telemetry.py`](https://github.com/bitsandbricks-ch
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/settings/telemetry` | `settings.manage` |  |
+| GET | `/api/settings/telemetry/devices` | `settings.manage` |  |
+| GET | `/api/settings/telemetry/raw` | `settings.manage` |  |
 | POST | `/api/settings/telemetry/targets` | `settings.manage` |  |
 | DELETE | `/api/settings/telemetry/targets/<target_id>` | `settings.manage` |  |
 | PUT | `/api/settings/telemetry/targets/<target_id>` | `settings.manage` |  |
 | GET | `/api/settings/telemetry/targets/<target_id>/device-config` | `settings.manage` |  |
 | GET | `/api/settings/telemetry/telegraf.conf` | `settings.manage` |  |
+| POST | `/api/settings/telemetry/test` | `settings.manage` |  |
 | GET | `/api/settings/telemetry/token` | `settings.manage` |  |
 | POST | `/api/settings/telemetry/token` | `settings.manage` |  |
 | POST | `/api/telemetry/api/v2/write` | anyone |  |

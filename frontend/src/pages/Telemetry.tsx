@@ -7,6 +7,9 @@ import { del, get, post, put } from '@/api/client'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { EntitySelect } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
+import { DeviceProblems, DeviceTelemetryActions } from '@/components/telemetry/DeviceTelemetry'
+import type { DeviceProblem } from '@/components/telemetry/api'
+import { TelemetryAgentNumbersList, type TelemetryAgentNumbers } from '@/components/telemetry/AgentNumbers'
 import { PageHead } from '@/components/PageHead'
 import { ago, dateTime } from '@/lib/time'
 
@@ -18,12 +21,13 @@ export interface TelemetryTarget {
   fdb: string; vlans: number[]; port: number | null; verify_tls: boolean; tables: boolean; mdt_node: string | null
   url: string | null; secrets: string[]
 }
-interface Seen { seen: number | null; online: boolean; ports: number; macs: number; arp: number; neighbours: number }
+interface Seen { seen: number | null; online: boolean; ports?: number; macs?: number; arp?: number; neighbours?: number; problems?: DeviceProblem[] }
 export interface TelemetrySettings {
   targets: TelemetryTarget[]; seen: Record<string, Seen>
   /** Devices from the inventory with the Telemetry feature on: set up there, shown here. */
   inventory?: TelemetryTarget[]
-  status: { collector: 'here' | 'agent'; devices: number; points: number; unknown: number; poll_errors: Record<string, string>
+  status: { collector: 'here' | 'agent'; devices: number; points: number | null; unknown: number; poll_errors: Record<string, string>
+    agents?: TelemetryAgentNumbers[]
     storage: { mode: string; keep_days: number | null; errors: Record<string, string> } }
   drivers: string[]; platforms: string[]; kinds: string[]; fdb_modes: string[]
 }
@@ -92,8 +96,9 @@ export default function Telemetry() {
               <Stat label={t('telemetry.collector')} value={t(`telemetry.collectorIs.${d.status.collector}`)} />
               <Stat label={t('telemetry.storage')} value={t(`telemetry.storageIs.${d.status.storage.mode}`, { days: d.status.storage.keep_days })} />
               <Stat label={t('telemetry.devices')} value={String(d.status.devices)} />
-              <Stat label={t('telemetry.points')} value={String(d.status.points)} />
+              {d.status.points !== null && <Stat label={t('telemetry.points')} value={String(d.status.points)} />}
             </SimpleGrid>
+            {d.status.agents && d.status.agents.length > 0 && <Stack mt="sm"><TelemetryAgentNumbersList agents={d.status.agents} /></Stack>}
             {Object.entries({ ...d.status.poll_errors, ...d.status.storage.errors }).map(([what, msg]) => (
               <Alert key={what} mt="sm" color="warn" title={what}>{msg}</Alert>
             ))}
@@ -114,15 +119,19 @@ export default function Telemetry() {
                     const s = d.seen[tg.name]
                     return (
                       <Table.Tr key={tg.id}>
-                        <Table.Td><Text ff="monospace" size="sm">{tg.name}</Text><Text size="xs" c="dimmed">{tg.address} · {t(`telemetry.platform.${tg.platform}`, { defaultValue: tg.platform })}</Text></Table.Td>
+                        <Table.Td>
+                          <Text ff="monospace" size="sm">{tg.name}</Text><Text size="xs" c="dimmed">{tg.address} · {t(`telemetry.platform.${tg.platform}`, { defaultValue: tg.platform })}</Text>
+                          <DeviceProblems problems={s?.problems} />
+                        </Table.Td>
                         <Table.Td><Group gap={4}>{tg.drivers.map((x) => <Badge key={x} variant="light" size="sm">{t(`telemetry.driver.${x}`, { defaultValue: x })}</Badge>)}</Group></Table.Td>
                         <Table.Td>
                           {s?.seen ? <Badge color={s.online ? 'up' : 'down'} variant="light" tt="none" miw="max-content" title={dateTime(s.seen)}>{ago(s.seen)}</Badge>
                             : <Text size="sm" c="dimmed">{t('telemetry.never')}</Text>}
                         </Table.Td>
-                        <Table.Td visibleFrom="sm"><Text size="sm">{s ? t('telemetry.counts', { ...s }) : '–'}</Text></Table.Td>
+                        <Table.Td visibleFrom="sm"><Text size="sm">{s?.ports !== undefined ? t('telemetry.counts', { ...s }) : '–'}</Text></Table.Td>
                         <Table.Td>
                           <Group gap={6} justify="flex-end" wrap="nowrap">
+                            {d.status.collector === 'agent' && <DeviceTelemetryActions name={tg.name} />}
                             <Button size="compact-sm" variant="default" onClick={() => config.mutate(tg)}>{t('telemetry.deviceConfig')}</Button>
                             <Button size="compact-sm" variant="default" onClick={() => { setEditing(tg.id); setForm(fromTarget(tg)) }}>{t('telemetry.edit')}</Button>
                             <ConfirmButton size="compact-sm" variant="subtle" danger label={t('telemetry.remove')}
@@ -148,19 +157,23 @@ export default function Telemetry() {
             <Table.ScrollContainer minWidth={420}>
               <Table>
                 <Table.Thead>
-                  <Table.Tr><Table.Th>{t('telemetry.device')}</Table.Th><Table.Th>{t('telemetry.drivers')}</Table.Th><Table.Th>{t('telemetry.lastSeen')}</Table.Th></Table.Tr>
+                  <Table.Tr><Table.Th>{t('telemetry.device')}</Table.Th><Table.Th>{t('telemetry.drivers')}</Table.Th><Table.Th>{t('telemetry.lastSeen')}</Table.Th><Table.Th /></Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {d.inventory.map((tg) => {
                     const s = d.seen[tg.name]
                     return (
                       <Table.Tr key={tg.id}>
-                        <Table.Td><Text ff="monospace" size="sm">{tg.name}</Text><Text size="xs" c="dimmed">{tg.address} · {t(`telemetry.platform.${tg.platform}`, { defaultValue: tg.platform })}</Text></Table.Td>
+                        <Table.Td>
+                          <Text ff="monospace" size="sm">{tg.name}</Text><Text size="xs" c="dimmed">{tg.address} · {t(`telemetry.platform.${tg.platform}`, { defaultValue: tg.platform })}</Text>
+                          <DeviceProblems problems={s?.problems} />
+                        </Table.Td>
                         <Table.Td><Group gap={4}>{tg.drivers.map((x) => <Badge key={x} variant="light" size="sm">{t(`telemetry.driver.${x}`, { defaultValue: x })}</Badge>)}</Group></Table.Td>
                         <Table.Td>
                           {s?.seen ? <Badge color={s.online ? 'up' : 'down'} variant="light" tt="none" miw="max-content" title={dateTime(s.seen)}>{ago(s.seen)}</Badge>
                             : <Text size="sm" c="dimmed">{t('telemetry.never')}</Text>}
                         </Table.Td>
+                        <Table.Td>{d.status.collector === 'agent' && <Group gap={6} justify="flex-end" wrap="nowrap"><DeviceTelemetryActions name={tg.name} /></Group>}</Table.Td>
                       </Table.Tr>
                     )
                   })}

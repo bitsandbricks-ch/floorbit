@@ -296,6 +296,7 @@
   "Removed an inventory entry": "Inventareintrag entfernt",
   "Removed an inventory type": "Inventartyp entfernt",
   "Added telemetry from {}": "Telemetrie von {} hinzugefügt",
+  "Tested telemetry from {}": "Telemetrie von {} getestet",
   "Changed telemetry from {}": "Telemetrie von {} geändert",
   "Removed telemetry from {}": "Telemetrie von {} entfernt",
   "Looked at the telemetry token": "Telemetrie-Token angesehen",

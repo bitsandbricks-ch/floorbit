@@ -52,23 +52,27 @@ FLUSH_EVERY = 0.5      # seconds
 MAX_PENDING = 20_000
 _pending = []
 _writer = []
+_flushing = threading.Lock()
 atexit.register(lambda: flush())
 
 
 def flush():
     """Write what waits. Readers call it first, so they see every line written before."""
-    with _lock:
-        waiting = _pending[:]
-        del _pending[:]
-    by_path = {}
-    for where, line in waiting:
-        by_path.setdefault(where, []).append(line)
-    for where, rows in by_path.items():
-        try:
-            journal.append_many(where, rows)
-            journal.keep_newest_half_over(where, MAX_BYTES)
-        except (OSError, database.DatabaseError) as exc:   # a full disk must not break what was being logged
-            print(f'[timeline] could not write the journal: {exc}')
+    # Held while writing too: otherwise a reader's flush finds nothing waiting while the writer
+    # thread is still storing the batch it took, and reads the journal without those lines.
+    with _flushing:
+        with _lock:
+            waiting = _pending[:]
+            del _pending[:]
+        by_path = {}
+        for where, line in waiting:
+            by_path.setdefault(where, []).append(line)
+        for where, rows in by_path.items():
+            try:
+                journal.append_many(where, rows)
+                journal.keep_newest_half_over(where, MAX_BYTES)
+            except (OSError, database.DatabaseError) as exc:   # a full disk must not break what was being logged
+                print(f'[timeline] could not write the journal: {exc}')
 
 
 def _start_writer():

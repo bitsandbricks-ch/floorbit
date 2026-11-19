@@ -232,15 +232,19 @@ class Health:
 
     def __init__(self):
         self._lock = threading.Lock()
-        self.status, self.message = 'ok', ''
+        self.status, self.message, self.hint = 'ok', '', ''
         self.errors = deque(maxlen=ERRORS_KEPT)
         self.counters, self.gauges = {}, {}
 
-    def set(self, status, message=''):
+    def set(self, status, message='', hint=''):
+        """``hint``: a short code (``telegraf_missing``) the hosted page turns into a translated
+        sentence with a link to the docs; ``message`` stays for an older page."""
         if status not in STATUSES:
             raise PluginError(f"health status must be one of {', '.join(STATUSES)}")
+        if hint and not KIND_RE.match(str(hint)):
+            raise PluginError(f'bad health hint {hint!r}: lowercase letters, digits and _')
         with self._lock:
-            self.status, self.message = status, str(message)[:300]
+            self.status, self.message, self.hint = status, str(message)[:300], str(hint or '')
 
     def error(self, message):
         with self._lock:
@@ -260,6 +264,7 @@ class Health:
         with self._lock:
             numbers = {**self.counters, **self.gauges}
             return {'status': self.status, 'message': self.message,
+                    **({'hint': self.hint} if self.hint else {}),
                     'metrics': dict(sorted(numbers.items())[:METRICS_KEPT]),
                     'errors': list(self.errors)}
 
@@ -394,8 +399,8 @@ class MemoryContext:
             raise PluginError(err)
         self.sent.append((kind, payload))
 
-    def health(self, status, message=''):
-        self.health_.set(status, message)
+    def health(self, status, message='', hint=''):
+        self.health_.set(status, message, hint)
 
     def error(self, message):
         self.health_.error(message)

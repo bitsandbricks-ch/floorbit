@@ -213,6 +213,8 @@ class State:
         self.devices = {}
         # False on a standby agent (VRRP): another agent collects, this picture is not the hall's.
         self.collecting = True
+        # Why devices send nothing (problems.Problems), set by the collector on the agent.
+        self.problems = None
         self.points = 0
         self.unknown = 0               # points no driver here understands (kept in storage only)
         self._expired = 0.0

@@ -5,7 +5,8 @@ import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { AgentPluginHealth, AgentReport, AgentStats } from '@/api/types'
 import { ago } from '@/lib/time'
-import { PLUGIN_COLOR, uptime } from './model'
+import { HintAnchor } from './HintAnchor'
+import { PLUGIN_COLOR, pluginSays, uptime } from './model'
 
 // The long form of one agent, on its own page: calls, what it reports about itself,
 // and each plugin's numbers.
@@ -106,6 +107,8 @@ export function PluginTable({ plugins, lang }: { plugins?: Record<string, AgentP
         {ids.map((id) => {
           const p = plugins[id]
           const last = p.errors[p.errors.length - 1]
+          const says = pluginSays(p, t)
+          const tone = p.status === 'error' ? 'down' : p.status === 'warning' ? 'warn' : 'dimmed'
           return (
             <Table.Tr key={id}>
               <Table.Td className="fb-stack-inline">
@@ -113,7 +116,8 @@ export function PluginTable({ plugins, lang }: { plugins?: Record<string, AgentP
               </Table.Td>
               <Table.Td data-label={t('agents.col.state')}>
                 <Text size="sm">{p.running ? t(`agents.pluginStatus.${p.status}`) : t('agents.pluginNotRunning')}</Text>
-                {p.message && <Text size="xs" c={p.status === 'error' ? 'down' : p.status === 'warning' ? 'warn' : 'dimmed'} style={{ overflowWrap: 'anywhere' }}>{p.message}</Text>}
+                {says.text && <Text size="xs" c={tone} style={{ overflowWrap: 'anywhere' }}>{says.text}{says.link && <>{' '}<HintAnchor link={says.link} /></>}</Text>}
+                {says.detail && <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{says.detail}</Text>}
               </Table.Td>
               <Table.Td data-label={t('agents.col.numbers')}>
                 <Text size="xs" c="dimmed">

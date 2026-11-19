@@ -18,6 +18,8 @@ agent:
     series: {privacy: device}
     # Where each machine was seen (MAC, IP, port), for the history and search (docs/endpoints.md).
     endpoints: {privacy: device}
+  # "Test now" and "Raw data" on a device: asked by an admin, answered from the agent's memory.
+  calls: [test, raw]
 settings:
   - {key: uplink_macs, label: Uplink above, type: int, default: 8, min: 2, max: 1000,
      help: "A port that has learned more MACs than this is an uplink or a desk switch: a seat's machine is looked for on another port first."}

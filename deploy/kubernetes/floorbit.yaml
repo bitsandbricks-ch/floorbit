@@ -90,6 +90,9 @@ spec:
           ports:
             - {name: syslog, containerPort: 5514, protocol: UDP}
             - {name: flows, containerPort: 2055, protocol: UDP}
+            # Telemetry: the agent runs Telegraf itself (docs/telemetry.md).
+            - {name: snmp-traps, containerPort: 1162, protocol: UDP}
+            - {name: mdt, containerPort: 57000, protocol: TCP}
             - {name: checkin, containerPort: 8443}
           volumeMounts:
             - {name: agent-key, mountPath: /run/floorbit-agent, readOnly: true}

@@ -65,28 +65,13 @@ services:
       # The attendee front door: point CHECKIN_ADDRESS (e.g. checkin.lan) at this host in the
       # event DNS. Plain HTTP on port 80; set FLOORBIT_AGENT_TLS_CERT/KEY on the agent for HTTPS (docs/agent.md).
       - "${CHECKIN_PUBLISH_PORT:-80}:8443"
+      # Device telemetry (docs/telemetry.md): the agent runs Telegraf itself. SNMP traps and
+      # Cisco model-driven telemetry from the devices; nothing listens until devices use them.
+      - "${TRAP_PUBLISH_PORT:-162}:1162/udp"
+      - "${MDT_PUBLISH_PORT:-57000}:57000"
     depends_on:
       floorbit:
         condition: service_healthy
-    restart: unless-stopped
-
-  # Optional: Telegraf collects device telemetry (SNMP, traps, gNMI, Cisco MDT) for Floorbit
-  # (docs/telemetry.md). The agent writes its config from Settings > Telemetry and takes what it
-  # collects; Telegraf reloads the config when it changes.
-  #   docker compose --profile telemetry up -d
-  telegraf:
-    image: telegraf:1.40.3
-    profiles: ["telemetry"]
-    # The agent's user, so it can read the config the agent wrote (mode 600, secrets in it).
-    user: "10001"
-    entrypoint: ["sh", "-c", "until [ -f /app/state/plugins/telemetry/telegraf.conf ]; do sleep 5; done; exec telegraf --config /app/state/plugins/telemetry/telegraf.conf --watch-config notify"]
-    ports:
-      - "${TRAP_PUBLISH_PORT:-162}:1162/udp"   # SNMP traps
-      - "${MDT_PUBLISH_PORT:-57000}:57000"     # Cisco model-driven telemetry, dial-out
-    volumes:
-      - agent_state:/app/state:ro
-    depends_on:
-      - agent
     restart: unless-stopped
 
   # Optional: keep telemetry history in VictoriaMetrics instead of Floorbit's own database

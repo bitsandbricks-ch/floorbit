@@ -63,5 +63,49 @@
   "download": "Download telegraf.conf",
   "pasteTitle": "Set up {{name}}",
   "pasteIntro": "Paste this on the device so it sends to the collector. Fill in the parts in angle brackets.",
-  "pasteNothing": "Nothing to set up on the device for these drivers: the collector asks it."
+  "pasteNothing": "Nothing to set up on the device for these drivers: the collector asks it.",
+  "problem": {
+    "refused": "{{driver}}: nothing listens on {{address}}. Is it turned on on the device, and the port right?",
+    "timeout": "{{driver}}: no answer from {{address}}. Is it reachable from the agent, and the port right?",
+    "timeout_snmp": "SNMP: no answer from {{address}}. Check the community or SNMPv3 login, and that an ACL lets the agent in.",
+    "auth": "{{driver}}: {{address}} refused the login. Check the user and password (or SNMPv3 keys).",
+    "unreachable": "{{driver}}: the agent has no route to {{address}}. Check the address and the agent's network.",
+    "tls": "{{driver}}: TLS with {{address}} failed. Check its certificate, or turn off TLS checking for it.",
+    "listen": "{{driver}}: Telegraf cannot open its listening port. Is another program using it?",
+    "other": "{{driver}}: {{detail}}",
+    "docs": "What to check"
+  },
+  "test": {
+    "button": "Test now",
+    "title": "Test {{name}}",
+    "running": "Asking the device through the agent…",
+    "ok": "Answers",
+    "partly": "Answers, with problems",
+    "nothing": "Nothing came back",
+    "took": "through {{agent}}, {{ms}} ms",
+    "got_one": "1 value, {{ports}} ports",
+    "got_other": "{{count}} values, {{ports}} ports"
+  },
+  "raw": {
+    "button": "Raw data",
+    "title": "Raw data from {{name}}",
+    "none": "Nothing received from this device yet.",
+    "help": "The last lines {{agent}} received from it, as Telegraf sent them. Refreshes every 10 seconds.",
+    "show_one": "Show the raw line",
+    "show_other": "Show the {{count}} raw lines",
+    "hide": "Hide the raw lines"
+  },
+  "agentNumbers": {
+    "standby": "standby",
+    "offline": "offline",
+    "posting": "Telegraf posted {{s}} s ago",
+    "quiet": "nothing from Telegraf lately",
+    "points": "{{n}} points received",
+    "heard": "{{n}} devices heard",
+    "series": "{{n}} series",
+    "sent": "{{n}} sends to Floorbit",
+    "failing": "{{n}} devices fail",
+    "refused": "{{refused}} posts refused, {{bad}} lines not understood"
+  },
+  "heard": "Heard {{when}}"
 }
