@@ -2,7 +2,7 @@
 
 Network › Services (`/services`, issue #471): the internet lines, the DNS resolvers, the internet sites
 players need and the LAN cache, with whether they answer, how full the lines are and how fast. Lines
-and resolvers also show on the service health wall (`/health`) and so in its alerts; the sites show
+and resolvers also show on the [service health](health.md) widget and so in its alerts; the sites show
 there as one tile.
 
 ## Internet lines

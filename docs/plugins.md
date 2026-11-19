@@ -15,9 +15,9 @@ plugin has its own page, `/settings/plugins/<id>`, with what it may touch, its t
 and settings. Secrets are write-only there, as everywhere. The Settings search finds plugin settings
 too and links to the plugin's page.
 
-The **Dashboard** (in the sidebar, `/dashboard`) shows the tiles of the plugins that are
-on, for anyone signed in whose role is allowed to see them. Layouts save which tiles a screen shows
-([Dashboards](dashboard.md)).
+The tiles of the plugins that are on show in the [widget gallery](dashboards.md#the-widget-gallery)
+(`/widgets`), for anyone signed in whose role is allowed to see them, and go on any dashboard as a
+**Tile** pane.
 
 Where plugins come from:
 

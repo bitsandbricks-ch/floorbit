@@ -2,8 +2,8 @@
 
 What the hall plays and downloads, and how much the LAN cache saved: per launcher (Steam,
 Battle.net, Riot Games, Epic Games, EA app, Ubisoft Connect, Xbox, Minecraft), the bytes the LAN
-cache served for it, its traffic and its DNS lookups. It's on the **Games** page (`/games`, also
-linked from Traffic) and in `GET /api/games`.
+cache served for it, its traffic and its DNS lookups. It's the **Games** widget (on the ready-made
+Traffic dashboard) and in `GET /api/games`.
 
 It answers questions like "is the cache pulling its weight?", "which launcher is downloading right
 now?" and "how many seats play on the tournament servers?". Hall-wide only: no seat, person or

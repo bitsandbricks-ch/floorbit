@@ -222,8 +222,8 @@ on. **Open these layers on the Seats view** opens this hall there with the same 
 
 ## Big screens and attendee pages
 
-- `/kiosk?hall=<id>` (or `/dashboards/<id>?hall=<id>`) shows another hall than the first; `/screen?hall=<id>` passes it on to its
-  floor plan views. With more than one hall, the kiosk heading names the hall.
+- `/kiosk?hall=<id>` (or `/dashboards/<id>?hall=<id>`) shows another hall than the first; with `?rotate=` it goes along to
+  every dashboard in turn. With more than one hall, the kiosk heading names the hall.
 
 ## API
 

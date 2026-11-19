@@ -2,19 +2,16 @@
 
 One screen for the services a LAN lives on: DHCP (leases left per scope), DNS, the LAN cache (hit
 rate, traffic saved), game servers and the internet uplink, each **green** (up), **amber**
-(degraded), **red** (down) or grey (unknown). Open it at **Service health** in the sidebar (`/health`, under Network).
-Its browser tab starts with the number of red and amber services, e.g. "(2) Service health · Floorbit",
-so a tab in the background shows when a service needs a look.
+(degraded), **red** (down) or grey (unknown). It is the **Service health** widget ([widget gallery](dashboards.md#the-widget-gallery)) and the
+ready-made **Service health** dashboard (`/dashboards/health`).
 Code: [`floorbit/health.py`](../floorbit/health.py) and
 [`floorbit/blueprints/health.py`](../floorbit/blueprints/health.py).
 
 ## On a big screen
 
-**Big screen** (`/health?screen=1`) drops the header and makes the tiles readable from across the
-hall. The wall gets the kiosk theme unless the screen picks another one with `?theme=` (see
-[themes.md](themes.md)), so a kiosk account works here: sign the screen in
-with a `kiosk` account and open `/health?screen=1`. The page refreshes on its own and as soon as
-a service changes colour.
+Open `/dashboards/health` on the screen, signed in with a `kiosk` account. Small, the widget shows
+only what is down or degraded (or "all fine"); big it shows every check and **Check now**. It
+refreshes on its own and as soon as a service changes colour.
 
 ## Where the checks come from
 
