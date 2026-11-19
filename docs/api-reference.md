@@ -910,6 +910,20 @@ Source: [`floorbit/blueprints/security.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/security/check` | `plugins.run` | `security` |
 | GET | `/api/security/markers` | `seats.view` | `security` |
 
+## floorbit.blueprints.segments
+
+Network segments for on-demand lookups (issue #946). Rules in floorbit/segments.py, docs in docs/segments.md. Admins only: the routes sit under /api/settings (auth/roles.py).
+
+Source: [`floorbit/blueprints/segments.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/segments.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/segments` | `settings.manage` |  |
+| POST | `/api/settings/segments` | `settings.manage` |  |
+| DELETE | `/api/settings/segments/<seg_id>` | `settings.manage` |  |
+| PATCH | `/api/settings/segments/<seg_id>` | `settings.manage` |  |
+| POST | `/api/settings/segments/discover` | `settings.manage` |  |
+
 ## floorbit.blueprints.services
 
 Servers and services (issue #471): ISP uplinks, DNS resolvers and the LAN cache. Rules in floorbit/services.py, docs in docs/services.md.
@@ -1136,6 +1150,9 @@ Source: [`integrations/__init__.py`](https://github.com/bitsandbricks-ch/floorbi
 | POST | `/api/checkins/<seat>/retry` | `seats.edit` |  |
 | GET | `/api/checkins/history` | `seats.view` |  |
 | GET | `/api/checkins/history.csv` | `seats.view` |  |
+| DELETE | `/api/checkins/lookup-window` | `seats.edit` |  |
+| GET | `/api/checkins/lookup-window` | `seats.view` |  |
+| POST | `/api/checkins/lookup-window` | `seats.edit` |  |
 | GET | `/api/checkins/overview` | `seats.view` |  |
 | POST | `/api/checkins/refresh` | `seats.edit` |  |
 | GET | `/api/events` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
