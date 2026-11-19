@@ -1,16 +1,9 @@
 """floorbit.plugins.helpers: what Marketplace plugins may import from Floorbit (docs/plugin-spec.md)."""
-import ast
-from pathlib import Path
 
 import pytest
 
 from floorbit.plugins import helpers
 from floorbit.plugins.base import PluginError
-
-BUILTIN = Path(__file__).resolve().parent.parent / "floorbit" / "builtin_plugins"
-# Integrations that are on their way to the Marketplace: they must already import like one.
-MARKETPLACE_BOUND = ("unifi", "aruba", "mikrotik", "zabbix", "pihole", "adguard-home")
-API = ("floorbit.plugins.base", "floorbit.plugins.agent", "floorbit.plugins.helpers")
 
 
 def test_port_summary_and_device_match():
@@ -36,14 +29,3 @@ def test_parse_switches():
     for bad in ("sw-a", "=https://192.0.2.10", "sw-a=ftp://192.0.2.10"):
         with pytest.raises(PluginError, match="not Name="):
             helpers.parse_switches([bad])
-
-
-@pytest.mark.parametrize("pid", MARKETPLACE_BOUND)
-def test_marketplace_bound_plugins_import_only_the_plugin_api(pid):
-    for path in (BUILTIN / pid).glob("*.py"):
-        for node in ast.walk(ast.parse(path.read_text())):
-            names = [a.name for a in node.names] if isinstance(node, ast.Import) else \
-                [node.module or ""] if isinstance(node, ast.ImportFrom) and not node.level else []
-            for name in names:
-                top = name.split(".")[0]
-                assert top not in ("floorbit", "integrations", "auth") or name in API, f"{path.name}: {name}"

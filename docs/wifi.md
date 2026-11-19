@@ -40,13 +40,13 @@ in memory for 20 seconds.
 
 ## Sources
 
-- **UniFi** (built in): reads the controller's access points (`stat/device`): each radio's channel,
+- **UniFi** (from the Marketplace): reads the controller's access points (`stat/device`): each radio's channel,
   width, channel utilization (`cu_total`) and client count. Turn it on under Settings > Plugins with
   a View Only account.
 - **Demo data**: nine access points in the demo hall, with a busy stage AP and one overlap.
 - Any plugin with `uses: [wifi]` and a `wifi_aps()` method (see [plugins.md](plugins.md)).
 
-<!-- TODO(Mike): Aruba access points. The built-in Aruba plugin talks to AOS-CX switches, which have
+<!-- TODO(Mike): Aruba access points. The Aruba plugin talks to AOS-CX switches, which have
 no Wi-Fi; Aruba APs need Aruba Central or an Instant/Mobility controller API. Which one runs at
 the events? -->
 

@@ -40,8 +40,8 @@ plugin may answer with more than was asked and nothing is counted twice. It read
 lookups a poll. See [plugins.md](plugins.md) for writing one. With the demo data on
 (`FLOORBIT_DEMO=1`) the demo hall looks things up too.
 
-Two resolvers have a built-in plugin, off until turned on under Settings > Plugins:
-[AdGuard Home](plugins.md#built-in-adguard-home) and [Pi-hole](plugins.md#built-in-pi-hole) (6 and
+Two resolvers have a plugin in the Marketplace, off until turned on under Settings > Plugins:
+[AdGuard Home and Pi-hole](plugins.md#in-the-marketplace) (6 and
 newer). For another resolver, write a small plugin; the resolver needs a query log that
 Floorbit can read over HTTP.
 
