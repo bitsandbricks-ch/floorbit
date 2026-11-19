@@ -194,7 +194,7 @@ def test_placed_boards_are_on_the_plan(client, floor):
     assert "DB-nowhere" not in names and names["DB-9"]["x"] == 800
 
 
-def test_boards_and_circuits_have_their_own_pages(client):
+def test_boards_and_circuits_have_their_own_pages(client, built):
     """The React app draws them; the server only has to answer the address (issue #877)."""
     for path in ("/power/boards/b1", "/power/circuits/c1", "/power/circuits/new"):
         assert client.get(path).status_code == 200, path
