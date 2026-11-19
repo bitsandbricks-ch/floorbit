@@ -320,5 +320,10 @@
     "minutes_other": "Every {{count}} minutes"
   },
   "boardRange": "Time shown",
-  "boardRangeHint": "Every graph that can, unless its pane picks its own. Viewers can change it for themselves."
+  "boardRangeHint": "Every graph that can, unless its pane picks its own. Viewers can change it for themselves.",
+  "changed": "Changed",
+  "copy": "Make a copy",
+  "copyName": "{{name}} (copy)",
+  "reset": "Reset to default",
+  "resetConfirm": "Reset: drop the changes"
 }

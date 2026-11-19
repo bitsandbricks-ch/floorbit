@@ -226,12 +226,13 @@ def _saved(data=None):
 
 
 def all_layouts(data=None):
-    """The saved dashboards, then the ready-made ones nobody replaced (``builtin``: true). A widget
+    """The saved dashboards, then the ready-made ones nobody changed (``builtin``: true). A widget
     pane carries its saved widget as ``saved`` ({name, pane}, None when it was removed), so a
     screen draws it without asking again; saving drops it (``_pane`` keeps known keys only)."""
     from . import saved_widgets
     data = load_data() if data is None else data
-    saved = _saved(data)
+    # ``changed``: a ready-made dashboard someone edited; removing the saved one resets it (#923).
+    saved = [{**x, 'changed': True} if x.get('id') in BUILTIN else x for x in _saved(data)]
     taken = {x.get('id') for x in saved}
     layouts = saved + [{'id': k, **copy.deepcopy(v), 'builtin': True} for k, v in BUILTIN.items() if k not in taken]
     widgets = saved_widgets.by_id(data)

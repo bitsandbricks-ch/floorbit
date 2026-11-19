@@ -173,7 +173,9 @@ Power, Network status, Endpoints) keep their page and add a widget for their rea
 ## Ready-made dashboards
 
 Floorbit comes with these. Change any of them; saving keeps your version under the same name, and
-deleting your version brings the ready-made one back.
+the list marks it **Changed**. **Reset to default** in its editor drops your version and brings the
+ready-made one back (it asks once, since the changes are lost). **Make a copy** in any dashboard's
+editor saves it as a new dashboard of your own, named "… (copy)" and not public, and opens it.
 
 | Dashboard | What is on it |
 | --- | --- |
@@ -191,7 +193,7 @@ deleting your version brings the ready-made one back.
 **Kiosk** is a ready-made dashboard for the big screen in the hall, and what `/kiosk` opens: the
 first hall's plan with the public marks only, and beside it how many switches are up, how many
 seats are online, and which switches are down and for how long. It is public. Change it like any
-other; saving keeps your version under the same name, and deleting your version brings the
+other; saving keeps your version under the same name, and **Reset to default** brings the
 ready-made one back. See [kiosk.md](kiosk.md).
 
 ## Public dashboards

@@ -320,5 +320,10 @@
     "minutes_other": "Alle {{count}} Minuten"
   },
   "boardRange": "Gezeigte Zeit",
-  "boardRangeHint": "Für jede Grafik, die es kann, ausser ihr Feld wählt selbst. Zuschauer können es für sich ändern."
+  "boardRangeHint": "Für jede Grafik, die es kann, ausser ihr Feld wählt selbst. Zuschauer können es für sich ändern.",
+  "changed": "Geändert",
+  "copy": "Kopie erstellen",
+  "copyName": "{{name}} (Kopie)",
+  "reset": "Auf Standard zurücksetzen",
+  "resetConfirm": "Zurücksetzen: Änderungen verwerfen"
 }

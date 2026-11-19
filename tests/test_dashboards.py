@@ -118,7 +118,7 @@ def test_old_layouts_read_as_one_panel(app_module, client):
     assert dashboards.get("old")["sections"]
 
 
-def test_kiosk_is_ready_made_until_replaced(client):
+def test_kiosk_is_ready_made_until_changed_and_resets(client):
     kiosk = client.get("/api/dashboards/kiosk").get_json()
     assert kiosk["builtin"] is True and kiosk["fit"] is True
     panes = [p["node"]["pane"] for p in kiosk["sections"][0]["panels"]]
@@ -128,9 +128,14 @@ def test_kiosk_is_ready_made_until_replaced(client):
     mine = {"name": "Kiosk", "sections": [{"panels": [_panel(0, 0, 24, 12, "text")]}], "fit": True}
     assert client.put("/api/dashboards/kiosk", json=mine).status_code == 200
     listed = client.get("/api/dashboards").get_json()["layouts"]
-    assert [x.get("builtin") for x in listed if x["id"] == "kiosk"] == [None]
+    assert [(x.get("builtin"), x.get("changed")) for x in listed if x["id"] == "kiosk"] == [(None, True)]
+    # Reset to default: the saved one goes, the ready-made one is back.
     assert client.delete("/api/dashboards/kiosk").status_code == 200
-    assert client.get("/api/dashboards/kiosk").get_json()["builtin"] is True
+    back = client.get("/api/dashboards/kiosk").get_json()
+    assert back["builtin"] is True and "changed" not in back
+    # A dashboard of one's own is never "changed".
+    assert client.put("/api/dashboards/mine", json=mine).status_code == 200
+    assert "changed" not in client.get("/api/dashboards/mine").get_json()
 
 
 def test_checks(client):

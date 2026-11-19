@@ -100,6 +100,8 @@ export interface Board {
   by?: string | null
   /** Ready-made (the Kiosk): saving under its id keeps your own version instead. */
   builtin?: boolean
+  /** A ready-made dashboard someone edited: deleting the saved one resets it. */
+  changed?: boolean
   /** Opens without signing in, showing only what anyone may see. */
   public?: boolean
 }

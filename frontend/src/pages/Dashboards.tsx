@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Group, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
-import { IconArrowRight, IconDeviceTv, IconLayoutGridAdd, IconPencil, IconPlus, IconSeparator } from '@tabler/icons-react'
+import { IconArrowRight, IconCopy, IconDeviceTv, IconLayoutGridAdd, IconPencil, IconPlus, IconRestore, IconSeparator } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -38,7 +38,7 @@ export default function Dashboards() {
   if (editId && (editId === 'new' || editing)) {
     return (
       <Layout title={t('dashboards.title')} back={{ href: '/dashboards', label: t('dashboards.title') }} full>
-        <Editor key={editId} board={editing} onDone={() => open(null)} />
+        <Editor key={editId} board={editing} onDone={() => open(null)} onOpen={open} taken={q.data?.layouts.map((b) => b.id) ?? []} />
       </Layout>
     )
   }
@@ -62,7 +62,8 @@ export default function Dashboards() {
               <div>
                 <Group gap={6}>
                   <Title order={3} fz="md">{boardName(t, b)}</Title>
-                  {b.builtin && <Badge size="xs" variant="light">{t('dashboards.builtin')}</Badge>}
+                  {(b.builtin || b.changed) && <Badge size="xs" variant="light">{t('dashboards.builtin')}</Badge>}
+                  {b.changed && <Badge size="xs" variant="light" color="warn">{t('dashboards.changed')}</Badge>}
                   {b.public && <Badge size="xs" variant="light" color="up">{t('dashboards.publicBadge')}</Badge>}
                 </Group>
                 <Text size="xs" c="dimmed">
@@ -108,7 +109,7 @@ function Thumb({ node }: { node: Node }) {
   )
 }
 
-function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) {
+function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone: () => void; onOpen: (id: string) => void; taken: string[] }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const [name, setName] = useState(board?.name ?? '')
@@ -129,6 +130,21 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
     onSuccess: done,
   })
   const drop = useMutation({ mutationFn: () => del(`/api/dashboards/${board!.id}`), onSuccess: done })
+  // Reset loses the changes for good: the first click asks.
+  const [resetting, setResetting] = useState(false)
+  // A copy of the dashboard as saved, as a dashboard of one's own (#923): not public until someone says so.
+  const copy = useMutation({
+    mutationFn: () => {
+      const copyName = t('dashboards.copyName', { name: boardName(t, board!) }).slice(0, 60)
+      const base = slug(copyName).slice(0, 29)
+      const free = [base, ...Array.from({ length: 98 }, (_, i) => `${base}-${i + 2}`)].find((x) => !taken.includes(x)) ?? `${base}-${Date.now() % 1000}`
+      return put<Board>(`/api/dashboards/${free}`, {
+        name: copyName, sections: board!.sections, fit: !!board!.fit, public: false,
+        ...(board!.cycle ? { cycle: board!.cycle } : {}), ...(board!.range ? { range: board!.range } : {}), ...(board!.frame === false ? { frame: false } : {}),
+      })
+    },
+    onSuccess: (made) => { void qc.invalidateQueries({ queryKey: qk.boards }); onOpen(made.id) },
+  })
 
   const panels = (s: number, fn: (ps: Panel[]) => Panel[]) =>
     setSections((all) => all.map((sec, i) => (i === s ? { ...sec, panels: fn(sec.panels) } : sec)))
@@ -161,10 +177,17 @@ function Editor({ board, onDone }: { board: Board | null; onDone: () => void }) 
           <Button loading={save.isPending} disabled={!name.trim()} onClick={() => save.mutate()}>{t('dashboards.save')}</Button>
           <Button variant="default" onClick={() => onDone()}>{t('dashboards.cancel')}</Button>
           {board && <Button variant="default" component="a" href={`/dashboards/${encodeURIComponent(board.id)}`} leftSection={<IconDeviceTv size={16} />}>{t('dashboards.open')}</Button>}
-          {board && !board.builtin && <Button variant="subtle" color="down" loading={drop.isPending} onClick={() => drop.mutate()}>{t('dashboards.delete')}</Button>}
+          {board && <Button variant="default" loading={copy.isPending} leftSection={<IconCopy size={16} />} onClick={() => copy.mutate()}>{t('dashboards.copy')}</Button>}
+          {board?.changed && (
+            <Button variant="subtle" color="down" loading={drop.isPending} leftSection={<IconRestore size={16} />}
+              onClick={() => (resetting ? drop.mutate() : setResetting(true))}>
+              {resetting ? t('dashboards.resetConfirm') : t('dashboards.reset')}
+            </Button>
+          )}
+          {board && !board.builtin && !board.changed && <Button variant="subtle" color="down" loading={drop.isPending} onClick={() => drop.mutate()}>{t('dashboards.delete')}</Button>}
         </Group>
       </Group>
-      {(save.error || drop.error) && <Alert color="down" role="alert" mb="sm">{(save.error || drop.error)!.message}</Alert>}
+      {(save.error || drop.error || copy.error) && <Alert color="down" role="alert" mb="sm">{(save.error || drop.error || copy.error)!.message}</Alert>}
       <Group gap="sm" wrap="wrap">
         <Button size="xs" variant="default" leftSection={<IconLayoutGridAdd size={16} />} onClick={addWidget}
           disabled={total(sections) >= MAX_PANELS || full}>{t('dashboards.edit.addWidget')}</Button>
