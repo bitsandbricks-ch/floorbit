@@ -11,11 +11,18 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
   They are kept with your account, so they follow you to every browser (`GET` and
   `PUT /api/auth/me/nav`); without sign-in this browser keeps them.
 - **Overview** and **Floor plan** are always at the top.
-- The other pages are in groups: **Work** (incidents, problems, jobs, handover), **Monitoring**
-  (services, network, firewalls, agents, ...), **Seats and inventory**, **Tools** (switch commands
-  and terminal, pre-flight, logs), **Screens** (dashboards and widgets), **Event** (folded until
-  you open it) and **Floorbit** (Plugins, Settings). A click on a group's name folds it, and this browser
-  remembers it. The group of the page on screen is always open.
+- The other rows are in groups: **Work** (Helpdesk), **Monitoring** (Services, Network, Agents),
+  **Seats and inventory** (Seats, Inventory), **Tools** (Switch console, Pre-flight, Logs) and
+  **Screens** (Dashboards). A click on a group's name folds it, and this browser remembers it. The
+  group of the page on screen is always open.
+- Most rows hold several pages, shown as tabs under the top bar: **Helpdesk** has Problems,
+  Incidents, My jobs, Handover and Status updates; **Network** has Topology, Firewalls and
+  Security; **Seats** has Seat mapping, Check-in, the seat walk-through and IP and MAC history;
+  **Inventory** has Cables and Electrics; **Switch console** has the switch commands and the
+  terminal; **Services** has Game servers; **Agents** has Telemetry; **Dashboards** has Widgets.
+  Each tab keeps its own address.
+- **Settings** is the gear at the foot, next to your name. The event's own pages (schedule,
+  changelog, replay, report, floor plan templates) are in the event menu at the top.
 - The button at the bottom folds the sidebar to icons, and back. The choice is kept in a cookie
   (`floorbit_nav`), so every page starts with the same width.
 - Your name at the bottom opens the account menu: language, light or dark theme, notifications,

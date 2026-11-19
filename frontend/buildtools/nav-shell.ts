@@ -3,12 +3,12 @@
 // Sidebar.tsx from it, and the script takes over that markup when it runs. So the sidebar is
 // there in the first paint, before the floor plan, and never pops in after it.
 import {
-  IconChevronDown, IconExternalLink, IconLayoutDashboard, IconLink, IconDots, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMenu2, IconSearch, IconStar, IconStarFilled,
+  IconChevronDown, IconExternalLink, IconSettings, IconLayoutDashboard, IconLink, IconDots, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconMenu2, IconSearch, IconStar, IconStarFilled,
 } from '@tabler/icons-react'
 import { readFileSync } from 'fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { CUSTOM_ICONS, PINNED, SECTIONS, TABS, pageIcon, sectionIcon } from '../src/nav/sections'
+import { CUSTOM_ICONS, HUBS, OFF_LIST, PINNED, SECTIONS, TABS, pageIcon, sectionIcon } from '../src/nav/sections'
 import type { Icon } from '@tabler/icons-react'
 
 const svg = (icon: Icon, size: number, className?: string) =>
@@ -29,6 +29,9 @@ export function navShell(i18nDir: string) {
     pinned: PINNED,
     tabs: TABS,
     sections: SECTIONS.map((s) => ({ id: s.id, pages: s.pages })),
+    // Rows that hold other pages as tabs, and rows kept out of the groups (issue #892).
+    hubs: HUBS,
+    offList: OFF_LIST,
     icons: {
       // Rows: 18 px in the sidebar; the phone bar uses 22 px.
       page: Object.fromEntries([...ids, '*'].map((id) => [id, svg(pageIcon(id), 18, 'fb-nav-icon')])),
@@ -41,6 +44,7 @@ export function navShell(i18nDir: string) {
         external: svg(IconExternalLink, 18, 'fb-nav-icon'),
       },
       search: svg(IconSearch, 18, 'fb-nav-icon'),
+      settings: svg(IconSettings, 18),
       chevron: svg(IconChevronDown, 14, 'fb-nav-chevron'),
       collapse: svg(IconLayoutSidebarLeftCollapse, 18),
       expand: svg(IconLayoutSidebarLeftExpand, 18),

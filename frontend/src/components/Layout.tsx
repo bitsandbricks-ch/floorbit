@@ -11,6 +11,7 @@ import { AppNav } from './AppNav'
 import { CrewNoticeBanner } from './CrewNotice'
 import { DatabaseBanner } from './DatabaseBanner'
 import { EventBanner } from './EventBanner'
+import { HubTabs } from './HubTabs'
 import { PageError } from './PageError'
 import { rememberPage } from './pages'
 import { useInPanel } from './panel'
@@ -63,6 +64,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
         </header>
         {/* Desktops: where you are, "Go to" and the notifications. */}
         <TopBar pages={pages} />
+        <HubTabs pages={pages} />
         <DatabaseBanner />
         <EventBanner />
         <CrewNoticeBanner />

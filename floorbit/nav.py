@@ -114,13 +114,27 @@ def language():
 
 
 def active_href(pages, path):
-    """Same as activeHref in sections.ts: the one row to light."""
-    best = None
+    """Same as activeHref in sections.ts: the one row to light. A hub's row is lit by its tabs too."""
+    best, best_len = None, 0
     for p in pages:
-        href = p['href']
-        if (href == path or (href != '/' and path.startswith(href + '/'))) and (not best or len(href) > len(best)):
-            best = href
+        for href in [p['href'], *(p.get('also') or ())]:
+            if (href == path or (href != '/' and path.startswith(href + '/'))) and len(href) > best_len:
+                best, best_len = p['href'], len(href)
     return best
+
+
+def with_parents(pages, hubs):
+    """Same as withParents in sections.ts: each hub's row, lit by its tabs, opening its first tab."""
+    by_id = {p['id']: p for p in pages}
+
+    def tabs_of(hub):
+        return [by_id[i] for i in hubs[hub] if i in by_id]
+    out = [{**p, 'also': [x['href'] for x in tabs_of(p['id'])]} if p['id'] in hubs else p for p in pages]
+    for hub in hubs:
+        tabs = tabs_of(hub)
+        if hub not in by_id and tabs:
+            out.append({'href': tabs[0]['href'], 'id': hub, 'label': hub, 'also': [x['href'] for x in tabs[1:]]})
+    return out
 
 
 def _initials(name):
@@ -141,14 +155,18 @@ def markup(boot):
     rail = state() == 'rail'
     # Older builds have no icons for the admins' own sections: those then show once the script runs.
     custom = (boot.get('custom') or []) if 'custom' in icons else []
-    lit = active_href(pages + [link for c in custom for link in c['links']], request.path)
-    by_id = {p['id']: p for p in pages}
-    known = set(shell['pinned']) | {i for s in shell['sections'] for i in s['pages']}
+    hubs = shell.get('hubs') or {}
+    inside = {i for ids in hubs.values() for i in ids}
+    rows = [p for p in with_parents(pages, hubs) if p['id'] not in inside]
+    lit = active_href(rows + [link for c in custom for link in c['links']], request.path)
+    by_id = {p['id']: p for p in rows}
+    known = set(shell['pinned']) | set(shell.get('offList') or ()) \
+        | {i for s in shell['sections'] for i in s['pages']}
     pinned = [by_id[i] for i in shell['pinned'] if i in by_id]
     sections = [(s['id'], [by_id[i] for i in s['pages'] if i in by_id]) for s in shell['sections']]
-    plugin_rows = [p for p in pages if p['id'].startswith('plugin:')]
+    plugin_rows = [p for p in rows if p['id'].startswith('plugin:')]
     sections.append(('plugins', plugin_rows))
-    sections.append(('more', [p for p in pages if p['id'] not in known and not p['id'].startswith('plugin:')]))
+    sections.append(('more', [p for p in rows if p['id'] not in known and not p['id'].startswith('plugin:')]))
     sections = [(sid, ps) for sid, ps in sections if ps]
     lit_section = next((f"c:{c['id']}" for c in custom if any(x['href'] == lit for x in c['links'])), None) \
         or next((sid for sid, ps in sections if any(p['href'] == lit for p in ps)), None)
@@ -158,7 +176,8 @@ def markup(boot):
         return p['label'] if p['id'].startswith('plugin:') else page_t.get(p['id']) or p['label']
 
     prefs = boot.get('prefs') or {}
-    favs = [by_id[i] for i in prefs.get('favourites') or [] if i in by_id]
+    every = {p['id']: p for p in with_parents(pages, hubs)}   # a tab can be a favourite too
+    favs = [every[i] for i in prefs.get('favourites') or [] if i in every]
 
     def star(p):
         if rail or 'favAdd' not in nav_t:   # an older build without favourites
@@ -239,10 +258,18 @@ def markup(boot):
     aria = signed_in.replace('{{username}}', user['username'] or '') if user else nav_t['account']
     title = f' title="{e(name)}"' if rail else ''
     fold = nav_t['expand'] if rail else nav_t['collapse']
+    settings = by_id.get('settings')
+    settings_link = ''
+    if settings and 'settings' in icons:
+        text = e(page_t.get('settings') or 'Settings')
+        cur = ' aria-current="page"' if settings['href'] == lit else ''
+        settings_link = (f'<a href="{e(settings["href"])}" class="fb-nav-icon-btn fb-nav-settings" title="{text}" '
+                         f'aria-label="{text}"{cur}>{icons["settings"]}</a>')
     out.append('<div class="fb-nav-foot"><div class="fb-nav-account">'
                f'<button type="button" class="fb-nav-row fb-nav-me" aria-expanded="false" aria-haspopup="menu"{title} '
                f'aria-label="{e(aria)}"><span class="fb-nav-avatar" aria-hidden="true">{avatar}</span>'
                f'<span class="fb-nav-text">{e(name)}</span></button></div>'
+               f'{settings_link}'
                f'<button type="button" class="fb-nav-icon-btn fb-nav-fold" aria-label="{e(fold)}" title="{e(fold)}">'
                f'{icons["expand"] if rail else icons["collapse"]}</button></div></nav>')
     tabs = [by_id[i] for i in shell['tabs'] if i in by_id][:4]

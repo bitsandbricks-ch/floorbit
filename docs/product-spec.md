@@ -127,11 +127,12 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Shell:** event picker at the top of the sidebar, grouped sidebar, top bar with breadcrumbs,
   Go to (`Ctrl K`) and notifications, a status line. Pinned favourites per person, including
   dashboards. The tenant switcher shows only with two or more tenants.
-- **Sidebar groups:** Overview and Floor plan · **Work** (Incidents, Problems, My jobs, Handover;
-  one Helpdesk page later, #887) · **Monitoring** (Services, Network, Agents) · **Seats and
-  inventory** (Seats, Inventory, Cables, Electrics, Check-in) · **Tools** (Switch console,
-  Pre-flight, Logs) · **Screens** (Dashboards) · **Event** (folded) · **Floorbit** (Plugins,
-  Settings). Sidebar text is 15px, a step above page text.
+- **Sidebar, about a dozen rows:** Overview and Floor plan · **Work:** Helpdesk · **Monitoring:**
+  Services, Network, Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
+  Pre-flight, Logs · **Screens:** Dashboards. Settings is the gear at the foot; the event's own
+  pages (schedule, changelog, replay, report) are in the event menu at the top. A row holds its
+  pages as tabs (Helpdesk: Problems, Incidents, My jobs, Handover, Status updates); a new page
+  becomes a tab of a row, not a row of its own. Sidebar text is 15px, a step above page text.
 - **Simple first, technical below.** The first layer of every page answers "is it fine, and what
   needs me?" in plain words. Details (raw values, protocols, logs, configs) sit one click further
   down, in tabs, drill-downs and folded sections, and may be as technical as they need to be.

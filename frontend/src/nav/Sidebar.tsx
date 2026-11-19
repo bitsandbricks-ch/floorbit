@@ -1,6 +1,6 @@
 import {
   IconChevronDown, IconDots, IconStar, IconStarFilled, IconLanguage, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconLogout,
-  IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSelector, IconSun, IconX, type Icon,
+  IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSelector, IconSettings, IconSun, IconX, type Icon,
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -10,12 +10,13 @@ import { fetchOtherTenants, readFolded, readRail, saveFolded, saveRail, useNavPr
 import { useCloseOutside } from './closeOutside'
 import { EventPicker } from './EventPicker'
 import './nav.css'
-import { activeHref, boardHref, group, INSIDE, isPluginPage, linkIcon, pageIcon, TABS, withParents, type CustomLink, type NavPage } from './sections'
+import { activeHref, boardHref, group, HUBS, isPluginPage, linkIcon, pageIcon, rowsOf, TABS, withParents, type CustomLink, type NavPage } from './sections'
 
 export interface LinkProps {
   href: string
   className: string
   title?: string
+  'aria-label'?: string
   'aria-current'?: 'page'
   onClick?: (e: MouseEvent) => void
   children: ReactNode
@@ -65,7 +66,7 @@ export function Sidebar(props: SidebarProps) {
   const sheet = sheetAt === props.path
   const setSheet = (open: boolean) => setSheetAt(open ? props.path : null)
   // A tab of another page (Users in Settings) lights its page's row.
-  const lit = activeHref([...withParents(props.boot.pages).filter((p) => !(p.id in INSIDE)), ...pinnedBoards(props.dashboards).filter((b) => prefs.favourites.includes(b.id)), ...(props.boot.custom ?? []).flatMap((c) => c.links)], props.path)
+  const lit = activeHref([...rowsOf(props.boot.pages), ...pinnedBoards(props.dashboards).filter((b) => prefs.favourites.includes(b.id)), ...(props.boot.custom ?? []).flatMap((c) => c.links)], props.path)
 
   useEffect(() => {
     if (!sheet) return
@@ -82,7 +83,7 @@ export function Sidebar(props: SidebarProps) {
   }
 
   // Phone bar: the four pages crews open most, then everything else behind "Menu".
-  const byId = new Map(props.boot.pages.map((p) => [p.id, p]))
+  const byId = new Map(withParents(props.boot.pages).map((p) => [p.id, p]))
   const tabs = TABS.flatMap((id) => byId.get(id) ?? []).slice(0, 4)
   return (
     <>
@@ -104,7 +105,7 @@ export function Sidebar(props: SidebarProps) {
                   <>
                     <span className="fb-tabbar-icon">
                       <Icon size={22} aria-hidden="true" />
-                      {p.id === 'problems' && !!props.down && <span className="fb-nav-dot" aria-hidden="true" />}
+                      {(p.id === 'helpdesk' || p.id === 'problems') && !!props.down && <span className="fb-nav-dot" aria-hidden="true" />}
                     </span>
                     <span className="fb-tabbar-label">{t(`goto.pages.${p.id}`, { defaultValue: p.label })}</span>
                   </>
@@ -151,7 +152,9 @@ function Panel(props: PanelProps) {
   const { t } = useTranslation()
   const { boot, rail, lit, prefs } = props
   const { pinned, sections } = group(boot.pages)
-  const byId = new Map([...boot.pages, ...pinnedBoards(props.dashboards)].map((p) => [p.id, p]))
+  // Settings sits at the foot, next to the account (issue #892).
+  const settings = rowsOf(boot.pages).find((p) => p.id === 'settings')
+  const byId = new Map([...withParents(boot.pages), ...pinnedBoards(props.dashboards)].map((p) => [p.id, p]))
   const favourites = prefs.favourites.map((id) => byId.get(id)).filter((p): p is NavPage => !!p)
   const [folded, setFolded] = useState<string[]>(readFolded)
   const isFav = (id: string) => prefs.favourites.includes(id)
@@ -161,7 +164,7 @@ function Panel(props: PanelProps) {
   const row = (p: NavPage, star = !rail) => {
     const Icon = pageIcon(p.id, p.icon)
     const label = ownLabel(p.id) ? p.label : t(`goto.pages.${p.id}`, { defaultValue: p.label })
-    const badge = p.id === 'problems' && props.down ? props.down : null
+    const badge = (p.id === 'helpdesk' || p.id === 'problems') && props.down ? props.down : null
     const fav = isFav(p.id)
     return (
       <li key={p.href} className="fb-nav-item">
@@ -243,7 +246,7 @@ function Panel(props: PanelProps) {
         })}
       </div>
 
-      <EventPicker rail={rail} sheet={props.sheet} />
+      <EventPicker rail={rail} sheet={props.sheet} pages={HUBS.event.flatMap((id) => boot.pages.find((p) => p.id === id) ?? [])} />
 
       <button type="button" className="fb-nav-row fb-nav-search" onClick={props.onGoTo} title={rail ? t('nav.goTo') : undefined} aria-keyshortcuts="Control+K Meta+K">
         <IconSearch size={18} className="fb-nav-icon" aria-hidden="true" />
@@ -282,6 +285,11 @@ function Panel(props: PanelProps) {
       <Tenants {...props} />
       <div className="fb-nav-foot">
         <Account {...props} />
+        {settings && props.renderLink({
+          href: settings.href, className: 'fb-nav-icon-btn fb-nav-settings', title: t('goto.pages.settings'),
+          'aria-label': t('goto.pages.settings'), 'aria-current': lit === settings.href ? 'page' : undefined,
+          children: <IconSettings size={18} aria-hidden="true" />,
+        })}
         {props.onToggleRail && (
           <button
             type="button" className="fb-nav-icon-btn fb-nav-fold" onClick={props.onToggleRail}

@@ -27,7 +27,8 @@ const problems = {
 
 describe('breadcrumbs', () => {
   it('names the group and the page, and plugins under Plugins', () => {
-    expect(crumbsFor(pages, '/topology')).toEqual({ section: 'monitoring', page: pages[1] })
+    // Topology is a tab of the Network row.
+    expect(crumbsFor(pages, '/topology')).toMatchObject({ section: 'monitoring', page: { id: 'network', href: '/topology' } })
     expect(crumbsFor(pages, '/settings/agents/rack-a')).toEqual({ section: 'monitoring', page: pages[2] })
     expect(crumbsFor(pages, '/plugins/gs/overview').section).toBe('plugins')
     expect(crumbsFor(pages, '/nowhere')).toEqual({ section: null, page: null })
@@ -36,8 +37,9 @@ describe('breadcrumbs', () => {
   it('puts a Settings tab under Settings, also for an account that only has the tab', () => {
     const settings = { href: '/settings', id: 'settings', label: 'Settings' }
     const users = { href: '/settings/users', id: 'users', label: 'Users' }
-    expect(crumbsFor([settings, users], '/settings/users')).toEqual({ section: 'floorbit', page: settings })
-    expect(crumbsFor([users], '/settings/users')).toEqual({ section: 'floorbit', page: { href: '/settings/users', id: 'settings', label: 'settings' } })
+    // Settings sits at the foot of the sidebar, in no group.
+    expect(crumbsFor([settings, users], '/settings/users')).toMatchObject({ section: null, page: settings })
+    expect(crumbsFor([users], '/settings/users')).toMatchObject({ section: null, page: { href: '/settings/users', id: 'settings' } })
   })
 })
 
