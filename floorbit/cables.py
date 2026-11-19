@@ -475,9 +475,12 @@ def assign(body, by):
 
 def port_seats(data=None, learned=True):
     """{(switch lowercase, canonical port): seat} from the cables that end at a seat, and with
-    ``learned`` the ports seat check-ins found (integrations/checkin.py) where no cable says.
-    A cable wins: it is what the crew patched."""
+    ``learned`` also the ports seat check-ins and the seat walk found (integrations/checkin.py)
+    where no cable says, and the switch ports typed in by hand on the Seat mapping page. A hand
+    entry wins, as it does everywhere in the seat mapping (docs/seat-mapping.md), then a cable
+    (what the crew patched), then a learned port. Without ``learned``: the patch plan alone."""
     from .syslog import canonical_port
+    data = load_data() if data is None else data
     out = {}
     if learned:
         from integrations import checkin
@@ -487,4 +490,12 @@ def port_seats(data=None, learned=True):
             print(f'[cables] could not read the learned seat ports: {exc}')
     out.update({(c['switch'].lower(), canonical_port(c['port'])): c['seat']
                 for c in all_cables(data) if c.get('seat')})
+    if learned:
+        from . import seatmap
+        hand = {seatmap.port_key(e['switch'], e['port']): seat for seat, e in seatmap.entries(data).items()
+                if isinstance(e, dict) and e.get('switch') and e.get('port')}
+        # A hand entry moves its seat: the cable or learned port that named it elsewhere goes.
+        moved = set(hand.values())
+        out = {k: v for k, v in out.items() if v not in moved}
+        out.update(hand)
     return out
