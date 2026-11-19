@@ -34,3 +34,21 @@
 
 /* Kiosk: one small pill at the end of the legend bar, out of the floor plan's way. */
 .fb-pill--legend { font: inherit; font-size: 0.85em; padding: 1px 8px; }
+
+/* Which Floorbit runs here (frontend/src/components/VersionInfo.tsx): one quiet line under the pills. */
+.fb-version {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 6px;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--color-muted, #8a8f98);
+  opacity: 0.85;
+}
+.fb-version > * + *::before { content: "·"; margin-right: 6px; opacity: 0.6; }
+.fb-version a { color: inherit; text-decoration: none; }
+.fb-version a:hover, .fb-version a:focus-visible { text-decoration: underline; }
+.fb-version-hash { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); }
+.fb-attribution--compact .fb-version { justify-content: flex-start; font-size: 10px; }

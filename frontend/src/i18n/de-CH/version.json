@@ -1,0 +1,8 @@
+{
+  "release": "Floorbit {{version}}",
+  "dev": "Entwicklungsversion",
+  "commitTitle": "Commit {{commit}} auf GitHub",
+  "built": "erstellt am {{date}}",
+  "agent": "Agent {{version}}",
+  "agents": "Agents: {{list}}"
+}

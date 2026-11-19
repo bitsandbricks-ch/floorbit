@@ -53,6 +53,14 @@ ENV FLASK_APP=app.py \
     CHECKIN_FILE=/app/state/checkins.json \
     SEAT_SOURCE_JSON_PATH=/app/state/seats.json
 
+# Which build this is, for the page footer and /api/version (floorbit/build_info.py). Set by
+# .github/workflows/image.yml; last, so a new commit doesn't rebuild the layers above.
+ARG FLOORBIT_COMMIT="" FLOORBIT_BUILT="" FLOORBIT_RELEASE="" FLOORBIT_SOURCE=""
+ENV FLOORBIT_COMMIT=$FLOORBIT_COMMIT \
+    FLOORBIT_BUILT=$FLOORBIT_BUILT \
+    FLOORBIT_RELEASE=$FLOORBIT_RELEASE \
+    FLOORBIT_SOURCE=$FLOORBIT_SOURCE
+
 USER floorbit
 EXPOSE 5000
 # NetFlow and IPFIX for the local agent built on this image (FLOORBIT_AGENT_FLOWS_PORT, docs/flows.md).

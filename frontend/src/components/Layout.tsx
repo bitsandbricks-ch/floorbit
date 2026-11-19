@@ -60,7 +60,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
         <PageError resetKey={pathname}>
           <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
         </PageError>
-        <Attribution />
+        <Attribution version />
       </div>
     </div>
   )

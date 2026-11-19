@@ -62,7 +62,14 @@ jobs:
             tags+=(-t "$image:latest" -t "$image:master-$ts-${GITHUB_SHA::7}")
           fi
           if [ "$GITHUB_REF_TYPE" = tag ]; then tags+=(-t "$image:${GITHUB_REF_NAME#v}"); fi
-          docker build --label "org.opencontainers.image.source=https://github.com/$REPO" "${tags[@]}" .
+          release=""
+          if [ "$GITHUB_REF_TYPE" = tag ]; then release="$GITHUB_REF_NAME"; fi
+          # The page footer shows these (floorbit/build_info.py).
+          docker build --label "org.opencontainers.image.source=https://github.com/$REPO" "${tags[@]}" \
+            --build-arg "FLOORBIT_COMMIT=$GITHUB_SHA" \
+            --build-arg "FLOORBIT_BUILT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --build-arg "FLOORBIT_RELEASE=$release" \
+            --build-arg "FLOORBIT_SOURCE=https://github.com/$REPO" .
           echo "IMAGE=$image" >> "$GITHUB_ENV"
       - name: Wait for CI on this commit
         if: github.ref == 'refs/heads/master'
