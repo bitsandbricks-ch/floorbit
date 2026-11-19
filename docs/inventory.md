@@ -189,6 +189,15 @@ CPUs, the Cisco memory pool); with LibreNMS it takes what LibreNMS knows of the 
 - The platform it finds (Cisco IOS, IOS-XE, NX-OS, Linux, ...) also sets what telemetry does
   automatically for the device, such as MAC tables per VLAN on Catalyst IOS.
 
+**Drift.** What discovery keeps instead of overwriting, it lists as drift: per device, each field
+where the inventory and the device disagree (the serial typed by hand against the one it reports;
+memory and disk only when more than 10% apart), a different hostname (sysName), a different
+management address (not when the device has a `telemetry_address`), and interfaces: in the
+inventory but not on the device, on the device but hidden here, or with a locked value the device
+reports differently. Each row says what is configured, what is actual and since when.
+`GET /api/inventory/<id>` has the device's `drift`, `GET /api/inventory` a count per device, and
+`GET /api/inventory/drift` all of it.
+
 ### What NetBox sends besides devices
 
 The NetBox plugin also fills these types, with the same rules (hand edits lock a field, nothing is

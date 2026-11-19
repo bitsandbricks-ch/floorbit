@@ -442,6 +442,7 @@ Source: [`floorbit/blueprints/inventory.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/inventory` | `floorplan.edit` |  |
 | DELETE | `/api/inventory/<device_id>` | `floorplan.edit` |  |
 | PATCH | `/api/inventory/<device_id>` | `floorplan.edit` |  |
+| GET | `/api/inventory/drift` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/inventory/log` | `floorplan.edit` |  |
 | POST | `/api/inventory/sync` | `floorplan.edit` |  |
 

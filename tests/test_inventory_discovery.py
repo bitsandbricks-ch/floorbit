@@ -186,3 +186,32 @@ def add(client, **body):
     r = client.post('/api/inventory', json={'role': 'switch', **body})
     assert r.status_code == 201, r.data
     return r.get_json()
+
+
+def test_drift_shows_where_the_inventory_and_the_device_disagree(client):
+    add(client, name='sw-a-01', serial='S-BY-HAND', mgmt_ip='192.0.2.10', memory_mb='520')
+    sw = next(d for d in client.get('/api/inventory').get_json()['devices'] if d['name'] == 'sw-a-01')
+    r = client.post(f"/api/inventory/{sw['id']}/interfaces", json={'name': 'Gi1/0/99'})
+    assert r.status_code in (200, 201), r.data
+    rows = [{'hostname': 'sw-a-01', 'sysName': 'sw-b-07.example.org', 'ip': '192.0.2.99', 'status': 1,
+             'facts': {'serial': 'FOC0000X0AA', 'memory_mb': 512}}]
+    ports = {'sw-a-01': [{'name': 'Gi1/0/1', 'speed_bps': 1e9, 'state': 'up'}]}
+    before = sources.use(Telemetry(rows, ports))
+    try:
+        assert client.post('/api/inventory/sync').status_code == 200
+        drift = client.get(f"/api/inventory/{sw['id']}").get_json()['drift']
+        since = {(d['kind'], d['field']): d['since'] for d in drift}
+        client.post('/api/inventory/sync')
+        again = client.get(f"/api/inventory/{sw['id']}").get_json()['drift']
+    finally:
+        sources.use(before)
+    found = {(d['kind'], d['field']): (d['configured'], d['actual']) for d in drift}
+    assert found == {('field', 'serial'): ('S-BY-HAND', 'FOC0000X0AA'),      # memory 520 vs 512: close enough
+                     ('hostname', 'name'): ('sw-a-01', 'sw-b-07.example.org'),
+                     ('address', 'mgmt_ip'): ('192.0.2.10', '192.0.2.99'),
+                     ('interface', 'Gi1/0/99'): ('present', 'missing')}
+    assert {(d['kind'], d['field']): d['since'] for d in again} == since      # first seen stays
+    listed = next(d for d in client.get('/api/inventory').get_json()['devices'] if d['name'] == 'sw-a-01')
+    assert listed['drift'] == 4
+    all_drift = client.get('/api/inventory/drift').get_json()['devices']
+    assert [d['name'] for d in all_drift] == ['sw-a-01']

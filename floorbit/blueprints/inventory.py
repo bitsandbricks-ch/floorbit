@@ -6,6 +6,7 @@
 - ``POST /api/inventory/sync``: run every inventory plugin that's on now, then discovery
   (floorbit/inventory_discovery.py). Editors and up.
 - ``GET /api/inventory/log``: the last syncs. Editors and up.
+- ``GET /api/inventory/drift``: where devices and the inventory disagree (discovery). Viewers and up.
 """
 import threading
 
@@ -156,7 +157,9 @@ def inventory_page(_item=None):
 def list_devices():
     data = load_data()
     hidden = request.args.get('hidden') in ('1', 'true')
-    return jsonify({'devices': [inventory.public(d) for d in inventory.devices(data, include_hidden=hidden)],
+    drift = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
+    return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or [])}
+                                for d in inventory.devices(data, include_hidden=hidden)],
                     'sources': _sources(data), 'every': inventory_schedule.every_minutes(),
                     'roles': list(inventory.ROLES), 'fields': list(inventory.FIELDS)})
 
@@ -216,6 +219,17 @@ def sync_now():
         with inventory_discovery.running:
             reports.append(inventory_discovery.run())
     return jsonify({'reports': reports, 'sources': _sources(load_data())})
+
+
+@bp.route('/api/inventory/drift', methods=['GET'])
+def drift_list():
+    """Where devices and the inventory disagree, from the last discovery run (inventory_discovery.py)."""
+    data = load_data()
+    names = {d['id']: d['name'] for d in inventory.devices(data, include_hidden=True)}
+    found = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
+    return jsonify({'devices': [{'id': i, 'name': names[i], 'drift': rows} for i, rows in sorted(found.items())
+                                if i in names],
+                    'last_run': inventory_discovery.last(data)})
 
 
 @bp.route('/api/inventory/log', methods=['GET'])

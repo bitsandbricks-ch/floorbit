@@ -12,6 +12,10 @@ It only fills in, so nothing anyone set is lost:
   stays, and the report counts it as kept.
 - It never adds or deletes devices and never changes a name, role, address or status.
 - Interfaces go through the same merge as **Take from monitoring** (inventory_interfaces.merge_feed).
+
+What it keeps instead of overwriting is **drift** (issue #918): per device, each field, the
+hostname, the management address and each interface where the inventory and the device disagree,
+with what is configured, what is actual and since when (``inventory_drift``; drift() below).
 """
 import re
 import threading
@@ -192,12 +196,15 @@ def run():
     except Exception as exc:  # noqa: BLE001 - the source's own error, shown on the Inventory page
         report['error'] = f'The monitoring source did not answer: {exc}'[:300]
         return _keep(report)
+    found = {}
     with data_lock:
         data = load_data()
         pairs = match(inventory.devices(data), rows)
         report['received'] = len(pairs)
         for dev, row in pairs:
-            changed, kept = fill(dev, fields_of(row))
+            values = fields_of(row)
+            found[dev['id']] = (values, row)
+            changed, kept = fill(dev, values)
             report['locked'] += kept
             if changed:
                 dev['updated_at'] = inventory.now()
@@ -205,14 +212,103 @@ def run():
             else:
                 report['unchanged'] += 1
         save_data(data)
-    names = [dev['name'] for dev, row in pairs if dev.get('role') in MONITORED_ROLES and row.get('status', 1)]
-    if names:
-        ports = sync_from_monitoring(names)
+    polled = {dev['id'] for dev, row in pairs if dev.get('role') in MONITORED_ROLES and row.get('status', 1)}
+    ports_ok = False
+    if polled:
+        ports = sync_from_monitoring([dev['name'] for dev, _row in pairs if dev['id'] in polled])
         if not ports.get('error'):
+            ports_ok = True
             report['interfaces'] = ports['added'] + ports['updated']
             report['added'] = ports['added']
             report['gone'] = ports['gone']
+    with data_lock:
+        data = load_data()
+        before = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
+        now_text = inventory.now()
+        out = {}
+        for dev_id, (values, row) in found.items():
+            dev = inventory.find(data, dev_id)
+            if dev is None:
+                continue
+            port_source = mon.name if ports_ok and dev_id in polled else None
+            rows = _since(drift(dev, values, row, port_source), before.get(dev_id) or [], now_text)
+            if rows:
+                out[dev_id] = rows
+        data['inventory_drift'] = out
+        report['drift'] = len(out)
+        save_data(data)
     return _keep(report)
+
+
+# ── drift ────────────────────────────────────────────────────────────────────────────────────
+
+def _same(field, a, b):
+    from . import inventory
+    a, b = str(a or '').strip(), str(b or '').strip()
+    if field in inventory.NUMBERS and a.isdigit() and b.isdigit():
+        # What a device reports is usable memory or formatted disk: a few percent off isn't drift.
+        big = max(int(a), int(b))
+        return big == 0 or abs(int(a) - int(b)) / big <= 0.1
+    return ' '.join(a.lower().split()) == ' '.join(b.lower().split())
+
+
+def _short(name):
+    return str(name or '').strip().lower().split('.')[0]
+
+
+def drift(dev, values, row, port_source=None):
+    """Where the inventory device and what the device reports disagree: [{kind, field, configured,
+    actual}]. ``port_source``: the monitoring plugin whose ports were just merged, for the
+    interfaces (None: they weren't polled this time, so nothing is said about them)."""
+    out = []
+    for field in FIELDS:
+        actual, configured = values.get(field), dev.get(field)
+        if actual and configured and not _same(field, configured, actual):
+            out.append({'kind': 'field', 'field': field, 'configured': configured, 'actual': actual})
+    sys_name = row.get('sysName')
+    if sys_name and _short(sys_name) != _short(dev['name']) and _short(sys_name) != _short(row.get('hostname')):
+        out.append({'kind': 'hostname', 'field': 'name', 'configured': dev['name'],
+                    'actual': str(sys_name)[:80]})
+    ip = str(row.get('ip') or '').strip()
+    natted = (dev.get('properties') or {}).get('telemetry_address')     # reached elsewhere on purpose
+    if ip and dev.get('mgmt_ip') and ip != dev['mgmt_ip'] and not natted:
+        out.append({'kind': 'address', 'field': 'mgmt_ip', 'configured': dev['mgmt_ip'], 'actual': ip})
+    if port_source:
+        out += _interface_drift(dev, port_source)
+    return out
+
+
+def _interface_drift(dev, source):
+    out = []
+    for iface in dev.get('interfaces') or []:
+        name = iface['name']
+        reported = source in (iface.get('refs') or {}) and source not in (iface.get('gone') or [])
+        if not reported:
+            if not iface.get('hidden'):
+                # Made by hand or by another plugin, or gone from the device: it isn't there.
+                out.append({'kind': 'interface', 'field': name, 'configured': 'present', 'actual': 'missing'})
+            continue
+        if iface.get('hidden'):
+            out.append({'kind': 'interface', 'field': name, 'configured': 'hidden', 'actual': 'present'})
+            continue
+        fed = (iface.get('fed') or {}).get(source) or {}
+        for field in iface.get('locked') or []:
+            if field in fed and fed[field] not in (None, '') and iface.get(field) != fed[field]:
+                out.append({'kind': 'interface', 'field': f'{name} {field}', 'configured': iface.get(field),
+                            'actual': fed[field]})
+    return out[:200]
+
+
+def _since(rows, before, at):
+    """Each row with the time it was first seen, carried over from the last run."""
+    seen = {(r.get('kind'), r.get('field'), str(r.get('actual'))): r.get('since')
+            for r in before if isinstance(r, dict)}
+    return [{**r, 'since': seen.get((r['kind'], r['field'], str(r['actual']))) or at} for r in rows]
+
+
+def drift_of(data, device_id):
+    found = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
+    return list(found.get(device_id) or [])
 
 
 def _keep(report):
