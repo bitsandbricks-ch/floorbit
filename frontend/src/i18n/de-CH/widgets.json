@@ -1,3 +1,13 @@
 {
-  "open": "Öffnen"
+  "title": "Widgets",
+  "intro": "Jedes Widget, das Floorbit zeigen kann, live mit deinen Daten. Öffne eines gross oder füge es einem Dashboard hinzu.",
+  "search": "Widget suchen",
+  "area": "Bereich",
+  "none": "Kein Widget passt.",
+  "open": "Öffnen",
+  "add": "Hinzufügen",
+  "addNamed": "{{name}} einem Dashboard hinzufügen",
+  "addTo": "Zum Dashboard hinzufügen",
+  "added": "Zu {{name}} hinzugefügt.",
+  "noBoards": "Noch keine Dashboards"
 }

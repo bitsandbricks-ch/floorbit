@@ -120,9 +120,9 @@ export default function Widgets() {
           {shown.map((e) => (
             <Paper key={e.key} withBorder radius="lg" className="fb-widget-card" component="article" aria-label={e.name}>
               <Preview entry={e} />
-              <Group justify="space-between" wrap="nowrap" p="md" gap="sm">
+              <Group justify="space-between" wrap="wrap" p="md" gap="sm">
                 <div style={{ minWidth: 0 }}>
-                  <Title order={2} fz="md" lineClamp={1}>{e.name}</Title>
+                  <Title order={2} fz="md" lineClamp={2}>{e.name}</Title>
                   <Text size="xs" c="dimmed">{e.from ?? t(`dashboards.widgetArea.${e.area}`)}</Text>
                 </div>
                 <Group gap="xs" wrap="nowrap">
