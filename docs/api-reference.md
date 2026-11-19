@@ -70,6 +70,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agents` | `settings.manage` |  |
 | DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
+| GET | `/api/agents/<agent_id>/history` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
 
 ## floorbit.blueprints.agent_plugins

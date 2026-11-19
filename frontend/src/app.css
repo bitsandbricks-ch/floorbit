@@ -967,3 +967,12 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 @media (min-width: 62em) {
   .fb-settings-nav { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
 }
+
+/* A line over time (widgets/TimeChart.tsx): agent graphs, and any tile that wants one. */
+.fb-time-chart { margin: 0; }
+.fb-time-chart svg { width: 100%; display: block; }
+.fb-time-chart .area { fill: var(--color-bit-soft); stroke: none; }
+.fb-time-chart .line { fill: none; stroke: var(--color-bit); stroke-width: 2; }
+.fb-time-chart .dot { fill: var(--color-bit); }
+.fb-time-chart .axis { stroke: var(--color-line); stroke-width: 1; }
+.fb-time-chart figcaption { display: flex; justify-content: space-between; gap: 8px; color: var(--color-muted); font-size: 12px; margin-top: 4px; font-variant-numeric: tabular-nums; }

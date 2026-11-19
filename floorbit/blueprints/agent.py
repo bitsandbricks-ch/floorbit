@@ -87,6 +87,24 @@ def list_agents():
                     'groups': agent_ha.groups(agents, names), 'hosted': cluster.status()})
 
 
+@bp.route('/api/agents/<agent_id>/history', methods=['GET'])
+def history(agent_id):
+    """One agent's numbers over time, for the graphs on its page (agent_history.py)."""
+    if not any(a['id'] == agent_id for a in agent_link.all_agents()):
+        return jsonify({'error': 'No such agent.'}), 404
+    try:
+        hours = max(0.25, min(float(request.args.get('hours') or 6), 48.0))
+    except ValueError:
+        hours = 6
+    from .. import agent_history
+    from ..database import DatabaseUnavailable
+    try:
+        series = agent_history.history(agent_id, hours)
+    except DatabaseUnavailable:
+        return jsonify({'error': 'The database is not answering.', 'code': 'database_unavailable'}), 503
+    return jsonify({'hours': hours, 'series': series})
+
+
 @bp.route('/api/agents', methods=['POST'])
 def enrol():
     try:

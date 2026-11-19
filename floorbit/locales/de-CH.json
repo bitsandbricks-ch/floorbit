@@ -9,6 +9,7 @@
  "API tokens can't be used here.": "API-Tokens gehen hier nicht.",
  "This API token can only read.": "Dieser API-Token darf nur lesen.",
  "The agent key is wrong or was revoked. Enrol the agent again.": "Der Agent-Schlüssel ist falsch oder wurde widerrufen. Melde den Agent neu an.",
+ "No such agent.": "Diesen Agent gibt es nicht.",
  "Traffic is turned off on this Floorbit (Settings > Features).": "Traffic ist in diesem Floorbit ausgeschaltet (Einstellungen > Funktionen).",
  "This Floorbit speaks agent protocol {}, the agent {}. Update the agent (or this Floorbit) so they match.": "Dieses Floorbit spricht Agent-Protokoll {}, der Agent {}. Aktualisiere den Agent (oder dieses Floorbit), damit sie zusammenpassen.",
  "Syslog is turned off on this Floorbit (Settings > Features).": "Syslog ist in diesem Floorbit ausgeschaltet (Einstellungen > Funktionen).",
