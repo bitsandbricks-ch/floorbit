@@ -12,6 +12,14 @@ defaults for all devices at `/inventory/defaults`, each with tabs for its detail
 settings (properties and feature switches) and credentials. Other entries (cables, transceivers, ...) open at
 `/inventory/entries/<type>/<id>`. The links can be shared and bookmarked.
 
+The **Inventory** page is one list with a tab per type (Devices, then any other type that has
+entries) and a **Groups and tags** tab. The device list shows each device's live state (the status
+monitor's dot), its role, group, model, management IP, how many of its ports are up (from the last
+read of the placed switches) and which plugin feeds it. Every column sorts; search, group, tag,
+state and role filter it, 50 rows to a page. A small chip next to the filters says when the
+plugins last synced (red when a sync failed; hover for each plugin and the schedule). Picking a
+group or tag on the Groups and tags tab goes back to the list, filtered.
+
 ## What each device has
 
 Name, role (switch, router, firewall, access point, server, virtual machine, PDU, other), model,
@@ -33,7 +41,7 @@ that run on it or on one of those VMs. If the device goes down, those go down wi
 
 ### Icon library
 
-Next to the built-in icons, admins upload their own under **Inventory > Icons** (SVG, at most
+Next to the built-in icons, admins upload their own under **Inventory > … > Icons** (SVG, at most
 64 KB). Floorbit rebuilds each file from plain shapes: scripts, event handlers, links, external
 references, embedded images, `foreignObject` and styles are dropped, a file with a DOCTYPE is
 refused, and every colour becomes `currentColor`, so the icon takes the colour picked for the
@@ -165,7 +173,7 @@ Set **Inventory sync (minutes)** under Settings > General (`INVENTORY_SYNC_MINUT
 runs the same sync by itself, so a switch added in NetBox during setup shows up without anyone
 pressing **Sync now**. 0 (the default) is off; less than 5 counts as 5, at most once a day. The
 time counts from the newest sync, by hand or not, and a failed one waits the same time before the
-next try. With several pods only the leader syncs. The Inventory page says how often it runs.
+next try. With several pods only the leader syncs. The Inventory page's sync chip says how often it runs.
 
 ### Discovery
 

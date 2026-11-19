@@ -296,3 +296,21 @@ def test_old_backups_still_restore(client):
     assert 'inventory' in new['layout'] and 'switches' not in new['layout']
     assert client.post('/api/settings/backup', json=new).status_code == 200
     assert sorted(d['name'] for d in client.get('/api/inventory').get_json()['devices']) == ['sw-nb', 'sw-old']
+
+
+def test_the_list_shows_each_device_live_state_and_ports_up(client, app_module, monkeypatch):
+    """The list's state dot and ports column come from the status monitor and the attention watch,
+    so it never asks monitoring per device (issue #876)."""
+    from floorbit import seat_view
+    dev = client.post('/api/inventory', json={'name': 'sw-a-01', 'role': 'switch'}).get_json()
+    # Before the monitor's first poll the state is unknown, not offline.
+    row = client.get('/api/inventory').get_json()['devices'][0]
+    assert row['state'] is None and row['ports'] is None
+    monkeypatch.setattr(seat_view, 'monitor_statuses', lambda: {dev['id']: {'status': 'offline'}})
+    watch = app_module.app.extensions['floorbit_attention']
+    monkeypatch.setattr(watch, 'port_reads', {
+        ('sw-a-01', 'Gi1/0/1'): {'state': 'up'}, ('sw-a-01', 'Gi1/0/2'): {'state': 'errors'},
+        ('sw-a-01', 'Gi1/0/3'): {'state': 'down'}, ('sw-b-01', 'Gi1/0/1'): {'state': 'up'},
+    })
+    row = client.get('/api/inventory').get_json()['devices'][0]
+    assert row['state'] == 'offline' and row['ports'] == {'up': 2, 'total': 3}
