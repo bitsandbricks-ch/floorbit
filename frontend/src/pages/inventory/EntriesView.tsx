@@ -8,6 +8,7 @@ import { qk } from '@/api/keys'
 import type { InventoryEntry, InventoryOverview, InventoryType } from '@/api/types'
 import { LoadingState } from '@/components/ui'
 import type { GroupFilter } from './GroupTree'
+import { BoolCell } from './BoolCell'
 import { DeviceIcon } from './icons'
 import { effectiveLook, typeName } from './model'
 import { groupAndBelow, useEntries } from './scope'
@@ -88,7 +89,9 @@ export function EntriesView({ type, overview, group, tags, canEdit, onOpen, sour
                             )}
                           </Table.Td>
                           {type.sort === 'linked' && <Table.Td>{e.summary}{e.detail && <Text size="xs" c="dimmed">{e.detail}</Text>}</Table.Td>}
-                          {shown.map((f) => <Table.Td key={f.key}>{value(e, f.key)}</Table.Td>)}
+                          {shown.map((f) => <Table.Td key={f.key}>{f.kind === 'bool'
+                            ? <BoolCell type={type} entry={e} field={f} canEdit={canEdit} />
+                            : value(e, f.key)}</Table.Td>)}
                           <Table.Td>{groups.find((g) => g.id === e.group_id)?.name ?? ''}</Table.Td>
                         </Table.Tr>
                       )

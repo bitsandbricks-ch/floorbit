@@ -159,6 +159,7 @@
       "serial": "Seriennummer",
       "vlan_id": "VLAN-ID",
       "prefix": "Präfix",
+      "lookups": "Check-in-Abfragen",
       "gateway": "Gateway",
       "purpose": "Zweck"
     },
