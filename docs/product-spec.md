@@ -126,7 +126,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   | Detail page | One thing, with tabs | A device, an agent, a seat |
 
 - **Side panel or detail page:** a click opens a side panel to peek and act quickly; anything
-  bigger opens the detail page. The panel links there.
+  bigger opens the detail page. The panel links there. The inventory has no side panel: devices,
+  groups, tags and entries each open their own page.
 - **Floor plan:** one full-screen map editor, not separate modes. Live status is always on, edit
   tools follow the role, the plan is an infinite grid, layers stack with presets and each layer has
   its own legend, filters are chips in the top bar, one docked panel on the right.

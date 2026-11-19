@@ -389,5 +389,14 @@
     "telemetry_port_api": "API-Port (NX-API, RESTCONF, OPNsense)",
     "portsHint": "Leer: Die Gruppe darüber entscheidet, sonst der übliche Port. Traps und MDT kommen auf den eigenen Ports des Agents an.",
     "groupIntro": "Jedes Gerät in dieser Gruppe übernimmt das, ausser es setzt eigene Werte."
+  },
+  "page": {
+    "onPlan": "Im Hallenplan",
+    "mgmt": "Mgmt",
+    "details": "Details",
+    "belongs": "Gruppe, Tags und Aussehen",
+    "notFound": "Dieses Element ist nicht im Inventar",
+    "back": "Zurück zum Inventar",
+    "telemetryAdmins": "Admins sehen hier die letzte Meldung, Jetzt testen und Rohdaten."
   }
 }

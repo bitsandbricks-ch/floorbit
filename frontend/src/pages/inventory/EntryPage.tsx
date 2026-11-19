@@ -1,5 +1,6 @@
 import { Anchor, Button, Group, Select, Stack, Text, Textarea, TextInput } from '@mantine/core'
-import { IconExternalLink } from '@tabler/icons-react'
+import { IconArrowLeft, IconExternalLink } from '@tabler/icons-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,27 +8,44 @@ import { del, patch } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { EntryDetail, InventoryOverview, InventoryType } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
-import { Field, LoadingState, PanelSection, SidePanel } from '@/components/ui'
+import { EmptyState, Field, LoadingState, Panel } from '@/components/ui'
+import { Layout } from '@/components/Layout'
+import { PageHead } from '@/components/PageHead'
+import { useCan } from '@/api/queries'
 import { FieldInputs } from './FieldInputs'
 import { DeviceIcon } from './icons'
 import { typeName } from './model'
-import { groupTree, useEntryDetail } from './scope'
+import { groupTree, useEntryDetail, useInventoryGroups, useInventoryTypes } from './scope'
 import { LookFields, PropertiesEditor, TagPicker } from './ScopeEditors'
 
-/** One cable, circuit, rack, ... with its fields and what it gets from its type, groups and tags. */
-export function EntryPanel({ type, id, overview, canEdit, onClose }: {
-  type: InventoryType; id: string; overview: InventoryOverview; canEdit: boolean; onClose: () => void
-}) {
+/** One cable, circuit, rack, ... on its own page (/inventory/entries/<type>/<id>): its fields and
+ *  what it gets from its type, groups and tags. */
+export default function EntryPage() {
   const { t } = useTranslation()
-  const { data: entry } = useEntryDetail(type.id, id)
-  const icon = entry ? entry.resolved.look.icon.value || type.default_icon : type.default_icon
+  const navigate = useNavigate()
+  const params = useParams()
+  const typeId = params.type ?? ''
+  const id = params.id ?? ''
+  const canEdit = useCan('floorplan.edit')
+  const type = useInventoryTypes().data?.types.find((x) => x.id === typeId)
+  const overview = useInventoryGroups().data
+  const { data: entry, error } = useEntryDetail(typeId, id)
+  const icon = entry ? entry.resolved.look.icon.value || type?.default_icon || 'other' : type?.default_icon ?? 'other'
   const color = entry?.resolved.look.color.value ?? ''
   return (
-    <SidePanel width={560} onClose={onClose}
-      title={entry ? <Group gap="sm" wrap="nowrap"><DeviceIcon icon={icon} color={color} />{entry.name}</Group> : t('common.loading')}
-      subtitle={entry && [typeName(t, type), ...entry.resolved.group_path.map((g) => g.name)].join(' · ')}>
-      {!entry ? <LoadingState /> : <EntryForm key={JSON.stringify(entry)} type={type} entry={entry} overview={overview} canEdit={canEdit} onClose={onClose} />}
-    </SidePanel>
+    <Layout title={entry?.name ?? t('inventory.title')}>
+      {error ? (
+        <EmptyState title={t('inventory.page.notFound')} desc={error.message}
+          action={<Button component={Link} to="/inventory" variant="default" leftSection={<IconArrowLeft size={16} />}>{t('inventory.page.back')}</Button>} />
+      ) : !entry || !type || !overview ? <LoadingState rows={6} /> : (
+        <>
+          <PageHead icon={<DeviceIcon icon={icon} color={color} size={28} />} title={entry.name}
+            kicker={[typeName(t, type), ...entry.resolved.group_path.map((g) => g.name)].join(' · ')} />
+          <EntryForm key={JSON.stringify(entry)} type={type} entry={entry} overview={overview} canEdit={canEdit}
+            onClose={() => navigate(`/inventory?type=${encodeURIComponent(type.id)}`)} />
+        </>
+      )}
+    </Layout>
   )
 }
 
@@ -65,7 +83,7 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
   return (
     <Stack gap="md">
       {(entry.summary || entry.link) && (
-        <PanelSection label={t('inventory.tabs.overview')}>
+        <Panel title={t('inventory.tabs.overview')}>
           <Stack gap={4}>
             {entry.summary && <Field label={t('inventory.entries.what')}>{entry.summary}</Field>}
             {entry.detail && <Text size="sm" c="dimmed">{entry.detail}</Text>}
@@ -75,9 +93,9 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
               </Anchor>
             )}
           </Stack>
-        </PanelSection>
+        </Panel>
       )}
-      <PanelSection label={t('inventory.entries.details')}>
+      <Panel title={t('inventory.entries.details')}>
         <Stack gap="sm">
           {stored && <TextInput label={t('inventory.field.name')} value={name} onChange={(e) => setName(e.currentTarget.value)} disabled={!canEdit} maxLength={80} />}
           <FieldInputs fields={type.fields} values={fields} onChange={setFields} disabled={!canEdit} />
@@ -99,11 +117,11 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
             </Group>
           )}
         </Stack>
-      </PanelSection>
-      <PanelSection label={t('inventory.props.title')}>
+      </Panel>
+      <Panel title={t('inventory.props.title')}>
         <PropertiesEditor value={entry.properties} inherited={entry.resolved.properties} canEdit={canEdit} busy={save.isPending}
           onSave={(properties) => save.mutate({ properties })} />
-      </PanelSection>
+      </Panel>
     </Stack>
   )
 }

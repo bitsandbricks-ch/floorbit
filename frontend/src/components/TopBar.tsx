@@ -21,8 +21,11 @@ export function TopBar({ pages }: { pages: NavPage[] }) {
   const title = usePageTitle()
   const problems = useProblems().data
   const [open, setOpen] = useState(false)
-  const { section, page } = crumbsFor(pages, path)
+  const crumbs = crumbsFor(pages, path)
+  const page = crumbs.page
   const label = page ? (isPluginPage(page.id) ? page.label : t(`goto.pages.${page.id}`, { defaultValue: page.label })) : null
+  // "Inventory > Inventory" says nothing twice: a section named like its page is left out.
+  const section = crumbs.section && t(`nav.sections.${crumbs.section}`) !== label ? crumbs.section : null
   // A sub page (one agent, one device): its own title after the page it belongs to.
   const sub = page && page.href !== path && title && title !== label ? title : null
   const count = (problems?.counts.down ?? 0) + (problems?.counts.warn ?? 0)
