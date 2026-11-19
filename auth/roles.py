@@ -275,6 +275,8 @@ RULES = (
     # What fields each type of inventory entry has: admins, like the settings.
     ('/api/inventory/types', WRITE, 'settings.manage'),
     ('/api/inventory/credentials', WRITE, 'settings.manage'),
+    # How often each discovery action runs is a setting; running one now is any editor's.
+    ('/api/inventory/discovery/actions', WRITE, 'settings.manage'),
     ('/api/inventory/credentials', READ, 'floorplan.edit'),
     # A device blocked after a failed login: any tech clears it once the login is fixed.
     ('/api/inventory/blocks', None, 'ports.act'),

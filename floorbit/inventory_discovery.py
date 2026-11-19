@@ -177,17 +177,96 @@ def fill(dev, values):
     return changed, kept
 
 
+# ── actions (issue #919) ─────────────────────────────────────────────────────────────────────
+
+# What discovery does, per kind of device, each on its own clock. ``minutes`` None: every
+# DISCOVERY_MINUTES. ``keys``: what it keeps in ``inventory_discovered``.
+ACTIONS = (
+    {'id': 'identity', 'name': 'Model, serial and software', 'minutes': 60, 'keys': (),
+     'roles': ('switch', 'router', 'firewall', 'access-point', 'server', 'vm', 'pdu', 'other')},
+    {'id': 'interfaces', 'name': 'Interfaces', 'minutes': None, 'keys': (),
+     'roles': ('switch', 'router', 'firewall', 'access-point', 'server', 'pdu')},
+    {'id': 'networks', 'name': 'VLANs and networks', 'minutes': None, 'keys': ('vlans', 'networks'),
+     'roles': ('switch', 'router', 'firewall', 'server', 'vm')},
+    {'id': 'optics', 'name': 'Transceivers', 'minutes': 60, 'keys': ('transceivers',),
+     'roles': ('switch', 'router', 'firewall')},
+    {'id': 'poe', 'name': 'PoE budget', 'minutes': None, 'keys': ('poe',), 'roles': ('switch',)},
+    {'id': 'routes', 'name': 'Routes', 'minutes': None, 'keys': ('routes',), 'roles': ('firewall',)},
+)
+ACTION_IDS = tuple(a['id'] for a in ACTIONS)
+SCHEDULES = 'inventory_discovery_schedules'      # {action: minutes} set by an admin, 0 = off
+RUNS = 'inventory_discovery_runs'                # {action: {at, devices, changed}}
+
+
+class DiscoveryError(ValueError):
+    pass
+
+
+def action(action_id):
+    return next((a for a in ACTIONS if a['id'] == action_id), None)
+
+
+def action_minutes(data, action_id):
+    """Minutes between runs of one action, or 0 when off. Discovery off (DISCOVERY_MINUTES 0)
+    turns every action off."""
+    every = every_minutes()
+    if every <= 0:
+        return 0
+    saved = (data.get(SCHEDULES) or {}) if isinstance(data.get(SCHEDULES), dict) else {}
+    if isinstance(saved.get(action_id), int) and not isinstance(saved.get(action_id), bool):
+        return 0 if saved[action_id] <= 0 else min(max(saved[action_id], MIN_MINUTES), MAX_MINUTES)
+    return action(action_id)['minutes'] or every
+
+
+def actions(data):
+    """Every action with its schedule and its last run, for the API."""
+    saved = (data.get(SCHEDULES) or {}) if isinstance(data.get(SCHEDULES), dict) else {}
+    runs = (data.get(RUNS) or {}) if isinstance(data.get(RUNS), dict) else {}
+    return [{'id': a['id'], 'name': a['name'], 'roles': list(a['roles']), 'minutes': action_minutes(data, a['id']),
+             'custom': a['id'] in saved, 'last': runs.get(a['id'])} for a in ACTIONS]
+
+
+def set_minutes(data, action_id, minutes):
+    """An admin's schedule for one action: minutes (0 = off), or None for the default."""
+    if action(action_id) is None:
+        raise DiscoveryError('No such discovery action.')
+    if not isinstance(data.get(SCHEDULES), dict):
+        data[SCHEDULES] = {}
+    saved = data[SCHEDULES]
+    if minutes is None:
+        saved.pop(action_id, None)
+        return
+    if isinstance(minutes, bool) or not isinstance(minutes, int) or minutes < 0 or minutes > MAX_MINUTES:
+        raise DiscoveryError(f'Minutes are a whole number from 0 (off) to {MAX_MINUTES}.')
+    if 0 < minutes < MIN_MINUTES:
+        raise DiscoveryError(f'Discovery runs at most every {MIN_MINUTES} minutes.')
+    saved[action_id] = minutes
+
+
+def due_actions(data, now):
+    from . import inventory_schedule
+    runs = (data.get(RUNS) or {}) if isinstance(data.get(RUNS), dict) else {}
+    return [a['id'] for a in ACTIONS
+            if inventory_schedule.due(now, inventory_schedule._at(runs.get(a['id']) or {}),
+                                      action_minutes(data, a['id']))]
+
+
 # ── a run ────────────────────────────────────────────────────────────────────────────────────
 
-def run():
-    """Fill every inventory device the monitoring source knows. Returns the report (also kept as
-    ``inventory_discovery`` for the Inventory page)."""
+def run(only=None, device_ids=None):
+    """Run the actions ``only`` names (all when None) on the inventory devices the monitoring
+    source knows, or only on ``device_ids``. Returns the report (also kept as
+    ``inventory_discovery`` for the Inventory page) with what each action did."""
     from . import inventory, sources
     from .blueprints.inventory import data_lock
-    from .blueprints.inventory_interfaces import MONITORED_ROLES, sync_from_monitoring
+    from .blueprints.inventory_interfaces import sync_from_monitoring
     from .store import load_data, save_data
+    todo = [a for a in ACTIONS if only is None or a['id'] in only]
     report = {'plugin': PLUGIN, 'at': inventory.now(), 'received': 0, 'updated': 0, 'unchanged': 0,
-              'locked': 0, 'added': 0, 'gone': 0, 'interfaces': 0}
+              'locked': 0, 'added': 0, 'gone': 0, 'interfaces': 0, 'actions': {a['id']: {'devices': 0, 'changed': 0}
+                                                                                 for a in todo}}
+    if device_ids is not None:
+        report['devices'] = sorted(device_ids)
     mon = sources.monitoring()
     if not getattr(mon, 'name', '') or mon.name == 'none' or not mon.enabled():
         report['error'] = 'No monitoring source is set up, so there is nothing to discover.'
@@ -197,59 +276,90 @@ def run():
     except Exception as exc:  # noqa: BLE001 - the source's own error, shown on the Inventory page
         report['error'] = f'The monitoring source did not answer: {exc}'[:300]
         return _keep(report)
+    ran = {a['id'] for a in todo}
+
+    def does(action_id, dev):
+        return action_id in ran and dev.get('role', 'switch') in action(action_id)['roles']
+
     found = {}
     with data_lock:
         data = load_data()
-        pairs = match(inventory.devices(data), rows)
+        pairs = [(d, r) for d, r in match(inventory.devices(data), rows) if device_ids is None or d['id'] in device_ids]
         report['received'] = len(pairs)
         for dev, row in pairs:
             values = fields_of(row)
             found[dev['id']] = (values, row)
+            if not does('identity', dev):
+                continue
+            report['actions']['identity']['devices'] += 1
             changed, kept = fill(dev, values)
             report['locked'] += kept
             if changed:
                 dev['updated_at'] = inventory.now()
                 report['updated'] += 1
+                report['actions']['identity']['changed'] += 1
             else:
                 report['unchanged'] += 1
         save_data(data)
-    polled = {dev['id'] for dev, row in pairs if dev.get('role') in MONITORED_ROLES and row.get('status', 1)}
+    polled = {dev['id'] for dev, row in pairs if does('interfaces', dev) and row.get('status', 1)}
     ports_ok = False
     if polled:
         ports = sync_from_monitoring([dev['name'] for dev, _row in pairs if dev['id'] in polled])
-        if not ports.get('error'):
+        if ports.get('error'):
+            report['actions']['interfaces']['error'] = ports['error']
+        else:
             ports_ok = True
             report['interfaces'] = ports['added'] + ports['updated']
             report['added'] = ports['added']
             report['gone'] = ports['gone']
+            report['actions']['interfaces'].update(devices=len(polled), changed=report['interfaces'])
     with data_lock:
         data = load_data()
-        before = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
         now_text = inventory.now()
-        out = {}
+        before = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
+        # What this run didn't look at stays as the last run left it.
+        out = {i: rows for i, rows in before.items() if i not in found and inventory.find(data, i) is not None}
         for dev_id, (values, row) in found.items():
             dev = inventory.find(data, dev_id)
             if dev is None:
                 continue
-            port_source = mon.name if ports_ok and dev_id in polled else None
-            rows = _since(drift(dev, values, row, port_source), before.get(dev_id) or [], now_text)
+            old = [r for r in before.get(dev_id) or [] if isinstance(r, dict)]
+            rows = drift(dev, values, row, mon.name if ports_ok and dev_id in polled else None)
+            if not does('identity', dev):
+                rows = [r for r in rows if r['kind'] == 'interface'] + [r for r in old if r.get('kind') != 'interface']
+            if not (ports_ok and dev_id in polled):
+                rows = [r for r in rows if r['kind'] != 'interface'] + [r for r in old if r.get('kind') == 'interface']
+            rows = _since(rows, old, now_text)
             if rows:
                 out[dev_id] = rows
         data['inventory_drift'] = out
         report['drift'] = len(out)
-        seen = {}
+        last_seen = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
+        # A device that didn't answer keeps what it said last: its optics and VLANs aren't gone.
+        kept = {i: n for i, n in last_seen.items() if isinstance(n, dict) and inventory.find(data, i) is not None}
         for dev_id, (_values, row) in found.items():
             dev = inventory.find(data, dev_id)
-            seen[dev_id] = {**networks_of(row), 'transceivers': optics_of(row, dev['name'] if dev else ''),
-                            'poe': poe_of(row), 'routes': routes_of(row)}
-        last = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
-        # A device that didn't answer this time keeps what it said last: its optics and VLANs aren't gone.
-        kept = {dev_id: n for dev_id, n in last.items()
-                if dev_id not in seen and isinstance(n, dict) and inventory.find(data, dev_id) is not None}
-        data['inventory_discovered'] = {
-            **kept, **{dev_id: {**n, 'at': now_text} for dev_id, n in seen.items()
-                       if n['vlans'] or n['networks'] or n['transceivers'] or n['poe'] or n['routes']}}
-        _entries(data, list(data['inventory_discovered'].values()), report)
+            if dev is None:
+                continue
+            fresh = {**networks_of(row), 'transceivers': optics_of(row, dev['name']), 'poe': poe_of(row),
+                     'routes': routes_of(row)}
+            record = dict(kept.get(dev_id) or {})
+            for a in todo:
+                if not a['keys'] or not does(a['id'], dev):
+                    continue
+                report['actions'][a['id']]['devices'] += 1
+                for key in a['keys']:
+                    if record.get(key) != fresh[key]:
+                        report['actions'][a['id']]['changed'] += 1
+                    record[key] = fresh[key]
+                record['at'] = now_text
+            if any(record.get(k) for k in ('vlans', 'networks', 'transceivers', 'poe', 'routes')):
+                kept[dev_id] = record
+            else:
+                kept.pop(dev_id, None)
+        data['inventory_discovered'] = kept
+        if ran & {'networks', 'optics'}:
+            _entries(data, list(kept.values()), report)
         save_data(data)
     return _keep(report)
 
@@ -475,6 +585,13 @@ def _keep(report):
     with data_lock:
         data = load_data()
         data['inventory_discovery'] = report
+        if report.get('actions') and 'devices' not in report:
+            # Each action's last run, failed or not, moves its clock; a run for a few devices doesn't.
+            if not isinstance(data.get(RUNS), dict):
+                data[RUNS] = {}
+            for action_id, done in report['actions'].items():
+                data[RUNS][action_id] = {'at': report['at'], **done,
+                                         **({'error': report['error']} if report.get('error') else {})}
         save_data(data)
     if report.get('error'):
         print(f"[discovery] {report['error']}")
@@ -500,16 +617,14 @@ def available():
 
 
 def tick(now=None):
-    """One look at the schedule (inventory_schedule's loop). Returns the report, or None."""
-    from . import inventory_schedule
+    """One look at the schedule (inventory_schedule's loop): runs the actions that are due.
+    Returns the report, or None."""
     from .store import load_data
     now = time.time() if now is None else now
-    previous = last(load_data())
-    if not inventory_schedule.due(now, inventory_schedule._at(previous or {}), every_minutes()):
-        return None
-    if not available() or not running.acquire(blocking=False):
+    due = due_actions(load_data(), now)
+    if not due or not available() or not running.acquire(blocking=False):
         return None
     try:
-        return run()
+        return run(set(due))
     finally:
         running.release()
