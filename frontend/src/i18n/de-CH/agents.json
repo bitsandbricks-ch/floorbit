@@ -93,7 +93,8 @@
       "refused": "abgelehnt",
       "waiting": "wartet",
       "dropped": "verworfen"
-    }
+    },
+    "none": "Dieser Agent hat noch nichts zu Plugin-Updates gemeldet (ältere Agents tun das nicht)."
   },
   "ha": {
     "hostedTitle": "Dieses Floorbit",
@@ -138,6 +139,102 @@
       "no_vrrp": "Mehrere Agents antworten hier ohne VRRP: Jeder fragt die Geräte ab. Schalte VRRP bei allen ein oder gib ihnen verschiedene Hallen.",
       "split": "Zwei Agents halten sich beide für primär: Sie hören einander nicht. Prüfe das VLAN oder setze FLOORBIT_AGENT_VRRP_PEERS.",
       "down": "Kein Agent für diese Hallen ist verbunden."
-    }
+    },
+    "noGroups": "Noch kein Agent, also keine Ausfallsicherheit zu zeigen."
+  },
+  "needsLook": "Braucht einen Blick",
+  "pluginsShort": "Plugins",
+  "state": {
+    "ok": "Online",
+    "warn": "Online, mit Warnungen",
+    "down": "Online, mit Fehlern",
+    "offline": "Offline"
+  },
+  "fact": {
+    "seen": "Zuletzt gesehen",
+    "now": "jetzt",
+    "version": "Version",
+    "link": "Verbindung",
+    "up": "Läuft seit",
+    "calls": "Letzte Stunde",
+    "callsValue_one": "1 Anfrage · {{ms}} ms",
+    "callsValue_other": "{{n}} Anfragen · {{ms}} ms",
+    "address": "Verbindet von",
+    "relays": "Leitet weiter",
+    "enrolled": "Eingetragen",
+    "enrolledValue": "{{date}} von {{who}}"
+  },
+  "transport": {
+    "websocket": "WebSocket (wss)",
+    "poll": "Long Poll (HTTPS)",
+    "elsewhere": "Über eine andere Instanz"
+  },
+  "duration": {
+    "minutes_one": "1 Minute",
+    "minutes_other": "{{count}} Minuten",
+    "hours_one": "1 Stunde",
+    "hours_other": "{{count}} Stunden",
+    "days_one": "1 Tag",
+    "days_other": "{{count}} Tagen"
+  },
+  "problem": {
+    "offline": "Nicht verbunden seit {{when}}. Die Seiten zeigen den letzten bekannten Stand.",
+    "never": "Noch nie verbunden. Starte ihn mit seinem Schlüssel (Details).",
+    "pluginStopped": "{{plugin}} läuft nicht: {{message}}",
+    "pluginError": "{{plugin}} ist fehlerhaft: {{message}}",
+    "pluginWarning": "{{plugin}}: {{message}}",
+    "behind": "Läuft mit {{v}}, ein anderer Agent mit {{newest}}: Neues floorbit-agent-Image holen.",
+    "failed_one": "1 Anfrage in der letzten Stunde fehlgeschlagen",
+    "failed_other": "{{count}} Anfragen in der letzten Stunde fehlgeschlagen",
+    "failedLast_one": "1 Anfrage in der letzten Stunde fehlgeschlagen, zuletzt {{when}}: {{method}}: {{error}}",
+    "failedLast_other": "{{count}} Anfragen in der letzten Stunde fehlgeschlagen, zuletzt {{when}}: {{method}}: {{error}}",
+    "blocked": "{{plugin}} meldet sich nicht mehr an {{device}} mit {{credential}} an: auf der Seite des Agents freigeben."
+  },
+  "overview": {
+    "title": "Übersicht",
+    "online": "Online",
+    "look": "Brauchen einen Blick",
+    "allGood": "Alles in Ordnung",
+    "plugins": "Plugins in Ordnung",
+    "pluginsSub": "über alle Agents",
+    "noPlugins": "Noch keine Agent-Plugins gemeldet",
+    "calls": "Anfragen in der letzten Stunde",
+    "noFailed": "keine fehlgeschlagen"
+  },
+  "open": "Öffnen",
+  "openNamed": "{{name}} öffnen",
+  "moreProblems_one": "und 1 weiteres",
+  "moreProblems_other": "und {{count}} weitere",
+  "kicker": "Lokaler Agent",
+  "detailsTitle": "Details",
+  "reportTitle": "Was er meldet",
+  "gone": "Diesen Agent gibt es nicht",
+  "goneHelp": "Er wurde widerrufen, oder der Link stimmt nicht. Die Seite «Lokale Agents» listet alle Agents.",
+  "noPluginReport": "Noch kein Plugin hat sich gemeldet. Agents melden sich jede halbe Minute.",
+  "chip": {
+    "protocol": "Protokoll {{v}}",
+    "up": "läuft seit {{time}}"
+  },
+  "tab": {
+    "agents": "Agents ({{count}})",
+    "failover": "Ausfallsicherheit pro Halle",
+    "server": "Dieses Floorbit",
+    "overview": "Übersicht",
+    "plugins": "Plugins ({{count}})",
+    "updates": "Updates",
+    "settings": "Einstellungen"
+  },
+  "col": {
+    "plugin": "Plugin",
+    "state": "Zustand",
+    "numbers": "Zahlen",
+    "lastError": "Letzter Fehler"
+  },
+  "stat": {
+    "median": "beantwortet in {{ms}} ms (Median)",
+    "failed": "Fehlgeschlagene Anfragen",
+    "syslog": "Syslog-Zeilen",
+    "waiting": "{{n}} wartend",
+    "reconnects": "Neuverbindungen"
   }
 }

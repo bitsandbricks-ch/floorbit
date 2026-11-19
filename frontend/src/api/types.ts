@@ -1735,6 +1735,9 @@ export interface Agent {
   report?: AgentReport | null
   /** Plugins that are on here but this agent leaves off (another agent runs them). */
   plugins_off?: string[]
+  /** How it reaches this Floorbit right now: protocol 2's WebSocket link or the HTTPS long poll
+   *  (null: not connected, or connected to another instance). */
+  transport?: 'websocket' | 'poll' | null
   /** When its key was made, and until when the key before still works (after "New key"). */
   renewed_at?: number
   old_works_until?: number | null

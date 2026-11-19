@@ -2,7 +2,7 @@
 
 For admins (``settings.manage``):
 
-- ``GET /settings/agents``: the page (React).
+- ``GET /settings/agents``: the page (React); ``/settings/agents/<id>``: one agent's page.
 - ``GET /api/agents``: the enrolled agents, whether each is connected, and the tunnel's state.
 - ``POST /api/agents`` ``{"name"}``: enrol one; the answer holds its key, this once.
 - ``PATCH /api/agents/<id>`` ``{"halls": [ids]}``: the halls it answers for (empty: every hall).
@@ -70,6 +70,11 @@ def agents_page():
     return spa.render('Local agents')
 
 
+@bp.route('/settings/agents/<agent_id>')
+def agent_page(agent_id):
+    return spa.render('Local agent')
+
+
 @bp.route('/api/agents', methods=['GET'])
 def list_agents():
     server = current_app.config.get('FLOORBIT_VERSION') or '0'
@@ -78,6 +83,7 @@ def list_agents():
     names = {h['id']: h['name'] for h in halls.halls(agent_link.load_data())}
     return jsonify({'agents': agents, 'connected': agent_link.tunnel.connected(),
                     'max': agent_link.MAX_AGENTS, 'server_version': server, 'protocol': agent_link.PROTOCOL,
+                    'newest_version': agent_link.newest_version(agents),
                     'groups': agent_ha.groups(agents, names), 'hosted': cluster.status()})
 
 

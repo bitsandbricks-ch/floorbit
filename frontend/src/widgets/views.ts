@@ -31,6 +31,7 @@ export const VIEWS: ViewDef[] = [
     load: () => import('@/pages/status/NetworkStatusView') },
   { id: 'wifi', area: 'network', label: 'wifi.title', feature: 'wifi', load: () => import('@/pages/wifi/WifiView') },
   { id: 'endpoints', area: 'network', label: 'endpoints.title', permission: 'seats.view', load: () => import('@/pages/endpoints/EndpointsView') },
+  { id: 'agents', area: 'network', label: 'agents.title', permission: 'settings.manage', load: () => import('@/pages/agents/AgentsView') },
   { id: 'traffic', area: 'traffic', label: 'traffic.title', feature: 'traffic', load: () => import('@/pages/traffic/TrafficView') },
   { id: 'dns', area: 'traffic', label: 'dns.title', feature: 'dns', load: () => import('@/pages/dns/DnsView') },
   { id: 'games', area: 'traffic', label: 'games.title', feature: 'games', load: () => import('@/pages/games/GamesView') },

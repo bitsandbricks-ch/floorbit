@@ -44,6 +44,8 @@ def test_enrol_list_and_revoke(client, anon_client):
     assert res.status_code == 200 and res.get_json()["name"] == "Demo LAN 2026"
     seen = client.get("/api/agents").get_json()
     assert seen["agents"][0]["connected"] and seen["agents"][0]["version"] == "1.2.3" and seen["connected"]
+    assert seen["agents"][0]["transport"] == "poll" and seen["newest_version"] == "1.2.3"
+    assert client.get(f"/settings/agents/{made['id']}").status_code in (200, 503)   # 503: no React build
 
     assert anon_client.get("/api/agent/v1/hello", headers=head(made["key"][:-2] + "xx")).status_code == 401
     assert anon_client.get("/api/agent/v1/hello").status_code == 401
@@ -490,3 +492,17 @@ def test_two_agents_for_one_hall_ask_librenms_once_per_lookup(monkeypatch):
     started = time.time()
     assert agent_link._ask_all("resolve_ip", ["192.0.2.10"], ["hung", "b"])["port"] == "Gi1/0/1"
     assert time.time() - started < 0.8
+
+
+def test_transport_and_newest_version():
+    tunnel = agent_link.Tunnel()
+    assert tunnel.transport("a1") is None                 # never seen here
+    tunnel.seen(agent="a1")
+    assert tunnel.transport("a1") == "poll"
+    tunnel.linked("a1")
+    assert tunnel.transport("a1") == "websocket"
+    tunnel.unlinked("a1")
+    assert tunnel.transport("a1") is None
+    agents = [{"version": "0.9.0"}, {"version": "0.10.1"}, {"version": None}, {"version": "v0.10.0"}]
+    assert agent_link.newest_version(agents) == "0.10.1"
+    assert agent_link.newest_version([{"version": None}]) is None
