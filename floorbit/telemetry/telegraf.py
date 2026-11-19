@@ -96,6 +96,11 @@ CISCO_POE = (('cpeExtPsePortPwrAllocated', '1.3.6.1.4.1.9.9.402.1.2.1.7', False,
 PSE_FIELDS = (('pethMainPsePower', '1.3.6.1.2.1.105.1.3.1.1.2', False, None),                  # W
               ('pethMainPseOperStatus', '1.3.6.1.2.1.105.1.3.1.1.3', False, None),             # 1: on
               ('pethMainPseConsumptionPower', '1.3.6.1.2.1.105.1.3.1.1.4', False, None))       # W
+# IP-FORWARD-MIB ipCidrRouteTable, index dest.mask.tos.next hop: a firewall's routes. Not asked of
+# routers, which may carry a full internet table.
+ROUTE_FIELDS = (('ipCidrRouteIfIndex', '1.3.6.1.2.1.4.24.4.1.5', False, None),
+                ('ipCidrRouteType', '1.3.6.1.2.1.4.24.4.1.6', False, None),      # 3 local, 4 remote
+                ('ipCidrRouteProto', '1.3.6.1.2.1.4.24.4.1.7', False, None))     # 2 local, 3 static, ...
 HR_DEVICE_FIELDS = (('hrDeviceType', '1.3.6.1.2.1.25.3.2.1.2', False, None),      # processors: the CPU
                     ('hrDeviceDescr', '1.3.6.1.2.1.25.3.2.1.3', False, None))
 
@@ -185,6 +190,8 @@ def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
     _table(lines, 'fb_entalias', ENT_ALIAS_FIELDS)
     _table(lines, 'fb_ifmac', IF_MAC_FIELDS)
     _table(lines, 'fb_ip', IP_FIELDS)
+    if t.get('kind') == 'firewall':
+        _table(lines, 'fb_route', ROUTE_FIELDS)
     if cisco:
         _table(lines, 'fb_vtp', VTP_FIELDS)
         _table(lines, 'fb_ifvlan', CISCO_IF_VLAN)

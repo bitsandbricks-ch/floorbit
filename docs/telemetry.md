@@ -126,6 +126,10 @@ which also gives the memory use), and per port its MAC, IPv4 addresses, VLAN and
 mode, with the device's VLAN names. [Discovery](inventory.md#discovery) fills the inventory device
 from it.
 
+Firewalls also say their **routes** every five minutes (IP-FORWARD-MIB ipCidrRouteTable: network,
+next hop, interface and where it came from: connected, static, OSPF, BGP, ...), up to 2,000 per
+firewall. Routers aren't asked: an internet router's full table is far too big to walk.
+
 With the tables (every minute), switches also say their **PoE** (POWER-ETHERNET-MIB): per port
 whether it is off, searching, delivering (with the class) or in fault, and on Cisco what it draws
 and what is set aside for it (CISCO-POWER-ETHERNET-EXT-MIB, `draw_w` and `allocated_w`), and per

@@ -199,6 +199,8 @@ CPUs, the Cisco memory pool); with LibreNMS it takes what LibreNMS knows of the 
   A device's own list is `discovered.transceivers`.
 - A switch's PoE budget and what it gives now are `discovered.poe` (`budget_w`, `used_w`); the
   per-port PoE is live data on its ports ([telemetry](telemetry.md)).
+- A firewall's routes are `discovered.routes` (`network`, `next_hop`, `interface`, `proto`), the
+  default route first.
 - A device that didn't answer keeps what it said last, so its optics and VLANs aren't marked gone
   while it is away.
 - The platform it finds (Cisco IOS, IOS-XE, NX-OS, Linux, ...) also sets what telemetry does
