@@ -10,3 +10,5 @@
   never heard), and tabs for the collector and the senders. Each device opens its own Telemetry tab
   with Test now, Raw data and Device setup.
 - Pages use the full width of the window instead of a fixed column.
+- The product spec names the core parts (agents, telemetry, seating plan and mapping, inventory,
+  observability, services and monitoring), which always come first.
