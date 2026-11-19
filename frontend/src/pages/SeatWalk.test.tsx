@@ -141,6 +141,6 @@ describe('SeatWalk', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<SeatWalk />)
-    expect(await screen.findByText(/Set FLOORBIT_AGENT_LAN_URL on the agent/)).toBeInTheDocument()
+    expect(await screen.findByText(/No laptop in the hall has reached a local agent yet/)).toBeInTheDocument()
   })
 })

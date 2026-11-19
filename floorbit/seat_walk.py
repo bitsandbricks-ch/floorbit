@@ -275,22 +275,29 @@ def private_ip(ip):
 
 
 def agent_url():
-    """Where laptops on the event network reach the local agent: the setting, else what an
-    agent reported (FLOORBIT_AGENT_LAN_URL)."""
-    from integrations import config
+    """Where laptops on the event network reach a local agent, worked out, never typed in: the
+    check-in name (CHECKIN_ADDRESS, already on every seat card, and every agent's front door answers
+    it), else where browsers in the hall last reached an agent (each front door learns it from the
+    requests it answers). '' while neither is known."""
+    from integrations import checkin
 
     from . import agent_link
-    configured = (config.get('SEAT_WALK_AGENT_URL', '') or '').strip().rstrip('/')
-    if configured:
-        return configured
+    if checkin.hall_url():
+        return checkin.hall_url()
     try:
         for a in agent_link.all_agents():
             url = ((a.get('report') or {}).get('lan_url') or '').rstrip('/')
             if a.get('connected') and url:
                 return url
-    except Exception as exc:  # noqa: BLE001  # no agents: the page says what to set
+    except Exception as exc:  # noqa: BLE001  # no agents: the page says so
         print(f'[seat-walk] could not read the agents: {exc}')
     return ''
+
+
+def hello_here(token, ip, agent_name, now=None):
+    """The page itself came through an agent's front door: that agent already saw the laptop's
+    address, so the hello is done without the trip."""
+    return agent_said_hello(token, ip, agent_name, now)
 
 
 def new_hello(by, now=None):

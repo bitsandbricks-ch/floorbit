@@ -55,7 +55,7 @@
   "time": "Time",
   "agentAt": "Laptops are identified through the local agent at",
   "agentNone": "No local agent has said where laptops reach it.",
-  "noAgent": "Floorbit doesn't know where laptops in the hall reach the local agent. Set FLOORBIT_AGENT_LAN_URL on the agent (or SEAT_WALK_AGENT_URL here), or type the laptop's MAC below.",
+  "noAgent": "No laptop in the hall has reached a local agent yet. Open the check-in page once from a seat (or set the check-in address under Settings, Check-in), or type the laptop's MAC below.",
   "mac": "Laptop MAC (optional)",
   "macHelp": "Type it to skip the local agent: Floorbit then looks for this MAC in the switches' tables.",
   "macBad": "That is not a MAC address.",

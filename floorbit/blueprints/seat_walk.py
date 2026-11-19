@@ -3,7 +3,8 @@
 - ``GET /seat-walk``: the page (React).
 - ``GET /api/seat-walk?block=&order=``: the block's seats in walking order with the port each has
   in this event, the local agent's address and which ways of looking a port up are on.
-- ``POST /api/seat-walk/hello``: a one-time code and the agent URL the laptop opens with it.
+- ``POST /api/seat-walk/hello``: a one-time code; ``ip`` at once when the page came through an agent's
+  front door, else the agent URL the laptop opens with it (worked out, see seat_walk.agent_url).
   ``GET /api/seat-walk/hello/<code>``: the laptop's own IP once the agent saw it.
 - ``POST /api/seat-walk/locate``: ``{"seat", "hello", "previous": {"switch", "port"}, "mac", "mac_ip"}``:
   find the port the laptop the agent identified is plugged into now and keep it for the seat. Tries
@@ -43,7 +44,7 @@ def page():
 
 @bp.route('/api/seat-walk', methods=['GET'])
 def overview():
-    body = {'agent_url': seat_walk.agent_url() or None,
+    body = {'agent_url': seat_walk.agent_url() or None, 'through_agent': bool(checkin.attendee_ip()),
             'switch_lookup': seat_walk._ssh(_registry())[0] is not None,
             'monitoring': sources.monitoring().enabled(),
             'event': {k: tenancy.current().get(k) for k in ('id', 'name', 'status')},
@@ -102,14 +103,19 @@ def locate():
 
 @bp.route('/api/seat-walk/hello', methods=['POST'])
 def new_hello():
-    url = seat_walk.agent_url()
-    if not url:
-        return jsonify({'error': 'No address for the local agent: set SEAT_WALK_AGENT_URL, or '
-                                 'FLOORBIT_AGENT_LAN_URL on the agent.'}), 409
+    """A code for this laptop. Opened through an agent's front door, the agent already named the
+    laptop's address: done at once (``ip``). Otherwise ``url``: the agent the laptop opens once."""
     try:
         token = seat_walk.new_hello(_who())
     except seat_walk.WalkError as exc:
         return jsonify({'error': str(exc)}), exc.status
+    here = checkin.attendee_ip()
+    if here and seat_walk.hello_here(token, here, 'front door'):
+        return jsonify({'hello': token, 'ip': here})
+    url = seat_walk.agent_url()
+    if not url:
+        return jsonify({'error': 'No laptop in the hall has reached a local agent yet. Open the check-in '
+                                 'page once from a seat, or set the check-in address.'}), 409
     return jsonify({'hello': token, 'url': f'{url}/floorbit/hello/{token}'})
 
 

@@ -555,7 +555,9 @@ def _runs_on_agent(spec):
 def _set_up_here(registry, spec):
     store = registry.settings_store
     keys = registry._core_fields(spec) + [f"plugin.{spec.id}.{f['key']}" for f in spec.items('settings')]
-    return registry.enabled(spec) or any(store.source(k) == 'saved' for k in keys)
+    # On by default (default_enabled) is nobody's choice: an agent's own settings still go in then.
+    chosen = 'enabled' in (registry._all_shared().get(spec.id) or {})
+    return (chosen and registry.enabled(spec)) or any(store.source(k) == 'saved' for k in keys)
 
 
 def import_env(agent, settings, plugins, registry=None):
@@ -606,15 +608,15 @@ def import_env(agent, settings, plugins, registry=None):
 LOCAL_DEFAULTS = {
     'syslog-relay': {'plugin.syslog-relay.port': 5514},
     'netflow-relay': {'plugin.netflow-relay.port': 2055},
-    'front-door': {'plugin.front-door.address': '0.0.0.0:8443'},
 }
 LOCAL_DEFAULTS_DONE = 'local_agent_plugins'
 
 
 def local_defaults(registry=None):
-    """Self-hosted with the agent next to Floorbit: turn on syslog, flows and the check-in front door
-    on the ports the compose file and the Kubernetes pod publish, once per install. A plugin someone
-    set up already, or turned off after this, is left alone. Returns the ids turned on."""
+    """Self-hosted with the agent next to Floorbit: turn on syslog and flows on the ports the compose
+    file and the Kubernetes pod publish, once per install (the attendees' front door is on everywhere
+    by default). A plugin someone set up already, or turned off after this, is left alone. Returns
+    the ids turned on."""
     from .store import load_data, save_data
     registry = registry or _registry()
     data = load_data()

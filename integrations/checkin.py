@@ -318,6 +318,13 @@ def short_address():
     return raw.split('/')[0].split(':')[0]
 
 
+def hall_url():
+    """``http://`` + CHECKIN_ADDRESS with its port, if it has one: where a browser in the hall reaches
+    an agent's front door (check-in with the PC's own address, the seat walk's hello). '' when unset."""
+    raw = re.sub(r'^[a-z]+://', '', str(config.get('CHECKIN_ADDRESS', '') or '').strip().lower()).split('/')[0]
+    return f'http://{raw}' if re.fullmatch(r'[a-z0-9.-]{1,120}(:[0-9]{1,5})?', raw) else ''
+
+
 def is_short_address(host):
     want = short_address()
     return bool(want) and str(host or '').lower().split(':')[0] == want
