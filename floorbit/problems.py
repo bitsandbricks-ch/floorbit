@@ -62,6 +62,31 @@ def _switches(muted):
     return out
 
 
+def _reach(items):
+    """What each down switch or link cuts off (issue #950): its seats, by name only, and the switches
+    behind it. A switch that is down only because the one before it is names that one as its
+    ``cause``, so the crew starts at the cause."""
+    from . import impact
+    from .store import load_data
+    switches = [p for p in items if p['kind'] == 'switch']
+    down_links = [p['id'].split(':', 1)[1] for p in items
+                  if p['kind'] == 'link' and p['id'].startswith('link:') and p['level'] == 'down']
+    if not switches and not down_links:
+        return
+    found = impact.failures(load_data(), [p['name'] for p in switches], down_links)
+    for p in switches:
+        hit = found['switches'].get(p['name']) or {}
+        p['seats'], p['behind'] = hit.get('seats') or [], hit.get('behind') or []
+        cause = next((n for n, f in found['switches'].items()
+                      if n != p['name'] and p['name'] in f['behind']), None)
+        if cause:
+            p['cause'] = cause
+    for p in items:
+        hit = found['links'].get(p['id'].split(':', 1)[1]) if p['kind'] == 'link' else None
+        if hit:
+            p['seats'], p['behind'] = hit['seats'], hit['behind']
+
+
 def _muted(mute):
     return {'until': mute['until'], 'by': mute.get('by'), 'reason': mute.get('reason')} if mute else None
 
@@ -169,6 +194,7 @@ def current(may_see_people):
     from . import links
     items = (_monitoring() + _switches(muted) + _health(muted) + _security(may_see_people) + _power() + _forecast()
              + links.problems())
+    _reach(items)
     now = time.time()
     items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),

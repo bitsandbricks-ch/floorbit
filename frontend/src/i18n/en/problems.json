@@ -63,5 +63,12 @@
   "report": "Make an incident",
   "incidentOpen": "Incident open",
   "copy": "Copy list",
-  "copied": "Copied"
+  "copied": "Copied",
+  "seatsAffected_one": "1 seat affected",
+  "seatsAffected_other": "{{count}} seats affected",
+  "switchesBehind_one": "1 switch behind it",
+  "switchesBehind_other": "{{count}} switches behind it",
+  "behindCause": "Behind {{name}}, which is down: start there",
+  "showSeats": "Show the seats",
+  "hideSeats": "Hide the seats"
 }

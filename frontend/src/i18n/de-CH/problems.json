@@ -63,5 +63,12 @@
   "report": "Störung erfassen",
   "incidentOpen": "Störung offen",
   "copy": "Liste kopieren",
-  "copied": "Kopiert"
+  "copied": "Kopiert",
+  "seatsAffected_one": "1 Platz betroffen",
+  "seatsAffected_other": "{{count}} Plätze betroffen",
+  "switchesBehind_one": "1 Switch dahinter",
+  "switchesBehind_other": "{{count}} Switches dahinter",
+  "behindCause": "Hinter {{name}}, der down ist: dort anfangen",
+  "showSeats": "Plätze zeigen",
+  "hideSeats": "Plätze ausblenden"
 }

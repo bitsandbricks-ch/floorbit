@@ -40,6 +40,24 @@ describe('Problems', () => {
     expect(screen.getByRole('link', { name: 'sw-d-01' })).toHaveAttribute('href', '/plan?switch=sw-d-01')
   })
 
+  it('counts the seats a down switch cuts off, and points a switch behind it at the cause', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({
+      problems: [
+        { id: 'switch:a1', kind: 'switch', level: 'down', title: 'sw-a-01 is offline', where: 'sw-a-01', since: now, link: '/plan?switch=sw-a-01',
+          switch_id: 'a1', seats: ['A-1', 'A-2', 'A-3'], behind: ['sw-a-02'] },
+        { id: 'switch:a2', kind: 'switch', level: 'down', title: 'sw-a-02 is offline', where: 'sw-a-02', since: now, link: '/plan?switch=sw-a-02',
+          switch_id: 'a2', seats: ['A-3'], behind: [], cause: 'sw-a-01' },
+      ],
+    }) }).fn)
+    renderWithApp(<Problems />)
+    const first = await screen.findByRole('article', { name: 'sw-a-01 is offline' })
+    expect(within(first).getByText('3 seats affected · 1 switch behind it')).toBeInTheDocument()
+    fireEvent.click(within(first).getByRole('button', { name: 'Show the seats' }))
+    expect(within(first).getByText('A-1, A-2, A-3')).toBeInTheDocument()
+    const second = screen.getByRole('article', { name: 'sw-a-02 is offline' })
+    expect(within(second).getByText('Behind sw-a-01, which is down: start there')).toBeInTheDocument()
+  })
+
   it('lists ports that need attention, linked to the floor plan', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({
       attention: [
