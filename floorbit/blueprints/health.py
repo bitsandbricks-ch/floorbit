@@ -16,9 +16,14 @@ from flask import Blueprint, current_app, jsonify, request
 
 from integrations import alerting
 
-from .. import database, i18n
+from .. import database, i18n, spa
 
 bp = Blueprint('health', __name__)
+
+
+@bp.route('/health')
+def health_page():
+    return spa.render('Service health')
 
 
 def _wall():
