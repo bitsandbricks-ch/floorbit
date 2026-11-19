@@ -997,3 +997,6 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 @media (min-width: 62em) {
   .fb-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 }
+
+/* An item page's remove panel: a thin line in the down colour, so it reads as the end of the page. */
+.fb-danger-zone { border-color: color-mix(in srgb, var(--color-down) 40%, var(--mantine-color-default-border)); }

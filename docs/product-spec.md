@@ -151,6 +151,9 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   | Workspace | Full-screen tool | Floor plan, Topology, Terminal, Replay |
   | Detail page | One thing, with tabs | A device, an agent, a seat |
 
+- **An item's own page** is an `ItemPage`: a link back to its list, its name and a line about it
+  in the top bar, its parts as panels or tabs, and a `DangerZone` panel last for removing it. Edit
+  dialogs move to such pages; dialogs stay for quick asks (confirm, pick a kind, rename).
 - **Side panel or detail page:** a click opens a side panel to peek and act quickly; anything
   bigger opens the detail page. The panel links there. The inventory has no side panel: devices,
   groups, tags and entries each open their own page.

@@ -7,7 +7,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { del, patch } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
+import { DangerZone } from '@/components/ItemPage'
 import { Layout } from '@/components/Layout'
 import { StatCard } from '@/components/StatCard'
 import { EmptyState, ErrorBanner, Field, LoadingState, Panel } from '@/components/ui'
@@ -208,12 +208,7 @@ function SettingsTab({ agent: a, hallOptions, onHalls, onKey, onRevoke }: {
           </Panel>
           <KeyPanel agent={a} page={page.data}><NewKeyButton agent={a} onKey={onKey} /></KeyPanel>
           {page.data && <CertPanel agent={a} page={page.data} />}
-          <Panel title={t('agents.cfg.dangerTitle')}>
-            <Group>
-              <ConfirmButton variant="default" danger label={t('agents.revoke')}
-                question={t('agents.revokeQuestion', { name: a.name })} onConfirm={onRevoke} />
-            </Group>
-          </Panel>
+          <DangerZone label={t('agents.revoke')} question={t('agents.revokeQuestion', { name: a.name })} onConfirm={onRevoke} />
         </Stack>
       </Grid.Col>
     </Grid>
