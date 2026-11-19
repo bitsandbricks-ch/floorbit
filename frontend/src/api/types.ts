@@ -1362,11 +1362,12 @@ export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
 export interface WalkPort { switch: string; port: string; learned_at?: number; source?: 'walk' | 'checkin' }
 export interface SeatWalkInfo {
   /** Where laptops in the hall reach the local agent, which identifies them (null: not known). */
-  agent_url: string | null; switch_lookup: boolean; monitoring: boolean; keep_hours: number
+  agent_url: string | null; through_agent?: boolean; switch_lookup: boolean; monitoring: boolean; keep_hours: number
   event: { id: string; name: string; status: string }
   rows?: string[]; row_names?: string[]; seats?: { seat: string; port: WalkPort | null }[]
 }
-export interface SeatWalkHello { hello: string; url: string }
+/** ip: the page came through an agent, the laptop is known at once; else url: the agent to open once. */
+export interface SeatWalkHello { hello: string; url?: string; ip?: string }
 export interface SeatLocated {
   ok: boolean; retry: boolean; seat: string; ip: string | null; mac: string | null; how: 'switch' | 'snmp' | 'monitoring' | null
   ms: number; tries: number; stale: boolean; found: WalkPort | null

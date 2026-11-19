@@ -100,6 +100,11 @@ function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: 
       try {
         const made = await post<SeatWalkHello>('/api/seat-walk/hello')
         if (run.current !== mine) return
+        if (made.ip || !made.url) {
+          // Opened through an agent: it already named this laptop, no trip needed.
+          void locate(made.hello)
+          return
+        }
         keep({ rows, order, at, done, previous: previous.current, laptop: laptop.current, mac: typedMac })
         const back = `${window.location.origin}${window.location.pathname}?hello=${encodeURIComponent(made.hello)}`
         leave.to(`${made.url}?back=${encodeURIComponent(back)}`)
@@ -341,7 +346,7 @@ export default function SeatWalk() {
           typedMac={macOk ? mac.trim() : ''} resumed={resumed} onStop={() => { keep(null); cameBack = null; setWalking(false) }} />
       ) : (
         <Stack gap="md">
-          {d && !d.agent_url && !mac.trim() && <Alert color="warn">{t('seatWalk.noAgent')}</Alert>}
+          {d && !d.agent_url && !d.through_agent && !mac.trim() && <Alert color="warn">{t('seatWalk.noAgent')}</Alert>}
           {d && !d.switch_lookup && !d.monitoring && <Alert color="down">{t('seatWalk.noLookup')}</Alert>}
           <Paper withBorder radius="lg" p="lg">
             <Stack gap="sm">
