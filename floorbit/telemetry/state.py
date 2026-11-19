@@ -314,13 +314,22 @@ class Device:
             out['disk_gb'] = round(disk / 1e9)
         if self.vlans:
             out['vlans'] = {str(v): name for v, name in sorted(self.vlans.items())}
-        networks = set()
-        for facts in self.if_facts.values():
+        networks, svis = set(), []
+        from ..segments import vlan_of_interface
+        for if_index, facts in self.if_facts.items():
+            vlan = vlan_of_interface(self.port_name(if_index) or facts.get('name'))
             for ip, prefix in (facts.get('ips') or {}).items():
                 if prefix < 32:
-                    networks.add(str(ipaddress.ip_network(f'{ip}/{prefix}', strict=False)))
+                    network = str(ipaddress.ip_network(f'{ip}/{prefix}', strict=False))
+                    networks.add(network)
+                    # A VLAN interface with an address: a segment (floorbit/segments.py), and the
+                    # ifIndex an IP's ARP entry is asked under (issue #947).
+                    if vlan and len(svis) < 256:
+                        svis.append({'vlan': vlan, 'network': network, 'if_index': int(if_index)})
         if networks:
             out['networks'] = sorted(networks)
+        if svis:
+            out['svis'] = sorted(svis, key=lambda v: (v['vlan'], v['network']))
         if self.pse:
             on = [g for g in self.pse.values() if g.get('on') and g.get('budget_w')]
             if on:
@@ -623,6 +632,9 @@ def _ifmac(dev, point, at):
     mac = _mac(point.fields.get('ifPhysAddress'))
     if mac:
         _if_fact(dev, _index(point))['mac'] = mac
+    name = _text(point.fields.get('ifName'))
+    if name:
+        _if_fact(dev, _index(point))['name'] = name[:64]
     return True
 
 

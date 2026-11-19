@@ -62,6 +62,7 @@ from . import (
                seat_map,
                seat_walk,
                security,
+               segments,
                services,
                setup,
                speedtest,
@@ -91,7 +92,7 @@ ALL = [pages.bp, config.bp, switches.bp, seat_blocks.bp, plan_marks.bp, plan_gro
        replay.bp, report.bp, dispatch.bp, tournament.bp, crew.bp, handover.bp, preflight.bp,
        cables.bp, cable_plan.bp, seat_walk.bp, past_events.bp, tenant_events.bp, tenant_switch.bp, platform.bp,
        features.bp, firewalls.bp, api_tokens.bp, agent.bp, agent_plugins.bp, telemetry.bp, endpoints.bp, webhooks.bp,
-       wifi.bp,
+       wifi.bp, segments.bp,
        speedtest.bp, timeline.bp, topology.bp, status_page.bp,
        stats_wall.bp, schedule.bp, plan.bp, metrics.bp, notice.bp, options.bp,
        lancache.bp, marketplace.bp, dashboards.bp, nav_sections.bp]

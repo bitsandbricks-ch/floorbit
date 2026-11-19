@@ -77,7 +77,10 @@ STORAGE_FIELDS = (('hrStorageType', '1.3.6.1.2.1.25.2.3.1.2', False, None),     
                   ('hrStorageAllocationUnits', '1.3.6.1.2.1.25.2.3.1.4', False, None),
                   ('hrStorageSize', '1.3.6.1.2.1.25.2.3.1.5', False, None))
 # Per interface and per device, for discovery too: MAC, IPv4 addresses, VLANs, access or trunk.
-IF_MAC_FIELDS = (('ifPhysAddress', '1.3.6.1.2.1.2.2.1.6', False, 'hwaddr'),)
+# ifName too: with LibreNMS polling the ports (polling.py) it is the only place the facts learn
+# which interface is a VLAN interface (segments, issue #946).
+IF_MAC_FIELDS = (('ifPhysAddress', '1.3.6.1.2.1.2.2.1.6', False, 'hex'),
+                 ('ifName', '1.3.6.1.2.1.31.1.1.1.1', False, None))
 IP_FIELDS = (('ipAdEntIfIndex', '1.3.6.1.2.1.4.20.1.2', False, None),             # index: the address
              ('ipAdEntNetMask', '1.3.6.1.2.1.4.20.1.3', False, None))
 QVLAN_FIELDS = (('dot1qVlanStaticName', '1.3.6.1.2.1.17.7.1.4.3.1.1', False, None),)   # index: VLAN

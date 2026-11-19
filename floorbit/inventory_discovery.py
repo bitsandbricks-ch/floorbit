@@ -251,6 +251,8 @@ def run():
                        if n['vlans'] or n['networks'] or n['transceivers'] or n['poe'] or n['routes']}}
         _entries(data, list(data['inventory_discovered'].values()), report)
         save_data(data)
+    from . import segments
+    report['segments'] = segments.take_proposals()
     return _keep(report)
 
 
@@ -271,6 +273,10 @@ def networks_of(row):
         except ValueError:
             continue
     out['networks'] = sorted(set(out['networks']))[:256]
+    # VLAN interfaces with an address: proposals for the lookup segments (floorbit/segments.py).
+    out['svis'] = [{'vlan': int(v['vlan']), 'network': str(v['network']), 'if_index': v.get('if_index')}
+                   for v in (facts.get('svis') or [])[:256]
+                   if isinstance(v, dict) and str(v.get('vlan', '')).isdigit() and v.get('network')]
     return out
 
 

@@ -7,7 +7,8 @@ does the collecting; Floorbit tells it what to ask and keeps what comes back.
 
 LibreNMS stays a choice: the **Telemetry** plugin is one more monitoring source next to LibreNMS,
 Prometheus, Zabbix and the rest (Settings > Plugins). Only one answers at a time; see
-[Who polls the switches](#who-polls-the-switches) for how Telemetry and LibreNMS share the work.
+[Who polls the switches](#who-polls-the-switches) for how Telemetry and LibreNMS share the work, and
+[Network segments](segments.md) for the VLANs where check-ins may look PCs up.
 
 ## Who polls the switches
 
