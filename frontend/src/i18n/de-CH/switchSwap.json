@@ -4,7 +4,7 @@
   "back": "Probleme",
   "intro": "Ein toter Switch raus, ein Ersatz rein: Ersatz wählen, die letzte Konfig-Kopie aufspielen, jeden Platz wieder an denselben Port stecken und dann als getauscht markieren.",
   "now": "Der Switch jetzt",
-  "status": { "down": "Offline", "up": "Online", "unknown": "Status unbekannt" },
+  "status": { "offline": "Offline", "online": "Online", "unknown": "Status unbekannt" },
   "model": "Modell",
   "serial": "Seriennummer",
   "mgmtIp": "Management-IP",

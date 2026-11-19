@@ -21,10 +21,10 @@ def test_the_plan_lists_spares_of_the_same_kind_same_model_first():
     data, sw, _, _ = _hall()
     mapping = {'A-2': {'switch': 'SW-A1', 'port': 'Gi1/0/10'}, 'A-1': {'switch': 'sw-a1', 'port': 'Gi1/0/2'},
                'B-1': {'switch': 'sw-b1', 'port': 'Gi1/0/1'}}
-    p = switch_swap.plan(data, sw['id'], {'status': 'down', 'since': 5}, mapping=mapping)
+    p = switch_swap.plan(data, sw['id'], {'status': 'offline', 'since': 5}, mapping=mapping)
     assert [s['name'] for s in p['spares']] == ['spare-1', 'spare-0']   # no active switch, no firewall
     assert p['spares'][0]['same_model'] and not p['spares'][1]['same_model']
-    assert p['switch']['status'] == 'down' and p['switch']['mgmt_ip'] == '192.0.2.11'
+    assert p['switch']['status'] == 'offline' and p['switch']['mgmt_ip'] == '192.0.2.11'
     assert p['seat_ports'] == [{'port': 'Gi1/0/2', 'seat': 'A-1'}, {'port': 'Gi1/0/10', 'seat': 'A-2'}]
     assert p['config'] is None and p['config_readable'] is False   # no configs.read, no config link
     with pytest.raises(SwapError) as err:

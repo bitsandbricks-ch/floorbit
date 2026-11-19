@@ -10,7 +10,7 @@ afterEach(() => vi.unstubAllGlobals())
 const lead = { enabled: true, user: { username: 'ana', display_name: 'Ana', role: 'lead', permissions: ['floorplan.view', 'floorplan.edit', 'configs.read'] } }
 const viewer = { enabled: true, user: { username: 'vic', display_name: 'Vic', role: 'viewer', permissions: ['floorplan.view'] } }
 const plan: SwapPlan = {
-  switch: { id: 'sw1', name: 'sw-a-01', model: 'C2960X', serial: 'OLD1', mgmt_ip: '192.0.2.11', status: 'down', since: 1_763_100_000 },
+  switch: { id: 'sw1', name: 'sw-a-01', model: 'C2960X', serial: 'OLD1', mgmt_ip: '192.0.2.11', status: 'offline', since: 1_763_100_000 },
   spares: [{ id: 'sp1', name: 'spare-1', model: 'C2960X', serial: 'NEW1', same_model: true }],
   config: { id: 'c1', at: 1_763_000_000 }, config_readable: true,
   seat_ports: [{ port: 'Gi1/0/1', seat: 'A-1' }, { port: 'Gi1/0/2', seat: 'A-2' }],
@@ -32,6 +32,7 @@ describe('Swap a switch', () => {
     show()
     expect(await screen.findByText('Swap sw-a-01')).toBeInTheDocument()
     expect(screen.getByText('spare-1')).toBeInTheDocument()
+    expect(screen.getByText(/^Offline/)).toBeInTheDocument()
     expect(screen.getByText('Gi1/0/2')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Download the last copy' })).toHaveAttribute('href', '/api/configs/sw-a-01/c1?download=1')
     fireEvent.click(screen.getByRole('button', { name: 'Swapped: the spare is in' }))

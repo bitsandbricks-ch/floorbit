@@ -9,7 +9,7 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { ago, dateTime } from '@/lib/time'
 import type { SwapEntry, SwapPlan } from './switchSwap/types'
 
@@ -41,7 +41,8 @@ export default function SwitchSwap() {
     },
   })
   const name = p?.switch.name ?? ''
-  const down = p?.switch.status === 'down'
+  const state = p?.switch.status === 'offline' || p?.switch.status === 'online' ? p.switch.status : 'unknown'
+  const down = state === 'offline'
 
   return (
     <Layout title={t('switchSwap.title')} back={{ href: '/problems', label: t('switchSwap.back') }}>
@@ -51,8 +52,8 @@ export default function SwitchSwap() {
         {query.isPending ? <LoadingState /> : p && (
           <>
             <Panel title={name} aria-label={t('switchSwap.now')}
-              actions={<Badge variant="light" color={down ? 'down' : p.switch.status === 'up' ? 'up' : 'gray'} tt="none" className="fb-on-tint">
-                {t(`switchSwap.status.${down ? 'down' : p.switch.status === 'up' ? 'up' : 'unknown'}`)}
+              actions={<Badge variant="light" color={down ? 'down' : state === 'online' ? 'up' : 'gray'} tt="none" className="fb-on-tint">
+                {t(`switchSwap.status.${state}`)}
                 {down && p.switch.since ? ` · ${ago(p.switch.since)}` : ''}
               </Badge>}>
               <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
@@ -140,7 +141,7 @@ export default function SwitchSwap() {
             </Panel>
 
             <Panel title={t('switchSwap.history')}>
-              {p.swaps.length === 0 ? <EmptyState title={t('switchSwap.noSwaps')} /> : (
+              {p.swaps.length === 0 ? <Text size="sm" c="dimmed">{t('switchSwap.noSwaps')}</Text> : (
                 <Stack gap={4}>
                   {p.swaps.map((s) => (
                     <Text key={s.at} size="sm">

@@ -4,7 +4,7 @@
   "back": "Problems",
   "intro": "A dead switch out, a spare in: pick the spare, give it the last config copy, patch every seat back to the same port, then mark it swapped.",
   "now": "The switch now",
-  "status": { "down": "Offline", "up": "Online", "unknown": "Status unknown" },
+  "status": { "offline": "Offline", "online": "Online", "unknown": "Status unknown" },
   "model": "Model",
   "serial": "Serial number",
   "mgmtIp": "Management IP",
