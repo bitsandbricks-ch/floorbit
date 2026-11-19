@@ -289,6 +289,8 @@ def _loop(app, stop):
     while not stop.is_set():
         _wake.wait(CHECK_EVERY)
         _wake.clear()
+        if app.config.get('TESTING'):
+            continue      # tests call run() with a fake CA; this thread would ask the real one
         try:
             # The leader only: two pods would order two certificates.
             if cluster.leading() and due():
