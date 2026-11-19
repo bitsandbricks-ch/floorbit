@@ -529,6 +529,32 @@ def _flows(user):
     return out
 
 
+def _health():
+    from .health import _wall, _with_mutes
+    return _with_mutes(_wall().fresh())
+
+
+def _services():
+    from .. import services
+    return services.overview()
+
+
+def _lancache():
+    from .. import agent_plugins
+    from ..lancache import overview
+    return overview(current_app.extensions.get('floorbit_lancache'), agent_plugins.health_of('lancache'))
+
+
+def _power():
+    from .power import _watch
+    return _watch().snapshot()
+
+
+def _agents():
+    from .. import agent_link
+    return [{**a, 'outdated': agent_link.outdated(a.get('protocol'))} for a in agent_link.all_agents()]
+
+
 # Floorbit's own tiles (dashboard_core.TILES): one builder each, None when this account may not see it.
 CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switches': _switches_tile,
               'seats': _seats_tile, 'down': _down_tile, 'switch_states': _switch_states_tile,
@@ -542,7 +568,12 @@ CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switche
               'traffic_mix': lambda user: core.traffic_mix_widget(_lang(), _flows(user)),
               'flow_services': lambda user: core.flow_services_widget(_lang(), _flows(user)),
               'traffic_areas': lambda user: core.traffic_areas_widget(_lang(), _flows(user)),
-              'anomalies': lambda user: core.anomalies_widget(_lang(), _flows(user))}
+              'anomalies': lambda user: core.anomalies_widget(_lang(), _flows(user)),
+              'service_health': lambda user: core.service_health_widget(_lang(), _health()),
+              'internet_uplinks': lambda user: core.internet_uplinks_widget(_lang(), _services()),
+              'lancache': lambda user: core.lancache_widget(_lang(), _lancache()),
+              'power_circuits': lambda user: core.power_circuits_widget(_lang(), _power()),
+              'agents': lambda user: core.agents_widget(_lang(), _agents())}
 
 
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])

@@ -30,6 +30,12 @@ TEXTS = {
            'mix_sub': 'Last hour: {total}', 'flow_services': 'Top services', 'seat_count': '{n} seats',
            'traffic_areas': 'Traffic by area', 'anomalies': 'Look at this', 'nothing_odd': 'Nothing odd',
            'for': 'for {t}', 'no_flows': 'No flows yet',
+           'service_health': 'Service health', 'no_checks': 'Nothing checked yet',
+           'internet_uplinks': 'Internet uplinks', 'in_out': '{pct} % · ↓ {down} · ↑ {up}', 'link_down': 'down',
+           'lancache': 'LAN cache', 'lancache_sub': '{hit} from the cache · {miss} from the internet',
+           'no_cache': 'No LAN cache set up', 'power_circuits': 'Power load', 'tripped': 'tripped',
+           'no_circuits': 'No circuits set up', 'agents': 'Agents', 'agents_unit': 'of {n} online',
+           'agents_sub': '{outdated} need an update', 'no_agents': 'No agent yet',
            'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'downloads': 'Downloads', 'updates': 'Updates',
                    'web': 'Web', 'other': 'Other'}},
     'de': {'problems': 'Probleme jetzt', 'incidents': 'Störungen', 'down': 'ausgefallen', 'open': 'offen',
@@ -53,6 +59,12 @@ TEXTS = {
            'mix_sub': 'Letzte Stunde: {total}', 'flow_services': 'Top-Dienste', 'seat_count': '{n} Plätze',
            'traffic_areas': 'Verkehr nach Bereich', 'anomalies': 'Anschauen', 'nothing_odd': 'Nichts Auffälliges',
            'for': 'seit {t}', 'no_flows': 'Noch keine Flows',
+           'service_health': 'Dienst-Status', 'no_checks': 'Noch nichts geprüft',
+           'internet_uplinks': 'Internet-Uplinks', 'in_out': '{pct} % · ↓ {down} · ↑ {up}', 'link_down': 'offline',
+           'lancache': 'LAN-Cache', 'lancache_sub': '{hit} aus dem Cache · {miss} aus dem Internet',
+           'no_cache': 'Kein LAN-Cache eingerichtet', 'power_circuits': 'Stromlast', 'tripped': 'ausgelöst',
+           'no_circuits': 'Keine Stromkreise eingerichtet', 'agents': 'Agenten', 'agents_unit': 'von {n} online',
+           'agents_sub': '{outdated} brauchen ein Update', 'no_agents': 'Noch kein Agent',
            'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'downloads': 'Downloads', 'updates': 'Updates',
                    'web': 'Web', 'other': 'Anderes'}},
 }
@@ -79,6 +91,12 @@ TILES = {
     'flow_services': {'label': 'flow_services', 'size': 'small', 'refresh': 30, 'feature': 'traffic'},
     'traffic_areas': {'label': 'traffic_areas', 'size': 'small', 'refresh': 30, 'feature': 'traffic'},
     'anomalies': {'label': 'anomalies', 'size': 'small', 'refresh': 30, 'feature': 'traffic'},
+    # And what the Service health, Services, LAN cache, Power load and Agents views showed (#1045).
+    'service_health': {'label': 'service_health', 'size': 'small', 'refresh': 15, 'feature': 'health'},
+    'internet_uplinks': {'label': 'internet_uplinks', 'size': 'small', 'refresh': 30},
+    'lancache': {'label': 'lancache', 'size': 'small', 'refresh': 60},
+    'power_circuits': {'label': 'power_circuits', 'size': 'small', 'refresh': 30, 'feature': 'power'},
+    'agents': {'label': 'agents', 'size': 'small', 'refresh': 30},
 }
 MAX_DOWN = 20   # a big screen reads a short list; the rest is "+ n more"
 
@@ -361,3 +379,80 @@ def anomalies_widget(lang, flows, now=None):
         {'label': ' · '.join(x for x in (a.get('title'), a.get('detail')) if x),
          'state': 'down' if a.get('kind') in bad else 'warn',
          'detail': text['for'].format(t=_down_for(text, now - (a.get('first_seen') or now)))} for a in found]}
+
+
+HEALTH_STATES = ('up', 'down', 'warn', 'unknown')
+
+
+def service_health_widget(lang, wall):
+    """The health wall's checks (DHCP, DNS, firewalls, ...), worst first, with each one's summary.
+    ``wall`` is /api/health's, already in the reader's language."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    checks = wall.get('checks') or []
+    if not checks:
+        return {'type': 'status', 'items': [], 'sub': text['no_checks'], 'link': '/dashboards/health'}
+    order = {'down': 0, 'warn': 1, 'unknown': 2, 'up': 3}
+    items = [{'label': c.get('name') or '', 'detail': c.get('summary') or '',
+              'state': c.get('status') if c.get('status') in HEALTH_STATES else 'unknown'} for c in checks]
+    items.sort(key=lambda i: order[i['state']])
+    return {'type': 'status', 'items': items, 'link': '/dashboards/health'}
+
+
+def internet_uplinks_widget(lang, overview):
+    """The event's lines to the internet (services.py uplinks): load as a share of each line's speed."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    items = []
+    for u in overview.get('uplinks') or []:
+        name = u.get('name') or ''
+        if u.get('status') == 'down':
+            items.append({'label': name, 'value': text['link_down'], 'tone': 'err', 'number': 0, 'max': 100})
+            continue
+        pct = round((u.get('utilization') or 0) * 100)
+        items.append({'label': name, 'number': pct, 'max': 100,
+                      'value': text['in_out'].format(pct=pct, down=rate(u.get('in_bps')), up=rate(u.get('out_bps'))),
+                      'tone': 'err' if pct >= 80 else 'warn' if pct >= 60 or u.get('status') == 'warn' else ''})
+    return {'type': 'list', 'items': items, 'link': '/dashboards/services'}
+
+
+def lancache_widget(lang, cache):
+    """How much of the downloads the LAN cache served from its disks (lancache.overview)."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not cache.get('configured'):
+        return {'type': 'stat', 'value': NONE, 'unit': '', 'sub': text['no_cache'], 'link': '/dashboards/services'}
+    ratio = cache.get('hit_ratio')
+    return {'type': 'stat', 'value': NONE if ratio is None else round(ratio * 100, 1), 'unit': '%',
+            'min': 0, 'max': 100, 'link': '/dashboards/services',
+            'sub': text['lancache_sub'].format(hit=size(cache.get('hit_bytes')), miss=size(cache.get('miss_bytes')))}
+
+
+def power_circuits_widget(lang, power):
+    """Each circuit's load as a share of its rating, fullest first, in the power page's colours."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not power.get('circuits'):
+        return {'type': 'list', 'items': [], 'sub': text['no_circuits'], 'link': '/dashboards/power'}
+    warn, crit = power.get('warn') or 80, power.get('crit') or 95
+    items = []
+    for c in sorted(power['circuits'], key=lambda c: -(c.get('load_pct') or 0)):
+        if c.get('tripped') or c.get('state') == 'tripped':
+            items.append({'label': c.get('name') or '', 'value': text['tripped'], 'tone': 'err',
+                          'number': 0, 'max': 100})
+            continue
+        pct = c.get('load_pct')
+        if pct is None:
+            items.append({'label': c.get('name') or '', 'value': NONE})
+            continue
+        items.append({'label': c.get('name') or '', 'value': f'{round(pct)} %', 'number': round(pct, 1), 'max': 100,
+                      'tone': 'err' if pct >= crit else 'warn' if pct >= warn else ''})
+    return {'type': 'list', 'items': items, 'link': '/dashboards/power'}
+
+
+def agents_widget(lang, agents):
+    """How many local agents are connected; ``agents`` is agent_link.all_agents() with ``outdated``."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    if not agents:
+        return {'type': 'stat', 'value': 0, 'unit': '', 'sub': text['no_agents'], 'link': '/agents'}
+    online = sum(1 for a in agents if a.get('connected'))
+    outdated = sum(1 for a in agents if a.get('outdated'))
+    return {'type': 'stat', 'value': online, 'unit': text['agents_unit'].format(n=len(agents)),
+            'tone': 'err' if online < len(agents) else 'ok', 'min': 0, 'max': len(agents), 'link': '/agents',
+            'sub': text['agents_sub'].format(outdated=outdated) if outdated else ''}

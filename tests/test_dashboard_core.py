@@ -151,7 +151,7 @@ def test_seats_by_block_say_when_nobody_knows():
 
 
 STATS_TILES = ["bandwidth", "peak", "ports", "uplinks", "top_ports", "traffic_mix", "flow_services", "traffic_areas",
-               "anomalies"]
+               "anomalies", "service_health", "internet_uplinks", "lancache", "power_circuits", "agents"]
 SNAP = {"now": {"t": 160, "down": 4.8e9, "up": 9.4e9, "online": 93,
                 "ports_up": 138, "ports_down": 598, "ports_errors": 1},
         "peak": {"bps": 16e9, "at": 100}, "day": {"peak_bps": 15.5e9},
@@ -200,6 +200,34 @@ def test_the_traffic_view_is_split_into_tiles():
     assert [(i["label"], i["state"]) for i in odd] == [("Rogue DHCP", "down"), ("P2P · seat D-5", "warn")]
     assert dashboard_core.anomalies_widget("en", {"anomalies": []})["items"][0]["state"] == "up"
     assert dashboard_core.traffic_mix_widget("en", None)["sub"] == "No flows yet"
+
+
+def test_the_service_views_are_split_into_tiles():
+    wall = {"checks": [{"name": "DNS", "status": "up", "summary": "12 ms"},
+                       {"name": "fw-03", "status": "down", "summary": "1 range failed over"},
+                       {"name": "odd", "status": "sideways", "summary": ""}]}
+    items = dashboard_core.service_health_widget("en", wall)["items"]
+    assert [(i["label"], i["state"]) for i in items] == [("fw-03", "down"), ("odd", "unknown"), ("DNS", "up")]
+    assert dashboard_core.service_health_widget("de", {})["sub"] == "Noch nichts geprüft"
+    ups = dashboard_core.internet_uplinks_widget("en", {"uplinks": [
+        {"name": "ISP 1", "status": "up", "utilization": 0.65, "in_bps": 6.5e9, "out_bps": 1e9},
+        {"name": "ISP 2", "status": "down"}]})["items"]
+    assert ups[0] == {"label": "ISP 1", "number": 65, "max": 100, "value": "65 % · ↓ 6.5 Gbit/s · ↑ 1.0 Gbit/s",
+                      "tone": "warn"}
+    assert ups[1]["tone"] == "err" and ups[1]["value"] == "down"
+    cache = dashboard_core.lancache_widget("en", {"configured": True, "hit_ratio": 0.7193, "hit_bytes": 8e11,
+                                                  "miss_bytes": 3e11})
+    assert (cache["value"], cache["unit"]) == (71.9, "%")
+    assert cache["sub"] == "800 GB from the cache · 300 GB from the internet"
+    assert dashboard_core.lancache_widget("en", {})["sub"] == "No LAN cache set up"
+    power = dashboard_core.power_circuits_widget("en", {"warn": 80, "crit": 95, "circuits": [
+        {"name": "C1", "load_pct": 50}, {"name": "C2", "load_pct": 96.4},
+        {"name": "C3", "state": "tripped", "load_pct": 0}, {"name": "C4", "load_pct": None}]})["items"]
+    assert [(i["label"], i.get("tone", "")) for i in power] == [("C2", "err"), ("C1", ""), ("C3", "err"), ("C4", "")]
+    agents = dashboard_core.agents_widget("en", [{"connected": True}, {"connected": False, "outdated": True}])
+    assert (agents["value"], agents["unit"], agents["tone"]) == (1, "of 2 online", "err")
+    assert agents["sub"] == "1 need an update"
+    assert dashboard_core.agents_widget("en", [])["sub"] == "No agent yet"
 
 
 @pytest.mark.parametrize("tile", STATS_TILES)

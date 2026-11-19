@@ -125,13 +125,13 @@ BUILTIN = {
     # The crew's start page: the numbers that matter, the hall, what is red, and how busy the network is.
     'overview': {'name': 'Overview', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 4, 3, _tile('seats')),
-        _at(4, 0, 4, 3, _tile('switches')),
-        _at(8, 0, 4, 3, _tile('bandwidth')),
-        _at(12, 0, 4, 3, _tile('peak')),
-        _at(16, 0, 4, 3, _tile('ports')),
-        _at(20, 0, 4, 3, _tile('incidents')),
+        _at(4, 0, 4, 3, _tile('bandwidth')),
+        _at(8, 0, 4, 3, _tile('switches')),
+        _at(12, 0, 4, 3, _tile('incidents')),
+        _at(16, 0, 4, 3, _tile('agents')),
+        _at(20, 0, 4, 3, _tile('lancache')),
         _at(0, 3, 14, 9, _plan(preset='ops')),
-        _at(14, 3, 10, 5, _view('health')),
+        _at(14, 3, 10, 5, _tile('service_health', type='status')),
         _at(14, 8, 10, 4, _tile('down')),
         _at(0, 12, 8, 8, _tile('switch_states', type='status')),
         _at(8, 12, 10, 8, _tile('traffic', type='graph', style='area')),
@@ -141,9 +141,15 @@ BUILTIN = {
         _at(16, 20, 8, 8, _tile('anomalies', type='status')),
     ]}]},
     'health': {'name': 'Service health', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 24, 12, _view('health', expanded=True)),
-        _at(0, 12, 12, 8, _view('services')),
-        _at(12, 12, 12, 8, _view('lancache')),
+        _at(0, 0, 6, 3, _tile('service_health', type='stat')),
+        _at(6, 0, 6, 3, _tile('switches')),
+        _at(12, 0, 6, 3, _tile('lancache')),
+        _at(18, 0, 6, 3, _tile('agents')),
+        _at(0, 3, 14, 12, _tile('service_health', type='status')),
+        _at(14, 3, 10, 6, _tile('internet_uplinks', type='bar')),
+        _at(14, 9, 10, 6, _tile('down')),
+        # The wall with each check's numbers and mutes, until those have a home of their own (#1045).
+        _at(0, 15, 24, 12, _view('health', expanded=True)),
     ]}]},
     'network': {'name': 'Network', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 6, 3, _tile('switches')),
@@ -160,9 +166,14 @@ BUILTIN = {
         _at(12, 24, 12, 3, _view('network-status')),
     ]}]},
     'services': {'name': 'Services', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 24, 10, _view('services', expanded=True)),
-        _at(0, 10, 12, 8, _view('health')),
-        _at(12, 10, 12, 8, _view('lancache')),
+        _at(0, 0, 8, 3, _tile('service_health', type='stat')),
+        _at(8, 0, 8, 3, _tile('lancache')),
+        _at(16, 0, 8, 3, _tile('agents')),
+        _at(0, 3, 12, 9, _tile('service_health', type='status')),
+        _at(12, 3, 12, 9, _tile('internet_uplinks', type='bar')),
+        # Adding and editing DNS servers, sites and uplinks, and the cache's details (#1045).
+        _at(0, 12, 24, 10, _view('services', expanded=True)),
+        _at(0, 22, 24, 10, _view('lancache', expanded=True)),
     ]}]},
     'traffic': {'name': 'Traffic', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 6, 3, _tile('bandwidth')),
@@ -178,7 +189,8 @@ BUILTIN = {
         _at(0, 31, 24, 8, _view('speedtests')),
     ]}]},
     'power': {'name': 'Power load', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 24, 14, _view('power-load', expanded=True)),
+        _at(0, 0, 24, 10, _tile('power_circuits', type='bar')),
+        _at(0, 10, 24, 14, _view('power-load', expanded=True)),
     ]}]},
     # What the old public stats wall showed, for a screen in the hall: off until Settings > Attendee
     # pages turns on the stats wall.
