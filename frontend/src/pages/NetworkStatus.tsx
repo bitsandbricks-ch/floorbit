@@ -102,6 +102,11 @@ export default function NetworkStatus() {
                       auto: t(`status.state.${d.auto_state}`) })
                     : t('status.automatic')}
                 </Text>
+                {(d.reasons ?? []).length > 0 && (
+                  <Text size="sm" c="dimmed" mt={4}>
+                    {(d.reasons ?? []).map((r) => t(`publicStatus.reason.${r}`, { defaultValue: r })).join(' ')}
+                  </Text>
+                )}
                 {d.override?.note && <Text size="sm" c="dimmed">{d.override.note}</Text>}
                 {canSet && (
                   <Stack gap="xs" mt="md">

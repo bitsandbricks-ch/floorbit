@@ -1430,6 +1430,8 @@ export interface StatusPageData {
   auto_state: StatusState
   override: { state: StatusState; note: string; by: string | null; at: number } | null
   since: number | null
+  /** What players notice (issue #1038): switches, firewall, no_firewall, internet_slow, internet_down, dns, dhcp. */
+  reasons?: string[]
   areas: StatusArea[]
   crew_areas: StatusArea[]
   /** Areas whose switch came back in the last half hour, with switch names (issue #396). */

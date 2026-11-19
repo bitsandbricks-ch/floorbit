@@ -165,3 +165,36 @@ def test_the_old_hall_view_leads_to_the_status_page(anon_client, client, floor):
     for gone in ("/status.atom", "/api/public/hall", "/api/public/seats"):
         assert anon_client.get(gone).status_code in (302, 401, 404), gone   # gone: sign-in or not found
     assert client.post("/api/status-page/maintenance", json={}).status_code == 404
+
+
+# ── Issue #1038: firewalls, internet lines, DNS and DHCP count too ─────────────────────────────
+
+def _check(kind, status, name='x'):
+    return {"id": f"{kind}:{name}", "name": name, "kind": kind, "status": status}
+
+
+def test_reasons_from_the_health_wall():
+    up = [_check("uplink", "up", "a"), _check("uplink", "up", "b")]
+    assert status_page.reasons(up) == ("operational", [])
+    # Game servers and websites are not "the network".
+    assert status_page.reasons([_check("game", "down"), _check("web", "down")]) == ("operational", [])
+    assert status_page.reasons([_check("firewall", "down")]) == ("degraded", ["firewall"])
+    assert status_page.reasons([_check("uplink", "down", "a"), _check("uplink", "up", "b")]) == ("degraded", ["internet_slow"])
+    assert status_page.reasons([_check("uplink", "down", "a"), _check("uplink", "down", "b")]) == ("outage", ["internet_down"])
+    assert status_page.reasons([_check("dns", "down"), _check("dhcp", "warn")]) == ("degraded", ["dns"])
+    # A range with no firewall left is an outage for its seats.
+    assert status_page.reasons([_check("firewall", "down")], {"A-1": {"state": "down"}}) == ("outage", ["no_firewall"])
+
+
+def test_a_failed_over_firewall_is_not_all_systems_running(anon_client, floor, switched_on, app_module, monkeypatch):
+    from floorbit import firewalls
+    wall = app_module.app.extensions["floorbit_health"]
+    monkeypatch.setattr(wall, "snapshot", lambda: {"checks": [_check("firewall", "down", "fw-03")]})
+    monkeypatch.setattr(firewalls, "configured", lambda data=None: True)
+    monkeypatch.setattr(firewalls, "seat_routes", lambda now=None: {"enabled": True, "seats": {
+        "A-1": {"now": "fw-04", "intended": "fw-03", "state": "failover"},
+        "A-2": {"now": "fw-04", "intended": "fw-03", "state": "failover"}}})
+    data = anon_client.get("/status.json").get_json()
+    assert data["state"] == "degraded" and data["reasons"] == ["firewall"]
+    assert data["areas"] == [{"hall": "", "block": "A", "rows": "1", "seats": 2}]
+    assert "fw-03" not in str(data) and "fw-04" not in str(data)
