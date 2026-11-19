@@ -14,6 +14,8 @@ export interface ScreenSource {
   range?: TimeRange
   /** On a wall, the names of what is down with nobody on it (#1137): panes listing one pulse. */
   alerts?: string[]
+  /** A pane says it pulses (true) or stopped (false), so a rotating wall can wait on that dashboard. */
+  pulsing?: (on: boolean) => void
 }
 
 export const ScreenContext = createContext<ScreenSource>({ publicId: null, tiles: {}, hall: '' })
@@ -24,8 +26,11 @@ export const publicUrl = (id: string, rest = '') => `/api/dashboards/${encodeURI
 
 /** The next dashboard of ``?rotate=a,b,c`` after ``id``, for a screen that shows several in turn. */
 export function nextInRotation(rotate: string | null, id: string): string | null {
-  const ids = (rotate ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+  const ids = rotation(rotate)
   if (ids.length < 2) return null
   const at = ids.indexOf(id)
   return ids[(at + 1) % ids.length]
 }
+
+/** The dashboards of ``?rotate=a,b,c``. */
+export const rotation = (rotate: string | null) => (rotate ?? '').split(',').map((x) => x.trim()).filter(Boolean)

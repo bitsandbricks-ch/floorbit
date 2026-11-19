@@ -127,6 +127,33 @@ describe('Dashboard screen', () => {
     expect(document.querySelectorAll('.fb-pane-alert')).toHaveLength(1)
   })
 
+  it('a rotating wall waits on the dashboard that shows the problem, and looks on while this one does not', async () => {
+    const down = { id: 'sw-a-01', name: 'sw-a-01', kind: 'switch', level: 'down', title: 'sw-a-01 down', where: 'Hall A', since: null, link: '' }
+    const wall = (items: object[]) => fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': board,
+      'GET /api/dashboards/traffic/public': { account: true, board: null, tiles: {}, app: '1' },
+      'GET /api/dashboards/traffic': { ...board, id: 'traffic', name: 'Traffic' },
+      'GET /api/problems': { counts: { down: 1, warn: 0, muted: 0 }, checked_at: 0, mutes: [], quiet_hours: false, can_mute: true, problems: [down] },
+      'GET /api/dashboard': { tiles: [{ plugin: 'floorbit', plugin_name: 'Floorbit', id: 'down', label: 'Switches down', size: 'small', refresh: 15, url: '/api/dashboard/floorbit/down' }] },
+      'GET /api/dashboard/floorbit/down': { id: 'down', type: 'list', items, sub: '', link: '' },
+      'GET /api/version': { app: '1' },
+    })
+    const rotating = () => renderWithApp(<Routes><Route path="/dashboards/:id" element={<DashboardScreen />} /></Routes>, '/dashboards/kiosk?rotate=kiosk,traffic')
+    layOut()
+    vi.stubGlobal('fetch', wall([{ label: 'sw-a-01', value: '7 min', tone: 'err' }]).fn)
+    const { unmount } = rotating()
+    expect(await screen.findByRole('alert')).toHaveTextContent('sw-a-01 down')
+    expect(await screen.findByText('Rotation waits')).toBeInTheDocument()
+    unmount()
+    // Nothing here lists it: the wall moves on to look for it.
+    vi.stubGlobal('fetch', wall([{ label: 'sw-z-09', value: '1 min', tone: 'err' }]).fn)
+    rotating()
+    expect(await screen.findByRole('alert')).toHaveTextContent('sw-a-01 down')
+    expect(await screen.findByText('Next: Traffic')).toBeInTheDocument()
+    expect(screen.queryByText('Rotation waits')).not.toBeInTheDocument()
+  })
+
   it('keeps showing the board while the server is away, with a small note instead of a banner', async () => {
     const api = fakeFetch({
       'GET /api/dashboards/kiosk/public': { account: false, board, tiles: {}, app: '1' },

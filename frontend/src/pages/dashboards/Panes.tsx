@@ -1,6 +1,6 @@
 import { ActionIcon, Loader, Stack, Text, Tooltip } from '@mantine/core'
 import { IconArrowsMaximize, IconExternalLink } from '@tabler/icons-react'
-import { Suspense, useContext } from 'react'
+import { Suspense, useContext, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDashboard, useFeaturesOff, useWidgets } from '@/api/queries'
 import type { Tile, Widget, WidgetTile } from '@/api/types'
@@ -86,9 +86,14 @@ function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>
     thresholds: pane.threshold_mode === 'percent' ? undefined : pane.thresholds, number: { decimals: pane.decimals, short: pane.short },
     axis: { min: pane.y_min, max: pane.y_max, log: pane.y_log }, spark: pane.spark, change: pane.change, text: pane.text_size }
   const link = data?.link && data.link.startsWith('/') ? data.link : ''
-  const { alerts } = useScreen()
+  const { alerts, pulsing } = useScreen()
   // A wall's eye goes to the pane that lists what just went down and nobody has taken (#1137).
   const alert = !!alerts?.length && !!data && listsDown(data).some((name) => alerts.includes(name))
+  useEffect(() => {
+    if (!alert || !pulsing) return undefined
+    pulsing(true)
+    return () => pulsing(false)
+  }, [alert, pulsing])
   return (
     <Framed title={title} hide={pane.hide_title} fit alert={alert} actions={data && (
       <>

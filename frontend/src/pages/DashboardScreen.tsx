@@ -1,6 +1,6 @@
 import { Button, Group, Text } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { get, put } from '@/api/client'
@@ -12,7 +12,7 @@ import type { Problem } from '@/api/types'
 import { StatusLine } from '@/components/StatusLine'
 import { ago, clock, formatWhen } from '@/lib/time'
 import { type Board, TIME_RANGES, type TimeRange, boardName } from './dashboards/model'
-import { nextInRotation, publicUrl, ScreenContext } from './dashboards/screen'
+import { nextInRotation, publicUrl, rotation, ScreenContext } from './dashboards/screen'
 import { GridView } from './dashboards/GridView'
 import { AutoPage, WALL_PAGE_SECONDS } from '@/widgets/autoPage'
 import { useIdle } from './plan/idle'
@@ -54,19 +54,32 @@ export default function DashboardScreen() {
   // A public wall nobody signed in to can't read the problem list.
   const problems = useProblems(!open.isPending && !anonymous).data
   const unhandled = (problems?.problems ?? []).filter(isUnhandled).sort((a, b) => (b.since ?? 0) - (a.since ?? 0))
-  const hold = unhandled.length > 0
+  // A rotating wall waits on the dashboard whose pane pulses for it. It looks through the rotation
+  // quicker while none does, and waits where it is once it went round without finding one.
+  const [pulses, setPulses] = useState(0)
+  const pulsing = useCallback((on: boolean) => setPulses((n) => Math.max(0, n + (on ? 1 : -1))), [])
+  const problemKey = unhandled.map((p) => p.id).join(',')
+  // The dashboards looked at for this set of problems, as "a,b" (a string, so the timer below keeps).
+  const [looked, setLooked] = useState({ key: '', ids: '' })
+  const lookedHere = looked.key === problemKey ? looked.ids : ''
+  const roundDone = rotation(params.get('rotate')).every((x) => x === id || rotation(lookedHere).includes(x))
+  const hold = unhandled.length > 0 && (pulses > 0 || roundDone)
+  const searching = unhandled.length > 0 && !hold
   useEffect(() => {
     if (!next || hold) return undefined
-    const timer = window.setTimeout(() => navigate(`/dashboards/${encodeURIComponent(next)}?${params.toString()}`, { replace: true }), every * 1000)
+    const timer = window.setTimeout(() => {
+      if (searching) setLooked({ key: problemKey, ids: lookedHere ? `${lookedHere},${id}` : id })
+      navigate(`/dashboards/${encodeURIComponent(next)}?${params.toString()}`, { replace: true })
+    }, (searching ? Math.min(every, SEARCH_SECONDS) : every) * 1000)
     return () => window.clearTimeout(timer)
-  }, [next, every, navigate, params, hold])
+  }, [next, every, navigate, params, hold, searching, problemKey, lookedHere, id])
   const asked = params.get('range') as TimeRange | null
   const range = asked && TIME_RANGES.includes(asked) ? asked : q.data?.range
   const alertNames = unhandled.map((p) => p.name).filter((n): n is string => !!n).join('\n')
   const source = useMemo(() => ({
     publicId: anonymous ? id : null, tiles: open.data?.tiles ?? {}, hall: params.get('hall') ?? '', range,
-    alerts: alertNames ? alertNames.split('\n') : [],
-  }), [anonymous, id, open.data?.tiles, params, range, alertNames])
+    alerts: alertNames ? alertNames.split('\n') : [], pulsing,
+  }), [anonymous, id, open.data?.tiles, params, range, alertNames, pulsing])
   const idle = useIdle(3000)
   // Signed out, /api/version may need an account too: the public feed says which version runs.
   useReloadOnUpdate(!anonymous && !open.isPending)
@@ -105,6 +118,9 @@ export default function DashboardScreen() {
     </main>
   )
 }
+
+/** How long a rotating wall looks at each dashboard for the one that shows a new problem. */
+const SEARCH_SECONDS = 10
 
 const keep = (id: string) => `fb.keepPage.${id}`
 

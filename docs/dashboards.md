@@ -232,7 +232,8 @@ without the event and the status line. Switch **Header and status line in full s
 dashboard's settings for just the panes and a clock in the corner.
 
 While something is down and nobody has taken it (no incident open for it, not muted), a red bar
-under the header names it and how long it has been down, and a rotating screen stays where it is.
+under the header names it and how long it has been down. A rotating screen goes to the dashboard
+whose pane shows it and waits there ([Rotating dashboards](#rotating-dashboards)).
 A list pane that shows it as down pulses red with the bar, so the eye finds it. Open an incident or mute it, and the bar goes away. A public screen nobody signed in to shows no
 bar: it can't read the problem list. The pointer hides
 after three seconds, and the page reloads itself after a Floorbit update. Saved changes reach the
@@ -253,6 +254,12 @@ otherwise.
 seconds (10 to 600, 30 by default), for a wall that shows several: for example
 `/dashboards/kiosk?rotate=kiosk,traffic,event&every=45`. The other options (`hall`, `theme`) go
 along.
+
+When something goes down and nobody has taken it, the rotation looks for the dashboard with a pane
+that lists it: it waits on the one it is on if a pane there pulses, otherwise it moves on after 10
+seconds (or sooner, if `every` is shorter). Once it finds one, the header says **Rotation waits**
+until the problem is taken. If no dashboard in the list shows it, the screen waits after one round
+on the dashboard it got to.
 
 ## For developers
 
