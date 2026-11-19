@@ -168,6 +168,11 @@
 .fb-grid-size { position: absolute; right: 10px; bottom: 26px; z-index: 5; font-size: 12px; font-weight: 700; padding: 2px 8px;
   border-radius: 6px; color: var(--color-on-bit); background: var(--color-bit); pointer-events: none; }
 
+/* A pane listing what the bar names pulses with it (#1137). */
+.fb-pane.fb-pane-alert { border-color: var(--color-down); animation: fb-pane-alert 2s ease-in-out infinite; }
+@keyframes fb-pane-alert { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-down) 45%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .fb-pane.fb-pane-alert { animation: none; } }
+
 /* A wall's call for attention: something is down and nobody has taken it (#1137). */
 .fb-screen-alert { display: flex; align-items: center; gap: 1vw; padding: .6vh 1vw; border-radius: 8px;
   font-size: clamp(14px, 1.1vw, 30px); color: var(--color-fg); white-space: nowrap; overflow: hidden;

@@ -62,9 +62,11 @@ export default function DashboardScreen() {
   }, [next, every, navigate, params, hold])
   const asked = params.get('range') as TimeRange | null
   const range = asked && TIME_RANGES.includes(asked) ? asked : q.data?.range
+  const alertNames = unhandled.map((p) => p.name).filter((n): n is string => !!n).join('\n')
   const source = useMemo(() => ({
     publicId: anonymous ? id : null, tiles: open.data?.tiles ?? {}, hall: params.get('hall') ?? '', range,
-  }), [anonymous, id, open.data?.tiles, params, range])
+    alerts: alertNames ? alertNames.split('\n') : [],
+  }), [anonymous, id, open.data?.tiles, params, range, alertNames])
   const idle = useIdle(3000)
   // Signed out, /api/version may need an account too: the public feed says which version runs.
   useReloadOnUpdate(!anonymous && !open.isPending)

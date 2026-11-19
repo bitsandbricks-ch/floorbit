@@ -3,7 +3,7 @@ import { IconArrowsMaximize, IconExternalLink } from '@tabler/icons-react'
 import { Suspense, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDashboard, useFeaturesOff, useWidgets } from '@/api/queries'
-import type { Tile, WidgetTile } from '@/api/types'
+import type { Tile, Widget, WidgetTile } from '@/api/types'
 import { FitWidget } from '@/widgets/FitWidget'
 import { usePaneData } from '@/widgets/usePaneData'
 import { type Pane, displayOf, paneRange, rangedUrl } from './model'
@@ -21,11 +21,11 @@ function Note({ children }: { children: React.ReactNode }) {
 }
 
 /** ``fit``: the body never scrolls; what it holds sizes itself to the box (widgets, issue #924). */
-function Framed({ title, hide, className = '', actions, fit, children }: {
-  title?: string; hide?: boolean; className?: string; actions?: React.ReactNode; fit?: boolean; children: React.ReactNode
+function Framed({ title, hide, className = '', actions, fit, alert, children }: {
+  title?: string; hide?: boolean; className?: string; actions?: React.ReactNode; fit?: boolean; alert?: boolean; children: React.ReactNode
 }) {
   return (
-    <div className={`fb-pane ${className}${!title || hide ? ' fb-pane-nohead' : ''}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
+    <div className={`fb-pane ${className}${alert ? ' fb-pane-alert' : ''}${!title || hide ? ' fb-pane-nohead' : ''}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
       {title && !hide && <div className="fb-pane-head"><Text fw={600} className="fb-pane-title" truncate>{title}</Text>{actions && <div className="fb-pane-actions">{actions}</div>}</div>}
       <div className={`fb-pane-body ${fit ? 'fb-pane-fit' : 'fb-pane-scroll'}${hide ? ' fb-pane-headless' : ''}`}>{children}</div>
     </div>
@@ -66,6 +66,13 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   )
 }
 
+/** The names a status or list widget shows as down. */
+function listsDown(widget: Widget): string[] {
+  if (widget.type === 'status') return widget.items.filter((x) => x.state === 'down').map((x) => x.label)
+  if (widget.type === 'list') return widget.items.filter((x) => x.tone === 'err').map((x) => x.label)
+  return []
+}
+
 /** A data widget in its pane: it fits the box at the level the box allows. "+N more" and the
  *  button open it large in the dashboard's area (#925); Esc goes back. */
 function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>; tiles: WidgetTile[] }) {
@@ -79,8 +86,11 @@ function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>
     thresholds: pane.threshold_mode === 'percent' ? undefined : pane.thresholds, number: { decimals: pane.decimals, short: pane.short },
     axis: { min: pane.y_min, max: pane.y_max, log: pane.y_log }, spark: pane.spark, change: pane.change, text: pane.text_size }
   const link = data?.link && data.link.startsWith('/') ? data.link : ''
+  const { alerts } = useScreen()
+  // A wall's eye goes to the pane that lists what just went down and nobody has taken (#1137).
+  const alert = !!alerts?.length && !!data && listsDown(data).some((name) => alerts.includes(name))
   return (
-    <Framed title={title} hide={pane.hide_title} fit actions={data && (
+    <Framed title={title} hide={pane.hide_title} fit alert={alert} actions={data && (
       <>
         {link && (
           <Tooltip label={t('common.details')}>

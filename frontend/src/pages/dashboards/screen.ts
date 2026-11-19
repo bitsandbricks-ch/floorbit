@@ -12,6 +12,8 @@ export interface ScreenSource {
   hall: string
   /** The time the dashboard shows (its own, or the viewer's pick): panes without their own follow it. */
   range?: TimeRange
+  /** On a wall, the names of what is down with nobody on it (#1137): panes listing one pulse. */
+  alerts?: string[]
 }
 
 export const ScreenContext = createContext<ScreenSource>({ publicId: null, tiles: {}, hall: '' })

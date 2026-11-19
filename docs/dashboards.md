@@ -232,7 +232,7 @@ dashboard's settings for just the panes and a clock in the corner.
 
 While something is down and nobody has taken it (no incident open for it, not muted), a red bar
 under the header names it and how long it has been down, and a rotating screen stays where it is.
-Open an incident or mute it, and the bar goes away. A public screen nobody signed in to shows no
+A list pane that shows it as down pulses red with the bar, so the eye finds it. Open an incident or mute it, and the bar goes away. A public screen nobody signed in to shows no
 bar: it can't read the problem list. The pointer hides
 after three seconds, and the page reloads itself after a Floorbit update. Saved changes reach the
 screen within a minute. Someone at the screen can drag and zoom a plan pane; it goes back to its

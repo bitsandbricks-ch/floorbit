@@ -108,17 +108,23 @@ describe('Dashboard screen', () => {
       'GET /api/dashboards/kiosk/public': { account: true, board, tiles: {}, app: '1' },
       'GET /api/dashboards/kiosk': board,
       'GET /api/problems': { counts: { down: 3, warn: 0, muted: 0 }, checked_at: 0, mutes: [], quiet_hours: false, can_mute: true, problems: [
-        down('sw-a-01'), down('sw-b-02', { incident: 'i1' }), down('sw-c-03', { muted: { until: 0, by: null, reason: '' } }),
+        down('sw-a-01', { name: 'sw-a-01' }), down('sw-b-02', { incident: 'i1' }), down('sw-c-03', { muted: { until: 0, by: null, reason: '' } }),
       ] },
+      'GET /api/dashboard': { tiles: [{ plugin: 'floorbit', plugin_name: 'Floorbit', id: 'down', label: 'Switches down', size: 'small', refresh: 15, url: '/api/dashboard/floorbit/down' }] },
+      'GET /api/dashboard/floorbit/down': { id: 'down', type: 'list', items: [{ label: 'sw-a-01', value: '7 min', tone: 'err' }], sub: '', link: '' },
       'GET /api/version': { app: '1' },
     })
     vi.stubGlobal('fetch', api.fn)
+    layOut()
     show()
     const alert = await screen.findByRole('alert')
     expect(alert).toHaveTextContent('sw-a-01 down')
     // Taken (an incident) or muted: no call for attention.
     expect(alert).not.toHaveTextContent('sw-b-02')
     expect(alert).not.toHaveTextContent('sw-c-03')
+    // The pane that lists it pulses with the bar; the others don't.
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Switches down' })).toHaveClass('fb-pane-alert'))
+    expect(document.querySelectorAll('.fb-pane-alert')).toHaveLength(1)
   })
 
   it('keeps showing the board while the server is away, with a small note instead of a banner', async () => {
