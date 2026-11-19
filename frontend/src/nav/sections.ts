@@ -5,7 +5,7 @@ import {
   IconBell, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart, IconLink, IconMap,
   IconBuildingCommunity, IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
   IconHierarchy2, IconLifebuoy, IconListSearch, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport,
-  IconServer, IconServer2, IconServerBolt, IconSettings, IconShield, IconStar, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
+  IconServer, IconServerBolt, IconSettings, IconShield, IconStar, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
   IconTools, IconTrophy, IconUserCheck, IconUsers, IconUsersGroup, IconWalk, IconWall, IconWebhook, IconWifi, IconWorldWww,
   type Icon,
 } from '@tabler/icons-react'
@@ -47,7 +47,6 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
  *  page. ``event`` has no row: its pages are in the event menu at the top of the sidebar. */
 export const HUBS: Record<string, string[]> = {
   helpdesk: ['problems', 'incidents', 'jobs', 'handover', 'networkStatus'],
-  services: ['gameServers'],
   network: ['topology', 'firewalls', 'security'],
   agents: ['telemetry'],
   seats: ['seatMapping', 'checkins', 'seatWalk', 'endpoints'],
@@ -107,7 +106,7 @@ const ICONS: Record<string, Icon> = {
   helpdesk: IconLifebuoy, network: IconNetwork, console: IconTerminal2, event: IconCalendarEvent,
   incidents: IconAlertCircle, jobs: IconClipboardCheck, handover: IconArrowsExchange,
   checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
-  dns: IconWorldWww, games: IconDeviceGamepad2, gameServers: IconServer2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
+  dns: IconWorldWww, games: IconDeviceGamepad2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
   commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk,
   preflight: IconChecklist, templates: IconTemplate,
   schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,

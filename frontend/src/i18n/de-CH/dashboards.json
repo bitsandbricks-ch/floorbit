@@ -83,7 +83,17 @@
     "widgetType": "Zeigen als",
     "stack": "Balken und Linien",
     "style": "Linien",
-    "trend": "Trendlinie"
+    "trend": "Trendlinie",
+    "also": "Zusammen zeigen mit",
+    "alsoHint": "Bis zu drei weitere Kacheln: ihre Linien kommen ins Diagramm, ihre Zahlen zu den Balken.",
+    "groupBy": "Gruppieren nach",
+    "noGroup": "Nicht gruppieren",
+    "reduce": "Berechnen",
+    "noReduce": "Nichts, Daten zeigen",
+    "reduceHint": "Macht aus den Daten eine Zahl (bei einem Diagramm eine pro Linie).",
+    "reduceGroupHint": "Eine Zahl pro Gruppe, aus der ersten Zahlenspalte (ohne eine: die Anzahl).",
+    "legend": "Legende zeigt",
+    "legendHint": "Leer: den letzten Wert, gross dazu Max. und Durchschnitt."
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
@@ -98,7 +108,8 @@
     "private": "Braucht ein Konto: auf einem öffentlichen Bildschirm nicht gezeigt.",
     "openBig": "Gross öffnen",
     "openBigNamed": "{{name}} gross öffnen",
-    "viewOff": "Die Funktion dieses Widgets ist ausgeschaltet (Einstellungen > Funktionen)."
+    "viewOff": "Die Funktion dieses Widgets ist ausgeschaltet (Einstellungen > Funktionen).",
+    "dropped": "Weggelassen, passt nicht zur ersten Kachel: {{names}}"
   },
   "textSize": {
     "s": "S",
@@ -183,5 +194,10 @@
       "linear": "Gerader Trend",
       "average": "Gleitender Durchschnitt"
     }
+  },
+  "groupKey": {
+    "state": "Status",
+    "detail": "Detail",
+    "value": "Wert"
   }
 }

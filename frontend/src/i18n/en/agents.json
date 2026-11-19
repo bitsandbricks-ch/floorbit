@@ -244,6 +244,7 @@
     "telegraf_sidecar_left": "Another Telegraf (the old telegraf container) still sends to this agent. Remove it from the compose file and run docker compose up -d --remove-orphans.",
     "telegraf_quiet": "Telegraf runs but nothing came in yet. The devices may not answer: check their addresses and logins.",
     "device_problems": "Some devices send nothing. Monitoring > Telemetry shows each one and why.",
+    "device_partial": "Some devices answer only in part: one VLAN or table doesn't come in. Monitoring > Telemetry shows which and why.",
     "howToFix": "How to fix",
     "showDevices": "Show devices"
   },

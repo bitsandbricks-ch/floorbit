@@ -5,6 +5,7 @@ import type { LabelMode } from '../plan/labels'
 import type { Section } from './grid'
 import type { KindPick, LevelPin } from '@/widgets/level'
 import type { LineStyle, Stack, Trend } from '@/widgets/kinds/shape'
+import type { Calc } from '@/widgets/kinds/combine'
 
 /** Dashboards (floorbit/dashboards.py): widgets on a grid (grid.ts), each one pane or panes split
  *  side by side or stacked, saved under a name. */
@@ -34,8 +35,11 @@ export type Pane = Head & (
   | { kind: 'plan'; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode; marks?: MarksMode }
   /** ``type`` draws the data as another kind (a status as a count), ``level`` pins S, M or L
    *  instead of picking it from the box (issue #924). ``stack``, ``style`` and ``trend`` say how
-   *  bars and lines draw. All are left out when automatic or the default. */
-  | { kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend }
+   *  bars and lines draw. ``also`` adds up to three more tiles to draw with it, ``group_by`` and
+   *  ``reduce`` group or calculate before drawing, ``legend`` picks a graph legend's numbers
+   *  (issue #959). All are left out when automatic or the default. */
+  | { kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend
+      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[] }
   /** ``expanded``: the widget at its big size right on the grid (a pane that fills a screen). */
   | { kind: 'view'; view: string; expanded?: boolean }
   | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }

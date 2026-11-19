@@ -1,6 +1,6 @@
 {
   "title": "Services",
-  "intro": "The internet lines, the DNS resolvers, the sites players need and the LAN cache: whether they answer, how full the lines are, and how fast.",
+  "intro": "Everything the event depends on beyond the switches: the internet lines, DNS resolvers, the sites players need, the LAN cache and the game servers. Whether they answer, how full and how fast.",
   "uplinks": "Internet lines",
   "resolvers": "DNS resolvers",
   "lanCache": "LAN cache",
@@ -8,8 +8,6 @@
   "editUplink": "Change line",
   "addResolver": "Add resolver",
   "editResolver": "Change resolver",
-  "noUplinks": "No internet lines yet. Add each line with the router port it is on and its capacity.",
-  "noResolvers": "No resolvers yet. Add the resolvers the players use, with a name to look up.",
   "noLanCache": "Floorbit reads no LAN cache log. Set LANCACHE_LOG to the cache's access log (and LANCACHE_CACHE_DIR for its disk).",
   "viaAgent": "The local agent sends the probes, from the event network.",
   "status": {
@@ -55,11 +53,39 @@
   "addSite": "Add site",
   "editSite": "Change site",
   "addCommon": "Add the usual sites",
-  "noSites": "No sites yet. Add the ones players need, like game stores and voice chat, to see when one of them is gone rather than the whole internet.",
   "sitePlaceholder": "Steam",
   "host": "Host",
   "hostHelp": "Floorbit connects to it a few times for the time it takes and the loss.",
-  "nothing": "No internet lines, resolvers or sites set up yet.",
-  "allUp": "Every line, resolver and site is up.",
-  "manage": "Set up services"
+  "nothing": "No services set up yet.",
+  "allUp": "Every service is up.",
+  "manage": "Set up services",
+  "add": "Add service",
+  "addWhich": "What kind of service?",
+  "types": {
+    "uplink": "Internet line",
+    "dns": "DNS resolver",
+    "site": "Internet site",
+    "lancache": "LAN cache",
+    "game": "Game server"
+  },
+  "groups": {
+    "uplink": "Internet lines",
+    "dns": "DNS resolvers",
+    "site": "Internet sites",
+    "lancache": "LAN cache",
+    "game": "Game servers"
+  },
+  "search": "Search services",
+  "show": "Show",
+  "filter": {
+    "all": "All {{count}}",
+    "notUp": "Not up {{count}}",
+    "up": "Up {{count}}"
+  },
+  "groupBy": "Group by",
+  "byType": "Group by type",
+  "byState": "Group by state",
+  "noMatch": "No service matches.",
+  "empty": "Nothing is watched yet.",
+  "emptyAdmin": "Nothing is watched yet. Add the internet lines, the resolvers players use, the sites they need and the game servers, or start with the usual sites."
 }

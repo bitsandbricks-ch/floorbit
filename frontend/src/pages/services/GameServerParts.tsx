@@ -1,124 +1,21 @@
 import {
-  Alert, Badge, Button, Group, Modal, NumberInput, Paper, PasswordInput, ScrollArea, Select, SimpleGrid, Stack, Switch,
-  Text, TextInput, Title,
+  Alert, Button, Group, Modal, NumberInput, PasswordInput, ScrollArea, Select, SimpleGrid, Stack, Switch, Text, TextInput,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ApiError, del, get, post, put } from '@/api/client'
+import { ApiError, del, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useCan } from '@/api/queries'
-import type { GameServer, GameServerList, RconAnswer } from '@/api/types'
+import type { GameServer, RconAnswer } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { EntitySelect } from '@/components/EntitySelect'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
-import { Sparkline } from '@/widgets/Sparkline'
 
-const TONE = { up: 'up', down: 'down', unknown: 'gray' } as const
-
-/** Game servers (issue #472): up or down, players, map and ping, and an RCON console. */
-export default function GameServers() {
-  const { t } = useTranslation()
-  const canSetUp = useCan('settings.manage')
-  const canRcon = useCan('games.rcon')
-  const list = useQuery({
-    queryKey: qk.gameServers, queryFn: () => get<GameServerList>('/api/game-servers'), refetchInterval: 15_000,
-  })
-  const [editing, setEditing] = useState<GameServer | 'new' | null>(null)
-  const [console_, setConsole] = useState<GameServer | null>(null)
-  const data = list.data
-  const servers = data?.servers ?? []
-  return (
-    <Layout title={t('gameServers.title')}>
-      <PageHead title={t('gameServers.title')} desc={t('gameServers.intro')}
-        actions={canSetUp && <Button onClick={() => setEditing('new')}>{t('gameServers.add')}</Button>} />
-      <Stack gap="md">
-        {data && servers.length > 0 && (
-          <Text c="dimmed">
-            {t('gameServers.summary', { up: data.counts.up, count: servers.length, players: data.players })}
-            {data.via_agent ? ` · ${t('gameServers.viaAgent')}` : ''}
-          </Text>
-        )}
-        {list.error && <Alert color="down" role="alert">{list.error.message}</Alert>}
-        {data && servers.length === 0 && (
-          <Paper withBorder radius="lg" p="md"><Text c="dimmed">{t(canSetUp ? 'gameServers.emptyAdmin' : 'gameServers.empty')}</Text></Paper>
-        )}
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
-          {servers.map((s) => (
-            <ServerCard key={s.id} server={s} canSetUp={canSetUp} canRcon={canRcon}
-              onEdit={() => setEditing(s)} onConsole={() => setConsole(s)} />
-          ))}
-        </SimpleGrid>
-      </Stack>
-      {editing && <ServerModal server={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
-      {console_ && <RconConsole server={console_} onClose={() => setConsole(null)} />}
-    </Layout>
-  )
-}
-
-function ServerCard({ server: s, canSetUp, canRcon, onEdit, onConsole }: {
-  server: GameServer; canSetUp: boolean; canRcon: boolean; onEdit: () => void; onConsole: () => void
-}) {
-  const { t } = useTranslation()
-  const qc = useQueryClient()
-  // Ask this one server now instead of waiting for the next poll (after a restart, say).
-  const check = useMutation({
-    mutationFn: () => post(`/api/game-servers/check/${s.id}`, {}),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.gameServers }),
-  })
-  const info = s.info
-  const points = s.history.map(([, n]) => n ?? 0)
-  return (
-    <Paper withBorder radius="lg" p="md" aria-label={s.name} component="section">
-      <Stack gap={6}>
-        <Group justify="space-between" wrap="nowrap" gap="xs">
-          <Title order={3} size="h4" style={{ overflowWrap: 'anywhere' }}>{s.name}</Title>
-          <Badge color={TONE[s.status]} variant="light">{t(`gameServers.status.${s.status}`)}</Badge>
-        </Group>
-        <Text size="sm" c="dimmed" style={{ overflowWrap: 'anywhere' }}>
-          {[s.game || info?.game, `${s.host}:${s.port}`].filter(Boolean).join(' · ')}
-        </Text>
-        {s.status === 'up' && info ? (
-          <>
-            {s.query !== 'tcp' && (
-              <Group gap="xs" align="baseline">
-                <Text fw={700} fz={28} lh={1}>{info.players}/{info.max_players}</Text>
-                <Text size="sm" c="dimmed">{t('gameServers.players')}{info.bots ? ` · ${t('gameServers.bots', { count: info.bots })}` : ''}</Text>
-              </Group>
-            )}
-            <Text size="sm">
-              {[info.map && t('gameServers.map', { map: info.map }), info.ping_ms != null && `${info.ping_ms} ms`,
-                info.version].filter(Boolean).join(' · ')}
-            </Text>
-            {s.query !== 'tcp' && points.length > 1 && <div style={{ height: 30 }}><Sparkline points={points} min={0} /></div>}
-          </>
-        ) : (
-          <Text size="sm" c={s.status === 'down' ? 'down' : 'dimmed'}>{s.error || t('gameServers.notAsked')}</Text>
-        )}
-        {(canRcon || canSetUp) && (
-          <Group gap={6} mt={4}>
-            {canRcon && (
-              <Button size="compact-sm" variant="default" disabled={!s.rcon} onClick={onConsole}
-                title={s.rcon ? undefined : t('gameServers.noRcon')}>{t('gameServers.console')}</Button>
-            )}
-            {canRcon && (
-              <Button size="compact-sm" variant="subtle" loading={check.isPending} onClick={() => check.mutate()}>
-                {t('gameServers.checkNow')}
-              </Button>
-            )}
-            {canSetUp && <Button size="compact-sm" variant="subtle" onClick={onEdit}>{t('gameServers.edit')}</Button>}
-          </Group>
-        )}
-      </Stack>
-    </Paper>
-  )
-}
+/** A game server's settings and its RCON console (issue #472), opened from the Services page. */
 
 interface Form { name: string; game: string; host: string; port: number | string; query: string; rcon_port: number | string; rcon_password: string; clear_rcon: boolean; runs_on: string }
 
-function ServerModal({ server, onClose }: { server: GameServer | null; onClose: () => void }) {
+export function ServerModal({ server, onClose }: { server: GameServer | null; onClose: () => void }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const [form, setForm] = useState<Form>({
@@ -177,7 +74,7 @@ function ServerModal({ server, onClose }: { server: GameServer | null; onClose: 
 
 interface Line { command: string; answer?: string; error?: string }
 
-function RconConsole({ server, onClose }: { server: GameServer; onClose: () => void }) {
+export function RconConsole({ server, onClose }: { server: GameServer; onClose: () => void }) {
   const { t } = useTranslation()
   const phone = useMediaQuery('(max-width: 48em)')
   const [command, setCommand] = useState('')

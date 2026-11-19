@@ -78,6 +78,19 @@ draws as a **line** or an **area**. **Trend line** adds a dashed line over each 
 time bars: a **straight trend** over the time shown, or a **rolling average** that smooths the
 spikes. The options only show where they mean something for the data.
 
+### More sources, groups and calculations
+
+A tile pane can **draw together with** up to three more tiles. The first tile decides the shape:
+lines over time gain the others' lines (only with the same unit, such as bit/s), numbers become one
+bar per tile, status lists add up, and lists and tables join on their first column. A tile that
+doesn't fit is left out, and the pane says which.
+
+**Group by** turns rows into one bar per group: switches by state, ports by hall. **Calculate** picks
+count, sum, average, min, max, first or last: with a group, it is the number of each group (from
+the last number column); without one, the data becomes one number (one per line for a graph), such
+as the average traffic over the time shown. **Legend shows** picks the numbers a graph's legend
+gives for each line; empty, it shows the latest value, plus max and average when large.
+
 Hover a bar, a slice or the gauge for its value and share. **Size** pins small, medium or large
 instead of picking it from the box. Any box size works.
 

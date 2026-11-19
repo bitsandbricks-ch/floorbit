@@ -17,14 +17,19 @@ local agent in the hall tells Floorbit that address, whether Floorbit runs in th
    and its switch port**, or **why it failed**.
 5. **Next seat**, and so on. **Undo** forgets a seat's port again.
 
-Where the answer comes from, freshest first:
+Where the answer comes from, in the order Floorbit asks:
 
 | Way | When it is used | How long |
 | --- | --- | --- |
-| **The switch itself** | SSH port actions are on and a switch login is stored ([credentials](credentials.md)) | 1 to 3 seconds |
 | **The monitoring source** | Telemetry or LibreNMS, through the local agent when one is enrolled | as fresh as its last poll of the MAC tables: seconds to a few minutes |
+| **A few SNMP requests** | the laptop's IP is in a [network segment](segments.md) with lookups on | under a second per switch |
+| **The switch itself, over SSH** | SSH port actions are on and a switch login is stored ([credentials](credentials.md)); the last resort, for switches that don't answer SNMP | 1 to 3 seconds |
 
-The switch read asks the switch of the last seat first (a row is mostly on one switch), then the
+The SNMP requests go out at any time during a walk: the check-in window only holds back the
+attendees' own check-ins. They ask the switches of the seat's row first, then the rest of its
+block, then every other switch with the VLAN.
+
+The SSH read asks the switch of the last seat first (a row is mostly on one switch), then the
 seat's switch in the patch plan, then the other switches. Ports that lead to another switch (LLDP or
 CDP neighbours, port channels) are skipped.
 

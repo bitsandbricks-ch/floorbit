@@ -245,8 +245,8 @@ function Walk({ info, seats, startAt, block, order, typedMac, resumed, onStop }:
           <Alert color="up" variant="light" radius="lg" icon={<IconCircleCheck />} title={t('seatWalk.found', { seat, port: portText(status.result.found) })}>
             <Stack gap="xs">
               <Group gap="xs">
-                <Badge variant="light" color={status.result.how === 'switch' ? 'up' : 'info'} tt="none">
-                  {t(status.result.how === 'switch' ? 'seatWalk.howSwitch' : 'seatWalk.howMonitoring')}</Badge>
+                <Badge variant="light" color={status.result.how === 'switch' || status.result.how === 'snmp' ? 'up' : 'info'} tt="none">
+                  {t(status.result.how === 'switch' || status.result.how === 'snmp' ? 'seatWalk.howSwitch' : 'seatWalk.howMonitoring')}</Badge>
                 <Text size="sm" c="dimmed">{t('seatWalk.took', { seconds: (status.ms / 1000).toFixed(1) })}</Text>
               </Group>
               {!!status.result.replaced?.length && (

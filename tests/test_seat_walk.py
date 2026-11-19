@@ -36,7 +36,10 @@ def locate(client, seat, ip, **body):
     return client.post("/api/seat-walk/locate", json={"seat": seat, "hello": identify(client, ip), **body})
 
 
-def test_walk_a_row_with_the_laptop(hall):
+def test_walk_a_row_with_the_laptop(hall, monkeypatch):
+    # The tables don't know the laptop at its new seat yet and no segment allows SNMP lookups:
+    # SSH on the access switch is the last resort.
+    monkeypatch.setattr(seat_walk, "_from_monitoring", lambda ip: None)
     a1, a2 = demo_seat("A-1"), demo_seat("A-2")
     block = hall.get("/api/seat-blocks").get_json()[0]["id"]
     first = hall.get(f"/api/seat-walk?block={block}").get_json()
@@ -49,9 +52,9 @@ def test_walk_a_row_with_the_laptop(hall):
     assert r["mac"] == a1[1] and r["steps"][0] == {"step": "mac", "ok": True, "how": "monitoring"}
     assert checkin.learned_ports()["A-1"]["source"] == "walk"
 
-    # The next seat: the MAC is passed on, so only the MAC tables are asked.
+    # The next seat: the MAC is passed on, so no ARP lookup: the tables, then the MAC tables.
     r2 = locate(hall, "A-2", a2[0], previous=r["found"], mac=a2[1], mac_ip=a2[0]).get_json()
-    assert r2["ok"] and r2["found"]["port"] == a2[3] and r2["steps"][0]["step"] == "switch"
+    assert r2["ok"] and r2["found"]["port"] == a2[3] and [s["step"] for s in r2["steps"]] == ["monitoring", "switch"]
 
     rows = {s["seat"]: s["port"] for s in hall.get(f"/api/seat-walk?block={block}").get_json()["seats"]}
     assert rows["A-1"]["port"] == a1[3] and rows["A-2"]["source"] == "walk"
@@ -60,6 +63,15 @@ def test_walk_a_row_with_the_laptop(hall):
 
     assert hall.delete("/api/seat-walk/a-2").status_code == 200
     assert hall.delete("/api/seat-walk/a-2").status_code == 404
+
+
+def test_the_tables_answer_before_any_switch_is_asked(hall, monkeypatch):
+    a1 = demo_seat("A-1")
+    asked = []
+    monkeypatch.setattr(seat_walk, "port_from_switches", lambda *a, **k: asked.append(a) or None)
+    r = locate(hall, "A-1", a1[0]).get_json()
+    assert r["ok"] and r["how"] == "monitoring" and r["found"] == {"switch": a1[2], "port": a1[3]}
+    assert asked == []                                            # no SSH while the tables know it
 
 
 def test_what_the_page_refuses(hall, monkeypatch):

@@ -37,12 +37,22 @@
     "trend": {
       "linear": "Trend",
       "average": "Average"
-    }
+    },
+    "state": "State"
   },
   "state": {
     "up": "Up",
     "down": "Down",
     "warn": "Warning",
     "unknown": "Unknown"
+  },
+  "calc": {
+    "count": "Count",
+    "sum": "Sum",
+    "avg": "Average",
+    "min": "Min",
+    "max": "Max",
+    "first": "First",
+    "last": "Last"
   }
 }

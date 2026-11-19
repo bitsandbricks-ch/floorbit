@@ -81,7 +81,7 @@ describe('widget shapes', () => {
   })
   it('offers stacking only with two series, trends only over time', () => {
     const two: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'a', points: [] }, { label: 'b', points: [] }] }
-    expect(looksFor(two, 'graph')).toEqual(['stack', 'style', 'trend'])
+    expect(looksFor(two, 'graph')).toEqual(['stack', 'style', 'trend', 'legend'])
     expect(looksFor(two, 'histogram')).toEqual([])
     expect(looksFor({ ...base, type: 'sparkline', unit: '', points: [1] }, 'column')).toEqual(['trend'])
   })

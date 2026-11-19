@@ -24,7 +24,6 @@ const Security = lazy(() => import('@/pages/Security'))
 const Power = lazy(() => import('@/pages/Power'))
 const Problems = lazy(() => import('@/pages/Problems'))
 const Setup = lazy(() => import('@/pages/Setup'))
-const GameServers = lazy(() => import('@/pages/GameServers'))
 const Topology = lazy(() => import('@/pages/Topology'))
 const Firewalls = lazy(() => import('@/pages/Firewalls'))
 const Services = lazy(() => import('@/pages/Services'))
@@ -110,7 +109,6 @@ export default function App() {
             <Route path="/power" element={<Power />} />
             <Route path="/problems" element={<Problems />} />
             <Route path="/setup" element={<Setup />} />
-            <Route path="/game-servers" element={<GameServers />} />
             <Route path="/topology" element={<Topology />} />
             <Route path="/firewalls" element={<Firewalls />} />
             <Route path="/services" element={<Services />} />

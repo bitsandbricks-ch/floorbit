@@ -109,3 +109,24 @@ def test_the_first_paint_has_the_admins_own_sections(app_module, monkeypatch):
     assert 'aria-expanded="true"><svg class=star></svg>' in html
     assert '<a href="/stats" class="fb-nav-row" aria-current="page">' in html
     assert 'href="https://example.com" class="fb-nav-row" target="_blank" rel="noopener noreferrer"' in html
+
+
+def test_the_first_paint_names_plugins_and_settings_at_the_foot(app_module, monkeypatch):
+    """Not a lone gear icon next to the account, which people didn't find (issue #892)."""
+    import copy
+
+    from floorbit import nav
+    monkeypatch.setattr(nav, "_shell", lambda: copy.deepcopy(SHELL))
+    boot = {"pages": [{"href": "/plan", "id": "floorPlan", "label": "Floor plan"},
+                      {"href": "/settings", "id": "settings", "label": "Settings"},
+                      {"href": "/settings/plugins", "id": "plugins", "label": "Plugins"}]}
+    with app_module.app.test_request_context("/plan"):
+        html = str(nav.markup(boot))
+    foot = html[html.index('class="fb-nav-list fb-nav-admin"'):html.index('class="fb-nav-foot"')]
+    assert foot.index('href="/settings/plugins"') < foot.index('href="/settings"')
+    assert '>Plugins</span>' in foot and '>Settings</span>' in foot
+    assert "fb-nav-settings" not in html
+    with app_module.app.test_request_context("/settings/plugins/netbox"):
+        html = str(nav.markup(boot))
+    assert '<a href="/settings/plugins" class="fb-nav-row" aria-current="page">' in html
+    assert '<a href="/settings" class="fb-nav-row" aria-current="page">' not in html

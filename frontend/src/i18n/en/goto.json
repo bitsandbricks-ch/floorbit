@@ -60,7 +60,6 @@
     "firewalls": "Firewalls",
     "services": "Services",
     "topology": "Topology",
-    "gameServers": "Game servers",
     "telemetry": "Telemetry",
     "endpoints": "IP and MAC history",
     "widgets": "Widgets"
@@ -75,7 +74,7 @@
     "seatMapping": "switch port, port per seat",
     "incidents": "tickets, helpdesk, problems at seats",
     "handover": "shift, night shift, notes",
-    "gameServers": "RCON, servers",
+    "services": "game servers, RCON, internet lines, DNS, LAN cache",
     "health": "uptime, services up",
     "timeline": "history, what changed",
     "users": "accounts, people, crew",

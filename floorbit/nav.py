@@ -258,18 +258,28 @@ def markup(boot):
     aria = signed_in.replace('{{username}}', user['username'] or '') if user else nav_t['account']
     title = f' title="{e(name)}"' if rail else ''
     fold = nav_t['expand'] if rail else nav_t['collapse']
-    settings = by_id.get('settings')
-    settings_link = ''
-    if settings and 'settings' in icons:
-        text = e(page_t.get('settings') or 'Settings')
-        cur = ' aria-current="page"' if settings['href'] == lit else ''
-        settings_link = (f'<a href="{e(settings["href"])}" class="fb-nav-icon-btn fb-nav-settings" title="{text}" '
-                         f'aria-label="{text}"{cur}>{icons["settings"]}</a>')
+    # Plugins and Settings sit at the foot as named rows, so they can't be missed (issue #892).
+    every = {p['id']: p for p in pages}
+    admin = [every[i] for i in ('plugins', 'settings') if i in every]
+    if admin:
+        # Plugins lives under /settings, so it lights on its own pages and Settings on the rest.
+        here = request.path
+        plugins_on = any(p['id'] == 'plugins' and (here == p['href'] or here.startswith(p['href'] + '/'))
+                         for p in admin)
+        items = []
+        for p in admin:
+            on = plugins_on if p['id'] == 'plugins' else (p['href'] == lit and not plugins_on)
+            cur = ' aria-current="page"' if on else ''
+            tip = f' title="{e(label(p))}"' if rail else ''
+            icon = icons['page'].get(p['id']) or icons['page']['*']
+            items.append(f'<li class="fb-nav-item"><a href="{e(p["href"])}" class="fb-nav-row"{tip}{cur}>{icon}'
+                         f'<span class="fb-nav-text">{e(label(p))}</span></a></li>')
+        named = e(nav_t.get('admin') or 'Plugins and settings')
+        out.append(f'<ul class="fb-nav-list fb-nav-admin" aria-label="{named}">' + ''.join(items) + '</ul>')
     out.append('<div class="fb-nav-foot"><div class="fb-nav-account">'
                f'<button type="button" class="fb-nav-row fb-nav-me" aria-expanded="false" aria-haspopup="menu"{title} '
                f'aria-label="{e(aria)}"><span class="fb-nav-avatar" aria-hidden="true">{avatar}</span>'
                f'<span class="fb-nav-text">{e(name)}</span></button></div>'
-               f'{settings_link}'
                f'<button type="button" class="fb-nav-icon-btn fb-nav-fold" aria-label="{e(fold)}" title="{e(fold)}">'
                f'{icons["expand"] if rail else icons["collapse"]}</button></div></nav>')
     tabs = [by_id[i] for i in shell['tabs'] if i in by_id][:4]

@@ -7,7 +7,8 @@ does the collecting; Floorbit tells it what to ask and keeps what comes back.
 
 LibreNMS stays a choice: the **Telemetry** plugin is one more monitoring source next to LibreNMS,
 Prometheus, Zabbix and the rest (Settings > Plugins). Only one answers at a time; see
-[Who polls the switches](#who-polls-the-switches) for how Telemetry and LibreNMS share the work.
+[Who polls the switches](#who-polls-the-switches) for how Telemetry and LibreNMS share the work, and
+[Network segments](segments.md) for the VLANs where check-ins may look PCs up.
 
 ## Who polls the switches
 
@@ -26,7 +27,8 @@ sees it on its next 5-minute poll. The device facts (model, software, interfaces
 inventory ([discovery](inventory.md)).
 
 When Telemetry polls, it walks the ARP and MAC tables every **ARP and MAC tables every (minutes)**
-(default 1; 0: never). When the chosen source doesn't know an IP, Floorbit asks the other
+(0: never). **Auto** (the default) walks them every 15 minutes while a [network segment](segments.md)
+has lookups on, because check-ins then ask the switches for their one PC, and every minute otherwise. When the chosen source doesn't know an IP, Floorbit asks the other
 monitoring source before giving up, and the answer says which one gave it (`answered_by`). The
 agent's log says who polls whenever that changes:
 
@@ -74,9 +76,11 @@ in from each device (find and filter by problems or never heard), the collector'
     gNMI, NX-API and RESTCONF.
 
 2. **Catalyst IOS (2960-X, 4500 on IOS-XE 3.x)** answers MAC tables one VLAN at a time. That is
-   the default on IOS; Floorbit reads the VLANs on the device's interfaces, or the ones listed in
+   the default on IOS; Floorbit reads the VLANs the switch lists itself (discovery's VTP walk, without
+   the reserved 1002 to 1005), else the VLANs on its interfaces, or the ones listed in
    `telemetry_vlans`. Floorbit then asks `community@vlan` (v2c) or the
-   `vlan-<id>` context (v3). Nexus and IOS-XE 16+ answer Q-BRIDGE in one table.
+   `vlan-<id>` context (v3). A VLAN the switch doesn't have gets no answer at all, so each VLAN is
+   its own poll and a problem names it ("no answer for VLAN 30"). Nexus and IOS-XE 16+ answer Q-BRIDGE in one table.
 
 3. **Telegraf.** The local agent runs it: it is in the agent image, and the Telemetry plugin starts
    it, writes its config from the inventory's devices and reloads it when they change (agent.md,
@@ -99,12 +103,17 @@ agent's page names the first one, and the agent's log has each new one with the 
 | --- | --- | --- |
 | Nothing listens on *address* | The device answered "port closed" (ICMP port unreachable, TCP reset) | SNMP, gNMI or the API is off on the device, listens on another port, or only on another address (`snmp-server` on a management VRF) |
 | No answer from *address* | Nothing came back in time | For SNMP a wrong community or SNMPv3 login looks exactly like this (the device stays silent), as does an ACL that doesn't list the agent's address; for the others, a firewall on the way |
+| No answer for VLAN *n* | The switch answers SNMP, but not `community@n` (or the `vlan-n` context) | The switch doesn't have that VLAN (fix `telemetry_vlans`), or with SNMPv3 the user's group doesn't allow the `vlan-` contexts |
+| No answer while reading *table* | A table walk timed out | If the device's other data comes in, the walk is too slow: a very big table, or SNMP rate limited on the device. If nothing comes in, as "No answer" above |
 | Refused the login | The device said no to the user, password, SNMPv3 keys or API key | The login on the device or in Floorbit; refused logins aren't tried again until cleared (agent-plugins.md, "Failed logins") |
 | No route to *address* | The agent's machine can't reach that network | The address, and the agent machine's routes or VLAN |
 | TLS failed | The certificate didn't check out | The device's certificate, or turn off **Check TLS** for it |
 | Cannot open its listening port | Telegraf can't take traps or MDT | Another program holds the port in the container, or an old telegraf container still runs |
 
-A problem goes away when the device sends again, or after three minutes without the error.
+A problem goes away when the device sends again, or after three minutes without the error. One
+VLAN's or one table's problem only goes away by not coming back, since the device's other data keeps
+coming in. Such a device doesn't count as failing: the agent's health says "answer only in part"
+instead. A device that only sends traps isn't listed as silent when a minute passes without one.
 
 **Test now** collects from one device once, through the agent, and shows what came back or the exact
 error; **Raw data** shows the last lines Telegraf sent for it. On the agent machine,
@@ -138,7 +147,7 @@ where it comes from. A device's tab also shows its last word, **Test now**, **Ra
 | --- | --- |
 | `telemetry_drivers` | the ways to collect, like `snmp, traps, gnmi` (instead of the automatic ones) |
 | `telemetry_fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
-| `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs on its interfaces) |
+| `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs the switch lists, else the ones on its interfaces) |
 | `telemetry_agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
 | `telemetry_port_snmp`, `telemetry_port_gnmi`, `telemetry_port_api` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
 | `telemetry_address` | where the agent reaches the device, when not its management address |

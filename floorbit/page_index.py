@@ -27,7 +27,6 @@ PAGES = (
     ('/topology', 'topology', 'Topology', None),
     ('/firewalls', 'firewalls', 'Firewalls', None),
     ('/services', 'services', 'Services', None),
-    ('/game-servers', 'gameServers', 'Game servers', None),
     ('/logs', 'logs', 'Logs',
      lambda c, can: c['feature_on']('syslog') and c.get('logs_page') and can('seats.view')),
     ('/security', 'security', 'Security', lambda c, can: c['feature_on']('security') and can('seats.view')),
