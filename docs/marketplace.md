@@ -14,7 +14,7 @@ above. Every install, update, rollback and removal is in the audit log.
 | Repository | What it is |
 | --- | --- |
 | `bitsandbricks-ch/floorbit-plugins` | The official Marketplace: `plugins.yaml` lists the `floorbit-plugin-*` repositories, and its publish workflow builds a signed `index.json` from their releases (GitHub Pages). |
-| `bitsandbricks-ch/floorbit-plugins-template` | What a new plugin repository starts from: the plugin, its tests, and the workflow that signs a release. |
+| `bitsandbricks-ch/floorbit-plugin-template` | What a new plugin repository starts from: the plugin, its tests, and the workflow that signs a release. |
 | `bitsandbricks-ch/floorbit-plugin-<id>` | One plugin each. A `v<version>` tag builds the signed bundle and attaches it to the GitHub release. |
 
 A release is one signed bundle (`<id>-<version>.tar.gz` with `SIGNATURE.json`), the same file the

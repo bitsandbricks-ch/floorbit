@@ -8,15 +8,16 @@
 from flask import Blueprint, current_app, jsonify, request
 
 from .. import agent_plugins, spa
-from ..builtin_plugins.lancache.plugin import overview
+from ..lancache import overview
 
 bp = Blueprint('lancache', __name__)
 
 
-def _plugin_on():
+def _plugin():
+    """(installed, on): the plugin comes from the Marketplace, so it may not be there at all."""
     registry = current_app.extensions.get('floorbit_plugins')
     spec = registry.specs.get('lancache') if registry else None
-    return bool(spec and registry.enabled(spec))
+    return spec is not None, bool(spec and registry.enabled(spec))
 
 
 @bp.route('/lancache')
@@ -32,5 +33,5 @@ def data():
         hours = 24
     stats = current_app.extensions.get('floorbit_lancache')
     out = overview(stats, agent_plugins.health_of('lancache'), hours=hours)
-    out['plugin_on'] = _plugin_on()
+    out['plugin_installed'], out['plugin_on'] = _plugin()
     return jsonify(out)

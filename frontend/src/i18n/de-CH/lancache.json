@@ -4,6 +4,8 @@
   "range": "Zeitraum",
   "pluginOff": "Das LAN-Cache-Plugin ist aus. Schalte es ein und sag dem Agenten, wo die Logs liegen.",
   "pluginsPage": "Plugins",
+  "pluginMissing": "Das LAN-Cache-Plugin ist nicht installiert. Installiere es aus dem Marketplace, schalte es ein und sag dem Agenten, wo die Logs liegen.",
+  "marketplace": "Marketplace",
   "readError": "Cache lesen: {{message}}",
   "saved": "Gespart",
   "savedSub": "aus dem Cache statt aus dem Internet",

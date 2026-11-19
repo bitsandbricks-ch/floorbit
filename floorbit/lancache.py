@@ -362,3 +362,59 @@ def init_lancache(app, start_background=True):
             stats.start()
 
     return stats
+
+
+# The LAN cache page (blueprints/lancache.py) reads the agents' reports here, in the core, so it
+# works whichever version of the plugin (bitsandbricks-ch/floorbit-plugin-lancache) is installed.
+STALE_AFTER = 300     # seconds without word from the agent: the page says so
+
+
+def overview(stats, health=None, hours=24, now=None):
+    """Everything the LAN cache page shows. Hall-wide numbers only."""
+    now = time.time() if now is None else now
+    snap = stats.snapshot(hours=hours, now=now) if stats is not None else {'configured': False}
+    agents = []
+    downloads, suspects, services = {}, {}, {}
+    other = {'hit_bytes': 0, 'miss_bytes': 0, 'requests': 0, 'items': 0}
+    clients = {}
+    for agent_id, r in sorted((stats.remote if stats is not None else {}).items()):
+        status = r.get('status') or {}
+        agents.append({'id': agent_id, 'name': r.get('name'), 'updated': r.get('updated'),
+                       'stale': not r.get('updated') or now - r['updated'] > STALE_AFTER,
+                       'disk': status.get('disk'), 'heartbeat': status.get('heartbeat'),
+                       'dns_check': status.get('dns_check'), 'clearing': status.get('clearing'),
+                       'health': ((health or {}).get(agent_id) or {}).get('health')})
+        for d in r.get('downloads') or []:
+            key = (d.get('cache'), d.get('item'))
+            row = downloads.setdefault(key, {'cache': key[0], 'item': key[1], 'hit_bytes': 0, 'miss_bytes': 0,
+                                             'requests': 0, 'clients': 0})
+            for k in ('hit_bytes', 'miss_bytes', 'requests'):
+                row[k] += d.get(k) or 0
+            row['clients'] = max(row['clients'], d.get('clients') or 0)
+        for k in other:
+            other[k] += (r.get('other_downloads') or {}).get(k) or 0
+        for s in r.get('suspects') or []:
+            key = (s.get('cache'), s.get('item'))
+            row = suspects.setdefault(key, {'cache': key[0], 'item': key[1], 'files': 0, 'misses': 0})
+            row['files'] += s.get('files') or 0
+            row['misses'] += s.get('misses') or 0
+        for svc, n in (r.get('dns_services') or {}).items():
+            services[svc] = services.get(svc, 0) + n
+        for h, n in (r.get('clients') or {}).items():
+            clients[h] = clients.get(h, 0) + n
+    for d in downloads.values():
+        total = d['hit_bytes'] + d['miss_bytes']
+        d['hit_ratio'] = round(d['hit_bytes'] / total, 4) if total else None
+    first = next(iter(stats.remote.values()), {}) if stats is not None and stats.remote else {}
+    return {
+        **snap,
+        'agents': agents,
+        'downloads': sorted(downloads.values(), key=lambda d: -(d['hit_bytes'] + d['miss_bytes']))[:50],
+        'other_downloads': other,
+        'suspects': sorted(suspects.values(), key=lambda s: -s['misses'])[:20],
+        'dns_services': sorted(({'cache': k, 'lookups': v} for k, v in services.items()), key=lambda r: -r['lookups']),
+        'clients': [{'t': int(h), 'clients': n} for h, n in sorted(clients.items(), key=lambda kv: int(kv[0]))],
+        'min_clients': first.get('min_clients') or 5,
+        'window_hours': first.get('window_hours') or 24,
+        'saved_bytes': snap.get('hit_bytes', 0),
+    }

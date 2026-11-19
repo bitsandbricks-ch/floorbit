@@ -64,6 +64,16 @@ describe('LancacheView', () => {
     expect(screen.getByText(/No agent has reported/)).toBeInTheDocument()
   })
 
+  it('points to the Marketplace when the plugin is not installed', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin,
+      'GET /api/lancache?hours=24': { ...data, plugin_on: false, plugin_installed: false, agents: [], downloads: [], suspects: [], dns_services: [] },
+    }).fn)
+    renderWithApp(<LancacheView expanded={false} />)
+    expect(await screen.findByText(/The LAN cache plugin is not installed/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/settings/plugins?tab=marketplace')
+  })
+
   it('keeps clearing for the expanded view', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/lancache?hours=24': data }).fn)
     renderWithApp(<LancacheView expanded={false} />)

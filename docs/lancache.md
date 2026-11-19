@@ -10,8 +10,9 @@ The **LAN cache** plugin watches a [lancache.net](https://lancache.net) cache fr
 - the cache numbers on **Games**, the stats wall and the health wall (docs/games.md);
 - **DNS analytics** (docs/dns.md), from lancache-dns's query log;
 
-It is a plugin like any other: turn it on under **Settings > Plugins > LAN cache** and fill in the
-paths as the agent sees them. The agent picks the settings up on its own (docs/agent-plugins.md).
+It is a plugin from the [Marketplace](marketplace.md) (bitsandbricks-ch/floorbit-plugin-lancache):
+install it under **Settings > Plugins > Marketplace**, turn it on and fill in the paths as the agent
+sees them. The LAN cache page itself is part of Floorbit and says when the plugin isn't on. The agent picks the settings up on its own (docs/agent-plugins.md).
 Floorbit reading `LANCACHE_LOG` itself (docs/games.md) still works for a Floorbit that runs in the
 hall; with a hosted Floorbit, use the plugin.
 

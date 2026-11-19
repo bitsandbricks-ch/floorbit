@@ -38,19 +38,20 @@ def test_the_old_key_stops_after_the_grace_period(client, anon_client):
 def test_rename_and_plugins_left_off(client, anon_client, app_module):
     made = enrol(client, "Old name")
     res = client.patch(f"/api/agents/{made['id']}",
-                       json={"name": "Hall B agent", "plugins_off": ["lancache", "BAD id"]})
-    assert res.get_json() == {"id": made["id"], "name": "Hall B agent", "plugins_off": ["lancache"]}
+                       json={"name": "Hall B agent", "plugins_off": ["netflow-relay", "BAD id"]})
+    assert res.get_json() == {"id": made["id"], "name": "Hall B agent", "plugins_off": ["netflow-relay"]}
     assert client.patch(f"/api/agents/{made['id']}", json={"name": ""}).status_code == 400
-    assert client.patch(f"/api/agents/{made['id']}", json={"plugins_off": "lancache"}).status_code == 400
+    assert client.patch(f"/api/agents/{made['id']}", json={"plugins_off": "netflow-relay"}).status_code == 400
     registry = app_module.app.extensions["floorbit_plugins"]
-    registry.set_enabled("lancache", True)
+    registry.set_enabled("netflow-relay", True)
     try:
         cfg = anon_client.get("/api/agent/v1/plugins", headers=head(made["key"])).get_json()
-        assert "lancache" not in cfg["plugins"]
+        assert "netflow-relay" not in cfg["plugins"]
         other = enrol(client, "Other")
-        assert "lancache" in anon_client.get("/api/agent/v1/plugins", headers=head(other["key"])).get_json()["plugins"]
+        got = anon_client.get("/api/agent/v1/plugins", headers=head(other["key"])).get_json()
+        assert "netflow-relay" in got["plugins"]
     finally:
-        registry.set_enabled("lancache", False)
+        registry.set_enabled("netflow-relay", False)
     actions = [e["action"] for e in client.get("/api/settings/audit").get_json()["entries"]]
     assert "Renamed a local agent: Old name" in actions
 
