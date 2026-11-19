@@ -36,6 +36,7 @@ def reset_caches():
     for memo in (_devices, _mac_counts, _resolved, _port_rows):
         memo.clear()
     librenms_facts.reset_caches()
+    librenms_ports._refused.clear()
 
 
 def _ip(value):
