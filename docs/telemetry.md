@@ -84,15 +84,19 @@ then collects from it like from a device on Settings > Telemetry, which lists th
 the inventory".
 
 What it does follows the platform and the logins it finds: SNMP polling and traps with an SNMP
-login, plus the platform's API with an API login. Properties on the device (or inherited) can say
-more:
+login, plus the platform's API with an API login. Properties on the device (or inherited from its
+tags, group or type) can say more. The **Telemetry** tab of a device or a group sets the agent and
+the ports without typing property names, and shows the device's last word, **Test now** and
+**Raw data**:
 
 | Property | What |
 | --- | --- |
 | `telemetry_drivers` | the ways to collect, like `snmp, traps, gnmi` (overrides the guess) |
 | `telemetry_fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
 | `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` |
-| `telemetry_port`, `telemetry_url` | the API's port, or its full `https://` address |
+| `telemetry_agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
+| `telemetry_port_snmp`, `telemetry_port_gnmi`, `telemetry_port_api` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
+| `telemetry_url` | the API's full `https://` address |
 | `telemetry_mdt_node` | the node name a device sends model-driven telemetry as |
 | `telemetry_verify_tls` | `false` for an API with a self-signed certificate |
 
@@ -121,6 +125,15 @@ Nothing comes in twice on the hosted side either:
   The lite rollups keep one value per series and minute.
 - VictoriaMetrics runs with `-dedup.minScrapeInterval=30s` in the compose file and the k3s
   manifest, so a point written twice is kept once.
+
+
+## One agent per device
+
+A device with an agent (`telemetry_agent`, the Telemetry tab) is collected by that agent alone, even
+when it stands by for another one, and calls about the device (its ports, its clients) go there.
+Give a hall's group its hall's agent, and each agent polls only its own switches. While that agent
+is away, its devices go back to the others like devices without an agent, so they aren't left
+unheard. Devices without an agent are collected as above: by the agent with the first VIP.
 
 ## Firewalls: pfSense and OPNsense
 

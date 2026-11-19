@@ -249,6 +249,45 @@ describe('Inventory page', () => {
     expect(screen.getAllByText('from group Hall A').length).toBeGreaterThan(0)
   })
 
+  it('sets the collecting agent and a port per kind on the Telemetry tab, over what the group says', async () => {
+    const detail: DeviceDetail = {
+      ...fedDetail, blocks: [], properties: { telemetry_port_gnmi: '50052' },
+      resolved: {
+        ...fedDetail.resolved,
+        properties: {
+          telemetry_port_snmp: { value: '1161', from: { type: 'group', id: 'g1', name: 'Hall A' } },
+          telemetry_port_gnmi: { value: '50052', from: { type: 'device', id: 'netbox-12', name: 'Stage switch' } },
+        },
+        features: { ...fedDetail.resolved.features, telemetry: { on: false, from: null } },
+      },
+    }
+    const api = fakeFetch({
+      'GET /api/auth/me': editor,
+      'GET /api/inventory': list,
+      'GET /api/inventory/groups': overview,
+      'GET /api/inventory/netbox-12': detail,
+      'GET /api/options/agents': { options: [{ value: 'a1', label: 'Rack A', hint: 'a1' }] },
+      'PATCH /api/inventory/netbox-12': { ok: true },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Inventory />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Stage switch' }))
+    fireEvent.click(await screen.findByRole('tab', { name: 'Telemetry' }))
+    expect(await screen.findByText(/The Telemetry feature is off/)).toBeInTheDocument()
+    // Empty here: the group's port shows, and where it comes from.
+    expect(screen.getByLabelText('SNMP port')).toHaveAttribute('placeholder', '1161')
+    expect(screen.getByText('from group Hall A')).toBeInTheDocument()
+    expect(screen.getByLabelText('gNMI port')).toHaveValue('50052')
+    fireEvent.change(screen.getByLabelText('API port (NX-API, RESTCONF, OPNsense)'), { target: { value: '84x43' } })
+    fireEvent.change(screen.getByLabelText('gNMI port'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('combobox', { name: 'Agent' }))
+    fireEvent.click(await screen.findByRole('option', { name: /Rack A/, hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
+      properties: { telemetry_agent: 'a1', telemetry_port_api: '8443' },
+    }))
+  })
+
   it('adds interfaces by range', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': editor,

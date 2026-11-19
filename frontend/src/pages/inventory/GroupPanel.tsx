@@ -11,6 +11,7 @@ import { PanelSection, SidePanel } from '@/components/ui'
 import { DeviceIcon } from './icons'
 import { credentialBody } from './model'
 import { groupAndBelow, groupTree, useCredentials } from './scope'
+import { TelemetryFields } from './TelemetryFields'
 import { CredentialsEditor, FeaturesEditor, LookFields, PropertiesEditor, TagPicker, type CredentialDraft } from './ScopeEditors'
 
 export type ScopeTarget = { kind: 'group'; item: InventoryGroup | null; parent?: string | null }
@@ -132,6 +133,11 @@ export function GroupPanel({ target, overview, onClose, onSaved }: {
             <PanelSection label={t('inventory.features.title')}>
               <FeaturesEditor catalog={overview.features} value={current.features} canEdit={canEdit} busy={save.isPending}
                 onSave={(features) => save.mutate({ features })} />
+            </PanelSection>
+            <PanelSection label={t('inventory.telemetry.how')}>
+              <Text size="sm" c="dimmed" mb="xs">{t('inventory.telemetry.groupIntro')}</Text>
+              <TelemetryFields key={JSON.stringify(current.properties)} own={current.properties} canEdit={canEdit}
+                busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
             </PanelSection>
             {canEdit && (
               <PanelSection label={t('inventory.creds.title')}>

@@ -11,6 +11,7 @@ import time
 import requests
 
 from .lineproto import Point
+from .telegraf import port
 
 TIMEOUT = 8
 
@@ -39,7 +40,8 @@ def _base(t, default_scheme='https'):
         return t['url'].rstrip('/')
     host = t['address']
     host = f'[{host}]' if ':' in host else host
-    return f'{default_scheme}://{host}' + (f':{t["port"]}' if t.get('port') else '')
+    at = port(t, 'api')
+    return f'{default_scheme}://{host}' + (f':{at}' if at else '')
 
 
 def _tags(t, driver, **extra):

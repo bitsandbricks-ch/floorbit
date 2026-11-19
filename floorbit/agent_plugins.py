@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import inspect
 import json
 import re
 import threading
@@ -71,7 +72,9 @@ def config(registry=None, agent_id=None):
             # Settings kept elsewhere (Settings > Telemetry): the hosted part says what the agent gets.
             from .plugins.base import PluginError
             try:
-                settings = registry.call(spec, 'agent_settings', settings)
+                # Which agent asks, for plugins that hand each agent its own share.
+                takes_agent = 'agent_id' in inspect.signature(cls.agent_settings).parameters
+                settings = registry.call(spec, 'agent_settings', settings, *((agent_id,) if takes_agent else ()))
             except PluginError as exc:
                 registry.log(spec.id, f'agent_settings: {exc}')
                 continue

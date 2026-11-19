@@ -167,6 +167,7 @@ def _enrolled():
 def _forget_cache():
     global _active, _routes
     _active = _routes = None
+    _pins[0] = None
     _doors.clear()
 
 
@@ -230,6 +231,11 @@ def ask(method, args=()):
     about a switch goes to an agent for that switch's hall, and a call about everything (the device
     list, an IP, ARP) goes to every connected agent, and their answers are put together."""
     scoped, everyone, by_name = _routing()
+    if method in HOST_METHODS and args:
+        # A device collected by one agent by name (telemetry_agent): only that agent knows it.
+        owner = _pinned_agent(args[0], everyone)
+        if owner is not None:
+            return tunnel.call(method, args, targets={owner})
     if not scoped:
         # Two agents for the same halls (VIPs shared with VRRP, the agent's docs/vrrp.md): only the
         # primary one collects telemetry, so ask both and keep the answer that has something.
@@ -244,11 +250,38 @@ def ask(method, args=()):
     return _ask_all(method, args, everyone)
 
 
+_pins = [None, {}]      # (data stamp, {device name: agent id}), like _routes
+
+
+def _pinned_agent(hostname, everyone):
+    """The connected agent a device is given to by name (telemetry_agent), else None: then the
+    usual routing (an agent away hands its devices back to the others, targets.for_agent)."""
+    from . import store
+    from .telemetry import targets
+    path = store.event_file()
+    stamp = (path, store.stamp(path), store.stamp(store.tenant_file()))
+    if stamp[1] is None and stamp[2] is None:
+        return None
+    if _pins[0] != stamp:
+        try:
+            _pins[1] = targets.pinned()
+        except Exception as exc:  # noqa: BLE001  # routing must not fail on a bad inventory
+            print(f'[agent] device agents: {exc}')
+            _pins[1] = {}
+        _pins[0] = stamp
+    name = str(hostname or '').lower()
+    owner = _pins[1].get(name) or _pins[1].get(name.split('.')[0])
+    return owner if owner in everyone and tunnel.connected(agent=owner) else None
+
+
 def agent_for(hostname):
     """The one connected agent that should talk to this switch: one serving its hall, else any.
     For calls that hold something open on the agent (an SSH shell) or must not run twice (a port
     bounce), where ``ask()`` would ask every agent. Raises AgentUnavailable."""
     scoped, everyone, by_name = _routing()
+    owner = _pinned_agent(hostname, everyone)
+    if owner is not None:
+        return owner
     connected = tunnel.connected_agents() & set(everyone)
     if scoped:
         hall = _hall_of(by_name, hostname)

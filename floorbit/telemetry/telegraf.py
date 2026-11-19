@@ -17,6 +17,14 @@ MDT_CERT_ENV = 'FLOORBIT_TELEGRAF_MDT_CERT'     # paths as Telegraf sees them
 MDT_KEY_ENV = 'FLOORBIT_TELEGRAF_MDT_KEY'
 MDT_CA_ENV = 'FLOORBIT_TELEGRAF_MDT_CA'        # only devices with a certificate from this CA
 GNMI_PORT = {'nxos': 50051, 'iosxe': 9339}
+# A port per way of asking (SNMP on 1161 doesn't send gNMI there too); none set: the usual one.
+PORT_KINDS = ('snmp', 'gnmi', 'api')
+
+
+def port(t, kind):
+    """The device's port for ``kind`` (PORT_KINDS), or None for the usual one."""
+    value = (t.get('ports') or {}).get(kind)
+    return value if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 65535 else None
 
 # IF-MIB and friends, as (field name, OID, is_tag, conversion).
 IF_FIELDS = (
@@ -81,7 +89,7 @@ def _snmp_head(lines, t, interval, community=None, context=None):
     lines.append('[[inputs.snmp]]')
     # Telegraf's log names the input by its alias: the agent tells each device's errors apart.
     lines.append(f'  alias = {q(t["name"])}')
-    lines.append(f'  agents = [{q("udp://" + _host(t["address"]) + ":" + str(t.get("port") or SNMP_PORT))}]')
+    lines.append(f'  agents = [{q("udp://" + _host(t["address"]) + ":" + str(port(t, "snmp") or SNMP_PORT))}]')
     lines.append(f'  interval = {q(interval)}')
     lines.append('  timeout = "5s"')
     lines.append('  retries = 1')
@@ -150,9 +158,9 @@ def snmp(t, interval='30s', tables_interval='60s'):
 
 
 def gnmi(t, interval='10s'):
-    port = t.get('port') or GNMI_PORT.get(t.get('platform'), 50051)
+    at = port(t, 'gnmi') or GNMI_PORT.get(t.get('platform'), 50051)
     lines = ['[[inputs.gnmi]]', f'  alias = {q(t["name"])}',
-             f'  addresses = [{q(_host(t["address"]) + ":" + str(port))}]',
+             f'  addresses = [{q(_host(t["address"]) + ":" + str(at))}]',
              f'  username = {q(t.get("username") or "")}', f'  password = {q(t.get("password") or "")}',
              f'  encoding = {q("json_ietf" if t.get("platform") == "iosxe" else "json")}',
              '  redial = "10s"', '  tls_enable = true',
@@ -185,7 +193,8 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
              f'    Authorization = {q("Token " + token)}', '']
     traps = [t for t in targets if 'traps' in t['drivers']]
     mdt = [t for t in targets if 'mdt' in t['drivers']]
-    for t in targets if poll else ():
+    # A standby agent still polls the devices given to it by name (targets.for_agent).
+    for t in [t for t in targets if poll or t.get('mine')]:
         if 'snmp' in t['drivers']:
             lines += [*snmp(t, interval, tables_interval), '']
         if 'gnmi' in t['drivers']:

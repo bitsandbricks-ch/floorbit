@@ -69,7 +69,8 @@
     "overview": "Overview",
     "interfaces": "Interfaces",
     "settings": "Settings",
-    "credentials": "Credentials"
+    "credentials": "Credentials",
+    "telemetry": "Telemetry"
   },
   "icon": {
     "switch": "Switch",
@@ -375,5 +376,18 @@
     "inventory": "In storage",
     "none": "No status"
   },
-  "syncEvery": "Syncs on its own every {{minutes}} minutes."
+  "syncEvery": "Syncs on its own every {{minutes}} minutes.",
+  "telemetry": {
+    "now": "Now",
+    "how": "How it is collected",
+    "off": "The Telemetry feature is off for this device. Turn it on under Settings (here, or on its group or a tag) to collect from it.",
+    "agent": "Agent",
+    "agentHint": "The local agent that collects from it. While that agent is away, the others take over.",
+    "anyAgent": "Any agent (the primary one)",
+    "telemetry_port_snmp": "SNMP port",
+    "telemetry_port_gnmi": "gNMI port",
+    "telemetry_port_api": "API port (NX-API, RESTCONF, OPNsense)",
+    "portsHint": "Empty: the group above decides, or the usual port. Traps and MDT come in on the agent's own ports.",
+    "groupIntro": "Every device in this group takes these unless it sets its own."
+  }
 }
