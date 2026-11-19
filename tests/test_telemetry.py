@@ -218,6 +218,23 @@ def test_a_firewalls_own_telegraf(plugin):
     assert plugin.devices()[0]["kind"] == "firewall"
 
 
+def test_a_firewall_port_seen_by_snmp_and_its_own_telegraf_is_one_port(plugin):
+    """#972: an SNMP row with only the index, then the firewall's Telegraf naming igb0, then the
+    row with both made two igb0 ports, and the ISP line form listed igb0 twice."""
+    import time
+    now = time.time()
+    state.state.apply_text("\n".join([
+        f"fb_if,device=fw-01,index=1 dot3StatsDuplexStatus=3i {int(now * 1e9)}",
+        "net,host=fw-01,interface=igb0 bytes_recv=1i,bytes_sent=2i",
+        f"fb_if,device=fw-01,index=1,ifName=igb0 ifOperStatus=1i,ifHighSpeed=1000i {int(now * 1e9)}",
+        f"fb_if,device=fw-01,index=2,ifName=igb1 ifOperStatus=2i {int(now * 1e9)}",
+        "net,host=fw-01,interface=igb1 bytes_recv=1i,bytes_sent=2i"]), now)
+    names = [p["name"] for p in plugin.device_ports("fw-01")]
+    assert names == ["igb0", "igb1"]
+    dev = state.state.find("fw-01")
+    assert sorted(dev.interfaces) == ["1", "2"]                 # found by index from now on
+    assert dev.port_name("1") == "igb0" and dev.interfaces["1"].duplex is not None
+
 def test_a_firewall_that_sends_its_full_host_name(plugin):
     """os-telegraf on OPNsense names itself fw-01.example.org; the device set up is fw-01."""
     import time
