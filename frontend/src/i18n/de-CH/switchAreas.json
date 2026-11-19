@@ -41,5 +41,11 @@
   "clear": "Festlegung entfernen",
   "save": "Speichern",
   "none": "Keine Switches im Inventar",
-  "noneHint": "Switches kommen aus dem Inventar (NetBox, Erkennung oder von Hand)."
+  "noneHint": "Switches kommen aus dem Inventar (NetBox, Erkennung oder von Hand).",
+  "found": {
+    "pin": "{{switch}} ist auf {{area}} festgelegt; dieser Platz ist in {{row}}.",
+    "plan": "{{switch}} ist in {{area}} gezeichnet; dieser Platz ist in {{row}}.",
+    "excluded": "{{switch}} bedient keine Plätze; dieser Platz ({{row}}) hängt trotzdem daran.",
+    "open": "In Switch-Bereiche prüfen"
+  }
 }

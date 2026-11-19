@@ -32,5 +32,9 @@ The page shows the disagreement and leaves the decision to the crew:
 
 The page names the switches with a to-do or a disagreement at the top.
 
+The seat walk says it where it is found, too: when a seat's port turns up on a switch pinned to
+another row ("sw-a-02 is pinned to A 1; this seat is in A 2"), drawn in another block, or left
+out, the result card says so with a link here, so the walker fixes the pin or the patch on the spot.
+
 Who may: reading needs `seats.view`, pinning `seats.edit`. Pins are kept per event, and every
 change is in the audit log.

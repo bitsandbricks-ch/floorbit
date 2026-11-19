@@ -1372,7 +1372,10 @@ export interface SeatLocated {
   ms: number; tries: number; stale: boolean; found: WalkPort | null
   steps: { step: 'mac' | 'switch' | 'snmp' | 'monitoring'; ok: boolean; how?: string | null }[]
   replaced?: string[]; plan_seat?: string | null
+  /** The switch's area doesn't hold this seat (issue #1094). */
+  area_drift?: AreaDrift | null
 }
+export interface AreaDrift { kind: 'pin' | 'plan' | 'excluded'; switch: string; area: string[]; row: string }
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 /** A switch login Floorbit keeps (issue #474): never the password. */
 /** label: what pickers show: the name, or the row letters (C–D) of a block named by its rows. */

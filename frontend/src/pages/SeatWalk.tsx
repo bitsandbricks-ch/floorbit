@@ -3,6 +3,7 @@ import { IconCircleCheck, IconCircleX, IconPlugConnected } from '@tabler/icons-r
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AreaDrift } from './switchAreas/AreaDrift'
 import { ApiError, del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
@@ -260,6 +261,7 @@ function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: 
                 </Alert>
               )}
               {planFixed && <Text size="sm">{t('seatWalk.planFixed')}</Text>}
+              <AreaDrift drift={status.result.area_drift} />
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" mt="xs">
                 <Button size="lg" data-autofocus onClick={() => go(at + 1)}>
                   {nextSeat ? t('seatWalk.next', { seat: nextSeat }) : t('seatWalk.finish')}</Button>
