@@ -120,8 +120,45 @@ def test_telegraf_and_the_controllers_setup():
 
 
 @pytest.mark.parametrize("model, wireless", [("C9800-CL-K9", True), ("C9800-40-K9", True),
-                                             ("C9300-48P", False), ("", False)])
+                                             ("AIR-CT5520-K9", True), ("C9300-48P", False), ("", False)])
 def test_a_9800_is_known_by_its_model(model, wireless):
     t = targets._from_device({"id": "d1", "name": "wlc-01", "address": "192.0.2.40", "platform": "IOS-XE",
                               "model": model, "properties": {"telemetry_drivers": "mdt"}}, None, None)
     assert t["wireless"] is wireless and t["drivers"] == ["mdt"]
+
+
+AIREOS = {"name": "wlc-02", "address": "192.0.2.41", "drivers": ["snmp"], "platform": "other", "wireless": True,
+          "community": "example", "kind": "switch"}
+
+
+def test_an_aireos_controller_over_snmp():
+    # AP MAC 02:00:00:00:a0:01 as Telegraf's index: six numbers, then the radio slot.
+    idx = "2.0.0.0.160.1"
+    now = time.time()
+    tags = "device=wlc-02,address=192.0.2.41,driver=snmp"
+    ns = str(int(now * 1e9))
+    assert state.state.apply_text("\n".join(f"{line} {ns}" for line in [
+        f'fb_wlc_ap,{tags},index={idx} bsnAPName="ap-foyer",bsnAPOperationStatus=1i,bsnAPModel="AIR-AP2802I-E-K9"',
+        f'fb_wlc_radio,{tags},index={idx}.0 bsnAPIfType=1i,bsnAPIfPhyChannelNumber=11i,bsnAPIfOperStatus=2i',
+        f'fb_wlc_radio,{tags},index={idx}.1 bsnAPIfType=2i,bsnAPIfPhyChannelNumber=100i,bsnAPIfOperStatus=2i',
+        f'fb_wlc_rrm,{tags},index={idx}.1 bsnAPIfLoadChannelUtilization=57i,bsnAPIfLoadNumOfClients=23i',
+        # A radio switched off is left out.
+        f'fb_wlc_radio,{tags},index=2.0.0.0.160.2.1 bsnAPIfType=2i,bsnAPIfOperStatus=1i',
+    ]), now)[0] == 5
+    dev = state.state.device("wlc-02")
+    assert dev.kind == "wlc" and dev.wifi_aps(now) == [{"name": "ap-foyer", "model": "AIR-AP2802I-E-K9", "status": "up",
+                                                       "radios": [
+        {"band": "2.4", "channel": 11, "width": None, "utilization": None, "clients": 0},
+        {"band": "5", "channel": 100, "width": None, "utilization": 57, "clients": 23}]}]
+
+
+def test_aireos_tables_in_telegraf_even_when_librenms_polls():
+    conf = tomllib.loads(telegraf.render([{**AIREOS, "poll_ports": False, "tables": False}], "http://x/write", "tok"))
+    wlc = next(i for i in conf["inputs"]["snmp"] if i.get("name") == "fb_wlc")
+    tables = {t["name"]: [f["oid"] for f in t["field"]] for t in wlc["table"]}
+    assert set(tables) == {"fb_wlc_ap", "fb_wlc_radio", "fb_wlc_rrm"}
+    assert "1.3.6.1.4.1.14179.2.2.13.1.4" in tables["fb_wlc_rrm"]
+    # Never the client table (bsnMobileStationTable, .14179.2.1.4).
+    assert not any(o.startswith("1.3.6.1.4.1.14179.2.1.4") for oids in tables.values() for o in oids)
+    assert not any(i.get("name") == "fb_wlc" for i in tomllib.loads(
+        telegraf.render([{**AIREOS, "wireless": False}], "http://x/write", "tok"))["inputs"]["snmp"])

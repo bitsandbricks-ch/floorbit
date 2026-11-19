@@ -111,6 +111,17 @@ PSE_FIELDS = (('pethMainPsePower', '1.3.6.1.2.1.105.1.3.1.1.2', False, None),   
 ROUTE_FIELDS = (('ipCidrRouteIfIndex', '1.3.6.1.2.1.4.24.4.1.5', False, None),
                 ('ipCidrRouteType', '1.3.6.1.2.1.4.24.4.1.6', False, None),      # 3 local, 4 remote
                 ('ipCidrRouteProto', '1.3.6.1.2.1.4.24.4.1.7', False, None))     # 2 local, 3 static, ...
+# AIRESPACE-WIRELESS-MIB on a Cisco AireOS controller (5520, 3504, 8540): its APs (index: the AP's
+# MAC as six numbers), each radio (MAC.slot) and the radio's load. The same measurements as a
+# 9800's MDT (state.py _wlc_*). Counts only: the client table (bsnMobileStation) is never asked.
+WLC_AP_FIELDS = (('bsnAPName', '1.3.6.1.4.1.14179.2.2.1.1.3', False, None),
+                 ('bsnAPOperationStatus', '1.3.6.1.4.1.14179.2.2.1.1.6', False, None),   # 1: associated
+                 ('bsnAPModel', '1.3.6.1.4.1.14179.2.2.1.1.16', False, None))
+WLC_RADIO_FIELDS = (('bsnAPIfType', '1.3.6.1.4.1.14179.2.2.2.1.2', False, None),          # 1: 2.4, 2: 5 GHz
+                    ('bsnAPIfPhyChannelNumber', '1.3.6.1.4.1.14179.2.2.2.1.4', False, None),
+                    ('bsnAPIfOperStatus', '1.3.6.1.4.1.14179.2.2.2.1.12', False, None))   # 1: down, 2: up
+WLC_LOAD_FIELDS = (('bsnAPIfLoadChannelUtilization', '1.3.6.1.4.1.14179.2.2.13.1.3', False, None),
+                   ('bsnAPIfLoadNumOfClients', '1.3.6.1.4.1.14179.2.2.13.1.4', False, None))
 HR_DEVICE_FIELDS = (('hrDeviceType', '1.3.6.1.2.1.25.3.2.1.2', False, None),      # processors: the CPU
                     ('hrDeviceDescr', '1.3.6.1.2.1.25.3.2.1.3', False, None))
 
@@ -218,6 +229,15 @@ def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
         _table(lines, 'fb_qvlan', QVLAN_FIELDS)
         _table(lines, 'fb_bridge', BRIDGE_FIELDS)
         _table(lines, 'fb_pvid', PVID_FIELDS)
+    if t.get('wireless'):
+        # Polled even while LibreNMS polls the ports: its AP data isn't in its API.
+        lines.append('')
+        _snmp_head(lines, t, '60s')
+        lines.append('  name = "fb_wlc"')
+        _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
+        _table(lines, 'fb_wlc_ap', WLC_AP_FIELDS)
+        _table(lines, 'fb_wlc_radio', WLC_RADIO_FIELDS)
+        _table(lines, 'fb_wlc_rrm', WLC_LOAD_FIELDS)
     if t.get('tables', True):
         lines.append('')
         _snmp_head(lines, t, tables_interval)

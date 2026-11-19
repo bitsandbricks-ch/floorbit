@@ -69,8 +69,9 @@ FEATURE = 'telemetry'
 API_DRIVER = {'nxos': 'nxapi', 'iosxe': 'restconf', 'opnsense': 'opnsense'}
 # What a device does on its own: these need no stored login.
 SENDING = ('push', 'mdt', 'traps')
-# A Catalyst 9800 (C9800-CL-K9, C9800-40-K9, ...): its MDT also streams its access points.
-WLC_MODEL = re.compile(r'C?9800|wireless\s*(lan\s*)?controller', re.I)
+# A wireless controller by its model: a Catalyst 9800 (C9800-CL-K9, C9800-40-K9) streams its access
+# points over MDT, an AireOS one (AIR-CT5520-K9, AIR-CT3504-K9) answers them over SNMP.
+WLC_MODEL = re.compile(r'C?9800|AIR-?CT\d|wireless\s*(lan\s*)?controller', re.I)
 
 
 def _platform(text):

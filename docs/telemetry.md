@@ -173,7 +173,9 @@ device's ports (`device_ports`), and the switch's budget in discovery's `discove
 A login the device refuses is blocked on the inventory device, like any stored login: it isn't
 tried again until a tech clears it or the password changes.
 
-## Wireless controllers: Catalyst 9800
+## Wireless controllers
+
+### Catalyst 9800
 
 A Catalyst 9800 (the 9800-CL VM or the appliances) streams its access points over the same MDT
 dial-out as the switches, and the [Wi-Fi view](wifi.md) shows them: each AP up or down, and per
@@ -199,6 +201,18 @@ radio its band, channel, width, channel utilization and client count, every 30 s
     update-policy periodic 3000
     receiver ip address 192.0.2.10 57000 protocol grpc-tcp
    ```
+
+### AireOS (5520, 3504, 8540)
+
+An AireOS controller answers its access points over SNMP (AIRESPACE-WIRELESS-MIB). Add it to the
+inventory with its model (`AIR-CT5520-K9`, ...) and an SNMP login, and turn the Telemetry feature
+on. Every minute Telemetry reads three tables: the APs (`bsnAPTable`: name, model, joined), their
+radios (`bsnAPIfTable`: band, channel, on or off) and the radios' load (`bsnAPIfLoadParametersTable`:
+channel utilization, clients). It does this even while [LibreNMS polls](#who-polls-the-switches):
+LibreNMS reads the same tables but has no API for them. The client table (`bsnMobileStationTable`)
+is never asked for.
+
+### Both
 
 An AP the controller stops naming reads **down** after three minutes and leaves the list after a
 day. When a Wi-Fi plugin (Cisco WLC, UniFi, ...) names the same AP, the stream wins.

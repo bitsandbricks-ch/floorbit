@@ -40,8 +40,9 @@ in memory for 20 seconds.
 
 ## Sources
 
-- **Cisco Catalyst 9800** (the Telemetry plugin): the controller streams its APs over MDT, see
-  [telemetry.md](telemetry.md#wireless-controllers-catalyst-9800). Its APs come before any plugin's.
+- **Cisco Catalyst 9800 and AireOS controllers** (the Telemetry plugin): a 9800 streams its APs over
+  MDT, an AireOS controller answers them over SNMP; see [telemetry.md](telemetry.md#wireless-controllers).
+  Their APs come before any plugin's.
 - **UniFi** (from the Marketplace): reads the controller's access points (`stat/device`): each radio's channel,
   width, channel utilization (`cu_total`) and client count. Turn it on under Settings > Plugins with
   a View Only account.

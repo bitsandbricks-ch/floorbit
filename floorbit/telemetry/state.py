@@ -19,9 +19,10 @@ Points come in several shapes, one per driver (docs/telemetry.md):
   ``fb_if`` rows keyed by name (``ip``, ``mac``, ``port`` tags) instead of an SNMP index.
 - A firewall's own Telegraf (OPNsense ``os-telegraf``, the pfSense Telegraf package): ``cpu``,
   ``mem``, ``net``, ``pf``, ``system``, with the firewall in the ``host`` tag.
-- A Cisco Catalyst 9800 wireless controller's MDT: ``fb_wlc_ap`` (each joined access point),
-  ``fb_wlc_radio`` (its radios' channel and width) and ``fb_wlc_rrm`` (each radio's load and
-  clients), keyed by the AP's MAC and the radio slot (Device.wifi_aps). Counts only: the
+- A wireless controller's access points: ``fb_wlc_ap`` (each joined access point), ``fb_wlc_radio``
+  (its radios' channel and width) and ``fb_wlc_rrm`` (each radio's load and clients), keyed by the
+  AP's MAC and the radio slot (Device.wifi_aps): a Catalyst 9800 over MDT (tags), an AireOS
+  controller over SNMP (AIRESPACE-WIRELESS-MIB, MAC and slot in the index). Counts only: the
   controller's client list is never asked for, and storage.py drops it if a device sends it anyway.
 """
 import ipaddress
@@ -1031,8 +1032,20 @@ def _width_of(value):
     return int(m.group(1)) if m else None
 
 
+def _ap_index(point):
+    """(AP MAC, radio slot) of a row: MDT names them in tags, AireOS SNMP in the index (MAC as six
+    numbers, then the slot)."""
+    mac = _mac(_tag(point.tags, 'wtp_mac', 'ap_mac'))
+    slot = _tag(point.tags, 'radio_slot_id', 'slot_id', 'slot')
+    if mac is None and point.tags.get('index'):
+        parts = str(point.tags['index']).split('.')
+        mac = _mac_from_index(parts[:6])
+        slot = parts[6] if len(parts) == 7 else None
+    return mac, slot
+
+
 def _ap_row(dev, point):
-    mac = _mac(_tag(point.tags, 'wtp_mac', 'ap_mac', 'mac'))
+    mac = _ap_index(point)[0]
     if not mac:
         return None
     ap = dev.aps.get(mac)
@@ -1050,21 +1063,25 @@ def _wlc_ap(dev, point, at):
     if ap is None:
         return False
     f = {_key(k): v for k, v in point.fields.items()}
-    name = ' '.join(str(f.get('name') or _tag(point.tags, 'name') or '').split())[:80]
+    name = ' '.join(str(f.get('name') or f.get('bsnapname') or _tag(point.tags, 'name') or '').split())[:80]
     if name:
         ap['name'] = name
-    if f.get('model'):
-        ap['model'] = ' '.join(str(f['model']).split())[:60]
-    oper = str(f.get('ap_operation_state') or '').lower()
-    admin = str(f.get('ap_admin_state') or '').lower()
-    ap['up'] = not ('disabled' in admin or (oper and 'registered' not in oper))
+    model = f.get('model') or f.get('bsnapmodel')
+    if model:
+        ap['model'] = ' '.join(str(model).split())[:60]
+    if f.get('bsnapoperationstatus') is not None:
+        ap['up'] = _num(f['bsnapoperationstatus']) == 1         # associated
+    else:
+        oper = str(f.get('ap_operation_state') or '').lower()
+        admin = str(f.get('ap_admin_state') or '').lower()
+        ap['up'] = not ('disabled' in admin or (oper and 'registered' not in oper))
     ap['seen'] = max(ap['seen'], at)
     return True
 
 
 def _radio_row(dev, point, at):
     ap = _ap_row(dev, point)
-    slot = _tag(point.tags, 'radio_slot_id', 'slot_id', 'slot')
+    slot = _ap_index(point)[1]
     if ap is None or slot is None or not str(slot).isdigit() or int(slot) > 7:
         return None
     radio = ap['radios'].setdefault(str(slot), {'seen': 0.0})
@@ -1080,11 +1097,16 @@ def _wlc_radio(dev, point, at):
     if radio is None:
         return False
     f = {_key(k): v for k, v in point.fields.items()}
-    channel = _num(f.get('curr_freq') if f.get('curr_freq') is not None else f.get('channel'))
+    channel = next((_num(f[k]) for k in ('curr_freq', 'channel', 'bsnapifphychannelnumber')
+                    if f.get(k) is not None), None)
     radio['channel'] = int(channel) if channel and 1 <= channel <= 233 else None
     radio['width'] = _width_of(f.get('chan_width')) or radio.get('width')
+    slot = _ap_index(point)[1]
+    if f.get('bsnapiftype') is not None:      # AireOS: dot11b(1) is 2.4 GHz, dot11a(2) 5 GHz
+        radio['band'] = {1: '2.4', 2: '5'}.get(_num(f['bsnapiftype'])) or _band_of(None, radio['channel'], slot)
+        radio['up'] = _num(f.get('bsnapifoperstatus')) != 1
+        return True
     words = ' '.join(str(f.get(k) or '') for k in ('current_active_band', 'current_band_id', 'radio_type', 'band'))
-    slot = _tag(point.tags, 'radio_slot_id', 'slot_id', 'slot')
     radio['band'] = _band_of(words, radio['channel'], slot)
     oper, admin = str(f.get('oper_state') or '').lower(), str(f.get('admin_state') or '').lower()
     radio['up'] = not ('down' in oper or 'disabled' in admin)
@@ -1097,10 +1119,11 @@ def _wlc_rrm(dev, point, at):
     if radio is None:
         return False
     f = {_key(k): v for k, v in point.fields.items()}
-    util = _num(f.get('cca_util_percentage'))
+    util = _num(f.get('cca_util_percentage') if f.get('cca_util_percentage') is not None
+                else f.get('bsnapifloadchannelutilization'))
     if util is not None and 0 <= util <= 100:
         radio['utilization'] = round(util)
-    clients = _num(f.get('stations'))
+    clients = _num(f.get('stations') if f.get('stations') is not None else f.get('bsnapifloadnumofclients'))
     if clients is not None and 0 <= clients <= 10000:
         radio['clients'] = int(clients)
     return True
