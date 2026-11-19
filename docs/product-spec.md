@@ -103,7 +103,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   See [dashboards.md](dashboards.md).
 - **Shared components, no look-alikes.** Before building a card, table, form field or dialog, use
   what exists: `EntitySelect`, `ConfirmButton`/`ConfirmIcon`, `DateTimeInput`, `PageTabs`,
-  `SidePanel`, `StatCard`, the telemetry components. New visual blocks become shared components or
+  `SidePanel`, `StatCard`, `StateBadge`/`StateBit` (one tone and word per state word, from
+  `components/stateTone.ts`), the telemetry components. New visual blocks become shared components or
   widgets.
 - **Where code goes:** a new API area is a blueprint, a new page is a React page with English and
   German texts, a new editor feature is a file in `frontend/src/pages/plan/edit/`, new on-plan data is
