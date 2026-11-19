@@ -1860,6 +1860,8 @@ export interface TopologyUplink {
   id: string; name: string; device: string; port: string; capacity_mbps: number | null
   status: 'up' | 'warn' | 'down' | 'unknown'; utilization: number | null
 }
+/** A switch's port for the link form's picker (GET /api/links/ports). */
+export interface SwitchPort { name: string; state: string; speed_bps: number | null; used_by: string }
 export interface Topology {
   nodes: TopologyNode[]; links: SwitchLink[]; uplinks: TopologyUplink[]; suggestions: LinkSuggestion[]
   counts: { links: number; down: number; slow: number; miswired?: number }; types: LinkType[]; speeds: number[]

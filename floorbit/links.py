@@ -128,6 +128,26 @@ def delete(link_id):
     return gone
 
 
+# ── the port picker ─────────────────────────────────────────────────────────
+def ports_of(switch, now=None):
+    """A switch's ports as the monitoring source reads them, for the link form: name, state, speed,
+    and the link already on it. Empty when the switch isn't in the inventory or can't be read; the
+    form then takes the port typed in, as before. No port descriptions: they can name people."""
+    data = load_data()
+    name = _switch_names(data).get(str(switch or '').strip().lower())
+    if not name:
+        return []
+    found = reader.ports(name, time.time() if now is None else now) or {}
+    used = {}
+    for link in all_links(data):
+        for end, other in (('a', 'b'), ('b', 'a')):
+            if link[end].lower() == name.lower():
+                used[_canon(link[f'{end}_port'])] = f"{link[other]} {link[f'{other}_port']}"
+    rows = [{'name': p.get('name') or key, 'state': p.get('state') or 'unknown', 'speed_bps': p.get('speed_bps'),
+             'used_by': used.get(key, '')} for key, p in found.items()]
+    return sorted(rows, key=lambda r: [int(x) if x.isdigit() else x for x in re.split(r'(\d+)', r['name'].lower())])
+
+
 # ── where the boxes sit ─────────────────────────────────────────────────────
 def layout(data=None):
     data = load_data() if data is None else data

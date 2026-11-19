@@ -67,5 +67,9 @@
   "exportSvg": "Zeichnung (SVG)",
   "exportFailed": "Das Bild konnte nicht erstellt werden.",
   "how": "Scrollen oder mit zwei Fingern zoomen, den Hintergrund ziehen, um dich zu bewegen.",
-  "howEdit": "Scrollen zum Zoomen, den Hintergrund ziehen, um dich zu bewegen. Zieh eine Box dorthin, wo sie hingehört: alle sehen sie dort."
+  "howEdit": "Scrollen zum Zoomen, den Hintergrund ziehen, um dich zu bewegen. Zieh eine Box dorthin, wo sie hingehört: alle sehen sie dort.",
+  "portsFree": "Frei",
+  "portsUsed": "Hat einen Link",
+  "portUsedBy": "zu {{other}}",
+  "portsUnread": "Die Ports dieses Switches sind gerade nicht lesbar: Gib den Port ein."
 }

@@ -236,3 +236,24 @@ def test_the_crew_arranges_the_diagram_once_for_everyone(client, net, app_module
     viewer = sign_in_as(app_module, "vi9", "viewer")
     assert viewer.put("/api/links/layout", json={"positions": {}}).status_code == 403
     assert viewer.delete("/api/links/layout").status_code == 403
+
+
+def test_the_layout_answers_a_fixed_text_when_it_fails(client, net):
+    r = client.put("/api/links/layout", json={"positions": {"core-01": {"x": "far"}}})
+    assert r.status_code == 400 and r.get_json() == {"error": "The places could not be saved."}
+
+
+def test_the_port_picker_lists_a_switchs_ports_and_the_links_on_them(client, net, app_module):
+    _add(client)
+    net.set("sw-a-01", port("TenGigabitEthernet1/1/1"), {**port("Te1/1/2", state="down"), "speed_bps": 10_000_000_000},
+            port("Gi1/0/10", description="Seat A-12 nick"), port("Gi1/0/9"))
+    got = client.get("/api/links/ports?switch=SW-A-01").get_json()["ports"]
+    assert [p["name"] for p in got] == ["Gi1/0/9", "Gi1/0/10", "Te1/1/2", "TenGigabitEthernet1/1/1"]
+    by_name = {p["name"]: p for p in got}
+    assert by_name["TenGigabitEthernet1/1/1"]["used_by"] == "dist-01 Te1/0/1"  # long name, short link
+    assert by_name["Te1/1/2"] == {"name": "Te1/1/2", "state": "down", "speed_bps": 10_000_000_000, "used_by": ""}
+    assert "description" not in by_name["Gi1/0/10"]
+    assert client.get("/api/links/ports?switch=nope-99").get_json() == {"ports": []}
+    from tests.test_rbac import sign_in_as
+    viewer = sign_in_as(app_module, "vi10", "viewer")
+    assert viewer.get("/api/links/ports?switch=sw-a-01").status_code == 403

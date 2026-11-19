@@ -67,5 +67,9 @@
   "exportSvg": "Drawing (SVG)",
   "exportFailed": "The picture couldn't be made.",
   "how": "Scroll or pinch to zoom, drag the background to move around.",
-  "howEdit": "Scroll to zoom, drag the background to move around. Drag a box to put it where it belongs: everyone sees it there."
+  "howEdit": "Scroll to zoom, drag the background to move around. Drag a box to put it where it belongs: everyone sees it there.",
+  "portsFree": "Free",
+  "portsUsed": "Has a link",
+  "portUsedBy": "to {{other}}",
+  "portsUnread": "This switch's ports can't be read right now: type the port."
 }

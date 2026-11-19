@@ -132,4 +132,27 @@ describe('Topology', () => {
     expect(screen.queryByRole('button', { name: 'Draw a link' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument()
   })
+
+  it('offers the switch ports in the link form, free ones first', async () => {
+    const ports = [
+      { name: 'Te1/1/1', state: 'up', speed_bps: 1e10, used_by: 'dist-01 Te1/0/2' },
+      { name: 'Te1/1/2', state: 'down', speed_bps: null, used_by: '' },
+    ]
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': lead, 'GET /api/links': data, 'GET /api/links/ports?switch=sw-c-02': { ports },
+    }).fn)
+    renderWithApp(<Topology />)
+    await screen.findByRole('img', { name: 'Topology with 2 links' })
+    fireEvent.click(screen.getByRole('button', { name: 'Draw a link' }))
+    fireEvent.click(screen.getByText('sw-c-02', { selector: 'text' }))
+    fireEvent.click(screen.getByText('core-01', { selector: 'text' }))
+    await screen.findByRole('dialog', { name: 'Add link' })
+    const field = screen.getAllByLabelText('Port')[0]
+    fireEvent.focus(field)
+    fireEvent.click(field)
+    expect(await screen.findByText('Free')).toBeInTheDocument()
+    expect(screen.getByText('Has a link')).toBeInTheDocument()
+    expect(screen.getByText('to dist-01 Te1/0/2')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /Te1\/1\/2/, hidden: true })).toHaveTextContent('Down')
+  })
 })
