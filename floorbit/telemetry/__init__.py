@@ -40,6 +40,15 @@ def ingest(text, now=None):
     return {'taken': taken, 'points': len(points), 'bad': bad}
 
 
+def _as_polled(target_list):
+    """The targets with who polls their ports (polling.apply), so state knows which wait for a poll."""
+    from .. import sources
+    from . import polling
+    if sources.registry is None:          # not set up yet (scripts): know them as they are
+        return target_list
+    return polling.apply(target_list, polling.plan(sources.registry))
+
+
 def collector_here():
     """Is this Floorbit the collector? Not while a local agent collects for it."""
     from .. import agent_link
@@ -98,7 +107,7 @@ class Runner:
         except DatabaseUnavailable:
             every = None
         if every is not None:
-            state_mod.state.know(every)
+            state_mod.state.know(_as_polled(every))
             if collector_here():
                 with_secrets = [t for t in every if set(t['drivers']) & set(pollers.POLLERS)]
                 found, self.poll_errors = pollers.poll_all(with_secrets, now, log=self.log, blocks=self._blocks())
