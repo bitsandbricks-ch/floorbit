@@ -241,14 +241,14 @@ def run():
         for dev_id, (_values, row) in found.items():
             dev = inventory.find(data, dev_id)
             seen[dev_id] = {**networks_of(row), 'transceivers': optics_of(row, dev['name'] if dev else ''),
-                            'poe': poe_of(row)}
+                            'poe': poe_of(row), 'routes': routes_of(row)}
         last = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
         # A device that didn't answer this time keeps what it said last: its optics and VLANs aren't gone.
         kept = {dev_id: n for dev_id, n in last.items()
                 if dev_id not in seen and isinstance(n, dict) and inventory.find(data, dev_id) is not None}
         data['inventory_discovered'] = {
             **kept, **{dev_id: {**n, 'at': now_text} for dev_id, n in seen.items()
-                       if n['vlans'] or n['networks'] or n['transceivers'] or n['poe']}}
+                       if n['vlans'] or n['networks'] or n['transceivers'] or n['poe'] or n['routes']}}
         _entries(data, list(data['inventory_discovered'].values()), report)
         save_data(data)
     return _keep(report)
@@ -333,6 +333,23 @@ def optics_of(row, device_name):
     return out[:500]
 
 
+def routes_of(row):
+    """A firewall's routes: [{network, next_hop, interface, proto}], the default route first."""
+    facts = row.get('facts') if isinstance(row.get('facts'), dict) else {}
+    out = []
+    for r in facts.get('routes') or []:
+        if not isinstance(r, dict):
+            continue
+        try:
+            net = str(ipaddress.ip_network(str(r.get('network')), strict=False))
+            hop = str(ipaddress.ip_address(r['next_hop'])) if r.get('next_hop') else ''
+        except ValueError:
+            continue
+        out.append({'network': net, 'next_hop': hop, 'interface': str(r.get('interface') or '')[:64],
+                    'proto': str(r.get('proto') or 'other')[:16]})
+    return out[:2000]
+
+
 def poe_of(row):
     """A switch's PoE budget and what it gives now, in watts: {budget_w, used_w}, or None."""
     facts = row.get('facts') if isinstance(row.get('facts'), dict) else {}
@@ -377,7 +394,8 @@ def _entries(data, found, report):
 
 def discovered_of(data, device_id):
     found = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
-    return {'vlans': [], 'networks': [], 'transceivers': [], 'poe': None, 'at': None, **(found.get(device_id) or {})}
+    return {'vlans': [], 'networks': [], 'transceivers': [], 'poe': None, 'routes': [], 'at': None,
+            **(found.get(device_id) or {})}
 
 
 # ── drift ────────────────────────────────────────────────────────────────────────────────────

@@ -428,3 +428,45 @@ def test_discovery_keeps_a_switchs_poe_budget(client):
     finally:
         sources.use(before)
     assert detail['discovered']['poe'] == {'budget_w': 740.0, 'used_w': 37.0}
+
+
+# ── routes (issue #919) ─────────────────────────────────────────────────────────────────────────
+
+FW = 'device=fw-01,address=192.0.2.1,driver=snmp,kind=firewall'
+
+
+def test_a_firewall_says_its_routes():
+    st = State()
+    ns = 1_700_000_000_000_000_000
+    st.apply_text('\n'.join([
+        f'fb_if,{FW},index=1,ifName=wan ifOperStatus=1i {ns}',
+        f'fb_if,{FW},index=2,ifName=lan ifOperStatus=1i {ns}',
+        f'fb_route,{FW},index=198.51.100.0.255.255.255.0.0.0.0.0.0 ipCidrRouteIfIndex=2i,'
+        f'ipCidrRouteType=3i,ipCidrRouteProto=2i {ns}',
+        f'fb_route,{FW},index=0.0.0.0.0.0.0.0.0.203.0.113.1 ipCidrRouteIfIndex=1i,'
+        f'ipCidrRouteType=4i,ipCidrRouteProto=3i {ns}',
+        f'fb_route,{FW},index=1.2.3 ipCidrRouteIfIndex=1i {ns}',                  # not a route index
+    ]))
+    assert st.devices['fw-01'].summary()['routes'] == [
+        {'network': '0.0.0.0/0', 'next_hop': '203.0.113.1', 'proto': 'static', 'interface': 'wan'},
+        {'network': '198.51.100.0/24', 'next_hop': '', 'proto': 'connected', 'interface': 'lan'}]
+
+
+def test_telegraf_asks_only_firewalls_for_routes():
+    t = {'name': 'fw-01', 'address': '192.0.2.1', 'platform': 'opnsense', 'drivers': ['snmp'], 'kind': 'firewall'}
+    assert 'name = "fb_route"' in '\n'.join(telegraf.snmp(t))
+    assert 'fb_route' not in '\n'.join(telegraf.snmp({**t, 'kind': 'router'}))
+
+
+def test_discovery_keeps_a_firewalls_routes(client):
+    add(client, name='fw-01', role='firewall')
+    routes = [{'network': '0.0.0.0/0', 'next_hop': '203.0.113.1', 'interface': 'wan', 'proto': 'static'},
+              {'network': 'nonsense', 'next_hop': ''}]
+    before = sources.use(Telemetry([{'hostname': 'fw-01', 'status': 1, 'facts': {'routes': routes}}], {}))
+    try:
+        client.post('/api/inventory/sync')
+        fw = next(d for d in client.get('/api/inventory').get_json()['devices'] if d['name'] == 'fw-01')
+        detail = client.get(f"/api/inventory/{fw['id']}").get_json()
+    finally:
+        sources.use(before)
+    assert detail['discovered']['routes'] == routes[:1]

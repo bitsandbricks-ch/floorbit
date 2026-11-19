@@ -186,6 +186,7 @@ class Device:
         self._processors = {}             # hrDevice index -> description
         self.if_facts = {}                # ifIndex -> {mac, ips {address: prefix}, vlan, mode}
         self.vlans = {}                   # VLAN id -> name
+        self.routes = {}                  # 'dest/len via next hop' -> {network, next_hop, ifindex, proto}
         self.poe = {}                     # 'group.port' -> POWER-ETHERNET-MIB (+ Cisco) fields
         self.pse = {}                     # PoE group (a stack member) -> {budget_w, used_w, on}
 
@@ -325,6 +326,10 @@ class Device:
             if on:
                 out['poe'] = {'budget_w': sum(g['budget_w'] for g in on),
                               'used_w': sum(g.get('used_w') or 0 for g in on)}
+        if self.routes:
+            out['routes'] = [{**{k: v for k, v in r.items() if k != 'ifindex'},
+                              'interface': self.port_name(r['ifindex']) or ''}
+                             for _k, r in sorted(self.routes.items(), key=lambda kv: _route_order(kv[1]))]
         optics = self.transceivers()
         if optics:
             out['transceivers'] = optics
@@ -519,6 +524,37 @@ def _entalias(dev, point, at):
         return bool(parts[0])
     if parts[0] in dev._entity_if or len(dev._entity_if) < MAX_ENTITY:
         dev._entity_if[parts[0]] = match.group(1)
+    return True
+
+
+MAX_ROUTES = 2000
+ROUTE_PROTO = {1: 'other', 2: 'connected', 3: 'static', 8: 'rip', 9: 'isis', 13: 'ospf', 14: 'bgp'}
+
+
+def _route_order(r):
+    net = ipaddress.ip_network(r['network'])
+    return (net.prefixlen != 0, int(net.network_address), net.prefixlen)
+
+
+def _route(dev, point, at):
+    """ipCidrRouteTable: index dest(4).mask(4).tos.next hop(4)."""
+    parts = str(_index(point) or '').split('.')
+    if len(parts) != 13:
+        return False
+    f = point.fields
+    try:
+        net = ipaddress.ip_network(f"{'.'.join(parts[0:4])}/{'.'.join(parts[4:8])}", strict=False)
+    except ValueError:
+        return False
+    hop = '.'.join(parts[9:13])
+    key = f'{net} via {hop}'
+    if key not in dev.routes and len(dev.routes) >= MAX_ROUTES:
+        return True
+    proto = _num(f.get('ipCidrRouteProto'))
+    dev.routes[key] = {'network': str(net), 'next_hop': '' if hop == '0.0.0.0' else hop,
+                       'ifindex': str(int(_num(f['ipCidrRouteIfIndex']))) if _num(f.get('ipCidrRouteIfIndex'))
+                       else None,
+                       'proto': ROUTE_PROTO.get(int(proto or 0), 'other')}
     return True
 
 
@@ -913,7 +949,7 @@ _HANDLERS = {
     'fb_bridge': _bridge, 'fb_fdb': _fdb, 'fb_qfdb': _qfdb, 'fb_arp': _arp, 'fb_lldp': _lldp,
     'fb_lldp_loc': _lldp_local, 'fb_cdp': _cdp, 'snmp_trap': _trap, 'fb_gateway': _gateway,
     'cpu': _fw_cpu, 'mem': _fw_mem, 'net': _fw_net, 'pf': _fw_pf, 'system': _fw_system,
-    'fb_poe': _poe, 'fb_pse': _pse,
+    'fb_poe': _poe, 'fb_pse': _pse, 'fb_route': _route,
     'fb_facts': _facts, 'fb_entity': _entity, 'fb_entalias': _entalias, 'fb_storage': _storage,
     'fb_hrdevice': _hrdevice, 'fb_mem': _mem,
     'fb_ifmac': _ifmac, 'fb_ip': _ip, 'fb_vtp': _vtp, 'fb_qvlan': _qvlan, 'fb_ifvlan': _ifvlan, 'fb_pvid': _pvid,
@@ -935,7 +971,7 @@ def register(measurement, handler, private=False):
 # Measurements that name people's machines (MACs, IPs): never stored as series (storage.py).
 # The facts are text that never changes: not series either.
 PRIVATE = frozenset({'fb_fdb', 'fb_qfdb', 'fb_arp', 'fb_bridge', 'fb_lldp', 'fb_lldp_loc', 'fb_cdp',
-                     'fb_facts', 'fb_entity', 'fb_entalias', 'fb_storage', 'fb_hrdevice', 'fb_ifmac', 'fb_ip', 'fb_vtp',
-                     'fb_qvlan', 'fb_ifvlan', 'fb_pvid'})
+                     'fb_facts', 'fb_entity', 'fb_entalias', 'fb_route', 'fb_storage', 'fb_hrdevice', 'fb_ifmac',
+                     'fb_ip', 'fb_vtp', 'fb_qvlan', 'fb_ifvlan', 'fb_pvid'})
 
 state = State()
