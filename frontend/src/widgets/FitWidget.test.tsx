@@ -1,10 +1,11 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { act, fireEvent, screen } from '@testing-library/react'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { Widget } from '@/api/types'
 import { renderWithApp } from '@/test/render'
 import { clock } from '@/lib/time'
 import { FitWidget } from './FitWidget'
 import { LevelReport } from './levelReport'
+import { AutoPage } from './autoPage'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
 const items = Array.from({ length: 30 }, (_, i) => ({ label: `sw-${String(i).padStart(2, '0')}`, state: i < 2 ? 'down' : 'up', detail: '' }) as const)
@@ -63,6 +64,25 @@ describe('FitWidget', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Filter' }), { target: { value: 'row 40' } })
     expect(screen.getByText('row 40')).toBeInTheDocument()
     expect(document.querySelectorAll('tbody tr')).toHaveLength(1)
+  })
+
+  it('turns the pages of a large list by itself on a wall, unless someone points at it', () => {
+    vi.useFakeTimers()
+    try {
+      size = { w: 700, h: 300 }
+      const table: Widget = { ...base, type: 'table', columns: [{ key: 'n', label: 'N' }],
+        rows: Array.from({ length: 40 }, (_, i) => ({ n: `row ${i + 1}` })) }
+      const { container } = renderWithApp(<AutoPage.Provider value={10}><FitWidget widget={table} /></AutoPage.Provider>)
+      expect(screen.getByText('row 1')).toBeInTheDocument()
+      act(() => { vi.advanceTimersByTime(10_000) })
+      expect(screen.queryByText('row 1')).not.toBeInTheDocument()
+      fireEvent.pointerEnter(container.querySelector('.fb-w-rows')!)
+      const page = screen.getByText(/ of 40/).textContent
+      act(() => { vi.advanceTimersByTime(30_000) })
+      expect(screen.getByText(/ of 40/).textContent).toBe(page)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('draws a series as a graph with a legend', () => {

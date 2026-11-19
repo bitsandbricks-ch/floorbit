@@ -6,6 +6,7 @@ import type { Widget } from '@/api/types'
 import { type Kind, type Level, ROW_H, rowsThatFit } from '../level'
 import { type Row, rowsOf, stateCounts, statOf } from './shape'
 import { LevelReport } from '../levelReport'
+import { AutoPage } from '../autoPage'
 
 const BAR_H = 34
 
@@ -21,6 +22,9 @@ export function RowsKind({ widget, kind, level, box, onMore }: {
   const [sort, setSort] = useState<{ key: string; desc: boolean } | null>(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
+  // Someone pointing at or typing in the list is reading it: it stops turning pages.
+  const [held, setHeld] = useState(false)
+  const every = useContext(AutoPage)
 
   if (level === 's') {
     const s = statOf(widget, i18n.language)
@@ -46,7 +50,8 @@ export function RowsKind({ widget, kind, level, box, onMore }: {
 
   const table = kind === 'table'
   const big = level === 'l'
-  const filtering = big && (rows.length > rowsThatFit(box.h, ROW_H) || query !== '')
+  // A wall turns its pages itself and has nobody at a keyboard: no filter box there.
+  const filtering = big && !every && (rows.length > rowsThatFit(box.h, ROW_H) || query !== '')
   let shown: Row[] = rows
   if (query) {
     const q = query.toLowerCase()
@@ -67,7 +72,9 @@ export function RowsKind({ widget, kind, level, box, onMore }: {
 
   const cols = table ? columns : columns.slice(0, 2)
   return (
-    <div className="fb-w-rows">
+    <div className="fb-w-rows" onPointerEnter={() => setHeld(true)} onPointerLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)} onBlur={() => setHeld(false)}>
+      {big && pages > 1 && every > 0 && !held && <TurnPages every={every} at={at} pages={pages} onPage={setPage} />}
       {!big && <ReportRows shown={slice.length} total={rows.length} />}
       {filtering && (
         <TextInput size="xs" leftSection={<IconSearch size={14} />} placeholder={t('widgets.kind.filter')} aria-label={t('widgets.kind.filter')}
@@ -119,6 +126,16 @@ export function RowsKind({ widget, kind, level, box, onMore }: {
       )}
     </div>
   )
+}
+
+/** Turns to the next page every ``every`` seconds (a wall, #925); draws nothing. */
+function TurnPages({ every, at, pages, onPage }: { every: number; at: number; pages: number; onPage: (page: number) => void }) {
+  // Keyed on the page, so a refresh of the data doesn't restart the wait.
+  useEffect(() => {
+    const timer = window.setTimeout(() => onPage((at + 1) % pages), every * 1000)
+    return () => window.clearTimeout(timer)
+  }, [every, at, pages, onPage])
+  return null
 }
 
 /** Tells the dashboard editor how many rows show (#928); draws nothing. */

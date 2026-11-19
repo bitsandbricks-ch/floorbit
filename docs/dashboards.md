@@ -60,7 +60,9 @@ its box:
 - **Small**: a number and its state (28 of 30 switches up, with how many are down or warning).
 - **Medium**: the rows that fit, worst first, ending in **+N more**; or a graph with its legend.
 - **Large**: the details. Tables page, sort (click a column) and filter inside the box; graphs add
-  the time axis and each line's maximum and average.
+  the time axis and each line's maximum and average. On a full screen a list that has more pages
+  turns to the next one every 12 seconds by itself, since nobody clicks a wall (and it has no
+  filter box there); pointing at it stops that.
 
 Hover a graph (or touch it) for the time and every line's value under the pointer; a cut-off row or
 number shows in full on hover. **+N more** and the **Make large** button show the tile at its large

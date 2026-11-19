@@ -14,6 +14,7 @@ import { ago, clock, formatWhen } from '@/lib/time'
 import { type Board, TIME_RANGES, type TimeRange, boardName } from './dashboards/model'
 import { nextInRotation, publicUrl, ScreenContext } from './dashboards/screen'
 import { GridView } from './dashboards/GridView'
+import { AutoPage, WALL_PAGE_SECONDS } from '@/widgets/autoPage'
 import { useIdle } from './plan/idle'
 import { updated, useReloadOnUpdate } from './plan/update'
 import './dashboards/dashboards.css'
@@ -93,7 +94,7 @@ export default function DashboardScreen() {
       {q.error && q.data && <Text role="status" className="fb-board-stale" fw={700}>{t('dashboards.stale')}</Text>}
       {q.data && (
         <ScreenContext.Provider value={source}>
-          <GridView sections={q.data.sections} fit={q.data.fit} cycle={q.data.cycle} backAfter={60} />
+          <AutoPage.Provider value={WALL_PAGE_SECONDS}><GridView sections={q.data.sections} fit={q.data.fit} cycle={q.data.cycle} backAfter={60} /></AutoPage.Provider>
         </ScreenContext.Provider>
       )}
       {q.data && frame && !anonymous && !open.isPending && <StatusLine />}
