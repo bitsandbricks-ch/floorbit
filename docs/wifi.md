@@ -25,6 +25,9 @@ many pages are open.
 
 An access point is busy at 70 % channel use or 40 clients.
 
+An access point that is down, one busy for 5 minutes, and an overlap are also on the
+[Problems page](alerts.md#problems-page), where an access point can be muted.
+
 ## Putting access points on the plan
 
 Access points are inventory devices with the role **access-point**, from NetBox or added by hand.

@@ -26,8 +26,11 @@ CROWDED = 40       # clients on one AP past which it is crowded
 # Two APs on the same channel closer than this (percent of the plan's width) hear each other: a
 # rough rule, since the plan has no scale and walls aren't drawn. 2.4 GHz reaches furthest.
 NEAR = {'2.4': 30.0, '5': 25.0, '6': 20.0}
+LINK = '/dashboards/view/network'   # the ready-made dashboard with the Wi-Fi view (floorbit/dashboards.py)
+BUSY_FOR = 300     # seconds an AP stays busy before it is a problem: one burst of downloads isn't
 _lock = threading.Lock()
 _cache = {'at': 0.0, 'value': None}
+_since = {}        # (what, AP name) -> when it was first seen like that, for problems()
 
 
 def _int(value, lo, hi):
@@ -130,6 +133,61 @@ def agent_active():
 def reset():
     with _lock:
         _cache.update(at=0.0, value=None)
+        _since.clear()
+
+
+def mute_key(name):
+    """The alert mute key of an AP, next to the switch ids (integrations/alerting.py)."""
+    return f'wifi:{name.lower()}'
+
+
+def _first_seen(seen, now):
+    """When each (what, name) in ``seen`` started; forgets what isn't so any more."""
+    with _lock:
+        for key in list(_since):
+            if key not in seen:
+                del _since[key]
+        for key in seen:
+            _since.setdefault(key, now)
+        return dict(_since)
+
+
+def problems(registry, data, muted, now=None):
+    """APs that are down, busy for BUSY_FOR, and co-channel overlaps, as Problems
+    (floorbit/problems.py). Only what the Wi-Fi view already has: nothing is asked anew."""
+    now = now or time.time()
+    view = overview(registry, data)
+    aps = {a['name']: a for a in view['aps']}
+    seen = {('down', n) for n in view['down']} | {('busy', n) for n in view['busy']}
+    since = _first_seen(seen, now)
+    out = []
+
+    def where(ap):
+        return ap.get('controller') or ap.get('source') or ''
+
+    def mute(name):
+        m = muted.get(mute_key(name))
+        return {'until': m['until'], 'by': m.get('by'), 'reason': m.get('reason')} if m else None
+
+    for name in view['down']:
+        out.append({'id': f'wifi:down:{name}', 'kind': 'wifi', 'level': 'down', 'title': f'{name} is down',
+                    'where': where(aps[name]), 'since': since[('down', name)], 'link': LINK,
+                    'mute_id': mute_key(name), 'name': name, 'muted': mute(name)})
+    for name in view['busy']:
+        if now - since[('busy', name)] < BUSY_FOR:
+            continue
+        ap = aps[name]
+        top = max((r['utilization'] or 0 for r in ap['radios']), default=0)
+        out.append({'id': f'wifi:busy:{name}', 'kind': 'wifi', 'level': 'warn',
+                    'title': f'{name} is busy: {top} % channel use, {ap["clients"]} clients',
+                    'where': where(ap), 'since': since[('busy', name)], 'link': LINK,
+                    'mute_id': mute_key(name), 'name': name, 'muted': mute(name)})
+    for o in view['overlaps']:
+        a, b = o['aps']
+        out.append({'id': f"wifi:overlap:{o['band']}:{o['channel']}:{a}:{b}", 'kind': 'wifi', 'level': 'warn',
+                    'title': f"{a} and {b} share channel {o['channel']} ({o['band']} GHz) close together",
+                    'where': 'Wi-Fi channel plan', 'since': None, 'link': LINK})
+    return out
 
 
 def _overlaps(placed):

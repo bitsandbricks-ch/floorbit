@@ -8,7 +8,8 @@ Gathered from what is already watched, without asking anything new:
 - high and medium security findings (where only, unless the account has ``seats.view``);
 - power circuits that tripped, are about to, or are getting close;
 - the bandwidth forecast reaching the line's capacity within the next hours (floorbit/forecast.py);
-- links between switches that are down or slower than planned (floorbit/links.py).
+- links between switches that are down or slower than planned (floorbit/links.py);
+- Wi-Fi access points that are down or busy, and two near each other on one channel (floorbit/wifi.py).
 
 Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
 come as a list of their own under ``attention``, newest first.
@@ -164,11 +165,25 @@ def _logs(may_see_people):
     return out
 
 
+def _mute_kind(key):
+    return 'health' if key.startswith(alerting.service_key('')) else 'wifi' if key.startswith('wifi:') else 'switch'
+
+
+def _wifi(muted):
+    from . import features, wifi
+    from .store import load_data
+    data = load_data()
+    registry = current_app.extensions.get('floorbit_plugins')
+    if registry is None or not features.on('wifi', data) or not (registry.feeders('wifi') or wifi.agent_active()):
+        return []
+    return wifi.problems(registry, data, muted)
+
+
 def current(may_see_people):
     muted = alerting.mutes()
     from . import links
     items = (_monitoring() + _switches(muted) + _health(muted) + _security(may_see_people) + _power() + _forecast()
-             + links.problems())
+             + links.problems() + _wifi(muted))
     now = time.time()
     items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),
@@ -178,7 +193,7 @@ def current(may_see_people):
     # shouldn't bury a switch that is down.
     attention = sorted(_attention() + _logs(may_see_people), key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
-    mutes = [{'switch_id': k, 'kind': 'health' if k.startswith(alerting.service_key('')) else 'switch', **v}
+    mutes = [{'switch_id': k, 'kind': _mute_kind(k), **v}
              for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
     return {'problems': items, 'attention': attention, 'counts': counts, 'mutes': mutes,
             'quiet_hours': alerting.quiet_now(), 'checked_at': now}

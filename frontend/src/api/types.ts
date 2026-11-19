@@ -691,12 +691,12 @@ export interface PowerOverview {
 }
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
-export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link'
+export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi'
   | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
-  /** The switch id, or ``health:<service id>`` for a service (issue #256). */
+  /** The switch id, ``health:<service id>`` for a service (issue #256) or ``wifi:<ap>`` for an access point. */
   switch_id: string
-  kind?: 'switch' | 'health'
+  kind?: 'switch' | 'health' | 'wifi'
   name: string
   until: number
   at: number
@@ -712,7 +712,7 @@ export interface Problem {
   since: number | null
   link: string
   switch_id?: string
-  /** What /api/alerts/mutes takes to mute it: switches and services only. */
+  /** The mute key: switches, services and Wi-Fi access points. */
   mute_id?: string
   name?: string
   muted?: { until: number; by: string | null; reason: string } | null
