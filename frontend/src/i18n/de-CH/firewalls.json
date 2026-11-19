@@ -58,5 +58,9 @@
   "importHelp": "Liest die NetBox-Prefixe mit dem Custom Field floorbit_firewalls (ihre Firewalls, in Reihenfolge). Jeder Import ersetzt den letzten; hier geplante Bereiche bleiben.",
   "fromPlugin": "Aus {{plugin}}",
   "fromPluginHelp": "In {{plugin}} ändern und neu importieren.",
-  "noMonitoring": "Es ist keine Monitoring-Quelle eingerichtet, darum zeigen die Bereiche ihre geplante Firewall. Ein Admin fügt LibreNMS (oder ein anderes Monitoring-Plugin) unter Einstellungen hinzu."
+  "noMonitoring": "Es ist keine Monitoring-Quelle eingerichtet, darum zeigen die Bereiche ihre geplante Firewall. Ein Admin fügt LibreNMS (oder ein anderes Monitoring-Plugin) unter Einstellungen hinzu.",
+  "forBlocks": "Blöcke: {{blocks}}",
+  "editBlocks": "Blöcke",
+  "blocks": "Sitzblöcke",
+  "blocksHelp": "Optional. Plätze dieser Blöcke mit einer Adresse ausserhalb der Bereiche ihres Blocks erscheinen unter Probleme: falscher Port, falsches VLAN oder ein eigener Router."
 }

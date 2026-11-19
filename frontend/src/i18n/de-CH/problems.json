@@ -23,11 +23,12 @@
     "checkin": "Check-in",
     "mapping": "Platz-Port",
     "forecast": "Prognose",
-    "log": "Log"
+    "log": "Log",
+    "range": "IP-Bereich"
   },
   "attention": {
     "title": "Braucht Aufmerksamkeit",
-    "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex, Plätze online ohne Check-in und Syslog-Zeilen wie err-disable oder DHCP-Snooping. Sie verschwinden von selbst, sobald der Port sich normal verhält."
+    "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex, Plätze online ohne Check-in Syslog-Zeilen wie err-disable oder DHCP-Snooping und Plätze mit einer Adresse ausserhalb des Bereichs ihres Blocks. Sie verschwinden von selbst, sobald der Port sich normal verhält."
   },
   "since": "begonnen {{ago}}",
   "open": "Öffnen",

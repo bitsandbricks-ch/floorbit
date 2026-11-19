@@ -1228,5 +1228,16 @@
  "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
  "Send an object.": "Schicke ein Objekt.",
  "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken.",
- "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({})."
+ "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({}).",
+ "{} seats on {} are outside their block's range": "{} Plätze an {} sind ausserhalb des Bereichs ihres Blocks",
+ "Seats {}: check the switch's VLAN": "Plätze {}: prüfe das VLAN des Switches",
+ "Seat {} has an address outside every planned range": "Platz {} hat eine Adresse ausserhalb aller geplanten Bereiche",
+ "Seat {} is in block {}'s range {}": "Platz {1} ist im Bereich {3} von Block {2}",
+ "Seat {} is in the range {}": "Platz {} ist im Bereich {}",
+ "{}: block {} uses {}": "{}: Block {} nutzt {}",
+ "Block {} uses {}": "Block {} nutzt {}",
+ "Send the seat blocks as a list.": "Schicke die Sitzblöcke als Liste.",
+ "Pick the seat blocks from the floor plan.": "Wähle die Sitzblöcke aus dem Hallenplan.",
+ "Block {}: {} of {} seats are outside its ranges": "Block {}: {} von {} Plätzen sind ausserhalb seiner Bereiche",
+ "Check which ranges the block is for, under Firewalls": "Prüfe unter Firewalls, für welche Bereiche der Block gilt"
 }

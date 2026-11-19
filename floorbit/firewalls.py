@@ -74,7 +74,24 @@ def _clean(body, data, current=None):
     if len(out) > MAX_LINE:
         raise FirewallError(f'A range has at most {MAX_LINE} firewalls.')
     label = ' '.join(str(body.get('name', current.get('name')) or '').split())[:60]
-    return {'cidr': str(net), 'name': label, 'firewalls': out}
+    return {'cidr': str(net), 'name': label, 'firewalls': out, 'blocks': _blocks(body, data, current)}
+
+
+def _blocks(body, data, current):
+    """The seat blocks a range is for (optional, issue #1062): a seat of one of them that has an
+    address outside the block's ranges is flagged (floorbit/seat_ranges.py)."""
+    raw = body.get('blocks', current.get('blocks') or [])
+    if not isinstance(raw, list):
+        raise FirewallError('Send the seat blocks as a list.')
+    known = {str(b.get('id')) for b in data.get('seat_blocks') or [] if isinstance(b, dict)}
+    out = []
+    for block_id in raw:
+        block_id = str(block_id or '')
+        if block_id not in known:
+            raise FirewallError('Pick the seat blocks from the floor plan.')
+        if block_id not in out:
+            out.append(block_id)
+    return out
 
 
 def save(body, by, range_id=None):
@@ -85,6 +102,12 @@ def save(body, by, range_id=None):
         row = next((r for r in rows if r.get('id') == range_id), None) if range_id else None
         if range_id and row is None:
             raise FirewallError('No such range.', 404)
+        if row is not None and row.get('source') == 'import' and set(body) == {'blocks'}:
+            # Which blocks a range is for is Floorbit's own: kept on an imported range too.
+            row['blocks'] = _blocks(body, data, row)
+            data[KEY] = stored
+            save_data(data)
+            return dict(row)
         if row is not None and row.get('source') == 'import':
             raise FirewallError(f"This range comes from {row.get('plugin') or 'NetBox'}: change it there and import "
                                 'again.', 409)
@@ -196,6 +219,8 @@ def import_from(registry, by):
         # A source that failed this time keeps its last import.
         kept = [r for r in _ranges(data) if r.get('source') != 'import' or r.get('plugin') not in answered]
         planned = {r['cidr'] for r in kept}
+        # The seat blocks set on an imported range survive the next import (NetBox doesn't know them).
+        blocks_before = {r['cidr']: r.get('blocks') or [] for r in _ranges(data) if r.get('source') == 'import'}
         added, unknown, clash = [], 0, 0
         for plugin, raw in found:
             if not isinstance(raw, dict):
@@ -203,6 +228,7 @@ def import_from(registry, by):
             try:
                 fields = _clean({'cidr': raw.get('cidr'), 'name': raw.get('name'), 'firewalls': raw.get('firewalls')},
                                 data)
+                fields['blocks'] = blocks_before.get(fields['cidr'], [])
             except FirewallError:
                 unknown += 1   # one prefix with a typo in NetBox must not stop the rest
                 continue
@@ -341,6 +367,7 @@ def overview(now=None):
         ranges.append({'id': row['id'], 'cidr': row['cidr'], 'name': row.get('name') or '', 'firewalls': line,
                        'intended': line[0] if line else None, 'now': now_on, 'state': state,
                        'seats': seats.get(row['id'], 0), 'source': row.get('source') or 'floorbit',
+                       'blocks': list(row.get('blocks') or []),
                        'plugin': row.get('plugin') or ''})
     ranges.sort(key=lambda r: (ipaddress.ip_network(r['cidr']).version, ipaddress.ip_network(r['cidr'])))
     cards = []

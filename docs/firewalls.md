@@ -23,6 +23,7 @@ the crew sees at a glance which ranges have failed over and which firewall a sea
 | Range | A network, like `192.0.2.0/27`. A host address is turned into its network. IPv4 and IPv6. |
 | Name | Optional, like `Block A`. |
 | Firewalls in order | The first is the one the range should take, the others the failover order (at most 10). |
+| Seat blocks | Optional: the blocks this range is for. See [Seats in the wrong range](#seats-in-the-wrong-range). |
 
 The firewalls are the inventory's devices with the role **Firewall** (from NetBox, or added by
 hand). A seat's range is the most specific one its IP is in, the way the core's routing table picks
@@ -54,6 +55,19 @@ Each import replaces the last one, so a prefix taken out of NetBox goes here too
 read, the last import stays. Ranges planned in Floorbit stay as they are, and a prefix for a network
 planned here already is skipped. Imported ranges say **From NetBox** and are changed there. On a hosted
 Floorbit the local agent asks the event's NetBox (an agent with `firewall_feeds`; older agents say they can't). Every import is in the audit log.
+
+### Seats in the wrong range
+
+When each block has its own range, a seat patched to the wrong port, a port in the wrong VLAN, or a
+player's own router puts a PC in another block's range: it works, but on the wrong firewall. Give
+the ranges their **seat blocks** and Floorbit compares every seat's address with its block's ranges.
+A seat outside them shows under **Problems › Needs attention**, with the range it is in instead (or
+"outside every planned range", usually a router of its own) and its switch port. Three or more such
+seats behind one switch are one item for the switch: check its VLAN.
+
+Only blocks named on a range are checked. Where DHCP hands out addresses regardless of the block,
+leave the field empty and nothing is flagged. An imported range takes its seat blocks here too
+(**Blocks**); they are kept across imports. The items name ranges, never a seat's IP.
 
 ## On the floor plan
 
