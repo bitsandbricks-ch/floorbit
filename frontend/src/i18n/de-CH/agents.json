@@ -244,6 +244,7 @@
     "telegraf_sidecar_left": "Ein anderes Telegraf (der alte telegraf-Container) sendet noch an diesen Agent. Entferne ihn aus der Compose-Datei und führe docker compose up -d --remove-orphans aus.",
     "telegraf_quiet": "Telegraf läuft, aber es ist noch nichts angekommen. Vielleicht antworten die Geräte nicht: Prüfe ihre Adressen und Logins.",
     "device_problems": "Einige Geräte senden nichts. Monitoring > Telemetrie zeigt jedes und warum.",
+    "device_partial": "Einige Geräte antworten nur teilweise: ein VLAN oder eine Tabelle kommt nicht an. Monitoring > Telemetrie zeigt welche und warum.",
     "howToFix": "So behebst du es",
     "showDevices": "Geräte zeigen"
   },

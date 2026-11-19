@@ -77,7 +77,10 @@ STORAGE_FIELDS = (('hrStorageType', '1.3.6.1.2.1.25.2.3.1.2', False, None),     
                   ('hrStorageAllocationUnits', '1.3.6.1.2.1.25.2.3.1.4', False, None),
                   ('hrStorageSize', '1.3.6.1.2.1.25.2.3.1.5', False, None))
 # Per interface and per device, for discovery too: MAC, IPv4 addresses, VLANs, access or trunk.
-IF_MAC_FIELDS = (('ifPhysAddress', '1.3.6.1.2.1.2.2.1.6', False, 'hwaddr'),)
+# ifName too: with LibreNMS polling the ports (polling.py) it is the only place the facts learn
+# which interface is a VLAN interface (segments, issue #946).
+IF_MAC_FIELDS = (('ifPhysAddress', '1.3.6.1.2.1.2.2.1.6', False, 'hex'),
+                 ('ifName', '1.3.6.1.2.1.31.1.1.1.1', False, None))
 IP_FIELDS = (('ipAdEntIfIndex', '1.3.6.1.2.1.4.20.1.2', False, None),             # index: the address
              ('ipAdEntNetMask', '1.3.6.1.2.1.4.20.1.3', False, None))
 QVLAN_FIELDS = (('dot1qVlanStaticName', '1.3.6.1.2.1.17.7.1.4.3.1.1', False, None),)   # index: VLAN
@@ -119,6 +122,10 @@ def _tags(lines, prefix, target, extra=None):
             lines.append(f'    {key} = {q(value)}')
 
 
+# A per-VLAN poll's alias: "<device>@vlan<id>" (problems.parse_line splits it again).
+VLAN_ALIAS = '@vlan'
+
+
 def _table(lines, name, fields):
     lines.append('  [[inputs.snmp.table]]')
     lines.append(f'    name = {q(name)}')
@@ -133,10 +140,10 @@ def _table(lines, name, fields):
             lines.append(f'      conversion = {q(conversion)}')
 
 
-def _snmp_head(lines, t, interval, community=None, context=None):
+def _snmp_head(lines, t, interval, community=None, context=None, alias=None):
     lines.append('[[inputs.snmp]]')
     # Telegraf's log names the input by its alias: the agent tells each device's errors apart.
-    lines.append(f'  alias = {q(t["name"])}')
+    lines.append(f'  alias = {q(alias or t["name"])}')
     lines.append(f'  agents = [{q("udp://" + _host(t["address"]) + ":" + str(port(t, "snmp") or SNMP_PORT))}]')
     lines.append(f'  interval = {q(interval)}')
     lines.append('  timeout = "5s"')
@@ -229,7 +236,9 @@ def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
             for vlan in t.get('vlans') or [1]:
                 lines.append('')
                 community = f'{t.get("community") or "public"}@{vlan}'
-                _snmp_head(lines, t, tables_interval, community=community, context=f'vlan-{vlan}')
+                # Its own alias, so a VLAN the switch doesn't answer for is named in the problem.
+                _snmp_head(lines, t, tables_interval, community=community, context=f'vlan-{vlan}',
+                           alias=f'{t["name"]}{VLAN_ALIAS}{vlan}')
                 lines.append('  name = "fb_vlan"')
                 _tags(lines, 'inputs.snmp', t, {'driver': 'snmp', 'vlan': str(vlan)})
                 _table(lines, 'fb_bridge', BRIDGE_FIELDS)

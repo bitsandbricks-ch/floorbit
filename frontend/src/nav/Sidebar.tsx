@@ -1,6 +1,6 @@
 import {
   IconChevronDown, IconDots, IconStar, IconStarFilled, IconLanguage, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconLogout,
-  IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSelector, IconSettings, IconSun, IconX, type Icon,
+  IconBuildingCommunity, IconMenu2, IconMoon, IconSearch, IconSelector, IconSun, IconX, type Icon,
 } from '@tabler/icons-react'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -152,16 +152,20 @@ function Panel(props: PanelProps) {
   const { t } = useTranslation()
   const { boot, rail, lit, prefs } = props
   const { pinned, sections } = group(boot.pages)
-  // Settings sits at the foot, next to the account (issue #892).
-  const settings = rowsOf(boot.pages).find((p) => p.id === 'settings')
   const byId = new Map([...withParents(boot.pages), ...pinnedBoards(props.dashboards)].map((p) => [p.id, p]))
+  // Plugins and Settings sit at the foot as named rows, so they can't be missed (issue #892).
+  const admin = ['plugins', 'settings'].map((id) => byId.get(id) ?? rowsOf(boot.pages).find((p) => p.id === id))
+    .filter((p): p is NavPage => !!p)
+  // Plugins lives under /settings, so it lights on its own pages and Settings on the rest.
+  const adminLit = admin.find((p) => p.id === 'plugins' && (props.path === p.href || props.path.startsWith(`${p.href}/`)))?.id
+    ?? admin.find((p) => p.href === lit)?.id
   const favourites = prefs.favourites.map((id) => byId.get(id)).filter((p): p is NavPage => !!p)
   const [folded, setFolded] = useState<string[]>(readFolded)
   const isFav = (id: string) => prefs.favourites.includes(id)
   const toggleFav = (id: string) =>
     props.setPrefs({ ...prefs, favourites: isFav(id) ? prefs.favourites.filter((x) => x !== id) : [...prefs.favourites, id] })
 
-  const row = (p: NavPage, star = !rail) => {
+  const row = (p: NavPage, star = !rail, on = lit === p.href) => {
     const Icon = pageIcon(p.id, p.icon)
     const label = ownLabel(p.id) ? p.label : t(`goto.pages.${p.id}`, { defaultValue: p.label })
     const badge = (p.id === 'helpdesk' || p.id === 'problems') && props.down ? props.down : null
@@ -172,7 +176,7 @@ function Panel(props: PanelProps) {
           href: p.href,
           className: 'fb-nav-row',
           title: rail ? label : undefined,
-          'aria-current': lit === p.href ? 'page' : undefined,
+          'aria-current': on ? 'page' : undefined,
           children: (
             <>
               <Icon size={18} className="fb-nav-icon" aria-hidden="true" />
@@ -282,14 +286,10 @@ function Panel(props: PanelProps) {
         })}
       </div>
 
+      {admin.length > 0 && <ul className="fb-nav-list fb-nav-admin" aria-label={t('nav.admin')}>{admin.map((p) => row(p, false, p.id === adminLit))}</ul>}
       <Tenants {...props} />
       <div className="fb-nav-foot">
         <Account {...props} />
-        {settings && props.renderLink({
-          href: settings.href, className: 'fb-nav-icon-btn fb-nav-settings', title: t('goto.pages.settings'),
-          'aria-label': t('goto.pages.settings'), 'aria-current': lit === settings.href ? 'page' : undefined,
-          children: <IconSettings size={18} aria-hidden="true" />,
-        })}
         {props.onToggleRail && (
           <button
             type="button" className="fb-nav-icon-btn fb-nav-fold" onClick={props.onToggleRail}

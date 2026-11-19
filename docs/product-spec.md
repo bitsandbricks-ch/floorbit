@@ -145,8 +145,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 
   | Type | Use for | Examples |
   | --- | --- | --- |
-  | Table | Many similar rows to search and sort | Devices, Seats, Logs, IP and MAC |
-  | Cards | A handful of things with state | Incidents board, Game servers, Firewalls, Agents, Plugins |
+  | Table | Many similar rows to search and sort | Devices, Seats, Services, Logs, IP and MAC |
+  | Cards | A handful of things with state | Incidents board, Firewalls, Agents, Plugins |
   | Dashboard | Read-only overview, built from widgets | Overview, Health, Traffic, Power |
   | Workspace | Full-screen tool | Floor plan, Topology, Terminal, Replay |
   | Detail page | One thing, with tabs | A device, an agent, a seat |

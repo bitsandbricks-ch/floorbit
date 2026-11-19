@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { Widget } from '@/api/types'
 import { clock, dayClock } from '@/lib/time'
 import type { Level } from '../level'
+import { calc } from './combine'
 import { formatValue, type Line, linesOf, type Look, PALETTE, stackLines, statOf, tipAt, trendOf } from './shape'
 
 const LEGEND_H = 20
@@ -20,6 +21,7 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
   const stack = lines.length > 1 ? look.stack ?? 'none' : 'none'
   const area = look.style === 'area' || stack !== 'none'
   const trend = look.trend ?? 'none'
+  const legend = look.legend?.length ? look.legend : null
   if (level === 's') {
     const s = statOf(widget, i18n.language)
     return (
@@ -53,8 +55,11 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
             <span key={i}>
               <i style={{ background: PALETTE[i % PALETTE.length] }} />
               {l.label}
-              {last != null && <b>{fmt(last)}</b>}
-              {level === 'l' && l.points.length > 1 && (
+              {legend ? legend.map((c) => {
+                const v = calc(l.points.map((p) => p[1]), c)
+                return <em key={c} className="fb-w-calc">{t(`widgets.calc.${c}`)} <b>{v == null ? '–' : c === 'count' ? v : fmt(v)}</b></em>
+              }) : last != null && <b>{fmt(last)}</b>}
+              {!legend && level === 'l' && l.points.length > 1 && (
                 <em>{t('widgets.kind.maxAvg', { max: fmt(Math.max(...l.points.map((p) => p[1]))),
                   avg: fmt(l.points.reduce((a, p) => a + p[1], 0) / l.points.length) })}</em>
               )}

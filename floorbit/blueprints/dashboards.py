@@ -89,7 +89,7 @@ def public_tile(layout_id, tile):
     layout = _public(layout_id)
     key = f'floorbit/w/{tile}'
     if not layout or key not in dashboards.PUBLIC_TILES \
-            or not any(p.get('tile') == key for p in dashboards.public_panes(layout)):
+            or not any(key in dashboards.pane_tiles(p) for p in dashboards.public_panes(layout)):
         return _error('No such dashboard.', 404)
     spec = core.TILES[tile]
     # No "Details" link: the pages it opens need an account.

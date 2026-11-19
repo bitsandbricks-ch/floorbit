@@ -1,33 +1,43 @@
 import {
-  Alert, Badge, Button, Group, Modal, NumberInput, Paper, Progress, Select, SimpleGrid, Stack, Text, TextInput, Title,
+  Alert, Button, Group, Menu, Modal, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput,
 } from '@mantine/core'
+import { IconPlus, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { DnsResolver, InternetSite, IspUplink, LanCacheState, ServiceStatus, Services as ServicesData } from '@/api/types'
+import type {
+  DnsResolver, GameServer, GameServerList, InternetSite, IspUplink, Services as ServicesData,
+} from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { Sparkline } from '@/widgets/Sparkline'
-import { bps } from './stats/format'
-import { bytes } from './traffic/format'
+import { ServiceGroup } from '@/widgets/ServiceList'
+import { STATES, TYPES, serviceRows } from '@/widgets/serviceRows'
+import type { ServiceType } from '@/widgets/serviceRows'
 import { EntitySelect } from '@/components/EntitySelect'
+import { RconConsole, ServerModal } from './services/GameServerParts'
 
-const TONE: Record<ServiceStatus, string> = { up: 'up', warn: 'warn', down: 'down', unknown: 'gray' }
 
 type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'; item: DnsResolver | null }
-  | { kind: 'sites'; item: InternetSite | null } | null
+  | { kind: 'sites'; item: InternetSite | null } | { kind: 'game'; item: GameServer | null } | null
 
-/** The internet lines, the DNS resolvers, the sites players need and the LAN cache (issue #471):
- *  are they up, how full, how fast. */
+/** Internet lines, DNS resolvers, the sites players need, the LAN cache and the game servers
+ *  (issues #471, #472, #889): one list, grouped by type or state, with one "Add service". */
 export default function Services() {
   const { t } = useTranslation()
   const canEdit = useCan('floorplan.edit')
+  const canSetUp = useCan('settings.manage')
+  const canRcon = useCan('games.rcon')
   const q = useQuery({ queryKey: qk.services, queryFn: () => get<ServicesData>('/api/services'), refetchInterval: 15_000 })
+  const games = useQuery({ queryKey: qk.gameServers, queryFn: () => get<GameServerList>('/api/game-servers'), refetchInterval: 15_000 })
   const [editing, setEditing] = useState<Editing>(null)
+  const [console_, setConsole] = useState<GameServer | null>(null)
+  const [search, setSearch] = useState('')
+  const [shown, setShown] = useState<'all' | 'notUp' | 'up'>('all')
+  const [by, setBy] = useState<'type' | 'state'>('type')
   const data = q.data
   const qc = useQueryClient()
   const check = useMutation({
@@ -38,174 +48,82 @@ export default function Services() {
     mutationFn: () => post<ServicesData>('/api/services/sites/common', {}),
     onSuccess: (fresh) => qc.setQueryData(qk.services, fresh),
   })
-  const sites = data?.sites ?? []
-  const any = !!data && data.uplinks.length + data.resolvers.length + sites.length > 0
+  const rows = serviceRows(t, data, games.data, {
+    uplink: canEdit ? (u) => setEditing({ kind: 'uplinks', item: u }) : undefined,
+    dns: canEdit ? (r) => setEditing({ kind: 'resolvers', item: r }) : undefined,
+    site: canEdit ? (s) => setEditing({ kind: 'sites', item: s }) : undefined,
+    game: canSetUp ? (g) => setEditing({ kind: 'game', item: g }) : undefined,
+  })
+  const needle = search.trim().toLowerCase()
+  const matching = rows.filter((r) => (shown === 'all' || (shown === 'up') === (r.status === 'up'))
+    && (!needle || `${r.name} ${r.target} ${t(`services.types.${r.type}`)}`.toLowerCase().includes(needle)))
+  const groups = by === 'type'
+    ? TYPES.map((k) => ({ id: k, title: t(`services.groups.${k}`), rows: matching.filter((r) => r.type === k) }))
+    : STATES.map((k) => ({ id: k, title: t(`services.status.${k}`), rows: matching.filter((r) => r.status === k) }))
+  const notUp = rows.filter((r) => r.status !== 'up').length
+  const adds = [
+    canEdit && { type: 'uplink', open: () => setEditing({ kind: 'uplinks', item: null }) },
+    canEdit && { type: 'dns', open: () => setEditing({ kind: 'resolvers', item: null }) },
+    canEdit && { type: 'site', open: () => setEditing({ kind: 'sites', item: null }) },
+    canSetUp && { type: 'game', open: () => setEditing({ kind: 'game', item: null }) },
+  ].filter(Boolean) as { type: ServiceType; open: () => void }[]
+  const loaded = !!data && !!games.data
   return (
     <Layout title={t('services.title')}>
       <PageHead title={t('services.title')} desc={t('services.intro')}
-        actions={canEdit && any && <Button variant="default" loading={check.isPending} onClick={() => check.mutate()}>{t('services.checkNow')}</Button>} />
-      <Stack gap="lg">
-        {q.error && <Alert color="down" role="alert">{q.error.message}</Alert>}
-        {data && (
+        actions={(
           <>
-            <Section title={t('services.uplinks')} add={canEdit ? () => setEditing({ kind: 'uplinks', item: null }) : undefined}
-              addLabel={t('services.addUplink')} empty={data.uplinks.length === 0 ? t('services.noUplinks') : null}>
-              {data.uplinks.map((u) => (
-                <UplinkCard key={u.id} uplink={u} onEdit={canEdit ? () => setEditing({ kind: 'uplinks', item: u }) : undefined} />
-              ))}
-            </Section>
-            <Section title={t('services.resolvers')} add={canEdit ? () => setEditing({ kind: 'resolvers', item: null }) : undefined}
-              addLabel={t('services.addResolver')} empty={data.resolvers.length === 0 ? t('services.noResolvers') : null}>
-              {data.resolvers.map((r) => (
-                <ResolverCard key={r.id} resolver={r} onEdit={canEdit ? () => setEditing({ kind: 'resolvers', item: r }) : undefined} />
-              ))}
-            </Section>
-            <Section title={t('services.sites')} add={canEdit ? () => setEditing({ kind: 'sites', item: null }) : undefined}
-              addLabel={t('services.addSite')} empty={sites.length === 0 ? t('services.noSites') : null}
-              extra={canEdit && sites.length === 0 && (
-                <Button size="compact-md" variant="default" loading={common.isPending} onClick={() => common.mutate()}>{t('services.addCommon')}</Button>
-              )}>
-              {sites.map((s) => (
-                <SiteCard key={s.id} site={s} onEdit={canEdit ? () => setEditing({ kind: 'sites', item: s }) : undefined} />
-              ))}
-            </Section>
-            {common.error && <Alert color="down" role="alert">{common.error.message}</Alert>}
-            <Section title={t('services.lanCache')} empty={data.lan_cache ? null : t('services.noLanCache')}>
-              {data.lan_cache && <LanCacheCard cache={data.lan_cache} />}
-            </Section>
-            {data.via_agent && <Text size="sm" c="dimmed">{t('services.viaAgent')}</Text>}
+            {canEdit && rows.length > 0 && <Button variant="default" loading={check.isPending} onClick={() => check.mutate()}>{t('services.checkNow')}</Button>}
+            {adds.length > 0 && (
+              <Menu position="bottom-end">
+                <Menu.Target><Button leftSection={<IconPlus size={16} />}>{t('services.add')}</Button></Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>{t('services.addWhich')}</Menu.Label>
+                  {adds.map((a) => <Menu.Item key={a.type} onClick={a.open}>{t(`services.types.${a.type}`)}</Menu.Item>)}
+                </Menu.Dropdown>
+              </Menu>
+            )}
           </>
+        )} />
+      <Stack gap="lg">
+        {(q.error || games.error) && <Alert color="down" role="alert">{(q.error || games.error)!.message}</Alert>}
+        {loaded && rows.length === 0 && (
+          <Paper withBorder p="md">
+            <Stack gap="xs" align="flex-start">
+              <Text c="dimmed">{t(adds.length ? 'services.emptyAdmin' : 'services.empty')}</Text>
+              {canEdit && (
+                <Button size="compact-md" variant="default" loading={common.isPending} onClick={() => common.mutate()}>{t('services.addCommon')}</Button>
+              )}
+            </Stack>
+          </Paper>
         )}
+        {common.error && <Alert color="down" role="alert">{common.error.message}</Alert>}
+        {rows.length > 0 && (
+          <Group gap="sm" wrap="wrap">
+            <TextInput leftSection={<IconSearch size={16} />} placeholder={t('services.search')} aria-label={t('services.search')}
+              value={search} onChange={(e) => setSearch(e.currentTarget.value)} style={{ flex: '1 1 220px', maxWidth: 360 }} />
+            <SegmentedControl value={shown} onChange={(v) => setShown(v as typeof shown)} aria-label={t('services.show')} data={[
+              { value: 'all', label: t('services.filter.all', { count: rows.length }) },
+              { value: 'notUp', label: t('services.filter.notUp', { count: notUp }) },
+              { value: 'up', label: t('services.filter.up', { count: rows.length - notUp }) },
+            ]} />
+            <Select aria-label={t('services.groupBy')} w={170} allowDeselect={false} value={by} onChange={(v) => setBy((v ?? 'type') as typeof by)}
+              data={[{ value: 'type', label: t('services.byType') }, { value: 'state', label: t('services.byState') }]} />
+          </Group>
+        )}
+        {rows.length > 0 && matching.length === 0 && <Text c="dimmed">{t('services.noMatch')}</Text>}
+        {groups.filter((g) => g.rows.length).map((g) => (
+          <ServiceGroup key={g.id} title={g.title} rows={g.rows} showType={by === 'state'} canRcon={canRcon} onConsole={setConsole} />
+        ))}
+        {(data?.via_agent || games.data?.via_agent) && <Text size="sm" c="dimmed">{t('services.viaAgent')}</Text>}
+        {data && !data.lan_cache && rows.length > 0 && <Text size="sm" c="dimmed">{t('services.noLanCache')}</Text>}
       </Stack>
       {editing?.kind === 'uplinks' && data && <UplinkModal uplink={editing.item} ports={data.probe_ports} devices={data.devices} onClose={() => setEditing(null)} />}
       {editing?.kind === 'resolvers' && <ResolverModal resolver={editing.item} onClose={() => setEditing(null)} />}
       {editing?.kind === 'sites' && data && <SiteModal site={editing.item} ports={data.probe_ports} onClose={() => setEditing(null)} />}
+      {editing?.kind === 'game' && <ServerModal server={editing.item} onClose={() => setEditing(null)} />}
+      {console_ && <RconConsole server={console_} onClose={() => setConsole(null)} />}
     </Layout>
-  )
-}
-
-function Section({ title, add, addLabel, empty, extra, children }: {
-  title: string; add?: () => void; addLabel?: string; empty: string | null; extra?: React.ReactNode; children: React.ReactNode
-}) {
-  return (
-    <Stack gap="sm">
-      <Group justify="space-between">
-        <Title order={2} size="h3">{title}</Title>
-        <Group gap="xs">
-          {extra}
-          {add && <Button size="compact-md" variant="default" onClick={add}>{addLabel}</Button>}
-        </Group>
-      </Group>
-      {empty ? <Paper withBorder radius="lg" p="md"><Text c="dimmed">{empty}</Text></Paper>
-        : <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">{children}</SimpleGrid>}
-    </Stack>
-  )
-}
-
-function Card({ name, status, sub, mono = true, onEdit, children }: {
-  name: string; status: ServiceStatus; sub: string; mono?: boolean; onEdit?: () => void; children: React.ReactNode
-}) {
-  const { t } = useTranslation()
-  return (
-    <Paper withBorder radius="lg" p="md" component="section" aria-label={name}>
-      <Stack gap={6}>
-        <Group justify="space-between" wrap="nowrap" gap="xs">
-          <Title order={3} size="h4" style={{ overflowWrap: 'anywhere' }}>{name}</Title>
-          <Badge color={TONE[status]} variant="light">{t(`services.status.${status}`)}</Badge>
-        </Group>
-        <Text size="sm" c="dimmed" ff={mono ? 'monospace' : undefined} style={{ overflowWrap: 'anywhere' }}>{sub}</Text>
-        {children}
-        {onEdit && <Group mt={4}><Button size="compact-sm" variant="subtle" onClick={onEdit}>{t('services.edit')}</Button></Group>}
-      </Stack>
-    </Paper>
-  )
-}
-
-function latencyPoints(history: [number, number | null][]) {
-  return history.map(([, ms]) => ms ?? 0)
-}
-
-export function UplinkCard({ uplink: u, onEdit }: { uplink: IspUplink; onEdit?: () => void }) {
-  const { t } = useTranslation()
-  const cap = u.capacity_mbps * 1e6
-  const used = u.utilization ?? null
-  const points = latencyPoints(u.history)
-  return (
-    <Card name={u.name} status={u.status} sub={`${u.device} ${u.port} · ${bps(cap)}`} onEdit={onEdit}>
-      {u.port_state === 'down' || u.port_state === 'disabled'
-        ? <Text size="sm" c="down">{t('services.portDown')}</Text>
-        : used !== null && (
-          <>
-            <Group gap="xs" align="baseline">
-              <Text fw={700} fz={28} lh={1}>{Math.round(used * 100)}%</Text>
-              <Text size="sm" c="dimmed">{t('services.used')}</Text>
-            </Group>
-            <Progress value={Math.min(100, used * 100)} color={used >= 0.8 ? 'warn' : 'up'} aria-label={t('services.used')} />
-            <Text size="sm">{t('services.inOut', { in: bps(u.in_bps), out: bps(u.out_bps) })}</Text>
-          </>
-        )}
-      {u.latency_ms != null || u.loss != null ? (
-        <Text size="sm">
-          {[u.latency_ms != null && t('services.latency', { ms: u.latency_ms }), u.loss != null && t('services.loss', { pct: Math.round(u.loss * 100) }),
-            u.probe_host && t('services.to', { host: u.probe_host })].filter(Boolean).join(' · ')}
-        </Text>
-      ) : !u.probe_host && <Text size="xs" c="dimmed">{t('services.noProbe')}</Text>}
-      {points.length > 1 && <div style={{ height: 30 }}><Sparkline points={points} min={0} /></div>}
-      {u.error && <Text size="sm" c={u.status === 'down' ? 'down' : 'dimmed'}>{u.error}</Text>}
-    </Card>
-  )
-}
-
-export function ResolverCard({ resolver: r, onEdit }: { resolver: DnsResolver; onEdit?: () => void }) {
-  const { t } = useTranslation()
-  const points = latencyPoints(r.history)
-  return (
-    <Card name={r.name} status={r.status} sub={`${r.address} · ${r.lookup}`} onEdit={onEdit}>
-      {r.status === 'up' || r.status === 'warn' ? (
-        <Group gap="xs" align="baseline">
-          <Text fw={700} fz={28} lh={1}>{r.latency_ms} ms</Text>
-          <Text size="sm" c="dimmed">{t('services.answers', { count: r.answers ?? 0 })}</Text>
-        </Group>
-      ) : <Text size="sm" c={r.status === 'down' ? 'down' : 'dimmed'}>{r.error || t('services.notChecked')}</Text>}
-      {points.length > 1 && <div style={{ height: 30 }}><Sparkline points={points} min={0} /></div>}
-    </Card>
-  )
-}
-
-export function SiteCard({ site: s, onEdit }: { site: InternetSite; onEdit?: () => void }) {
-  const { t } = useTranslation()
-  const points = latencyPoints(s.history)
-  const reached = s.status === 'up' || s.status === 'warn'
-  return (
-    <Card name={s.name} status={s.status} sub={s.port === 443 ? s.host : `${s.host}:${s.port}`} onEdit={onEdit}>
-      {reached ? (
-        <Group gap="xs" align="baseline">
-          <Text fw={700} fz={28} lh={1}>{s.latency_ms} ms</Text>
-          {!!s.loss && <Text size="sm" c="warn">{t('services.loss', { pct: Math.round(s.loss * 100) })}</Text>}
-        </Group>
-      ) : <Text size="sm" c={s.status === 'down' ? 'down' : 'dimmed'}>{s.error || t('services.notChecked')}</Text>}
-      {points.length > 1 && <div style={{ height: 30 }}><Sparkline points={points} min={0} /></div>}
-    </Card>
-  )
-}
-
-export function LanCacheCard({ cache: c }: { cache: LanCacheState }) {
-  const { t } = useTranslation()
-  return (
-    <Card name={t('services.lanCache')} status={c.status} sub={c.demo ? t('services.demo') : t('services.thisHour')} mono={false}>
-      <Group gap="xs" align="baseline">
-        <Text fw={700} fz={28} lh={1}>{c.hit_ratio != null ? `${Math.round(c.hit_ratio * 100)}%` : '–'}</Text>
-        <Text size="sm" c="dimmed">{t('services.fromDisk')}</Text>
-      </Group>
-      <Text size="sm">{t('services.served', { bytes: bytes(c.served_bytes), rate: bps(c.bps) })}</Text>
-      {c.disk && (
-        <>
-          <Progress value={c.disk.ratio * 100} color={c.disk.ratio >= 0.9 ? 'warn' : 'up'} aria-label={t('services.disk')} />
-          <Text size="sm">{t('services.diskUsed', { used: bytes(c.disk.used), total: bytes(c.disk.total) })}</Text>
-        </>
-      )}
-      {c.error && <Text size="sm" c="warn">{c.error}</Text>}
-    </Card>
   )
 }
 

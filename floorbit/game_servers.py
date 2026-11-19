@@ -333,7 +333,7 @@ def health_checks():
             {'label': 'Players', 'value': info.get('players', 0), 'unit': f"/{info.get('max_players', 0)}", 'tone': ''},
             {'label': 'Ping', 'value': info.get('ping_ms'), 'unit': 'ms', 'tone': ''}]
         out.append({'id': f"game:{server['id']}", 'name': server['name'], 'kind': 'game', 'status': state['status'],
-                    'summary': summary, 'link': '/game-servers', 'metrics': metrics,
+                    'summary': summary, 'link': '/services', 'metrics': metrics,
                     'plugin': 'game-servers', 'plugin_name': 'Game servers'})
     return out
 

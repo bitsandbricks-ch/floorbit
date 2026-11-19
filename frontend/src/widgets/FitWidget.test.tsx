@@ -114,4 +114,12 @@ describe('FitWidget', () => {
     expect(container.querySelector('.fb-w-hstack')).not.toBeNull()
     expect(screen.getByText('In')).toBeInTheDocument()
   })
+
+  it('shows the legend calculations a pane picks', () => {
+    size = { w: 600, h: 300 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 2], [1800000060, 6]] }] }
+    renderWithApp(<FitWidget widget={series} look={{ legend: ['min', 'avg'] }} />)
+    expect(screen.getByText('Min')).toBeInTheDocument()
+    expect(screen.getByText('4')).toBeInTheDocument()
+  })
 })

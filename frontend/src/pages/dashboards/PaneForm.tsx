@@ -1,15 +1,17 @@
-import { Button, Select, SegmentedControl, Stack, Switch, Text, TextInput, Textarea } from '@mantine/core'
+import { Button, MultiSelect, Select, SegmentedControl, Stack, Switch, Text, TextInput, Textarea } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useDashboard, useWidget } from '@/api/queries'
+import { useDashboard, useWidgets } from '@/api/queries'
 import type { SeatViewData, WidgetTile } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { VIEWS } from '@/widgets/views'
 import { KIND_PICKS, LEVEL_PINS, type KindPick, type LevelPin } from '@/widgets/level'
-import { type Look, LINE_STYLES, STACKS, TRENDS, kindsFor, looksFor, resolveKind } from '@/widgets/kinds/shape'
+import { LINE_STYLES, STACKS, TRENDS, kindsFor, looksFor, resolveKind } from '@/widgets/kinds/shape'
+import { CALCS, type Calc, MAX_SOURCES, groupKeys } from '@/widgets/kinds/combine'
+import { usePaneData } from '@/widgets/usePaneData'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
@@ -168,15 +170,21 @@ function BoxPicker({ data, box, onPick }: { data: SeatViewData; box: View; onPic
 function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; onChange: (p: Pane) => void }) {
   const { t } = useTranslation()
   const { data } = useDashboard()
-  const tiles = (data?.tiles ?? []).filter((x) => x.kind !== 'action')
-  const tile = tiles.find((x) => `${x.plugin}/w/${x.id}` === pane.tile) as WidgetTile | undefined
+  const tiles = (data?.tiles ?? []).filter((x) => x.kind !== 'action') as WidgetTile[]
+  const keyOf = (x: WidgetTile) => `${x.plugin}/w/${x.id}`
+  const options = tiles.map((x) => ({ value: keyOf(x), label: `${x.label} · ${pluginName(t, x.plugin, x.plugin_name)}` }))
+  const sources = [pane.tile, ...(pane.also ?? [])].map((k) => tiles.find((x) => keyOf(x) === k)).filter((x): x is WidgetTile => !!x)
   return (
     <>
       <Select label={t('dashboards.form.tile')} allowDeselect={false} searchable value={pane.tile || null}
-        nothingFoundMessage={t('dashboards.form.noTiles')}
-        data={tiles.map((x) => ({ value: `${x.plugin}/w/${x.id}`, label: `${x.label} · ${pluginName(t, x.plugin, x.plugin_name)}` }))}
+        nothingFoundMessage={t('dashboards.form.noTiles')} data={options}
         onChange={(v) => v && onChange({ kind: 'tile', tile: v, title: pane.title, hide_title: pane.hide_title })} />
-      {tile && <WidgetLook pane={pane} tile={tile} onChange={onChange} />}
+      {pane.tile && (
+        <MultiSelect label={t('dashboards.form.also')} description={t('dashboards.form.alsoHint')} searchable clearable
+          maxValues={MAX_SOURCES - 1} value={pane.also ?? []} data={options.filter((o) => o.value !== pane.tile)}
+          onChange={(v) => onChange({ ...pane, also: v.length ? v : undefined })} />
+      )}
+      {sources[0]?.id && keyOf(sources[0]) === pane.tile && <WidgetLook pane={pane} tiles={sources} onChange={onChange} />}
       <div>
         <Text size="sm" fw={500} mb={4}>{t('dashboards.form.level')}</Text>
         <SegmentedControl fullWidth size="xs" value={pane.level ?? 'auto'} aria-label={t('dashboards.form.level')}
@@ -188,29 +196,49 @@ function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; 
   )
 }
 
-/** How to draw the tile's data: only the kinds its shape allows (a list can't be a graph), then
- *  the look options that kind has for this data (stacking only with two or more series). */
-function WidgetLook({ pane, tile, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; tile: WidgetTile; onChange: (p: Pane) => void }) {
+const LOOK_OPTIONS = { stack: STACKS, style: LINE_STYLES, trend: TRENDS } as const
+
+/** How to draw the data: group or calculate first where the data allows it, then only the kinds
+ *  the result's shape allows (a list can't be a graph), then the look options that kind has
+ *  (stacking only with two or more series). */
+function WidgetLook({ pane, tiles, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; tiles: WidgetTile[]; onChange: (p: Pane) => void }) {
   const { t } = useTranslation()
-  const { data } = useWidget(tile)
-  if (!data) return null
+  const results = useWidgets(tiles)
+  const labels = tiles.map((x) => x.label)
+  const merged = usePaneData(results, {}, labels).data
+  const { data } = usePaneData(results, { group_by: pane.group_by, reduce: pane.reduce }, labels)
+  if (!data || !merged) return null
   const ok = kindsFor(data)
   const picks = KIND_PICKS.filter((k) => k === 'auto' || ok.includes(k))
   const looks = looksFor(data, resolveKind(data, pane.type))
-  const options: Record<keyof Look, readonly string[]> = { stack: STACKS, style: LINE_STYLES, trend: TRENDS }
+  const keys = groupKeys(merged)
+  const keyLabel = (k: { key: string; label: string }) => (merged.type === 'table' ? k.label : t(`dashboards.groupKey.${k.key}`))
   return (
     <>
+      {keys.length > 0 && (
+        <Select label={t('dashboards.form.groupBy')} clearable value={pane.group_by ?? null} placeholder={t('dashboards.form.noGroup')}
+          data={keys.map((k) => ({ value: k.key, label: keyLabel(k) }))}
+          onChange={(v) => onChange({ ...pane, group_by: v || undefined })} />
+      )}
+      <Select label={t('dashboards.form.reduce')} description={t(pane.group_by ? 'dashboards.form.reduceGroupHint' : 'dashboards.form.reduceHint')}
+        clearable value={pane.reduce ?? null} placeholder={t('dashboards.form.noReduce')}
+        data={CALCS.map((c) => ({ value: c, label: t(`widgets.calc.${c}`) }))}
+        onChange={(v) => onChange({ ...pane, reduce: (v as Calc) || undefined })} />
       {picks.length > 2 && (
         <Select label={t('dashboards.form.widgetType')} allowDeselect={false} value={pane.type && picks.includes(pane.type) ? pane.type : 'auto'}
           data={picks.map((k) => ({ value: k, label: k === 'auto' ? t('dashboards.widgetType.auto', { kind: t(`dashboards.widgetType.${ok[0]}`) }) : t(`dashboards.widgetType.${k}`) }))}
           onChange={(v) => onChange({ ...pane, type: !v || v === 'auto' ? undefined : (v as KindPick) })} />
       )}
-      {looks.map((key) => (
+      {looks.map((key) => key === 'legend' ? (
+        <MultiSelect key={key} label={t('dashboards.form.legend')} description={t('dashboards.form.legendHint')} clearable
+          value={pane.legend ?? []} data={CALCS.map((c) => ({ value: c, label: t(`widgets.calc.${c}`) }))}
+          onChange={(v) => onChange({ ...pane, legend: v.length ? (v as Calc[]) : undefined })} />
+      ) : (
         <div key={key}>
           <Text size="sm" fw={500} mb={4}>{t(`dashboards.form.${key}`)}</Text>
-          <SegmentedControl fullWidth size="xs" value={pane[key] ?? options[key][0]} aria-label={t(`dashboards.form.${key}`)}
-            data={options[key].map((v) => ({ value: v, label: t(`dashboards.look.${key}.${v}`) }))}
-            onChange={(v) => onChange({ ...pane, [key]: v === options[key][0] ? undefined : v })} />
+          <SegmentedControl fullWidth size="xs" value={pane[key] ?? LOOK_OPTIONS[key][0]} aria-label={t(`dashboards.form.${key}`)}
+            data={LOOK_OPTIONS[key].map((v) => ({ value: v, label: t(`dashboards.look.${key}.${v}`) }))}
+            onChange={(v) => onChange({ ...pane, [key]: v === LOOK_OPTIONS[key][0] ? undefined : v })} />
         </div>
       ))}
     </>

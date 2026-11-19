@@ -91,7 +91,7 @@ def locate():
     # The MAC the last seat found, while the laptop still has the same IP: saves the ARP lookup.
     mac = typed or (seat_walk._mac(body.get('mac')) if body.get('mac') and body.get('mac_ip') == ip else None)
     result = seat_walk.locate(ip, registry, g.get('audit_user') or _who(), previous,
-                              seat_walk.likely_switches(seat, previous), mac=mac)
+                              seat_walk.likely_switches(seat, previous), mac=mac, seat=seat)
     out = {'seat': seat, 'ip': ip, 'mac': result['mac'], 'how': result['how'], 'ms': result['ms'],
            'tries': result['tries'], 'steps': result['steps'], 'stale': result['stale'], 'found': result['found']}
     if not result['found']:

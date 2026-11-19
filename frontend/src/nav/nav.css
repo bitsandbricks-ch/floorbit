@@ -140,7 +140,8 @@
   border: 0; border-radius: 8px; background: transparent; color: var(--color-muted); cursor: pointer;
 }
 .fb-nav-icon-btn:hover { background: var(--fb-nav-hover); color: var(--color-fg); }
-.fb-nav-settings[aria-current="page"] { background: var(--color-raised); color: var(--color-bit); }
+.fb-nav-admin { flex: none; padding-top: 6px; border-top: 1px solid var(--color-line); }
+.fb-nav-admin + .fb-nav-foot, .fb-nav-admin + .fb-nav-tenants { border-top: 0; padding-top: 2px; }
 
 .fb-nav-menu {
   background: var(--color-raised);

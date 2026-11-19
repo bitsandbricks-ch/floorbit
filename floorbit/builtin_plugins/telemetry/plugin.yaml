@@ -19,12 +19,14 @@ agent:
     # Where each machine was seen (MAC, IP, port), for the history and search (docs/endpoints.md).
     endpoints: {privacy: device}
   # "Test now" and "Raw data" on a device: asked by an admin, answered from the agent's memory.
-  calls: [test, raw]
+  # "lookup": a check-in's PC, a few SNMP GETs on the switches (docs/segments.md).
+  calls: [test, raw, lookup]
 settings:
   - {key: polling, label: Who polls the switches, type: select, default: auto, options: [auto, librenms, telemetry],
      help: "Auto: LibreNMS when it is on, else Telemetry. When LibreNMS polls, Telemetry stops polling ports and walking ARP and MAC tables, and keeps traps, device facts and streams. Telemetry: it polls everything and answers before LibreNMS."}
-  - {key: tables_minutes, label: ARP and MAC tables every (minutes), type: int, default: 1, min: 0, max: 1440,
-     help: "How often Telemetry walks the ARP and MAC tables when it polls. 0: never. Not used while LibreNMS polls."}
+  - {key: tables_minutes, label: ARP and MAC tables every (minutes), type: select, default: auto,
+     options: [auto, "1", "5", "15", "30", "60", "0"],
+     help: "How often Telemetry walks the ARP and MAC tables when it polls. 0: never. Auto: every 15 minutes while a network segment has lookups on (check-ins then ask the switches for their PC), else every minute. Not used while LibreNMS polls."}
   - {key: uplink_macs, label: Uplink above, type: int, default: 8, min: 2, max: 1000,
      help: "A port that has learned more MACs than this is an uplink or a desk switch: a seat's machine is looked for on another port first."}
   - {key: exclude, label: Ports to ignore, type: list, placeholder: "port-channel, vlan",

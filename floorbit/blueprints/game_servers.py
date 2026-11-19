@@ -9,18 +9,13 @@
 """
 from flask import Blueprint, g, jsonify, request
 
-from .. import audit, game_servers, i18n, spa, vault
+from .. import audit, game_servers, i18n, vault
 
 bp = Blueprint('game_servers', __name__)
 
 
 def _error(exc):
     return jsonify({'error': str(exc), **exc.extra}), exc.status
-
-
-@bp.route('/game-servers')
-def game_servers_page():
-    return spa.render('Game servers')
 
 
 @bp.route('/api/game-servers', methods=['GET'])

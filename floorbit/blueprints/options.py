@@ -51,7 +51,13 @@ def _ports(data, switch):
     from ..syslog import canonical_port
     if not switch:
         return []
-    names = [p.get('name') for p in sources.monitoring().device_ports(switch) or [] if p.get('name')]
+    names, seen = [], set()
+    for p in sources.monitoring().device_ports(switch) or []:
+        # One entry per port even when a source lists it twice: a picker can't hold the same
+        # value twice (Mantine refuses it and the whole form breaks, #972).
+        if p.get('name') and p['name'] not in seen:
+            seen.add(p['name'])
+            names.append(p['name'])
     held = {}
     for c in cables.all_cables(data):
         if c['switch'].lower() == switch.lower():
@@ -61,7 +67,8 @@ def _ports(data, switch):
         if str(m.get('switch') or '').lower() == switch.lower() and m.get('port'):
             held.setdefault(canonical_port(m['port']), seat)
     for c in cables.all_cables(data):   # a cabled port the source doesn't list (switch away) still shows
-        if c['switch'].lower() == switch.lower() and c['port'] not in names:
+        if c['switch'].lower() == switch.lower() and c['port'] not in seen:
+            seen.add(c['port'])
             names.append(c['port'])
     out = [{'value': n, 'label': n, 'used': held.get(canonical_port(n))} for n in names]
     return sorted(out, key=lambda o: (bool(o['used']), _natural(o['value'])))

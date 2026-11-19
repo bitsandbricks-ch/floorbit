@@ -58,6 +58,7 @@ PAGES["problems"] = "/problems"
 PAGES["s3-backups"] = "/settings/backup"
 PAGES["tile-levels"] = "/dashboards/tile-levels"
 PAGES["tile-charts"] = "/dashboards/tile-charts"
+PAGES["tile-data"] = "/dashboards/tile-data"
 
 
 def tile(name, x, y, w, h, **look):
@@ -79,7 +80,15 @@ TILE_CHARTS = {"name": "Tile charts", "fit": True, "sections": [{"panels": [
     tile("traffic", 0, 16, 12, 8, stack="stacked", style="area", trend="average"),
     tile("traffic", 12, 16, 6, 8, type="histogram"), tile("traffic", 18, 16, 6, 8, type="column", stack="percent"),
 ]}]}
-SEEDED = {"tile-levels": TILE_LEVELS, "tile-charts": TILE_CHARTS}
+# Several sources, grouping and calculations (issue #959).
+TILE_DATA = {"name": "Tile data", "fit": True, "sections": [{"panels": [
+    tile("seats", 0, 0, 8, 8, also=["floorbit/w/switches"], type="bar", title="Seats and switches"),
+    tile("switch_states", 8, 0, 8, 8, group_by="state", type="column", title="Switches by state"),
+    tile("traffic", 16, 0, 8, 8, reduce="avg", type="bar", title="Average traffic"),
+    tile("traffic", 0, 8, 16, 8, legend=["min", "avg", "max"], title="Traffic, min, average and max"),
+    tile("traffic", 16, 8, 8, 8, reduce="max", title="Peak traffic"),
+]}]}
+SEEDED = {"tile-levels": TILE_LEVELS, "tile-charts": TILE_CHARTS, "tile-data": TILE_DATA}
 
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
