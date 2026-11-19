@@ -1013,6 +1013,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 
 /* Settings' folded Advanced part (#991): a quiet line under the section's own rows. */
 .fb-setting-advanced { border-top: 1px solid var(--mantine-color-default-border); margin-top: 4px; padding-top: 10px; }
+.fb-agent-fold:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
 .fb-setting-advanced.is-alone { border-top: 0; margin-top: 0; padding-top: 0; }
 .fb-setting-advanced-toggle { display: inline-flex; align-items: baseline; gap: 8px; padding: 4px 0; }
 .fb-setting-advanced-toggle svg { transition: transform 120ms ease; align-self: center; }

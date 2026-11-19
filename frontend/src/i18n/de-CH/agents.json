@@ -320,7 +320,7 @@
       "log_level": "Wie viel der Agent in sein Log schreibt. Gilt sofort.",
       "log_summary": "Wie oft der Agent eine Zusammenfassung ins Log schreibt; 0 schaltet sie aus."
     },
-    "pluginsIntro": "Leere Felder nehmen die Einstellung des Plugins aus Einstellungen › Plugins.",
+    "pluginsIntro": "Einige Plugin-Einstellungen können pro Agent abweichen. Sie werden auf der Seite des Plugins gesetzt.",
     "pluginDefault": "Plugin-Einstellung: {{value}}",
     "hallTitle": "In der Halle gesetzte Grenzen",
     "hallIntro": "Was der Agent erreichen und tun darf. Nur seine eigene Umgebung setzt das, damit ein Floorbit-Login es nicht ausweiten kann.",
@@ -357,8 +357,6 @@
     },
     "envTip": "Aus der Umgebungsvariable {{env}} auf dem Agent. Dort ändern, wo der Agent gestartet wird.",
     "advancedHint": "selten geändert; geteilte Adressen erscheinen ab einem zweiten Agent",
-    "pluginTitle": "{{name}} auf diesem Agent",
-    "pluginPage": "Alle Agents",
     "saved": "Gespeichert. Der Agent übernimmt es bei der nächsten Abfrage.",
     "hall": {
       "FLOORBIT_AGENT_ALLOW_ACTIONS": {
@@ -386,6 +384,9 @@
         "help": "Wohin die Dienste-Ansicht DNS-Abfragen und TCP-Checks senden darf.",
         "unset": "jede Adresse ausser der eigenen des Agents"
       }
-    }
+    },
+    "pluginsTitle": "Plugin-Einstellungen für diesen Agent",
+    "pluginSame": "Nimmt die Einstellungen des Plugins.",
+    "pluginEdit": "Auf der Plugin-Seite setzen"
   }
 }

@@ -44,7 +44,7 @@ describe('AgentSettingsForm', () => {
       'GET /api/auth/me': admin,
       'GET /api/agents': { agents: [a], connected: true, max: 4 },
       [`GET /api/agents/${a.id}/settings`]: page(),
-      [`PATCH /api/agents/${a.id}/settings`]: page({ plugins: [{ ...page().plugins[0], values: { port: 2055 } }] }),
+      [`PATCH /api/agents/${a.id}/settings`]: page(),
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<AgentSettingsForm agent={a} />)
@@ -68,15 +68,16 @@ describe('AgentSettingsForm', () => {
     expect(screen.getByText('Actions that change the hall')).toBeInTheDocument()
     expect(screen.getByText('no')).toBeInTheDocument()
     expect(screen.getByText('private addresses only')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'All agents' })).toHaveAttribute('href', '/settings/plugins/flows?tab=agents')
+    // Plugin values that differ per agent are set on the plugin's page (#990).
+    expect(screen.getByText("Uses the plugin's settings.")).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Set on the plugin page' })).toHaveAttribute('href', '/settings/plugins/flows?tab=agents')
 
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
-    fireEvent.change(screen.getByLabelText('Port'), { target: { value: '2055' } })
-    expect(screen.getByText('2 unsaved changes')).toBeInTheDocument()
+    expect(screen.getByText('1 unsaved change')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await vi.waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body)
-      .toEqual({ settings: { lan_url: null }, plugins: { flows: { port: 2055 } } }))
+      .toEqual({ settings: { lan_url: null } }))
     expect(await screen.findByText('Saved. The agent picks it up on its next pull.')).toBeInTheDocument()
   })
 

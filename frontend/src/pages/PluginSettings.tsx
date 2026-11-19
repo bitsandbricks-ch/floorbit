@@ -1,4 +1,4 @@
-import { Alert, Text } from '@mantine/core'
+import { Alert, Stack, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -15,6 +15,7 @@ import { LoadingState } from '@/components/ui'
 import { pluginName } from '@/lib/pluginName'
 import { PluginIcon } from './plugins/icon'
 import { OnOff, PluginLog } from './plugins/parts'
+import { PerAgentSettings } from './plugins/PerAgentSettings'
 import { PerAgent, PluginOverview } from './plugins/PluginOverview'
 import { describe, useToggle } from './plugins/toggle'
 import { SectionPanel, SettingsForm } from './settings/editor'
@@ -59,7 +60,12 @@ export default function PluginSettings() {
                 <SectionPanel ed={ed} section={section} title={t('plugins.settings')} desc={null} />
               </SettingsForm>
             )}
-            {tab === 'agents' && (agents.data ? <PerAgent plugin={plugin} agents={agents.data.agents} /> : <LoadingState rows={2} />)}
+            {tab === 'agents' && (agents.data ? (
+              <Stack gap="md">
+                <PerAgent plugin={plugin} agents={agents.data.agents} />
+                <PerAgentSettings plugin={plugin} agents={agents.data.agents} />
+              </Stack>
+            ) : <LoadingState rows={2} />)}
             {tab === 'log' && <PluginLog id={plugin.id} />}
           </div>
         </>

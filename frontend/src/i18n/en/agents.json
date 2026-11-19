@@ -320,7 +320,7 @@
       "log_level": "How much the agent writes to its log. Takes effect right away.",
       "log_summary": "How often the agent writes a summary line to its log; 0 turns it off."
     },
-    "pluginsIntro": "Empty fields use the plugin's setting from Settings › Plugins.",
+    "pluginsIntro": "Some plugin settings can differ per agent. They are set on the plugin's page.",
     "pluginDefault": "Plugin setting: {{value}}",
     "hallTitle": "Limits set in the hall",
     "hallIntro": "What the agent may reach and do. Only its own environment sets these, so a Floorbit login can't widen them.",
@@ -357,8 +357,6 @@
     },
     "envTip": "From the environment variable {{env}} on the agent. Change it where the agent is started.",
     "advancedHint": "rarely changed; shared addresses show once there is a second agent",
-    "pluginTitle": "{{name}} on this agent",
-    "pluginPage": "All agents",
     "saved": "Saved. The agent picks it up on its next pull.",
     "hall": {
       "FLOORBIT_AGENT_ALLOW_ACTIONS": {
@@ -386,6 +384,9 @@
         "help": "Where the services view may send DNS queries and TCP checks.",
         "unset": "any address but the agent's own"
       }
-    }
+    },
+    "pluginsTitle": "Plugin settings for this agent",
+    "pluginSame": "Uses the plugin's settings.",
+    "pluginEdit": "Set on the plugin page"
   }
 }

@@ -94,6 +94,9 @@
     "agent": "Agent",
     "state": "State",
     "lastError": "Last error",
-    "noError": "None"
+    "noError": "None",
+    "settingsTitle": "Settings per agent",
+    "settingsIntro": "Where an agent needs a different value, set it here. Empty fields use the plugin's settings.",
+    "same": "uses the plugin's settings"
   }
 }
