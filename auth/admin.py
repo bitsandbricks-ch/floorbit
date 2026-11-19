@@ -11,7 +11,7 @@ The guard in auth/__init__.py already limits these paths to accounts with ``acco
 """
 from flask import Blueprint, jsonify, request
 
-from floorbit import spa
+from floorbit import audit, spa, tenant_switch
 
 from . import oidc, roles, teams
 from .providers import AuthError
@@ -32,6 +32,8 @@ def create_users_blueprint(auth):
                       for r, v in roles.all_roles().items()],
             'me': (me() or {}).get('username'),
             'discord': bool(auth.providers.get('discord')),
+            # Whether this person may give or take the platform admin flag (docs/tenancy.md).
+            'platform': tenant_switch.is_platform_admin(me()),
             # Providers an admin can link accounts to (configured, even if the secret is missing).
             'oidc': [{'id': oidc.PREFIX + pid, 'label': cfg['name']}
                      for pid, cfg in sorted(oidc.all_configs().items())],
@@ -75,6 +77,12 @@ def create_users_blueprint(auth):
                 except dashboards.LayoutError as exc:
                     raise UserError(str(exc)) from exc
                 auth.users.update(username, dashboards=limit)
+            if 'platform_admin' in body:
+                if not tenant_switch.is_platform_admin(current):
+                    return error('Only a platform admin can change who runs the platform.', 403)
+                auth.users.set_platform_admin(username, bool(body['platform_admin']))
+                audit.record('platform', 'Made a platform admin' if body['platform_admin'] else
+                             'Took platform admin away', user=current.get('username'), target=username)
             if body.get('password'):
                 auth.users.set_password(username, body['password'])
             if 'discord_id' in body:

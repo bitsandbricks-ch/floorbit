@@ -40,7 +40,7 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 
 | Rule | What it means |
 | --- | --- |
-| **Tenants, with a default tenant** | Platform > tenant > event. A self-hosted install is the `default` tenant; hosted adds more. One live event per tenant, one process per tenant. The UI says "tenant" (German "Mandant"), never "club". See [tenancy.md](tenancy.md). |
+| **Tenants, with a default tenant** | Platform > tenant > event. A self-hosted install is the `default` tenant; hosted adds more. One live event per tenant, one process per tenant. Platform admins (flagged admins of the default tenant) add tenants and set their admins; a tenant's admins are its own Admin accounts and decide whether platform admins may visit. The UI says "tenant" (German "Mandant"), never "club". See [tenancy.md](tenancy.md). |
 | **Agent-only LAN access** | The local agent is the only way Floorbit reaches the event network, even when app and agent run side by side. No direct path, no request-IP shortcut. See [agent.md](agent.md). |
 | **One database layer** | SQLite by default, Postgres for bigger or hosted installs, same migrations. No JSON-file backend. See [database.md](database.md). |
 | **Valkey for cache and live only** | Durable data goes to the database; Valkey holds cache, live updates and pub/sub (env stays `REDIS_*`). |

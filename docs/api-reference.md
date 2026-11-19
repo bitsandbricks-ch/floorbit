@@ -705,6 +705,7 @@ Source: [`floorbit/blueprints/platform.py`](https://github.com/bitsandbricks-ch/
 | GET | `/api/platform/tenants` | `settings.manage` |  |
 | POST | `/api/platform/tenants` | `settings.manage` |  |
 | PATCH | `/api/platform/tenants/<tenant_id>` | `settings.manage` |  |
+| POST | `/api/platform/tenants/<tenant_id>/admin` | `settings.manage` |  |
 
 ## floorbit.blueprints.plugins
 
@@ -1021,6 +1022,8 @@ Source: [`floorbit/blueprints/tenant_switch.py`](https://github.com/bitsandbrick
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/tenant/mine` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/tenant/platform-access` | `accounts.manage` |  |
+| PUT | `/api/tenant/platform-access` | `accounts.manage` |  |
 | POST | `/api/tenant/switch` | `floorplan.view` |  |
 
 ## floorbit.blueprints.terminal

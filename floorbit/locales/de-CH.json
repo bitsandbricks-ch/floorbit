@@ -1183,5 +1183,11 @@
  "Send the dashboards as a list of their ids.": "Schicke die Dashboards als Liste ihrer IDs.",
  "There is no dashboard \"{}\".": "Es gibt kein Dashboard «{}».",
  "An account can be limited to at most {} dashboards.": "Ein Konto lässt sich auf höchstens {} Dashboards beschränken.",
- "Telemetry does not collect from that device. Turn it on in the inventory.": "Von diesem Gerät sammelt die Telemetrie nicht. Schalte sie im Inventar ein."
+ "Telemetry does not collect from that device. Turn it on in the inventory.": "Von diesem Gerät sammelt die Telemetrie nicht. Schalte sie im Inventar ein.",
+ "This is the last platform admin. Make someone else platform admin first.": "Das ist der letzte Plattform-Admin. Mach zuerst jemand anderen zum Plattform-Admin.",
+ "Only accounts of the default tenant can be platform admins.": "Nur Konten des Standard-Mandanten können Plattform-Admins sein.",
+ "Only an admin can be a platform admin. Change the role first.": "Nur ein Admin kann Plattform-Admin sein. Ändere zuerst die Rolle.",
+ "Only a platform admin can change who runs the platform.": "Nur ein Plattform-Admin kann ändern, wer die Plattform betreibt.",
+ "Only another tenant than the default one can turn platform visits off.": "Nur ein anderer Mandant als der Standard-Mandant kann Besuche der Plattform ausschalten.",
+ "The default tenant's admins are on its Users page.": "Die Admins des Standard-Mandanten stehen auf seiner Seite «Benutzer»."
 }

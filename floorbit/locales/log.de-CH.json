@@ -327,5 +327,11 @@
   "Cleared {} seat ports one day after the event ended": "{} Platz-Ports einen Tag nach dem Anlass gelöscht",
   "Switched to another tenant": "Zu einem anderen Mandanten gewechselt",
   "Came in from another tenant": "Aus einem anderen Mandanten hereingekommen",
-  "Switch from another tenant refused": "Wechsel aus einem anderen Mandanten abgelehnt"
+  "Switch from another tenant refused": "Wechsel aus einem anderen Mandanten abgelehnt",
+  "Let platform admins visit": "Besuche der Plattform-Admins erlaubt",
+  "Turned off platform visits": "Besuche der Plattform-Admins ausgeschaltet",
+  "The platform set an admin": "Die Plattform hat einen Admin gesetzt",
+  "Set a tenant's admin": "Admin eines Mandanten gesetzt",
+  "Made a platform admin": "Zum Plattform-Admin gemacht",
+  "Took platform admin away": "Plattform-Admin entzogen"
 }

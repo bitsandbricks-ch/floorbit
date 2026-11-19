@@ -28,6 +28,11 @@ FOLDER = 'handoffs'
 _TICKET_CHARS = frozenset('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_')
 
 
+PLATFORM_FLAG = 'platform_admin'       # auth/users.py
+PLATFORM_PERMISSION = 'settings.manage'
+ACCESS_FILE = 'platform-access.json'
+
+
 class SwitchError(ValueError):
     pass
 
@@ -51,18 +56,17 @@ def _platform_record(username):
     with store.using(tenant=store.tenant_folder(store.DEFAULT_TENANT), event=''):
         data = store.read_shared(store.tenant_file(), {}) or {}
     record = (data.get('auth_users') or {}).get(username)
-    if not isinstance(record, dict) or not roles.can(record, 'settings.manage'):
+    if not isinstance(record, dict) or not record.get(PLATFORM_FLAG) or not roles.can(record, PLATFORM_PERMISSION):
         return None
     return record
 
 
 def is_platform_admin(user):
-    """Whether this signed-in account (a public record) may open every tenant: an admin here, on the
-    default tenant. A visitor from the platform doesn't count: they can't hop on from there."""
-    from auth import roles
+    """Whether this signed-in account (a public record) runs the platform: an admin of the default
+    tenant with the platform admin flag (auth/users.py). A visitor from the platform doesn't count:
+    they can't hop on from there."""
     return bool(user and not user.get('api_token') and not user.get('platform')
-                and store.current_tenant() == store.DEFAULT_TENANT
-                and roles.can(user, 'settings.manage'))
+                and store.current_tenant() == store.DEFAULT_TENANT and user.get('platform_admin'))
 
 
 def reachable(user, record):
@@ -76,7 +80,8 @@ def reachable(user, record):
     if is_platform_admin(user):
         here = store.current_tenant()
         for t in hosting.tenants():
-            if t['id'] != here and t['status'] == 'active' and t['url'] and t['id'] not in out:
+            if t['id'] != here and t['status'] == 'active' and t['url'] and t['id'] not in out \
+                    and visits_allowed(t['id']):
                 out[t['id']] = {**{k: t[k] for k in ('id', 'name', 'url')}, 'how': 'platform'}
     order = {t['id']: i for i, t in enumerate(hosting.tenants())}
     return sorted(out.values(), key=lambda t: order.get(t['id'], 0))
@@ -131,6 +136,22 @@ def visit_still_good(session):
     if not username or not isinstance(until, (int, float)) or until < time.time():
         return None
     record = _platform_record(username)
-    if not record or record.get('session_version', 1) != session.get('ver'):
+    if not record or record.get('session_version', 1) != session.get('ver') or not visits_allowed():
         return None
     return visitor(username, record.get('display_name'), record.get('session_version', 1))
+
+
+def visits_allowed(tenant_id=None):
+    """Whether this tenant (or the one this process serves) lets platform admins visit. On unless
+    its admins turned it off; the default tenant is the platform's own, so it always does."""
+    tenant_id = tenant_id or store.current_tenant()
+    if tenant_id == store.DEFAULT_TENANT:
+        return True
+    with store.using(tenant=store.tenant_folder(tenant_id), event=''):
+        doc = store.read_shared(store.tenant_path(ACCESS_FILE), {}) or {}
+    return doc.get('visits') is not False
+
+
+def set_visits(allowed):
+    """Let platform admins visit this tenant, or not. Turning it off ends the visits under way."""
+    store.write_json(store.tenant_path(ACCESS_FILE), {'visits': bool(allowed)})

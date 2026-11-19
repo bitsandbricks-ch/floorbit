@@ -190,7 +190,7 @@ def register_cli(app):
     @group.command('add')
     @click.argument('tenant_id')
     @click.option('--name', default='', help='The tenant\'s name, as people know it.')
-    @click.option('--url', default='', help='Where its Floorbit answers, like https://club.example.com.')
+    @click.option('--url', default='', help='Where its Floorbit answers, like https://tenant.example.com.')
     @click.option('--admin', 'admin', default=None, help='Also add its first admin account.')
     @click.option('--password', default=None, help='The admin\'s password; prompted for when left out.')
     def add_tenant(tenant_id, name, url, admin, password):
@@ -219,3 +219,37 @@ def register_cli(app):
             click.echo(f"{t['id']:<24} {t['name']:<32} {t['url']}")
 
     app.cli.add_command(group)
+
+    admins = AppGroup('platform-admins', help='Who runs the platform: admins of the default tenant with the flag.')
+
+    def _users():
+        from auth.users import UserStore  # late: auth imports floorbit while it loads
+        return UserStore(store.tenant_file)
+
+    def _flag(username, on):
+        from auth.users import UserError
+        with store.using(tenant=_folder(store.DEFAULT_TENANT), event=''):
+            try:
+                _users().set_platform_admin(username, on)
+            except UserError as exc:
+                raise click.ClickException(str(exc)) from None
+
+    @admins.command('add')
+    @click.argument('username')
+    def add_platform_admin(username):
+        _flag(username, True)
+        click.echo(f'{username} is a platform admin now.')
+
+    @admins.command('remove')
+    @click.argument('username')
+    def remove_platform_admin(username):
+        _flag(username, False)
+        click.echo(f'{username} is no platform admin any more.')
+
+    @admins.command('list')
+    def list_platform_admins():
+        with store.using(tenant=_folder(store.DEFAULT_TENANT), event=''):
+            found = [u['username'] for u in _users().list() if u.get('platform_admin')]
+        click.echo('\n'.join(found) if found else 'No platform admins.')
+
+    app.cli.add_command(admins)

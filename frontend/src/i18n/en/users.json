@@ -38,5 +38,14 @@
   "allDashboards": "Every dashboard",
   "limitDashboards": "Limit dashboards",
   "onlyDashboards_one": "Only {{count}} dashboard",
-  "onlyDashboards_other": "Only {{count}} dashboards"
+  "onlyDashboards_other": "Only {{count}} dashboards",
+  "platformAdmin": "Platform admin",
+  "makePlatform": "Make platform admin",
+  "makePlatformQuestion": "Make {{name}} a platform admin? They see Settings > Tenants, can add and suspend tenants, set a tenant's admin and visit every tenant that allows it.",
+  "takePlatform": "Take platform admin away",
+  "takePlatformQuestion": "Take platform admin away from {{name}}? Their visits in other tenants end at once. They stay an admin here.",
+  "platformVisits": "Platform visits",
+  "platformVisitsLabel": "Let platform admins come into this tenant",
+  "platformVisitsHelp": "The admins who run this Floorbit platform can switch in here to help, as an admin, for at most 8 hours. Every visit is in the audit log. Turning this off ends the visits under way.",
+  "byPlatform": "set up by the platform admins"
 }

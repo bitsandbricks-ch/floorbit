@@ -42,4 +42,25 @@ describe('Tenants', () => {
     expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({ id: 'club-c', name: 'Club C', url: '', admin: 'boss' })
     expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ status: 'active' })
   })
+
+  it('sets the admin of a tenant that is locked out', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': admin,
+      'GET /api/platform/tenants': list,
+      'POST /api/platform/tenants/club-b/admin': { tenant: list.tenants[1], admin: 'boss', password: 'example-password', made: false },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Tenants />)
+    expect(await screen.findByText('Club B')).toBeInTheDocument()
+    // Only the other tenants: the default one's admins are on its Users page.
+    expect(screen.getAllByRole('button', { name: 'Set admin' })).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Set admin' }))
+    fireEvent.change(screen.getByLabelText(/^Admin's username/), { target: { value: ' boss ' } })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Set admin' })[1])
+    const done = await screen.findByRole('status')
+    expect(within(done).getByText(/boss is admin with a new password/)).toBeInTheDocument()
+    expect(within(done).getByText('example-password')).toBeInTheDocument()
+    expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({ username: 'boss' })
+  })
 })
+

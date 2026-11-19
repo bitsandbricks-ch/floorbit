@@ -94,10 +94,11 @@ def test_other_tenants_and_other_roles_never_see_the_platform(app_module, client
 
 def test_the_page_is_in_the_sidebar_only_on_the_default_tenant(client, monkeypatch):
     from floorbit import page_index
-    ctx = {"feature_on": lambda name: True}
+    ctx = {"feature_on": lambda name: True, "current_user": {"platform_admin": True}}
     can = lambda permission: True  # noqa: E731
     show = {r[0]: r for r in page_index.PAGES}["/settings/tenants"][3]
     assert show(ctx, can)
+    assert not show({**ctx, "current_user": {"platform_admin": False}}, can)   # an admin, not of the platform
     _as(monkeypatch, "club-b")
     assert not show(ctx, can)
     _as(monkeypatch, "default")

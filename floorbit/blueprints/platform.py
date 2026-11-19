@@ -1,7 +1,9 @@
 """The platform's tenants, for its admins (issue #466, docs/tenancy.md).
 
-Admins of the default tenant run the platform: they add tenants, rename them, and suspend them.
-Every other tenant answers 404 here, so a tenant admin can't see the platform's list.
+Platform admins run the platform: admins of the default tenant with the platform admin flag
+(auth/users.py, docs/tenancy.md). They add tenants, rename them, suspend them, and give a tenant an
+admin when it has lost its own. Everyone else, and every other tenant, gets 404 here, so a tenant
+admin can't see the platform's list.
 
 - ``GET /settings/tenants``: the page (React).
 - ``GET /api/platform/tenants``: ``{"tenants": [{id, name, url, status}]}``.
@@ -9,6 +11,9 @@ Every other tenant answers 404 here, so a tenant admin can't see the platform's 
   also its first admin account, whose password is in the answer once.
 - ``PATCH /api/platform/tenants/<id>`` ``{"name"?, "url"?, "status"?}``: change one; ``status`` is
   ``active`` or ``suspended``.
+- ``POST /api/platform/tenants/<id>/admin`` ``{"username"}``: that account becomes an admin of the
+  tenant with a new password, shown once in the answer; made when it doesn't exist yet. For a tenant
+  whose admins are gone or locked out.
 
 A suspended tenant's processes answer 503 to everything but the health checks (``suspended_gate``).
 """
@@ -16,7 +21,7 @@ import secrets
 
 from flask import Blueprint, abort, current_app, g, jsonify, request
 
-from .. import audit, hosting, i18n, spa, store
+from .. import audit, hosting, i18n, spa, store, tenant_switch
 
 bp = Blueprint('platform', __name__)
 
@@ -27,7 +32,8 @@ OPEN_WHILE_SUSPENDED = ('/healthz', '/static/')
 
 
 def _platform_only():
-    if store.current_tenant() != store.DEFAULT_TENANT:
+    from auth import current_user  # late: auth imports floorbit while it loads
+    if store.current_tenant() != store.DEFAULT_TENANT or not tenant_switch.is_platform_admin(current_user()):
         abort(404)
 
 
@@ -68,7 +74,7 @@ def add_tenant():
     if admin:
         password = secrets.token_urlsafe(12)
         with store.using(tenant=store.tenant_folder(entry['id']), event=''):
-            UserStore(store.tenant_file).add(admin, password, role='admin', created_by=g.get('audit_user'))
+            UserStore(store.tenant_file).add(admin, password, role='admin', created_by='platform')
     audit.record('platform', 'Added a tenant', user=g.get('audit_user'), target=entry['id'],
                  fields=['admin'] if admin else None)
     return jsonify({'tenant': entry, 'admin': admin or None, 'password': password}), 201
@@ -87,6 +93,35 @@ def change_tenant(tenant_id):
     action = actions.get(fields.get('status'), 'Changed a tenant')
     audit.record('platform', action, user=g.get('audit_user'), target=tenant_id, fields=list(fields))
     return jsonify({'tenant': entry})
+
+
+@bp.route('/api/platform/tenants/<tenant_id>/admin', methods=['POST'])
+def tenant_admin(tenant_id):
+    _platform_only()
+    from auth.users import UserError, UserStore, validate_username  # late: see add_tenant
+    entry = hosting.find(tenant_id)
+    if entry is None:
+        abort(404)
+    if tenant_id == store.DEFAULT_TENANT:
+        return _error(hosting.HostingError("The default tenant's admins are on its Users page."))
+    body = request.get_json(silent=True) or {}
+    try:
+        username = validate_username(str(body.get('username') or ''))
+        password = secrets.token_urlsafe(12)
+        with store.using(tenant=store.tenant_folder(tenant_id), event=''):
+            users = UserStore(store.tenant_file)
+            made = users.get(username) is None
+            if made:
+                users.add(username, password, role='admin', created_by='platform')
+            else:
+                users.update(username, role='admin')
+                users.set_password(username, password)   # also signs out its sessions
+            # The tenant's own admins see it in their audit log, not only the platform.
+            audit.record('accounts', 'The platform set an admin', user=g.get('audit_user'), target=username)
+    except UserError as exc:
+        return _error(exc)
+    audit.record('platform', "Set a tenant's admin", user=g.get('audit_user'), target=f'{tenant_id}: {username}')
+    return jsonify({'tenant': entry, 'admin': username, 'password': password, 'made': made})
 
 
 def suspended_gate():

@@ -38,5 +38,14 @@
   "allDashboards": "Alle Dashboards",
   "limitDashboards": "Dashboards beschränken",
   "onlyDashboards_one": "Nur {{count}} Dashboard",
-  "onlyDashboards_other": "Nur {{count}} Dashboards"
+  "onlyDashboards_other": "Nur {{count}} Dashboards",
+  "platformAdmin": "Plattform-Admin",
+  "makePlatform": "Zum Plattform-Admin machen",
+  "makePlatformQuestion": "{{name}} zum Plattform-Admin machen? Sie sehen dann Einstellungen > Mandanten, können Mandanten anlegen und sperren, den Admin eines Mandanten setzen und jeden Mandanten besuchen, der es erlaubt.",
+  "takePlatform": "Plattform-Admin wegnehmen",
+  "takePlatformQuestion": "{{name}} den Plattform-Admin wegnehmen? Ihre Besuche in anderen Mandanten enden sofort. Hier bleiben sie Admin.",
+  "platformVisits": "Besuche der Plattform",
+  "platformVisitsLabel": "Plattform-Admins dürfen diesen Mandanten besuchen",
+  "platformVisitsHelp": "Die Admins, die diese Floorbit-Plattform betreiben, können hierher wechseln, um zu helfen: als Admin, höchstens 8 Stunden. Jeder Besuch steht im Audit-Log. Ausschalten beendet laufende Besuche.",
+  "byPlatform": "von den Plattform-Admins eingerichtet"
 }

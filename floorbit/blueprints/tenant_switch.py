@@ -5,6 +5,9 @@
 - ``POST /api/tenant/switch`` ``{"tenant": "<id>"}``: ``{"url"}``, where to send the browser; that
   address signs it in over there, once, within a minute.
 - ``GET /switch/arrive?ticket=...``: the other side of it. Open to everyone: the ticket is the key.
+- ``GET``/``PUT /api/tenant/platform-access`` ``{"visits": bool}``: whether the platform admins may
+  come into this tenant (its admins decide, ``accounts.manage``). ``shown`` says whether it matters
+  here: only on a tenant other than the default one.
 """
 import time
 
@@ -76,7 +79,7 @@ def arrive():
             who = record['username']
     elif doc and doc.get('how') == 'platform':
         record = tenant_switch._platform_record(str(doc.get('username') or ''))
-        if record:
+        if record and tenant_switch.visits_allowed():
             visitor = tenant_switch.visitor(record['username'], record.get('display_name'),
                                             record.get('session_version', 1))
             auth.sign_in_visitor(visitor, time.time() + tenant_switch.VISIT_HOURS * 3600)
@@ -86,3 +89,22 @@ def arrive():
         return redirect('/login')
     audit.record('sign-in', 'Came in from another tenant', user=who, target=doc.get('from'))
     return redirect('/')
+
+
+@bp.route('/api/tenant/platform-access', methods=['GET'])
+def platform_access():
+    return jsonify({'visits': tenant_switch.visits_allowed(),
+                    'shown': store.current_tenant() != store.DEFAULT_TENANT})
+
+
+@bp.route('/api/tenant/platform-access', methods=['PUT'])
+def set_platform_access():
+    body = request.get_json(silent=True) or {}
+    if store.current_tenant() == store.DEFAULT_TENANT or not isinstance(body.get('visits'), bool):
+        lang = i18n.language(request.headers.get('Accept-Language'))
+        msg = 'Only another tenant than the default one can turn platform visits off.'
+        return jsonify({'error': i18n.translate(msg, lang)}), 400
+    tenant_switch.set_visits(body['visits'])
+    audit.record('accounts', 'Let platform admins visit' if body['visits'] else 'Turned off platform visits',
+                 user=g.get('audit_user'))
+    return jsonify({'visits': tenant_switch.visits_allowed(), 'shown': True})

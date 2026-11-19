@@ -49,6 +49,7 @@ export const qk = {
   settings: ['settings'] as const,
   apiTokens: ['api-tokens'] as const,
   tenants: ['platform', 'tenants'] as const,
+  platformAccess: ['tenant', 'platform-access'] as const,
   audit: ['audit'] as const,
   agents: ['agents'] as const,
   telemetryDevices: ['telemetry-devices'] as const,

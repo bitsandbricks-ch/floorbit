@@ -222,8 +222,26 @@ def _no_attendee_programme(data):
             data['app_settings'].pop(key, None)
 
 
+def _platform_admins(data):
+    """Platform admins became a flag of their own (auth/users.py): before, every admin of the default
+    tenant was one. They keep it, so nobody loses the Tenants page; take it away on the Users page.
+    Only in the default tenant: other tenants' admins never ran the platform."""
+    from auth import roles  # late: auth imports floorbit while it loads
+
+    from . import store
+    users = data.get('auth_users')
+    if store.tenant_dir() != '' or not isinstance(users, dict):
+        return
+    if any(isinstance(u, dict) and u.get('platform_admin') for u in users.values()):
+        return
+    for user in users.values():
+        if isinstance(user, dict) and 'settings.manage' in roles.permissions_of(roles.of(user)):
+            user['platform_admin'] = True
+
+
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
-         _no_runbooks, _no_seat_finder, _small_status_page, _no_attendee_programme)
+         _no_runbooks, _no_seat_finder, _small_status_page, _no_attendee_programme,
+         _platform_admins)
 CURRENT = len(STEPS)
 
 

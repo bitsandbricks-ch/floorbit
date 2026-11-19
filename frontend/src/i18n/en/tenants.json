@@ -27,5 +27,11 @@
   "madeAdmin": "The password of {{admin}}, shown only now:",
   "copy": "Copy",
   "copied": "Copied",
-  "docs": "How tenants run, and what keeps them apart: docs/tenancy.md."
+  "docs": "How tenants run, and what keeps them apart: docs/tenancy.md.",
+  "setAdmin": "Set admin",
+  "setAdminName": "Admin's username",
+  "setAdminHelp": "A new account is made as Admin. An existing one becomes Admin, gets a new password and is signed out everywhere. In the tenant's audit log.",
+  "setAdminButton": "Set admin",
+  "adminMade": "Added {{admin}} as admin. The password, shown only now:",
+  "adminReset": "{{admin}} is admin with a new password, shown only now:"
 }
