@@ -959,7 +959,7 @@
  "No telemetry from {} yet.": "Noch keine Telemetrie von {}.",
  "Test now and raw data need a local agent: none collects for this Floorbit.": "«Jetzt testen» und Rohdaten brauchen einen lokalen Agent: Keiner sammelt für dieses Floorbit.",
  "No local agent answered. Is one connected?": "Kein lokaler Agent hat geantwortet. Ist einer verbunden?",
-  "The Telemetry plugin is missing.": "Das Telemetrie-Plugin fehlt.",
+ "The Telemetry plugin is missing.": "Das Telemetrie-Plugin fehlt.",
  "No local agent collects from {}.": "Kein lokaler Agent sammelt von {}.",
  "Which device?": "Welches Gerät?",
  "No telemetry has come in yet. Add devices under Settings > Telemetry and start Telegraf (docs/telemetry.md).": "Es ist noch keine Telemetrie angekommen. Füge Geräte unter Einstellungen > Telemetrie hinzu und starte Telegraf (docs/telemetry.md).",
