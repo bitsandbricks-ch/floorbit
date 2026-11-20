@@ -135,8 +135,8 @@
     },
     "closed": "Geschlossen",
     "intro": "Kennen die Tabellen einen PC noch nicht, fragen Check-ins die Switches mit wenigen SNMP-Anfragen nach diesem einen PC, in Segmenten mit eingeschalteten Abfragen. Nur solange dies offen ist: ab Türöffnung für {{hours}} h und 30 Minuten nach dem letzten Check-in.",
-    "noSegments": "Kein Segment hat Abfragen eingeschaltet, Check-ins warten deshalb auf die Tabellen.",
-    "segments": "Segmente für Abfragen",
+    "noSegments": "Kein VLAN oder IP-Bereich hat Check-in-Abfragen eingeschaltet, Check-ins warten deshalb auf die Tabellen.",
+    "segments": "VLANs und IP-Bereiche im Inventar",
     "openNow": "Für {{hours}} h öffnen",
     "close": "Schliessen",
     "todo": {
