@@ -18,7 +18,7 @@
     "cache_saved_bytes": "Cache savings"
   },
   "past": "Past events",
-  "none": "No event closed yet. When this one is over, close it below and it appears here.",
+  "none": "When this one is over, close it below and it appears here.",
   "closedBy": "closed by {{who}}",
   "report": "Report",
   "floorPlan": "Floor plan",
@@ -33,5 +33,6 @@
   "nextNameHelp": "Optional. Becomes the event name in the theme settings.",
   "typeToConfirm": "Type \"{{word}}\" to confirm",
   "close": "Close the event",
-  "closed": "{{name}} is closed and kept. The next event has started."
+  "closed": "{{name}} is closed and kept. The next event has started.",
+  "noneTitle": "No event closed yet"
 }

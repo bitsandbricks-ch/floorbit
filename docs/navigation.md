@@ -21,8 +21,10 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
   **Inventory** has Cables and Electrics; **Switch console** has the switch commands and the
   terminal; **Agents** has Telemetry; **Dashboards** has Widgets.
   Each tab keeps its own address.
-- **Plugins** and **Settings** are named rows at the foot, above your name. The event's own pages (schedule,
-  changelog, replay, report, floor plan templates) are in the event menu at the top.
+- **Events** sits under Overview and Floor plan: the event list, with the event's own pages
+  (schedule, changelog, replay, report, floor plan templates) as its tabs. The picker at the top
+  only switches the event this browser works on (issue #1201).
+- **Plugins** and **Settings** are named rows at the foot, above your name.
 - The button at the bottom folds the sidebar to icons, and back. The choice is kept in a cookie
   (`floorbit_nav`), so every page starts with the same width.
 - Your name at the bottom opens the account menu: language, light or dark theme, notifications,

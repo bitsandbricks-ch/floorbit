@@ -31,5 +31,14 @@
     "verified": "Dein PC ist mit dem Netzwerk-Port deines Platzes verknüpft.",
     "not_wired": "Vom Handy eingecheckt: Öffne die Seite auch auf deinem PC, damit die Crew den Port deines Platzes kennt.",
     "unverified": "Dein Netzwerk-Port wurde nicht gefunden. Kein Problem: Die Crew findet dich trotzdem."
+  },
+  "hall": {
+    "going": "Weiter zum Check-in im Event-Netz …",
+    "title": "Im Event-Netz einchecken",
+    "text": "Checke an deinem Platz über das Event-Netz ein: So lernt die Crew den Netzwerk-Port deines Platzes. Nicht in der Halle? Checke hier ein, Platz und Nick zählen trotzdem.",
+    "button": "Im Event-Netz weiter",
+    "backTitle": "Das Event-Netz liess sich nicht öffnen",
+    "backText": "Dieser PC scheint nicht im Event-Netz zu sein. Schliesse ihn an deinem Platz an und versuche es nochmals, oder checke hier ein: Platz und Nick zählen trotzdem.",
+    "portButton": "Port deines Platzes finden lassen"
   }
 }

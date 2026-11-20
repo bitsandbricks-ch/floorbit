@@ -4,7 +4,7 @@ marks as SVG shapes. The big-screen rotation that lived here is now dashboards t
 from flask import Blueprint
 
 from .. import halls, icon_library, plan_marks, seat_gaps, seat_layout, stacking
-from ..seat_names import block_rows, row_letters, seat_one_first
+from ..seat_names import block_rows, label, row_id, row_label, row_letters, row_names, seat_one_first
 
 bp = Blueprint('screen', __name__)
 
@@ -27,6 +27,15 @@ def _row_labels(block, w, h, ys):
              'both': [first_side, last_side]}[where]
     return [{'text': letter, 'x': x, 'y': ys[r] * CELL - h / 2 + CELL / 2}
             for r, letter in enumerate(letters) for x in sides]
+
+
+def _rows_of(block, count):
+    if not block.get('id'):
+        return []
+    names, naming, block_label = row_names(block), block.get('naming') or 'block', label(block)
+    return [{'id': row_id(block, i + 1),
+             'name': row_label({'name': names[i] if i < len(names) else str(i + 1), 'naming': naming,
+                                'block_label': block_label})} for i in range(count)]
 
 
 def plan(data, highlight=None, online=None, hall_id=None, public=False):
@@ -69,6 +78,8 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
                        'name': block.get('name') or '', 'cells': cells,
                        # Row letters belong to rows; seats placed freely have none to stand by.
                        'rows': [] if block.get('seat_at') else _row_labels(block, w, h, row_at),
+                       # Each row (cells' rc[0]) by its id and name, as /api/options/rows has them.
+                       'row_list': _rows_of(block, nrows),
                        'free': bool(block.get('seat_at'))})
     if not shapes:
         return None, None

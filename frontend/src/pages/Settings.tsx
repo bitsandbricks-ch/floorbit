@@ -6,9 +6,11 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useFeature, usePageList, usePageListSettled } from '@/api/queries'
 import { Layout, PageSkeleton } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { SetupNudge } from './setup/Checklist'
 import { PageTabs } from '@/components/PageTabs'
 import { InPanel } from '@/components/panel'
 import { ErrorBanner, LoadingState } from '@/components/ui'
+import { readBoot } from '@/nav/boot'
 import { BackupPanel, Connections, SectionPanel, SettingsForm } from './settings/editor'
 import { S3BackupPanel } from './settings/S3Backups'
 import { k, keys, sectionTitle, useSettingsEditor, type SettingsAnswer, type SettingsEditor } from './settings/model'
@@ -57,13 +59,17 @@ type Group = { group: string; items: string[] }
 
 /** The tabs this account sees, with the entries it may open: sections when it may change
  *  settings, pages when the server lists them. */
-function useTabs(d: SettingsAnswer | undefined, listed: Set<string>) {
+function useTabs(d: SettingsAnswer | undefined, listed: Set<string>, several: boolean) {
   return useMemo(() => {
     const own = (d?.sections ?? []).filter((s) => !isPluginSection(s.id) && !ELSEWHERE.has(s.id))
     const byId = new Map(own.map((s) => [s.id, s]))
     const placed = new Set(TABS.flatMap((tab) => tab.groups.flatMap(([, ids]) => ids)))
     const can = (id: string) => (id in PAGES ? listed.has(PAGES[id].page) : id === STATUS ? !!d : byId.has(id))
-    const tabs = TABS.map((tab) => {
+    // One tenant (every self-hosted install) has nothing to manage day to day: Tenants is a row
+    // under System, where the second one is added, not a tab of its own (#997).
+    const layout = several ? TABS : TABS.filter((tab) => tab.id !== 'tenants').map((tab) =>
+      tab.id === 'system' ? { ...tab, groups: tab.groups.map(([g, ids]): [string, string[]] => [g, [...ids, 'tenants']]) } : tab)
+    const tabs = layout.map((tab) => {
       const groups: Group[] = tab.groups.map(([group, ids]) => ({ group, items: ids.filter(can) }))
       if (tab.id === 'general') {
         const rest = own.map((s) => s.id).filter((id) => !placed.has(id))
@@ -72,7 +78,7 @@ function useTabs(d: SettingsAnswer | undefined, listed: Set<string>) {
       return { id: tab.id, groups: groups.filter((g) => g.items.length) }
     }).filter((tab) => tab.groups.length)
     return { tabs, byId }
-  }, [d, listed])
+  }, [d, listed, several])
 }
 
 /** Fields whose label, help, env var or section title has every word typed. */
@@ -121,7 +127,8 @@ export default function Settings() {
   const mayEdit = list.settled && (list.failed || listed.has('settings'))
   const ed = useSettingsEditor({ enabled: mayEdit })
   const d = ed.d
-  const { tabs, byId } = useTabs(d, listed)
+  const several = useMemo(() => !!readBoot().tenants, [])
+  const { tabs, byId } = useTabs(d, listed, several)
   const [query, setQuery] = useState('')
   const results = matches(ed, query, t)
 
@@ -176,6 +183,7 @@ export default function Settings() {
     <Layout title={title}>
       <PageHead title={t('settings.title')} kicker={t('settings.kicker')} actions={search} />
       <ErrorBanner error={mayEdit ? ed.query.error : null} onRetry={() => void ed.query.refetch()} mb="md" />
+      {!results && <SetupNudge enabled={mayEdit} />}
       {!list.settled || (mayEdit && ed.query.isPending) ? <LoadingState rows={4} /> : !active ? null : results ? (
         <SettingsForm ed={ed}>
           <Text size="sm" c="dimmed" role="status">{t('settings.nav.results', { count: results.reduce((n, r) => n + r.only.size, 0) })}</Text>

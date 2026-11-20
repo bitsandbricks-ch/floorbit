@@ -166,8 +166,8 @@ export function usePower() {
   return useQuery({ queryKey: qk.power, queryFn: () => get<PowerOverview>('/api/power'), refetchInterval: 30_000 })
 }
 
-export function useProblems() {
-  return useQuery({ queryKey: qk.problems, queryFn: () => get<ProblemList>('/api/problems'), refetchInterval: 30_000 })
+export function useProblems(enabled = true) {
+  return useQuery({ queryKey: qk.problems, queryFn: () => get<ProblemList>('/api/problems'), refetchInterval: 30_000, enabled })
 }
 
 export function useStats(screen = false) {

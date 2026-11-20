@@ -186,7 +186,7 @@ ACTIONS = (
      'roles': ('switch', 'router', 'firewall', 'access-point', 'server', 'vm', 'pdu', 'other')},
     {'id': 'interfaces', 'name': 'Interfaces', 'minutes': None, 'keys': (),
      'roles': ('switch', 'router', 'firewall', 'access-point', 'server', 'pdu')},
-    {'id': 'networks', 'name': 'VLANs and networks', 'minutes': None, 'keys': ('vlans', 'networks'),
+    {'id': 'networks', 'name': 'VLANs and networks', 'minutes': None, 'keys': ('vlans', 'networks', 'svis'),
      'roles': ('switch', 'router', 'firewall', 'server', 'vm')},
     {'id': 'optics', 'name': 'Transceivers', 'minutes': 60, 'keys': ('transceivers',),
      'roles': ('switch', 'router', 'firewall')},
@@ -303,6 +303,20 @@ def run(only=None, device_ids=None):
             else:
                 report['unchanged'] += 1
         save_data(data)
+    # What the device is (VLANs, networks, optics, ...): the row's own facts, and what the monitoring
+    # sources know beyond them, so LibreNMS alone fills these too (issue #966). Asked outside the
+    # lock: on a hosted Floorbit it is a call through the agent.
+    for dev, row in pairs:
+        if not any(does(a['id'], dev) for a in todo if a['keys']):
+            continue
+        own = row.get('facts') if isinstance(row.get('facts'), dict) else {}
+        try:
+            more = mon.device_facts(dev['name'])
+        except Exception as exc:  # noqa: BLE001 - one device's facts don't stop the run
+            print(f"[discovery] facts of {dev['name']} failed: {exc}")
+            more = {}
+        if isinstance(more, dict) and any(k not in own for k in more):
+            found[dev['id']] = (found[dev['id']][0], {**row, 'facts': {**more, **own}})
     polled = {dev['id'] for dev, row in pairs if does('interfaces', dev) and row.get('status', 1)}
     ports_ok = False
     if polled:
@@ -365,8 +379,6 @@ def run(only=None, device_ids=None):
         if ran & {'networks', 'optics'}:
             _entries(data, list(kept.values()), report)
         save_data(data)
-    from . import segments
-    report['segments'] = segments.take_proposals()
     return _keep(report)
 
 
@@ -485,8 +497,12 @@ def _entries(data, found, report):
     """Every VLAN, network and transceiver the devices know, as inventory entries (the same rules
     as a plugin's: hand changes win, nothing is deleted)."""
     from . import inventory_scope, inventory_types
-    vlans, networks, optics = {}, set(), {}
+    vlans, networks, optics, vlan_of = {}, set(), {}, {}
     for n in found:
+        for svi in n.get('svis') or []:
+            # A network on a VLAN interface: the range knows its VLAN, which makes it a lookup segment.
+            vlan_of.setdefault(svi['network'], svi['vlan'])
+            networks.add(svi['network'])
         for v in n.get('vlans') or []:
             if v['name'] or v['id'] not in vlans:
                 vlans[v['id']] = v['name'] or vlans.get(v['id']) or ''
@@ -497,7 +513,9 @@ def _entries(data, found, report):
         return
     feed = {'vlan': [{'ref': f'vlan-{vid}', 'name': name or f'VLAN {vid}', 'fields': {'vlan_id': vid}}
                      for vid, name in sorted(vlans.items())]
-            + [{'ref': f'prefix-{net}', 'name': net, 'fields': {'prefix': net}} for net in sorted(networks)]}
+            + [{'ref': f'prefix-{net}', 'name': net,
+                'fields': {'prefix': net, **({'vlan_id': vlan_of[net]} if net in vlan_of else {})}}
+               for net in sorted(networks)]}
     if optics:
         feed['transceiver'] = [
             {'ref': f'optic-{key}', 'name': f'{o["model"] or "Transceiver"} {o["serial"]}',
