@@ -134,10 +134,11 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   page (its breadcrumb ends in the page's title, the page's buttons, Go to (`Ctrl K`) and
   notifications on the right; no second title row on a computer), a status line. Pinned favourites per person, including
   dashboards. The tenant switcher shows only with two or more tenants.
-- **Sidebar, about a dozen rows:** Overview and Floor plan · **Work:** Helpdesk · **Monitoring:**
+- **Sidebar, about a dozen rows:** Overview, Floor plan and Events · **Work:** Helpdesk · **Monitoring:**
   Services, Network, Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
-  Pre-flight, Logs · **Screens:** Dashboards. Settings is the gear at the foot; the event's own
-  pages (schedule, changelog, replay, report) are in the event menu at the top. A row holds its
+  Pre-flight, Logs · **Screens:** Dashboards. Settings is the gear at the foot. Events holds the
+  event's own pages (schedule, changelog, replay, report) as tabs; the picker at the top only
+  switches the event. A row holds its
   pages as tabs (Helpdesk: Problems, Incidents, My jobs, Handover, Status updates); a new page
   becomes a tab of a row, not a row of its own. Sidebar text is 15px, a step above page text.
 - **Simple first, technical below.** The first layer of every page answers "is it fine, and what
