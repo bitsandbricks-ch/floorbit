@@ -317,6 +317,8 @@ RULES = (
     ('/api/dispatch', READ, 'incidents.assign'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
     # Which MAC and IP is on which seat port is personal data, like the seat mapping.
+    # Marking a MAC as not a seat PC (a printer, a crew PC): like marking its port infrastructure (issue #949).
+    ('/api/cables/clients/ignored', WRITE, 'floorplan.edit'),
     ('/api/cables/clients', None, 'seats.view'),
     ('/api/cables', WRITE, 'floorplan.edit'),
     ('/api/cable-plan', WRITE, 'floorplan.edit'),
@@ -325,6 +327,8 @@ RULES = (
     ('/api/port-areas', WRITE, 'floorplan.edit'),
     # Dashboards (floorbit/dashboards.py): what a screen shows is the floor crew's to arrange.
     ('/api/dashboards', WRITE, 'floorplan.edit'),
+    # Saved widgets: everyone who may arrange dashboards may change them (Mike, #1009).
+    ('/api/widgets', WRITE, 'floorplan.edit'),
     # Schedule: everyone reads it, leads plan it (floorbit/schedule.py).
     ('/api/schedule', WRITE, 'floorplan.edit'),
     # Status page: the crew's view and updates; /status itself is public (floorbit/status_page.py).

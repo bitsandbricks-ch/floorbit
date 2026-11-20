@@ -54,6 +54,17 @@ def test_the_short_address_typed_at_the_front_door_opens_check_in(client, anon_c
     assert not (resp.status_code == 302 and resp.headers.get("Location", "").endswith("/checkin"))
 
 
+def test_any_name_at_the_front_door_opens_check_in_for_attendees_only(client, anon_client, checkin_on):
+    """No short address set (a fresh event, issue #1097): the attendees' port still opens check-in
+    at /, while the signed-in crew get their start page."""
+    key = enrol(client)["key"]
+    resp = anon_client.get("/", headers=door(key, host="192.0.2.31:8080"))
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/checkin")
+    crew = client.get("/", headers=door(key, host="192.0.2.31:8080"))
+    assert not crew.headers.get("Location", "").endswith("/checkin")
+    assert not anon_client.get("/").headers.get("Location", "").endswith("/checkin")
+
+
 def test_a_form_sent_from_the_front_doors_page_is_same_origin(client, anon_client, checkin_on):
     """The browser's page is on the name it typed at the door (checkin.lan:8080), not the hosted
     name, so its Origin is that name: with the agent's key it counts as this site."""

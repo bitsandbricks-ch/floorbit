@@ -46,6 +46,21 @@ def _uplink_re():
     return uplink_pattern()
 
 
+def link_ports(data):
+    """``{(switch name, lower case, canonical port)}`` of every port that joins two boxes: both ends
+    of each planned link (links.py) and each internet line (services.py). They carry the hall's
+    traffic a second time, so the totals leave them out (issue #1042)."""
+    from . import links, services
+    from .syslog import canonical_port
+    out = set()
+    for link in links.all_links(data):
+        for end in ('a', 'b'):
+            out.add((str(link.get(end) or '').lower(), canonical_port(link.get(f'{end}_port'))))
+    for line in services._stored(data).get('uplinks') or []:
+        out.add((str(line.get('device') or '').lower(), canonical_port(line.get('port'))))
+    return out
+
+
 class Stats:
     def __init__(self):
         self._lock = threading.Lock()
@@ -124,8 +139,10 @@ class Stats:
             print(f'[stats] could not save the stats: {exc}')
 
     # ── recording ─────────────────────────────────────────────────────────────
-    def record(self, reads, switch_names, now=None):
-        """``reads`` is ``[(device, port, seat)]`` from one read of all switches."""
+    def record(self, reads, switch_names, now=None, links=frozenset()):
+        """``reads`` is ``[(device, port, seat)]`` from one read of all switches; ``links`` the
+        ports that join two boxes (link_ports), which count as uplinks whatever their description."""
+        from .syslog import canonical_port
         now = time.time() if now is None else now
         uplink_re = _uplink_re()
         names = {n.lower() for n in switch_names}
@@ -144,7 +161,8 @@ class Stats:
                 ports_errors += 1
             desc = str(port.get('description') or '')
             other_switch = any(n in desc.lower() for n in names if n != str(dev['name']).lower())
-            if not seat and state in ('up', 'errors') and (uplink_re.search(desc) or other_switch):
+            linked = (str(dev['name']).lower(), canonical_port(port.get('name'))) in links
+            if not seat and state in ('up', 'errors') and (uplink_re.search(desc) or other_switch or linked):
                 bps = max(_num(port.get('download_bps')), _num(port.get('upload_bps')))
                 best = uplinks.get(dev['id'])
                 if best is None or bps > best['bps']:

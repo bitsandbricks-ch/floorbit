@@ -1,4 +1,4 @@
-import type { PlanDrawing } from '@/api/types'
+import type { PlanDrawing, PlanShape } from '@/api/types'
 import type { View } from '../plan/model'
 import type { PresetId } from '../plan/layers'
 import type { LabelMode } from '../plan/labels'
@@ -6,6 +6,7 @@ import type { Section } from './grid'
 import type { KindPick, LevelPin } from '@/widgets/level'
 import type { LineStyle, Stack, Trend } from '@/widgets/kinds/shape'
 import type { Calc } from '@/widgets/kinds/combine'
+import type { Display } from '@/widgets/kinds/display'
 
 /** Dashboards (floorbit/dashboards.py): widgets on a grid (grid.ts), each one pane or panes split
  *  side by side or stacked, saved under a name. */
@@ -37,9 +38,14 @@ export type Pane = Head & (
    *  instead of picking it from the box (issue #924). ``stack``, ``style`` and ``trend`` say how
    *  bars and lines draw. ``also`` adds up to three more tiles to draw with it, ``group_by`` and
    *  ``reduce`` group or calculate before drawing, ``legend`` picks a graph legend's numbers
-   *  (issue #959). All are left out when automatic or the default. */
-  | { kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend
-      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[] }
+   *  (issue #959); the ``Display`` fields set units, colour steps, mappings and rows (#960).
+   *  All are left out when automatic or the default. */
+  | ({ kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend
+      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[]; range?: TimeRange; compare?: Compare; events?: boolean
+      refresh?: Refresh; text_size?: 's' | 'l'; spark?: boolean; change?: boolean } & Display)
+  /** A saved widget (Widgets page), followed as it changes. ``saved`` comes with the dashboard
+   *  (null: removed) and is dropped when saving; "Clone" turns the pane into a tile pane of its own. */
+  | { kind: 'widget'; widget: string; saved?: { name: string; pane: Extract<Pane, { kind: 'tile' }> } | null }
   /** ``expanded``: the widget at its big size right on the grid (a pane that fills a screen). */
   | { kind: 'view'; view: string; expanded?: boolean }
   | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }
@@ -48,8 +54,32 @@ export type Pane = Head & (
   | { kind: 'private' }
 )
 
+/** The time a pane shows, for a tile that offers it (``ranges``), and what it is compared with. */
+export type TimeRange = '1h' | '6h' | '24h' | 'event'
+export const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', 'event']
+export type Compare = 'day'
+/** How often a pane asks its tile again, in seconds, instead of the tile's own pace. */
+export type Refresh = 10 | 30 | 60 | 300
+export const REFRESHES: Refresh[] = [10, 30, 60, 300]
+
+/** The pane's own time range, else the dashboard's; comparing with yesterday needs a range that has one. */
+export function paneRange<P extends { range?: TimeRange; compare?: Compare }>(pane: P, board?: TimeRange): P & { range?: TimeRange } {
+  const range = pane.range ?? board
+  return { ...pane, range, ...(range === 'event' ? { compare: undefined } : {}) }
+}
+
+/** A tile's address with the pane's time range and comparison, when the tile takes them. */
+export function rangedUrl(tile: { url: string; ranges?: boolean; marks?: boolean },
+  pane: { range?: TimeRange; compare?: Compare; events?: boolean }): string {
+  const q = new URLSearchParams()
+  if (tile.ranges && pane.range) q.set('range', pane.range)
+  if (tile.ranges && pane.compare) q.set('compare', pane.compare)
+  if (tile.marks && pane.events) q.set('marks', '1')
+  return q.size ? `${tile.url}${tile.url.includes('?') ? '&' : '?'}${q}` : tile.url
+}
+
 export type PaneKind = Exclude<Pane['kind'], 'private'>
-export const PANE_KINDS: PaneKind[] = ['plan', 'view', 'tile', 'text', 'empty']
+export const PANE_KINDS: PaneKind[] = ['plan', 'widget', 'view', 'tile', 'text', 'empty']
 
 export type Split = 'row' | 'column'
 export type Node = { pane: Pane } | { split: Split; sizes: number[]; children: Node[] }
@@ -62,10 +92,16 @@ export interface Board {
   fit: boolean
   /** Seconds per hall on the plan panes that show a whole hall; missing is no rotation. */
   cycle?: number
+  /** The time every graph shows unless its pane picks its own; a viewer can change it for themselves. */
+  range?: TimeRange
+  /** Full screen shows a header (name, event, day, next, clock) and the status line; false hides both. */
+  frame?: false
   updated_at?: number
   by?: string | null
   /** Ready-made (the Kiosk): saving under its id keeps your own version instead. */
   builtin?: boolean
+  /** A ready-made dashboard someone edited: deleting the saved one resets it. */
+  changed?: boolean
   /** Opens without signing in, showing only what anyone may see. */
   public?: boolean
 }
@@ -212,7 +248,7 @@ export function areaView(area: Area, drawing: PlanDrawing): View | null {
     return z ? pad({ x: z.x, y: z.y, w: z.w ?? 0, h: z.h ?? 0 }, 24) : null
   }
   if (area.kind === 'block') {
-    const b = drawing.shapes.find((s) => s.name === area.id)
+    const b = findBlock(drawing, area.id)
     if (!b) return null
     return contentBox({ ...drawing, shapes: [b], marks: [] }, 24)
   }
@@ -234,4 +270,29 @@ export function seatsIn(drawing: PlanDrawing, view: View): string[] {
     }
   }
   return out
+}
+
+/** The display part of a tile pane, for widgets/kinds/display.ts. */
+export function displayOf(p: Extract<Pane, { kind: 'tile' }>): Display {
+  const { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero, overrides } = p
+  return { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero, overrides }
+}
+
+/** A seat block by its id, or by its name (panes saved before blocks were picked by id). */
+export function findBlock(drawing: PlanDrawing, ref: string): PlanShape | undefined {
+  return drawing.shapes.find((s) => s.id === ref) ?? drawing.shapes.find((s) => s.name && s.name === ref)
+}
+
+/** What to call a seat block: its name, or the letters of its rows when the rows carry the names
+ *  (a block named by row has no name of its own), or its first seat. */
+export function blockLabel(b: PlanShape): { name: string } | { rows: string } | { seat: string } {
+  if (b.name) return { name: b.name }
+  const letters = [...new Set((b.rows ?? []).map((r) => r.text))]
+  if (letters.length) return { rows: letters.length > 1 ? `${letters[0]}–${letters[letters.length - 1]}` : letters[0] }
+  return { seat: b.cells[0]?.seat ?? '' }
+}
+
+export function blockText(t: (k: string, o?: Record<string, string>) => string, b: PlanShape): string {
+  const l = blockLabel(b)
+  return 'name' in l ? l.name : 'rows' in l ? t('dashboards.area.rows', { rows: l.rows }) : t('dashboards.area.fromSeat', { seat: l.seat })
 }
