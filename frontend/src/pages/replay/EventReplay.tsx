@@ -3,7 +3,7 @@ import { IconDownload, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlayerSk
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EventReplayData } from '@/api/types'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { Panel } from '@/components/ui'
 import { bps } from '../stats/format'
 import { heatmap, sampleAt, when, type HeatMetric } from './model'
@@ -103,10 +103,10 @@ export function EventReplay({ data }: { data: EventReplayData }) {
       </Panel>
 
       <SimpleGrid cols={{ base: 2, sm: 4 }}>
-        <StatCard label={t('replay.online')} value={t('replay.ofSeats', { on: on.size, total: seats })} />
-        <StatCard label={t('replay.bandwidth')} value={frame ? bps(frame.down + frame.up) : '–'} />
-        <StatCard label={t('replay.peak')} value={peak ? bps(peak.bps) : '–'} sub={peak ? when(peak.at) : undefined} />
-        <StatCard label={t('replay.incidents')} value={String(rings.size)} />
+        <StatTile label={t('replay.online')} value={t('replay.ofSeats', { on: on.size, total: seats })} />
+        <StatTile label={t('replay.bandwidth')} value={frame ? bps(frame.down + frame.up) : '–'} />
+        <StatTile label={t('replay.peak')} value={peak ? bps(peak.bps) : '–'} sub={peak ? when(peak.at) : undefined} />
+        <StatTile label={t('replay.incidents')} value={String(rings.size)} />
       </SimpleGrid>
 
       <Panel>
