@@ -1,15 +1,21 @@
 """The crew's walk-through check-in (floorbit/seat_walk.py, docs/seat-walk.md).
 
 - ``GET /seat-walk``: the page (React).
-- ``GET /api/seat-walk?block=&order=``: the block's seats in walking order with the port each has
+- ``GET /api/seat-walk?rows=&order=``: the picked rows' seats (row ids from ``/api/seat-rows``,
+  comma-separated) in walking order with the port each has
   in this event, the local agent's address and which ways of looking a port up are on.
-- ``POST /api/seat-walk/hello``: a one-time code and the agent URL the laptop opens with it.
+- ``POST /api/seat-walk/hello``: a one-time code; ``ip`` at once when the page came through an agent's
+  front door, else the agent URL the laptop opens with it (worked out, see seat_walk.agent_url).
   ``GET /api/seat-walk/hello/<code>``: the laptop's own IP once the agent saw it.
 - ``POST /api/seat-walk/locate``: ``{"seat", "hello", "previous": {"switch", "port"}, "mac", "mac_ip"}``:
   find the port the laptop the agent identified is plugged into now and keep it for the seat. Tries
   for about 20 seconds; ``retry`` says whether trying again is worth it. Or ``mac`` with ``mac_typed``:
   the crew typed the laptop's MAC, no agent needed.
 - ``DELETE /api/seat-walk/<seat>``: forget the seat's port (a wrong one).
+- ``POST /api/seat-walk/walkers``: ``{"rows", "take"}``: start walking these rows (409 with ``held``
+  when someone else walks one, unless ``take``). ``PUT /api/seat-walk/walkers/<id>``: ``{"seat"}``:
+  where the walker is now (and that they still are). ``DELETE``: the walk ends. The overview's
+  ``hall`` lists every row with its progress and walker (floorbit/seat_walkers.py, issue #1000).
 
 The laptop is always identified through the local agent, also when Floorbit runs in the hall: the
 agent sees the laptop's own address, Floorbit may see a proxy's or the hall's public one.
@@ -18,9 +24,9 @@ Reading needs ``seats.view`` (it names the laptop's MAC), changing ``seats.edit`
 """
 from flask import Blueprint, current_app, g, jsonify, request
 
-from integrations import checkin
+from integrations import checkin, events
 
-from .. import seat_walk, sources, spa, tenancy
+from .. import seat_walk, seat_walkers, sources, spa, tenancy
 from ..store import load_data
 
 bp = Blueprint('seat_walk', __name__)
@@ -43,15 +49,16 @@ def page():
 
 @bp.route('/api/seat-walk', methods=['GET'])
 def overview():
-    body = {'agent_url': seat_walk.agent_url() or None,
+    body = {'agent_url': seat_walk.agent_url() or None, 'through_agent': bool(checkin.attendee_ip()),
             'switch_lookup': seat_walk._ssh(_registry())[0] is not None,
             'monitoring': sources.monitoring().enabled(),
             'event': {k: tenancy.current().get(k) for k in ('id', 'name', 'status')},
             'keep_hours': seat_walk.KEEP_AFTER_END // 3600}
-    block = request.args.get('block')
-    if block:
+    body['hall'] = seat_walkers.hall(load_data(), checkin.learned_ports())
+    rows = [r for r in (request.args.get('rows') or '').split(',') if r.strip()]
+    if rows:
         try:
-            body.update(seat_walk.seats(block, request.args.get('order') or 'rows'))
+            body.update(seat_walk.seats(rows[:50], request.args.get('order') or 'rows'))
         except seat_walk.WalkError as exc:
             return jsonify({'error': str(exc)}), exc.status
     return jsonify(body)
@@ -91,7 +98,7 @@ def locate():
     # The MAC the last seat found, while the laptop still has the same IP: saves the ARP lookup.
     mac = typed or (seat_walk._mac(body.get('mac')) if body.get('mac') and body.get('mac_ip') == ip else None)
     result = seat_walk.locate(ip, registry, g.get('audit_user') or _who(), previous,
-                              seat_walk.likely_switches(seat, previous), mac=mac)
+                              seat_walk.likely_switches(seat, previous), mac=mac, seat=seat)
     out = {'seat': seat, 'ip': ip, 'mac': result['mac'], 'how': result['how'], 'ms': result['ms'],
            'tries': result['tries'], 'steps': result['steps'], 'stale': result['stale'], 'found': result['found']}
     if not result['found']:
@@ -102,14 +109,19 @@ def locate():
 
 @bp.route('/api/seat-walk/hello', methods=['POST'])
 def new_hello():
-    url = seat_walk.agent_url()
-    if not url:
-        return jsonify({'error': 'No address for the local agent: set SEAT_WALK_AGENT_URL, or '
-                                 'FLOORBIT_AGENT_LAN_URL on the agent.'}), 409
+    """A code for this laptop. Opened through an agent's front door, the agent already named the
+    laptop's address: done at once (``ip``). Otherwise ``url``: the agent the laptop opens once."""
     try:
         token = seat_walk.new_hello(_who())
     except seat_walk.WalkError as exc:
         return jsonify({'error': str(exc)}), exc.status
+    here = checkin.attendee_ip()
+    if here and seat_walk.hello_here(token, here, 'front door'):
+        return jsonify({'hello': token, 'ip': here})
+    url = seat_walk.agent_url()
+    if not url:
+        return jsonify({'error': 'No laptop in the hall has reached a local agent yet. Open the check-in '
+                                 'page once from a seat, or set the check-in address.'}), 409
     return jsonify({'hello': token, 'url': f'{url}/floorbit/hello/{token}'})
 
 
@@ -125,4 +137,46 @@ def get_hello(token):
 def forget(seat):
     if not checkin.forget_port(seat.strip().upper()):
         return jsonify({'error': 'That seat has no learned port'}), 404
+    return jsonify({'ok': True})
+
+
+def _walk_error(exc):
+    body = {'error': str(exc)}
+    if exc.held:
+        body['held'] = exc.held
+    return jsonify(body), exc.status
+
+
+@bp.route('/api/seat-walk/walkers', methods=['POST'])
+def start_walk():
+    body = request.get_json(silent=True) or {}
+    rows = body.get('rows') if isinstance(body.get('rows'), list) else []
+    from ..seat_names import pick_rows
+    try:
+        pick_rows(load_data(), rows)
+    except ValueError:
+        return jsonify({'error': 'That row is not on the floor plan any more.'}), 404
+    try:
+        walker = seat_walkers.claim(rows, _who(), take=bool(body.get('take')))
+    except seat_walkers.ClaimError as exc:
+        return _walk_error(exc)
+    events.publish('seat-walk.changed', {})
+    return jsonify(walker), 201
+
+
+@bp.route('/api/seat-walk/walkers/<walker_id>', methods=['PUT'])
+def walker_at(walker_id):
+    body = request.get_json(silent=True) or {}
+    try:
+        walker = seat_walkers.at_seat(walker_id, body.get('seat'))
+    except seat_walkers.ClaimError as exc:
+        return _walk_error(exc)
+    events.publish('seat-walk.changed', {})
+    return jsonify(walker)
+
+
+@bp.route('/api/seat-walk/walkers/<walker_id>', methods=['DELETE'])
+def end_walk(walker_id):
+    seat_walkers.release(walker_id)
+    events.publish('seat-walk.changed', {})
     return jsonify({'ok': True})
