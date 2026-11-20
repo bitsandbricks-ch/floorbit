@@ -9,7 +9,7 @@ import { qk } from '@/api/keys'
 import type { Agent } from '@/api/types'
 import { DangerZone } from '@/components/ItemPage'
 import { Layout } from '@/components/Layout'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { EmptyState, ErrorBanner, Field, LoadingState, Panel } from '@/components/ui'
 import { ago, dateOnly } from '@/lib/time'
 import { AgentGraphs } from './agents/AgentGraphs'
@@ -107,13 +107,13 @@ export default function AgentDetail() {
               <Grid.Col span={{ base: 12, lg: 8 }}>
                 <Stack gap="md">
                   <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
-                    <StatCard label={t('agents.fact.calls')} value={num(a.stats?.calls)}
+                    <StatTile label={t('agents.fact.calls')} value={num(a.stats?.calls)}
                       sub={a.stats?.median_ms != null ? t('agents.stat.median', { ms: a.stats.median_ms }) : undefined} />
-                    <StatCard label={t('agents.stat.failed')} value={num(a.stats?.failed)} tone={a.stats?.failed ? 'warn' : undefined} />
-                    <StatCard label={t('agents.stat.syslog')} value={num(r?.syslog_received)}
+                    <StatTile label={t('agents.stat.failed')} value={num(a.stats?.failed)} tone={a.stats?.failed ? 'warn' : undefined} />
+                    <StatTile label={t('agents.stat.syslog')} value={num(r?.syslog_received)}
                       tone={r?.syslog_dropped ? 'warn' : undefined}
                       sub={r?.syslog_dropped ? t('agents.reportSyslogDropped', { count: r.syslog_dropped, n: num(r.syslog_dropped) }) : t('agents.stat.waiting', { n: num(r?.syslog_backlog) })} />
-                    <StatCard label={t('agents.stat.reconnects')} value={num(Math.max(r?.reconnects ?? 0, r?.link_drops ?? 0))}
+                    <StatTile label={t('agents.stat.reconnects')} value={num(Math.max(r?.reconnects ?? 0, r?.link_drops ?? 0))}
                       tone={(r?.reconnects ?? 0) > 0 ? 'warn' : undefined} />
                   </SimpleGrid>
                   <Panel title={t('agents.needsLook')} aria-label={t('agents.needsLook')}>

@@ -13,7 +13,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PageTabs } from '@/components/PageTabs'
 import { usePageTab } from '@/components/pageTab'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { DeviceProblems, DeviceTelemetryActions } from '@/components/telemetry/DeviceTelemetry'
 import type { DeviceSeen } from '@/components/telemetry/api'
 import { TelemetryAgentNumbersList, type TelemetryAgentNumbers } from '@/components/telemetry/AgentNumbers'
@@ -57,13 +57,13 @@ export default function Telemetry() {
         {data.error && <Alert color="down" role="alert">{data.error.message}</Alert>}
         {d && (
           <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm" aria-label={t('telemetry.summary')}>
-            <StatCard label={t('telemetry.devicesTitle')} value={String(d.devices.length)}
+            <StatTile label={t('telemetry.devicesTitle')} value={String(d.devices.length)}
               sub={t(`telemetry.collectorIs.${d.status.collector}`)} />
-            <StatCard label={t('telemetry.heardCard')} value={`${d.devices.length - silent} / ${d.devices.length}`}
+            <StatTile label={t('telemetry.heardCard')} value={`${d.devices.length - silent} / ${d.devices.length}`}
               tone={!d.devices.length ? undefined : silent ? (silent === d.devices.length ? 'down' : 'warn') : 'up'} />
-            <StatCard label={t('telemetry.problemsCard')} value={String(problems)} tone={problems ? 'warn' : undefined}
+            <StatTile label={t('telemetry.problemsCard')} value={String(problems)} tone={problems ? 'warn' : undefined}
               sub={problems ? undefined : t('telemetry.noProblems')} />
-            <StatCard label={t('telemetry.points')} value={d.status.points !== null ? String(d.status.points) : '–'}
+            <StatTile label={t('telemetry.points')} value={d.status.points !== null ? String(d.status.points) : '–'}
               tone={Object.keys(d.status.storage.errors).length ? 'down' : undefined}
               sub={t(`telemetry.storageIs.${d.status.storage.mode}`, { days: d.status.storage.keep_days })} />
           </SimpleGrid>
