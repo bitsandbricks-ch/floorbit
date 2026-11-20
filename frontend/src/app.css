@@ -1088,6 +1088,8 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   .fb-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 }
 
+/* An item page's remove panel: a thin line in the down colour, so it reads as the end of the page. */
+.fb-danger-zone { border-color: color-mix(in srgb, var(--color-down) 40%, var(--mantine-color-default-border)); }
 /* A settings row (#994): what it is and its help on the left, the control on the right, every
    control the same width, so a wide screen doesn't leave half the panel empty. One column on phones. */
 .fb-setting-row {
