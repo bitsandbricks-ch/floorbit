@@ -16,13 +16,22 @@ const HINT_LINKS: Record<string, HintLink> = {
   device_problems: { href: '/telemetry', internal: true },
   device_partial: { href: '/telemetry', internal: true },
 }
+/** Hints about the agent's devices: its own Devices tab, the ones that need a look (issue #1013). */
+const DEVICE_HINTS = new Set(['device_problems', 'device_partial'])
+// Agent calls about one device: a failure there is shown on the Devices tab too.
+const DEVICE_CALLS = new Set(['device_details', 'port_stats', 'device_ports', 'port_clients', 'neighbours', 'device_facts'])
+
+export function devicesLink(agentId: string): HintLink {
+  return { href: `/settings/agents/${encodeURIComponent(agentId)}?tab=devices&show=look`, internal: true }
+}
 
 /** What a plugin says about itself: the translated sentence for a known hint, else its own words. */
-export function pluginSays(p: AgentPluginHealth, t: TFunction): { text: string; detail: string; link?: HintLink } {
+export function pluginSays(p: AgentPluginHealth, t: TFunction, agentId?: string): { text: string; detail: string; link?: HintLink } {
   const key = p.hint ? `agents.hint.${p.hint}` : ''
   if (key && t(key, { defaultValue: '' })) {
     // The agent's own words still say which device and why: kept as the detail.
-    return { text: t(key), detail: p.message, link: HINT_LINKS[p.hint!] }
+    const link = agentId && DEVICE_HINTS.has(p.hint!) ? devicesLink(agentId) : HINT_LINKS[p.hint!]
+    return { text: t(key), detail: p.message, link }
   }
   return { text: p.message, detail: '' }
 }
@@ -58,11 +67,11 @@ export function problems(agent: Agent, newest: string | null | undefined, protoc
   for (const [id, p] of plugins(agent)) {
     if (!p.running && p.status !== 'off') out.push({ tone: 'down', text: t('agents.problem.pluginStopped', { plugin: id, message: p.message || '–' }) })
     else if (p.status === 'error') {
-      const says = pluginSays(p, t)
+      const says = pluginSays(p, t, agent.id)
       out.push({ tone: 'down', text: t('agents.problem.pluginError', { plugin: id, message: says.text || p.errors[p.errors.length - 1]?.error || '–' }), link: says.link })
     }
     else if (p.status === 'warning') {
-      const says = pluginSays(p, t)
+      const says = pluginSays(p, t, agent.id)
       out.push({ tone: 'warn', text: t('agents.problem.pluginWarning', { plugin: id, message: says.text || '–' }), link: says.link })
     }
   }
@@ -80,7 +89,8 @@ export function problems(agent: Agent, newest: string | null | undefined, protoc
     const e = agent.stats.last_error
     out.push({ tone: 'warn', text: e
       ? t('agents.problem.failedLast', { count: agent.stats.failed, method: e.method, error: e.error ?? '?', when: ago(e.at, lang) })
-      : t('agents.problem.failed', { count: agent.stats.failed }) })
+      : t('agents.problem.failed', { count: agent.stats.failed }),
+    link: e && DEVICE_CALLS.has(e.method) ? devicesLink(agent.id) : undefined })
   }
   return out.sort((a, b) => (a.tone === b.tone ? 0 : a.tone === 'down' ? -1 : 1))
 }
