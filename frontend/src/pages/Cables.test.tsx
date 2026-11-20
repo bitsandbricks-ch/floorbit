@@ -60,20 +60,19 @@ describe('Cables', () => {
     expect(screen.queryByRole('button', { name: 'Add cable' })).not.toBeInTheDocument()
   })
 
-  it('patches a whole block after a preview, and asks before replacing cables in the way', async () => {
+  it('patches rows after a preview, and asks before replacing cables in the way', async () => {
     const cables = Array.from({ length: 16 }, (_, n) => ({ seat: `A-${n + 1}`, switch: 'sw-a-01', port: `Gi1/0/${n + 1}`, block: 'b1' }))
-    const plan: BlockPlan = { block: 'A', cables, clashes: [{ seat: 'A-3', port: 'Gi1/0/3', kind: 'port', cable: 'C-0001', other_seat: 'B-9', imported: false }] }
+    const plan: BlockPlan = { rows: ['A 1', 'A 2'], cables, clashes: [{ seat: 'A-3', port: 'Gi1/0/3', kind: 'port', cable: 'C-0001', other_seat: 'B-9', imported: false }] }
     const api = fakeFetch({
       ...OPTIONS, 'GET /api/auth/me': lead, 'GET /api/cables': data,
-      'GET /api/seat-blocks': [{ id: 'b1', name: 'A', cols: 8, rows: 2, hall_id: 'h' }],
       'POST /api/cables/block': (init?: RequestInit) => ({
         body: JSON.parse(String(init?.body)).dry_run ? plan : { ...plan, created: 16, removed: 1 } }),
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Cables />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Patch a block' }))
-    fireEvent.click(await screen.findByRole('combobox', { name: 'Seat block' }))
-    fireEvent.click(await screen.findByRole('option', { name: 'A (16)', hidden: true }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Patch rows' }))
+    await pick('Rows', 'A 1 (8 seats)')
+    await pick('Rows', 'A 2 (8 seats)')
     await pick('Switch', 'sw-a-01')
     expect(await screen.findByText('16 seats get a cable:')).toBeInTheDocument()
     expect(screen.getByText('… A-16')).toBeInTheDocument()                      // a long block is cut short
@@ -85,8 +84,8 @@ describe('Cables', () => {
     fireEvent.click(make)
     expect(await screen.findByText('Made 16 cables, replaced 1.')).toBeInTheDocument()
     const sent = api.calls.filter((c) => c.path === '/api/cables/block').map((c) => c.body as Record<string, unknown>)
-    expect(sent[0]).toMatchObject({ block: 'b1', switch: 'sw-a-01', first_port: 'Gi1/0/1', order: 'rows', dry_run: true })
-    expect(sent.filter((b) => !b.dry_run)).toEqual([expect.objectContaining({ block: 'b1', replace: true })])
+    expect(sent[0]).toMatchObject({ rows: ['b1:1', 'b1:2'], switch: 'sw-a-01', first_port: 'Gi1/0/1', order: 'rows', dry_run: true })
+    expect(sent.filter((b) => !b.dry_run)).toEqual([expect.objectContaining({ rows: ['b1:1', 'b1:2'], replace: true })])
   })
 
   it('checks the plan against the ports the network reports', async () => {
@@ -94,7 +93,7 @@ describe('Cables', () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': viewer, 'GET /api/cables': data,
       'GET /api/cables/check': {
-        last_poll: 1_763_100_000, blocks: [{ block: 'b1', name: 'A', seats: 24, up: 18 }],
+        last_poll: 1_763_100_000, rows: [{ row: 'b2:1', name: 'C', block_label: 'C\u2013D', naming: 'rows', seats: 24, up: 18 }],
         missing: list([{ seat: 'A-4', switch: 'sw-a-01', port: 'Gi1/0/40' }]),
         conflicts: list([{ seat: 'A-1', switch: 'sw-a-01', port: 'Gi1/0/1', described_seat: 'A-2' }]),
         unplanned: list([{ switch: 'sw-a-01', port: 'Gi1/0/30' }]),
