@@ -11,7 +11,7 @@ Gathered from what is already watched, without asking anything new:
 - links between switches that are down or slower than planned (floorbit/links.py).
 
 Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
-and seats outside their block's range (floorbit/seat_ranges.py) come as a list of their own under
+and seats outside their switch's range (floorbit/seat_ranges.py) come as a list of their own under
 ``attention``, newest first.
 
 Each problem is ``{id, kind, level, title, where, since, link}`` with ``level`` ``down`` or ``warn``.
@@ -152,9 +152,11 @@ def _ranges():
         found = seat_ranges.items(load_data(), seat_sources.load())
     except Exception:  # noqa: BLE001 - a seat source that can't be read must not take the page down
         return []
+    # A range set for the wrong switch is fixed under Firewalls; the rest on the plan.
     return [{'id': f['id'], 'kind': 'range', 'level': 'warn', 'title': f['title'], 'where': f['where'],
              'since': None, 'switch_id': None,
-             'link': _on_plan(seat=f['seat'], switch=f['switch']) if f['seat'] or f['switch'] else '/firewalls'}
+             'link': '/firewalls' if f['id'].startswith('range:plan:')
+             else _on_plan(seat=f['seat'], switch=f['switch'])}
             for f in found]
 
 

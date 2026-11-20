@@ -49,26 +49,28 @@ describe('Firewalls', () => {
     fireEvent.click(await screen.findByRole('option', { name: 'fw-01', hidden: true }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({
-      cidr: '192.0.2.0/27', name: '', firewalls: ['fw-02', 'fw-01'], blocks: [],
+      cidr: '192.0.2.0/27', name: '', firewalls: ['fw-02', 'fw-01'], switches: [],
     }))
   })
 
-  it('names the seat blocks of an imported range, and sends only those (issue #1062)', async () => {
-    const imported = { ...list.ranges[0], source: 'import' as const, plugin: 'netbox', blocks: [] }
+  it('names the switch groups of an imported range, and sends only those (issue #1062)', async () => {
+    const imported = { ...list.ranges[0], source: 'import' as const, plugin: 'netbox', switches: ['g-green'] }
     const api = fakeFetch({
       'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [imported] },
-      'GET /api/seat-blocks': [{ id: 'b1', name: 'A', cols: 2, rows: 2, hall_id: 'h' }],
-      [`PUT /api/firewalls/ranges/${imported.id}`]: { body: { ...imported, blocks: ['b1'] } },
+      'GET /api/inventory/groups': { groups: [{ id: 'g-green', name: 'Green' }, { id: 'g-red', name: 'Red' }], tags: [] },
+      'GET /api/inventory': { devices: [{ id: 'd1', name: 'sw-r1', role: 'switch' }, { id: 'd2', name: 'fw-01', role: 'firewall' }], sources: [] },
+      [`PUT /api/firewalls/ranges/${imported.id}`]: { body: { ...imported, switches: ['g-green', 'd1'] } },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Firewalls />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Blocks' }))
+    expect(await screen.findByText('For: Green')).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Switches' }))
     expect(await screen.findByRole('textbox', { name: 'Range' })).toBeDisabled()
-    const [pick] = screen.getAllByLabelText('Seat blocks').filter((el) => el.tagName === 'INPUT' && el.getAttribute('type') !== 'hidden')
+    const [pick] = screen.getAllByLabelText('Switches and switch groups').filter((el) => el.tagName === 'INPUT' && el.getAttribute('type') !== 'hidden')
     fireEvent.click(pick)
-    fireEvent.click(await screen.findByRole('option', { name: 'A', hidden: true }))
+    fireEvent.click(await screen.findByRole('option', { name: 'sw-r1', hidden: true }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ blocks: ['b1'] }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ switches: ['g-green', 'd1'] }))
   })
 
   it('splits a network over all firewalls and says how many ranges that makes', async () => {

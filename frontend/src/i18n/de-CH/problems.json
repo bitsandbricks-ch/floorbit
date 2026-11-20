@@ -28,7 +28,7 @@
   },
   "attention": {
     "title": "Braucht Aufmerksamkeit",
-    "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex, Plätze online ohne Check-in Syslog-Zeilen wie err-disable oder DHCP-Snooping und Plätze mit einer Adresse ausserhalb des Bereichs ihres Blocks. Sie verschwinden von selbst, sobald der Port sich normal verhält."
+    "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex, Plätze online ohne Check-in Syslog-Zeilen wie err-disable oder DHCP-Snooping und Plätze mit einer Adresse ausserhalb des Bereichs ihres Switches. Sie verschwinden von selbst, sobald der Port sich normal verhält."
   },
   "since": "begonnen {{ago}}",
   "open": "Öffnen",
