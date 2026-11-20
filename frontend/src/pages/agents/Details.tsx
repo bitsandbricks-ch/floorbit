@@ -92,7 +92,8 @@ export function Blocked({ agentId, plugins, lang, size = 'xs' }: { agentId: stri
 export function PluginTable({ plugins, lang }: { plugins?: Record<string, AgentPluginHealth>; lang: string }) {
   const { t } = useTranslation()
   const ids = Object.keys(plugins ?? {}).sort()
-  if (!plugins || !ids.length) return <Text size="sm" c="dimmed">{t('agents.noPluginReport')}</Text>
+  // Callers put the table in a Panel without padding; the empty note needs its own.
+  if (!plugins || !ids.length) return <Text size="sm" c="dimmed" p="md">{t('agents.noPluginReport')}</Text>
   return (
     <Table verticalSpacing="sm" className="fb-table-stack" aria-label={t('agents.plugins')}>
       <Table.Thead>
