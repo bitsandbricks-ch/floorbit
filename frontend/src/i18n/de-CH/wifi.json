@@ -36,5 +36,12 @@
   "unplacedHint_other": "{{count}} Access Points sind nicht auf dem Hallenplan, oder ihre Namen passen nicht zum Inventar.",
   "privacy": "Aus {{sources}}. Nur die Anzahl Clients: Floorbit fragt nie, wer verbunden ist, und speichert es nicht.",
   "noPlugin": "Kein Wi-Fi-Plugin ist eingeschaltet. Schalte UniFi unter Einstellungen > Plugins ein, oder füge ein Plugin mit uses: [wifi] hinzu.",
-  "pluginError": "Ein Plugin konnte nicht gefragt werden: {{message}}"
+  "pluginError": "Ein Plugin konnte nicht gefragt werden: {{message}}",
+  "history": "Clients im Verlauf",
+  "historyRange": "Zeitraum",
+  "historyHours_one": "{{count}} Stunde",
+  "historyHours_other": "{{count}} Stunden",
+  "historyMax": "max. {{n}}",
+  "historyNone": "Noch kein Verlauf: die ersten Zahlen kommen innert einer Minute.",
+  "historyFrom": "Von den Controllern, die an Telemetrie senden: {{controllers}}."
 }

@@ -115,10 +115,10 @@ function CircuitForm({ circuit, overview, switches, busy, error, onClose, onSave
   const [feeds, setFeeds] = useState<string[]>(toValues(circuit?.blocks ?? []))
   const [fed, setFed] = useState<string[]>(circuit?.switches ?? [])
   const blockOptions = overview.blocks.map((b) => ({
-    group: b.name || '?',
+    group: b.label || b.name,
     items: [
-      { value: b.id, label: t('power.allRows', { name: b.name }) },
-      ...Array.from({ length: b.rows }, (_, i) => ({ value: `${b.id}:${i + 1}`, label: t('power.row', { name: b.name, row: i + 1 }) })),
+      { value: b.id, label: t('power.allRows', { name: b.label || b.name }) },
+      ...Array.from({ length: b.rows }, (_, i) => ({ value: `${b.id}:${i + 1}`, label: t('power.row', { name: b.label || b.name, row: b.row_names?.[i] ?? i + 1 }) })),
     ],
   }))
   return (

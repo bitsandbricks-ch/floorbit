@@ -207,8 +207,7 @@ Fix what failed, then run the check again.
 
 Everything the agent does for the event is a plugin, set up in Floorbit under **Settings >
 Plugins**: LibreNMS and NetBox, health checks, DNS, Wi-Fi, and the parts that listen in the hall
-(**Syslog from the hall**, **Traffic from the hall**, **Check-in note on phones** and **Front door
-for attendees**). Every agent takes them from there within a minute. The agent's own environment no
+(**Syslog from the hall**, **Traffic from the hall** and **Front door for attendees**). Every agent takes them from there within a minute. The agent's own environment no
 longer sets plugins: `LIBRENMS_URL`, `NETBOX_URL`, `FLOORBIT_PLUGIN_<ID>_<KEY>`,
 `FLOORBIT_AGENT_PLUGINS` and the old `FLOORBIT_AGENT_SYSLOG_PORT`, `_FLOWS_PORT`, `_CAPTIVE` and
 `_FRONT_DOOR` are not read.
@@ -221,20 +220,20 @@ over ("Took over plugin settings from an agent"), and the agent's log says which
 remove. Only plugins that work on an agent are taken over this way.
 
 **Self-hosted with the agent next to Floorbit** (the compose file, the Kubernetes pod): the first
-time Floorbit starts with its local agent, it turns on syslog on port 5514, flows on 2055 and the
-front door on `0.0.0.0:8443`, the ports the compose file and the pod publish. A plugin you set up or
-turned off yourself is left alone.
+time Floorbit starts with its local agent, it turns on syslog on port 5514 and flows on 2055, the
+ports the compose file and the pod publish. A plugin you set up or turned off yourself is left alone.
+The front door is on by default on every agent (see "Attendees through the agent").
 
 ### The agent's own settings
 
 Each agent's own settings are set on its page in Floorbit (**Agents >** the agent **> Settings**), and
-the agent takes them with its plugins: the address laptops in the hall use, the metrics listener and
+the agent takes them with its plugins: the metrics listener and
 its token, how much it buffers while Floorbit is away, the Telegraf port, the log level and summary
 line, and the VRRP virtual IPs. Plugin settings that differ on one agent (another flow port, another
 syslog bind) are set there too; **Settings > Plugins** stays the default for every agent.
 
 **The agent's environment wins.** When the agent's own environment sets one of them
-(`FLOORBIT_AGENT_LAN_URL`, `FLOORBIT_AGENT_METRICS`, `_METRICS_TOKEN`, `_BUFFER_MAX_MB`,
+(`FLOORBIT_AGENT_METRICS`, `_METRICS_TOKEN`, `_BUFFER_MAX_MB`,
 `_BUFFER_MAX_HOURS`, `FLOORBIT_TELEMETRY_PORT`, `FLOORBIT_AGENT_LOG_LEVEL` (or `LOG_LEVEL`),
 `_LOG_SUMMARY`, `FLOORBIT_AGENT_VRRP_*`), that value is used and the field on the page is locked.
 The agent reports where each value came from (*agent env*, *Floorbit* or *default*), and which ones
@@ -347,8 +346,8 @@ the left side of a mapping is what the devices send to.
 | 8186/tcp | `8186` | Telemetry | a firewall's own Telegraf (OPNsense, pfSense) | no |
 | 5514/udp | `514/udp` | Syslog from the hall | syslog from switches, firewalls, DHCP | no |
 | 2055/udp | `2055/udp` | Traffic from the hall | NetFlow v5/v9 and IPFIX exports | no |
-| 8908/tcp | through the reverse proxy | Check-in note on phones | phones and laptops (RFC 8908), via DHCP option 114 | no |
-| 8443/tcp | `80` or `443` | Front door for attendees | attendees' browsers | no |
+| 8443/tcp | `443` | Front door for attendees | attendees' browsers, phones asking for the check-in note (DHCP option 114), the crew's seat walk-through. HTTPS with a certificate, plain HTTP without | yes |
+| 8080/tcp | `80` | Front door for attendees | the same, plain HTTP; sent on to HTTPS once the agent has a certificate | yes |
 
 Another trap receiver on the same machine (LibreNMS's snmptrapd) already holds 162: set
 `TRAP_PUBLISH_PORT` to another port and point the devices there, or send traps to one of the two.
@@ -363,8 +362,8 @@ agent's page, and in `/metrics` as `floorbit_agent_plugin_<name>{plugin="<id>"}`
 | 8186 | from the firewall: `curl -s -o /dev/null -w '%{http_code}' http://<agent>:8186/ping` | `204` |
 | 514/udp | `logger -n <agent> -P 514 -d "floorbit test"` from any machine | the line is on the Logs page; `received` grows for `syslog-relay` |
 | 2055/udp | a router's flow export pointed at it | `packets` grows for `netflow-relay`; the Traffic page fills after a minute |
-| 8908 | `curl -s http://<agent>:8908/.well-known/captive-portal` | a JSON answer with `captive` in it |
-| 8443 | open `http://<agent>/` from a seat | the check-in page |
+| 443, 80 | open `http://<agent>/` from a seat | the check-in page |
+| 443, 80 | `curl -s http://<agent>/.well-known/captive-portal` | a JSON answer with `captive` in it |
 
 ## Telegraf
 
@@ -455,21 +454,32 @@ which PC asks, the seat speed test measures the internet line, and all attendees
 sign-in lockout. The agent's **front door** fixes that: it answers on the event network and passes
 each request on to the hosted Floorbit, adding the address it saw and its own key.
 
-Turn on the **Front door for attendees** plugin under Settings > Plugins:
+The **Front door for attendees** plugin is on by default on every agent, and the compose files and
+the Kubernetes pod publish its ports, so nothing has to be set up. One listener answers everything
+attendees and the crew open in the hall:
 
-| Setting | Example | What |
+- `/`: the check-in page and everything else of Floorbit, passed on with the attendee's address;
+- `/.well-known/captive-portal`: the check-in note on phones (RFC 8908), while check-in is on;
+- `/floorbit/hello/<code>`: the crew's [seat walk-through](seat-walk.md) identifying its laptop;
+- `/help/<seat>/speed/...`: the seat speed test, answered by the agent itself.
+
+| Setting | Default | What |
 | --- | --- | --- |
-| Address on the agent | `0.0.0.0:8443` | Where it answers (host:port). Empty: off. |
-| Reverse proxy addresses | `10.0.0.5` | A reverse proxy in front of the agent: its last `X-Forwarded-For` hop is the client. |
+| Address on the agent | `0.0.0.0:8443` | HTTPS inside the agent, published as 443. Plain HTTP while the agent has no certificate. Empty: off. |
+| Plain HTTP address on the agent | `0.0.0.0:8080` | Plain HTTP, published as 80. With a certificate it sends browsers on to HTTPS. Empty: off. |
+| Reverse proxy addresses | | A reverse proxy in front of the agent: its last `X-Forwarded-For` hop is the client. |
+
+The agent runs as an unprivileged user, so inside the container it listens above 1024; the compose
+file maps 443 and 80 onto it. A browser that speaks HTTPS to the plain port, or plain HTTP to the
+HTTPS port, gets one line in the agent's log saying which address to open, not a stack trace.
 
 For HTTPS, give the agent's machine a certificate (`FLOORBIT_AGENT_TLS_CERT` and
 `FLOORBIT_AGENT_TLS_KEY` in its environment). Crew sign-in needs it (session cookies only go over
 HTTPS); check-in works on plain HTTP.
 
 Then point the check-in name (`CHECKIN_ADDRESS`, for example `checkin.lan`) at the agent in the
-event DNS: typing it on a PC opens the check-in page, through the agent. Self-hosted, Floorbit turns the
-front door on for its local agent, and the compose file and the Kubernetes manifest open it on port
-80 (`CHECKIN_PUBLISH_PORT` in compose).
+event DNS: typing it on a PC opens the check-in page, through the agent. The compose files and the
+Kubernetes manifest publish it on 443 and 80 (`HTTPS_PUBLISH_PORT`, `HTTP_PUBLISH_PORT` in compose).
 
 **Check-in takes the seat PC's address only from the front door**, hosted or self-hosted alike: a
 request's own address or `X-Forwarded-For` never names it. A check-in from anywhere else keeps the
