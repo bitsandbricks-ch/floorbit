@@ -92,13 +92,9 @@
       "title": "Plugin: Traffic from the hall",
       "desc": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent."
     },
-    "plugin-captive-note": {
-      "title": "Plugin: Check-in note on phones",
-      "desc": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away."
-    },
     "plugin-front-door": {
       "title": "Plugin: Front door for attendees",
-      "desc": "The local agent answers on the event network and hands each request on to Floorbit with the address it saw, so check-in finds the seat PC's switch port, the seat speed test measures the hall and each attendee has their own sign-in lockout. Point the check-in address (CHECKIN_ADDRESS) at the agent."
+      "desc": "The local agent answers attendees on the event network, on one port: check-in, the seat speed test, the check-in note on phones (DHCP option 114, while check-in is on) and the crew's seat walk-through. Each request goes on to Floorbit with the address the agent saw, so check-in finds the seat PC's switch port. Point the check-in name (CHECKIN_ADDRESS) at the agent."
     },
     "plugin-shelly": {
       "title": "Plugin: Shelly meters",
@@ -321,14 +317,6 @@
     "integrations_checkin_validate_seats": {
       "label": "Only accept seats on the plan",
       "help": "Reject seat numbers that are not in any seat block."
-    },
-    "integrations_captive_enabled": {
-      "label": "Captive portal (DHCP option 114)",
-      "help": "Tell the local agent which machines checked in, so phones and laptops that did not see a quiet \"sign in to network\" note that opens the check-in page. Needs the check-in page, the plugin \"Check-in note on phones\" and option 114 in the event DHCP. Nothing is ever blocked."
-    },
-    "integrations_seat_walk_agent_url": {
-      "label": "Local agent address for the seat walk-through",
-      "help": "Where laptops in the hall reach the local agent's captive port, e.g. http://192.0.2.10:8908. Empty: the address the agent reports (FLOORBIT_AGENT_LAN_URL)."
     },
     "integrations_checkin_verify_rate": {
       "label": "Port lookups per second",
@@ -615,21 +603,13 @@
       "label": "Listen address",
       "help": "The agent's address to listen on. Empty: all of them."
     },
-    "plugin_captive-note_address": {
-      "label": "Address on the agent",
-      "help": "host:port the agent answers on. Serve it behind the event's reverse proxy with a certificate: RFC 8908 wants HTTPS. Empty: off."
-    },
-    "plugin_captive-note_portal_url": {
-      "label": "Sign-in page",
-      "help": "Where the note leads. Empty: the check-in page the hosted Floorbit names."
-    },
-    "plugin_captive-note_proxies": {
-      "label": "Reverse proxy addresses",
-      "help": "Comma-separated. From these, the client's address is taken from X-Forwarded-For."
-    },
     "plugin_front-door_address": {
       "label": "Address on the agent",
-      "help": "host:port the agent answers on. HTTPS when the agent has a certificate (FLOORBIT_AGENT_TLS_CERT and _KEY on the agent). Empty: off."
+      "help": "host:port inside the agent for HTTPS, published as 443. Plain HTTP while the agent has no certificate. Empty: off."
+    },
+    "plugin_front-door_http_address": {
+      "label": "Plain HTTP address on the agent",
+      "help": "host:port inside the agent for plain HTTP, published as 80. With a certificate it sends browsers on to HTTPS. Empty: off."
     },
     "plugin_front-door_proxies": {
       "label": "Reverse proxy addresses",
@@ -846,8 +826,7 @@
     "lancache": "What the LAN cache served (per service, from disk or the internet), the downloads enough players fetched, lancache-dns lookups, its disk and whether it answers. Read by the local agent in the hall; hall-wide numbers only.",
     "syslog-relay": "The local agent listens for syslog on the event network and sends the lines on over its HTTPS link, to the Logs page and the alerts. Lines wait on the agent's disk while the hosted Floorbit can't be reached.",
     "netflow-relay": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent.",
-    "captive-note": "The local agent answers the Captive Portal API on the event network (DHCP option 114), so phones and laptops show a quiet sign-in note until their seat has checked in. Nothing is ever blocked. It keeps answering from the last word while the hosted Floorbit is away.",
-    "front-door": "The local agent answers on the event network and hands each request on to Floorbit with the address it saw, so check-in finds the seat PC's switch port, the seat speed test measures the hall and each attendee has their own sign-in lockout. Point the check-in address (CHECKIN_ADDRESS) at the agent.",
+    "front-door": "The local agent answers attendees on the event network, on one port: check-in, the seat speed test, the check-in note on phones (DHCP option 114, while check-in is on) and the crew's seat walk-through. Each request goes on to Floorbit with the address the agent saw, so check-in finds the seat PC's switch port. Point the check-in name (CHECKIN_ADDRESS) at the agent.",
     "shelly": "The local agent reads the load from Shelly plugs, relays and energy meters on the event network (first and later generations) and hands it to the circuits on the Electrics page by meter id.",
     "home-assistant": "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id."
   }

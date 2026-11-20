@@ -331,3 +331,30 @@ def test_a_tile_pane_draws_more_sources_grouped_and_calculated(client, anon_clie
     board = anon_client.get("/api/dashboards/mixed/public").get_json()["board"]
     assert board["sections"][0]["panels"][0]["node"]["pane"]["kind"] == "private"
     assert anon_client.get("/api/dashboards/mixed/public/tiles/switches").status_code == 404
+
+
+def test_a_tile_pane_keeps_how_it_shows_its_numbers(client):
+    def save(**extra):
+        body = {"name": "Display", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {
+            "pane": {"kind": "tile", "tile": "floorbit/w/seats", **extra}}}]}]}
+        return client.put("/api/dashboards/display", json=body)
+    shown = {"thresholds": [{"at": 80, "tone": "warn"}, {"at": 95, "tone": "err"}], "threshold_mode": "percent",
+             "mappings": [{"from": 0, "to": 0, "text": "Nobody", "tone": "err"}], "unit": "seats", "decimals": 1,
+             "short": True, "sort": "value-desc", "limit": 5, "hide_zero": True}
+    r = save(**shown)
+    assert r.status_code == 200, r.get_json()
+    pane = r.get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert pane == {"kind": "tile", "tile": "floorbit/w/seats", **shown}
+    r = save(thresholds=[], mappings=[], unit="", short=False, sort="", hide_zero=False, threshold_mode="value")
+    assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == {"kind": "tile", "tile": "floorbit/w/seats"}
+
+    def error(**extra):
+        return save(**extra).get_json()["error"]
+    assert "colour steps" in error(thresholds=[{"at": i, "tone": "ok"} for i in range(6)])
+    assert "must be a number" in error(thresholds=[{"at": "high", "tone": "ok"}])
+    assert "colour is one of" in error(thresholds=[{"at": 1, "tone": "pink"}])
+    assert "percent of the max" in error(thresholds=[{"at": 1, "tone": "ok"}], threshold_mode="log")
+    assert "whole number" in error(decimals=9)
+    assert "whole number" in error(limit=0)
+    assert "Sort" in error(sort="random")
+    assert "mappings" in error(mappings=[{"text": "x"}] * 11)

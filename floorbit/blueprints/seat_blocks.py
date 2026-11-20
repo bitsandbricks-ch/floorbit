@@ -139,9 +139,20 @@ def _clash_error(seat):
 def get_seat_blocks():
     """All seat blocks, or with ``?hall=<id>`` only that hall's."""
     data = load_data()
-    blocks = with_hall(stacking.by_z(data.get('seat_blocks', [])), data)
+    from ..seat_names import label, row_names
+    # label: what pickers show (a block named by its rows has no name); row_names: each row's.
+    blocks = [{**b, 'label': label(b), 'row_names': row_names(b)}
+              for b in with_hall(stacking.by_z(data.get('seat_blocks', [])), data)]
     wanted = request.args.get('hall')
     return jsonify([b for b in blocks if b['hall_id'] == wanted] if wanted else blocks)
+
+
+@bp.route('/api/seat-rows', methods=['GET'])
+def get_seat_rows():
+    """The hall's rows by name, for what works a row at a time (walks, patching, the cable check)."""
+    from ..seat_names import hall_rows
+    rows = hall_rows(load_data())
+    return jsonify([{k: v for k, v in r.items() if k != 'seats'} | {'seat_count': len(r['seats'])} for r in rows])
 
 
 def make_block(body, hall_id):

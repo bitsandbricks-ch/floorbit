@@ -289,7 +289,6 @@
     "secretSet": "Set (type to replace)",
     "atRestart": "at next start",
     "field": {
-      "lan_url": "Address in the hall",
       "metrics": "Metrics listener",
       "metrics_token": "Metrics token",
       "buffer_max_mb": "Buffer size (MB)",
@@ -305,7 +304,6 @@
       "log_summary": "Summary line (seconds)"
     },
     "help": {
-      "lan_url": "Where laptops in the hall reach the agent, for the seat walk-through, such as http://192.0.2.10:8908.",
       "metrics": "host:port for /metrics and /healthz, or off.",
       "metrics_token": "Scrapers then send \"Authorization: Bearer <token>\". Set it when the port is reachable from the LAN.",
       "buffer_max_mb": "How much the agent keeps while Floorbit is out of reach.",

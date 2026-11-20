@@ -176,10 +176,8 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 | `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, speed test, sign-in lockout); only behind a proxy you control |
 | `CHECKIN_PROXY_HOPS` | `1` | how many proxies you control append to `X-Forwarded-For`; the client is that many entries from the right, so an address the client sends itself is ignored |
 | `CHECKIN_VALIDATE_SEATS` | `true` | only accept seats that exist in seat blocks |
-| `SEAT_WALK_AGENT_URL` | | where laptops in the hall reach the local agent's captive port, for the [seat walk-through](seat-walk.md); empty takes what the agent reports (`FLOORBIT_AGENT_LAN_URL`) |
 | `CHECKIN_REFRESH_INTERVAL` | `300` | seconds between MAC → IP refreshes |
 | `CHECKIN_VERIFY_RATE` | `10` | port lookups a second for new check-ins; a burst waits its turn ([sizing](sizing.md#doors-open)) |
-| `CAPTIVE_ENABLED` | `false` | answer the agents' captive portal (DHCP option 114), see below |
 | `CHECKIN_ADMIN_TOKEN` | | if set, `GET/DELETE /api/checkins` need `X-Admin-Token` |
 | `CHECKIN_FILE` | `checkins.json` | |
 
@@ -194,11 +192,10 @@ user/IP/seat/MAC table), `DELETE /api/checkins/<seat>`, `POST /api/checkins/refr
 ### The "sign in to network" note (Captive Portal API)
 
 With a [local agent](agent.md), phones and laptops can be reminded to check in without blocking
-anything. It is off until you turn on **Captive portal (DHCP option 114)** in the check-in
-settings (`CAPTIVE_ENABLED`); until then agents asking get a 409 and say nothing. Turn on the
-**Check-in note on phones** plugin under Settings > Plugins with the address the agent answers on
-(`0.0.0.0:8908`), and let your DHCP server hand out
-option 114 (RFC 8910) with the URL of the agent's `/.well-known/captive-portal`. Clients that
+anything. Every agent's front door answers it while check-in is on; nothing else to turn on. Let
+your DHCP server hand out option 114 (RFC 8910) with the URL of the agent's
+`/.well-known/captive-portal`, for example `https://checkin.lan/.well-known/captive-portal`. Without
+option 114 no client asks, so the note stays out of sight. Clients that
 support it ask that URL, and until their seat has checked in they show a quiet "sign in to
 network" note that opens the check-in page. Gaming PCs that ignore it lose nothing, because
 traffic is never held back.
@@ -211,10 +208,10 @@ traffic is never held back.
 - **When in doubt, say nothing.** Until the agent has heard from the hosted Floorbit, while
   check-in is off, or with no `PUBLIC_URL` set, every answer is `"captive": false`. When the hosted
   side is away, the agent keeps answering from what it heard last.
-- **HTTPS.** RFC 8908 wants HTTPS for this URL, so serve it through the event's reverse proxy with a
-  certificate. Put that proxy's address in the plugin's *Reverse proxy addresses* so the client's
-  IP comes from `X-Forwarded-For`.
-- The note opens `PUBLIC_URL/checkin`, or the plugin's *Sign-in page* when it is set.
+- **HTTPS.** RFC 8908 wants HTTPS for this URL: give the agent a certificate, or serve it through
+  the event's reverse proxy and put that proxy's address in the plugin's *Reverse proxy addresses*
+  so the client's IP comes from `X-Forwarded-For`.
+- The note opens `http://<check-in name>/checkin` (`CHECKIN_ADDRESS`), so check-in goes through the agent and finds the seat's port; without a check-in name, `PUBLIC_URL/checkin`.
 - How well clients follow it varies: phones and Macs do, Windows only partly. Check it on your own
   devices before the event.
 
