@@ -202,8 +202,38 @@ export function KeyPanel({ agent, page, children }: { agent: Agent; page?: Agent
         </Group>
         {!agent.connected && <Text size="xs" c="dimmed">{t('agents.cfg.rollOffline')}</Text>}
         <ErrorBanner error={roll.error} />
+        {page && <IdentityLine agent={agent} page={page} />}
       </Stack>
     </Panel>
+  )
+}
+
+/** The agent's own key, which signs every request (floorbit/agent_identity.py); an admin can reset it. */
+function IdentityLine({ agent, page }: { agent: Agent; page: AgentSettingsPage }) {
+  const { t, i18n } = useTranslation()
+  const qc = useQueryClient()
+  const reset = useMutation({
+    mutationFn: () => post(`/api/agents/${agent.id}/identity/reset`),
+    onSettled: () => void qc.invalidateQueries({ queryKey: qk.agents }),
+  })
+  const id = page.identity
+  return (
+    <Stack gap={4}>
+      <Text size="sm" c={id ? undefined : 'warn'}>
+        {id
+          ? t('agents.cfg.identityPinned', { fingerprint: id.fingerprint.slice(0, 16), when: dateOnly(id.pinned_at, i18n.language),
+            until: dateOnly(id.not_after, i18n.language) })
+          : t('agents.cfg.identityNone')}
+      </Text>
+      {id && (
+        <Group gap="xs">
+          <ConfirmButton size="compact-sm" variant="default" label={t('agents.cfg.identityReset')} danger
+            question={t('agents.cfg.identityResetQuestion', { name: agent.name })} loading={reset.isPending}
+            onConfirm={() => reset.mutate()} />
+        </Group>
+      )}
+      <ErrorBanner error={reset.error} />
+    </Stack>
   )
 }
 

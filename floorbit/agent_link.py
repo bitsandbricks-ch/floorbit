@@ -599,7 +599,37 @@ DOOR_RECHECK = 30         # seconds a key's answer is kept; a revoked key stops 
 
 def front_door(key, now=None):
     """The id of the agent whose front door passed this request on, or None (agent's front_door.py).
-    Only checks the key: the request is an attendee's, not the agent's own."""
+    The request is an attendee's, passed on and signed by the agent (agent_identity.py): its key
+    and its signature both have to hold. Asked more than once per request: the answer is kept."""
+    from flask import g, has_request_context
+    if has_request_context() and 'front_door_agent' in g:
+        return g.front_door_agent
+    found = _door_key(key, now)
+    if found and has_request_context():
+        found = _door_signed(found)
+    if has_request_context():
+        g.front_door_agent = found
+    return found
+
+
+def _door_signed(agent_id):
+    from flask import request
+
+    from . import agent_identity
+    identity = agent_identity.pinned(agent_id)
+    if identity is None:
+        return None
+    query = request.query_string.decode('latin-1')
+    try:
+        agent_identity.verify(agent_id, identity, request.method, request.path + (f'?{query}' if query else ''),
+                              request.headers.get(agent_identity.SIGNATURE_HEADER), request.get_data())
+    except agent_identity.IdentityError as exc:
+        print(f'[agent] front-door request {request.method} {request.path} refused: {exc}', flush=True)
+        return None
+    return agent_id
+
+
+def _door_key(key, now=None):
     key = str(key or '').strip()
     m = KEY_RE.match(key)
     if not m:

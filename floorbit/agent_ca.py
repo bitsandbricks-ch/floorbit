@@ -29,7 +29,12 @@ log = logging.getLogger(__name__)
 
 
 class CAError(ValueError):
-    pass
+    status = 400
+
+
+class CAUnavailable(CAError):
+    """The CA's key can't be used here (the vault): the server's fault, not the request's."""
+    status = 503
 
 
 def _now():
@@ -70,7 +75,12 @@ def ca_pem():
         found = data.get(KEY) or {}
         if not found.get('cert'):
             cert, key = _make()
-            data[KEY] = {'cert': cert, 'key': vault.seal(SLOT, key), 'made_at': _now().timestamp()}
+            try:
+                sealed = vault.seal(SLOT, key)
+            except vault.VaultError as exc:
+                log.error('The agents CA key cannot be sealed: %s', exc)
+                raise CAUnavailable('The agents CA key cannot be sealed. The server log says why.') from None
+            data[KEY] = {'cert': cert, 'key': sealed, 'made_at': _now().timestamp()}
             save_data(data)
             return cert
         return found['cert']
@@ -88,7 +98,7 @@ def _ca():
     except vault.VaultError as exc:
         # The vault's reason can name a path on this server: the log has it, the agent doesn't.
         log.error('The agents CA key cannot be opened: %s', exc)
-        raise CAError('The agents CA key cannot be opened. The server log says why.') from None
+        raise CAUnavailable('The agents CA key cannot be opened. The server log says why.') from None
     return x509.load_pem_x509_certificate(found['cert'].encode()), key
 
 
@@ -138,3 +148,48 @@ def sign(csr_pem, names):
             .sign(ca_key, hashes.SHA256()))
     pem = cert.public_bytes(serialization.Encoding.PEM).decode()
     return pem + ca_cert.public_bytes(serialization.Encoding.PEM).decode(), end.timestamp()
+
+
+CLIENT_DAYS = 90
+
+
+def sign_client(csr_pem, agent_id):
+    """A client certificate for an agent's own key (agent_identity.py): it names the agent id, not
+    a host, and is good only for client use. Returns (cert PEM with the CA after it, not_after as a
+    unix time, serial as hex)."""
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+    if not isinstance(csr_pem, str) or len(csr_pem) > CSR_MAX:
+        raise CAError('The signing request is missing or too large.')
+    try:
+        csr = x509.load_pem_x509_csr(csr_pem.encode())
+    except ValueError:
+        raise CAError('The signing request is not a PEM certificate request.') from None
+    if not csr.is_signature_valid:
+        raise CAError('The signing request is not signed by its own key.')
+    public = csr.public_key()
+    # Only P-256: the app checks every request's signature with it (ECDSA with SHA-256).
+    if not (isinstance(public, ec.EllipticCurvePublicKey) and public.curve.name == 'secp256r1'):
+        raise CAError("The agent's identity key must be an EC P-256 key.")
+    ca_cert, ca_key = _ca()
+    start = _now() - datetime.timedelta(minutes=5)
+    end = start + datetime.timedelta(days=CLIENT_DAYS)
+    serial = x509.random_serial_number()
+    cert = (x509.CertificateBuilder()
+            .subject_name(x509.Name([x509.NameAttribute(NameOID.ORGANIZATION_NAME, 'Floorbit agents'),
+                                     x509.NameAttribute(NameOID.COMMON_NAME, f'agent {agent_id}')]))
+            .issuer_name(ca_cert.subject).public_key(public)
+            .serial_number(serial).not_valid_before(start).not_valid_after(end)
+            .add_extension(x509.SubjectAlternativeName(
+                [x509.UniformResourceIdentifier(f'urn:floorbit:agent:{agent_id}')]), critical=False)
+            .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+            .add_extension(x509.KeyUsage(digital_signature=True, key_cert_sign=False, crl_sign=False,
+                                         content_commitment=False, key_encipherment=False, data_encipherment=False,
+                                         key_agreement=False, encipher_only=False, decipher_only=False), critical=True)
+            .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.CLIENT_AUTH]), critical=False)
+            .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()), critical=False)
+            .sign(ca_key, hashes.SHA256()))
+    pem = cert.public_bytes(serialization.Encoding.PEM).decode()
+    return pem + ca_cert.public_bytes(serialization.Encoding.PEM).decode(), end.timestamp(), format(serial, 'x')

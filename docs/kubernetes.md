@@ -37,6 +37,21 @@ five wrong passwords from anyone would lock that username for everyone. If Traef
 node addresses (k3s's built-in load balancer can hide the client), set
 `externalTrafficPolicy: Local` on Traefik's Service.
 
+## HTTPS
+
+The Ingress serves `floor.example.com` over HTTPS only: plain HTTP gets a redirect (the Traefik
+Middleware `floorbit-https`). Local agents send their key and a signature with every request, and
+crew sign in, so nothing should go over plain HTTP. The certificate is the Secret `floorbit-tls`:
+
+- **cert-manager:** uncomment the `cert-manager.io/cluster-issuer` annotation and name your
+  ClusterIssuer; cert-manager fills the Secret and renews it.
+- **Your own certificate:** `kubectl -n floorbit create secret tls floorbit-tls --cert=fullchain.pem --key=key.pem`.
+- **Neither yet:** Traefik answers with its default self-signed certificate. The line is still
+  encrypted, but browsers warn and an agent refuses it unless it trusts that certificate.
+
+Installing into a namespace other than `floorbit`? The middleware annotation names it
+(`<namespace>-floorbit-https@kubernetescrd`): change it too.
+
 `SECRET_KEY` signs the sign-in cookies. Without it, Floorbit makes one and keeps it in `data.json`,
 which works too as long as the volume stays. Keeping it in a Secret also keeps everyone signed in
 across a restore.
