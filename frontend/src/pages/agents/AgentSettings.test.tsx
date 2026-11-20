@@ -123,4 +123,23 @@ describe('KeyPanel and CertPanel', () => {
     await vi.waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body)
       .toEqual({ settings: { cert_names: ['agent.example.com', '192.0.2.10'] } }))
   })
+
+  it("shows the tenant's Let's Encrypt certificate and why it is missing", () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin }).fn)
+    const a = agent()
+    const good = page({ public_cert: { name: 'club.agent.example.com', not_after: Date.now() / 1000 + 86400 * 60,
+      issued_at: Date.now() / 1000, error: null, failed_at: null } })
+    const { unmount } = renderWithApp(<CertPanel agent={a} page={good} />)
+    expect(screen.getByText(/Let's Encrypt: club\.agent\.example\.com, valid until/)).toBeInTheDocument()
+    unmount()
+    const failed = page({ public_cert: { name: 'club.agent.example.com', not_after: null, issued_at: null,
+      error: 'Connection refused on port 80', failed_at: Date.now() / 1000 } })
+    const second = renderWithApp(<CertPanel agent={a} page={failed} />)
+    expect(screen.getByText(/could not issue club\.agent\.example\.com yet: Connection refused on port 80/)).toBeInTheDocument()
+    second.unmount()
+    const notYet = page({ public_cert: { name: 'club.agent.example.com', not_after: null, issued_at: null,
+      error: null, failed_at: null, waiting: 'http://club.agent.example.com cannot be reached (ConnectionError).', checked_at: 1 } })
+    renderWithApp(<CertPanel agent={a} page={notYet} />)
+    expect(screen.getByText(/waiting until club\.agent\.example\.com reaches Floorbit/)).toBeInTheDocument()
+  })
 })
