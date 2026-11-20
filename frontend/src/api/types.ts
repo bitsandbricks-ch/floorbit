@@ -1610,8 +1610,8 @@ export interface FirewallRange {
   state: FirewallRouteState; seats: number
   /** 'import': read from NetBox (change it there); 'floorbit': planned here. */
   source?: 'import' | 'floorbit'; plugin?: string
-  /** The seat blocks the range is for: their seats outside it are flagged (issue #1062). */
-  blocks?: string[]
+  /** Inventory switch or group ids the range is for: their seats outside it are flagged (issue #1062). */
+  switches?: string[]
 }
 export interface FirewallCard {
   id: string; name: string; model: string; hall: string; status: 'online' | 'offline' | 'unknown'
