@@ -1352,7 +1352,10 @@ export interface PortClients {
   as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+  /** Seat ports with more than one machine (issue #1119): only how many, never which. */
+  shared?: { count: number; rows: SharedPort[] }
 }
+export interface SharedPort { switch: string; port: string; seat: string; cable: string; macs: number; desk_switch: boolean }
 /** Walking the row (issue #473): ports that came up since the walk began. */
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }
 export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }

@@ -11,8 +11,9 @@ Gathered from what is already watched, without asking anything new:
 - links between switches that are down or slower than planned (floorbit/links.py).
 
 Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
-seats outside their switch's range (floorbit/seat_ranges.py) and seat ports whose config breaks a
-rule (floorbit/port_config.py) come as a list of their own under
+seats outside their switch's range (floorbit/seat_ranges.py), seat ports whose config breaks a
+rule (floorbit/port_config.py) and seat ports with more than one machine on them
+(floorbit/port_clients.py) come as a list of their own under
 ``attention``, newest first.
 
 Each problem is ``{id, kind, level, title, where, since, link}`` with ``level`` ``down`` or ``warn``.
@@ -144,7 +145,7 @@ def _attention():
 
 
 def _ranges():
-    """Seats with an address outside their block's ranges (floorbit/seat_ranges.py, issue #1062)."""
+    """Seats with an address outside their switch's ranges (floorbit/seat_ranges.py, issue #1062)."""
     from integrations import seat_sources
 
     from . import seat_ranges
@@ -173,6 +174,18 @@ def _port_check():
         return []
     return [{'id': f['id'], 'kind': 'portconfig', 'level': 'warn', 'title': f['title'], 'where': f['where'],
              'since': None, 'switch_id': None, 'link': '/configs#port-check'} for f in found]
+
+
+def _shared_ports():
+    """Seat ports with more than one machine, from the last MAC table read (floorbit/port_clients.py)."""
+    from . import port_clients
+    state = port_clients.last_read()
+    if not state:
+        return []
+    return [{'id': f['id'], 'kind': 'shared', 'level': 'warn', 'title': f['title'], 'where': f['where'],
+             'since': None, 'switch_id': None,
+             'link': _on_plan(seat=f['seat'], switch=f['switch']) if f['seat'] else '/cables#port-clients'}
+            for f in port_clients.problems(state)]
 
 
 def _logs(may_see_people):
@@ -210,7 +223,8 @@ def current(may_see_people):
               'muted': sum(bool(p.get('muted')) for p in items)}
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
-    attention = sorted(_attention() + _logs(may_see_people) + _ranges() + _port_check(),
+    attention = sorted(_attention() + _logs(may_see_people) + _ranges() + _port_check()
+                       + _shared_ports(),
                        key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
     mutes = [{'switch_id': k, 'kind': 'health' if k.startswith(alerting.service_key('')) else 'switch', **v}

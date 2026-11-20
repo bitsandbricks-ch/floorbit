@@ -65,9 +65,14 @@ and the ARP table for the seats' networks, and lists:
   (from the seat mapping). Players swapped seats, or two cables are swapped at the switch;
 - **machines on a port no cable explains**, with their MAC and IP, and the seat that IP belongs to.
   **Patch to a seat** opens a new cable with the port and that seat filled in; **Infrastructure**
-  adds a cable without a seat (a crew laptop, an access point), so the port isn't asked about again.
+  adds a cable without a seat (a crew laptop, an access point), so the port isn't asked about again;
+- **seat ports with more than one machine**: the seat, the port and how many machines, never which.
+  Two or three are usually a console next to the PC. More than 4 is marked **Switch or router at the
+  seat**: that is where loops, a home router handing out addresses and a seat the mapping can't place
+  start. Both also show under [Needs attention](alerts.md#needs-attention) in Problems, one line per
+  seat, or one line for all of them when there are more than 5.
 
-Ports with more than 4 MACs are uplinks or a switch under a desk, and ports cabled without a seat are
+Other ports with more than 4 MACs are uplinks, and ports cabled without a seat are
 infrastructure: neither is listed. Opening the page starts a read in the background, at most every two
 minutes (LibreNMS itself refreshes MAC tables only when it polls), so 4000 seats don't mean 4000 calls.
 A switch that doesn't answer is named. This list names MACs and IPs, so it needs `seats.view`.
@@ -194,7 +199,8 @@ under **cables**, with the cable's label and route.
 - `GET /api/cables/check`: the plan against the last port read: `{"last_poll", "blocks", "missing", "down",
   "unplanned", "conflicts", "unread"}`; each list is `{"count", "rows"}` (at most 200 rows).
 - `GET /api/cables/clients?read=1`: the last MAC table read, `{"as_of", "reading", "started", "error",
-  "switches", "clients", "failed", "unplanned", "moved"}`; `read=1` starts a new read when the last is
+  "switches", "clients", "failed", "unplanned", "moved", "shared"}`; a `shared` row is
+  `{"switch", "port", "seat", "cable", "macs", "desk_switch"}`; `read=1` starts a new read when the last is
   two minutes old. Needs `seats.view`.
 - `GET /api/cables/walk?switch=&since=`: the ports of a switch that came up since `since`
   (`{"ups": [{"port", "at", "how"}], "syslog", "since"}`); without `since` the walk begins now.

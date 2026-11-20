@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Paper, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Paper, Stack, Table, Text, Title } from '@mantine/core'
 import { IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -29,10 +29,10 @@ export function PortClients({ canEdit, onPatch }: { canEdit: boolean; onPatch: (
   if (!c) return null
   if (!c.as_of && !c.reading && !c.error) return null
   const time = c.as_of ? clock(c.as_of) : ''
-  const where = (r: PortClient) => `${r.switch} ${r.port}`
+  const where = (r: { switch: string; port: string }) => `${r.switch} ${r.port}`
   const who = (r: PortClient) => [r.mac, r.ip].filter(Boolean).join(' · ')
   return (
-    <Paper withBorder radius="lg" p="md">
+    <Paper withBorder radius="lg" p="md" id="port-clients">
       <Stack gap="sm">
         <Group justify="space-between" align="baseline">
           <Title order={3} size="h4">{t('cables.clientsTitle')}</Title>
@@ -49,7 +49,7 @@ export function PortClients({ canEdit, onPatch }: { canEdit: boolean; onPatch: (
           <Text size="sm" c="warn">{t('cables.clientsFailed', { switches: c.failed.map((f) => f.switch).join(', ') })}</Text>
         )}
         {infra.error && <Alert color="down" role="alert">{infra.error.message}</Alert>}
-        {c.as_of && !c.moved.count && !c.unplanned.count && <Text size="sm" c="dimmed">{t('cables.clientsNone')}</Text>}
+        {c.as_of && !c.moved.count && !c.unplanned.count && !c.shared?.count && <Text size="sm" c="dimmed">{t('cables.clientsNone')}</Text>}
         {c.moved.count > 0 && (
           <Stack gap={4}>
             <Text size="sm" fw={600}>{t('cables.clientsMoved', { count: c.moved.count })}</Text>
@@ -58,6 +58,26 @@ export function PortClients({ canEdit, onPatch }: { canEdit: boolean; onPatch: (
                 {t('cables.clientsMovedLine', { port: where(r), seat: r.seat, other: r.ip_seat, ip: r.ip })}
               </Text>
             ))}
+          </Stack>
+        )}
+        {!!c.shared?.count && (
+          <Stack gap={4}>
+            <Text size="sm" fw={600}>{t('cables.clientsShared', { count: c.shared.count })}</Text>
+            <Table.ScrollContainer minWidth={420}>
+              <Table>
+                <Table.Tbody>
+                  {c.shared.rows.slice(0, SHOWN).map((r) => (
+                    <Table.Tr key={`${r.switch}-${r.port}`}>
+                      <Table.Td>{r.seat}</Table.Td>
+                      <Table.Td ff="monospace">{where(r)}</Table.Td>
+                      <Table.Td>{t('cables.clientsSharedLine', { count: r.macs })}</Table.Td>
+                      <Table.Td>{r.desk_switch && <Badge color="warn" variant="light">{t('cables.clientsDeskSwitch')}</Badge>}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
+            {c.shared.count > SHOWN && <Text size="sm" c="dimmed">{t('cables.checkMore', { count: c.shared.count - SHOWN })}</Text>}
           </Stack>
         )}
         {c.unplanned.count > 0 && (

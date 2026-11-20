@@ -79,6 +79,39 @@ def test_unplanned_and_moved_clients(hall, client):
     assert client.get("/api/cables/clients").get_json()["unplanned"] == {"count": 0, "rows": []}
 
 
+def test_seat_ports_with_more_than_one_machine(hall, client):
+    """A console next to the PC, and a router someone brought (issue #1119): counts, never MACs."""
+    hall["fdb"].tables["sw-a-01"] = [
+        {"port": "Gi1/0/1", "mac": mac(1)}, {"port": "Gi1/0/1", "mac": mac(2)},
+        *({"port": "Gi1/0/3", "mac": mac(60 + i)} for i in range(6)),
+        *({"port": "Gi1/0/48", "mac": mac(40 + i)} for i in range(10)),   # the uplink stays out
+        {"port": "Gi1/0/2", "mac": mac(3)},
+    ]
+    body = read(hall, client)
+    assert body["shared"]["rows"] == [
+        {"switch": "sw-a-01", "port": "Gi1/0/3", "seat": "A-3", "cable": body["shared"]["rows"][0]["cable"],
+         "macs": 6, "desk_switch": True},
+        {"switch": "sw-a-01", "port": "Gi1/0/1", "seat": "A-1", "cable": body["shared"]["rows"][1]["cable"],
+         "macs": 2, "desk_switch": False},
+    ]
+    assert "mac" not in body["shared"]["rows"][0]
+    attention = client.get("/api/problems").get_json()["attention"]
+    shared = [a for a in attention if a["kind"] == "shared"]
+    assert [a["title"] for a in shared] == ["Seat A-3: a switch or router on the seat port (6 machines)",
+                                            "Seat A-1: 2 machines on one seat port"]
+    assert shared[0]["where"] == "sw-a-01 Gi1/0/3" and shared[0]["link"] == "/plan?seat=A-3"
+
+
+def test_many_shared_seat_ports_are_one_line():
+    rows = [{"switch": "sw", "port": f"Gi1/0/{n}", "seat": f"A-{n}", "cable": "", "macs": 2 + (n == 1) * 5,
+             "desk_switch": n == 1} for n in range(1, 8)]
+    [item] = port_clients.problems({"shared": {"count": 7, "rows": rows}})
+    assert (item["title"], item["where"], item["seat"]) == (
+        "7 seat ports have more than one machine", "1 looks like a desk switch or router", None)
+    assert port_clients.problems({"shared": {"count": 0, "rows": []}}) == []
+    assert port_clients.problems({}) == []
+
+
 def test_a_dhcp_lease_fills_in_what_arp_has_not_seen_yet(hall, client):
     from floorbit.dhcp_leases import leases
     hall["fdb"].tables["sw-a-01"] = [{"port": "Gi1/0/2", "mac": mac(3)}]
