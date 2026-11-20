@@ -103,7 +103,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   See [dashboards.md](dashboards.md).
 - **Shared components, no look-alikes.** Before building a card, table, form field or dialog, use
   what exists: `EntitySelect`, `ConfirmButton`/`ConfirmIcon`, `DateTimeInput`, `PageTabs`,
-  `SidePanel`, `StatCard`, the telemetry components. New visual blocks become shared components or
+  `SidePanel`, `StatCard`, `StateBadge`/`StateBit` (one tone and word per state word, from
+  `components/stateTone.ts`), the telemetry components. New visual blocks become shared components or
   widgets.
 - **One table.** Every table is `DataTable` (`frontend/src/components/DataTable.tsx`): sorting,
   paging, the empty state and the count, with the view kept in the address. The dashboard's table

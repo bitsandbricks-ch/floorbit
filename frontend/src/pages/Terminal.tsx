@@ -1,4 +1,4 @@
-import { Alert, Badge, Box, Button, Group, Paper, PasswordInput, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
+import { Alert, Box, Button, Group, Paper, PasswordInput, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
 import { IconPlugConnected, IconX } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -11,6 +11,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { type TerminalHandle, TerminalView } from './terminal/TerminalView'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { StateBadge } from '@/components/State'
 
 interface Open {
   id: string
@@ -166,9 +167,7 @@ function Session({ session, onLeave }: { session: Open; onLeave: () => void }) {
       <Group justify="space-between" mb="xs" wrap="nowrap">
         <Group gap="xs" wrap="nowrap">
           <Text fw={700} ff="monospace">{session.switch}</Text>
-          <Badge size="sm" variant="light" color={ended ? 'gray' : 'up'} tt="none" miw="max-content">
-            {ended ? t('terminal.closed') : t('terminal.connected')}
-          </Badge>
+          <StateBadge state={ended ? 'ended' : 'connected'} label={ended ? t('terminal.closed') : t('terminal.connected')} />
         </Group>
         <Button size="xs" variant="default" leftSection={<IconX size={14} />} onClick={close}>
           {ended ? t('terminal.back') : t('terminal.close')}
