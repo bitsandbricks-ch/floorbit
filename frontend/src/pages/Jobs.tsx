@@ -9,9 +9,10 @@ import type { DutyStatus, Job, JobsData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { JobPlan } from './jobs/JobPlan'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
+import { IconChecklist } from '@tabler/icons-react'
 
 function since(ts: number) {
   return clock(ts)
@@ -108,7 +109,7 @@ export default function Jobs() {
             {data.me.on_duty && data.auto && <Text size="sm" c="dimmed">{t('jobs.autoOn')}</Text>}
             {(data.done ?? 0) > 0 && <Text size="sm" c="up" role="status">{t('jobs.doneLately', { count: data.done })}</Text>}
             {data.jobs.length === 0 ? (
-              <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('jobs.none')}</Text></Paper>
+              <Paper withBorder radius="lg"><EmptyState icon={<IconChecklist size={24} />} title={t('jobs.none')} /></Paper>
             ) : data.jobs.map((job) => (
               <JobCard key={job.id} job={job} busy={answer.isPending && answer.variables?.id === job.id}
                 onAnswer={(kind, note) => answer.mutate({ id: job.id, kind, note })} />

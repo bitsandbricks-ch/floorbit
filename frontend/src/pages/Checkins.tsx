@@ -13,7 +13,7 @@ import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { Link } from 'react-router-dom'
 import { PageHead } from '@/components/PageHead'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { History } from './checkins/History'
@@ -97,14 +97,14 @@ export default function Checkins() {
         ) : query.isPending || !d ? <LoadingState /> : (
           <>
             <div className="fb-stat-row">
-              <StatCard label={t('crewCheckin.count.checkedIn')} value={num(d.counts.checked_in)}
+              <StatTile label={t('crewCheckin.count.checkedIn')} value={num(d.counts.checked_in)}
                 sub={t('crewCheckin.count.pins', { used: d.counts.pins - d.counts.unused_pins, total: d.counts.pins })} />
-              <StatCard label={t('crewCheckin.count.verified')} value={num(d.counts.verified)} tone={d.counts.verified ? 'up' : undefined}
+              <StatTile label={t('crewCheckin.count.verified')} value={num(d.counts.verified)} tone={d.counts.verified ? 'up' : undefined}
                 sub={t('crewCheckin.count.learned', { count: d.counts.learned })} />
-              <StatCard label={t('crewCheckin.count.pending')} value={num(d.counts.pending)}
+              <StatTile label={t('crewCheckin.count.pending')} value={num(d.counts.pending)}
                 sub={t('crewCheckin.count.pendingSub', { count: d.counts.unverified })} tone={d.counts.unverified ? 'warn' : undefined} />
-              <StatCard label={t('crewCheckin.count.notWired')} value={num(d.counts.not_wired)} sub={t('crewCheckin.count.notWiredSub')} />
-              <StatCard label={t('crewCheckin.count.review')} value={num(d.counts.conflicts)} tone={d.counts.conflicts ? 'warn' : undefined}
+              <StatTile label={t('crewCheckin.count.notWired')} value={num(d.counts.not_wired)} sub={t('crewCheckin.count.notWiredSub')} />
+              <StatTile label={t('crewCheckin.count.review')} value={num(d.counts.conflicts)} tone={d.counts.conflicts ? 'warn' : undefined}
                 sub={t('crewCheckin.count.reviewSub')} />
             </div>
             {d.lookups && <LookupWindow w={d.lookups} canEdit={canEdit} onChange={refresh} />}

@@ -186,6 +186,22 @@ export function KeyPanel({ agent, page, children }: { agent: Agent; page?: Agent
   )
 }
 
+/** The tenant's Let's Encrypt certificate, which every agent of the tenant serves when it can. */
+function PublicCertLine({ pc }: { pc: NonNullable<AgentSettingsPage['public_cert']> }) {
+  const { t, i18n } = useTranslation()
+  if (pc.not_after) {
+    return <Text size="sm">{t('agents.cfg.publicHas', { name: pc.name, when: dateOnly(pc.not_after, i18n.language) })}</Text>
+  }
+  if (pc.waiting) {
+    return <Text size="sm" c="dimmed">{t('agents.cfg.publicNotReached', { name: pc.name, why: pc.waiting })}</Text>
+  }
+  return (
+    <Text size="sm" c={pc.error ? 'warn' : 'dimmed'}>
+      {pc.error ? t('agents.cfg.publicFailed', { name: pc.name, error: pc.error }) : t('agents.cfg.publicWaiting', { name: pc.name })}
+    </Text>
+  )
+}
+
 /** The agent's HTTPS certificate: signed by Floorbit's agents CA for the names listed here. */
 export function CertPanel({ agent, page }: { agent: Agent; page: AgentSettingsPage }) {
   const { t, i18n } = useTranslation()
@@ -209,10 +225,11 @@ export function CertPanel({ agent, page }: { agent: Agent; page: AgentSettingsPa
         {has ? (
           <Group gap="xs" wrap="wrap">
             <Text size="sm">{t('agents.cfg.certHas', { names: has.names.join(', ') || '–', when: dateOnly(has.not_after, i18n.language) })}</Text>
-            {!has.floorbit_ca && <Badge size="xs" variant="light" color="gray" tt="none">{t('agents.cfg.certOther')}</Badge>}
+            {!has.floorbit_ca && !has.public && <Badge size="xs" variant="light" color="gray" tt="none">{t('agents.cfg.certOther')}</Badge>}
           </Group>
         ) : <Text size="sm" c="dimmed">{t('agents.cfg.certNone')}</Text>}
         {has?.source === 'env' && <Text size="xs" c="dimmed">{t('agents.cfg.certEnv')}</Text>}
+        {page.public_cert && <PublicCertLine pc={page.public_cert} />}
         <TagsInput label={t('agents.cfg.field.cert_names')} description={t('agents.cfg.help.cert_names')}
           placeholder={(names ?? saved).length ? undefined : (suggest[0] ?? 'agent.example.com')} value={names ?? saved} onChange={setNames}
           data={suggest} maw={560} />

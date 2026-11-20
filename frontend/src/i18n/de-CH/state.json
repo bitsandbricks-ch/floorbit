@@ -1,0 +1,22 @@
+{
+  "up": "Läuft",
+  "down": "Ausgefallen",
+  "warn": "Prüfen",
+  "unknown": "Unbekannt",
+  "stale": "Veraltet",
+  "online": "Online",
+  "offline": "Offline",
+  "degraded": "Eingeschränkt",
+  "ok": "OK",
+  "failed": "Fehlgeschlagen",
+  "live": "Läuft",
+  "planning": "In Planung",
+  "closed": "Abgeschlossen",
+  "active": "Aktiv",
+  "idle": "Inaktiv",
+  "ended": "Beendet",
+  "connected": "Verbunden",
+  "disconnected": "Nicht verbunden",
+  "crit": "Kritisch",
+  "tripped": "Ausgelöst"
+}

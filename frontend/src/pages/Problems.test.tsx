@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProblemList } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -38,6 +38,24 @@ describe('Problems', () => {
     expect(screen.getByRole('heading', { name: 'Muted alerts' })).toBeInTheDocument()
     // The muted switch opens on the floor plan, in its hall (issue #212).
     expect(screen.getByRole('link', { name: 'sw-d-01' })).toHaveAttribute('href', '/plan?switch=sw-d-01')
+  })
+
+  it('counts the seats a down switch cuts off, and points a switch behind it at the cause', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({
+      problems: [
+        { id: 'switch:a1', kind: 'switch', level: 'down', title: 'sw-a-01 is offline', where: 'sw-a-01', since: now, link: '/plan?switch=sw-a-01',
+          switch_id: 'a1', seats: ['A-1', 'A-2', 'A-3'], behind: ['sw-a-02'] },
+        { id: 'switch:a2', kind: 'switch', level: 'down', title: 'sw-a-02 is offline', where: 'sw-a-02', since: now, link: '/plan?switch=sw-a-02',
+          switch_id: 'a2', seats: ['A-3'], behind: [], cause: 'sw-a-01' },
+      ],
+    }) }).fn)
+    renderWithApp(<Problems />)
+    const first = await screen.findByRole('article', { name: 'sw-a-01 is offline' })
+    expect(within(first).getByText('3 seats affected · 1 switch behind it')).toBeInTheDocument()
+    fireEvent.click(within(first).getByRole('button', { name: 'Show the seats' }))
+    expect(within(first).getByText('A-1, A-2, A-3')).toBeInTheDocument()
+    const second = screen.getByRole('article', { name: 'sw-a-02 is offline' })
+    expect(within(second).getByText('Behind sw-a-01, which is down: start there')).toBeInTheDocument()
   })
 
   it('lists ports that need attention, linked to the floor plan', async () => {
@@ -136,6 +154,19 @@ describe('Problems', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Mute' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.path === '/api/alerts/mutes')?.body)
       .toEqual({ service_id: 'demo:game-1', minutes: 60, reason: '' }))
+  })
+
+  it('offers the swap page for an offline switch to those who may change the inventory (issue #1060)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    const view = renderWithApp(<Problems />)
+    await screen.findByText('sw-c-02 is offline')
+    expect(screen.queryByRole('link', { name: 'Swap' })).not.toBeInTheDocument()
+    view.unmount()
+    const lead = { enabled: true, user: { ...me.user, role: 'lead', permissions: ['incidents.work', 'floorplan.edit'] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />)
+    await screen.findByText('sw-c-02 is offline')
+    await waitFor(() => expect(screen.getAllByRole('link', { name: 'Swap' })[0]).toHaveAttribute('href', '/switch-swap/s1'))
   })
 
   it('mutes a Wi-Fi access point by its name', async () => {

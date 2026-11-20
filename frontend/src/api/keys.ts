@@ -23,6 +23,8 @@ export const qk = {
   // Under 'inventory', so saving the device refreshes it too.
   inventoryTelemetry: (id: string) => ['inventory', 'telemetry', id] as const,
   inventoryCredentials: ['inventory', 'credentials'] as const,
+  // Under 'inventory': a swap changes the device, an inventory edit changes the spares.
+  switchSwap: (id: string) => ['inventory', 'swap', id] as const,
   seatMap: ['seat-map'] as const,
   roles: ['roles'] as const,
   teams: ['teams'] as const,
@@ -97,6 +99,7 @@ export const qk = {
   commands: ['commands'] as const,
   terminal: ['terminal'] as const,
   configs: ['configs'] as const,
+  portCheck: ['configs', 'port-check'] as const,
   configHistory: (sw: string) => ['configs', sw] as const,
   configDiff: (sw: string, from: string, to: string) => ['configs', sw, 'diff', from, to] as const,
   forecast: ['forecast'] as const,

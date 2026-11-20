@@ -642,6 +642,7 @@ class Registry:
         self.specs = {}
         self.logs = LogBuffer()
         self._lock = threading.Lock()
+        self.listeners = []            # called after a plugin is turned on or off or settings change
         self._cache = None             # (read at, path, data) of plugins.json
         self._writes = 0               # bumped by every change: a read that overlapped one isn't kept
         self._hooks = deque()
@@ -828,6 +829,15 @@ class Registry:
         if on and spec.error:
             raise PluginError(f'{spec.name} has an error and can\'t be turned on: {spec.error}')
         self._update(plugin_id, enabled=bool(on))
+        self.changed()
+
+    def changed(self):
+        """Tell the caches built from the plugins' answers that the set of sources changed."""
+        for listener in list(self.listeners):
+            try:
+                listener()
+            except Exception as exc:  # noqa: BLE001  # a cache that can't clear must not undo the change
+                print(f'[plugins] change listener failed: {exc}')
 
     def state_of(self, plugin_id):
         return self._record(plugin_id).get('state') or {}
@@ -1182,6 +1192,8 @@ def init_plugins(app, settings_store, current_version):
     app.extensions['floorbit_plugins'] = registry
     from .. import audit, sources
     sources.registry = registry
+    from .. import wifi
+    registry.listeners.append(wifi.forget)
     audit.listeners.append(lambda entry: registry.emit('change', {
         k: entry.get(k) for k in ('area', 'action', 'target', 'fields', 'user')}))
     try:

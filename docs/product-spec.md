@@ -62,7 +62,7 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 | **One database layer** | SQLite by default, Postgres for bigger or hosted installs, same migrations. No JSON-file backend. See [database.md](database.md). |
 | **Valkey for cache and live only** | Durable data goes to the database; Valkey holds cache, live updates and pub/sub (env stays `REDIS_*`). |
 | **Agent plugins configured from the app** | The agent reads no plugin settings from its own env; the hosted side hands them over. |
-| **Agent settings from the app, env wins** | An agent's own settings are set on its page in Floorbit; a value its own env sets wins and the page shows each value's source. Its safety limits (actions, plugin updates, networks it may reach) are env-only, so a stolen login can't widen them. Floorbit rolls keys (the agent fetches them) and signs agent certificates with its own CA; private keys stay on the agent. |
+| **Agent settings from the app, env wins** | An agent's own settings are set on its page in Floorbit; a value its own env sets wins and the page shows each value's source. Its safety limits (actions, plugin updates, networks it may reach) are env-only, so a stolen login can't widen them. Floorbit rolls keys (the agent fetches them) and signs agent certificates with its own CA; an agent's own private key stays on the agent. The one exception is the tenant's Let's Encrypt certificate (`<tenant>.agent.<domain>`, when the platform has a domain): its key is shared by the tenant's agents, so Floorbit makes it, keeps it sealed, hands it to each agent only encrypted to that agent's own key, and replaces it when an agent that had it is revoked. |
 
 ### Building blocks
 
@@ -103,8 +103,9 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   See [dashboards.md](dashboards.md).
 - **Shared components, no look-alikes.** Before building a card, table, form field or dialog, use
   what exists: `EntitySelect`, `ConfirmButton`/`ConfirmIcon`, `DateTimeInput`, `PageTabs`,
-  `SidePanel`, `StatCard`, the telemetry components. New visual blocks become shared components or
-  widgets.
+  `SidePanel`, `StatTile` (every figure with a label: value, unit, "of N", trend, change, size),
+  `StateBadge`/`StateBit` (one tone and word per state word, from `components/stateTone.ts`), the
+  telemetry components. New visual blocks become shared components or widgets.
 - **One table.** Every table is `DataTable` (`frontend/src/components/DataTable.tsx`): sorting,
   paging, the empty state and the count, with the view kept in the address. The dashboard's table
   widget wraps the same component; pages never embed widgets. Fix it once and every table follows
@@ -123,6 +124,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   status colours (up, down, warn, unknown, disabled) are fixed and never themable.
 - **Panels are calm:** a fill one slight step from the page, a thin line, 8px corners, no shadow;
   pages and dashboards share the look (`--color-surface`, `--radius-card`).
+  A boxed section of a page is a `Panel` (title, optional line under it, buttons on the right);
+  a bare `Paper` belongs only inside a component.
 - **Type:** Geist for text and titles, Geist Mono only for numbers. Square status "bits" and the
   floor-tile grid are the recurring motifs.
 - **Customising** is accent and highlight colour, logos, square mark and name. No theme presets.
@@ -134,10 +137,12 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   page (its breadcrumb ends in the page's title, the page's buttons, Go to (`Ctrl K`) and
   notifications on the right; no second title row on a computer), a status line. Pinned favourites per person, including
   dashboards. The tenant switcher shows only with two or more tenants.
-- **Sidebar, about a dozen rows:** Overview and Floor plan · **Work:** Helpdesk · **Monitoring:**
-  Services, Network, Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
-  Pre-flight, Logs · **Screens:** Dashboards. Settings is the gear at the foot; the event's own
-  pages (schedule, changelog, replay, report) are in the event menu at the top. A row holds its
+- **Sidebar, about a dozen rows:** Overview, Floor plan and Events · **Work:** Helpdesk · **Monitoring:**
+  Health, Network (Topology, Firewalls, Wi-Fi, Telemetry, Security), Services (DNS, LAN cache),
+  Traffic (Games, Stats, Speed tests), Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
+  Pre-flight, Logs · **Screens:** Dashboards. Settings is the gear at the foot. Events holds the
+  event's own pages (schedule, changelog, replay, report) as tabs; the picker at the top only
+  switches the event. A row holds its
   pages as tabs (Helpdesk: Problems, Incidents, My jobs, Handover, Status updates); a new page
   becomes a tab of a row, not a row of its own. Sidebar text is 15px, a step above page text.
 - **Simple first, technical below.** The first layer of every page answers "is it fine, and what
@@ -155,6 +160,9 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   | Workspace | Full-screen tool | Floor plan, Topology, Terminal, Replay |
   | Detail page | One thing, with tabs | A device, an agent, a seat |
 
+- **An item's own page** is an `ItemPage`: a link back to its list, its name and a line about it
+  in the top bar, its parts as panels or tabs, and a `DangerZone` panel last for removing it. Edit
+  dialogs move to such pages; dialogs stay for quick asks (confirm, pick a kind, rename).
 - **Side panel or detail page:** a click opens a side panel to peek and act quickly; anything
   bigger opens the detail page. The panel links there. The inventory has no side panel: devices,
   groups, tags and entries each open their own page.
@@ -170,6 +178,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   (the sidebar is 15px).
 - **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
   for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
+- **Setup is a checklist:** what an event needs, in order, each step's state worked out from what is
+  really there (never a box someone ticks) and linking to the one place it is set.
+- **One switch per capability:** what the crew wants is turned on in one place; the switch turns its
+  settings, features and plugins on together and lists what it still needs.
 - **Settings rows:** name and help on the left, the control on the right at one width; changes
   collect in the save bar until Save.
   Values only whoever runs the server needs are marked `advanced` and fold under Advanced. An agent's
