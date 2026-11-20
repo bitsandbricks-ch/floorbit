@@ -1089,6 +1089,8 @@
  "unreadable bundle: {}": "unlesbares Paket: {}",
  "unreadable signature: {}": "unlesbare Signatur: {}",
  "plugins_off must be a list of plugin ids.": "plugins_off muss eine Liste von Plugin-IDs sein.",
+ "No such capability.": "Diese Fähigkeit gibt es nicht.",
+ "Send {\"on\": true} or {\"on\": false}.": "Sende {\"on\": true} oder {\"on\": false}.",
  "No such plugin": "Dieses Plugin gibt es nicht",
  "bad index signature": "ungültige Signatur des Index",
  "could not download {} {}: {}": "{} {} konnte nicht heruntergeladen werden: {}",

@@ -171,6 +171,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   (the sidebar is 15px).
 - **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
   for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
+- **One switch per capability:** what the crew wants is turned on in one place; the switch turns its
+  settings, features and plugins on together and lists what it still needs.
 - **Settings rows:** name and help on the left, the control on the right at one width; changes
   collect in the save bar until Save.
   Values only whoever runs the server needs are marked `advanced` and fold under Advanced. An agent's
