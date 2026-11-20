@@ -209,11 +209,12 @@ def test_open_seat_incidents_are_seat_trouble_on_problems(client):
     made = client.post("/api/incidents", json={"seat": "Z-1", "title": "No internet"}).get_json()
     body = client.get("/api/problems").get_json()
     item = next(p for p in body["attention"] if p["kind"] == "incident")
-    assert item["seat"] == "Z-1" and item["where"] == "Seat Z-1" and item["title"] == "No internet"
+    assert item["seat"] == "Z-1" and item["title"] == "No internet"
+    assert item["where"] == "Seat Z-1, on the incident board"
     assert item["link"] == "/incidents?q=seat%3AZ-1" and item["level"] == "warn"
     assert body["counts"]["seats"] == before + 1
     de = client.get("/api/problems", headers={"Accept-Language": "de-CH"}).get_json()
-    assert next(p for p in de["attention"] if p["kind"] == "incident")["where"] == "Platz Z-1"
+    assert next(p for p in de["attention"] if p["kind"] == "incident")["where"] == "Platz Z-1, bei den Störungen"
     client.patch(f"/api/incidents/{made['id']}", json={"status": "fixed"})
     body = client.get("/api/problems").get_json()
     assert not [p for p in body["attention"] if p["kind"] == "incident"] and body["counts"]["seats"] == before

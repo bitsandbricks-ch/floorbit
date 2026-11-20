@@ -180,7 +180,7 @@ def _seat_incidents():
         if i.get('status') == 'fixed' or not i.get('seat'):
             continue
         out.append({'id': f"incident:{i['id']}", 'kind': 'incident', 'level': 'warn', 'title': i['title'],
-                    'where': f"Seat {i['seat']}", 'since': i.get('created_at'),
+                    'where': f"Seat {i['seat']}, on the incident board", 'since': i.get('created_at'),
                     'link': f"/incidents?q={quote('seat:' + i['seat'])}", 'seat': i['seat']})
     return out
 

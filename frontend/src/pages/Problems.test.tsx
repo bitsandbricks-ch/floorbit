@@ -63,7 +63,7 @@ describe('Problems', () => {
       counts: { down: 1, warn: 1, muted: 1, seats: 2 },
       attention: [
         { id: 'incident:i1', kind: 'incident', level: 'warn', title: 'No internet at the seat',
-          where: 'Seat B-4', since: now, link: '/incidents?q=seat%3AB-4', seat: 'B-4' },
+          where: 'Seat B-4, on the incident board', since: now, link: '/incidents?q=seat%3AB-4', seat: 'B-4' },
         { id: 'attention:checkin:s1:Gi1/0/12', kind: 'checkin', level: 'warn', title: 'Seat A-12 is online without a check-in',
           where: 'sw-a-01 Gi1/0/12 (seat A-12)', since: now, link: '/plan?seat=A-12', switch_id: 's1', seat: 'A-12' },
         { id: 'attention:flapping:s1:Gi1/0/9', kind: 'flapping', level: 'warn', title: 'Port flapping: 4 link changes in 10 minutes',
