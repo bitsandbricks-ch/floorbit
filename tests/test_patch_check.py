@@ -21,8 +21,8 @@ def hall(client, app_module, monkeypatch):
 
 def _plan(client, rows="1"):
     block = next(b for b in client.get("/api/seat-blocks").get_json() if b["name"] == "A")
-    r = client.post("/api/cables/block", json={"block": block["id"], "switch": "sw-a-01", "first_port": "Gi1/0/1",
-                                               "rows": rows})
+    r = client.post("/api/cables/block", json={"rows": [f"{block['id']}:{rows}"], "switch": "sw-a-01",
+                                               "first_port": "Gi1/0/1"})
     assert r.status_code == 200, r.get_json()
     return block
 
@@ -30,7 +30,7 @@ def _plan(client, rows="1"):
 def test_nothing_to_say_before_the_first_read(app_module, client):
     app_module.app.extensions["floorbit_attention"].reset()      # earlier tests may have polled it
     body = client.get("/api/cables/check").get_json()
-    assert body["last_poll"] is None and body["blocks"] == []
+    assert body["last_poll"] is None and body["rows"] == []
 
 
 def test_seats_ports_up_down_missing_and_unplanned(hall, client):
@@ -43,7 +43,8 @@ def test_seats_ports_up_down_missing_and_unplanned(hall, client):
     poll(hall, 1000)
     body = client.get("/api/cables/check").get_json()
     assert body["last_poll"] == 1000
-    assert body["blocks"] == [{"block": block["id"], "name": "A", "seats": 4, "up": 2}]
+    assert body["rows"] == [{"row": f"{block['id']}:1", "name": "1", "block_label": "A", "naming": "block",
+                             "seats": 4, "up": 2}]
     assert [r["seat"] for r in body["down"]["rows"]] == ["A-2"] and body["down"]["rows"][0]["state"] == "down"
     assert [(r["seat"], r["port"]) for r in body["missing"]["rows"]] == [("A-4", "Gi1/0/4")]
     # Up, and no cable says what it is; the uplink has a cable, the down port isn't anyone yet.
@@ -71,3 +72,21 @@ def test_switches_the_watch_did_not_read_are_named_not_counted_as_down(hall, cli
 def test_viewers_may_look(app_module, client):
     from tests.test_rbac import sign_in_as
     assert sign_in_as(app_module, "vi3", "viewer").get("/api/cables/check").status_code == 200
+
+
+def test_uplinks_are_never_up_with_no_cable(hall, client, monkeypatch):
+    """#1046: a port to another box is up with no seat cable by design: a link on the topology, an
+    LLDP/CDP neighbour, or a port the uplink pattern names."""
+    from floorbit import links
+    _plan(client)
+    client.post("/api/switches", json={"name": "sw-core-01", "x": 50, "y": 5})
+    r = client.post("/api/links", json={"a": "sw-core-01", "a_port": "Te1/1/1", "b": "sw-a-01",
+                                        "b_port": "TenGigabitEthernet1/0/1", "type": "fiber-sm", "speed": 10})
+    assert r.status_code == 201, r.get_json()
+    monkeypatch.setattr(links.reader, "cached_neighbours",
+                        lambda sw: [{"port": "Te1/0/2", "remote": "sw-b-01"}] if sw == "sw-a-01" else [])
+    hall["mon"].set("sw-a-01", port("Gi1/0/1"), port("Gi1/0/2"), port("Gi1/0/3"), port("Gi1/0/4"),
+                    port("Te1/0/1"), port("Te1/0/2"), port("Gi1/0/47", description="Uplink to dist"),
+                    port("Gi1/0/8"))
+    poll(hall, 1000)
+    assert [r["port"] for r in client.get("/api/cables/check").get_json()["unplanned"]["rows"]] == ["Gi1/0/8"]

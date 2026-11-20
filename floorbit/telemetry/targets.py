@@ -69,6 +69,9 @@ FEATURE = 'telemetry'
 API_DRIVER = {'nxos': 'nxapi', 'iosxe': 'restconf', 'opnsense': 'opnsense'}
 # What a device does on its own: these need no stored login.
 SENDING = ('push', 'mdt', 'traps')
+# A wireless controller by its model: a Catalyst 9800 (C9800-CL-K9, C9800-40-K9) streams its access
+# points over MDT, an AireOS one (AIR-CT5520-K9, AIR-CT3504-K9) answers them over SNMP.
+WLC_MODEL = re.compile(r'C?9800|AIR-?CT\d|wireless\s*(lan\s*)?controller', re.I)
 
 
 def _platform(text):
@@ -91,10 +94,21 @@ def auto(platform, has_snmp, has_api):
     return {'drivers': drivers, 'fdb': 'cisco_vlans' if platform in ('ios', 'iosxe') else 'qbridge'}
 
 
-def iface_vlans(dev):
-    """The VLANs on a device's interfaces: where a Cisco switch keeps a MAC table each."""
-    return sorted({int(i['vlan']) for i in dev.get('interfaces') or []
-                   if not i.get('hidden') and str(i.get('vlan') or '').isdigit() and 1 <= int(i['vlan']) <= 4094})
+# Catalyst's FDDI and Token Ring VLANs: always listed, never carry a MAC.
+RESERVED_VLANS = range(1002, 1006)
+
+
+def iface_vlans(dev, data=None):
+    """The VLANs a Cisco switch keeps a MAC table each for: the ones it lists itself (discovery's
+    VTP walk) when known, else the ones on its interfaces. A VLAN it doesn't have gets no answer
+    for community@vlan, only a timeout every minute."""
+    on_ifaces = {int(i['vlan']) for i in dev.get('interfaces') or []
+                 if not i.get('hidden') and str(i.get('vlan') or '').isdigit() and 1 <= int(i['vlan']) <= 4094}
+    found = (data or {}).get('inventory_discovered')
+    found = found if isinstance(found, dict) else {}
+    listed = {int(v['id']) for v in (found.get(dev.get('id')) or {}).get('vlans') or []
+              if isinstance(v, dict) and str(v.get('id') or '').isdigit() and 1 <= int(v['id']) <= 4094}
+    return sorted((listed or on_ifaces) - set(RESERVED_VLANS))
 
 
 def _words(value):
@@ -127,6 +141,7 @@ def _from_device(dev, snmp, api):
          # Cisco names the stream after the switch unless it is set up otherwise.
          'mdt_node': str(props.get('telemetry_mdt_node') or '').strip() or (dev['name'] if 'mdt' in drivers else None),
          'verify_tls': str(props.get('telemetry_verify_tls', 'true')).lower() not in ('false', '0', 'no', 'off'),
+         'wireless': bool(WLC_MODEL.search(str(dev.get('model') or ''))),
          'tables': True, 'snmp_version': '2c', 'logins': {}}
     if t['url'] and not t['url'].startswith('https://'):
         t['url'] = None
@@ -171,7 +186,8 @@ def from_inventory(data=None):
     found = {**bare, **api, **snmp}
     out = []
     for dev_id in sorted(found, key=lambda i: found[i]['name'].lower()):
-        found[dev_id]['iface_vlans'] = iface_vlans(inventory.find(data, dev_id) or {})
+        whole = inventory.find(data, dev_id) or {}
+        found[dev_id].update(iface_vlans=iface_vlans(whole, data), model=whole.get('model') or '')
         t = _from_device(found[dev_id], (snmp.get(dev_id) or {}).get('credential'),
                          (api.get(dev_id) or {}).get('credential'))
         if t:
@@ -199,7 +215,8 @@ def for_device(device_id, data=None):
     platform = _platform(dev.get('platform'))
     flat = {'id': dev['id'], 'name': dev['name'], 'address': dev.get('mgmt_ip') or dev['name'],
             'role': dev.get('role') or '', 'platform': dev.get('platform') or '',
-            'properties': inventory_scope._properties(stack), 'iface_vlans': iface_vlans(dev)}
+            'properties': inventory_scope._properties(stack), 'iface_vlans': iface_vlans(dev, data),
+            'model': dev.get('model') or ''}
     target = _from_device(flat, logins.get('snmp'), logins.get('api')) if on else None
     if target:
         target = {k: v for k, v in target.items() if k not in SECRETS and k != 'logins'}
