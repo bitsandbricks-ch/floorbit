@@ -1,6 +1,6 @@
 """Capabilities (#989): one switch for something the crew wants, with what it still needs.
 
-Turning on the check-in note on phones took four places (two settings, a plugin, its address).
+Turning on attendee check-in took several places (a setting, a plugin, an agent, the DHCP).
 A capability switches its parts together: settings that are only on/off for it, feature switches
 (``features.py``) and the plugins that exist only to provide it. Then it lists what it still needs,
 each worked out from what is there (an agent connected, a port set, another capability on), or
@@ -14,10 +14,9 @@ from . import features
 CAPABILITIES = (
     {'id': 'front_door', 'settings': (), 'features': (), 'plugins': ('front-door',), 'requires': (),
      'checks': ('agent',)},
+    # The note on phones comes with the front door on every agent; option 114 makes phones ask for it.
     {'id': 'checkin', 'settings': ('integrations.checkin_enabled',), 'features': (), 'plugins': (),
-     'requires': ('front_door',), 'checks': ()},
-    {'id': 'captive_note', 'settings': ('integrations.captive_enabled',), 'features': (), 'plugins': ('captive-note',),
-     'requires': ('checkin',), 'checks': ('agent', 'dhcp114')},
+     'requires': ('front_door',), 'checks': ('dhcp114',)},
     {'id': 'logs', 'settings': (), 'features': ('syslog',), 'plugins': ('syslog-relay',), 'requires': (),
      'checks': ('agent', 'port:syslog-relay')},
     {'id': 'traffic', 'settings': (), 'features': ('traffic',), 'plugins': ('netflow-relay',), 'requires': (),

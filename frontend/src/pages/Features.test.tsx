@@ -38,27 +38,29 @@ describe('Features', () => {
 
   it('switches a capability as a whole and says what it still needs', async () => {
     const cap = (state: string) => ({ capabilities: [
-      { id: 'captive_note', state, forced_off: false,
-        parts: [{ kind: 'setting', id: 'integrations.captive_enabled', on: true }, { kind: 'plugin', id: 'captive-note', on: state === 'on' }],
-        needs: [{ id: 'cap.checkin', ok: true, href: '#cap-checkin' }, { id: 'agentConnected', ok: false, href: '/settings/agents' },
-          { id: 'dhcp114', ok: null, href: null }] },
+      { id: 'logs', state, forced_off: false,
+        parts: [{ kind: 'feature', id: 'syslog', on: true }, { kind: 'plugin', id: 'syslog-relay', on: state === 'on' }],
+        needs: [{ id: 'agentConnected', ok: false, href: '/settings/agents' }] },
+      { id: 'checkin', state: 'on', forced_off: false,
+        parts: [{ kind: 'setting', id: 'integrations.checkin_enabled', on: true }],
+        needs: [{ id: 'cap.front_door', ok: true, href: '#cap-front_door' }, { id: 'dhcp114', ok: null, href: null }] },
     ] })
     const api = fakeFetch({
       'GET /api/auth/me': admin,
       'GET /api/settings/features': { features: [], env: 'FLOORBIT_FEATURES_OFF' },
       'GET /api/settings/capabilities': cap('partly'),
-      'PUT /api/settings/capabilities/captive_note': cap('on'),
+      'PUT /api/settings/capabilities/logs': cap('on'),
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Features />)
     expect(await screen.findByText('Some parts are off: its plugin. Switch it on to turn them all on.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'A local agent connected' })).toHaveAttribute('href', '/settings/agents')
     expect(screen.getByText("Option 114 in the event's DHCP, pointing at the agent")).toBeInTheDocument()
-    const sw = screen.getByRole('switch', { name: 'Check-in note on phones' })
+    const sw = screen.getByRole('switch', { name: 'Logs from the hall' })
     expect(sw).not.toBeChecked()
     fireEvent.click(sw)
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ on: true }))
-    await waitFor(() => expect(screen.getByRole('switch', { name: 'Check-in note on phones' })).toBeChecked())
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Logs from the hall' })).toBeChecked())
   })
 
   it('hides the links of features that are off', async () => {

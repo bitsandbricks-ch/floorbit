@@ -84,7 +84,6 @@
     "name": {
       "front_door": "Front door for attendees",
       "checkin": "Seat check-in",
-      "captive_note": "Check-in note on phones",
       "logs": "Logs from the hall",
       "traffic": "Traffic from the hall",
       "electrics": "Electrics"
@@ -92,15 +91,12 @@
     "desc": {
       "front_door": "The local agent answers attendees on the event network, so Floorbit sees which switch port a seat PC is on.",
       "checkin": "Attendees confirm their seat with the PIN on the seat card; Floorbit links the seat to its switch port.",
-      "captive_note": "Phones and laptops show a quiet note until their seat has checked in. Nothing is blocked.",
       "logs": "Switches and firewalls send syslog to the local agent; the lines show on the Logs page and feed the alerts.",
       "traffic": "Switches and firewalls send NetFlow or IPFIX to the local agent; the Traffic page shows the totals.",
       "electrics": "Power meters on the distribution boxes, on the floor plan and in the alerts."
     },
     "part": {
       "integrations.checkin_enabled": "the check-in page",
-      "integrations.captive_enabled": "the captive portal setting",
-      "captive-note": "its plugin",
       "front-door": "its plugin",
       "syslog-relay": "its plugin",
       "netflow-relay": "its plugin",

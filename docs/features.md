@@ -12,8 +12,7 @@ lists what it still needs, each with a link to where it is done:
 | Capability | Switches | Still needs |
 | --- | --- | --- |
 | Front door for attendees | the `front-door` plugin | a local agent connected |
-| Seat check-in | the check-in page | the front door on |
-| Check-in note on phones | the captive portal setting, the `captive-note` plugin | check-in on, an agent connected, option 114 in the event's DHCP (outside Floorbit, not checked) |
+| Seat check-in | the check-in page | the front door on, option 114 in the event's DHCP so phones show the check-in note (outside Floorbit, not checked) |
 | Logs from the hall | the `syslog` feature, the `syslog-relay` plugin | an agent connected, a UDP port on the agent |
 | Traffic from the hall | the `traffic` feature, the `netflow-relay` plugin | an agent connected, a UDP port on the agent |
 | Electrics | the `power` feature | a power meter plugin |
