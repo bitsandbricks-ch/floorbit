@@ -85,15 +85,16 @@ spec:
             - {name: FLOORBIT_DATA_FILE, value: /agent-state/agent-data.json}
             - {name: TZ, value: "UTC"}
             # LibreNMS, NetBox, syslog, flows and the attendees' front door are plugins set in Floorbit
-            # (Settings > Plugins); the agent takes them from there. Syslog, flows and the front door
-            # are turned on on the ports below the first time Floorbit starts with this agent.
+            # (Settings > Plugins); the agent takes them from there. Syslog and flows are turned on on
+            # the ports below the first time Floorbit starts with this agent; the front door is on by default.
           ports:
             - {name: syslog, containerPort: 5514, protocol: UDP}
             - {name: flows, containerPort: 2055, protocol: UDP}
             # Telemetry: the agent runs Telegraf itself (docs/telemetry.md).
             - {name: snmp-traps, containerPort: 1162, protocol: UDP}
             - {name: mdt, containerPort: 57000, protocol: TCP}
-            - {name: checkin, containerPort: 8443}
+            - {name: https, containerPort: 8443}
+            - {name: http-plain, containerPort: 8080}
           volumeMounts:
             - {name: agent-key, mountPath: /run/floorbit-agent, readOnly: true}
             - {name: agent-state, mountPath: /agent-state}
@@ -134,8 +135,9 @@ spec:
   ports:
     - {name: syslog, port: 514, targetPort: syslog, protocol: UDP}
     - {name: flows, port: 2055, targetPort: flows, protocol: UDP}
-    # The attendee front door: point CHECKIN_ADDRESS (e.g. checkin.lan) at a node's address.
-    - {name: checkin, port: 80, targetPort: checkin}
+    # Attendees, phones and the seat walk-through: point CHECKIN_ADDRESS (e.g. checkin.lan) at it.
+    - {name: https, port: 443, targetPort: https}
+    - {name: http, port: 80, targetPort: http-plain}
 ---
 # The cache for LibreNMS answers. Nothing in it needs keeping, so no volume.
 apiVersion: apps/v1

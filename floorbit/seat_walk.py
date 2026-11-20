@@ -298,22 +298,29 @@ def private_ip(ip):
 
 
 def agent_url():
-    """Where laptops on the event network reach the local agent: the setting, else what an
-    agent reported (FLOORBIT_AGENT_LAN_URL)."""
-    from integrations import config
+    """Where laptops on the event network reach a local agent, worked out, never typed in: the
+    check-in name (CHECKIN_ADDRESS, already on every seat card, and every agent's front door answers
+    it), else where browsers in the hall last reached an agent (each front door learns it from the
+    requests it answers). '' while neither is known."""
+    from integrations import checkin
 
     from . import agent_link
-    configured = (config.get('SEAT_WALK_AGENT_URL', '') or '').strip().rstrip('/')
-    if configured:
-        return configured
+    if checkin.hall_url():
+        return checkin.hall_url()
     try:
         for a in agent_link.all_agents():
             url = ((a.get('report') or {}).get('lan_url') or '').rstrip('/')
             if a.get('connected') and url:
                 return url
-    except Exception as exc:  # noqa: BLE001  # no agents: the page says what to set
+    except Exception as exc:  # noqa: BLE001  # no agents: the page says so
         print(f'[seat-walk] could not read the agents: {exc}')
     return ''
+
+
+def hello_here(token, ip, agent_name, now=None):
+    """The page itself came through an agent's front door: that agent already saw the laptop's
+    address, so the hello is done without the trip."""
+    return agent_said_hello(token, ip, agent_name, now)
 
 
 def new_hello(by, now=None):
@@ -388,22 +395,26 @@ def save(seat, port, by, now=None):
     return {'replaced': replaced, 'plan_seat': plan if plan and plan != seat else None}
 
 
-def seats(block_id, order='rows', data=None):
-    """The block's seats in walking order, each with the port it has in this event so far."""
-    from .seat_names import block_rows
+def seats(row_ids, order='rows', data=None):
+    """The picked rows' seats in walking order (rows in the order picked), each with the port it has
+    in this event so far. A walker takes a row or a few, not a whole block."""
+    from . import seat_names
     data = load_data() if data is None else data
-    block = next((b for b in data.get('seat_blocks') or [] if b.get('id') == block_id), None)
-    if not block:
-        raise WalkError('Pick a seat block.', 404)
+    try:
+        rows = seat_names.pick_rows(data, row_ids)
+    except ValueError:
+        raise WalkError('That row is not on the floor plan any more.', 404) from None
+    if not rows:
+        raise WalkError('Pick a row.', 404)
     if order not in ('rows', 'snake'):
         raise WalkError('The order is rows or snake.')
     out = []
-    for i, row in enumerate(block_rows(block)):
-        out += list(reversed(row)) if order == 'snake' and i % 2 else row
+    for i, row in enumerate(rows):
+        out += list(reversed(row['seats'])) if order == 'snake' and i % 2 else row['seats']
     learned = checkin.learned_ports()
-    return {'block': block.get('name') or '', 'seats': [
-        {'seat': s.upper(), 'port': ({k: learned[s.upper()].get(k) for k in ('switch', 'port', 'learned_at', 'source')}
-                                     if s.upper() in learned else None)} for s in out]}
+    return {'rows': [r['id'] for r in rows], 'row_names': [r['name'] for r in rows], 'seats': [
+        {'seat': s, 'port': ({k: learned[s].get(k) for k in ('switch', 'port', 'learned_at', 'source')}
+                             if s in learned else None)} for s in out]}
 
 
 # ── retention ──────────────────────────────────────────────────────────────────────────────────

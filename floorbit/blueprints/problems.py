@@ -4,16 +4,17 @@
 - ``GET /api/problems``: the list (floorbit/problems.py), with the running mutes. For people who
   see the incident board, an offline switch carries the id of its open incident (issue #278).
 - ``POST /api/alerts/mutes``: ``{"switch_id", "minutes", "reason"}`` mutes a switch's alerts;
-  ``{"service_id", ...}`` mutes a service on the health wall instead (issue #256).
+  ``{"service_id", ...}`` mutes a service on the health wall instead (issue #256), ``{"ap", ...}``
+  a Wi-Fi access point (issue #1064).
 - ``PATCH /api/alerts/mutes/<id>``: ``{"minutes"}`` makes a running mute last longer (issue #264).
-- ``DELETE /api/alerts/mutes/<id>``: ends a mute (a switch id, or ``health:<service id>``).
+- ``DELETE /api/alerts/mutes/<id>``: ends a mute (a switch id, ``health:<service id>`` or ``wifi:<ap>``).
 Mutes need ``incidents.work`` (auth/roles.py): the people working problems decide what pages them.
 """
 from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import alerting, events
 
-from .. import audit, i18n, incidents, inventory, problems, spa
+from .. import audit, i18n, incidents, inventory, problems, spa, wifi
 from ..store import load_data
 
 bp = Blueprint('problems', __name__)
@@ -67,6 +68,13 @@ def add_mute():
         if not check:
             return jsonify({'error': 'There is no such service.'}), 400
         key, name, label = alerting.service_key(check['id']), check['name'], 'Muted service alerts'
+    elif body.get('ap'):
+        # An access point from the Wi-Fi view (floorbit/wifi.py): only one it knows now.
+        registry = current_app.extensions['floorbit_plugins']
+        ap = next((a for a in wifi.ask(registry)[0] if a['name'].lower() == str(body['ap']).lower()), None)
+        if not ap:
+            return jsonify({'error': 'There is no such access point.'}), 400
+        key, name, label = wifi.mute_key(ap['name']), ap['name'], 'Muted access point alerts'
     else:
         device = next((d for d in inventory.devices(load_data(), include_hidden=True)
                        if d['id'] == body.get('switch_id')), None)
