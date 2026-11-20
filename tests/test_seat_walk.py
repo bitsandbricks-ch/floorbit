@@ -125,6 +125,15 @@ def test_a_typed_mac_needs_no_agent(hall):
     r = hall.post("/api/seat-walk/locate", json={"seat": "A-2", "mac": mac.upper().replace(":", "-"),
                                                  "mac_typed": True}).get_json()
     assert r["ok"] and r["mac"] == mac and r["found"] == {"switch": switch, "port": port}
+    assert r["area_drift"] is None
+    # Pinned to another row: the walker hears it right away (issue #1094).
+    other = next(row for row in hall.get("/api/switch-areas").get_json()["switches"] if row["name"] == switch)
+    from floorbit import seat_names
+    from floorbit.store import load_data
+    elsewhere = next(x for x in seat_names.hall_rows(load_data()) if "A-2" not in x["seats"])
+    assert hall.put(f"/api/switch-areas/{other['name']}", json={"rows": [elsewhere["id"]]}).status_code == 200
+    r = hall.post("/api/seat-walk/locate", json={"seat": "A-2", "mac": mac, "mac_typed": True}).get_json()
+    assert r["area_drift"]["kind"] == "pin" and r["area_drift"]["switch"] == switch
     bad = hall.post("/api/seat-walk/locate", json={"seat": "A-2", "mac": "not a mac", "mac_typed": True})
     assert bad.status_code == 400
 

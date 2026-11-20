@@ -214,6 +214,14 @@ def action_minutes(data, action_id):
     return action(action_id)['minutes'] or every
 
 
+def facts_every(data, role):
+    """Seconds between reads of what each action needs, for a device of ``role``: {action: seconds},
+    0 when the action is off or isn't about such devices. The collector reads those SNMP tables on
+    that clock instead of its own (issue #967; telegraf.FACT_TABLES)."""
+    return {a['id']: (action_minutes(data, a['id']) * 60 if (role or 'switch') in a['roles'] else 0)
+            for a in ACTIONS if a['id'] != 'poe'}
+
+
 def actions(data):
     """Every action with its schedule and its last run, for the API."""
     saved = (data.get(SCHEDULES) or {}) if isinstance(data.get(SCHEDULES), dict) else {}

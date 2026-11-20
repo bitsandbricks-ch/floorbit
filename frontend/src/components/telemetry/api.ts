@@ -20,3 +20,19 @@ export interface TestResult {
   problems: DeviceProblem[]; notes: string[]; raw: string[]
 }
 
+
+/** One device's state as a page lists it: the agent's Devices tab (GET /api/agents/<id>/devices). */
+export type DeviceState = 'silent' | 'never' | 'partial' | 'unknown' | 'waiting' | 'standby' | 'up'
+export interface DeviceStateRow extends DeviceSeen {
+  name: string; inventory_id: string | null; kind: string; platform: string; address: string; drivers: string[]
+  state: DeviceState; pinned: boolean; collects?: boolean | null; pushed?: boolean
+}
+export interface AgentDevices {
+  agent: { id: string; name: string }; connected: boolean; primary: boolean | null
+  error: 'offline' | 'no_telemetry' | 'no_answer' | null; detail: string; devices: DeviceStateRow[]
+}
+
+/** What one agent collects (30 s). */
+export function useAgentDevices(agentId: string) {
+  return useQuery({ queryKey: [...qk.agents, agentId, 'devices'], queryFn: () => get<AgentDevices>(`/api/agents/${agentId}/devices`), refetchInterval: 30_000 })
+}

@@ -68,7 +68,8 @@ describe('Agents', () => {
     const card = await screen.findByRole('article', { name: 'Spring LAN, hall 2' })
     expect(within(card).getByText(/telemetry: Nothing from Telegraf: this agent image has no Telegraf/)).toBeInTheDocument()
     expect(within(card).getByRole('link', { name: 'How to fix' })).toHaveAttribute('href', expect.stringContaining('docs/agent.md#telegraf'))
-    expect(within(card).getByRole('link', { name: 'Show devices' })).toHaveAttribute('href', '/telemetry')
+    // Device problems open this agent's own Devices tab, on what needs a look.
+    expect(within(card).getByRole('link', { name: 'Show devices' })).toHaveAttribute('href', '/settings/agents/a1b2c3d4?tab=devices&show=look')
   })
 
   it('flags an agent behind the newest one', async () => {

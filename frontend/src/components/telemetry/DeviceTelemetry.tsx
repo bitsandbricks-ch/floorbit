@@ -1,9 +1,10 @@
-import { Alert, Anchor, Badge, Button, Code, Group, Loader, Modal, ScrollArea, Stack, Table, Text } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Code, Group, Loader, Modal, ScrollArea, Stack, Text, VisuallyHidden } from '@mantine/core'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
+import { DataTable } from '@/components/DataTable'
 import { ago, dateTime } from '@/lib/time'
 import { useTelemetryDevices, type DeviceProblem, type TestResult } from './api'
 
@@ -131,23 +132,20 @@ export function DeviceTelemetryStatus({ name }: { name: string }) {
 export function TelemetryDevicesTable() {
   const { t } = useTranslation()
   const devices = useTelemetryDevices()
-  const rows = Object.entries(devices.data?.devices ?? {}).sort(([a], [b]) => a.localeCompare(b))
+  const rows = Object.entries(devices.data?.devices ?? {})
   if (devices.error) return <Alert color="down">{devices.error.message}</Alert>
   if (!rows.length) return <Text size="sm" c="dimmed">{t('telemetry.empty')}</Text>
   return (
-    <Table.ScrollContainer minWidth={420}>
-      <Table>
-        <Table.Thead><Table.Tr><Table.Th>{t('telemetry.device')}</Table.Th><Table.Th>{t('telemetry.lastSeen')}</Table.Th><Table.Th /></Table.Tr></Table.Thead>
-        <Table.Tbody>
-          {rows.map(([name, s]) => (
-            <Table.Tr key={name}>
-              <Table.Td><Text ff="monospace" size="sm">{name}</Text><DeviceProblems problems={s.problems} /></Table.Td>
-              <Table.Td>{s.seen ? <Badge color={s.online ? 'up' : 'down'} variant="light" tt="none" title={dateTime(s.seen)}>{ago(s.seen)}</Badge> : <Text size="sm" c="dimmed">{t('telemetry.never')}</Text>}</Table.Td>
-              <Table.Td><Group gap={6} justify="flex-end" wrap="nowrap"><DeviceTelemetryActions name={name} /></Group></Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
-    </Table.ScrollContainer>
+    <DataTable rows={rows} rowKey={([name]) => name} label={t('telemetry.tableLabel')} urlState={false} pageSize={0} minWidth={420}
+      defaultSort={{ id: 'device' }}
+      columns={[
+        { id: 'device', header: t('telemetry.device'), sort: ([name]) => name,
+          cell: ([name, s]) => <><Text ff="monospace" size="sm">{name}</Text><DeviceProblems problems={s.problems} /></> },
+        { id: 'seen', header: t('telemetry.lastSeen'), descFirst: true, sort: ([, s]) => s.seen ?? 0,
+          cell: ([, s]) => (s.seen ? <Badge color={s.online ? 'up' : 'down'} variant="light" tt="none" title={dateTime(s.seen)}>{ago(s.seen)}</Badge>
+            : <Text size="sm" c="dimmed">{t('telemetry.never')}</Text>) },
+        { id: 'actions', header: <VisuallyHidden>{t('telemetry.open')}</VisuallyHidden>,
+          cell: ([name]) => <Group gap={6} justify="flex-end" wrap="nowrap"><DeviceTelemetryActions name={name} /></Group> },
+      ]} />
   )
 }

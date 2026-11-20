@@ -26,7 +26,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import checkin, events
 
-from .. import seat_walk, seat_walkers, sources, spa, tenancy
+from .. import seat_walk, seat_walkers, sources, spa, switch_areas, tenancy
 from ..store import load_data
 
 bp = Blueprint('seat_walk', __name__)
@@ -104,7 +104,9 @@ def locate():
     if not result['found']:
         return jsonify({**out, 'ok': False, 'retry': True})
     saved = seat_walk.save(seat, result['found'], _who())
-    return jsonify({**out, 'ok': True, 'retry': False, **saved})
+    # The switch's area doesn't hold this seat (issue #1094): say so here, where it is found.
+    drift = switch_areas.drift_for(seat, result['found']['switch'], load_data())
+    return jsonify({**out, 'ok': True, 'retry': False, **saved, 'area_drift': drift})
 
 
 @bp.route('/api/seat-walk/hello', methods=['POST'])

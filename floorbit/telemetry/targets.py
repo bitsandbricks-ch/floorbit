@@ -185,12 +185,19 @@ def from_inventory(data=None):
         return []
     found = {**bare, **api, **snmp}
     out = []
+    from .. import inventory_discovery
+    every = {}
     for dev_id in sorted(found, key=lambda i: found[i]['name'].lower()):
         whole = inventory.find(data, dev_id) or {}
         found[dev_id].update(iface_vlans=iface_vlans(whole, data), model=whole.get('model') or '')
         t = _from_device(found[dev_id], (snmp.get(dev_id) or {}).get('credential'),
                          (api.get(dev_id) or {}).get('credential'))
         if t:
+            # What the device is gets read as often as discovery uses it (issue #967).
+            role = found[dev_id].get('role') or 'switch'
+            if role not in every:
+                every[role] = inventory_discovery.facts_every(data, role)
+            t['facts_every'] = every[role]
             out.append(t)
     return out
 

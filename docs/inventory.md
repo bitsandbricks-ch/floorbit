@@ -194,7 +194,7 @@ next try. With several pods only the leader syncs. The Inventory page's sync chi
 
 Floorbit also fills the devices from what the monitoring source polls, like a discovery: model,
 serial, platform and software version, CPU, cores, memory, disk, location and the interfaces. With
-[telemetry](telemetry.md) the agent asks each device by SNMP every five minutes (sysDescr,
+[telemetry](telemetry.md) the agent asks each device by SNMP, as often as the actions below run (sysDescr,
 sysLocation, ENTITY-MIB for the chassis model and serial, HOST-RESOURCES-MIB for memory, disks and
 CPUs, the Cisco memory pool); with LibreNMS it takes what LibreNMS knows of the device.
 
