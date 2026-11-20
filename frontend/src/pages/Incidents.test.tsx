@@ -37,6 +37,25 @@ const routes = {
 }
 
 describe('Incident board', () => {
+  it('bounces the seat\'s port from its incident and notes what it did', async () => {
+    const tech = { enabled: true, user: { username: 'sam', display_name: 'Sam', role: 'tech', permissions: ['incidents.work', 'ports.act'] } }
+    const api = fakeFetch({
+      ...routes, 'GET /api/auth/me': tech,
+      'GET /api/ports': { available: true, needs_login: false, plugin: 'SSH' },
+      'POST /api/ports/bounce': { ok: true, message: 'Gi1/0/3 on sw-a-01 bounced.' },
+      'PATCH /api/incidents/i1': { ...board.incidents[0] },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Incidents />)
+    const card = (await screen.findByText('No internet at the seat')).closest('[data-incident]') as HTMLElement
+    fireEvent.click(await within(card).findByRole('button', { name: 'Bounce port' }))
+    const fixed = screen.getByText('Cable swapped').closest('[data-incident]') as HTMLElement
+    expect(within(fixed).queryByRole('button', { name: 'Bounce port' })).toBeNull()
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Bounce port' }))
+    await waitFor(() => expect(api.calls).toContainEqual({ method: 'POST', path: '/api/ports/bounce', body: { seat: 'A-1' } }))
+    await waitFor(() => expect(api.calls).toContainEqual({ method: 'PATCH', path: '/api/incidents/i1', body: { note: 'Gi1/0/3 on sw-a-01 bounced.' } }))
+  })
+
   it('offers "Send to nearest tech" only while someone is on duty', async () => {
     const lead: IncidentBoard = { ...board, can_assign_any: true,
       incidents: [{ ...base, id: 'd1', title: 'Needs a tech', status: 'open', can_assign: true }] }
