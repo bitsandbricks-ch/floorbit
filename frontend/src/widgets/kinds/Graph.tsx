@@ -5,7 +5,7 @@ import { clock, dayClock } from '@/lib/time'
 import type { Level } from '../level'
 import { type Threshold, useNumberStyle } from './display'
 import { calc } from './combine'
-import { formatValue, type Line, linesOf, type Look, PALETTE, stackLines, statOf, tipAt, trendOf } from './shape'
+import { type Axis, formatValue, type Line, lineColour, linesOf, type Look, stackLines, statOf, tipAt, trendOf } from './shape'
 
 const LEGEND_H = 20
 const AXIS_H = 18
@@ -16,9 +16,14 @@ const AXIS_H = 18
 export function Graph({ widget, level, box, look = {} }: { widget: Widget; level: Level; box: { w: number; h: number }; look?: Look }) {
   const { t, i18n } = useTranslation()
   const style = useNumberStyle()
-  const { lines, unit, timed } = linesOf(widget)
+  const { lines: every, unit, timed } = linesOf(widget)
+  // Comparison lines (yesterday) are drawn faint and dashed, over the time the real lines cover.
+  const lines = every.filter((l) => !l.ghost)
   const [at, setAt] = useState<number | null>(null)
   const all = lines.flatMap((l) => l.points)
+  const span = all.length ? [Math.min(...all.map((p) => p[0])), Math.max(...all.map((p) => p[0]))] : [0, 0]
+  const ghosts = every.filter((l) => l.ghost).map((l) => ({ ...l, points: l.points.filter((p) => p[0] >= span[0] && p[0] <= span[1]) }))
+    .filter((l) => l.points.length > 1)
   if (!all.length) return <div className="fb-w-empty">{t('widgets.kind.noData')}</div>
   const stack = lines.length > 1 ? look.stack ?? 'none' : 'none'
   const area = look.style === 'area' || stack !== 'none'
@@ -38,9 +43,11 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
   const t0 = Math.min(...all.map((p) => p[0]))
   const t1 = Math.max(...all.map((p) => p[0]))
   const stacked = stack !== 'none' ? stackLines(lines, stack) : null
-  const top = stack === 'percent' ? 100 : stacked ? Math.max(1, ...stacked[stacked.length - 1].map((p) => p[2])) : Math.max(...all.map((p) => p[1]), 1)
+  const axis = stack === 'percent' ? undefined : look.axis
+  const top = stack === 'percent' ? 100 : axis?.max != null ? axis.max : Math.max(1, ...ghosts.flatMap((l) => l.points.map((p) => p[1])),
+    ...(stacked ? stacked[stacked.length - 1].map((p) => p[2]) : all.map((p) => p[1])))
   const x = (ts: number) => ((ts - t0) / (t1 - t0 || 1)) * W
-  const when = (ts: number) => (timed ? (t1 - t0 >= 86400 ? dayClock(ts * 1000) : clock(ts * 1000)) : '')
+  const when = (ts: number) => (timed ? (t1 - t0 >= 86400 ? dayClock(ts) : clock(ts)) : '')
   const fmt = (v: number) => { const f = formatValue(v, unit, i18n.language, style); return `${f.value}${f.unit ? ` ${f.unit}` : ''}` }
   // The sample nearest the pointer, on the longest line: every line is read at that time.
   const base = lines.reduce((a, b) => (b.points.length > a.points.length ? b : a))
@@ -48,6 +55,9 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
   const valueAt = (pts: [number, number][], ts: number) => pts.reduce((a, b) => (Math.abs(b[0] - ts) < Math.abs(a[0] - ts) ? b : a))[1]
   const sum = hover ? lines.reduce((a, l) => a + Math.max(0, valueAt(l.points, hover[0])), 0) : 0
   const trends = lines.map((l) => trendOf(l.points, trend))
+  // What happened (a switch down, an incident) as lines across the graph; hover names the near ones.
+  const marks = widget.type === 'series' ? (widget.marks ?? []).filter((m) => m.t >= t0 && m.t <= t1) : []
+  const near = hover ? marks.filter((m) => Math.abs(x(m.t) - x(hover[0])) <= 8) : []
   return (
     <div className="fb-w-graph">
       <div className="fb-w-legend">
@@ -55,7 +65,7 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
           const last = l.points[l.points.length - 1]?.[1]
           return (
             <span key={i}>
-              <i style={{ background: PALETTE[i % PALETTE.length] }} />
+              <i style={{ background: lineColour(l, i) }} />
               {l.label}
               {legend ? legend.map((c) => {
                 const v = calc(l.points.map((p) => p[1]), c)
@@ -68,10 +78,11 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
             </span>
           )
         })}
+        {ghosts.map((l, i) => <span key={`g${i}`} className="fb-w-ghost-key"><i />{l.label}</span>)}
       </div>
       <div className="fb-w-plot" onPointerMove={(e) => setAt(e.clientX - e.currentTarget.getBoundingClientRect().left)}
         onPointerLeave={() => setAt(null)}>
-        <Plot lines={lines} stack={stack} area={area} trends={trends} steps={stack === 'percent' ? [] : look.thresholds} w={W} h={H} t0={t0} t1={t1} top={top} cross={hover ? x(hover[0]) : null}
+        <Plot lines={lines} stack={stack} area={area} trends={trends} steps={stack === 'percent' ? [] : look.thresholds} w={W} h={H} t0={t0} t1={t1} top={top} axis={axis} ghosts={stack === 'percent' ? [] : ghosts} marks={marks.map((m) => ({ x: x(m.t), tone: m.tone }))} cross={hover ? x(hover[0]) : null}
           label={t('widgets.kind.graphLabel', { name: widget.label || lines.map((l) => l.label).join(', ') })} />
         {hover && (
           <div className="fb-w-tip" role="tooltip" style={tipAt(x(hover[0]) - 10, x(hover[0]) + 10, W)}>
@@ -80,11 +91,14 @@ export function Graph({ widget, level, box, look = {} }: { widget: Widget; level
               const v = valueAt(l.points, hover[0])
               return (
                 <div key={i}>
-                  <i style={{ background: PALETTE[i % PALETTE.length] }} />{l.label}
+                  <i style={{ background: lineColour(l, i) }} />{l.label}
                   <b>{fmt(v)}{stack === 'percent' && sum ? ` · ${Math.round((Math.max(0, v) / sum) * 100)} %` : ''}</b>
                 </div>
               )
             })}
+            {near.map((m, i) => (
+              <div key={`m${i}`} className={`fb-w-tip-mark fb-tone-${m.tone || 'none'}`}>{m.label}<b>{when(m.t)}</b></div>
+            ))}
             {trend !== 'none' && trends.map((tr, i) => tr.length > 0 && (
               <div key={`t${i}`} className="fb-w-tip-trend">{t(`widgets.kind.trend.${trend}`)} · {lines[i].label}<b>{fmt(trendAt(tr, hover[0]))}</b></div>
             ))}
@@ -110,9 +124,9 @@ function trendAt(tr: [number, number][], ts: number): number {
   return tr[tr.length - 1][1]
 }
 
-function Plot({ lines, stack, area, trends = [], steps = [], w, h, t0, t1, top, cross = null, label }: {
-  lines: Line[]; stack: Look['stack']; area: boolean; trends?: [number, number][][]; steps?: Threshold[]
-  w: number; h: number; t0?: number; t1?: number; top?: number; cross?: number | null; label?: string
+export function Plot({ lines, stack, area, trends = [], steps = [], ghosts = [], marks = [], w, h, t0, t1, top, axis, cross = null, label }: {
+  lines: Line[]; stack: Look['stack']; area: boolean; trends?: [number, number][][]; steps?: Threshold[]; ghosts?: Line[]; marks?: { x: number; tone: string }[]
+  w: number; h: number; t0?: number; t1?: number; top?: number; axis?: Axis; cross?: number | null; label?: string
 }) {
   const all = lines.flatMap((l) => l.points)
   const a = t0 ?? Math.min(...all.map((p) => p[0]))
@@ -120,13 +134,17 @@ function Plot({ lines, stack, area, trends = [], steps = [], w, h, t0, t1, top, 
   const stacked = stack && stack !== 'none' ? stackLines(lines, stack) : null
   const hi = top ?? (stack === 'percent' ? 100 : stacked ? Math.max(1, ...stacked[stacked.length - 1].map((p) => p[2])) : Math.max(...all.map((p) => p[1]), 1))
   const x = (ts: number) => ((ts - a) / (b - a || 1)) * w
-  const y = (v: number) => h - 2 - (v / hi) * (h - 6)
+  // A log scale starts at the smallest value above 0 unless the axis sets its own; values outside
+  // fixed ends sit on the edge instead of leaving the box.
+  const lo = axis?.min ?? (axis?.log ? Math.min(hi, ...all.map((p) => p[1]).filter((v) => v > 0)) : 0)
+  const sc = (v: number) => (axis?.log ? Math.log10(Math.max(v, lo)) : v)
+  const y = (v: number) => h - 2 - Math.min(1, Math.max(0, (sc(v) - sc(lo)) / (sc(hi) - sc(lo) || 1))) * (h - 6)
   const xy = (ts: number, v: number) => `${x(ts).toFixed(1)},${y(v).toFixed(1)}`
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
       <line className="fb-w-base" x1={0} x2={w} y1={h - 1} y2={h - 1} />
       {lines.map((l, i) => {
-        const colour = PALETTE[i % PALETTE.length]
+        const colour = lineColour(l, i)
         if (stacked) {
           const band = stacked[i]
           const upper = band.map((p) => xy(p[0], p[2])).join(' ')
@@ -149,12 +167,14 @@ function Plot({ lines, stack, area, trends = [], steps = [], w, h, t0, t1, top, 
         )
       })}
       {trends.map((tr, i) => tr.length > 1 && (
-        <polyline key={`t${i}`} className="fb-w-trend" style={{ color: PALETTE[i % PALETTE.length] }}
+        <polyline key={`t${i}`} className="fb-w-trend" style={{ color: lineColour(lines[i], i) }}
           points={tr.map((p) => xy(p[0], stack === 'percent' ? p[1] : p[1])).join(' ')} />
       ))}
-      {steps.filter((st) => st.at > 0 && st.at <= hi).map((st, i) => (
+      {steps.filter((st) => st.at > lo && st.at <= hi).map((st, i) => (
         <line key={`s${i}`} className={`fb-w-step fb-tone-${st.tone || 'none'}`} x1={0} x2={w} y1={y(st.at)} y2={y(st.at)} />
       ))}
+      {ghosts.map((l, i) => <polyline key={`g${i}`} className="fb-w-ghost" points={l.points.map((p) => xy(p[0], p[1])).join(' ')} />)}
+      {marks.map((m, i) => <line key={`m${i}`} className={`fb-w-mark fb-tone-${m.tone || 'none'}`} x1={m.x} x2={m.x} y1={0} y2={h} />)}
       {cross != null && <line className="fb-w-cross" x1={cross} x2={cross} y1={0} y2={h} />}
     </svg>
   )

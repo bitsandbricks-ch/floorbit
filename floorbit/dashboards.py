@@ -55,7 +55,7 @@ MAX_DEPTH = 4
 ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}\Z')
 TILE_RE = re.compile(r'^[\w.-]{1,64}/w/[\w.-]{1,64}\Z')
 REF_RE = re.compile(r'^[\w .:-]{1,120}\Z')
-KINDS = ('plan', 'tile', 'view', 'text', 'empty')
+KINDS = ('plan', 'tile', 'widget', 'view', 'text', 'empty')
 # What a tile pane may calculate (issue #959); the browser does the maths on the widgets' data.
 CALCS = ('count', 'sum', 'avg', 'min', 'max', 'first', 'last')
 MAX_ALSO = 3
@@ -63,6 +63,9 @@ TONES = ('', 'ok', 'warn', 'err')
 SORTS = ('value-desc', 'value-asc', 'name-asc', 'name-desc')
 MAX_STEPS = 5
 MAX_MAPPINGS = 10
+MAX_OVERRIDES = 10
+# The graph colours a series can be given (frontend PALETTE, in that order).
+COLOURS = ('green', 'cyan', 'violet', 'pink', 'orange', 'blue', 'grey')
 KEY_RE = re.compile(r'^[\w.-]{1,64}\Z')
 SPLITS = ('row', 'column')
 AREAS = ('hall', 'block', 'zone', 'box')
@@ -125,13 +128,13 @@ BUILTIN = {
     # The crew's start page: the numbers that matter, the hall, what is red, and how busy the network is.
     'overview': {'name': 'Overview', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 4, 3, _tile('seats')),
-        _at(4, 0, 4, 3, _tile('switches')),
-        _at(8, 0, 4, 3, _tile('bandwidth')),
-        _at(12, 0, 4, 3, _tile('peak')),
-        _at(16, 0, 4, 3, _tile('ports')),
-        _at(20, 0, 4, 3, _tile('incidents')),
+        _at(4, 0, 4, 3, _tile('bandwidth')),
+        _at(8, 0, 4, 3, _tile('switches')),
+        _at(12, 0, 4, 3, _tile('incidents')),
+        _at(16, 0, 4, 3, _tile('agents')),
+        _at(20, 0, 4, 3, _tile('lancache')),
         _at(0, 3, 14, 9, _plan(preset='ops')),
-        _at(14, 3, 10, 5, _view('health')),
+        _at(14, 3, 10, 5, _tile('service_health', type='status')),
         _at(14, 8, 10, 4, _tile('down')),
         _at(0, 12, 8, 8, _tile('switch_states', type='status')),
         _at(8, 12, 10, 8, _tile('traffic', type='graph', style='area')),
@@ -141,9 +144,15 @@ BUILTIN = {
         _at(16, 20, 8, 8, _tile('anomalies', type='status')),
     ]}]},
     'health': {'name': 'Service health', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 24, 12, _view('health', expanded=True)),
-        _at(0, 12, 12, 8, _view('services')),
-        _at(12, 12, 12, 8, _view('lancache')),
+        _at(0, 0, 6, 3, _tile('service_health', type='stat')),
+        _at(6, 0, 6, 3, _tile('switches')),
+        _at(12, 0, 6, 3, _tile('lancache')),
+        _at(18, 0, 6, 3, _tile('agents')),
+        _at(0, 3, 14, 12, _tile('service_health', type='status')),
+        _at(14, 3, 10, 6, _tile('internet_uplinks', type='bar')),
+        _at(14, 9, 10, 6, _tile('down')),
+        # The wall with each check's numbers and mutes, until those have a home of their own (#1045).
+        _at(0, 15, 24, 12, _view('health', expanded=True)),
     ]}]},
     'network': {'name': 'Network', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 6, 3, _tile('switches')),
@@ -155,14 +164,20 @@ BUILTIN = {
         _at(0, 12, 8, 9, _tile('uplinks', type='bar')),
         _at(8, 12, 8, 9, _tile('top_ports', type='bar', limit=10)),
         _at(16, 12, 8, 9, _tile('switch_states', type='status')),
-        _at(0, 21, 12, 6, _view('wifi')),
+        _at(0, 21, 5, 6, _tile('wifi_clients')),
+        _at(5, 21, 7, 6, _tile('wifi_aps', type='status')),
         _at(12, 21, 12, 3, _view('endpoints')),
         _at(12, 24, 12, 3, _view('network-status')),
     ]}]},
     'services': {'name': 'Services', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 24, 10, _view('services', expanded=True)),
-        _at(0, 10, 12, 8, _view('health')),
-        _at(12, 10, 12, 8, _view('lancache')),
+        _at(0, 0, 8, 3, _tile('service_health', type='stat')),
+        _at(8, 0, 8, 3, _tile('lancache')),
+        _at(16, 0, 8, 3, _tile('agents')),
+        _at(0, 3, 12, 9, _tile('service_health', type='status')),
+        _at(12, 3, 12, 9, _tile('internet_uplinks', type='bar')),
+        # Adding and editing DNS servers, sites and uplinks, and the cache's details (#1045).
+        _at(0, 12, 24, 10, _view('services', expanded=True)),
+        _at(0, 22, 24, 10, _view('lancache', expanded=True)),
     ]}]},
     'traffic': {'name': 'Traffic', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 6, 3, _tile('bandwidth')),
@@ -173,12 +188,16 @@ BUILTIN = {
         _at(0, 12, 8, 9, _tile('flow_services', type='bar', limit=10)),
         _at(8, 12, 8, 9, _tile('traffic_areas', type='bar')),
         _at(16, 12, 8, 9, _tile('top_ports', type='bar', limit=10)),
-        _at(0, 21, 12, 10, _view('dns')),
-        _at(12, 21, 12, 10, _view('games')),
-        _at(0, 31, 24, 8, _view('speedtests')),
+        _at(0, 21, 6, 3, _tile('dns_lookups')),
+        _at(6, 21, 6, 3, _tile('lancache')),
+        _at(12, 21, 12, 11, _tile('launchers', type='bar')),
+        _at(0, 24, 6, 8, _tile('dns_sites', type='bar', limit=8)),
+        _at(6, 24, 6, 8, _tile('dns_blocked', type='bar', limit=8)),
+        _at(0, 32, 24, 8, _view('speedtests')),
     ]}]},
     'power': {'name': 'Power load', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 24, 14, _view('power-load', expanded=True)),
+        _at(0, 0, 24, 10, _tile('power_circuits', type='bar')),
+        _at(0, 10, 24, 14, _view('power-load', expanded=True)),
     ]}]},
     # What the old public stats wall showed, for a screen in the hall: off until Settings > Attendee
     # pages turns on the stats wall.
@@ -207,10 +226,32 @@ def _saved(data=None):
 
 
 def all_layouts(data=None):
-    """The saved dashboards, then the ready-made ones nobody replaced (``builtin``: true)."""
-    saved = _saved(data)
+    """The saved dashboards, then the ready-made ones nobody changed (``builtin``: true). A widget
+    pane carries its saved widget as ``saved`` ({name, pane}, None when it was removed), so a
+    screen draws it without asking again; saving drops it (``_pane`` keeps known keys only)."""
+    from . import saved_widgets
+    data = load_data() if data is None else data
+    # ``changed``: a ready-made dashboard someone edited; removing the saved one resets it (#923).
+    saved = [{**x, 'changed': True} if x.get('id') in BUILTIN else x for x in _saved(data)]
     taken = {x.get('id') for x in saved}
-    return saved + [{'id': k, **copy.deepcopy(v), 'builtin': True} for k, v in BUILTIN.items() if k not in taken]
+    layouts = saved + [{'id': k, **copy.deepcopy(v), 'builtin': True} for k, v in BUILTIN.items() if k not in taken]
+    widgets = saved_widgets.by_id(data)
+    return [_with_widgets(x, widgets) for x in layouts]
+
+
+def _with_widgets(layout, widgets):
+    def node(n):
+        if 'pane' not in n:
+            return {**n, 'children': [node(c) for c in n['children']]}
+        pane = n['pane']
+        if pane.get('kind') != 'widget':
+            return n
+        found = widgets.get(pane['widget'])
+        return {**n, 'pane': {**pane, 'saved': {'name': found['name'], 'pane': found['pane']} if found else None}}
+    if 'sections' not in layout:
+        return layout
+    return {**layout, 'sections': [{**sec, 'panels': [{**p, 'node': node(p['node'])} for p in sec.get('panels') or []]}
+                                   for sec in layout['sections']]}
 
 
 def get(layout_id, data=None):
@@ -332,6 +373,12 @@ def _pane(raw):
                 pane[key] = value
         pane.update(_shaping(raw, tile))
         pane.update(_display(raw))
+    elif kind == 'widget':
+        # A saved widget (saved_widgets.py), followed as it changes; a missing one says so on screen.
+        widget = str(raw.get('widget') or '')
+        if not ID_RE.match(widget):
+            raise LayoutError('Pick a saved widget.')
+        pane['widget'] = widget
     elif kind == 'view':
         view = str(raw.get('view') or '')
         if not ID_RE.match(view):
@@ -443,6 +490,15 @@ def clean(body):
     # Rotate through the halls on every plan pane that shows a whole hall, like /plan?cycle=.
     if body.get('cycle'):
         out['cycle'] = int(_number(body.get('cycle'), 10, 600, 'Each hall stays 10 to 600 seconds.'))
+    # The time every graph shows unless its pane picks its own (issue #960, the mocks' top bar).
+    if body.get('range'):
+        from .dashboard_core import RANGES
+        if body['range'] not in RANGES:
+            raise LayoutError(f'A time range is one of: {", ".join(RANGES)}.')
+        out['range'] = body['range']
+    # Full screen shows a header and the status line unless the dashboard switches them off (#927).
+    if body.get('frame') is False:
+        out['frame'] = False
     return out
 
 
@@ -523,6 +579,11 @@ def _tone(value):
     return tone
 
 
+# How often a pane asks its tile again (seconds), and its text size (issue #960).
+REFRESHES = (10, 30, 60, 300)
+WIDGET_TEXT_SIZES = ('s', 'm', 'l')
+
+
 def _display(raw):
     """How a tile pane shows its numbers (issue #960); left out when unused."""
     out = {}
@@ -567,11 +628,82 @@ def _display(raw):
         out['limit'] = _num(raw['limit'], 'Show at most', 1, 100, whole=True)
     if raw.get('hide_zero'):
         out['hide_zero'] = True
+    out.update(_axis(raw))
+    from .dashboard_core import COMPARES, RANGES
+    if raw.get('range'):
+        if raw['range'] not in RANGES:
+            raise LayoutError(f'A time range is one of: {", ".join(RANGES)}.')
+        out['range'] = raw['range']
+    if raw.get('compare'):
+        if raw['compare'] not in COMPARES:
+            raise LayoutError(f'Compare with one of: {", ".join(COMPARES)}.')
+        if raw.get('range') == 'event':
+            raise LayoutError('The whole event has nothing to compare with yet.')
+        out['compare'] = raw['compare']
+    if raw.get('events'):
+        out['events'] = True   # marks what happened on a time graph, for a tile that can
+    if raw.get('refresh') is not None:
+        if raw['refresh'] not in REFRESHES or isinstance(raw['refresh'], bool):
+            raise LayoutError('Refresh every 10, 30, 60 or 300 seconds.')
+        out['refresh'] = raw['refresh']
+    if raw.get('text_size'):
+        if raw['text_size'] not in WIDGET_TEXT_SIZES:
+            raise LayoutError('Text size is small, normal or large.')
+        if raw['text_size'] != 'm':
+            out['text_size'] = raw['text_size']
+    for flag in ('spark', 'change'):   # a stat's history under it, and how it moved
+        if raw.get(flag):
+            out[flag] = True
+    overrides = _overrides(raw.get('overrides'))
+    if overrides:
+        out['overrides'] = overrides
+    return out
+
+
+def _axis(raw):
+    """A graph's value axis: fixed ends and a log scale (issue #960); left out when automatic."""
+    out = {}
+    for end in ('y_min', 'y_max'):
+        if raw.get(end) is not None:
+            out[end] = _num(raw[end], 'An axis end')
+    if 'y_min' in out and 'y_max' in out and out['y_min'] >= out['y_max']:
+        raise LayoutError('The axis maximum must be above its minimum.')
+    if raw.get('y_log'):
+        if out.get('y_min', 1) <= 0:
+            raise LayoutError('A log scale starts above 0.')
+        out['y_log'] = True
+    return out
+
+
+def _overrides(raw):
+    """Per series or row, found by its label: another name, a colour, or hidden (issue #960)."""
+    if raw in (None, []):
+        return []
+    if not isinstance(raw, list) or len(raw) > MAX_OVERRIDES or not all(isinstance(o, dict) for o in raw):
+        raise LayoutError(f'A widget has at most {MAX_OVERRIDES} series settings.')
+    out = []
+    for o in raw:
+        entry = {'match': _text(o.get('match'), 80)}
+        if not entry['match']:
+            raise LayoutError('Pick the series a setting is for.')
+        name = _text(o.get('name'), 40)
+        if name:
+            entry['name'] = name
+        if o.get('colour'):
+            if o['colour'] not in COLOURS:
+                raise LayoutError(f'A series colour is one of: {", ".join(COLOURS)}.')
+            entry['colour'] = o['colour']
+        if o.get('hide'):
+            entry['hide'] = True
+        if len(entry) > 1:
+            out.append(entry)
     return out
 
 
 def pane_tiles(pane):
-    """Every tile a tile pane reads."""
+    """Every tile a tile pane, or the saved widget a widget pane shows, reads."""
+    if pane.get('kind') == 'widget':
+        pane = (pane.get('saved') or {}).get('pane') or {}
     return [pane['tile'], *pane.get('also', [])] if pane.get('kind') == 'tile' else []
 
 
@@ -583,6 +715,14 @@ def _public_node(node):
     head = {k: pane[k] for k in ('title', 'hide_title') if k in pane}
     if kind == 'plan':
         return {'pane': {**pane, 'marks': 'none' if pane.get('marks') == 'none' else 'public'}}
+    if kind == 'widget':
+        # A screen nobody signed in to gets the widget's tile pane itself, not the saved widgets.
+        saved = pane.get('saved') or {}
+        tiles = pane_tiles(pane)
+        if tiles and all(t in PUBLIC_TILES for t in tiles):
+            return {'pane': {**saved['pane'], 'title': pane.get('title') or saved['name'],
+                             **{k: pane[k] for k in ('hide_title',) if k in pane}}}
+        return {'pane': {'kind': 'private', **head}}
     if kind in ('text', 'empty') or (kind == 'tile' and all(t in PUBLIC_TILES for t in pane_tiles(pane))) or (
             kind == 'view' and pane['view'] in PUBLIC_VIEWS):
         return {'pane': pane}
@@ -594,7 +734,7 @@ def public_board(layout):
     (the screen says they need an account), plan panes draw the public marks only."""
     sections = [{**sec, 'panels': [{**p, 'node': _public_node(p['node'])} for p in sec['panels']]}
                 for sec in layout['sections']]
-    head = {k: layout[k] for k in ('id', 'name', 'fit', 'cycle') if k in layout}
+    head = {k: layout[k] for k in ('id', 'name', 'fit', 'cycle', 'range', 'frame') if k in layout}
     return {**head, 'public': True, 'sections': sections}
 
 
@@ -604,6 +744,13 @@ def _panes(node):
     else:
         for child in node['children']:
             yield from _panes(child)
+
+
+def layout_panes(layout):
+    """Every pane of a dashboard, in all its sections."""
+    for sec in layout.get('sections') or []:
+        for panel in sec.get('panels') or []:
+            yield from _panes(panel['node'])
 
 
 def public_panes(layout):
