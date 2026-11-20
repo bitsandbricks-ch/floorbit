@@ -1,5 +1,5 @@
 ### Added
 
-- Firewall ranges can name the seat blocks they are for. A seat of such a block whose PC has an
-  address outside the block's ranges (wrong port, wrong VLAN, a router of its own) shows under
-  Problems › Needs attention, as one item per switch when several seats behind it are off.
+- Problems flags a seat whose PC got an address from another switch stack's range, or none at all.
+  Each switch's range is taken from where most of its seats are, so nothing needs setting up; a
+  range can also be set for switches or switch groups under Firewalls.

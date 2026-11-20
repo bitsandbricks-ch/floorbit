@@ -58,16 +58,24 @@ Floorbit the local agent asks the event's NetBox (an agent with `firewall_feeds`
 
 ### Seats in the wrong range
 
-When each block has its own range, a seat patched to the wrong port, a port in the wrong VLAN, or a
-player's own router puts a PC in another block's range: it works, but on the wrong firewall. Give
-the ranges their **seat blocks** and Floorbit compares every seat's address with its block's ranges.
-A seat outside them shows under **Problems › Needs attention**, with the range it is in instead (or
-"outside every planned range", usually a router of its own) and its switch port. Three or more such
-seats behind one switch are one item for the switch: check its VLAN.
+Each switch stack usually has its own seat ranges, and stacks come in sets (a colour, a switch type)
+that are [inventory groups](inventory.md#groups-and-tags). A seat patched to the wrong port, a port
+in the wrong VLAN, or a player's own router puts a PC in another stack's range: it works, but on the
+wrong firewall. Floorbit compares every seat's address with its switch's ranges, and a seat outside
+them shows under **Problems › Needs attention** with the range it is in instead (or "outside every
+planned range", usually a router of its own) and its switch port. Three or more such seats behind
+one switch are one item for the switch: check its VLAN.
 
-Only blocks named on a range are checked. Where DHCP hands out addresses regardless of the block,
-leave the field empty and nothing is flagged. An imported range takes its seat blocks here too
-(**Blocks**); they are kept across imports. The items name ranges, never a seat's IP.
+Nothing needs setting up: a switch's range is the one most of its PCs are in right now, once at
+least 3 of them are and they make 60 % of its PCs in a range ("most of sw-g1 is in …"). Where DHCP
+hands out addresses regardless of the switch, no range is that clear and nothing is flagged; a seat
+in no range at all isn't judged on a guess.
+
+A range can also name the **switches and switch groups** it is for; that wins over the guess. Name
+the group (Green) and every switch in it, and in its subgroups, uses that range. When most seats of
+a named switch are outside its ranges, the range is set for the wrong switch: that is one item
+linking here. An imported range takes its switches here too (**Switches**); they are kept across
+imports. The items name ranges, never a seat's IP.
 
 ## On the floor plan
 
