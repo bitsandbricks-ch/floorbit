@@ -886,6 +886,9 @@ export interface PlanShape {
   cells: PlanCell[]
   /** Row letters (blocks named by row), in the block's own coordinates; missing on older answers. */
   rows?: { text: string; x: number; y: number }[]
+  /** Each row, top first (a cell's rc[0]): its id and name as /api/options/rows has them. Ids are
+   *  the server's: never build one. Missing on older answers. */
+  row_list?: { id: string; name: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
 }

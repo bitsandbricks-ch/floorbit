@@ -6,7 +6,7 @@ can be split into panes side by side or stacked. Each pane shows one thing:
 
 | Pane | What it shows |
 | --- | --- |
-| **Plan** | A hall's floor plan: the whole hall, one seat block, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
+| **Plan** | A hall's floor plan: the whole hall, one seat block, one row, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
 | **Widget** | A rich widget from the [widget gallery](#the-widget-gallery): service health, stats, traffic, DNS, games, Wi-Fi, speed tests, power load, network status, endpoints, the LAN cache and the event in numbers. Small by default; **Show it big** draws it with everything its page used to show. |
 | **Saved widget** | A widget saved on the Widgets page, see [Saved widgets](#saved-widgets). The pane follows it: change the widget and every dashboard that shows it changes too. **Clone into this dashboard** in the pane's settings turns it into a tile of its own with the same settings, for this dashboard only. |
 | **Tile** | One data widget that fits its box: Floorbit's own (problems, incidents, open incidents, switches, switch states, seats, seats by block, switches down, traffic, bandwidth, peak, ports, uplinks, busiest seats, internet uplinks, LAN cache, agents, and with their feature on: service health, power load, DNS lookups, top and blocked sites, game launchers, Wi-Fi clients and access points, and traffic by kind, top services, traffic by area, and what looks odd) or a plugin's. See [Tiles that fit their box](#tiles-that-fit-their-box). |
@@ -48,6 +48,9 @@ layer at the bottom right.
   are online or have problems. A title you type replaces it.
 - **Hide the title** leaves a pane's head off, for a cleaner wall (on a plan pane, the online count
   goes with it).
+- **Row** shows one row of a block: a block can hold several rows, and the crew works a row at a
+  time. The rows are named as everywhere else (C, or A 2 in a block numbered as a whole), and the
+  online count is that row's seats.
 - **Zone** lists the zones of the hall that have a label: draw one around the VIP area with the
   editor's Zone tool first. **My view** shows a small plan: move and zoom it, then **Use this view**.
 - **Plan marks** on a plan pane: **All** draws the marks of its layers, **Public** only the Overview
