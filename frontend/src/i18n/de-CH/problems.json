@@ -1,6 +1,6 @@
 {
   "title": "Probleme",
-  "intro": "Alles, was gerade nicht stimmt: Switches offline, Dienste down, WLAN-Access-Points ausgefallen oder ausgelastet, Sicherheitsfunde und Stromkreise kurz vor dem Auslösen. Schalte stumm, woran du arbeitest, damit es nicht mehr alarmiert.",
+  "intro": "Alles, was gerade nicht stimmt: Switches offline, Dienste down, WLAN-Access-Points ausgefallen oder ausgelastet, Sicherheitsfunde, Stromkreise kurz vor dem Auslösen und Plätze mit Problemen (Port-Probleme, Syslog-Meldungen, offene Störungen). Schalte stumm, woran du arbeitest, damit es nicht mehr alarmiert.",
   "none": "Gerade ist alles in Ordnung.",
   "count": {
     "down_one": "{{count}} down",
@@ -25,11 +25,8 @@
     "forecast": "Prognose",
     "log": "Log",
     "plugin": "Plugin",
-    "wifi": "WLAN"
-  },
-  "attention": {
-    "title": "Braucht Aufmerksamkeit",
-    "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex, Plätze online ohne Check-in und Syslog-Zeilen wie err-disable oder DHCP-Snooping. Sie verschwinden von selbst, sobald der Port sich normal verhält."
+    "wifi": "WLAN",
+    "incident": "Störung"
   },
   "since": "begonnen {{ago}}",
   "open": "Öffnen",
@@ -57,7 +54,8 @@
   "card": {
     "down": "Down",
     "warn": "Anzuschauen",
-    "muted": "Stumm"
+    "muted": "Stumm",
+    "seats": "Plätze mit Problemen"
   },
   "muteTextService": "Keine Discord-Nachrichten, wenn dieser Dienst ausfällt oder zurückkommt, bis die Stummschaltung endet. Er bleibt auf dieser Liste und auf der Health-Wand.",
   "muteTextAp": "Zählt diesen Access Point nicht mehr zu den Problemen, bis die Stummschaltung endet. Er bleibt auf dieser Liste und in der WLAN-Ansicht.",
@@ -66,5 +64,8 @@
   "report": "Störung erfassen",
   "incidentOpen": "Störung offen",
   "copy": "Liste kopieren",
-  "copied": "Kopiert"
+  "copied": "Kopiert",
+  "seats": "Plätze",
+  "range": "{{from}}–{{to}} von {{count}}",
+  "pages": "Seiten"
 }

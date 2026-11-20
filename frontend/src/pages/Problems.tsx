@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Modal, Pagination, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconBellOff, IconCheck, IconCopy } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -18,6 +18,10 @@ import { ErrorBanner } from '@/components/ui'
 import { ago, clock } from '@/lib/time'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
+/** Cards per page: a big event can have dozens of seats with port trouble (issue #1204). */
+export const PAGE_SIZE = 25
+/** The chip that shows everything about a seat, whatever its kind. */
+const SEATS = 'seats'
 
 /** A mute this close to its end gets a badge, so +30 min is pressed before the alerts come back (issue #266). */
 const ENDING_SOON = 10 * 60
@@ -135,6 +139,7 @@ export default function Problems() {
   const showKind = (v: string) => setParams((prev) => {
     const next = new URLSearchParams(prev)
     if (v === 'all') next.delete('kind'); else next.set('kind', v)
+    next.delete('page')
     return next
   }, { replace: true })
   const refresh = () => void client.invalidateQueries({ queryKey: qk.problems })
@@ -164,9 +169,23 @@ export default function Problems() {
     onSuccess: refresh,
   })
   const data = list.data
+  // Seat and port trouble are problems too (issue #1204): after the rest, so a switch that is down
+  // stays on top, newest first among themselves as the server sends them.
+  const all: Problem[] = data ? [...data.problems, ...(data.attention ?? [])] : []
   // In the order they first appear, which is worst first.
-  const kinds: string[] = data ? [...new Set(data.problems.map((p) => p.kind))] : []
-  const visible = data ? data.problems.filter((p) => !kinds.includes(shown) || p.kind === shown) : []
+  const kinds: string[] = [...new Set(all.map((p) => p.kind))]
+  const seatCount = all.filter((p) => p.seat).length
+  const chips = seatCount && kinds.length > 1 ? ['all', SEATS, ...kinds] : ['all', ...kinds]
+  const matches = (p: Problem) => shown === SEATS ? !!p.seat : !kinds.includes(shown) || p.kind === shown
+  const visible = all.filter(matches)
+  const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
+  const page = Math.min(pages, Math.max(1, Number(params.get('page')) || 1))
+  const onPage = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const setPage = (n: number) => setParams((prev) => {
+    const next = new URLSearchParams(prev)
+    if (n > 1) next.set('page', String(n)); else next.delete('page')
+    return next
+  }, { replace: true })
   const error = list.error ?? unmute.error ?? extend.error ?? report.error
 
   return (
@@ -191,39 +210,36 @@ export default function Problems() {
         <Stack gap="md">
           {data.quiet_hours && <Alert color="gray" variant="light">{t('problems.quiet')}</Alert>}
           <div className="fb-stat-row" aria-live="polite">
-            {(['down', 'warn', 'muted'] as const).map((k) => (
+            {(['down', 'warn', 'seats', 'muted'] as const).map((k) => (
               <StatCard key={k} label={t(`problems.card.${k}`)} value={String(data.counts[k] ?? 0)}
-                tone={data.counts[k] && k !== 'muted' ? k : undefined} />
+                tone={data.counts[k] && k !== 'muted' ? (k === 'seats' ? 'warn' : k) : undefined} />
             ))}
           </div>
           {kinds.length > 1 && (
-            <SegmentedControl size="xs" value={kinds.includes(shown) ? shown : 'all'} onChange={showKind} aria-label={t('problems.show')}
-              style={{ alignSelf: 'flex-start' }}
-              data={['all', ...kinds].map((k) => ({
+            <SegmentedControl size="xs" value={chips.includes(shown) ? shown : 'all'} onChange={showKind} aria-label={t('problems.show')}
+              style={{ alignSelf: 'flex-start', maxWidth: '100%', overflowX: 'auto' }}
+              data={chips.map((k) => ({
                 value: k,
-                label: <span><span>{k === 'all' ? t('problems.all') : t(`problems.kind.${k}`)}</span>{' '}
-                  <span className="fb-filter-count">{k === 'all' ? data.problems.length : data.problems.filter((p) => p.kind === k).length}</span></span>,
+                label: <span><span>{k === 'all' ? t('problems.all') : k === SEATS ? t('problems.seats') : t(`problems.kind.${k}`)}</span>{' '}
+                  <span className="fb-filter-count">{k === 'all' ? all.length : k === SEATS ? seatCount : all.filter((p) => p.kind === k).length}</span></span>,
               }))} />
           )}
-          {!data.problems.length ? (
+          {!all.length ? (
             <Text c="dimmed">{t('problems.none')}</Text>
           ) : (
             <Stack gap="xs">
-              {visible.map((p) => (
+              {onPage.map((p) => (
                 <Row key={p.id} p={p} canMute={data.can_mute} busy={mute.isPending || report.isPending}
                   onReport={data.can_report ? () => report.mutate(p) : undefined}
                   onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: muteKind(p.kind) }) }} />
               ))}
             </Stack>
           )}
-          {!!data.attention?.length && (
-            <section aria-labelledby="needs-attention">
-              <Title order={2} size="h4" id="needs-attention">{t('problems.attention.title')}</Title>
-              <Text size="sm" c="dimmed" mb="xs">{t('problems.attention.text')}</Text>
-              <Stack gap="xs">
-                {data.attention.map((p) => <Row key={p.id} p={p} canMute={false} busy={false} onMute={() => {}} />)}
-              </Stack>
-            </section>
+          {pages > 1 && (
+            <Group justify="space-between" wrap="wrap">
+              <Text size="sm" c="dimmed">{t('problems.range', { from: (page - 1) * PAGE_SIZE + 1, to: Math.min(page * PAGE_SIZE, visible.length), count: visible.length })}</Text>
+              <Pagination size="sm" total={pages} value={page} onChange={setPage} aria-label={t('problems.pages')} />
+            </Group>
           )}
           {data.mutes.length > 0 && (
             <section aria-labelledby="muted-switches">

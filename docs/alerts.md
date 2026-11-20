@@ -28,9 +28,15 @@ It asks nothing new: it reads what the status monitor, the health wall, the secu
 power layer, the link reader and the Wi-Fi view already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,
 and its name in the list of muted switches, open that switch on the floor plan (`/plan`), in its hall.
 
+Seat and port trouble (see [Seats with trouble](#seats-with-trouble) below) is part of the same
+list, after the rest so a switch that is down stays on top. The cards on top count what is down, what
+needs a look, the **seats with trouble** (counted like the floor plan's "!": check-in left out) and
+what is muted.
+
 When the list holds more than one kind, a row above it shows one kind at a time (switches,
-services, power, …) with how many of each. The choice is kept in the address (`/problems?kind=power`),
-so a reload or a shared link shows the same.
+services, power, …) with how many of each; **Seats** shows everything about a seat, whatever its
+kind. The choice is kept in the address (`/problems?kind=power`), so a reload or a shared link shows
+the same. The list comes in pages of 25, the page in the address too (`/problems?page=2`).
 
 For people who see the [incident board](incidents.md), an offline switch has **Make an incident**:
 one click puts it on the board with the switch and the problem's title. Once an incident for that
@@ -39,9 +45,9 @@ switch is open, the button becomes **Incident open**, which opens the board filt
 **Copy list** in the page header copies the problems shown (after the kind filter) as plain text,
 with the time, the counts and the mutes, for pasting into the crew chat or a ticket.
 
-## Needs attention
+## Seats with trouble
 
-Below the problems, **Needs attention** lists ports an ops person should look at, newest first.
+After the problems, the list holds ports and seats an ops person should look at, newest first.
 Every `ATTENTION_INTERVAL` seconds (120) Floorbit reads all ports of the switches that are placed and
 online from the monitoring source (`device_ports`, one request per switch to LibreNMS) and keeps what
 it saw last time:
@@ -53,6 +59,7 @@ it saw last time:
 | Duplex | a port that is up runs at half duplex: usually a bad cable or a forced speed setting |
 | Check-in | with [check-in](integrations.md#seat-check-in-page) on, a seat's port is up while nobody checked in at that seat |
 | Log | with the [syslog receiver](syslog.md#log-alerts) on, a line about err-disable, port security, DHCP snooping, MAC flapping, a loop, storm control or a spanning tree change |
+| Incident | an open [incident](incidents.md) on a seat (also what attendees report at their seat); **Open** shows the board filtered to that seat |
 
 A port belongs to a seat when its description (ifAlias) names the seat, such as `Seat A-12` or
 `A-12 desk`; **Open** then goes to that seat on the floor plan, otherwise to the switch

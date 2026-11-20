@@ -19,7 +19,7 @@ Code: [`floorbit/stats.py`](../floorbit/stats.py), [`floorbit/blueprints/stats.p
 
 ## Where the numbers come from
 
-Floorbit asks nothing extra for them. The [needs-attention watch](alerts.md#needs-attention)
+Floorbit asks nothing extra for them. The [needs-attention watch](alerts.md#seats-with-trouble)
 already reads every port of the placed, online switches from the monitoring source (LibreNMS)
 every `ATTENTION_INTERVAL` seconds (120); each read becomes one sample here.
 

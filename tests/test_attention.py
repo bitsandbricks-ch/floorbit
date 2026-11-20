@@ -190,3 +190,21 @@ def test_a_cable_to_a_seat_wins_over_the_port_description(hall, client):
     where = sorted(item["where"] for item in hall["watch"].snapshot()["items"])
     assert where == ["sw-a-01 Gi1/0/5 (seat A-3)", "sw-a-01 Gi1/0/6 (seat A-2)"]
     assert hall["watch"].port_seats[("sw-a-01", "Gi1/0/5")] == "A-3"
+
+
+def test_open_seat_incidents_are_seat_trouble_on_problems(client):
+    """Issue #1204: the floor plan marks a seat with an open incident; Problems lists it too and
+    counts the seats with trouble. A fixed incident drops off."""
+    client.post("/api/seat-blocks", json={"name": "Z", "x": 10, "y": 50, "cols": 4, "rows": 2})
+    before = client.get("/api/problems").get_json()["counts"]["seats"]   # port trouble other tests left
+    made = client.post("/api/incidents", json={"seat": "Z-1", "title": "No internet"}).get_json()
+    body = client.get("/api/problems").get_json()
+    item = next(p for p in body["attention"] if p["kind"] == "incident")
+    assert item["seat"] == "Z-1" and item["where"] == "Seat Z-1" and item["title"] == "No internet"
+    assert item["link"] == "/incidents?q=seat%3AZ-1" and item["level"] == "warn"
+    assert body["counts"]["seats"] == before + 1
+    de = client.get("/api/problems", headers={"Accept-Language": "de-CH"}).get_json()
+    assert next(p for p in de["attention"] if p["kind"] == "incident")["where"] == "Platz Z-1"
+    client.patch(f"/api/incidents/{made['id']}", json={"status": "fixed"})
+    body = client.get("/api/problems").get_json()
+    assert not [p for p in body["attention"] if p["kind"] == "incident"] and body["counts"]["seats"] == before

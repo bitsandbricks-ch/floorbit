@@ -704,7 +704,8 @@ export interface PowerOverview {
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
 export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin'
-  | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
+  | 'flapping' | 'errors' | 'duplex' | 'checkin' | 'mapping' | 'log' | 'forecast'   // ports that need a look (issue #15)
+  | 'incident'   // an open incident on a seat (issue #1204)
 export interface AlertMute {
   /** The switch id, ``health:<service id>`` for a service (issue #256) or ``wifi:<ap>`` for an access point. */
   switch_id: string
@@ -730,11 +731,13 @@ export interface Problem {
   muted?: { until: number; by: string | null; reason: string } | null
   /** An offline switch's open incident, for people who see the board (issue #278). */
   incident?: string | null
+  /** The seat it is about: seat and port trouble, open incidents on a seat (issue #1204). */
+  seat?: string | null
 }
 export interface ProblemList {
   problems: Problem[]
   attention?: Problem[]
-  counts: { down: number; warn: number; muted: number; attention?: number }
+  counts: { down: number; warn: number; muted: number; attention?: number; seats?: number }
   mutes: AlertMute[]
   quiet_hours: boolean
   checked_at: number
