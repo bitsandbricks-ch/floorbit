@@ -1,9 +1,12 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
 import { IconLayoutColumns, IconLayoutRows, IconSettings, IconTrash } from '@tabler/icons-react'
-import { Fragment, useRef } from 'react'
+import { Fragment, useContext, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isPane, type Node, type Path, type Split } from './model'
 import { PaneView } from './Panes'
+import { PaneKey } from './large'
+import { LevelReport } from '@/widgets/levelReport'
+import type { Level } from '@/widgets/level'
 
 export interface Editing {
   selected: Path | null
@@ -18,11 +21,19 @@ const same = (a: Path | null, b: Path) => !!a && a.length === b.length && a.ever
 /** A dashboard drawn as nested splits. With ``editing`` each pane gets its tools and the borders
  *  between parts can be dragged. */
 export function SplitView({ node, path = [], editing, cycle }: { node: Node; path?: Path; editing?: Editing; cycle?: number }) {
+  // The grid cell's key; the pane's own adds its place in the splits ("make large", ?w=).
+  const base = useContext(PaneKey)
+  // In the editor, the level the widget drew at, shown on the pane while its box changes (#928).
+  const [level, setLevel] = useState<Level | null>(null)
   if (isPane(node)) {
     return (
       <div className={`fb-split-pane${editing && same(editing.selected, path) ? ' selected' : ''}`}>
-        <PaneView pane={node.pane} cycle={cycle} />
-        {editing && <PaneTools path={path} editing={editing} />}
+        <PaneKey.Provider value={base == null ? null : [base, ...path].join('.')}>
+          <LevelReport.Provider value={editing ? setLevel : null}>
+            <PaneView pane={node.pane} cycle={cycle} />
+          </LevelReport.Provider>
+        </PaneKey.Provider>
+        {editing && <PaneTools path={path} editing={editing} level={level} />}
       </div>
     )
   }
@@ -62,10 +73,11 @@ function SplitBox({ node, path, editing, cycle }: { node: Extract<Node, { split:
   )
 }
 
-function PaneTools({ path, editing }: { path: Path; editing: Editing }) {
+function PaneTools({ path, editing, level }: { path: Path; editing: Editing; level: Level | null }) {
   const { t } = useTranslation()
   return (
     <>
+      {level && <span className="fb-pane-level" data-level={level}>{t(`dashboards.level.${level}`)}</span>}
       {/* The whole pane picks it for the settings, over whatever the pane shows. */}
       <button type="button" className="fb-pane-pick" aria-label={t('dashboards.edit.pick')} onClick={() => editing.onSelect(path)} />
       <Group gap={4} className="fb-pane-tools">

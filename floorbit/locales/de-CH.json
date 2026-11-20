@@ -1,4 +1,6 @@
 {
+ "Refresh every 10, 30, 60 or 300 seconds.": "Alle 10, 30, 60 oder 300 Sekunden neu laden.",
+ "Text size is small, normal or large.": "Die Textgrösse ist klein, normal oder gross.",
  "The agent sent a broken gzip body.": "Der Agent hat einen kaputten gzip-Inhalt geschickt.",
  "The agent sent more than 32 MB at once; send it in parts.": "Der Agent hat mehr als 32 MB auf einmal geschickt; bitte in Teilen schicken.",
  "The agent sent a body that is not JSON.": "Der Agent hat einen Inhalt geschickt, der kein JSON ist.",
@@ -1226,5 +1228,22 @@
  "Discovery runs at most every {} minutes.": "Discovery läuft höchstens alle {} Minuten.",
  "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
  "Send an object.": "Schicke ein Objekt.",
- "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken."
+ "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken.",
+ "Send the widget as a JSON object.": "Schicke das Widget als JSON-Objekt.",
+ "Give the widget a name.": "Gib dem Widget einen Namen.",
+ "Pick what the widget shows.": "Wähle, was das Widget zeigt.",
+ "No such widget.": "Kein solches Widget.",
+ "Floorbit keeps at most {} widgets.": "Floorbit speichert höchstens {} Widgets.",
+ "{} still show this widget. Clone it there or take it off first.": "{} zeigen dieses Widget noch. Klone es dort oder entferne es zuerst.",
+ "Pick a saved widget.": "Wähle ein gespeichertes Widget.",
+ "An axis end must be a number.": "Ein Achsenende muss eine Zahl sein.",
+ "The axis maximum must be above its minimum.": "Das Achsenmaximum muss über dem Minimum liegen.",
+ "A log scale starts above 0.": "Eine logarithmische Skala beginnt über 0.",
+ "A widget has at most {} series settings.": "Ein Widget hat höchstens {} Einstellungen pro Reihe.",
+ "Pick the series a setting is for.": "Wähle die Reihe, für die eine Einstellung gilt.",
+ "A series colour is one of: {}.": "Eine Reihenfarbe ist eine von: {}.",
+ "A time range is one of: {}.": "Ein Zeitraum ist einer von: {}.",
+ "Compare with one of: {}.": "Vergleiche mit einem von: {}.",
+ "The whole event has nothing to compare with yet.": "Für den ganzen Event gibt es noch nichts zum Vergleichen.",
+ "a mark is a dict with t, label and tone": "Eine Markierung ist ein Dict mit t, label und tone"
 }

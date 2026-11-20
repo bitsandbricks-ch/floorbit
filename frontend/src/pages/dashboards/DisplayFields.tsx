@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { Tone, Widget } from '@/api/types'
 import { type Mapping, SORTS, type Sort, type Threshold, displaysFor } from '@/widgets/kinds/display'
 import type { Pane } from './model'
+import { AxisFields, OverrideFields } from './SeriesFields'
 
 type TilePane = Extract<Pane, { kind: 'tile' }>
 const TONES: Tone[] = ['ok', 'warn', 'err', '']
@@ -103,6 +104,8 @@ export function DisplayFields({ pane, data, onChange }: { pane: TilePane; data: 
       {can.rows && can.numbers && (
         <Switch label={t('dashboards.display.hideZero')} checked={!!pane.hide_zero} onChange={(e) => set({ hide_zero: e.currentTarget.checked || undefined })} />
       )}
+      {data.type === 'series' && <AxisFields pane={pane} onChange={onChange} />}
+      <OverrideFields pane={pane} data={data} onChange={onChange} />
     </Stack>
   )
 }

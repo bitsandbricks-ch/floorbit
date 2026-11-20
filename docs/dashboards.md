@@ -8,6 +8,7 @@ can be split into panes side by side or stacked. Each pane shows one thing:
 | --- | --- |
 | **Plan** | A hall's floor plan: the whole hall, one seat block, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
 | **Widget** | A rich widget from the [widget gallery](#the-widget-gallery): service health, stats, traffic, DNS, games, Wi-Fi, speed tests, power load, network status, endpoints, the LAN cache and the event in numbers. Small by default; **Show it big** draws it with everything its page used to show. |
+| **Saved widget** | A widget saved on the Widgets page, see [Saved widgets](#saved-widgets). The pane follows it: change the widget and every dashboard that shows it changes too. **Clone into this dashboard** in the pane's settings turns it into a tile of its own with the same settings, for this dashboard only. |
 | **Tile** | One data widget that fits its box: Floorbit's own (problems, incidents, open incidents, switches, switch states, seats, seats by block, switches down, traffic, bandwidth, peak, ports, uplinks, busiest seats, internet uplinks, LAN cache, agents, and with their feature on: service health, power load, DNS lookups, top and blocked sites, game launchers, Wi-Fi clients and access points, and traffic by kind, top services, traffic by area, and what looks odd) or a plugin's. See [Tiles that fit their box](#tiles-that-fit-their-box). |
 | **Text** | Your own words: a welcome, the schedule, the Wi-Fi name. A small Markdown (`# heading`, `- list`, `**bold**`, `[link](https://example.com)`); every line stays its own line. Four sizes (S to XL) that grow with the pane, aligned left or centred. |
 
@@ -22,13 +23,17 @@ layer at the bottom right.
 - **Add widget** puts an empty widget in the first free spot of the picked section. Drag a widget by
   its handle (top left) and resize it by its corner (bottom right); the others make room and
   everything floats up, on a grid of 24 columns. With the keyboard: focus the handle, then the arrow
-  keys move it and Shift with the arrow keys resizes it. Up to 24 widgets.
+  keys move it and Shift with the arrow keys resizes it. Up to 24 widgets. While you resize, the
+  size in cells shows on the widget, and each widget shows the level it draws at (Small, Medium,
+  Large) at the bottom left, so you see what the box gives before you save.
 - **Add section** starts a named section below the others. A section's title is optional: without
   one it is just a divider line. Sections fold (the arrow before the title), move up and down, and
   can be removed with their widgets. Folding on a screen is only for whoever looks at it; folding
   in the editor is saved.
-- **Fit to screen** stretches the rows so the whole dashboard fills the screen, for a wall. Without
-  it, rows have a fixed height and the page scrolls, like a dashboard on your own monitor.
+- **Layout**: **Screen** fits the whole dashboard into the space it has, nothing scrolls: under
+  the top bar in the app, the whole screen on a wall. Widgets drop a level when their rows get
+  short. **Page** gives rows a fixed height and scrolls like any other page. New dashboards start as
+  a Page. On a phone, both scroll, one widget per row.
 - Click a pane to set it up in the panel on the right.
 - **Split right** and **Split down** cut a pane in two; drag the border between two panes to resize
   them. Up to 40 panes on a dashboard, splits up to four deep.
@@ -56,8 +61,10 @@ its box:
   the time axis and each line's maximum and average.
 
 Hover a graph (or touch it) for the time and every line's value under the pointer; a cut-off row or
-number shows in full on hover. **+N more** and the **Open big** button open the tile large over the
-dashboard; Esc goes back. **Details** jumps to the page behind it.
+number shows in full on hover. **+N more** and the **Make large** button show the tile at its large
+level in the whole dashboard area; the sidebar and the time stay. The address gets `?w=`, so the
+browser's Back and a shared link work. **Back to the dashboard** or Esc goes back, and on a full
+screen it goes back by itself after a minute. **Details** jumps to the page behind it.
 
 In the pane's settings, **Show as** draws the same data as another kind where it makes sense:
 
@@ -104,14 +111,50 @@ Under **Numbers and colours** in a tile pane's settings:
   red.
 - **Sort**, **Show at most** and **Hide rows that are 0** pick which rows a list or table shows:
   biggest first and at most five is a top 5.
+- **Time shown** for the whole dashboard (in its settings): every graph that can follows it, unless
+  its pane picks its own time. Anyone looking at the dashboard can pick another time for themselves
+  with the time menu next to Edit; it goes into the address (`?range=6h`), so a big screen can be
+  opened with it too.
+- **Time shown** (tiles that offer it, such as Traffic): the last hour, 6 hours, 24 hours, or the
+  whole event by the hour. **Compare with yesterday** adds a dotted line with yesterday's traffic at
+  the same times, by the hour. **Mark what happened** draws a line where a switch went down or came
+  back, and where an incident started (incidents only for crew who may see the board); hover names
+  them. Up to 50 of the latest show.
+- **History under the number** and **Show the change** (a number drawn from data over time): a
+  small line of how it went, when the pane is too small for the graph, and an arrow with how much it
+  moved since an hour ago (or since the start of the data, when that is shorter).
+- **Number size** makes the big number of a number, gauge or pie smaller or larger, for a wall seen
+  from afar or a crowded screen.
+- **Refresh** sets how often the pane asks again (every 10 or 30 seconds, every minute or every 5
+  minutes) instead of the tile's own pace.
+- **Value axis** (graphs) fixes where the axis starts and ends, so graphs side by side on a wall
+  compare, and **Log scale** draws values far apart (bytes, lookups) readably. Values outside the
+  ends sit on the edge.
+- **Series** (graphs) or **Rows** (lists) set one by its name in the data: **Show as** another
+  name, a colour of its own, or **Hide**. A setting whose series is gone stays until you remove it.
 
 Hover a bar, a slice or the gauge for its value and share. **Size** pins small, medium or large
 instead of picking it from the box. Any box size works.
 
+## Saved widgets
+
+**Widgets** (`/widgets`, also a button on the Dashboards list) has two tabs (#1009):
+
+- **Widgets** are the saved ones: a tile with its sources and settings (type, size, grouping,
+  numbers and colours) kept under a name, drawn live as a dashboard shows it. **New widget** makes one
+  from a type; **Copy** makes a new one from an existing widget; **Edit** changes it, and every
+  dashboard that shows it changes with it. **Add to** puts it on a dashboard as a saved-widget pane.
+- **Types** are every kind of widget Floorbit can draw (the gallery below). **Save as widget** starts
+  a new widget from a tile type.
+
+Everyone who may edit dashboards (`floorplan.edit`) may make, change and remove widgets. A widget that
+a dashboard still shows can't be removed: clone it there or take it off first. A public dashboard
+gets the widget's tile itself, under the same rules as a tile pane. API: `GET/POST /api/widgets`,
+`PUT/DELETE /api/widgets/<id>`.
+
 ## The widget gallery
 
-**Widgets** (`/widgets`, also a button on the Dashboards list) shows every widget there is, live, with
-your data: Floorbit's own and the tiles of the plugins that are on. Filter them by area (Network,
+The **Types** tab shows every widget there is, live, with your data: Floorbit's own and the tiles of the plugins that are on. Filter them by area (Network,
 Services, Traffic, Power, Plugins) or search by name. **Open** shows one big in a window; **Add to**
 puts it at the end of a dashboard you pick. A widget whose feature is off says so instead of its
 content.
@@ -134,7 +177,7 @@ deleting your version brings the ready-made one back.
 | **Services** | Services up, the LAN cache and agents; service health and internet uplinks; the services and LAN cache settings and details below. |
 | **Traffic** | Bandwidth, the peak and what looks odd; traffic over time and by kind; top services, traffic by area and the busiest seats; DNS lookups, the LAN cache, top and blocked sites, game launchers, and speed tests. |
 | **Power load** | Every circuit's load, fullest first, then the boards in detail. |
-| **Event in numbers** | The stats wall for the hall and attendees' phones. Public, fit to screen. |
+| **Event in numbers** | The stats wall for the hall and attendees' phones. Public, Screen layout. |
 
 ## Kiosk
 
@@ -175,7 +218,16 @@ It narrows what the account's role allows; the rest of the role stays as it is. 
 
 ## On the screen
 
-**Open full screen** opens `/dashboards/<id>`: no sidebar, a clock in the corner, the pointer hides
+**Open full screen** opens `/dashboards/<id>`: the same panes without the sidebar, framed by a
+slim header (the dashboard's name, the event, the day, the next dashboard of a `?rotate=` list and
+the clock) and the status line at the bottom. A public screen nobody signed in to shows the header
+without the event and the status line. Switch **Header and status line in full screen** off in the
+dashboard's settings for just the panes and a clock in the corner.
+
+While something is down and nobody has taken it (no incident open for it, not muted), a red bar
+under the header names it and how long it has been down, and a rotating screen stays where it is.
+Open an incident or mute it, and the bar goes away. A public screen nobody signed in to shows no
+bar: it can't read the problem list. The pointer hides
 after three seconds, and the page reloads itself after a Floorbit update. Saved changes reach the
 screen within a minute. Someone at the screen can drag and zoom a plan pane; it goes back to its
 area after a minute. On a phone the panes are stacked.

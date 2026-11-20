@@ -253,7 +253,7 @@ this site.
 | `list` | `items`: `label`, `value`, `tone`; optional `number` and `max` (shows as bars or a pie) |
 | `table` | `columns`: `key`, `label`; `rows` |
 | `sparkline` | `points`, `value`, `unit`, `min`, `max` |
-| `series` | `series`: up to 4 of `label`, `points` (`[unix seconds, value]`, oldest first); `unit` |
+| `series` | `series`: up to 4 of `label`, `points` (`[unix seconds, value]`, oldest first) and optional `ghost: true` (a comparison line, drawn dotted, such as yesterday at the same times); `unit`; optional `marks`: up to 50 of `t` (unix seconds), `label` and `tone` (`ok`, `warn`, `err` or empty), drawn as lines across the graph |
 
 Every widget can also have `sub` (a line under it) and `link`. On a dashboard, a widget is drawn
 small, medium or large to fit its box ([Dashboards](dashboards.md#tiles-that-fit-their-box)): send

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Widget } from '@/api/types'
-import { PALETTE, binsOf, bucketsOf, formatValue, kindsFor, looksFor, partsOf, resolveKind, rowsOf, scaleOf, slices, stackLines, stateCounts, statOf, trendOf, valuesOf } from './shape'
+import { PALETTE, binsOf, changeOf, bucketsOf, formatValue, kindsFor, looksFor, partsOf, resolveKind, rowsOf, scaleOf, slices, stackLines, stateCounts, statOf, trendOf, valuesOf } from './shape'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
 const status: Widget = { ...base, type: 'status', items: [
@@ -90,5 +90,17 @@ describe('widget shapes', () => {
     expect(looksFor(two, 'graph')).toEqual(['stack', 'style', 'trend', 'legend'])
     expect(looksFor(two, 'histogram')).toEqual([])
     expect(looksFor({ ...base, type: 'sparkline', unit: '', points: [1] }, 'column')).toEqual(['trend'])
+  })
+
+  it('tells how a stat moved: against an hour before when the data goes back that far', () => {
+    const t0 = 1800000000
+    const series: Widget = { ...base, type: 'series', unit: '', series: [
+      { label: 'Down', points: [[t0, 40], [t0 + 1800, 50], [t0 + 3600, 80], [t0 + 5400, 100]] }] }
+    expect(changeOf(series)).toEqual({ from: 50, to: 100, pct: 100, hour: true, at: t0 + 1800 })
+    const short: Widget = { ...series, series: [{ label: 'Down', points: [[t0, 0], [t0 + 600, 3]] }] }
+    expect(changeOf(short)).toEqual({ from: 0, to: 3, hour: false, at: t0 })
+    expect(changeOf({ ...base, type: 'sparkline', unit: '', points: [4, 2, 3] })).toEqual({ from: 4, to: 3, pct: -25, hour: false })
+    expect(changeOf({ ...base, type: 'stat', value: 3, unit: '', tone: '' })).toBeNull()
+    expect(looksFor(series, 'stat')).toEqual(['spark', 'change'])
   })
 })

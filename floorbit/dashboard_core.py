@@ -22,6 +22,8 @@ TEXTS = {
            'switch_states': 'Switch states', 'down_for': 'down {t}', 'open_incidents': 'Open incidents',
            'col_what': 'What', 'col_where': 'Where', 'col_open': 'Open for', 'switch_at': 'Switch {name}',
            'seat_at': 'Seat {seat}', 'traffic': 'Traffic', 'download': 'Download', 'upload': 'Upload',
+           'mark_down': '{name} down', 'mark_up': '{name} back', 'mark_incident': 'Incident: {title}',
+           'avg_total': 'Average (in + out)', 'peak_total': 'Busiest (in + out)', 'yesterday': 'Yesterday (in + out)',
            'seats_by_block': 'Seats online by block',
            'bandwidth': 'Bandwidth', 'down_up': '↓ {down} · ↑ {up}', 'no_reads': 'No traffic read yet',
            'peak': 'Peak of the event', 'peak_sub': '{ago} ago · 24 h peak {day}', 'ports': 'Ports',
@@ -58,6 +60,9 @@ TEXTS = {
            'switch_states': 'Switch-Status', 'down_for': 'aus seit {t}', 'open_incidents': 'Offene Störungen',
            'col_what': 'Was', 'col_where': 'Wo', 'col_open': 'Offen seit', 'switch_at': 'Switch {name}',
            'seat_at': 'Platz {seat}', 'traffic': 'Verkehr', 'download': 'Download', 'upload': 'Upload',
+           'mark_down': '{name} ausgefallen', 'mark_up': '{name} wieder da', 'mark_incident': 'Störung: {title}',
+           'avg_total': 'Durchschnitt (rein + raus)', 'peak_total': 'Spitze (rein + raus)',
+           'yesterday': 'Gestern (rein + raus)',
            'seats_by_block': 'Plätze online nach Block',
            'bandwidth': 'Bandbreite', 'down_up': '↓ {down} · ↑ {up}', 'no_reads': 'Noch keine Verkehrsdaten',
            'peak': 'Spitze des Events', 'peak_sub': 'vor {ago} · 24-Std.-Spitze {day}', 'ports': 'Ports',
@@ -94,7 +99,9 @@ TILES = {
     # Data for the generic widget types (#894): a state per switch, the open incidents, traffic over time.
     'switch_states': {'label': 'switch_states', 'size': 'small', 'refresh': 15},
     'open_incidents': {'label': 'open_incidents', 'size': 'small', 'refresh': 30},
-    'traffic': {'label': 'traffic', 'size': 'wide', 'refresh': 30},
+    # ``ranges``: a pane may pick the time it shows and compare it (#960, RANGES below); ``marks``:
+    # it can mark what happened (event_marks).
+    'traffic': {'label': 'traffic', 'size': 'wide', 'refresh': 30, 'ranges': True, 'marks': True},
     'seats_by_block': {'label': 'seats_by_block', 'size': 'small', 'refresh': 30},
     # What the Stats and Traffic views showed in one big pane, as tiles of their own.
     'bandwidth': {'label': 'bandwidth', 'size': 'small', 'refresh': 30},
@@ -130,7 +137,8 @@ def tiles(lang, may_see_board, feature_on=lambda f: True):
     hidden = set() if may_see_board else {'incidents', 'open_incidents'}
     hidden |= {t for t, spec in TILES.items() if spec.get('feature') and not feature_on(spec['feature'])}
     return [{'plugin': PLUGIN, 'plugin_name': NAME, 'id': tile, 'label': text[spec['label']], 'size': spec['size'],
-             'refresh': spec['refresh'], 'url': f'/api/dashboard/floorbit/{tile}'}
+             'refresh': spec['refresh'], 'url': f'/api/dashboard/floorbit/{tile}',
+             **{k: True for k in ('ranges', 'marks') if spec.get(k)}}
             for tile, spec in TILES.items() if tile not in hidden]
 
 
@@ -256,13 +264,73 @@ def open_incidents_widget(lang, now=None):
             'rows': rows[:50], 'link': '/incidents'}
 
 
-def traffic_widget(lang, snapshot):
-    """Download and upload over time from the traffic reads (stats.py), in bit/s."""
+HOUR = 3600
+DAY = 24 * HOUR
+# The time a pane can show (#960): the reads of the last hours, or the whole event by the hour.
+RANGES = {'1h': HOUR, '6h': 6 * HOUR, '24h': DAY, 'event': None}
+COMPARES = ('day',)
+MAX_POINTS = 300
+
+
+def _buckets(points, n=MAX_POINTS):
+    """At most ``n`` points, each the average of its share, so a day of reads still draws fast."""
+    if len(points) <= n:
+        return points
+    size = len(points) / n
+    out = []
+    for k in range(n):
+        part = points[int(k * size):int((k + 1) * size)] or points[-1:]
+        out.append([part[-1][0], round(sum(p[1] for p in part) / len(part))])
+    return out
+
+
+MAX_MARKS = 50
+
+
+def event_marks(lang, switch_events=(), incident_list=()):
+    """What happened, as marks for a time graph (#960): switches going down and coming back, and
+    new incidents. Newest last; the graph keeps the ones inside the time it shows."""
     text = TEXTS.get(lang, TEXTS['en'])
-    samples = (snapshot.get('series') or [])[-500:]
-    return {'type': 'series', 'unit': 'bit/s', 'link': '/stats',
-            'series': [{'label': text['download'], 'points': [[s['t'], s['down']] for s in samples]},
-                       {'label': text['upload'], 'points': [[s['t'], s['up']] for s in samples]}]}
+    marks = [{'t': t, 'tone': 'err' if status == 'offline' else 'ok',
+              'label': text['mark_down' if status == 'offline' else 'mark_up'].format(name=name or sid)}
+             for t, sid, name, status in switch_events]
+    marks += [{'t': i['created_at'], 'tone': 'warn', 'label': text['mark_incident'].format(title=i.get('title') or '')}
+              for i in incident_list if i.get('created_at')]
+    return sorted(marks, key=lambda m: m['t'])
+
+
+def with_marks(widget, marks):
+    """Only the marks inside the time the widget's lines cover, at most MAX_MARKS of the newest."""
+    times = [p[0] for line in widget.get('series') or [] for p in line['points']]
+    if times and marks:
+        inside = [m for m in marks if min(times) <= m['t'] <= max(times)]
+        if inside:
+            widget['marks'] = inside[-MAX_MARKS:]
+    return widget
+
+
+def traffic_widget(lang, snapshot, rng=None, compare=None, hours=(), now=None):
+    """Download and upload over time from the traffic reads (stats.py), in bit/s. ``rng`` (RANGES)
+    picks the time; the whole event comes from the hourly rows (``hours``, Stats.event()), which keep
+    in and out together. ``compare='day'`` adds yesterday at the same times as a ghost line."""
+    text = TEXTS.get(lang, TEXTS['en'])
+    now = time.time() if now is None else now
+    out = {'type': 'series', 'unit': 'bit/s', 'link': '/stats'}
+    if rng == 'event':
+        hours = list(hours)[-MAX_POINTS:]
+        out['series'] = [{'label': text['avg_total'], 'points': [[h['t'], h['avg_bps']] for h in hours]},
+                         {'label': text['peak_total'], 'points': [[h['t'], h['peak_bps']] for h in hours]}]
+        return out
+    samples = snapshot.get('series') or []
+    samples = [s for s in samples if s['t'] >= now - RANGES[rng]] if rng in RANGES else samples[-500:]
+    out['series'] = [{'label': text['download'], 'points': _buckets([[s['t'], s['down']] for s in samples])},
+                     {'label': text['upload'], 'points': _buckets([[s['t'], s['up']] for s in samples])}]
+    if compare == 'day' and samples:
+        start = samples[0]['t'] - DAY
+        ghost = [[h['t'] + DAY, h['avg_bps']] for h in hours if start - HOUR <= h['t'] <= now - DAY]
+        if ghost:
+            out['series'].append({'label': text['yesterday'], 'points': ghost, 'ghost': True})
+    return out
 
 
 NONE = '\u2013'   # an en dash: no number yet

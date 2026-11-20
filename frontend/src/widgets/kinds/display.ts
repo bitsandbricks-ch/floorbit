@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { Tone, Widget } from '@/api/types'
-import { formatValue, numberColumns } from './shape'
+import { PALETTE, formatValue, numberColumns } from './shape'
 
 /** How a pane shows its numbers (issue #960): colour steps, value mappings, unit and decimals,
  *  and which rows. Applied in the browser after the data is merged, grouped and calculated. */
@@ -13,6 +13,14 @@ export interface NumberStyle { decimals?: number; short?: boolean }
 export type Sort = 'value-desc' | 'value-asc' | 'name-asc' | 'name-desc'
 export const SORTS: Sort[] = ['value-desc', 'value-asc', 'name-asc', 'name-desc']
 
+/** The colours a series or row can be given, named in the palette's order (floorbit/dashboards.py). */
+export const SERIES_COLOURS = ['green', 'cyan', 'violet', 'pink', 'orange', 'blue', 'grey'] as const
+export type SeriesColour = (typeof SERIES_COLOURS)[number]
+export const seriesColour = (c: SeriesColour) => PALETTE[SERIES_COLOURS.indexOf(c)]
+/** A series or row, found by its label: another name, a colour, or hidden. */
+export interface Override { match: string; name?: string; colour?: SeriesColour; hide?: boolean }
+export const MAX_OVERRIDES = 10
+
 export interface Display extends NumberStyle {
   thresholds?: Threshold[]
   threshold_mode?: 'value' | 'percent'
@@ -21,6 +29,11 @@ export interface Display extends NumberStyle {
   sort?: Sort
   limit?: number
   hide_zero?: boolean
+  /** A graph's value axis: fixed ends, and a log scale (ends above 0). */
+  y_min?: number
+  y_max?: number
+  y_log?: boolean
+  overrides?: Override[]
 }
 
 export const NumberStyleContext = createContext<NumberStyle>({})
@@ -57,10 +70,13 @@ export function applyDisplay(w: Widget, d: Display, lang?: string): Widget {
       return { ...w, unit: m ? '' : unit, tone, text: m?.text }
     }
     case 'sparkline':
-    case 'series':
       return d.unit != null ? { ...w, unit: d.unit } : w
+    case 'series': {
+      const series = overridden(w.series, d.overrides, (s, o) => ({ ...s, label: o.name || s.label, ...(o.colour ? { colour: seriesColour(o.colour) } : {}) }))
+      return { ...w, series, unit: d.unit ?? w.unit }
+    }
     case 'list': {
-      let items = w.items.map((i) => {
+      let items = overridden(w.items, d.overrides, (i, o) => ({ ...i, label: o.name || i.label, ...(o.colour ? { colour: seriesColour(o.colour) } : {}) })).map((i) => {
         if (i.number == null) return i
         const m = mappingFor(i.number, d)
         const tone = m?.tone ?? toneAt(i.number, d, i.max) ?? i.tone
@@ -88,6 +104,15 @@ export function applyDisplay(w: Widget, d: Display, lang?: string): Widget {
   }
 }
 
+/** Applies the per-series settings: hidden ones go, the rest are renamed or recoloured. */
+function overridden<T extends { label: string }>(rows: T[], overrides: Override[] | undefined, apply: (r: T, o: Override) => T): T[] {
+  if (!overrides?.length) return rows
+  return rows.flatMap((r) => {
+    const o = overrides.find((x) => x.match === r.label)
+    return !o ? [r] : o.hide ? [] : [apply(r, o)]
+  })
+}
+
 function sortRows<T>(rows: T[], sort: Sort | undefined, value: (r: T) => number | null, name: (r: T) => string): T[] {
   if (!sort) return rows
   const dir = sort.endsWith('asc') ? 1 : -1
@@ -95,6 +120,13 @@ function sortRows<T>(rows: T[], sort: Sort | undefined, value: (r: T) => number 
   if (sort.startsWith('name')) out.sort((a, b) => dir * name(a).localeCompare(name(b), undefined, { numeric: true }))
   else out.sort((a, b) => dir * ((value(a) ?? -Infinity) - (value(b) ?? -Infinity)))
   return out
+}
+
+/** The labels a pane can set a name, colour or hide for: a graph's series, or a list's rows. */
+export function seriesLabels(w: Widget): string[] {
+  if (w.type === 'series') return w.series.map((s) => s.label)
+  if (w.type === 'list') return [...new Set(w.items.map((i) => i.label))].slice(0, 100)
+  return []
 }
 
 /** Which display settings mean something for this data: numbers to format and colour, rows to
