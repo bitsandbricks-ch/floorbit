@@ -878,6 +878,7 @@
  "type must be one of {}": "Der Typ muss einer von {} sein",
  "Type the password, community or token.": "Gib das Passwort, die Community oder den Token ein.",
  "Type the SNMP v3 privacy passphrase.": "Gib die SNMP-v3-Passphrase für die Verschlüsselung ein.",
+ "A privacy passphrase needs an authentication passphrase too.": "Eine Passphrase für die Verschlüsselung braucht auch eine für die Authentifizierung.",
  "Type the username (one word, up to 64 characters).": "Gib den Benutzernamen ein (ein Wort, höchstens 64 Zeichen).",
  "Unknown feature or plugin: {}": "Unbekannte Funktion oder unbekanntes Plugin: {}",
  "Unknown interface field: {}": "Unbekanntes Interface-Feld: {}",

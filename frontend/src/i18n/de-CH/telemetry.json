@@ -59,6 +59,7 @@
     "unreachable": "{{driver}}: Der Agent hat keine Route zu {{address}}. Prüfe die Adresse und das Netz des Agents.",
     "tls": "{{driver}}: TLS mit {{address}} ist fehlgeschlagen. Prüfe sein Zertifikat oder schalte die TLS-Prüfung für es aus.",
     "listen": "{{driver}}: Telegraf kann seinen Port nicht öffnen. Benutzt ihn ein anderes Programm?",
+    "trap_user": "Traps: Jeder Trap-Listener auf dem Agent gehört schon einem anderen SNMPv3-Trap-Benutzer ({{detail}}). Gib diesem Gerät einen Trap-Benutzer, der schon einen hat.",
     "other": "{{driver}}: {{detail}}",
     "docs": "Was prüfen"
   },

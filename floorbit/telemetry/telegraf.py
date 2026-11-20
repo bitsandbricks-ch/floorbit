@@ -12,6 +12,9 @@ import os
 
 SNMP_PORT = 161
 TRAP_PORT = 1162          # in the container; publish 162/udp to it
+# A further listener for each further SNMPv3 trap user (targets._trap_ports): 1163 to 1170, published
+# as the same numbers (the agent's compose file).
+TRAP_EXTRA = 8
 MDT_PORT = 57000
 MDT_CERT_ENV = 'FLOORBIT_TELEGRAF_MDT_CERT'     # paths as Telegraf sees them
 MDT_KEY_ENV = 'FLOORBIT_TELEGRAF_MDT_KEY'
@@ -29,6 +32,47 @@ WLC_XPATHS = ('/wireless-access-point-oper:access-point-oper-data/capwap-data',
 GNMI_PORT = {'nxos': 50051, 'iosxe': 9339}
 # A port per way of asking (SNMP on 1161 doesn't send gNMI there too); none set: the usual one.
 PORT_KINDS = ('snmp', 'gnmi', 'api')
+
+
+def sent_trap_port(container_port):
+    """Where a device sends its traps for the listener on ``container_port``."""
+    return 162 if container_port == TRAP_PORT else container_port
+
+
+def _trap_listeners(traps):
+    """{container port: the v3 login it knows, or None for v2c only}. A target without a port of
+    its own (one not from the inventory) goes to the usual one."""
+    out = {}
+    for t in traps:
+        found = t.get('trap_port', TRAP_PORT)
+        if not found:
+            continue        # no free port for its user: in its problems instead
+        login = t.get('trap')
+        if login is None and t.get('snmp_version') == '3':
+            login = {'sec_name': t.get('sec_name') or t.get('username') or '',
+                     'sec_level': 'authPriv' if t.get('priv_password') else
+                     'authNoPriv' if t.get('auth_password') else 'noAuthNoPriv',
+                     'auth_protocol': t.get('auth_protocol'), 'auth_password': t.get('auth_password'),
+                     'priv_protocol': t.get('priv_protocol'), 'priv_password': t.get('priv_password')}
+        if out.get(found) is None:
+            out[found] = login
+    return dict(sorted(out.items()))
+
+
+def _trap_listener(port, login):
+    lines = ['[[inputs.snmp_trap]]', f'  alias = {q("traps" if port == TRAP_PORT else f"traps-{port}")}',
+             f'  service_address = {q(f"udp://:{port}")}', '  timeout = "5s"']
+    if login:
+        # v1 and v2c traps still come in on a v3 listener: the packet says its version.
+        lines += ['  version = "3"', f'  sec_name = {q(login.get("sec_name") or "")}',
+                  f'  sec_level = {q(login.get("sec_level") or "authNoPriv")}']
+        if login.get('sec_level') != 'noAuthNoPriv':
+            lines += [f'  auth_protocol = {q(login.get("auth_protocol") or "SHA")}',
+                      f'  auth_password = {q(login.get("auth_password") or "")}']
+        if login.get('sec_level') == 'authPriv':
+            lines += [f'  priv_protocol = {q(login.get("priv_protocol") or "AES")}',
+                      f'  priv_password = {q(login.get("priv_password") or "")}']
+    return [*lines, '  [inputs.snmp_trap.tags]', '    driver = "traps"', '']
 
 
 def port(t, kind):
@@ -332,18 +376,8 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
         if 'gnmi' in t['drivers']:
             lines += [*gnmi(t), '']
     if traps and listen_traps:
-        lines += ['[[inputs.snmp_trap]]', '  alias = "traps"', f'  service_address = {q(f"udp://:{TRAP_PORT}")}',
-                  '  timeout = "5s"']
-        v3 = next((t for t in traps if t.get('snmp_version') == '3'), None)
-        if v3:
-            lines += ['  version = "3"', f'  sec_name = {q(v3.get("sec_name") or v3.get("username") or "")}',
-                      f'  sec_level = {q("authPriv" if v3.get("priv_password") else "authNoPriv")}',
-                      f'  auth_protocol = {q(v3.get("auth_protocol") or "SHA")}',
-                      f'  auth_password = {q(v3.get("auth_password") or "")}']
-            if v3.get('priv_password'):
-                lines += [f'  priv_protocol = {q(v3.get("priv_protocol") or "AES")}',
-                          f'  priv_password = {q(v3["priv_password"])}']
-        lines += ['  [inputs.snmp_trap.tags]', '    driver = "traps"', '']
+        for at, login in _trap_listeners(traps).items():
+            lines += _trap_listener(at, login)
     if mdt and listen_mdt:
         lines += ['[[inputs.cisco_telemetry_mdt]]', '  alias = "mdt"', '  transport = "grpc"',
                   f'  service_address = {q(f":{MDT_PORT}")}',
@@ -377,13 +411,17 @@ def device_config(t, collector):
     """What to paste on the device so it sends to the collector (``collector``: its address as the
     device reaches it). Shown on the settings page; secrets are left as placeholders."""
     out = []
-    if 'traps' in t['drivers']:
+    if 'traps' in t['drivers'] and t.get('trap_send_port', 162):
+        sent = t.get('trap_send_port') or 162
+        login = t.get('trap') or {}
+        level = {'authPriv': 'priv', 'authNoPriv': 'auth', 'noAuthNoPriv': 'noauth'}.get(login.get('sec_level'))
+        how = f'version 3 {level} {login.get("sec_name") or "<user>"}' if level else 'version 2c <community>'
         if t.get('platform') == 'nxos':
-            out.append(f'snmp-server host {collector} traps version 2c <community> udp-port 162\n'
+            out.append(f'snmp-server host {collector} traps {how} udp-port {sent}\n'
                        'snmp-server enable traps link')
         elif t.get('platform') in ('ios', 'iosxe'):
             out.append('snmp-server enable traps snmp linkdown linkup\n'
-                       f'snmp-server host {collector} version 2c <community>')
+                       f'snmp-server host {collector} {how} udp-port {sent}')
     if 'mdt' in t['drivers']:
         tls = bool(os.environ.get(MDT_CERT_ENV) and os.environ.get(MDT_KEY_ENV))
         if t.get('platform') == 'nxos':
