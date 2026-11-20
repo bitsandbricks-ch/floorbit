@@ -218,6 +218,23 @@ def test_a_firewalls_own_telegraf(plugin):
     assert plugin.devices()[0]["kind"] == "firewall"
 
 
+def test_a_firewall_port_seen_by_snmp_and_its_own_telegraf_is_one_port(plugin):
+    """#972: an SNMP row with only the index, then the firewall's Telegraf naming igb0, then the
+    row with both made two igb0 ports, and the ISP line form listed igb0 twice."""
+    import time
+    now = time.time()
+    state.state.apply_text("\n".join([
+        f"fb_if,device=fw-01,index=1 dot3StatsDuplexStatus=3i {int(now * 1e9)}",
+        "net,host=fw-01,interface=igb0 bytes_recv=1i,bytes_sent=2i",
+        f"fb_if,device=fw-01,index=1,ifName=igb0 ifOperStatus=1i,ifHighSpeed=1000i {int(now * 1e9)}",
+        f"fb_if,device=fw-01,index=2,ifName=igb1 ifOperStatus=2i {int(now * 1e9)}",
+        "net,host=fw-01,interface=igb1 bytes_recv=1i,bytes_sent=2i"]), now)
+    names = [p["name"] for p in plugin.device_ports("fw-01")]
+    assert names == ["igb0", "igb1"]
+    dev = state.state.find("fw-01")
+    assert sorted(dev.interfaces) == ["1", "2"]                 # found by index from now on
+    assert dev.port_name("1") == "igb0" and dev.interfaces["1"].duplex is not None
+
 def test_a_firewall_that_sends_its_full_host_name(plugin):
     """os-telegraf on OPNsense names itself fw-01.example.org; the device set up is fw-01."""
     import time
@@ -246,6 +263,8 @@ def test_telegraf_config_per_driver():
     # Traps must not need net-snmp's snmptranslate, which the agent image doesn't carry.
     assert 'snmp_translator = "gosmi"' in conf
     assert 'community = "pub\\"lic@10"' in conf and 'community = "pub\\"lic@20"' in conf
+    # Each VLAN's poll is named apart, so a problem says which VLAN doesn't answer.
+    assert 'alias = "sw-a-01@vlan10"' in conf and 'alias = "sw-a-01@vlan20"' in conf
     assert conf.count('name = "fb_fdb"') == 2 and 'name = "fb_qfdb"' in conf
     assert 'agents = ["udp://[2001:db8::1]:161"]' in conf and 'sec_level = "authPriv"' in conf
     assert 'addresses = ["[2001:db8::1]:50051"]' in conf and 'origin = "openconfig"' in conf
@@ -468,9 +487,21 @@ def test_what_a_device_leaves_open_comes_from_its_software_and_interfaces(client
     page = client.get(f"/api/telemetry/devices/{sw['id']}").get_json()
     assert page["on"] and page["logins"] == {"snmp": "snmp_v2c"} and page["platform"] == "ios"
     assert page["auto"]["drivers"] == ["snmp", "traps"] and page["auto"]["vlans"] == [101, 102]
+
     assert page["target"]["drivers"] == ["snmp", "traps"] and "s3cret" not in json.dumps(page)
     assert client.get(f"/api/telemetry/devices/{core['id']}").get_json()["target"]["drivers"] == ["snmp", "mdt"]
     assert client.get("/api/telemetry/devices/nope").status_code == 404
+
+
+def test_per_vlan_mac_tables_follow_the_vlans_the_switch_lists():
+    """community@vlan for a VLAN the switch doesn't have gets no answer, only a timeout: the VLANs
+    it lists itself (discovery's VTP walk) win over the ones on its interfaces."""
+    from floorbit.telemetry import targets
+    dev = {"id": "sw", "interfaces": [{"name": "Gi1/0/1", "vlan": 30}, {"name": "Gi1/0/2", "vlan": 101}]}
+    assert targets.iface_vlans(dev) == [30, 101]
+    listed = {"inventory_discovered": {"sw": {"vlans": [{"id": 1}, {"id": 101}, {"id": 1002}, {"id": 1005}]}}}
+    assert targets.iface_vlans(dev, listed) == [1, 101]
+    assert targets.iface_vlans(dev, {"inventory_discovered": {"other": {"vlans": [{"id": 5}]}}}) == [30, 101]
 
 
 def test_the_agent_gets_the_devices_and_sends_series(client, anon_client, tmp_path, monkeypatch):

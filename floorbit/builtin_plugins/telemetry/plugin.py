@@ -87,6 +87,14 @@ class Plugin(Base):
                  'problems': rows} for name, rows in sorted(problems.items()) if name]
         return out
 
+    def wifi_aps(self):
+        """The access points of the wireless controllers that stream (a Catalyst 9800's MDT), for
+        the Wi-Fi view: floorbit/wifi.py takes these before a controller plugin's."""
+        if not state.collecting:
+            return []
+        with state._lock:
+            return [ap for d in sorted(state.devices.values(), key=lambda d: d.name) for ap in d.wifi_aps()]
+
     def device_ports(self, hostname):
         if not state.collecting:
             return []
@@ -100,6 +108,16 @@ class Plugin(Base):
             return [{'name': i.name, 'last_change': i.last_change, **summarize_port(i.librenms_row()),
                      **dev.port_facts(i, poe)}
                     for i in sorted(rows, key=lambda i: _natural(i.name))]
+
+    def device_facts(self, hostname):
+        """What the device said it is (Device.summary()), for discovery."""
+        if not state.collecting:
+            return {}
+        dev = self._device(hostname)
+        if dev is None:
+            return {}
+        with state._lock:
+            return dev.summary()
 
     def port_stats(self, hostname, interface):
         if not state.collecting:
@@ -252,7 +270,7 @@ def _problems():
     from floorbit.telemetry import problems as problems_mod
     out = {}
     for p in state.problems.current() if state.problems is not None else []:
-        row = {k: p.get(k) for k in ('driver', 'kind', 'address', 'detail', 'since', 'at', 'count')}
+        row = {k: p.get(k) for k in ('driver', 'kind', 'address', 'detail', 'since', 'at', 'count', 'vlan', 'table')}
         out.setdefault(p['device'], []).append({**row, 'hint': problems_mod.hint(p)})
     return out
 

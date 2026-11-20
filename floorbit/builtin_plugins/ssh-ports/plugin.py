@@ -6,14 +6,35 @@ use (``trust_new_hosts``) and a changed key stops the action, since it can mean 
 middle.
 """
 import base64
+import errno
 import hashlib
 import re
+import socket
 import time
 
 import paramiko
 
 from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
+
+
+def _why(exc):
+    """Why SSH failed, in words: the exception's type alone ("gaierror", "OSError") hides
+    whether the port is closed, the name is wrong or there is no route."""
+    if isinstance(exc, paramiko.ssh_exception.NoValidConnectionsError):
+        # One error per address tried: paramiko's own text is "Unable to connect to port 22".
+        inner = [e for e in (exc.errors or {}).values() if isinstance(e, OSError)]
+        exc = inner[0] if inner else ConnectionRefusedError()
+    if isinstance(exc, ConnectionRefusedError) or getattr(exc, 'errno', None) == errno.ECONNREFUSED:
+        return 'nothing listens on the SSH port'
+    if isinstance(exc, socket.gaierror):
+        return 'the name does not resolve'
+    if isinstance(exc, OSError) and exc.errno in (errno.EHOSTUNREACH, errno.ENETUNREACH):
+        return 'no route to it'
+    if isinstance(exc, (ConnectionResetError, EOFError)):
+        return 'the switch closed the connection'
+    text = str(exc).strip()
+    return f'{type(exc).__name__}: {text[:120]}' if text else type(exc).__name__
 
 PORT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9/._:-]{0,47}\Z')   # \Z: $ lets a final newline through
 PROMPT_RE = re.compile(r'[>#%$\]]\s*$')
@@ -181,7 +202,7 @@ class Plugin(Base):
                                           height=int(target.get('rows') or 32))
         except (OSError, paramiko.SSHException) as exc:
             client.close()
-            raise PluginError(f'{target["switch"]} refused a shell ({type(exc).__name__}).') from None
+            raise PluginError(f'{target["switch"]} refused a shell ({_why(exc)}).') from None
         self.log(f"opened a terminal on {target['switch']}")
         return SSHShell(client, channel)
 
@@ -217,7 +238,7 @@ class Plugin(Base):
             raise PluginError(f'{target["switch"]} did not answer in time.') from None
         except (OSError, paramiko.SSHException) as exc:
             client.close()
-            raise PluginError(f'Could not reach {target["switch"]} over SSH ({type(exc).__name__}).') from None
+            raise PluginError(f'Could not reach {target["switch"]} over SSH ({_why(exc)}).') from None
         finally:
             login.clear()
         if policy.new and hosted_pins:
@@ -240,7 +261,8 @@ class Plugin(Base):
         except TimeoutError:
             raise PluginError(f'{target["switch"]} did not answer in time.') from None
         except (OSError, paramiko.SSHException) as exc:
-            raise PluginError(f'Could not reach {target["switch"]} over SSH ({type(exc).__name__}).') from None
+            # It was reached and let in: "could not reach" would send the tech after the network.
+            raise PluginError(f'The SSH session with {target["switch"]} broke off ({_why(exc)}).') from None
         finally:
             client.close()
 

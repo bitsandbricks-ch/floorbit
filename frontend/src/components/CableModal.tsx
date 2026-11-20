@@ -13,12 +13,27 @@ const SPEEDS = ['1', '10', '25', '40', '100']
 
 const EMPTY: CableDraft = { label: '', switch: '', port: '', panel: '', panel_port: '', seat: '', color: '', note: '', length_m: '', type: '', speed: '' }
 
-/** One cable: switch port, patch panel port and seat, each picked from what Floorbit knows (free
- *  ports only, unless asked), with type, speed, label and note. The Cables page and the floor plan's
- *  Edit mode both use it. ``onDone`` gets what changed, so the plan can offer undo. */
+type Change = { saved?: Cable; removed?: Cable; before?: Cable | null }
+
+/** The floor plan's Edit mode edits a cable in place, without leaving the plan. */
 export function CableModal({ cable, canEdit, initial, onClose, onDone }: {
   cable: Cable | null; canEdit: boolean; initial?: Partial<CableDraft>; onClose: () => void
-  onDone: (change: { saved?: Cable; removed?: Cable; before?: Cable | null }) => void
+  onDone: (change: Change) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <Modal opened onClose={onClose} title={cable ? cable.label : t('cables.add')} size="lg">
+      <CableForm cable={cable} canEdit={canEdit} initial={initial} onDone={onDone} />
+    </Modal>
+  )
+}
+
+/** One cable: switch port, patch panel port and seat, each picked from what Floorbit knows (free
+ *  ports only, unless asked), with type, speed, label and note. The cable's own page and the floor
+ *  plan's Edit mode both use it. ``onDone`` gets what changed, so the plan can offer undo. */
+export function CableForm({ cable, canEdit, initial, onDone, print = true }: {
+  cable: Cable | null; canEdit: boolean; initial?: Partial<CableDraft>; print?: boolean
+  onDone: (change: Change) => void
 }) {
   const { t } = useTranslation()
   const imported = cable?.source === 'import'
@@ -41,47 +56,45 @@ export function CableModal({ cable, canEdit, initial, onClose, onDone }: {
   const remove = useMutation({ mutationFn: () => del(`/api/cables/${cable!.id}`), onSuccess: () => onDone({ removed: cable! }) })
   const [anyPort, setAnyPort] = useState(false)
   return (
-    <Modal opened onClose={onClose} title={cable ? cable.label : t('cables.add')} size="lg">
-      <Stack gap="sm">
-        {imported && <Alert color="info">{t('cables.fromImport', { plugin: cable?.plugin ?? 'NetBox' })}</Alert>}
-        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-          <EntitySelect kind="switches" label={t('cables.switch')} required readOnly={readOnly}
-            value={d.switch} onChange={(v) => setD((x) => ({ ...x, switch: v, port: v === x.switch ? x.port : '' }))} />
-          <EntitySelect kind="ports" switchName={d.switch} label={t('cables.port')} required readOnly={readOnly}
-            value={d.port} onChange={set('port')} showUsed={anyPort} />
-          <EntitySelect kind="panels" label={t('cables.panel')} readOnly={readOnly} placeholder={t('cables.panelPlaceholder')}
-            value={d.panel} onChange={(v) => setD((x) => ({ ...x, panel: v, panel_port: v === x.panel ? x.panel_port : '' }))} />
-          <EntitySelect kind="panel-ports" panelName={d.panel} label={t('cables.panelPort')} readOnly={readOnly}
-            value={d.panel_port} onChange={set('panel_port')} showUsed={anyPort} />
-          <EntitySelect kind="seats" label={t('cables.seat')} readOnly={readOnly} value={d.seat} onChange={set('seat')} />
-          <TextInput label={t('cables.label')} placeholder={t('cables.labelPlaceholder')} {...text('label')} />
-          <TextInput label={t('cables.color')} {...text('color')} />
-          <NumberInput label={t('cables.length')} min={0.1} max={500} step={0.5} decimalScale={1} readOnly={readOnly}
-            value={d.length_m} onChange={set('length_m')} />
-          <Select label={t('cables.type')} clearable readOnly={readOnly} value={d.type || null} onChange={(v) => set('type')(v ?? '')}
-            data={TYPES.map((v) => ({ value: v, label: t(`topology.types.${v}`) }))} />
-          <Select label={t('cables.speed')} clearable readOnly={readOnly} value={d.speed || null} onChange={(v) => set('speed')(v ?? '')}
-            data={SPEEDS.map((v) => ({ value: v, label: `${v}G` }))} />
-        </SimpleGrid>
-        <TextInput label={t('cables.note')} maxLength={200} {...text('note')} />
-        {!readOnly && <Checkbox label={t('cables.anyPort')} checked={anyPort} onChange={(e) => setAnyPort(e.currentTarget.checked)} />}
-        {(save.error || remove.error) && <Alert color="down" role="alert">{(save.error || remove.error)!.message}</Alert>}
-        <Group justify="space-between">
-          {cable ? (
-            <Button variant="default" component="a" target="_blank" leftSection={<IconPrinter size={16} />}
-              href={`/api/cables/labels.pdf?ids=${cable.id}`}>{t('cables.printOne')}</Button>
-          ) : <span />}
-          {!readOnly && (
-            <Group gap="sm">
-              {cable && <Button variant="subtle" color="down" loading={remove.isPending} onClick={() => remove.mutate()}>{t('cables.delete')}</Button>}
-              <Button loading={save.isPending} disabled={!d.switch.trim() || !d.port.trim()} onClick={() => save.mutate()}>
-                {t('cables.save')}
-              </Button>
-            </Group>
-          )}
-        </Group>
-      </Stack>
-    </Modal>
+    <Stack gap="sm">
+      {imported && <Alert color="info">{t('cables.fromImport', { plugin: cable?.plugin ?? 'NetBox' })}</Alert>}
+      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+        <EntitySelect kind="switches" label={t('cables.switch')} required readOnly={readOnly}
+          value={d.switch} onChange={(v) => setD((x) => ({ ...x, switch: v, port: v === x.switch ? x.port : '' }))} />
+        <EntitySelect kind="ports" switchName={d.switch} label={t('cables.port')} required readOnly={readOnly}
+          value={d.port} onChange={set('port')} showUsed={anyPort} />
+        <EntitySelect kind="panels" label={t('cables.panel')} readOnly={readOnly} placeholder={t('cables.panelPlaceholder')}
+          value={d.panel} onChange={(v) => setD((x) => ({ ...x, panel: v, panel_port: v === x.panel ? x.panel_port : '' }))} />
+        <EntitySelect kind="panel-ports" panelName={d.panel} label={t('cables.panelPort')} readOnly={readOnly}
+          value={d.panel_port} onChange={set('panel_port')} showUsed={anyPort} />
+        <EntitySelect kind="seats" label={t('cables.seat')} readOnly={readOnly} value={d.seat} onChange={set('seat')} />
+        <TextInput label={t('cables.label')} placeholder={t('cables.labelPlaceholder')} {...text('label')} />
+        <TextInput label={t('cables.color')} {...text('color')} />
+        <NumberInput label={t('cables.length')} min={0.1} max={500} step={0.5} decimalScale={1} readOnly={readOnly}
+          value={d.length_m} onChange={set('length_m')} />
+        <Select label={t('cables.type')} clearable readOnly={readOnly} value={d.type || null} onChange={(v) => set('type')(v ?? '')}
+          data={TYPES.map((v) => ({ value: v, label: t(`topology.types.${v}`) }))} />
+        <Select label={t('cables.speed')} clearable readOnly={readOnly} value={d.speed || null} onChange={(v) => set('speed')(v ?? '')}
+          data={SPEEDS.map((v) => ({ value: v, label: `${v}G` }))} />
+      </SimpleGrid>
+      <TextInput label={t('cables.note')} maxLength={200} {...text('note')} />
+      {!readOnly && <Checkbox label={t('cables.anyPort')} checked={anyPort} onChange={(e) => setAnyPort(e.currentTarget.checked)} />}
+      {(save.error || remove.error) && <Alert color="down" role="alert">{(save.error || remove.error)!.message}</Alert>}
+      <Group justify="space-between">
+        {cable && print ? (
+          <Button variant="default" component="a" target="_blank" leftSection={<IconPrinter size={16} />}
+            href={`/api/cables/labels.pdf?ids=${cable.id}`}>{t('cables.printOne')}</Button>
+        ) : <span />}
+        {!readOnly && (
+          <Group gap="sm">
+            {cable && <Button variant="subtle" color="down" loading={remove.isPending} onClick={() => remove.mutate()}>{t('cables.delete')}</Button>}
+            <Button loading={save.isPending} disabled={!d.switch.trim() || !d.port.trim()} onClick={() => save.mutate()}>
+              {t('cables.save')}
+            </Button>
+          </Group>
+        )}
+      </Group>
+    </Stack>
   )
 }
 

@@ -4,11 +4,11 @@
 #   cp agent.env.example agent.env      # FLOORBIT_URL and FLOORBIT_AGENT_KEY
 #   docker compose -f docker-compose.agent.yml up -d
 #
-# It only connects out, over HTTPS: nothing has to be opened. LibreNMS, NetBox and the rest are set
-# up in Floorbit (Settings > Plugins). Only to take the event's syslog or flows, or to answer
-# attendees (the plugins "Syslog from the hall" on port 5514, "Traffic from the hall" on 2055 and
-# "Front door for attendees" on 0.0.0.0:8443), uncomment the matching ports below. Telegraf for
-# device telemetry is in the image: nothing else to start (docs/agent.md, "Telegraf").
+# It connects out over HTTPS. LibreNMS, NetBox and the rest are set up in Floorbit (Settings >
+# Plugins). Attendees, phones and the crew's seat walk-through reach it on 443 and 80 (the plugin
+# "Front door for attendees", on by default): point the event DNS name of check-in at this machine.
+# To take the event's syslog or flows, uncomment those ports below. Telegraf for device telemetry is
+# in the image: nothing else to start (docs/agent.md, "Telegraf").
 
 services:
   agent:
@@ -29,11 +29,14 @@ services:
       # telemetry from the devices (another trap receiver on this machine: change the left side).
       - "${TRAP_PUBLISH_PORT:-162}:1162/udp"
       - "${MDT_PUBLISH_PORT:-57000}:57000"
-      # Uncomment what the plugins listen for: syslog, NetFlow, the front door, a firewall's own
-      # Telegraf sending to the telemetry listener. Every port: docs/agent.md, "Ports".
+      # Attendees: check-in, the check-in note on phones and the crew's seat walk-through, on one
+      # listener. HTTPS once the agent has a certificate; until then 443 speaks plain HTTP too.
+      - "${HTTPS_PUBLISH_PORT:-443}:8443"
+      - "${HTTP_PUBLISH_PORT:-80}:8080"
+      # Uncomment what the plugins listen for: syslog, NetFlow, a firewall's own Telegraf sending
+      # to the telemetry listener. Every port: docs/agent.md, "Ports".
       # - "514:5514/udp"
       # - "2055:2055/udp"
-      # - "80:8443"
       # - "8186:8186"
     # A refused key (revoked or wrong) stops the agent with exit code 1: don't restart it into
     # the same refusal every few seconds. Network trouble doesn't stop it; it retries by itself.

@@ -10,3 +10,4 @@ segno>=1.6
 paramiko>=3.4
 gunicorn>=23.0             # production server in the Docker image (Dockerfile)
 psycopg[binary]>=3.2       # Postgres, when FLOORBIT_DATABASE_URL names one (floorbit/database.py)
+pysnmp>=7.1,<8             # one-off SNMP GETs for check-in lookups on the agent (floorbit/telemetry/snmpget.py)
