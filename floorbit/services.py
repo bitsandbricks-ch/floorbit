@@ -69,6 +69,11 @@ def _text(value, limit):
     return ' '.join(str(value or '').split())[:limit]
 
 
+def stored_sites(data=None):
+    """The internet sites as set up, without their state (``poller.state(id)`` has that)."""
+    return _stored(load_data() if data is None else data)['sites']
+
+
 def _host(value, message, required=True):
     host = str(value or '').strip()
     if not host and not required:

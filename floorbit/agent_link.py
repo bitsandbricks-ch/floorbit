@@ -222,6 +222,12 @@ def enrolled(agent_id):
 REPORT_KEYS = ('up_seconds', 'reconnects', 'link_drops', 'calls_busy', 'answers_failed',
                'syslog_received', 'syslog_sent', 'syslog_dropped', 'syslog_backlog', 'flows_packets',
                'captive_shown', 'captive_done', 'front_door_passed', 'front_door_failed')
+# Numbers the agent's relays now count as plugins (their gauges in ``plugins.<id>.metrics``), not
+# in the agent's own counters, which stay at 0: the page, the graphs and the history read these keys.
+PLUGIN_NUMBERS = {'syslog_received': ('syslog-relay', 'received'), 'syslog_dropped': ('syslog-relay', 'dropped'),
+                  'syslog_backlog': ('syslog-relay', 'waiting'), 'flows_packets': ('netflow-relay', 'packets'),
+                  'front_door_passed': ('front-door', 'requests_passed'),
+                  'front_door_failed': ('front-door', 'requests_failed')}
 REPORT_FRESH = 180        # seconds: an older report says more about the past than about now
 
 
@@ -954,6 +960,10 @@ class Tunnel:
         plugins = clean_health(raw.get('plugins'))
         if plugins:
             clean['plugins'] = plugins
+            for key, (pid, metric) in PLUGIN_NUMBERS.items():
+                value = (plugins.get(pid) or {}).get('metrics', {}).get(metric)
+                if value is not None and value >= 0:
+                    clean[key] = max(clean.get(key) or 0, value)
         from .agent_plugins import clean_updates, clean_vrrp
         from .agent_settings import clean_report
         for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report)):

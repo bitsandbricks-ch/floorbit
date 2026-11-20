@@ -13,9 +13,11 @@ Gathered from what is already watched, without asking anything new:
 - plugins turned on that don't load or keep failing, and installed versions the Marketplace withdrew.
 
 Seat and port trouble (issue #15: flapping, errors rising, half duplex, online without a check-in;
-syslog matches; open incidents on a seat, issue #1204) comes as a list of its own under ``attention``,
-newest first, each with its ``seat`` when it has one. The page shows it with the rest, after it;
-``counts['seats']`` is how many seats have trouble, counted like the floor plan's "!" (check-in left out).
+syslog matches; seats outside their switch's range, floorbit/seat_ranges.py; seat ports whose config
+breaks a rule, floorbit/port_config.py; seat ports with more than one machine, floorbit/port_clients.py;
+open incidents on a seat, issue #1204) comes as a list of its own under ``attention``, newest first,
+each with its ``seat`` when it has one. The page shows it with the rest, after it; ``counts['seats']``
+is how many seats have trouble, counted like the floor plan's "!" (check-in left out).
 
 Each problem is ``{id, kind, level, title, where, since, link}`` with ``level`` ``down`` or ``warn``.
 """
@@ -101,9 +103,12 @@ def _health(muted):
     for c in (wall.snapshot()['checks'] if wall else []):
         if c['status'] in ('down', 'warn'):
             key = alerting.service_key(c['id'])
+            full_in = (c.get('forecast') or {}).get('full_in_min')
+            title = (f"{c['name']}: full in about {full_in} min" if full_in and c['status'] == 'warn'
+                     else f"{c['name']}: {'down' if c['status'] == 'down' else 'needs a look'}")
             out.append({'id': key, 'kind': 'health', 'level': c['status'],
-                        'title': f"{c['name']}: {'down' if c['status'] == 'down' else 'needs a look'}",
-                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/health',
+                        'title': title,
+                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/services',
                         'mute_id': key, 'name': c['name'], 'muted': _muted(muted.get(key))})
     return out
 
@@ -183,6 +188,50 @@ def _seat_incidents():
                     'where': f"Seat {i['seat']}, on the incident board", 'since': i.get('created_at'),
                     'link': f"/incidents?q={quote('seat:' + i['seat'])}", 'seat': i['seat']})
     return out
+
+
+def _ranges():
+    """Seats with an address outside their switch's ranges (floorbit/seat_ranges.py, issue #1062)."""
+    from integrations import seat_sources
+
+    from . import seat_ranges
+    from .store import load_data
+    try:
+        found = seat_ranges.items(load_data(), seat_sources.load())
+    except Exception:  # noqa: BLE001 - a seat source that can't be read must not take the page down
+        return []
+    # A range set for the wrong switch is fixed under Firewalls; the rest on the plan.
+    return [{'id': f['id'], 'kind': 'range', 'level': 'warn', 'title': f['title'], 'where': f['where'],
+             'since': None, 'switch_id': None,
+             'link': '/firewalls' if f['id'].startswith('range:plan:')
+             else _on_plan(seat=f['seat'], switch=f['switch'])}
+            for f in found]
+
+
+def _port_check():
+    """Seat ports whose config breaks a rule, from the last config copies (floorbit/port_config.py)."""
+    from integrations import seat_sources
+
+    from . import port_config
+    from .store import load_data
+    try:
+        found = port_config.problems(port_config.check(load_data(), seat_sources.load()))
+    except Exception:  # noqa: BLE001 - a copy or seat source that can't be read must not take the page down
+        return []
+    return [{'id': f['id'], 'kind': 'portconfig', 'level': 'warn', 'title': f['title'], 'where': f['where'],
+             'since': None, 'switch_id': None, 'link': '/configs#port-check'} for f in found]
+
+
+def _shared_ports():
+    """Seat ports with more than one machine, from the last MAC table read (floorbit/port_clients.py)."""
+    from . import port_clients
+    state = port_clients.last_read()
+    if not state:
+        return []
+    return [{'id': f['id'], 'kind': 'shared', 'level': 'warn', 'title': f['title'], 'where': f['where'],
+             'since': None, 'switch_id': None,
+             'link': _on_plan(seat=f['seat'], switch=f['switch']) if f['seat'] else '/cables#port-clients'}
+            for f in port_clients.problems(state)]
 
 
 def _logs(may_see_people):
@@ -270,7 +319,9 @@ def current(may_see_people):
               'muted': sum(bool(p.get('muted')) for p in items)}
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
-    attention = sorted(_attention() + _logs(may_see_people) + _seat_incidents(), key=lambda p: -(p['since'] or 0))
+    attention = sorted(_attention() + _logs(may_see_people) + _ranges() + _port_check()
+                       + _shared_ports() + _seat_incidents(),
+                       key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
     counts['seats'] = len({p['seat'] for p in items + attention if p.get('seat') and p['kind'] != 'checkin'})
     mutes = [{'switch_id': k, 'kind': _mute_kind(k), **v}

@@ -109,6 +109,12 @@ def hall_rows(data):
     return out
 
 
+def row_label(row):
+    """What a ``hall_rows`` row is called in pickers and lists: its letter, or for a block numbered
+    as a whole, the block and the row ("A 2")."""
+    return row['name'] if row['naming'] == 'rows' else f"{row['block_label']} {row['name']}".strip()
+
+
 def pick_rows(data, ids):
     """The rows behind ``ids`` (``hall_rows`` ids), in the order given; ValueError naming the first
     unknown one. Each row comes once."""

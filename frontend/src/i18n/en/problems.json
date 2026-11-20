@@ -26,7 +26,10 @@
     "log": "Log",
     "plugin": "Plugin",
     "wifi": "Wi-Fi",
-    "incident": "Incident"
+    "incident": "Incident",
+    "portconfig": "Port config",
+    "range": "IP range",
+    "shared": "Shared port"
   },
   "since": "started {{ago}}",
   "open": "Open",
@@ -74,5 +77,6 @@
   "switchesBehind_other": "{{count}} switches behind it",
   "behindCause": "Behind {{name}}, which is down: start there",
   "showSeats": "Show the seats",
-  "hideSeats": "Hide the seats"
+  "hideSeats": "Hide the seats",
+  "swap": "Swap"
 }

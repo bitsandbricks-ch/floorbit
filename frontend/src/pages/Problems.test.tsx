@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProblemList } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -161,7 +161,7 @@ describe('Problems', () => {
 
   it('mutes a service on the health wall, and lists it with the muted switches', async () => {
     const service = { id: 'health:demo:game-1', kind: 'health' as const, level: 'down' as const, title: 'Game server 1: down', where: 'Not answering',
-      since: now, link: '/health', mute_id: 'health:demo:game-1', name: 'Game server 1', muted: null }
+      since: now, link: '/services', mute_id: 'health:demo:game-1', name: 'Game server 1', muted: null }
     const fake = fakeFetch({
       'GET /api/auth/me': me,
       'GET /api/problems': list({ problems: [service], mutes: [{ switch_id: 'health:demo:dns', kind: 'health', name: 'DNS', until: now + 600, at: now, by: 'kim', reason: '' }] }),
@@ -170,13 +170,26 @@ describe('Problems', () => {
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Problems />)
     const row = await screen.findByRole('article', { name: 'Game server 1: down' })
-    expect(screen.getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/health')
+    expect(screen.getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/services')
     fireEvent.click(within(row).getByRole('button', { name: 'Mute' }))
     const dialog = await screen.findByRole('dialog', { name: 'Mute alerts for Game server 1' })
     expect(within(dialog).getByText(/this service going down/)).toBeInTheDocument()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Mute' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.path === '/api/alerts/mutes')?.body)
       .toEqual({ service_id: 'demo:game-1', minutes: 60, reason: '' }))
+  })
+
+  it('offers the swap page for an offline switch to those who may change the inventory (issue #1060)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    const view = renderWithApp(<Problems />)
+    await screen.findByText('sw-c-02 is offline')
+    expect(screen.queryByRole('link', { name: 'Swap' })).not.toBeInTheDocument()
+    view.unmount()
+    const lead = { enabled: true, user: { ...me.user, role: 'lead', permissions: ['incidents.work', 'floorplan.edit'] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />)
+    await screen.findByText('sw-c-02 is offline')
+    await waitFor(() => expect(screen.getAllByRole('link', { name: 'Swap' })[0]).toHaveAttribute('href', '/switch-swap/s1'))
   })
 
   it('mutes a Wi-Fi access point by its name', async () => {

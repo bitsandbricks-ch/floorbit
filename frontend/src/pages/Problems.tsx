@@ -1,5 +1,5 @@
 import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Modal, Pagination, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
-import { IconBellOff, IconCheck, IconCopy } from '@tabler/icons-react'
+import { IconBellOff, IconCheck, IconCopy, IconReplace } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,14 +7,14 @@ import { useSearchParams } from 'react-router-dom'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
-import { useProblems } from '@/api/queries'
+import { useCan, useProblems } from '@/api/queries'
 import type { Problem } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { ago, clock } from '@/lib/time'
 import { StateBadge } from '@/components/State'
 
@@ -28,8 +28,8 @@ const SEATS = 'seats'
 const ENDING_SOON = 10 * 60
 
 
-function Row({ p, canMute, busy, onMute, onReport }: {
-  p: Problem; canMute: boolean; busy: boolean; onMute: () => void; onReport?: () => void
+function Row({ p, canMute, canSwap, busy, onMute, onReport }: {
+  p: Problem; canMute: boolean; canSwap?: boolean; busy: boolean; onMute: () => void; onReport?: () => void
 }) {
   const { t } = useTranslation()
   return (
@@ -65,6 +65,11 @@ function Row({ p, canMute, busy, onMute, onReport }: {
           )}
           {onReport && p.kind === 'switch' && p.incident === null && (
             <Button size="xs" variant="subtle" onClick={onReport} disabled={busy}>{t('problems.report')}</Button>
+          )}
+          {/* A switch that stays down is swapped for a spare, step by step (issue #1060). */}
+          {canSwap && p.kind === 'switch' && p.level === 'down' && p.switch_id && (
+            <Button size="xs" variant="subtle" leftSection={<IconReplace size={14} />} component="a"
+              href={`/switch-swap/${encodeURIComponent(p.switch_id)}`}>{t('problems.swap')}</Button>
           )}
           {canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted && (
             <Button size="xs" variant="subtle" leftSection={<IconBellOff size={14} />} onClick={onMute} disabled={busy}>{t('problems.mute')}</Button>
@@ -199,6 +204,7 @@ export default function Problems() {
     mutationFn: (id: string) => patch(`/api/alerts/mutes/${encodeURIComponent(id)}`, { minutes: 30 }),
     onSuccess: refresh,
   })
+  const canSwap = useCan('floorplan.edit')
   const data = list.data
   // Seat and port trouble are problems too (issue #1204): after the rest, so a switch that is down
   // stays on top, newest first among themselves as the server sends them.
@@ -236,13 +242,13 @@ export default function Problems() {
       )} />
       <ErrorBanner error={error} mb="md" />
       {list.isPending || !data ? (
-        <Loader size="sm" />
+        <LoadingState />
       ) : (
         <Stack gap="md">
           {data.quiet_hours && <Alert color="gray" variant="light">{t('problems.quiet')}</Alert>}
           <div className="fb-stat-row" aria-live="polite">
             {(['down', 'warn', 'seats', 'muted'] as const).map((k) => (
-              <StatCard key={k} label={t(`problems.card.${k}`)} value={String(data.counts[k] ?? 0)}
+              <StatTile key={k} label={t(`problems.card.${k}`)} value={String(data.counts[k] ?? 0)}
                 tone={data.counts[k] && k !== 'muted' ? (k === 'seats' ? 'warn' : k) : undefined} />
             ))}
           </div>
@@ -260,7 +266,7 @@ export default function Problems() {
           ) : (
             <Stack gap="xs">
               {onPage.map((p) => (
-                <Row key={p.id} p={p} canMute={data.can_mute} busy={mute.isPending || report.isPending}
+                <Row key={p.id} p={p} canMute={data.can_mute} canSwap={canSwap} busy={mute.isPending || report.isPending}
                   onReport={data.can_report ? () => report.mutate(p) : undefined}
                   onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: muteKind(p.kind) }) }} />
               ))}
@@ -278,7 +284,7 @@ export default function Problems() {
               <Stack gap={4}>
                 {data.mutes.map((m) => (
                   <Group key={m.switch_id} gap="sm">
-                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/health' : m.kind === 'wifi' ? WIFI_LINK : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/services' : m.kind === 'wifi' ? WIFI_LINK : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
                     {m.until - now < ENDING_SOON && (
                       <Badge color="warn" variant="light" tt="none">
                         {t('problems.endsIn', { count: Math.max(1, Math.ceil((m.until - now) / 60)) })}

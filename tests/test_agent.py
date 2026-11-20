@@ -543,6 +543,30 @@ def test_history_kept_per_agent_and_served(client, anon_client):
     assert anon_client.get(f"/api/agents/{made['id']}/history").status_code in (401, 403)
 
 
+def test_relay_numbers_come_from_the_plugins(client):
+    """The relays count as plugins now (issue #1205): their gauges fill the report's syslog, flow
+    and front door numbers, so the agent page and its syslog graph don't stay at 0."""
+    made = enrol(client)
+    t0 = (time.time() // 60) * 60 - 600
+
+    def report(received, at):
+        return {"syslog_received": 0, "syslog_dropped": 0, "flows_packets": 0, "plugins": {
+            "syslog-relay": {"status": "ok", "running": True, "message": "", "errors": [],
+                             "metrics": {"received": received, "dropped": 2, "waiting": 5}},
+            "netflow-relay": {"status": "ok", "running": True, "message": "", "errors": [],
+                              "metrics": {"packets": 70}},
+            "front-door": {"status": "ok", "running": True, "message": "", "errors": [],
+                           "metrics": {"requests_passed": 9, "requests_failed": 1}}}}
+
+    agent_link.tunnel.report(made["id"], report(100, t0), now=t0)
+    agent_link.tunnel.report(made["id"], report(400, t0 + 60), now=t0 + 60)
+    got = agent_link.tunnel.reported(made["id"], now=t0 + 61)
+    assert (got["syslog_received"], got["syslog_dropped"], got["syslog_backlog"]) == (400, 2, 5)
+    assert (got["flows_packets"], got["front_door_passed"], got["front_door_failed"]) == (70, 9, 1)
+    series = client.get(f"/api/agents/{made['id']}/history?hours=1").get_json()["series"]
+    assert [v for _, v in series["syslog"]] == [300.0]
+
+
 def test_a_long_poll_from_before_a_reset_takes_nothing_after_it():
     """Tests reset the process-wide tunnel; a long poll left waiting from an earlier test must
     neither take the next test's calls nor count as an agent that is asking (#1124)."""

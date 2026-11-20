@@ -447,3 +447,14 @@ def test_a_dashboard_can_hide_its_full_screen_header(client):
     assert "frame" not in client.put("/api/dashboards/wall", json=body).get_json()
     assert client.put("/api/dashboards/wall", json={**body, "frame": False}).get_json()["frame"] is False
     assert client.get("/api/dashboards/wall/public").get_json()["board"]["frame"] is False
+
+
+def test_a_pane_can_show_one_row(client):
+    """#1078: a block holds rows, and a plan pane can show just one of them."""
+    layout = {"name": "Row", "root": {"pane": {"kind": "plan", "area": {"kind": "row", "id": "blk-1:2"}}}}
+    saved = client.put("/api/dashboards/row-wall", json=layout).get_json()
+    pane = saved["sections"][0]["panels"][0]["node"]["pane"]
+    assert pane["area"] == {"kind": "row", "id": "blk-1:2"}
+    bad = client.put("/api/dashboards/row-wall", json={"name": "Row", "root": {"pane": {
+        "kind": "plan", "area": {"kind": "row", "id": ""}}}})
+    assert bad.status_code == 400 and "row" in bad.get_json()["error"]

@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
-import { useCan } from '@/api/queries'
+import { useCan, useFeature } from '@/api/queries'
 import type { EventFigures, EventsData, PastEvent } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
@@ -16,6 +16,7 @@ import { PageHead } from '@/components/PageHead'
 import { dates, METRICS, share } from './events/metrics'
 import { TenantEvents } from './events/TenantEvents'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
+import { toastDone } from '@/components/toast'
 
 type Column = { id: string; name: string; start: number | null; end: number | null; figures: EventFigures; current?: boolean }
 
@@ -116,11 +117,14 @@ export default function Events() {
   const { t, i18n } = useTranslation()
   const qc = useQueryClient()
   const isAdmin = useCan('settings.manage')
-  const query = useQuery({ queryKey: qk.events, queryFn: () => get<EventsData>('/api/past-events') })
+  // The tenant's events are always here; the archive and the comparison follow the feature (#1201).
+  const pastOn = useFeature('past_events')
+  // Asked once the features have answered, so a switched-off archive never flashes its 404.
+  const known = useQuery({ queryKey: qk.features, queryFn: () => get<{ off: string[] }>('/api/features'), staleTime: 60_000, retry: false })
+  const query = useQuery({ queryKey: qk.events, queryFn: () => get<EventsData>('/api/past-events'), enabled: pastOn && !known.isPending })
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.events })
   useLiveEvent('events.changed', refresh)
   const [renaming, setRenaming] = useState<PastEvent | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const remove = useMutation({ mutationFn: (id: string) => del(`/api/past-events/${id}`), onSuccess: refresh })
   const d = query.data
   const tz = new Date().getTimezoneOffset()
@@ -129,13 +133,12 @@ export default function Events() {
   const error = query.error ?? remove.error
 
   return (
-    <Layout title={t('events.title')} back={{ href: '/report', label: t('report.title') }}>
+    <Layout title={t('events.title')}>
       <PageHead title={t('events.title')} desc={t('events.intro')} />
       <Stack gap="md">
         <ErrorBanner error={error} />
         <TenantEvents isAdmin={isAdmin} />
-        {notice && <Alert color="up" role="status" withCloseButton onClose={() => setNotice(null)}>{notice}</Alert>}
-        {query.isPending ? <LoadingState /> : d && (
+        {!pastOn ? null : query.isPending ? <LoadingState /> : d && (
           <>
             <Comparison columns={columns} />
             <Paper withBorder radius="lg" p="md">
@@ -179,7 +182,7 @@ export default function Events() {
               )}
             </Paper>
             {isAdmin && (
-              <CloseEvent name={d.current.name} onDone={(a) => { setNotice(t('events.closed', { name: a.name })); refresh() }} />
+              <CloseEvent name={d.current.name} onDone={(a) => { toastDone(t('events.closed', { name: a.name })); refresh() }} />
             )}
           </>
         )}

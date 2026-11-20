@@ -5,7 +5,7 @@
   "publicOff": "The public page /status is switched off. An admin turns it on under Settings > Attendee pages.",
   "shows": "The public page shows",
   "since": "since {{time}}",
-  "automatic": "Worked out from the switches' status.",
+  "automatic": "Worked out from the switches, firewalls, internet lines, DNS and DHCP.",
   "setBy": "{{state}} set by {{who}} at {{time}}. Automatic would be: {{auto}}.",
   "setState": "Set the state",
   "note": "Note for the crew",

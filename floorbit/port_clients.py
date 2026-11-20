@@ -8,6 +8,9 @@ kinds of client stand out:
   a crew laptop, a rogue switch).
 - ``moved``: a client on seat A's port whose IP the seat mapping gives to seat B (players swapped
   seats, or the cables at the switch are swapped).
+- ``shared``: a seat port with more than one machine on it, a desk switch or router when it has
+  many (issue #1119). Those are where loops, a home router's DHCP and a lost seat start. Only the
+  count of MACs is kept, never which.
 
 Two more lists catch PCs that never check in (issue #949):
 
@@ -165,14 +168,19 @@ def find(monitor, data, seats):
     mac_ip = _arp(monitor, networks(ip_seat)) if per_port else {}
 
     skip = ignored(data)
-    unplanned, moved, clients, seat_ips, seat_macs = [], [], 0, {}, {}
+    unplanned, moved, shared, clients, seat_ips, seat_macs = [], [], [], 0, {}, {}
     on_edge = set()
     for (switch, port), macs in sorted(per_port.items(), key=lambda kv: (kv[0][0].lower(), canonical_port(kv[0][1]))):
-        if len(macs) > UPLINK_MACS:
-            continue
-        on_edge |= macs
+        if len(macs) <= UPLINK_MACS:
+            on_edge |= macs
         cable = by_port.get((switch.lower(), canonical_port(port)))
         if cable and not cable.get('seat'):
+            continue
+        # A MAC the crew ignored (their own laptop during the seat walk) doesn't make a port shared.
+        if cable and len(macs - skip.keys()) > 1:
+            shared.append({'switch': switch, 'port': port, 'seat': cable['seat'], 'cable': cable['label'],
+                           'macs': len(macs - skip.keys()), 'desk_switch': len(macs) > UPLINK_MACS})
+        if len(macs) > UPLINK_MACS:
             continue
         for mac in sorted(macs):
             if mac in skip:
@@ -190,6 +198,8 @@ def find(monitor, data, seats):
                 seat_macs[cable['seat']] = {'mac_address': mac, 'ip_address': ip}
             if row['ip_seat'] and row['ip_seat'] != cable['seat'].upper():
                 moved.append({**row, 'seat': cable['seat'], 'cable': cable['label']})
+    # Desk switches first: they are the ones that loop or hand out addresses.
+    shared.sort(key=lambda r: (not r['desk_switch'], -r['macs']))
     # Only from a full read: a switch that didn't answer would make all its PCs look portless.
     no_port, empty = [], []
     if not failed:
@@ -208,7 +218,8 @@ def find(monitor, data, seats):
                 continue
             seen.add(c['seat'])
             empty.append({'seat': c['seat'].upper(), 'switch': c['switch'], 'port': c['port']})
-    return {'unplanned': _listed(unplanned), 'moved': _listed(moved), 'no_port': _listed(no_port),
+    return {'unplanned': _listed(unplanned), 'moved': _listed(moved), 'shared': _listed(shared),
+            'no_port': _listed(no_port),
             'empty': _listed(sorted(empty, key=lambda r: _seat_key(r['seat']))), 'switches': len(switches),
             'failed': failed, 'clients': clients, 'seat_ips': seat_ips, 'seat_macs': seat_macs}
 
@@ -303,14 +314,41 @@ class Finder:
     def state(self):
         with self._lock:
             return {'as_of': self.as_of, 'reading': self._running, 'error': self.error,
-                    **(self.result or {'unplanned': _listed([]), 'moved': _listed([]), 'no_port': _listed([]),
-                                       'empty': _listed([]), 'switches': 0, 'failed': [], 'clients': 0})}
+                    **(self.result or {'unplanned': _listed([]), 'moved': _listed([]), 'shared': _listed([]),
+                                       'no_port': _listed([]), 'empty': _listed([]), 'switches': 0,
+                                       'failed': [], 'clients': 0})}
 
     def reset(self):
         with self._lock:
             self.result = self.as_of = self.error = None
             self.seat_ips, self.seat_macs = {}, {}
             self._running = False
+
+
+SHARED_ONE_LINE = 5     # more shared seat ports than this: one line in Problems, the list is on Cables
+
+
+def problems(state):
+    """Problems' attention items for the seat ports with more than one machine (issue #1119)."""
+    rows = (state.get('shared') or {}).get('rows') or []
+    count = (state.get('shared') or {}).get('count', len(rows))
+    if not rows:
+        return []
+    desks = [r for r in rows if r['desk_switch']]
+    if count > SHARED_ONE_LINE:
+        title = f'{count} seat ports have more than one machine'
+        looks = 'looks' if len(desks) == 1 else 'look'
+        where = f'{len(desks)} {looks} like a desk switch or router' if desks else 'Check them under Cables'
+        return [{'id': 'shared:all', 'title': title, 'where': where, 'seat': None, 'switch': None}]
+    out = []
+    for r in rows:
+        if r['desk_switch']:
+            title = f"Seat {r['seat']}: a switch or router on the seat port ({r['macs']} machines)"
+        else:
+            title = f"Seat {r['seat']}: {r['macs']} machines on one seat port"
+        out.append({'id': f"shared:{r['switch']}:{r['port']}", 'title': title, 'where': f"{r['switch']} {r['port']}",
+                    'seat': r['seat'], 'switch': r['switch']})
+    return out
 
 
 _finder = None
@@ -323,6 +361,11 @@ def seat_clients():
         return {}
     with finder._lock:
         return {seat: dict(v) for seat, v in finder.seat_macs.items()}
+
+
+def last_read():
+    """The last read as the page sees it, without starting a new one."""
+    return _finder.state() if _finder is not None else None
 
 
 def _every(finder, stop):

@@ -26,7 +26,10 @@
     "log": "Log",
     "plugin": "Plugin",
     "wifi": "WLAN",
-    "incident": "Störung"
+    "incident": "Störung",
+    "portconfig": "Port-Konfig",
+    "range": "IP-Bereich",
+    "shared": "Geteilter Port"
   },
   "since": "begonnen {{ago}}",
   "open": "Öffnen",
@@ -74,5 +77,6 @@
   "switchesBehind_other": "{{count}} Switches dahinter",
   "behindCause": "Hinter {{name}}, der down ist: dort anfangen",
   "showSeats": "Plätze zeigen",
-  "hideSeats": "Plätze ausblenden"
+  "hideSeats": "Plätze ausblenden",
+  "swap": "Tauschen"
 }

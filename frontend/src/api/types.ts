@@ -393,6 +393,8 @@ export interface SeatRow {
   from: Partial<Record<'switch' | 'port' | 'ip' | 'mac' | 'nick' | 'note', string>>
   manual: ManualSeat | null
   sources: string[]
+  /** On a seat block of any hall; off-plan rows come only from a source (seats.json, a CSV feed). */
+  on_plan: boolean
 }
 
 export interface SeatMapList {
@@ -600,6 +602,11 @@ export interface HealthCheck {
   since: number
   /** Until when its alerts are muted (issue #260), or null. */
   muted_until?: number | null
+  /** How much of a pool is used, when the check counts one (a DHCP scope). */
+  capacity?: { used: number; total: number }
+  /** When that pool runs full at the rate of the last 15 minutes (issue #1061). `raised`: the wall
+   *  made an "up" check "warn" for it. */
+  forecast?: { used: number; total: number; pct: number; rate_per_min: number | null; full_in_min: number | null; level: State | null; raised?: boolean }
 }
 export interface HealthWall {
   checks: HealthCheck[]
@@ -889,6 +896,9 @@ export interface PlanShape {
   cells: PlanCell[]
   /** Row letters (blocks named by row), in the block's own coordinates; missing on older answers. */
   rows?: { text: string; x: number; y: number }[]
+  /** Each row, top first (a cell's rc[0]): its id and name as /api/options/rows has them. Ids are
+   *  the server's: never build one. Missing on older answers. */
+  row_list?: { id: string; name: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
 }
@@ -1373,11 +1383,14 @@ export interface PortClients {
   as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+  /** Seat ports with more than one machine (issue #1119): only how many, never which. */
+  shared?: { count: number; rows: SharedPort[] }
   /** Issue #949: IPs ARP knows on no seat port, and cabled seats with no machine (once check-ins started). */
   no_port?: { count: number; rows: { mac: string; ip: string; ip_seat: string }[] }
   empty?: { count: number; rows: { seat: string; switch: string; port: string }[] }
   ignored?: number
 }
+export interface SharedPort { switch: string; port: string; seat: string; cable: string; macs: number; desk_switch: boolean }
 /** Walking the row (issue #473): ports that came up since the walk began. */
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }
 export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
@@ -1459,11 +1472,24 @@ export interface StatusUpdate {
   area: string
 }
 
+/** One count of every service (issue #1037): the health wall's checks, each internet site a row. */
+export interface ServiceSummaryRow {
+  id: string; name: string; kind: string; status: ServiceStatus; summary: string; link: string
+}
+export interface ServiceSummary {
+  rows: ServiceSummaryRow[]
+  total: number
+  counts: Record<ServiceStatus, number>
+  by_kind: Record<string, Record<ServiceStatus | 'total', number>>
+}
+
 export interface StatusPageData {
   state: StatusState
   auto_state: StatusState
   override: { state: StatusState; note: string; by: string | null; at: number } | null
   since: number | null
+  /** What players notice (issue #1038): switches, firewall, no_firewall, internet_slow, internet_down, dns, dhcp. */
+  reasons?: string[]
   areas: StatusArea[]
   crew_areas: StatusArea[]
   /** Areas whose switch came back in the last half hour, with switch names (issue #396). */
@@ -1648,6 +1674,8 @@ export interface FirewallRange {
   state: FirewallRouteState; seats: number
   /** 'import': read from NetBox (change it there); 'floorbit': planned here. */
   source?: 'import' | 'floorbit'; plugin?: string
+  /** Inventory switch or group ids the range is for: their seats outside it are flagged (issue #1062). */
+  switches?: string[]
 }
 export interface FirewallCard {
   id: string; name: string; model: string; hall: string; status: 'online' | 'offline' | 'unknown'
