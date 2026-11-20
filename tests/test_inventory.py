@@ -208,6 +208,21 @@ def fake_netbox(app_module, monkeypatch):
     return devices
 
 
+def test_sources_list_only_what_is_set_up(client, app_module, monkeypatch):
+    """Issue #1112: NetBox without a URL, and an agent that fed nothing yet, aren't listed as
+    "not synced yet"; a sync that failed still is."""
+    from floorbit import agent_link
+    ids = lambda: [s['id'] for s in client.get('/api/inventory').get_json()['sources']]  # noqa: E731
+    assert 'netbox' not in ids()
+    monkeypatch.setattr(agent_link, 'active', lambda: True)
+    assert 'agent' not in ids()
+    monkeypatch.setattr(agent_link, 'inventory_feeds',
+                        lambda: (_ for _ in ()).throw(agent_link.AgentUnavailable('no agent connected')))
+    client.post('/api/inventory/sync')
+    [agent] = [s for s in client.get('/api/inventory').get_json()['sources'] if s['id'] == 'agent']
+    assert agent['last_sync']['error']
+
+
 def test_sync_endpoint_and_switch_api_share_one_inventory(client, fake_netbox):
     assert client.post('/api/inventory/sync').status_code == 200
     body = client.get('/api/inventory').get_json()

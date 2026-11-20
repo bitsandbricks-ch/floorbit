@@ -39,6 +39,9 @@ function Row({ p, canMute, busy, onMute, onReport }: {
             <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{p.title}</Text>
           </Group>
           {p.where && <Text size="sm" c="dimmed">{p.where}</Text>}
+          {p.cause
+            ? <Text size="sm" c="down">{t('problems.behindCause', { name: p.cause })}</Text>
+            : <Reach p={p} />}
           {p.muted && (
             <Text size="xs" c="dimmed">
               <IconBellOff size={12} style={{ verticalAlign: '-1px' }} aria-hidden="true" />{' '}
@@ -67,6 +70,33 @@ function Row({ p, canMute, busy, onMute, onReport }: {
     </Paper>
   )
 }
+
+/** The seats a down switch or link cuts off (issue #950): a count, and the names on demand. */
+function Reach({ p }: { p: Problem }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const seats = p.seats ?? []
+  const behind = p.behind ?? []
+  if (!seats.length && !behind.length) return null
+  return (
+    <Stack gap={2}>
+      <Group gap="xs">
+        <Text size="sm" fw={500}>
+          {[seats.length ? t('problems.seatsAffected', { count: seats.length }) : '',
+            behind.length ? t('problems.switchesBehind', { count: behind.length }) : ''].filter(Boolean).join(' · ')}
+        </Text>
+        {seats.length > 0 && (
+          <Anchor component="button" type="button" size="sm" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+            {open ? t('problems.hideSeats') : t('problems.showSeats')}
+          </Anchor>
+        )}
+      </Group>
+      {open && seats.length > 0 && <Text size="sm" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{seats.join(', ')}</Text>}
+      {open && behind.length > 0 && <Text size="xs" c="dimmed">{behind.join(', ')}</Text>}
+    </Stack>
+  )
+}
+
 
 /** The ready-made dashboard with the Wi-Fi view (floorbit/dashboards.py). */
 const WIFI_LINK = '/dashboards/view/network'

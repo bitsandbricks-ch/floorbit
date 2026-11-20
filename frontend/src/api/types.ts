@@ -730,6 +730,11 @@ export interface Problem {
   muted?: { until: number; by: string | null; reason: string } | null
   /** An offline switch's open incident, for people who see the board (issue #278). */
   incident?: string | null
+  /** What a down switch or link cuts off (issue #950): seat names only, and the switches behind it. */
+  seats?: string[]
+  behind?: string[]
+  /** The down switch this one is behind: the place to start. */
+  cause?: string
 }
 export interface ProblemList {
   problems: Problem[]
@@ -881,6 +886,9 @@ export interface PlanShape {
   cells: PlanCell[]
   /** Row letters (blocks named by row), in the block's own coordinates; missing on older answers. */
   rows?: { text: string; x: number; y: number }[]
+  /** Each row, top first (a cell's rc[0]): its id and name as /api/options/rows has them. Ids are
+   *  the server's: never build one. Missing on older answers. */
+  row_list?: { id: string; name: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
 }
@@ -1365,11 +1373,14 @@ export interface PortClients {
   as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+  /** Seat ports with more than one machine (issue #1119): only how many, never which. */
+  shared?: { count: number; rows: SharedPort[] }
   /** Issue #949: IPs ARP knows on no seat port, and cabled seats with no machine (once check-ins started). */
   no_port?: { count: number; rows: { mac: string; ip: string; ip_seat: string }[] }
   empty?: { count: number; rows: { seat: string; switch: string; port: string }[] }
   ignored?: number
 }
+export interface SharedPort { switch: string; port: string; seat: string; cable: string; macs: number; desk_switch: boolean }
 /** Walking the row (issue #473): ports that came up since the walk began. */
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }
 export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
@@ -1524,6 +1535,8 @@ export interface PlanSeat {
   changed?: number
   /** The crew left a note on the seat (issue #180); its text is in SeatDetails. */
   note?: boolean
+  /** The down switch or link that cuts the seat off (issue #950); crew only. */
+  behind?: string
 }
 
 export interface PlanBlock {
@@ -1638,6 +1651,8 @@ export interface FirewallRange {
   state: FirewallRouteState; seats: number
   /** 'import': read from NetBox (change it there); 'floorbit': planned here. */
   source?: 'import' | 'floorbit'; plugin?: string
+  /** Inventory switch or group ids the range is for: their seats outside it are flagged (issue #1062). */
+  switches?: string[]
 }
 export interface FirewallCard {
   id: string; name: string; model: string; hall: string; status: 'online' | 'offline' | 'unknown'
@@ -1828,7 +1843,7 @@ export interface AgentSettingsReport {
   values: Record<string, { source: SettingSource; value?: string; set?: boolean }>
   pending?: string[]
   key?: 'stored' | 'env' | 'file'
-  cert?: { not_after: number; names: string[]; source: SettingSource; floorbit_ca: boolean }
+  cert?: { not_after: number; names: string[]; source: SettingSource; floorbit_ca: boolean; public?: boolean }
 }
 
 /** One of an agent's own settings (agent_settings.FIELDS). */
@@ -1856,6 +1871,14 @@ export interface AgentSettingsPage {
   renewed_at: number | null
   cert: { issued_at: number; not_after: number; names: string[] } | null
   cert_asked: number | null
+  /** The tenant's Let's Encrypt certificate, when the platform has a domain for the agents. */
+  public_cert?: {
+    name: string; not_after: number | null; issued_at: number | null; error: string | null; failed_at: number | null
+    /** Why the name doesn't reach Floorbit yet (public DNS, port 80); nothing is ordered until it does. */
+    waiting?: string | null; checked_at?: number | null
+  } | null
+  /** When this agent last took that certificate's key. */
+  public_cert_at?: number | null
 }
 
 export interface AgentPluginHealth {
@@ -2021,6 +2044,9 @@ export interface CheckinInfo {
   address?: string | null
   /** True: not through the local agent's front door, so the seat's port can't be learned from here. */
   outside?: boolean
+  /** Outside on a PC: the agent's front door that knows this PC (url), and whether Floorbit is sure
+   *  this browser is in the hall, so the page goes there by itself (sure). */
+  hall?: { url: string; sure: boolean } | null
 }
 
 export type WiredState = 'pending' | 'verified' | 'not_wired' | 'unverified'

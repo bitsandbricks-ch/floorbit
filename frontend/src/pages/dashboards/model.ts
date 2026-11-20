@@ -14,6 +14,8 @@ import type { Display } from '@/widgets/kinds/display'
 export type Area =
   | { kind: 'hall' }
   | { kind: 'block'; id: string }
+  /** One row of a block, by its id ("<block id>:<row from 1, top first>", floorbit/seat_names.py). */
+  | { kind: 'row'; id: string }
   | { kind: 'zone'; id: string }
   | { kind: 'box'; x: number; y: number; w: number; h: number }
 
@@ -252,7 +254,41 @@ export function areaView(area: Area, drawing: PlanDrawing): View | null {
     if (!b) return null
     return contentBox({ ...drawing, shapes: [b], marks: [] }, 24)
   }
+  if (area.kind === 'row') {
+    const row = findRow(drawing, area.id)
+    if (!row) return null
+    // Seat middles, plus half a seat and room for the row's letter beside it.
+    const pts = row.cells.map((c) => cellCenter(drawing, row.block, c))
+    const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y), m = drawing.cell * 1.5
+    const x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m
+    return { x: x0, y: y0, w: Math.max(...xs) + m - x0, h: Math.max(...ys) + m - y0 }
+  }
   return contentBox(drawing)
+}
+
+function cellCenter(drawing: PlanDrawing, b: PlanShape, c: PlanShape['cells'][number]): { x: number; y: number } {
+  const rad = (b.rotation * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad)
+  const lx = c.x + drawing.cell / 2, ly = c.y + drawing.cell / 2
+  return { x: b.cx + lx * cos - ly * sin, y: b.cy + lx * sin + ly * cos }
+}
+
+/** Every row of the plan's blocks, top row first, with its seats. Id and name come from the
+ *  server (the same as /api/options/rows), so a change to how rows are kept doesn't reach here. */
+export interface PlanRow { id: string; name: string; block: PlanShape; cells: PlanShape['cells'] }
+
+export function planRows(drawing: PlanDrawing): PlanRow[] {
+  const out: PlanRow[] = []
+  for (const b of drawing.shapes) {
+    (b.row_list ?? []).forEach((row, r) => {
+      const cells = b.cells.filter((c) => c.rc?.[0] === r)
+      if (cells.length) out.push({ ...row, block: b, cells })
+    })
+  }
+  return out
+}
+
+export function findRow(drawing: PlanDrawing, id: string): PlanRow | undefined {
+  return planRows(drawing).find((r) => r.id === id)
 }
 
 const pad = (v: View, m: number): View => ({ x: v.x - m, y: v.y - m, w: v.w + 2 * m, h: v.h + 2 * m })
@@ -261,11 +297,9 @@ const pad = (v: View, m: number): View => ({ x: v.x - m, y: v.y - m, w: v.w + 2 
 export function seatsIn(drawing: PlanDrawing, view: View): string[] {
   const out: string[] = []
   for (const b of drawing.shapes) {
-    const rad = (b.rotation * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad)
     for (const c of b.cells) {
       // Like plan/model.ts seatCenter, for every seat at once.
-      const lx = c.x + drawing.cell / 2, ly = c.y + drawing.cell / 2
-      const x = b.cx + lx * cos - ly * sin, y = b.cy + lx * sin + ly * cos
+      const { x, y } = cellCenter(drawing, b, c)
       if (x >= view.x && x <= view.x + view.w && y >= view.y && y <= view.y + view.h) out.push(c.seat)
     }
   }

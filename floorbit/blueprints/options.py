@@ -159,11 +159,8 @@ def _pages(_data):
 def _rows(data):
     """Rows by name, grouped by their block (C and D under the block C to D); the hint is the seat
     count. A row of a block numbered as a whole is the block and the row: "A 2"."""
-    from ..seat_names import hall_rows
-
-    def name(r):
-        return r['name'] if r['naming'] == 'rows' else f"{r['block_label']} {r['name']}".strip()
-    return [{'value': r['id'], 'label': name(r), 'group': r['block_label'], 'hint': str(len(r['seats']))}
+    from ..seat_names import hall_rows, row_label
+    return [{'value': r['id'], 'label': row_label(r), 'group': r['block_label'], 'hint': str(len(r['seats']))}
             for r in hall_rows(data)]
 
 
