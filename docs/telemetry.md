@@ -357,3 +357,25 @@ each device's last report.
 The **Telemetry devices** widget (a dashboard tile, from the plugin) lists each device as up when
 it reported in the last minutes, with a link to the Telemetry page. On a hosted Floorbit it asks
 the local agent.
+
+### In the agent's log
+
+Every telemetry line in the agent's log carries a topic after the plugin's tag, so you can keep one
+kind with `grep '\[telemetry\] \[traps\]'` (or `docker compose logs agent | grep ...`):
+
+| Topic | What it says |
+| --- | --- |
+| `[settings]` | the devices Floorbit sent (names only, never logins) and who polls the switches |
+| `[telegraf]` | Telegraf starting, stopping, reloading its config, and its own warnings |
+| `[devices]` | a device first heard, gone silent, and the summary every few minutes |
+| `[snmp]` | the poll line every minute: points per device, and the devices that sent nothing |
+| `[traps]` | each trap as it comes in: the device, the trap and its port |
+| `[stream]` | gNMI and Cisco MDT: one line a minute with the points per device |
+| `[api]` | the API pollers (firewalls, controllers) |
+| `[push]` | each send to Floorbit: the series and the IP and MAC sightings, with how many parts |
+| `[test]` | **Test now** runs |
+| `[role]` | the agent becoming the collector or standing by (VRRP) |
+| `[lookup]` | a check-in asking the switches for one PC, and what it found |
+
+These lines are at info level. `FLOORBIT_AGENT_LOG_LEVEL=debug` adds Telegraf's chatter and the
+details behind each line.

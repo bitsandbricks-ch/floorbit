@@ -71,7 +71,8 @@ class AgentPlugin(Base):
         self.raw = {}                # device -> deque of its last lines, for "Raw data"
         self.heard_now = set()       # devices heard since the last look: logged when new or back
         self.summary = {'at': time.time(), 'points': 0, 'devices': set()}
-        self.minute = {'at': time.time(), 'points': collections.Counter()}   # the poll line, every minute
+        # the poll lines, every minute: points per device, and per (topic, device)
+        self.minute = {'at': time.time(), 'points': collections.Counter(), 'drivers': collections.Counter()}
         # Telegraf in here sends with its own token; devices that push themselves (a firewall's own
         # Telegraf, docs/telemetry.md) keep using ingest-token.
         self.push_token = self._token('ingest-token')
@@ -85,7 +86,8 @@ class AgentPlugin(Base):
         self.write_conf()
         if self.binary:
             self._forget_sidecar_conf()
-            self.telegraf = supervisor.Telegraf(self.binary, self.conf_path(), self.telegraf_line, self.ctx.log,
+            self.telegraf = supervisor.Telegraf(self.binary, self.conf_path(), self.telegraf_line,
+                                                lambda m: self.say('telegraf', m),
                                                 self.ctx.stopping)
             self.telegraf.start()
         self.ctx.thread(self.loop, name='telemetry-poll')
@@ -116,6 +118,13 @@ class AgentPlugin(Base):
         with self.lock:
             self.targets = [t for t in (found or []) if isinstance(t, dict) and t.get('name')]
         self.state.know(self.targets)
+        names = sorted(str(t['name']) for t in self.targets)
+        if names != getattr(self, 'targets_said', None):
+            # Device names only: the settings also carry logins, which never go into a log.
+            self.targets_said = names
+            self.say('settings', f'{len(names)} devices from Floorbit'
+                     + (': ' + ', '.join(names[:POLL_LINE_DEVICES]) + (' ...' if len(names) > POLL_LINE_DEVICES else '')
+                        if names else ''))
         self.log_polling(settings.get('polling') if isinstance(settings, dict) else None)
         self.write_conf()
         return True
@@ -126,12 +135,12 @@ class AgentPlugin(Base):
             return
         self.polling_said = plan
         if plan.get('who') == 'librenms':
-            self.ctx.log(f'polling: LibreNMS polls ports and ARP/MAC tables ({plan.get("why")}); '
+            self.say('settings', f'polling: LibreNMS polls ports and ARP/MAC tables ({plan.get("why")}); '
                          'here: traps, device facts and streams')
         else:
             minutes = plan.get('tables_minutes') or 0
             tables = f'ARP/MAC tables every {minutes} min' if minutes else 'no ARP/MAC table walks'
-            self.ctx.log(f'polling: Telemetry polls ports, {tables} ({plan.get("why")})')
+            self.say('settings', f'polling: Telemetry polls ports, {tables} ({plan.get("why")})')
 
     def _token(self, name):
         """A token kept in the plugin's own folder, so a restart doesn't need a new Telegraf config;
@@ -161,7 +170,7 @@ class AgentPlugin(Base):
         if self.is_primary() == self.primary:
             return False
         self.primary = self.state.collecting = not self.primary
-        self.ctx.log(f'{"primary: collecting" if self.primary else "standby: another agent collects"}')
+        self.say('role', 'primary: collecting' if self.primary else 'standby: another agent collects')
         self.write_conf()
         return True
 
@@ -218,9 +227,15 @@ class AgentPlugin(Base):
             self._warn(f'{who} ({found["driver"]}): {problems_mod.hint(found)} [{found["detail"]}]')
         elif found is None and (' E! ' in line or ' W! ' in line):
             # Telegraf's own trouble (its config, an output): no device to pin it on, but worth seeing.
-            self._warn(f'telegraf: {line}')
+            self._warn(f'[telegraf] {line}')
         else:
-            self._debug(f'telegraf: {line}')    # the device's problem again, or Telegraf's chatter
+            self._debug(f'[telegraf] {line}')    # the device's problem again, or Telegraf's chatter
+
+    def say(self, topic, message):
+        """An info line with its topic after the plugin's tag (issue #952): ``[telemetry] [traps] ...``,
+        so ``grep '\\[telemetry\\] \\[traps\\]'`` keeps one kind. The topics: snmp, traps, stream, api,
+        push, settings, telegraf, devices, test, role, lookup."""
+        self.ctx.log(f'[{topic}] {message}')
 
     def _warn(self, message):
         # A warning in the agent's log; an agent from before log levels has only ctx.log.
@@ -290,6 +305,10 @@ class AgentPlugin(Base):
         self.summary['points'] += len(points)
         self.summary['devices'] |= names
         self.minute['points'].update(p.tags.get('device') or '?' for p in points)
+        self.minute['drivers'].update((_topic(p), p.tags.get('device') or '?') for p in points)
+        for p in points:
+            if p.tags.get('driver') == 'traps':
+                self.say('traps', _trap_text(p))
         self.ctx.counter('points', len(points))
         self._debug(f'Telegraf posted {len(points)} points from {", ".join(sorted(names)) or "no device"}')
         return taken
@@ -330,6 +349,7 @@ class AgentPlugin(Base):
         began = time.monotonic()
         found, errors = pollers.poll_all(wanted, now, log=self._poll_log, blocks=self.ctx)
         self.minute['points'].update(p.tags.get('device') or '?' for p in found)
+        self.minute['drivers'].update(('api', p.tags.get('device') or '?') for p in found)
         self._debug(f'API poll of {len(wanted)} devices: {len(found)} points, {len(errors)} failed, '
                     f'{(time.monotonic() - began) * 1000:.0f} ms')
         for name, err in errors.items():
@@ -347,16 +367,19 @@ class AgentPlugin(Base):
         self.ctx.counter('polled_points', len(found))
 
     def _poll_log(self, message):
-        self.ctx.log(str(message).removeprefix('[telemetry] '))     # ctx.log names the plugin itself
+        self.say('api', str(message).removeprefix('[telemetry] '))     # ctx.log names the plugin itself
 
     def send_endpoints(self, now):
         from floorbit.telemetry import clients
         settings = self.ctx.settings or {}
         rows = clients.sightings(self.state, settings.get('exclude') or ())
         if rows:
+            parts = 0
             for start in range(0, len(rows), ENDPOINTS_PER_SEND):   # in parts, as the series
                 self.ctx.send('endpoints', {'at': now, 'rows': rows[start:start + ENDPOINTS_PER_SEND]})
+                parts += 1
             self.ctx.gauge('endpoints', len(rows))
+            self.say('push', f'sent {len(rows)} IP and MAC sightings to Floorbit in {parts} parts')
 
     def send_series(self, now):
         values = storage_mod.snapshot(self.state, now)
@@ -365,9 +388,12 @@ class AgentPlugin(Base):
         # In parts: a 1,000-switch hall is about 200,000 series, past the 4 MB a send may carry,
         # and the whole minute was refused. The hosted side stores each part as it comes.
         items = list(values.items())
+        parts = 0
         for start in range(0, len(items), SERIES_PER_SEND):
             self.ctx.send('series', {'at': now, 'values': dict(items[start:start + SERIES_PER_SEND])})
+            parts += 1
         self.ctx.gauge('series', len(values))
+        self.say('push', f'sent {len(values)} series to Floorbit in {parts} parts')
 
     def report(self, now):
         with self.lock:
@@ -452,23 +478,30 @@ class AgentPlugin(Base):
         agent's log says it works, not only when it doesn't."""
         for name in sorted(set(online) - self.heard_now):
             dev = online[name]
-            self.ctx.log(f'{name} heard: {len(dev.interfaces)} ports via {dev.driver or "?"}'
+            self.say('devices', f'{name} heard: {len(dev.interfaces)} ports via {dev.driver or "?"}'
                          + (f', {len(dev.fdb)} MACs' if dev.fdb else '') + (f', {len(dev.arp)} ARP' if dev.arp else ''))
         for name in sorted(self.heard_now - set(online)):
-            self.ctx.log(f'{name} silent for a few minutes')
+            self.say('devices', f'{name} silent for a few minutes')
         self.heard_now = set(online)
         if now - self.minute['at'] >= POLL_EVERY:
             self.log_polls(now)
         if now - self.summary['at'] >= SUMMARY_EVERY:
             minutes = round((now - self.summary['at']) / 60)
-            self.ctx.log(f'last {minutes} min: {self.summary["points"]} points from '
+            self.say('devices', f'last {minutes} min: {self.summary["points"]} points from '
                          f'{len(self.summary["devices"])} devices, {len(online)} of {len(self.targets)} heard')
             self.summary = {'at': now, 'points': 0, 'devices': set()}
 
     def log_polls(self, now):
         """Every minute, what each device gave: points from Telegraf's polls and the API pollers,
         and the devices that gave nothing, with their problem."""
-        counts, self.minute = self.minute['points'], {'at': now, 'points': collections.Counter()}
+        counts, by_topic = self.minute['points'], self.minute['drivers']
+        self.minute = {'at': now, 'points': collections.Counter(), 'drivers': collections.Counter()}
+        for topic in ('stream',):
+            # Streams and pushes come all the time: one line a minute, not one per write.
+            got = {d: n for (t, d), n in by_topic.items() if t == topic}
+            if got:
+                self.say(topic, f'last minute: {sum(got.values())} points from '
+                         + ', '.join(f'{d} {n}' for d, n in sorted(got.items(), key=lambda x: (-x[1], x[0]))))
         with self.lock:
             # A traps-only device speaks when something happens: a quiet minute is no news.
             names = [t['name'] for t in self.targets if (self.primary or t.get('mine'))
@@ -485,9 +518,9 @@ class AgentPlugin(Base):
         line = (f'polls, last minute: {sum(counts.values())} points from {len(got)} of {len(names)} devices'
                 + (': ' + ', '.join(got[:POLL_LINE_DEVICES]) + (' ...' if len(got) > POLL_LINE_DEVICES else '')
                    if got else ''))
-        self.ctx.log(line)
+        self.say('snmp', line)
         if silent:
-            self._warn(f'nothing in the last minute from {len(silent)}: '
+            self._warn(f'[snmp] nothing in the last minute from {len(silent)}: '
                          + ', '.join(silent[:POLL_LINE_DEVICES]) + (' ...' if len(silent) > POLL_LINE_DEVICES else ''))
         if len(got) > POLL_LINE_DEVICES:
             self._debug('polls, every device: ' + ', '.join(got))
@@ -503,7 +536,13 @@ class AgentPlugin(Base):
             return {'error': 'a lookup needs the VLAN'}
         with self.lock:
             targets = list(self.targets)
-        return lookup.find(req, targets, self.state, log=self.ctx.log)
+        self.say('lookup', f'asked for one PC in VLAN {req.get("vlan")}'
+                 + (f' on {", ".join(map(str, req.get("switches") or []))}' if req.get('switches') else ''))
+        said = lambda m: self.say('lookup', str(m).removeprefix('[telemetry] '))   # noqa: E731
+        found = lookup.find(req, targets, self.state, log=said)
+        self.say('lookup', f'found on {found.get("switch")} port {found.get("port") or found.get("if_index")}'
+                 if isinstance(found, dict) and found.get('switch') else 'not found')
+        return found
 
     # "Test now": one device, once, while you watch -------------------------------------------
     def call_test(self, args):
@@ -514,20 +553,20 @@ class AgentPlugin(Base):
         with self.lock:
             target = next((t for t in self.targets if t.get('name') == name), None)
         if target is None:
-            self.ctx.log(f'Test now: {name or "?"} is not among the devices this agent collects from')
+            self.say('test', f'Test now: {name or "?"} is not among the devices this agent collects from')
             return {'ok': False, 'error': f'{name or "?"} is not among the devices this agent collects from'}
         result = self._test(name, target)
         said = f'Test now on {name}: {result["points"]} points in {result["took_ms"]} ms'
         if result['problems']:
             said += ' with problems: ' + '; '.join(f'{p["driver"]}: {p["hint"]}' for p in result['problems'][:3])
         if result['ok']:
-            self.ctx.log(said)
+            self.say('test', said)
         else:
-            self._warn(said if result['points'] else f'{said} (failed)')
+            self._warn('[test] ' + (said if result['points'] else f'{said} (failed)'))
         return result
 
     def _test(self, name, target):
-        self.ctx.log(f'Test now on {name} ({", ".join(target.get("drivers") or []) or "no driver"})')
+        self.say('test', f'Test now on {name} ({", ".join(target.get("drivers") or []) or "no driver"})')
         started = time.time()
         points, problems, notes = [], [], []
         self.last_test_raw = []
@@ -621,3 +660,17 @@ def _as_line(point):
 
 def _text(value):
     return value.decode('utf-8', 'replace') if isinstance(value, bytes) else (value or '')
+
+
+def _topic(point):
+    """The log topic of a point by the driver that brought it."""
+    driver = point.tags.get('driver') or ''
+    return {'gnmi': 'stream', 'mdt': 'stream', 'traps': 'traps'}.get(driver, 'snmp' if driver == 'snmp' else 'push')
+
+
+def _trap_text(point):
+    """One trap in a line: the device, what it says and which port."""
+    port = point.tags.get('ifName') or point.tags.get('ifDescr') or point.fields.get('ifName') \
+        or point.fields.get('ifDescr') or point.tags.get('index') or point.fields.get('ifIndex')
+    what = point.tags.get('name') or point.fields.get('name') or point.name
+    return f'{point.tags.get("device") or point.tags.get("source") or "?"}: {what}' + (f' {port}' if port else '')
