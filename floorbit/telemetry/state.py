@@ -188,6 +188,9 @@ class Device:
         self.mem = None
         self.states = None                # a firewall's pf states
         self.seen = 0
+        self.polled = None                # the first full SNMP port poll: before it, ports are partial
+        self.snmp = False                 # set up to be polled by SNMP (know())
+        self.temps = {}                   # sensor -> (degrees C, seen)
         self.interfaces = {}              # index or name -> Interface
         self.bridge_ports = {}            # bridge port -> ifIndex
         self.lldp_local = {}              # LLDP local port number -> port name
@@ -252,6 +255,17 @@ class Device:
 
     def online(self, now=None):
         return (time.time() if now is None else now) - self.seen < STALE
+
+    def temperature(self, now=None):
+        """The hottest sensor heard lately (degrees C), or None: the one that trips first matters."""
+        now = time.time() if now is None else now
+        fresh = [v for v, seen in self.temps.values() if now - seen < STALE]
+        return max(fresh) if fresh else None
+
+    def waiting(self):
+        """Polled by SNMP but its port table isn't in yet: a trap or a stream may have named a few
+        ports, which would read as the switch's port count."""
+        return self.snmp and self.polled is None
 
     def poe_ports(self):
         """PoE per ifIndex: {ifIndex: {state, class, draw_w, allocated_w}}. Cisco names each row's
@@ -486,6 +500,8 @@ class State:
                 dev.mdt_node = t.get('mdt_node') or dev.mdt_node
                 dev.kind = t.get('kind') or dev.kind
                 dev.driver = dev.driver or ','.join(t.get('drivers') or [])
+                # poll_ports is False while LibreNMS polls the ports (polling.apply): no poll to wait for.
+                dev.snmp = 'snmp' in (t.get('drivers') or []) and t.get('poll_ports', True) is not False
 
     def apply(self, points, now=None):
         """Take a batch of points. Returns how many were understood."""
@@ -769,6 +785,8 @@ def _mem(dev, point, at):
 
 def _interface(dev, point, at):
     f, t = point.fields, point.tags
+    if dev.polled is None:
+        dev.polled = at               # fb_if comes from a full SNMP walk of the port table
     iface = dev.port(_index(point), t.get('ifName') or f.get('ifName') or t.get('name') or t.get('interface'))
     _fill(iface, {_key(k): v for k, v in f.items()}, at)
     if f.get('ifAlias') is not None or t.get('ifAlias') is not None:
@@ -830,6 +848,31 @@ def _cpu(dev, point, at):
         rows = dev._cpu_rows = {}
     rows[str(_index(point))] = (value, at)
     dev.cpu = max(v for v, seen in rows.values() if at - seen < STALE)
+    return True
+
+
+def _envtemp(dev, point, at):
+    """CISCO-ENVMON-MIB (Catalyst, IOS-XE): one row per sensor, already in degrees C."""
+    value = _num(point.fields.get('tempValue'))
+    if value is None:
+        return False
+    # Some sensors read 0 when absent (an empty slot); a switch room is never at 0 °C.
+    if 0 < value < 150:
+        dev.temps[f'envmon:{_index(point)}'] = (value, at)
+    return True
+
+
+def _sensor(dev, point, at):
+    """ENTITY-SENSOR-MIB (NX-OS and others): only the celsius sensors (type 8), in units (scale 9),
+    with their precision as decimals."""
+    f = point.fields
+    kind, scale, value = _num(f.get('sensorType')), _num(f.get('sensorScale')), _num(f.get('sensorValue'))
+    if value is None:
+        return False
+    if kind == 8 and scale in (None, 9):
+        value = value / 10 ** int(_num(f.get('sensorPrecision')) or 0)
+        if 0 < value < 150:
+            dev.temps[f'sensor:{_index(point)}'] = (value, at)
     return True
 
 
@@ -1148,7 +1191,7 @@ _HANDLERS = {
     'cpu': _fw_cpu, 'mem': _fw_mem, 'net': _fw_net, 'pf': _fw_pf, 'system': _fw_system,
     'fb_poe': _poe, 'fb_pse': _pse, 'fb_route': _route,
     'fb_facts': _facts, 'fb_entity': _entity, 'fb_entalias': _entalias, 'fb_storage': _storage,
-    'fb_hrdevice': _hrdevice, 'fb_mem': _mem,
+    'fb_hrdevice': _hrdevice, 'fb_mem': _mem, 'fb_envtemp': _envtemp, 'fb_sensor': _sensor,
     'fb_ifmac': _ifmac, 'fb_ip': _ip, 'fb_vtp': _vtp, 'fb_qvlan': _qvlan, 'fb_ifvlan': _ifvlan, 'fb_pvid': _pvid,
     'fb_wlc_ap': _wlc_ap, 'fb_wlc_radio': _wlc_radio, 'fb_wlc_rrm': _wlc_rrm,
 }

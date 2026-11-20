@@ -1,7 +1,7 @@
 # Device telemetry
 
 Floorbit can hear from the hall's switches, routers and firewalls directly, without LibreNMS:
-port state, traffic and errors, MAC tables, ARP, LLDP and CDP neighbours, CPU and memory, a
+port state, traffic and errors, MAC tables, ARP, LLDP and CDP neighbours, CPU, memory and temperature, a
 firewall's gateways and states. [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/)
 does the collecting; Floorbit tells it what to ask and keeps what comes back.
 
@@ -25,6 +25,12 @@ setting **Who polls the switches** decides:
 Traps stay with Telemetry either way: they turn a port down or up within a second, while LibreNMS
 sees it on its next 5-minute poll. The device facts (model, software, interfaces) keep filling the
 inventory ([discovery](inventory.md)).
+
+With the ports Telemetry also reads the temperatures: CISCO-ENVMON-MIB on Catalyst and IOS-XE,
+ENTITY-SENSOR-MIB (the celsius sensors) on Nexus and others. A switch's status gives the hottest
+sensor heard in the last 3 minutes as `temperature`, in degrees C, where LibreNMS gives its sensors'
+average. Until a switch's first port poll is in, its status says `unknown` with `waiting: true`
+instead of counting only the ports a trap or a stream has named so far.
 
 When Telemetry polls, it walks the ARP and MAC tables every **ARP and MAC tables every (minutes)**
 (0: never). **Auto** (the default) walks them every 15 minutes while a [network segment](segments.md)
