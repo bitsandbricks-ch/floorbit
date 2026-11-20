@@ -710,7 +710,7 @@ export interface PowerOverview {
 }
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
-export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin'
+export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin' | 'librenms'
   | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
   /** The switch id, ``health:<service id>`` for a service (issue #256) or ``wifi:<ap>`` for an access point. */
@@ -742,6 +742,20 @@ export interface Problem {
   behind?: string[]
   /** The down switch this one is behind: the place to start. */
   cause?: string
+  /** A LibreNMS alert: what DELETE /api/alerts/librenms/<id> takes when its recovery got lost (issue #951). */
+  clear_id?: string
+  ports?: string[]
+}
+/** What to paste into LibreNMS's API transport (GET /api/alerts/librenms/setup). */
+export interface LibreNMSAlertsSetup {
+  enabled: boolean
+  port: number
+  method: string
+  content_type: string
+  body: string
+  token: string
+  active: number
+  agents: { id: string; name: string; connected: boolean; url: string; address_known: boolean; status?: string | null; problem?: string }[]
 }
 export interface ProblemList {
   problems: Problem[]

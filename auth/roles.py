@@ -239,6 +239,9 @@ RULES = (
     ('/api/telemetry/device-config', None, 'settings.manage'),
     ('/api/telemetry/token', None, 'settings.manage'),
     ('/api/telemetry/telegraf.conf', None, 'settings.manage'),
+    # LibreNMS alerts (floorbit/blueprints/librenms_alerts.py): the token lets someone post alerts.
+    ('/api/alerts/librenms/setup', None, 'settings.manage'),
+    ('/api/alerts/librenms/token', None, 'settings.manage'),
     # Local agents (floorbit/agent_link.py): enrolling one hands out a key to the event's data.
     ('/api/agents', None, 'settings.manage'),
     # Clearing a failed agent login lets the agent try that password again (floorbit/agent_plugins.py).

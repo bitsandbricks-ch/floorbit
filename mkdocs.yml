@@ -81,6 +81,7 @@ nav:
       - Crew notice: crew-notice.md
       - Crew Discord channel: crew-discord.md
       - Alerts and problems: alerts.md
+      - LibreNMS alerts: librenms-alerts.md
       - Port actions: ports.md
       - Switch commands: commands.md
       - Switch terminal: terminal.md

@@ -553,6 +553,18 @@ Source: [`floorbit/blueprints/layout_templates.py`](https://github.com/bitsandbr
 | POST | `/api/templates/<template_id>/versions` | `floorplan.edit` |  |
 | POST | `/api/templates/import` | `floorplan.edit` |  |
 
+## floorbit.blueprints.librenms_alerts
+
+LibreNMS alerts through the agent (issue #951, docs/librenms-alerts.md).
+
+Source: [`floorbit/blueprints/librenms_alerts.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/librenms_alerts.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| DELETE | `/api/alerts/librenms/<key>` | `incidents.work` |  |
+| GET | `/api/alerts/librenms/setup` | `settings.manage` |  |
+| POST | `/api/alerts/librenms/token` | `settings.manage` |  |
+
 ## floorbit.blueprints.logs
 
 Logs (issue #91): what switches, firewalls and DHCP servers sent by syslog. Receiving and keeping lives in floorbit/syslog.py.
