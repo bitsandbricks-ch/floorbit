@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Code, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Code, Group, Paper, Stack, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconPlus } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ProviderForm, type ProviderDraft } from './signin/ProviderForm'
+import { LoadingState } from '@/components/ui'
 
 /** Settings > Sign-in providers: OpenID Connect providers next to local accounts and Discord. Admins only. */
 export default function SignIn() {
@@ -68,7 +69,7 @@ export default function SignIn() {
         </Button>
       </Group>
       {list.isPending ? (
-        <Loader size="sm" />
+        <LoadingState lines />
       ) : !list.data?.providers.length ? (
         <Text c="dimmed">{t('signin.none')}</Text>
       ) : (

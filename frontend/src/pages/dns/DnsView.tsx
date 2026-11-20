@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Group, Loader, SegmentedControl, SimpleGrid, Text } from '@mantine/core'
+import { Alert, Anchor, Badge, Group, SegmentedControl, SimpleGrid, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +6,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { DnsData, DnsSite } from '@/api/types'
 import type { ViewProps } from '@/widgets/views'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { StatTile } from '@/components/StatTile'
 import { clock, dayClock } from '@/lib/time'
 
@@ -133,7 +133,7 @@ export default function DnsView({ expanded }: ViewProps) {
       )}
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {data?.error && <Alert color="warn" mb="md">{t('dns.pluginError', { message: data.error })}</Alert>}
-      {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : data.plugins === 0 && data.lookups === 0 ? (
+      {query.isPending || !data ? <LoadingState lines={!expanded} /> : data.plugins === 0 && data.lookups === 0 ? (
         <Alert color="gray" variant="light">{t('dns.noPlugin')} <Anchor href={DOCS}>docs/dns.md</Anchor></Alert>
       ) : <Board data={data} compact={!expanded} />}
     </>

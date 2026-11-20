@@ -21,6 +21,7 @@ import { EntitySelect } from '@/components/EntitySelect'
 import { RconConsole, ServerModal } from './services/GameServerParts'
 import { FilterBar } from '@/components/FilterBar'
 import { useFilters } from '@/components/useFilters'
+import { ErrorBanner } from '@/components/ui'
 
 
 type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'; item: DnsResolver | null }
@@ -89,7 +90,7 @@ export default function Services() {
           </>
         )} />
       <Stack gap="lg">
-        {(q.error || games.error) && <Alert color="down" role="alert">{(q.error || games.error)!.message}</Alert>}
+        <ErrorBanner error={q.error ?? games.error} onRetry={() => { void q.refetch(); void games.refetch() }} />
         {loaded && rows.length === 0 && (
           <Paper withBorder p="md">
             <Stack gap="xs" align="flex-start">

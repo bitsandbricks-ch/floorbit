@@ -1,8 +1,8 @@
-import { Anchor, Badge, Group, Loader, Paper, SimpleGrid, Stack, Text } from '@mantine/core'
+import { Anchor, Badge, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { StatTile } from '@/components/StatTile'
-import { ErrorBanner } from '@/components/ui'
 import type { ViewProps } from '@/widgets/views'
 import { AgentCard } from './AgentCard'
 import { agentHref, useAgents, useHalls, type AgentRow } from './data'
@@ -14,7 +14,7 @@ export default function AgentsView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const { query, data: d, rows } = useAgents()
   const halls = useHalls()
-  if (query.isPending) return <Loader size="sm" aria-label={t('common.loading')} />
+  if (query.isPending) return <LoadingState lines />
   if (!d) return <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
   if (!rows.length) {
     return <Paper withBorder radius="lg" p="md"><Text size="sm" c="dimmed">{t('agents.none')}</Text></Paper>

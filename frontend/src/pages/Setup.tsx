@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Loader, PasswordInput, Stack, Text, TextInput } from '@mantine/core'
+import { Alert, Button, Group, PasswordInput, Stack, Text, TextInput } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ChangeEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,7 @@ import { qk } from '@/api/keys'
 import { useSetup } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { SetupChecklist } from './setup/Checklist'
 
 function AccountStep() {
@@ -68,7 +68,7 @@ export default function Setup() {
   const data = setup.data
 
   let body
-  if (setup.isPending || !data) body = <Loader size="sm" />
+  if (setup.isPending || !data) body = <LoadingState />
   else if (data.needs_account) body = <AccountStep />
   else if (!data.can_set_up) body = <Alert color="gray">{data.done ? t('setup.alreadyDone') : t('setup.adminOnly')}</Alert>
   else body = <Stack gap="md"><SetupChecklist />{!data.done && <Finish />}</Stack>
