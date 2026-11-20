@@ -106,6 +106,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   `SidePanel`, `StatTile` (every figure with a label: value, unit, "of N", trend, change, size),
   `StateBadge`/`StateBit` (one tone and word per state word, from `components/stateTone.ts`), the
   telemetry components. New visual blocks become shared components or widgets.
+- **Feedback is a toast:** after an action, `toastDone`/`toastFailed`, never an inline green box;
+  inline alerts only for states that stay.
 - **Loading, failing, empty:** `LoadingState` (skeletons, `lines` in panels and panes; spinners only
   in buttons), `ErrorBanner` with Try again for anything that failed to load, `EmptyState`.
 - **One table.** Every table is `DataTable` (`frontend/src/components/DataTable.tsx`): sorting,
