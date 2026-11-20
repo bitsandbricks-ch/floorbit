@@ -602,6 +602,11 @@ export interface HealthCheck {
   since: number
   /** Until when its alerts are muted (issue #260), or null. */
   muted_until?: number | null
+  /** How much of a pool is used, when the check counts one (a DHCP scope). */
+  capacity?: { used: number; total: number }
+  /** When that pool runs full at the rate of the last 15 minutes (issue #1061). `raised`: the wall
+   *  made an "up" check "warn" for it. */
+  forecast?: { used: number; total: number; pct: number; rate_per_min: number | null; full_in_min: number | null; level: State | null; raised?: boolean }
 }
 export interface HealthWall {
   checks: HealthCheck[]
