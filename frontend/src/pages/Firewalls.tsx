@@ -7,7 +7,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useCan } from '@/api/queries'
+import { useCan, useInventory } from '@/api/queries'
+import { useInventoryGroups } from '@/pages/inventory/scope'
 import type { FirewallCard, FirewallList, FirewallRange } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { DataTable } from '@/components/DataTable'
@@ -25,6 +26,7 @@ export default function Firewalls() {
   const q = useQuery({ queryKey: qk.firewalls, queryFn: () => get<FirewallList>('/api/firewalls'), refetchInterval: 15_000 })
   const [editing, setEditing] = useState<FirewallRange | 'new' | null>(null)
   const [splitting, setSplitting] = useState(false)
+  const scope = useSwitchScope()
   const qc = useQueryClient()
   const imported = useMutation({
     mutationFn: () => post<{ added: number; errors: string[] }>('/api/firewalls/ranges/import'),
@@ -81,12 +83,12 @@ export default function Firewalls() {
             <Title order={2} size="h4" mb="sm">{t('firewalls.ranges', { count: data.ranges.length })}</Title>
             {data.ranges.length === 0
               ? <Text c="dimmed">{t(canEdit ? 'firewalls.noRangesEdit' : 'firewalls.noRanges')}</Text>
-              : <Ranges ranges={data.ranges} canEdit={canEdit} onEdit={setEditing} />}
+              : <Ranges ranges={data.ranges} scope={scope} canEdit={canEdit} onEdit={setEditing} />}
           </Paper>
         )}
       </Stack>
       {editing && data && (
-        <RangeModal range={editing === 'new' ? null : editing} names={data.firewalls.map((f) => f.name)} onClose={() => setEditing(null)} />
+        <RangeModal range={editing === 'new' ? null : editing} names={data.firewalls.map((f) => f.name)} scope={scope} onClose={() => setEditing(null)} />
       )}
       {splitting && data && <SplitModal names={data.firewalls.map((f) => f.name)} onClose={() => setSplitting(false)} />}
     </Layout>
@@ -118,7 +120,9 @@ function Card({ card: f }: { card: FirewallCard }) {
   )
 }
 
-function Ranges({ ranges, canEdit, onEdit }: { ranges: FirewallRange[]; canEdit: boolean; onEdit: (r: FirewallRange) => void }) {
+function Ranges({ ranges, scope, canEdit, onEdit }: {
+  ranges: FirewallRange[]; scope: SwitchScope; canEdit: boolean; onEdit: (r: FirewallRange) => void
+}) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const remove = useMutation({
@@ -133,6 +137,9 @@ function Ranges({ ranges, canEdit, onEdit }: { ranges: FirewallRange[]; canEdit:
           <>
             <Text size="sm" ff="monospace">{r.cidr}</Text>
             {r.name && <Text size="xs" c="dimmed">{r.name}</Text>}
+            {!!r.switches?.length && (
+              <Text size="xs" c="dimmed">{t('firewalls.forSwitches', { switches: r.switches.map((id) => scope.names.get(id) ?? '?').join(', ') })}</Text>
+            )}
             {r.source === 'import' && <Badge size="xs" variant="light" color="gray">{t('firewalls.fromPlugin', { plugin: r.plugin || 'NetBox' })}</Badge>}
           </>
         ) },
@@ -146,9 +153,11 @@ function Ranges({ ranges, canEdit, onEdit }: { ranges: FirewallRange[]; canEdit:
         { id: 'seats', header: t('firewalls.seats'), card: 'label', numeric: true, sort: (r) => r.seats, cell: (r) => r.seats },
         ...(canEdit ? [{ id: 'actions', header: null, cell: (r: FirewallRange) => (
           <Group gap={4} justify="flex-end" wrap="nowrap">
-            {r.source === 'import'
-              ? <Text size="xs" c="dimmed">{t('firewalls.fromPluginHelp', { plugin: r.plugin || 'NetBox' })}</Text>
-              : <Button size="compact-sm" variant="default" onClick={() => onEdit(r)}>{t('firewalls.edit')}</Button>}
+            {r.source === 'import' && <Text size="xs" c="dimmed">{t('firewalls.fromPluginHelp', { plugin: r.plugin || 'NetBox' })}</Text>}
+            {/* An imported range still takes its switches here: NetBox doesn't know them. */}
+            <Button size="compact-sm" variant="default" onClick={() => onEdit(r)}>
+              {r.source === 'import' ? t('firewalls.editSwitches') : t('firewalls.edit')}
+            </Button>
             <ConfirmButton size="compact-sm" variant="subtle" danger label={t('firewalls.remove')}
               question={t('firewalls.removeQuestion', { range: r.cidr })} onConfirm={() => remove.mutate(r.id)} />
           </Group>
@@ -157,23 +166,30 @@ function Ranges({ ranges, canEdit, onEdit }: { ranges: FirewallRange[]; canEdit:
   )
 }
 
-function RangeModal({ range, names, onClose }: { range: FirewallRange | null; names: string[]; onClose: () => void }) {
+function RangeModal({ range, names, scope, onClose }: {
+  range: FirewallRange | null; names: string[]; scope: SwitchScope; onClose: () => void
+}) {
   const { t } = useTranslation()
   const qc = useQueryClient()
-  const [form, setForm] = useState({ cidr: range?.cidr ?? '', name: range?.name ?? '', firewalls: range?.firewalls ?? [] })
+  const imported = range?.source === 'import'
+  const [form, setForm] = useState({ cidr: range?.cidr ?? '', name: range?.name ?? '', firewalls: range?.firewalls ?? [], switches: range?.switches ?? [] })
   const save = useMutation({
-    mutationFn: () => (range ? put(`/api/firewalls/ranges/${range.id}`, form) : post('/api/firewalls/ranges', form)),
+    mutationFn: () => (range ? put(`/api/firewalls/ranges/${range.id}`, imported ? { switches: form.switches } : form)
+      : post('/api/firewalls/ranges', form)),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: qk.firewalls }); onClose() },
   })
   return (
     <Modal opened onClose={onClose} title={range ? t('firewalls.editTitle') : t('firewalls.add')}>
       <Stack gap="sm">
-        <TextInput label={t('firewalls.range')} placeholder="192.0.2.0/27" value={form.cidr}
+        <TextInput label={t('firewalls.range')} placeholder="192.0.2.0/27" value={form.cidr} disabled={imported}
           onChange={(e) => setForm({ ...form, cidr: e.currentTarget.value })} />
-        <TextInput label={t('firewalls.name')} placeholder={t('firewalls.namePlaceholder')} value={form.name}
+        <TextInput label={t('firewalls.name')} placeholder={t('firewalls.namePlaceholder')} value={form.name} disabled={imported}
           onChange={(e) => setForm({ ...form, name: e.currentTarget.value })} />
         <MultiSelect label={t('firewalls.line')} description={t('firewalls.lineHelp')} data={names} value={form.firewalls}
-          onChange={(v) => setForm({ ...form, firewalls: v })} searchable />
+          onChange={(v) => setForm({ ...form, firewalls: v })} searchable disabled={imported} />
+        <MultiSelect label={t('firewalls.switches')} description={t('firewalls.switchesHelp')}
+          data={scope.options} value={form.switches}
+          onChange={(v) => setForm({ ...form, switches: v })} searchable clearable />
         {save.error && <Alert color="down" role="alert">{save.error.message}</Alert>}
         <Group justify="flex-end">
           <Button loading={save.isPending} disabled={!form.cidr.trim() || form.firewalls.length === 0}
@@ -225,4 +241,22 @@ function SplitModal({ names, onClose }: { names: string[]; onClose: () => void }
       </Stack>
     </Modal>
   )
+}
+
+interface SwitchScope {
+  names: Map<string, string>
+  options: { group: string; items: { value: string; label: string }[] }[]
+}
+
+/** What a range can be for (issue #1062): the inventory's switch groups (a colour, a switch type) and switches. */
+function useSwitchScope(): SwitchScope {
+  const { t } = useTranslation()
+  const groups = useInventoryGroups().data?.groups ?? []
+  const switches = (useInventory(false).data?.devices ?? []).filter((d) => d.role === 'switch')
+  const names = new Map<string, string>([...groups.map((g) => [g.id, g.name] as const), ...switches.map((d) => [d.id, d.name] as const)])
+  const options = [
+    { group: t('firewalls.switchGroups'), items: groups.map((g) => ({ value: g.id, label: g.name })) },
+    { group: t('firewalls.switchList'), items: switches.map((d) => ({ value: d.id, label: d.name })) },
+  ].filter((o) => o.items.length > 0)
+  return { names, options }
 }

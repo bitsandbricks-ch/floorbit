@@ -1,6 +1,6 @@
 import {
   IconActivityHeartbeat, IconAlertCircle,
-  IconDeviceDesktopSearch, IconAlertTriangle, IconApps, IconArchive, IconArmchair, IconArrowsExchange, IconBolt, IconBook,
+  IconDeviceDesktopSearch, IconAlertTriangle, IconApps, IconArmchair, IconArrowsExchange, IconBolt, IconBook,
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
   IconBell, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart, IconLink, IconMap,
   IconBuildingCommunity, IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
@@ -24,8 +24,9 @@ export type SectionId = 'work' | 'monitoring' | 'places' | 'tools' | 'screens' |
 /** A plugin's own page (plugin.yaml ``pages:``), which goes into the Plugins section. */
 export const isPluginPage = (id: string) => id.startsWith('plugin:')
 
-/** The start pages: always at the top of the sidebar, above the groups. */
-export const PINNED = ['overview', 'floorPlan']
+/** The start pages: always at the top of the sidebar, above the groups. Events has its row here
+ *  (issue #1201); the picker above only switches the event. */
+export const PINNED = ['overview', 'floorPlan', 'events']
 
 /** The phone's bottom bar: the pages crews open most; everything else is behind "Menu". */
 export const TABS = ['overview', 'floorPlan', 'helpdesk', 'services']
@@ -44,7 +45,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
 /** Rows that hold other pages as tabs (issue #892). A row is a page of its own (Inventory,
  *  Settings) or only a bundle (Helpdesk): then it opens its first tab this account may open.
  *  The tabs show under the top bar (HubTabs); Settings draws its own. "Go to" still finds every
- *  page. ``event`` has no row: its pages are in the event menu at the top of the sidebar. */
+ *  page. */
 export const HUBS: Record<string, string[]> = {
   helpdesk: ['problems', 'incidents', 'jobs', 'handover', 'networkStatus'],
   network: ['topology', 'firewalls', 'wifi', 'telemetry', 'security'],
@@ -55,14 +56,14 @@ export const HUBS: Record<string, string[]> = {
   console: ['commands', 'terminal'],
   dashboards: ['widgets'],
   settings: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'features', 'sidebarSections', 'audit'],
-  event: ['schedule', 'timeline', 'replay', 'report', 'templates', 'events'],
+  events: ['schedule', 'timeline', 'replay', 'report', 'templates'],
 }
 
 /** Hubs that draw their tabs themselves (pages/Settings.tsx). */
 export const OWN_TABS = ['settings']
 
-/** Rows outside the sidebar's groups: Settings sits at the foot, the event's pages in the event menu. */
-export const OFF_LIST = ['settings', 'event']
+/** Rows outside the sidebar's groups: Settings sits at the foot. */
+export const OFF_LIST = ['settings']
 
 /** Pages that are a tab of another row: page -> its row. */
 export const INSIDE: Record<string, string> = Object.fromEntries(
@@ -111,7 +112,7 @@ const ICONS: Record<string, Icon> = {
   commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk,
   preflight: IconChecklist, templates: IconTemplate,
   schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
-  report: IconReport, events: IconArchive, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight, sidebarSections: IconLayoutSidebar,
+  report: IconReport, events: IconCalendarEvent, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight, sidebarSections: IconLayoutSidebar,
   apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }
 

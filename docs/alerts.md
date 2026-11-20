@@ -72,6 +72,9 @@ it saw last time:
 | Duplex | a port that is up runs at half duplex: usually a bad cable or a forced speed setting |
 | Check-in | with [check-in](integrations.md#seat-check-in-page) on, a seat's port is up while nobody checked in at that seat |
 | Log | with the [syslog receiver](syslog.md#log-alerts) on, a line about err-disable, port security, DHCP snooping, MAC flapping, a loop, storm control or a spanning tree change |
+| IP range | a seat has an address outside the ranges of its block (see [Firewalls](firewalls.md#seats-in-the-wrong-range)) |
+| Port config | a seat port's config breaks a rule in the last config backup (see [Switch configs](configs.md#seat-port-check)) |
+| Shared port | the last MAC table read found more than one machine on a seat port, or a switch or router at the seat (see [Cables](cables.md#machines-on-the-seat-ports)) |
 
 A port belongs to a seat when its description (ifAlias) names the seat, such as `Seat A-12` or
 `A-12 desk`; **Open** then goes to that seat on the floor plan, otherwise to the switch

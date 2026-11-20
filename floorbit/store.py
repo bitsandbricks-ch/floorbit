@@ -34,6 +34,7 @@ class Doc(dict):
     _base = None      # (path, the text the caller's copy came from)
     _tenant = None    # the tenant's parts as loaded, in a later event (see load_data)
     _upgraded = False  # load_data moved it to the current shape (floorbit/upgrades.py)
+    _files = None     # (event file, tenant file) load_data read it from: save_data writes it back there
 
 
 def _doc(found, path, text):
@@ -499,6 +500,7 @@ def load_data():
     upgraded = upgrades.apply(found)
     if isinstance(found, Doc):
         found._upgraded = upgraded
+        found._files = (path, tenant_path_)
     return found
 
 
@@ -509,7 +511,9 @@ RETIRED_KEYS = ('planner', 'teardown', 'loans')
 def save_data(data):
     for key in RETIRED_KEYS:
         data.pop(key, None)
-    path, tenant_path_ = _files()
+    # Back where it was loaded from: a thread still holding one event's document after another
+    # event (or, in tests, the next test's data file) took over would otherwise store it whole there.
+    path, tenant_path_ = getattr(data, '_files', None) or _files()
     if not tenant_path_:
         write_json(path, data)
         return

@@ -13,7 +13,10 @@ Gathered from what is already watched, without asking anything new:
 - plugins turned on that don't load or keep failing, and installed versions the Marketplace withdrew.
 
 Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
-come as a list of their own under ``attention``, newest first.
+seats outside their switch's range (floorbit/seat_ranges.py), seat ports whose config breaks a
+rule (floorbit/port_config.py) and seat ports with more than one machine on them
+(floorbit/port_clients.py) come as a list of their own under
+``attention``, newest first.
 
 Each problem is ``{id, kind, level, title, where, since, link}`` with ``level`` ``down`` or ``warn``.
 """
@@ -168,6 +171,50 @@ def _attention():
     return out
 
 
+def _ranges():
+    """Seats with an address outside their switch's ranges (floorbit/seat_ranges.py, issue #1062)."""
+    from integrations import seat_sources
+
+    from . import seat_ranges
+    from .store import load_data
+    try:
+        found = seat_ranges.items(load_data(), seat_sources.load())
+    except Exception:  # noqa: BLE001 - a seat source that can't be read must not take the page down
+        return []
+    # A range set for the wrong switch is fixed under Firewalls; the rest on the plan.
+    return [{'id': f['id'], 'kind': 'range', 'level': 'warn', 'title': f['title'], 'where': f['where'],
+             'since': None, 'switch_id': None,
+             'link': '/firewalls' if f['id'].startswith('range:plan:')
+             else _on_plan(seat=f['seat'], switch=f['switch'])}
+            for f in found]
+
+
+def _port_check():
+    """Seat ports whose config breaks a rule, from the last config copies (floorbit/port_config.py)."""
+    from integrations import seat_sources
+
+    from . import port_config
+    from .store import load_data
+    try:
+        found = port_config.problems(port_config.check(load_data(), seat_sources.load()))
+    except Exception:  # noqa: BLE001 - a copy or seat source that can't be read must not take the page down
+        return []
+    return [{'id': f['id'], 'kind': 'portconfig', 'level': 'warn', 'title': f['title'], 'where': f['where'],
+             'since': None, 'switch_id': None, 'link': '/configs#port-check'} for f in found]
+
+
+def _shared_ports():
+    """Seat ports with more than one machine, from the last MAC table read (floorbit/port_clients.py)."""
+    from . import port_clients
+    state = port_clients.last_read()
+    if not state:
+        return []
+    return [{'id': f['id'], 'kind': 'shared', 'level': 'warn', 'title': f['title'], 'where': f['where'],
+             'since': None, 'switch_id': None,
+             'link': _on_plan(seat=f['seat'], switch=f['switch']) if f['seat'] else '/cables#port-clients'}
+            for f in port_clients.problems(state)]
+
+
 def _logs(may_see_people):
     """Syslog lines that matched a known pattern (floorbit/log_alerts.py), as port trouble."""
     from . import features, inventory
@@ -253,7 +300,9 @@ def current(may_see_people):
               'muted': sum(bool(p.get('muted')) for p in items)}
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
-    attention = sorted(_attention() + _logs(may_see_people), key=lambda p: -(p['since'] or 0))
+    attention = sorted(_attention() + _logs(may_see_people) + _ranges() + _port_check()
+                       + _shared_ports(),
+                       key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
     mutes = [{'switch_id': k, 'kind': _mute_kind(k), **v}
              for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]

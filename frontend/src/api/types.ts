@@ -886,6 +886,9 @@ export interface PlanShape {
   cells: PlanCell[]
   /** Row letters (blocks named by row), in the block's own coordinates; missing on older answers. */
   rows?: { text: string; x: number; y: number }[]
+  /** Each row, top first (a cell's rc[0]): its id and name as /api/options/rows has them. Ids are
+   *  the server's: never build one. Missing on older answers. */
+  row_list?: { id: string; name: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
 }
@@ -1370,11 +1373,14 @@ export interface PortClients {
   as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+  /** Seat ports with more than one machine (issue #1119): only how many, never which. */
+  shared?: { count: number; rows: SharedPort[] }
   /** Issue #949: IPs ARP knows on no seat port, and cabled seats with no machine (once check-ins started). */
   no_port?: { count: number; rows: { mac: string; ip: string; ip_seat: string }[] }
   empty?: { count: number; rows: { seat: string; switch: string; port: string }[] }
   ignored?: number
 }
+export interface SharedPort { switch: string; port: string; seat: string; cable: string; macs: number; desk_switch: boolean }
 /** Walking the row (issue #473): ports that came up since the walk began. */
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }
 export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
@@ -1645,6 +1651,8 @@ export interface FirewallRange {
   state: FirewallRouteState; seats: number
   /** 'import': read from NetBox (change it there); 'floorbit': planned here. */
   source?: 'import' | 'floorbit'; plugin?: string
+  /** Inventory switch or group ids the range is for: their seats outside it are flagged (issue #1062). */
+  switches?: string[]
 }
 export interface FirewallCard {
   id: string; name: string; model: string; hall: string; status: 'online' | 'offline' | 'unknown'
