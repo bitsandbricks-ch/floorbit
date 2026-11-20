@@ -730,6 +730,11 @@ export interface Problem {
   muted?: { until: number; by: string | null; reason: string } | null
   /** An offline switch's open incident, for people who see the board (issue #278). */
   incident?: string | null
+  /** What a down switch or link cuts off (issue #950): seat names only, and the switches behind it. */
+  seats?: string[]
+  behind?: string[]
+  /** The down switch this one is behind: the place to start. */
+  cause?: string
 }
 export interface ProblemList {
   problems: Problem[]
@@ -1524,6 +1529,8 @@ export interface PlanSeat {
   changed?: number
   /** The crew left a note on the seat (issue #180); its text is in SeatDetails. */
   note?: boolean
+  /** The down switch or link that cuts the seat off (issue #950); crew only. */
+  behind?: string
 }
 
 export interface PlanBlock {
