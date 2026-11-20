@@ -249,6 +249,16 @@ class Reader:
 reader = Reader()
 
 
+def down_ids(data=None):
+    """The ids of the links that are down, from the last reads: what cuts switches off (issue #950)."""
+    out = []
+    for link in all_links(data):
+        ports = {link[e].lower(): reader.cached(link[e]) for e in ('a', 'b')}
+        if _live(link, ports)['issue'] == 'down':
+            out.append(link['id'])
+    return out
+
+
 def problems(data=None):
     """Links that are down or slower than planned, from the last reads (the refresher below keeps
     them fresh): for the Problems page."""

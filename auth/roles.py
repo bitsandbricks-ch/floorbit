@@ -231,6 +231,8 @@ RULES = (
     ('/timeline', READ, 'audit.read'),
     ('/settings/audit', READ, 'audit.read'),
     ('/api/settings', None, 'settings.manage'),
+    # What an event still needs (floorbit/setup.py checklist): names which parts are missing.
+    ('/api/setup/checklist', None, 'settings.manage'),
     # Telemetry's admin parts (floorbit/blueprints/telemetry.py): the crew reads the rest.
     ('/api/telemetry/test', None, 'settings.manage'),
     ('/api/telemetry/raw', None, 'settings.manage'),
@@ -280,6 +282,7 @@ RULES = (
     # A device blocked after a failed login: any tech clears it once the login is fixed.
     ('/api/inventory/blocks', None, 'ports.act'),
     ('/api/inventory', WRITE, 'floorplan.edit'),
+    ('/api/switch-swap', WRITE, 'floorplan.edit'),   # a new box in a dead switch's place (floorbit/switch_swap.py)
     ('/api/seat-map', READ, 'seats.view'),
     ('/api/seat-map.csv', READ, 'seats.view'),
     ('/api/seat-map', WRITE, 'seats.edit'),
@@ -314,6 +317,8 @@ RULES = (
     ('/api/dispatch', READ, 'incidents.assign'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
     # Which MAC and IP is on which seat port is personal data, like the seat mapping.
+    # Marking a MAC as not a seat PC (a printer, a crew PC): like marking its port infrastructure (issue #949).
+    ('/api/cables/clients/ignored', WRITE, 'floorplan.edit'),
     ('/api/cables/clients', None, 'seats.view'),
     ('/api/cables', WRITE, 'floorplan.edit'),
     ('/api/cable-plan', WRITE, 'floorplan.edit'),

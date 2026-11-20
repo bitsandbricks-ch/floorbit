@@ -162,6 +162,9 @@ Source: [`floorbit/blueprints/cables.py`](https://github.com/bitsandbricks-ch/fl
 | POST | `/api/cables/block` | `floorplan.edit` | `cables` |
 | GET | `/api/cables/check` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
 | GET | `/api/cables/clients` | `seats.view` | `cables` |
+| GET | `/api/cables/clients/ignored` | `seats.view` | `cables` |
+| POST | `/api/cables/clients/ignored` | `floorplan.edit` | `cables` |
+| DELETE | `/api/cables/clients/ignored/<mac>` | `floorplan.edit` | `cables` |
 | POST | `/api/cables/import` | `floorplan.edit` | `cables` |
 | GET | `/api/cables/labels.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
 | GET | `/api/cables/walk` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
@@ -219,6 +222,8 @@ Source: [`floorbit/blueprints/configs.py`](https://github.com/bitsandbricks-ch/f
 | POST | `/api/configs/<switch>/baseline` | `configs.read` | `configs` |
 | GET | `/api/configs/<switch>/diff` | `configs.read` | `configs` |
 | POST | `/api/configs/backup` | `configs.read` | `configs` |
+| GET | `/api/configs/port-check` | `configs.read` | `configs` |
+| PUT | `/api/configs/port-check` | `configs.read` | `configs` |
 
 ## floorbit.blueprints.crew
 
@@ -720,6 +725,8 @@ Source: [`floorbit/blueprints/platform.py`](https://github.com/bitsandbricks-ch/
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| GET | `/api/platform/agent-domain` | `settings.manage` |  |
+| PUT | `/api/platform/agent-domain` | `settings.manage` |  |
 | GET | `/api/platform/tenants` | `settings.manage` |  |
 | POST | `/api/platform/tenants` | `settings.manage` |  |
 | PATCH | `/api/platform/tenants/<tenant_id>` | `settings.manage` |  |
@@ -934,6 +941,7 @@ Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/
 | PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | POST | `/api/services/check` | `floorplan.edit` |  |
 | POST | `/api/services/sites/common` | `floorplan.edit` |  |
+| GET | `/api/services/summary` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.setup
 
@@ -945,6 +953,7 @@ Source: [`floorbit/blueprints/setup.py`](https://github.com/bitsandbricks-ch/flo
 | --- | --- | --- | --- |
 | GET | `/api/setup` | anyone |  |
 | POST | `/api/setup/account` | anyone |  |
+| GET | `/api/setup/checklist` | `settings.manage` |  |
 | POST | `/api/setup/finish` | `settings.manage` |  |
 | POST | `/api/setup/steps/<step>` | `settings.manage` |  |
 
@@ -985,6 +994,17 @@ Source: [`floorbit/blueprints/status_page.py`](https://github.com/bitsandbricks-
 | PUT | `/api/status-page/override` | `incidents.assign` | `status_page` |
 | POST | `/api/status-page/updates` | `incidents.assign` | `status_page` |
 | DELETE | `/api/status-page/updates/<update_id>` | `incidents.assign` | `status_page` |
+
+## floorbit.blueprints.switch_swap
+
+Swap a dead switch for a spare (issue #1060). The rules live in floorbit/switch_swap.py.
+
+Source: [`floorbit/blueprints/switch_swap.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/switch_swap.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/switch-swap/<device_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/switch-swap/<device_id>` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.switches
 

@@ -225,6 +225,9 @@ def create_app(start_background=True):
     # The crew's walk-through check-in: seat ports are cleared a day after the event (docs/seat-walk.md).
     from . import seat_walk
     seat_walk.init_app(app, start_background=start_background)
+    # The agents' Let's Encrypt certificate, once its name reaches Floorbit (docs/agent.md).
+    from . import public_cert
+    public_cert.init_app(app, start_background=start_background)
 
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention
@@ -232,7 +235,7 @@ def create_app(start_background=True):
     init_stats(app)   # fed by the attention watch's port reads (docs/stats.md)
     init_attention(app, start_background=start_background)
     from . import port_clients
-    port_clients.init_app(app)   # reads only when the cables page asks (docs/cables.md)
+    port_clients.init_app(app, start_background=start_background)   # every 5 min, and when the cables page asks
 
     # Syslog from switches, firewalls and DHCP servers, off until SYSLOG_ENABLED (docs/syslog.md).
     from .syslog import init_syslog

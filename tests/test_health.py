@@ -60,7 +60,9 @@ def test_demo_fills_every_kind(client, wall):
     kinds = {c["kind"] for c in body["checks"]}
     assert {"dhcp", "dns", "cache", "game", "uplink"} <= kinds
     dhcp = next(c for c in body["checks"] if c["id"] == "demo:dhcp-players")
-    assert dhcp["status"] == "warn" and "leases left" in dhcp["summary"]
+    # The demo scope fills in a 40-minute rush (#1061): green at first, amber by the end.
+    assert dhcp["status"] in ("up", "warn") and "leases left" in dhcp["summary"]
+    assert dhcp["capacity"]["total"] == 160 and dhcp["forecast"]["pct"] >= 60
     assert sum(body["counts"].values()) == len(body["checks"])
 
 

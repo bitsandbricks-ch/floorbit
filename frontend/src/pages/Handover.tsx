@@ -13,12 +13,12 @@ import { duration } from './report/format'
 import { byLine, summaryText, when } from './handover/format'
 import { isWaiting, waitedFor } from './incidents/waiting'
 import { LoadingState } from '@/components/ui'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { incidentTitle } from '@/lib/incidentTitle'
 
 /** A count that only takes its colour when there is something to count. */
 function Figure({ label, value, tone, sub }: { label: string; value: number; tone?: 'down' | 'warn' | 'up'; sub?: string }) {
-  return <StatCard label={label} value={String(value)} tone={tone && value > 0 ? tone : undefined} sub={sub} />
+  return <StatTile label={label} value={String(value)} tone={tone && value > 0 ? tone : undefined} sub={sub} />
 }
 
 function IncidentRow({ i, now }: { i: HandoverIncident; now: number }) {
@@ -169,7 +169,7 @@ export default function Handover() {
                 <Stack gap={6}>
                   {d.mutes.map((m) => (
                     <Group key={`${m.kind}-${m.name}`} gap="sm" wrap="nowrap" align="baseline">
-                      <Anchor href={m.kind === 'health' ? '/health' : `/plan?switch=${encodeURIComponent(m.name)}`} fw={600} style={{ whiteSpace: 'nowrap' }}>{m.name}</Anchor>
+                      <Anchor href={m.kind === 'health' ? '/services' : `/plan?switch=${encodeURIComponent(m.name)}`} fw={600} style={{ whiteSpace: 'nowrap' }}>{m.name}</Anchor>
                       <Text size="sm" style={{ flex: 1, overflowWrap: 'anywhere' }}>
                         {t('handover.mutedUntil', { until: when(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}
                       </Text>

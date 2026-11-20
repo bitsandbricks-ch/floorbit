@@ -35,6 +35,20 @@ from .store import load_data, load_shared, save_data
 KEY = 'agents'
 PREFIX = 'fba_'
 MAX_AGENTS = 10
+AGENT_IMAGE = 'ghcr.io/bitsandbricks-ch/floorbit-agent'
+_AGENT_REF = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'AGENT_REF')
+
+
+def agent_image():
+    """The agent image to run, tagged with the agent commit this Floorbit is built and tested with
+    (AGENT_REF; the agent's image workflow tags every main commit with its short sha). ``latest``
+    only when the file is missing, as in an old image."""
+    try:
+        with open(_AGENT_REF) as f:
+            ref = f.read().strip()
+    except OSError:
+        ref = ''
+    return f"{AGENT_IMAGE}:{ref[:12]}" if re.fullmatch(r'[0-9a-f]{40}', ref) else f'{AGENT_IMAGE}:latest'
 NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}\Z')
 KEY_RE = re.compile(r'^fba_([0-9a-f]{8})_([A-Za-z0-9_-]{20,80})\Z')
 CONNECTED_FOR = 60       # an agent that asked for work this recently counts as connected
@@ -169,6 +183,7 @@ def _forget_cache():
     _active = _routes = None
     _pins[0] = None
     _doors.clear()
+    _set_up.update(at=None, value=True)
 
 
 _routes = None   # ((data file, mtime), routing)
@@ -207,6 +222,12 @@ def enrolled(agent_id):
 REPORT_KEYS = ('up_seconds', 'reconnects', 'link_drops', 'calls_busy', 'answers_failed',
                'syslog_received', 'syslog_sent', 'syslog_dropped', 'syslog_backlog', 'flows_packets',
                'captive_shown', 'captive_done', 'front_door_passed', 'front_door_failed')
+# Numbers the agent's relays now count as plugins (their gauges in ``plugins.<id>.metrics``), not
+# in the agent's own counters, which stay at 0: the page, the graphs and the history read these keys.
+PLUGIN_NUMBERS = {'syslog_received': ('syslog-relay', 'received'), 'syslog_dropped': ('syslog-relay', 'dropped'),
+                  'syslog_backlog': ('syslog-relay', 'waiting'), 'flows_packets': ('netflow-relay', 'packets'),
+                  'front_door_passed': ('front-door', 'requests_passed'),
+                  'front_door_failed': ('front-door', 'requests_failed')}
 REPORT_FRESH = 180        # seconds: an older report says more about the past than about now
 
 
@@ -939,6 +960,10 @@ class Tunnel:
         plugins = clean_health(raw.get('plugins'))
         if plugins:
             clean['plugins'] = plugins
+            for key, (pid, metric) in PLUGIN_NUMBERS.items():
+                value = (plugins.get(pid) or {}).get('metrics', {}).get(metric)
+                if value is not None and value >= 0:
+                    clean[key] = max(clean.get(key) or 0, value)
         from .agent_plugins import clean_updates, clean_vrrp
         from .agent_settings import clean_report
         for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report)):
@@ -1049,6 +1074,7 @@ def _clean_feeds(feeds):
 # ── The monitoring source it feeds ─────────────────────────────────────────────────────────────
 
 SET_UP_EVERY = 30         # seconds an agent's "is monitoring set up?" answer is kept
+SET_UP_RETRY = 5          # seconds before asking again when the agent didn't answer
 _set_up = {'at': None, 'value': True}
 
 
@@ -1060,14 +1086,17 @@ def monitoring_set_up(now=None):
     now = time.monotonic() if now is None else now
     if _set_up['at'] is not None and 0 <= now - _set_up['at'] < SET_UP_EVERY:
         return _set_up['value']
-    _set_up['at'] = now
     if tunnel.connected_agents():
+        # Kept only once an agent answered: right after it connects the first ask can miss, and the
+        # pages' calls in the meantime would all go to an agent with nothing to answer them.
         try:
             _set_up['value'] = bool(ask('configured'))
+            _set_up['at'] = now
         except AgentUnavailable:
-            pass
+            _set_up['at'] = now - SET_UP_EVERY + SET_UP_RETRY    # a hung link must not slow every page
         except AgentError:
             _set_up['value'] = False      # the agent answered: no monitoring plugin there
+            _set_up['at'] = now
     return _set_up['value']
 
 def monitoring_source():
