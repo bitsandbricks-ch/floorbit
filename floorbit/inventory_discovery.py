@@ -186,7 +186,7 @@ ACTIONS = (
      'roles': ('switch', 'router', 'firewall', 'access-point', 'server', 'vm', 'pdu', 'other')},
     {'id': 'interfaces', 'name': 'Interfaces', 'minutes': None, 'keys': (),
      'roles': ('switch', 'router', 'firewall', 'access-point', 'server', 'pdu')},
-    {'id': 'networks', 'name': 'VLANs and networks', 'minutes': None, 'keys': ('vlans', 'networks'),
+    {'id': 'networks', 'name': 'VLANs and networks', 'minutes': None, 'keys': ('vlans', 'networks', 'svis'),
      'roles': ('switch', 'router', 'firewall', 'server', 'vm')},
     {'id': 'optics', 'name': 'Transceivers', 'minutes': 60, 'keys': ('transceivers',),
      'roles': ('switch', 'router', 'firewall')},
@@ -299,6 +299,20 @@ def run(only=None, device_ids=None):
             else:
                 report['unchanged'] += 1
         save_data(data)
+    # What the device is (VLANs, networks, optics, ...): the row's own facts, and what the monitoring
+    # sources know beyond them, so LibreNMS alone fills these too (issue #966). Asked outside the
+    # lock: on a hosted Floorbit it is a call through the agent.
+    for dev, row in pairs:
+        if not any(does(a['id'], dev) for a in todo if a['keys']):
+            continue
+        own = row.get('facts') if isinstance(row.get('facts'), dict) else {}
+        try:
+            more = mon.device_facts(dev['name'])
+        except Exception as exc:  # noqa: BLE001 - one device's facts don't stop the run
+            print(f"[discovery] facts of {dev['name']} failed: {exc}")
+            more = {}
+        if isinstance(more, dict) and any(k not in own for k in more):
+            found[dev['id']] = (found[dev['id']][0], {**row, 'facts': {**more, **own}})
     polled = {dev['id'] for dev, row in pairs if does('interfaces', dev) and row.get('status', 1)}
     ports_ok = False
     if polled:
@@ -359,6 +373,8 @@ def run(only=None, device_ids=None):
         if ran & {'networks', 'optics'}:
             _entries(data, list(kept.values()), report)
         save_data(data)
+    from . import segments
+    report['segments'] = segments.take_proposals()
     return _keep(report)
 
 
@@ -379,6 +395,10 @@ def networks_of(row):
         except ValueError:
             continue
     out['networks'] = sorted(set(out['networks']))[:256]
+    # VLAN interfaces with an address: proposals for the lookup segments (floorbit/segments.py).
+    out['svis'] = [{'vlan': int(v['vlan']), 'network': str(v['network']), 'if_index': v.get('if_index')}
+                   for v in (facts.get('svis') or [])[:256]
+                   if isinstance(v, dict) and str(v.get('vlan', '')).isdigit() and v.get('network')]
     return out
 
 

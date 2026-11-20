@@ -26,7 +26,7 @@ export function PatchCheck() {
   useLiveEvent('attention.changed', refresh)
   useLiveEvent('cables.changed', refresh)
   const c = query.data
-  if (!c || (!c.blocks.length && !c.unplanned.count)) return null
+  if (!c || (!c.rows.length && !c.unplanned.count)) return null
   const port = (r: PatchRow) => `${r.switch} ${r.port}`
   return (
     <Paper withBorder radius="lg" p="md">
@@ -37,10 +37,12 @@ export function PatchCheck() {
             {t('cables.checkRead', { time: clock(c.last_poll) })}
           </Text>}
         </Group>
-        {c.blocks.map((b) => (
-          <Stack key={b.block || 'none'} gap={2}>
+        {c.rows.map((b) => (
+          <Stack key={b.row || 'none'} gap={2}>
             <Group justify="space-between">
-              <Text size="sm" fw={600}>{b.block ? t('cables.checkBlock', { name: b.name || '–' }) : t('cables.checkLoose')}</Text>
+              <Text size="sm" fw={600}>{!b.row ? t('cables.checkLoose')
+                : b.naming === 'rows' ? t('cables.checkRow', { name: b.name })
+                  : t('cables.checkBlockRow', { block: b.block_label, name: b.name })}</Text>
               <Text size="sm">{t('cables.checkUp', { up: b.up, seats: b.seats })}</Text>
             </Group>
             <Progress value={b.seats ? (100 * b.up) / b.seats : 0} color="up" size="sm"
