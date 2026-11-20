@@ -15,7 +15,16 @@ import threading
 
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import agent_link, inventory, inventory_discovery, inventory_schedule, inventory_scope, inventory_types, spa
+from .. import (
+    agent_link,
+    inventory,
+    inventory_discovery,
+    inventory_schedule,
+    inventory_scope,
+    inventory_types,
+    seat_view,
+    spa,
+)
 from ..plugins import PluginError
 from ..store import load_data, save_data
 
@@ -156,12 +165,28 @@ def inventory_page(_item=None):
     return spa.render('Inventory')
 
 
+def _live():
+    """What the list shows live per device: the status monitor's state (None before its first poll)
+    and the ports up of all, from the attention watch's last read of the placed switches."""
+    states = seat_view.monitor_statuses()
+    watch = current_app.extensions.get('floorbit_attention')
+    ports = {}
+    for (switch, _port), read in (getattr(watch, 'port_reads', None) or {}).items():
+        row = ports.setdefault(switch, {'up': 0, 'total': 0})
+        row['total'] += 1
+        row['up'] += read.get('state') in ('up', 'errors')
+    return states, ports
+
+
 @bp.route('/api/inventory', methods=['GET'])
 def list_devices():
     data = load_data()
     hidden = request.args.get('hidden') in ('1', 'true')
     drift = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
-    return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or [])}
+    states, ports = _live()
+    return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or []),
+                                 'state': (states.get(d['id']) or {}).get('status') if states is not None else None,
+                                 'ports': ports.get(str(d['name']).lower())}
                                 for d in inventory.devices(data, include_hidden=hidden)],
                     'sources': _sources(data), 'every': inventory_schedule.every_minutes(),
                     'roles': list(inventory.ROLES), 'fields': list(inventory.FIELDS)})

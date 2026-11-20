@@ -4,13 +4,16 @@
   came in (``/write``, line protocol, for Grafana and deep dives), plus a normalised series per
   device and port every ``SAMPLE`` seconds: ``fb_port_in_bps``, ``fb_port_out_bps``,
   ``fb_port_errors``, ``fb_port_up``, ``fb_device_up``, ``fb_device_cpu``, ``fb_device_mem``,
-  ``fb_device_states``, with ``device`` and ``port`` labels, the same whichever driver sent them.
+  ``fb_device_states``, with ``device`` and ``port`` labels, the same whichever driver sent them;
+  a wireless controller's ``fb_device_wifi_clients`` and, per AP (its ``port`` label),
+  ``fb_port_clients`` and ``fb_port_utilization``.
 - **Lite** (no VictoriaMetrics): the normalised series only, in Floorbit's own database
   (SQLite or Postgres, table ``floorbit_telemetry``): a point a minute for ``FINE_HOURS`` (6), a
   point every 15 minutes for ``FLOORBIT_TELEMETRY_DAYS`` (2).
 - Logs are not telemetry: the syslog goes to VictoriaLogs or Loki through their logs plugins.
 
-MAC tables, ARP and neighbours (state.PRIVATE) are never stored: they name the people at the seats.
+MAC tables, ARP, neighbours and a wireless controller's client list (state.private) are never
+stored: they name the people at the seats.
 Redis is not used for any of it.
 """
 import os
@@ -29,6 +32,9 @@ SERIES_MAX = 300                 # floorbit_telemetry.series is VARCHAR(300)
 TIMEOUT = 5
 PORT_METRICS = ('in_bps', 'out_bps', 'errors', 'up')
 DEVICE_METRICS = ('up', 'cpu', 'mem', 'states')
+# A wireless controller's (state.Device.wifi_aps): clients on all its APs, and per AP (the "port")
+# its clients and its busiest radio's channel utilization.
+WIFI_METRICS = ('wifi_clients', 'clients', 'utilization')
 
 
 def vm_url():
@@ -60,6 +66,15 @@ def snapshot(st=None, now=None):
             for metric, value in (('cpu', dev.cpu), ('mem', dev.mem), ('states', dev.states)):
                 if value is not None:
                     out[series_key(dev.name, None, metric)] = float(value)
+            if dev.aps:
+                aps = [a for a in dev.wifi_aps(now) if a['status'] == 'up']
+                clients = {a['name']: sum(r['clients'] for r in a['radios']) for a in aps}
+                out[series_key(dev.name, None, 'wifi_clients')] = float(sum(clients.values()))
+                for ap in aps:
+                    out[series_key(dev.name, ap['name'], 'clients')] = float(clients[ap['name']])
+                    used = [r['utilization'] for r in ap['radios'] if r['utilization'] is not None]
+                    if used:
+                        out[series_key(dev.name, ap['name'], 'utilization')] = float(max(used))
             for iface in dev.interfaces.values():
                 if not iface.name or now - iface.seen > state_mod.STALE:
                     continue
@@ -107,7 +122,7 @@ class Storage:
         url = vm_url()
         if not url:
             return 0
-        lines = [lineproto.format_point(p) for p in points if p.measurement not in state_mod.PRIVATE]
+        lines = [lineproto.format_point(p) for p in points if not state_mod.private(p.measurement)]
         return self._vm_write(url, lines)
 
     def _vm_write(self, url, lines):
