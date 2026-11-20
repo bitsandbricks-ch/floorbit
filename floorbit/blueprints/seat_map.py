@@ -23,7 +23,7 @@ from flask import Blueprint, Response, current_app, jsonify, request
 
 from integrations import seat_sources
 
-from .. import seatmap, sources, spa
+from .. import incidents, seatmap, sources, spa
 from ..store import load_data, save_data
 from .inventory import data_lock
 
@@ -41,7 +41,10 @@ def _user():
 def _merged():
     seat_sources.invalidate()
     merged = seat_sources.load(max_age=0)
-    manual = seatmap.entries(load_data())
+    data = load_data()
+    manual = seatmap.entries(data)
+    # The same seat set the dashboards count (every hall): rows outside it come from a source only.
+    plan = incidents.seat_numbers(data)
     rows = []
     for seat in sorted(set(merged) | set(manual), key=seatmap._natural):
         m = merged.get(seat, {})
@@ -57,6 +60,7 @@ def _merged():
             'from': {short: from_.get(long) for long, short in seatmap.FIELDS.items() if from_.get(long)},
             'manual': seatmap.public(seat, manual[seat]) if seat in manual else None,
             'sources': m.get('sources') or [],
+            'on_plan': seat.upper() in plan,
         })
     return rows
 

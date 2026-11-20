@@ -38,5 +38,7 @@
     "other": "Other"
   },
   "mutedUntil": "alerts muted until {{time}}",
-  "allFine": "Every service is up."
+  "allFine": "Every service is up.",
+  "fullIn_one": "Full in about {{count}} minute at {{rate}} a minute",
+  "fullIn_other": "Full in about {{count}} minutes at {{rate}} a minute"
 }

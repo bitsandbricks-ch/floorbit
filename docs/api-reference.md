@@ -941,6 +941,7 @@ Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/
 | PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | POST | `/api/services/check` | `floorplan.edit` |  |
 | POST | `/api/services/sites/common` | `floorplan.edit` |  |
+| GET | `/api/services/summary` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.setup
 
@@ -952,6 +953,7 @@ Source: [`floorbit/blueprints/setup.py`](https://github.com/bitsandbricks-ch/flo
 | --- | --- | --- | --- |
 | GET | `/api/setup` | anyone |  |
 | POST | `/api/setup/account` | anyone |  |
+| GET | `/api/setup/checklist` | `settings.manage` |  |
 | POST | `/api/setup/finish` | `settings.manage` |  |
 | POST | `/api/setup/steps/<step>` | `settings.manage` |  |
 
@@ -992,6 +994,17 @@ Source: [`floorbit/blueprints/status_page.py`](https://github.com/bitsandbricks-
 | PUT | `/api/status-page/override` | `incidents.assign` | `status_page` |
 | POST | `/api/status-page/updates` | `incidents.assign` | `status_page` |
 | DELETE | `/api/status-page/updates/<update_id>` | `incidents.assign` | `status_page` |
+
+## floorbit.blueprints.switch_swap
+
+Swap a dead switch for a spare (issue #1060). The rules live in floorbit/switch_swap.py.
+
+Source: [`floorbit/blueprints/switch_swap.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/switch_swap.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/switch-swap/<device_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/switch-swap/<device_id>` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.switches
 

@@ -337,8 +337,14 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-stat { margin: 0; min-width: 0; }
 .fb-stat span { display: block; }
 .fb-stat dd.fb-stat-more { margin: 0; font-size: 13px; font-weight: 400; }
-.fb-stat-spark { display: block; width: 100%; height: 28px; margin-top: 6px; }
-.fb-stat-spark polyline { fill: none; stroke: var(--color-bit); stroke-width: 2; }
+.fb-stat-spark { display: block; width: 100%; height: 28px; margin-top: 6px; color: var(--color-bit); }
+.fb-stat-spark .fb-spark { width: 100%; height: 100%; color: inherit; }
+/* Sizes (#1019): the dashboard's Stat widget picks one by its box; pages use m. */
+.fb-stat-s dd:not(.fb-stat-more) { font-size: 20px; }
+.fb-stat-l dd:not(.fb-stat-more) { font-size: 36px; }
+.fb-stat-unit { font-size: 0.5em; font-weight: 500; color: var(--color-muted); }
+.fb-stat-change { display: inline-flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
+.fb-stat .fb-stat-change { display: inline-flex; }
 .fb-stat-up { border-left: 4px solid var(--color-up); }
 .fb-stat-warn { border-left: 4px solid var(--color-warn); }
 .fb-stat-down { border-left: 4px solid var(--color-down); }
@@ -1088,6 +1094,11 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   .fb-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 }
 
+/* The shared filter bar (#1020): the filter's name quiet, its count in numbers. */
+.fb-filterbar-key { color: var(--color-muted); font-weight: 400; }
+.fb-filterbar-count { margin-left: 6px; font-family: var(--mantine-font-family-monospace); font-size: 12px; color: var(--color-muted); }
+/* An item page's remove panel: a thin line in the down colour, so it reads as the end of the page. */
+.fb-danger-zone { border-color: color-mix(in srgb, var(--color-down) 40%, var(--mantine-color-default-border)); }
 /* A settings row (#994): what it is and its help on the left, the control on the right, every
    control the same width, so a wide screen doesn't leave half the panel empty. One column on phones. */
 .fb-setting-row {
@@ -1100,6 +1111,10 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 @media (max-width: 48em) {
   .fb-setting-row { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Settings' line while the event setup has open steps (#988). */
+.fb-setup-nudge { padding: 8px 12px; border: 1px solid var(--mantine-color-default-border); border-radius: var(--mantine-radius-md); }
+.fb-check-row .fb-setting-control { justify-content: flex-end; }
 
 /* Settings' folded Advanced part (#991): a quiet line under the section's own rows. */
 .fb-setting-advanced { border-top: 1px solid var(--mantine-color-default-border); margin-top: 4px; padding-top: 10px; }

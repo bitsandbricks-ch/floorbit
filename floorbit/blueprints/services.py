@@ -3,14 +3,16 @@ floorbit/services.py, docs in docs/services.md.
 
 - ``GET /services``: the page.
 - ``GET /api/services``: every uplink and resolver with how it was when last checked, and the LAN cache.
+- ``GET /api/services/summary``: one count of every service the health wall knows, each internet site
+  a row (floorbit/service_summary.py, issue #1037): the Services page and the health panes use it.
 - ``POST /api/services/check``: check everything now (``floorplan.edit``).
 - ``POST /api/services/<kind>``, ``PUT/DELETE /api/services/<kind>/<id>`` (kind ``uplinks``,
   ``resolvers`` or ``sites``): ``floorplan.edit``.
 - ``POST /api/services/sites/common``: add the usual internet sites that are missing (``floorplan.edit``).
 """
-from flask import Blueprint, abort, g, jsonify, request
+from flask import Blueprint, abort, current_app, g, jsonify, request
 
-from .. import audit, i18n, services, spa
+from .. import audit, i18n, service_summary, services, spa
 
 bp = Blueprint('services', __name__)
 WHAT = {'uplinks': 'ISP uplink', 'resolvers': 'DNS resolver', 'sites': 'internet site'}
@@ -26,6 +28,15 @@ def get_services():
     # The pollers keep their messages in English; a German page gets them in German.
     lang = i18n.language(request.headers.get('Accept-Language'))
     return jsonify(i18n.translate_fields(services.overview(), lang))
+
+
+@bp.route('/api/services/summary', methods=['GET'])
+def get_summary():
+    wall = current_app.extensions.get('floorbit_health')
+    checks = wall.fresh()['checks'] if wall is not None else []
+    sites = [{**site, **services.poller.state(site['id'])} for site in services.stored_sites()]
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    return jsonify(i18n.translate_fields(service_summary.summary(checks, sites), lang))
 
 
 @bp.route('/api/services/check', methods=['POST'])

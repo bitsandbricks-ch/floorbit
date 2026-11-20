@@ -1,11 +1,11 @@
-import { Anchor, Badge, Group, Loader, Stack, Text } from '@mantine/core'
+import { Anchor, Badge, Group, Stack, Text } from '@mantine/core'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { StatusPageData } from '@/api/types'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
 import type { ViewProps } from '@/widgets/views'
 import { AreaLine } from '../NetworkStatus'
@@ -21,7 +21,7 @@ export default function NetworkStatusView({ expanded }: ViewProps) {
   useLiveEvent('status_page.changed', refresh)
   useLiveEvent('switch.status', refresh)
   const d = query.data
-  if (query.isPending || !d) return <><ErrorBanner error={query.error} /><Loader size="sm" aria-label={t('common.loading')} /></>
+  if (query.isPending || !d) return <><ErrorBanner error={query.error} onRetry={() => void query.refetch()} /><LoadingState lines /></>
   return (
     <Stack gap="sm">
       <ErrorBanner error={query.error} />

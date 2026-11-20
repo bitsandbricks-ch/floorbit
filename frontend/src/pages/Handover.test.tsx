@@ -82,7 +82,7 @@ describe('Shift handover', () => {
     expect(await screen.findByText(/Row C has no power until 14:00/)).toBeInTheDocument()
     const muted = screen.getByRole('heading', { name: 'Muted right now' }).parentElement!
     expect(within(muted).getByRole('link', { name: 'sw-a-01' })).toHaveAttribute('href', '/plan?switch=sw-a-01')
-    expect(within(muted).getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/health')
+    expect(within(muted).getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/services')
     expect(within(muted).getByText(/Swapping the PSU/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
     const text = writeText.mock.calls[0][0] as string

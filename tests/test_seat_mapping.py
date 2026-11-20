@@ -166,3 +166,14 @@ def test_mapping_method_needs_the_area(tmp_path):
         'from floorbit.plugins.base import Plugin as B\n'
         'class Plugin(B):\n    def seat_mapping(self):\n        return {}\n')
     assert 'needs "mapping"' in _load(folder, 'development', '1.0').error
+
+
+def test_rows_say_whether_the_seat_is_on_the_plan(client, seats_file):
+    # Issue #1036: a source naming seats no block has must not inflate the seat total unseen.
+    from floorbit.store import load_data, save_data
+    data = load_data()
+    data['seat_blocks'] = [{'id': 'a', 'name': 'A', 'x': 10, 'y': 10, 'cols': 1, 'rows': 1}]
+    save_data(data)
+    rows = {r['seat']: r for r in client.get('/api/seat-map').get_json()['seats']}
+    assert rows['A-1']['on_plan'] is True
+    assert rows['A-2']['on_plan'] is False
