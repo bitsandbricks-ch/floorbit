@@ -220,6 +220,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   backward-compatibility shims, no migrations for removed features.
 - **One topic per pull request, based on `master`.** No stacked branches. Threads that touch the same
   files go one after the other.
+- **New files, not longer shared ones.** A feature adds its own files (German texts per area,
+  blueprints that register themselves, types and styles next to their page) instead of adding lines
+  to a list every pull request edits, so parallel pull requests don't conflict. The table is in
+  AGENTS.md (Merge conflicts).
 - **Draft first,** fill in the template, ready only when the work is done and CI is green. Never skip
   or weaken a check. The maintainer (Mike) merges and releases.
 - **Screenshots on every pull request,** UI change or not; English and Swiss German where text

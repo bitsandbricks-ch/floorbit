@@ -33,6 +33,8 @@ pull request.
 ## Workflow
 
 1. **Branch:** work on your own branch, never push to `master`. One topic per branch and pull request.
+   Run `scripts/setup-git.sh` once per clone: it sets up the merge driver that merges translation
+   files by key (see [Merge conflicts](#merge-conflicts)).
 2. **Before you push**, run what CI runs and make it pass locally:
    - `pip install -r requirements.txt -r requirements-dev.txt`
    - `ruff check .`
@@ -54,6 +56,8 @@ pull request.
 7. **Never merge** your own pull request, never force-push to a branch someone else works on, and
    never push a tag. Merging and releasing are the maintainer's call.
 8. Keep the pull request description current when you push more commits.
+9. **Keep it mergeable:** when `master` moves while your pull request is open, merge `master` into
+   your branch (no rebase, no force-push), resolve, run again what the conflict touched and push.
 
 ## Rules
 
@@ -76,8 +80,27 @@ pull request.
 - **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new page is a React page in
   `frontend/src/pages/` with its texts in English and German (`frontend/src/i18n/`); a new editor
   feature is a new file in `frontend/src/pages/plan/edit/`. A new error message from the server gets its German text
-  in `floorbit/locales/de-CH.json` (`tests/test_i18n_server.py` checks). NetBox and LibreNMS calls live in their
+  in `floorbit/locales/de-CH/<area>.json` (`tests/test_i18n_server.py` checks). NetBox and LibreNMS calls live in their
   plugins; the core asks the inventory and `floorbit.sources.monitoring()`, never the API itself. Nothing names one particular event:
   event names, branding and hosts are settings.
 - Write short comments that explain why, not what.
 - Stay inside the repository. Ask before deleting files you didn't create.
+
+## Merge conflicts
+
+Many pull requests are open at once, so a line every pull request edits is a conflict waiting to
+happen. Add files, don't grow shared ones:
+
+| Instead of | Do this |
+| --- | --- |
+| adding to `floorbit/locales/de-CH.json` (or `log.de-CH.json`, `discord.de-CH.json`) | add to `floorbit/locales/de-CH/<area>.json` (`log.de-CH/`, `discord.de-CH/`), named after the module that sends the text |
+| adding a blueprint to `ALL` in `floorbit/blueprints/__init__.py` | nothing: a module in `floorbit/blueprints/` with a `bp` registers itself |
+| adding a new area's types to `frontend/src/api/types.ts` | put them in `frontend/src/api/<area>.ts`, next to its queries (like `tenantEvents.ts`) |
+| adding a new page's styles to `frontend/src/app.css` | a `<Page>.css` next to the page, imported by it |
+| one big test file for an area (`tests/test_cables.py`) | a new `tests/test_<area>_<topic>.py` for a new topic |
+| editing `docs/api-reference.md` by hand, or merging its conflict | run `python scripts/api_reference.py` after the merge; it writes the file from the routes |
+| a branch based on another open pull request | a branch from `master`; if it needs the other one, wait for it |
+
+Two threads (or people) never work on the same page or area at the same time. When a conflict comes
+anyway: merge `master` in, resolve it yourself, never by taking one side wholesale for a file both
+sides changed.
