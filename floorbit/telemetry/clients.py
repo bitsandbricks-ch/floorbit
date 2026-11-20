@@ -3,9 +3,10 @@ into, with the IPs ARP gives it. Fed to floorbit/endpoints.py every minute (on t
 the hosted Floorbit as the telemetry plugin's ``endpoints``).
 
 ARP lives on the core (Nexus) and MAC tables on the access switches: a MAC's port is the one that
-learned it and isn't an uplink (an LLDP/CDP neighbour, or more than ``uplink_macs`` MACs), the
-port with the fewest MACs when several are left.
+learned it and isn't an uplink (an LLDP/CDP neighbour, or more than ``EDGE_PORT_MACS`` MACs:
+floorbit/edge_ports.py), the port with the fewest MACs when several are left.
 """
+from ..edge_ports import EDGE_PORT_MACS
 from . import state as state_mod
 
 
@@ -24,7 +25,7 @@ def uplinks(dev, most):
     return ups, counts
 
 
-def sightings(st=None, uplink_macs=8, exclude=()):
+def sightings(st=None, exclude=()):
     """``[{mac, ip, device, port, vlan}]``: one per MAC and IP. A MAC only in ARP (a firewall, a
     server behind a router) comes with the device that has the ARP entry and no port."""
     st = st or state_mod.state
@@ -37,7 +38,7 @@ def sightings(st=None, uplink_macs=8, exclude=()):
                 ips.setdefault(mac, {}).setdefault(ip, dev.name)
             if not dev.fdb:
                 continue
-            ups, counts = uplinks(dev, int(uplink_macs or 8))
+            ups, counts = uplinks(dev, EDGE_PORT_MACS)
             for (mac, vlan), (port, _seen) in dev.fdb.items():
                 name = dev.port_name(port)
                 if not name or port in ups or any(x in name.lower() for x in excludes):

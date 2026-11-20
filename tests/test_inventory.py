@@ -209,6 +209,21 @@ def fake_netbox(app_module, monkeypatch):
     return devices
 
 
+def test_sources_list_only_what_is_set_up(client, app_module, monkeypatch):
+    """Issue #1112: NetBox without a URL, and an agent that fed nothing yet, aren't listed as
+    "not synced yet"; a sync that failed still is."""
+    from floorbit import agent_link
+    ids = lambda: [s['id'] for s in client.get('/api/inventory').get_json()['sources']]  # noqa: E731
+    assert 'netbox' not in ids()
+    monkeypatch.setattr(agent_link, 'active', lambda: True)
+    assert 'agent' not in ids()
+    monkeypatch.setattr(agent_link, 'inventory_feeds',
+                        lambda: (_ for _ in ()).throw(agent_link.AgentUnavailable('no agent connected')))
+    client.post('/api/inventory/sync')
+    [agent] = [s for s in client.get('/api/inventory').get_json()['sources'] if s['id'] == 'agent']
+    assert agent['last_sync']['error']
+
+
 def test_sync_endpoint_and_switch_api_share_one_inventory(client, fake_netbox):
     assert client.post('/api/inventory/sync').status_code == 200
     body = client.get('/api/inventory').get_json()
@@ -327,3 +342,24 @@ def test_an_agent_feed_from_a_plugin_not_set_up_is_no_failure(client, monkeypatc
     assert next(r for r in reports if r['plugin'] == 'lab').get('error') is None
     names = [s['name'] for s in client.get('/api/inventory').get_json()['sources']]
     assert 'Lab (local agent)' in names and not any('NetBox' in n for n in names)
+
+
+def test_the_list_shows_each_device_live_state_and_ports_up(client, app_module, monkeypatch):
+    """The list's state dot and ports column come from the status monitor and the attention watch,
+    so it never asks monitoring per device (issue #876)."""
+    from floorbit import seat_view
+    watch = app_module.app.extensions['floorbit_attention']
+    # The watch is app-wide: start from no readings, whatever earlier tests left in it.
+    monkeypatch.setattr(watch, 'port_reads', {})
+    monkeypatch.setattr(seat_view, 'monitor_statuses', lambda: {})
+    dev = client.post('/api/inventory', json={'name': 'sw-a-01', 'role': 'switch'}).get_json()
+    # Before the monitor's first poll the state is unknown, not offline.
+    row = client.get('/api/inventory').get_json()['devices'][0]
+    assert row['state'] is None and row['ports'] is None
+    monkeypatch.setattr(seat_view, 'monitor_statuses', lambda: {dev['id']: {'status': 'offline'}})
+    monkeypatch.setattr(watch, 'port_reads', {
+        ('sw-a-01', 'Gi1/0/1'): {'state': 'up'}, ('sw-a-01', 'Gi1/0/2'): {'state': 'errors'},
+        ('sw-a-01', 'Gi1/0/3'): {'state': 'down'}, ('sw-b-01', 'Gi1/0/1'): {'state': 'up'},
+    })
+    row = client.get('/api/inventory').get_json()['devices'][0]
+    assert row['state'] == 'offline' and row['ports'] == {'up': 2, 'total': 3}

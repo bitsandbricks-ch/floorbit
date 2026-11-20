@@ -15,7 +15,16 @@ import threading
 
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import agent_link, inventory, inventory_discovery, inventory_schedule, inventory_scope, inventory_types, spa
+from .. import (
+    agent_link,
+    inventory,
+    inventory_discovery,
+    inventory_schedule,
+    inventory_scope,
+    inventory_types,
+    seat_view,
+    spa,
+)
 from ..plugins import PluginError
 from ..store import load_data, save_data
 
@@ -133,11 +142,22 @@ def _sync_from_agent():
     return reports
 
 
+def _set_up(spec):
+    """Whether an inventory plugin has what it needs to sync. NetBox needs its URL and token; the
+    plugin spec has no "configured" for inventory plugins, so the others count once they are on."""
+    if spec.id != 'netbox':
+        return True
+    settings = _registry().settings_of(spec)
+    return bool(settings.get('url') and settings.get('token'))
+
+
 def _sources(data):
     log = inventory.sync_log(data)
     out = []
     for spec in _feeders():
         last = next((r for r in log if r.get('plugin') == spec.id), None)
+        if last is None and not _set_up(spec):
+            continue        # NetBox without a URL: "not synced yet" would read as something to fix
         via = ' (local agent)' if last and last.get('via') == 'agent' else ''
         out.append({'id': spec.id, 'name': spec.name + via, 'last_sync': last})
     if agent_link.active():
@@ -151,9 +171,10 @@ def _sources(data):
             if r.get('plugin') not in known:
                 known.add(r['plugin'])
                 out.append({'id': r['plugin'], 'name': f"{r.get('name') or r['plugin']} (local agent)", 'last_sync': r})
-        if not via_agent:   # nothing came from it yet: show it, with its last error if any
+        if not via_agent:   # nothing came from it yet: shown only when asking it failed
             last = next((r for r in log if r.get('plugin') == 'agent'), None)
-            out.append({'id': 'agent', 'name': 'Local agent', 'last_sync': last})
+            if last:
+                out.append({'id': 'agent', 'name': 'Local agent', 'last_sync': last})
     if inventory_discovery.available():
         out.append({'id': inventory_discovery.PLUGIN, 'name': inventory_discovery.NAME,
                     'last_sync': inventory_discovery.last(data)})
@@ -167,12 +188,28 @@ def inventory_page(_item=None):
     return spa.render('Inventory')
 
 
+def _live():
+    """What the list shows live per device: the status monitor's state (None before its first poll)
+    and the ports up of all, from the attention watch's last read of the placed switches."""
+    states = seat_view.monitor_statuses()
+    watch = current_app.extensions.get('floorbit_attention')
+    ports = {}
+    for (switch, _port), read in (getattr(watch, 'port_reads', None) or {}).items():
+        row = ports.setdefault(switch, {'up': 0, 'total': 0})
+        row['total'] += 1
+        row['up'] += read.get('state') in ('up', 'errors')
+    return states, ports
+
+
 @bp.route('/api/inventory', methods=['GET'])
 def list_devices():
     data = load_data()
     hidden = request.args.get('hidden') in ('1', 'true')
     drift = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
-    return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or [])}
+    states, ports = _live()
+    return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or []),
+                                 'state': (states.get(d['id']) or {}).get('status') if states is not None else None,
+                                 'ports': ports.get(str(d['name']).lower())}
                                 for d in inventory.devices(data, include_hidden=hidden)],
                     'sources': _sources(data), 'every': inventory_schedule.every_minutes(),
                     'roles': list(inventory.ROLES), 'fields': list(inventory.FIELDS)})
