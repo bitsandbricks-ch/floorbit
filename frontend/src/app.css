@@ -79,18 +79,28 @@ body {
 @media (max-width: 767.98px) { .fb-topbar { display: none; } }
 
 /* The status line under every page (components/StatusLine.tsx), with the attribution at its end. */
+/* Desktops: pinned to the window's foot like the top bar to its head, so the network state stays in
+   view on long pages (#1202). Phones keep it at the page's end: their tab bar already holds the foot. */
+:root { --fb-status-h: 33px; }
 .fb-status {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; min-height: 32px; padding: 4px 16px 4px 24px;
+  display: flex; align-items: center; flex-wrap: nowrap; gap: 6px 18px; min-height: 32px; padding: 4px 16px 4px 24px;
   border-top: 1px solid var(--color-line); background: var(--color-ink);
   font-family: var(--font-mono); font-size: 11.5px; color: var(--color-muted);
+  position: sticky; bottom: 0; z-index: 20; white-space: nowrap; overflow: hidden;
 }
 .fb-status-item { display: inline-flex; align-items: center; gap: 7px; color: inherit; text-decoration: none; }
 a.fb-status-item:hover { color: var(--color-fg); }
 .fb-status-grow { flex: 1; }
 .fb-status .fb-attribution { padding: 0; align-items: center; }
 .fb-status .fb-version { flex-basis: auto; font-size: 11px; }
+/* One line, so the pinned footer stays thin: the attribution's pills side by side, the least
+   needed parts first to go on narrower windows. */
+.fb-status .fb-attribution { flex-wrap: nowrap; }
+@media (max-width: 1279.98px) { .fb-status .fb-version { display: none; } }
+@media (max-width: 1023.98px) { .fb-status-when { display: none; } }
 @media (max-width: 767.98px) {
-  .fb-status { padding: 8px 16px; justify-content: center; }
+  :root { --fb-status-h: 0px; }
+  .fb-status { position: static; flex-wrap: wrap; white-space: normal; padding: 8px 16px; justify-content: center; }
   .fb-status-grow { display: none; }
 }
 
@@ -920,7 +930,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 /* Settings: the save bar stays on screen while there are unsaved changes. */
 .fb-savebar {
   position: sticky;
-  bottom: 12px;
+  bottom: calc(var(--fb-status-h) + 12px);
   margin-top: 16px;
   z-index: 5;
 }
