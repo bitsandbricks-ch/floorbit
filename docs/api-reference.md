@@ -993,6 +993,17 @@ Source: [`floorbit/blueprints/status_page.py`](https://github.com/bitsandbricks-
 | POST | `/api/status-page/updates` | `incidents.assign` | `status_page` |
 | DELETE | `/api/status-page/updates/<update_id>` | `incidents.assign` | `status_page` |
 
+## floorbit.blueprints.switch_swap
+
+Swap a dead switch for a spare (issue #1060). The rules live in floorbit/switch_swap.py.
+
+Source: [`floorbit/blueprints/switch_swap.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/switch_swap.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/switch-swap/<device_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/switch-swap/<device_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.switches
 
 Switches on the floor plan: the placed devices of the inventory (floorbit/inventory.py).

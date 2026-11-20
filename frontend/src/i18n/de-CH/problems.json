@@ -66,6 +66,7 @@
   "muteTextAp": "Zählt diesen Access Point nicht mehr zu den Problemen, bis die Stummschaltung endet. Er bleibt auf dieser Liste und in der WLAN-Ansicht.",
   "show": "Anzeigen",
   "all": "Alle",
+  "swap": "Tauschen",
   "report": "Störung erfassen",
   "incidentOpen": "Störung offen",
   "copy": "Liste kopieren",

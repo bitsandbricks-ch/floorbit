@@ -1303,5 +1303,8 @@
  "{} looks like a desk switch or router": "{} sieht nach einem Switch oder Router am Platz aus",
  "Check them under Cables": "Unter Kabel prüfen",
  "Seat {}: a switch or router on the seat port ({} machines)": "Platz {}: ein Switch oder Router am Platz-Port ({} Geräte)",
- "Seat {}: {} machines on one seat port": "Platz {}: {} Geräte an einem Platz-Port"
+ "Seat {}: {} machines on one seat port": "Platz {}: {} Geräte an einem Platz-Port",
+ "Pick a spare or type the new switch's serial number.": "Wähle einen Ersatz-Switch oder tippe die Seriennummer des neuen Switches ein.",
+ "That is the serial number the switch already has.": "Diese Seriennummer hat der Switch schon.",
+ "That spare is not on the shelf any more.": "Dieser Ersatz-Switch ist nicht mehr im Lager."
 }
