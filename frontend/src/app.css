@@ -818,6 +818,74 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-login-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
 .fb-login-discord:hover { background: #4752c4; border-color: #4752c4; }
 
+/* The sign-in page (pages/Login.tsx, issue #1192): the event's brand and a hall on the left, the
+   way in on the right. Phones: one column, a short strip of the hall on top. Colours are the
+   theme's tokens, so the event's accent and highlight carry through. */
+.fb-signin { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 520px); background: var(--color-ink); }
+.fb-signin-hall {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 40px; min-width: 0;
+  padding: 44px clamp(32px, 5vw, 72px); overflow: hidden;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--color-fg) 8%, transparent) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+}
+.fb-signin-brand { --fb-brand-h: 30px; display: flex; }
+.fb-signin-brand .fb-public-logo { max-height: 48px; }
+.fb-signin-tagline { max-width: 720px; }
+.fb-signin-claim { margin: 0; font-size: clamp(28px, 2.7vw, 40px); line-height: 1.1; font-weight: 600; letter-spacing: -0.03em; color: var(--color-fg); }
+.fb-signin-sub { margin: 10px 0 0; font-size: 16px; color: var(--color-muted); }
+.fb-hall-art { --cell: 16px; align-self: center; display: flex; flex-direction: column; gap: 20px; }
+.fb-hall-block { display: flex; align-items: flex-start; gap: 12px; }
+.fb-hall-label { width: var(--cell); font: 500 12px/var(--cell) var(--font-mono); color: var(--color-muted); }
+.fb-hall-seats { display: grid; grid-template-columns: repeat(16, var(--cell)); gap: 5px; }
+.fb-hall-seat { height: var(--cell); border-radius: 4px; background: var(--color-raised); }
+.fb-hall-seat.is-in { background: color-mix(in srgb, var(--color-bit) 22%, var(--color-raised)); }
+.fb-hall-seat.is-warn { background: color-mix(in srgb, var(--color-warn) 45%, var(--color-raised)); }
+.fb-hall-seat.is-traced { background: var(--color-trace); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-trace) 22%, transparent); }
+.fb-hall-link { display: flex; align-items: center; height: var(--cell); }
+.fb-hall-wire { width: 44px; height: 2px; background: var(--color-line); }
+.fb-hall-wire.is-traced { background: var(--color-trace); }
+.fb-hall-switch {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px; white-space: nowrap;
+  font: 12px var(--font-mono); color: var(--color-muted);
+  background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-bit);
+}
+.fb-hall-switch.is-traced { border-color: var(--color-trace); color: var(--color-fg); }
+.fb-hall-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-up); }
+.fb-signin-side {
+  display: flex; flex-direction: column; gap: 24px; padding: 40px clamp(24px, 4vw, 72px) 24px;
+  background: var(--color-surface); border-left: 1px solid var(--color-line);
+}
+.fb-signin-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 28px; width: 100%; max-width: 380px; margin: 0 auto; }
+.fb-signin-title { font-size: 28px; letter-spacing: -0.025em; }
+.fb-signin-title[data-small] { font-size: 22px; }
+/* The attendee's way in, above the crew's sign-in. */
+.fb-signin-checkin {
+  display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: var(--radius-card);
+  background: var(--color-bit-soft); border: 1px solid color-mix(in srgb, var(--color-bit) 40%, transparent);
+}
+.fb-signin-checkin-head { display: flex; gap: 12px; align-items: flex-start; }
+.fb-signin-checkin-head svg { color: var(--color-bit); flex-shrink: 0; margin-top: 2px; }
+.fb-signin-checkin-title { font-size: 16px; }
+.fb-signin-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.fb-signin-prefs { display: flex; align-items: center; gap: 8px; }
+.fb-signin-foot .fb-attribution { padding: 0; }
+@media (max-width: 960px) {
+  .fb-signin { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .fb-signin-hall { gap: 18px; padding: 20px 16px; border-bottom: 1px solid var(--color-line); }
+  .fb-signin-brand { --fb-brand-h: 26px; }
+  .fb-hall-art { --cell: 10px; align-self: flex-start; gap: 10px; }
+  .fb-hall-block:nth-child(n + 3), .fb-hall-label, .fb-signin-tagline { display: none; }
+  .fb-hall-seats { gap: 4px; }
+  .fb-hall-seat { border-radius: 3px; }
+  .fb-hall-seat.is-traced { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-trace) 22%, transparent); }
+  .fb-hall-wire { width: 20px; }
+  .fb-hall-switch { font-size: 11px; padding: 2px 6px; }
+  .fb-hall-dot { display: none; }
+  .fb-signin-side { border-left: 0; padding: 24px 16px 16px; }
+  .fb-signin-body { max-width: 480px; justify-content: flex-start; gap: 24px; }
+}
+@media (max-width: 359px) { .fb-hall-art { display: none; } }
+
 /* Side panels, sections and fields (components/ui.tsx): one way to show an item's details. */
 /* Mantine puts the class on the drawer's inner wrapper too; only the panel itself is a column. */
 .mantine-Drawer-content.fb-sidepanel { display: flex; flex-direction: column; height: 100%; border-left: 1px solid var(--color-line); }
