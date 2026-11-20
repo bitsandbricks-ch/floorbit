@@ -289,7 +289,6 @@
     "secretSet": "Gesetzt (zum Ersetzen tippen)",
     "atRestart": "beim nächsten Start",
     "field": {
-      "lan_url": "Adresse in der Halle",
       "metrics": "Metrics-Port",
       "metrics_token": "Metrics-Token",
       "buffer_max_mb": "Puffergrösse (MB)",
@@ -305,7 +304,6 @@
       "log_summary": "Zusammenfassung (Sekunden)"
     },
     "help": {
-      "lan_url": "Wo Laptops in der Halle den Agent erreichen, für den Platz-Rundgang, z. B. http://192.0.2.10:8908.",
       "metrics": "host:port für /metrics und /healthz, oder off.",
       "metrics_token": "Scraper senden dann \"Authorization: Bearer <token>\". Setzen, wenn der Port aus dem LAN erreichbar ist.",
       "buffer_max_mb": "Wie viel der Agent behält, solange Floorbit nicht erreichbar ist.",

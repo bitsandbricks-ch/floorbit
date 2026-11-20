@@ -17,7 +17,7 @@ import { ago, dateOnly } from '@/lib/time'
 // Floorbit sets these per agent (floorbit/agent_settings.py); the agent's own env wins.
 
 // What differs between agents comes first; the rest folds under Advanced (#996).
-const BASIC = ['lan_url', 'telemetry_port', 'log_level']
+const BASIC = ['telemetry_port', 'log_level']
 const ADVANCED = ['log_summary', 'metrics', 'metrics_token', 'buffer_max_mb', 'buffer_max_hours']
 const VRRP = ['vrrp_vips', 'vrrp_interface', 'vrrp_prefer', 'vrrp_id', 'vrrp_peers']
 
