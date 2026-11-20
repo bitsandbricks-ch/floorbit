@@ -16,6 +16,16 @@ MDT_PORT = 57000
 MDT_CERT_ENV = 'FLOORBIT_TELEGRAF_MDT_CERT'     # paths as Telegraf sees them
 MDT_KEY_ENV = 'FLOORBIT_TELEGRAF_MDT_KEY'
 MDT_CA_ENV = 'FLOORBIT_TELEGRAF_MDT_CA'        # only devices with a certificate from this CA
+# What a Catalyst 9800 streams for the Wi-Fi view: counts, never its client list (docs/wifi.md).
+WLC_PATHS = {
+    'fb_wlc_ap': 'Cisco-IOS-XE-wireless-access-point-oper:access-point-oper-data/capwap-data',
+    'fb_wlc_radio': 'Cisco-IOS-XE-wireless-access-point-oper:access-point-oper-data/radio-oper-data',
+    'fb_wlc_rrm': 'Cisco-IOS-XE-wireless-rrm-oper:rrm-oper-data/rrm-measurement',
+}
+# The same, as the controller's "filter xpath" takes them (with the YANG modules' prefixes).
+WLC_XPATHS = ('/wireless-access-point-oper:access-point-oper-data/capwap-data',
+              '/wireless-access-point-oper:access-point-oper-data/radio-oper-data',
+              '/wireless-rrm-oper:rrm-oper-data/rrm-measurement')
 GNMI_PORT = {'nxos': 50051, 'iosxe': 9339}
 # A port per way of asking (SNMP on 1161 doesn't send gNMI there too); none set: the usual one.
 PORT_KINDS = ('snmp', 'gnmi', 'api')
@@ -60,6 +70,13 @@ HOST_CPU = (('cpu', '1.3.6.1.2.1.25.3.3.1.2', False, None),)                  # 
 # CISCO-MEMORY-POOL-MIB: the processor pool's use (mem %) and, used + free, how much there is.
 CISCO_MEM = (('memUsed', '1.3.6.1.4.1.9.9.48.1.1.1.5', False, None),
              ('memFree', '1.3.6.1.4.1.9.9.48.1.1.1.6', False, None))
+# Temperatures: CISCO-ENVMON-MIB on Catalyst and IOS-XE, ENTITY-SENSOR-MIB on NX-OS and others
+# (type 8 is celsius; state.py keeps those).
+CISCO_TEMP = (('tempValue', '1.3.6.1.4.1.9.9.13.1.3.1.3', False, None),)
+SENSOR_FIELDS = (('sensorType', '1.3.6.1.2.1.99.1.1.1.1', False, None),
+                 ('sensorScale', '1.3.6.1.2.1.99.1.1.1.2', False, None),
+                 ('sensorPrecision', '1.3.6.1.2.1.99.1.1.1.3', False, None),
+                 ('sensorValue', '1.3.6.1.2.1.99.1.1.1.4', False, None))
 # What a device is, for discovery (floorbit/inventory_discovery.py): asked every few minutes.
 FACT_FIELDS = (('sysDescr', '1.3.6.1.2.1.1.1.0'), ('sysLocation', '1.3.6.1.2.1.1.6.0'),
                ('hrMemorySize', '1.3.6.1.2.1.25.2.2.0'))                      # kilobytes
@@ -104,6 +121,17 @@ PSE_FIELDS = (('pethMainPsePower', '1.3.6.1.2.1.105.1.3.1.1.2', False, None),   
 ROUTE_FIELDS = (('ipCidrRouteIfIndex', '1.3.6.1.2.1.4.24.4.1.5', False, None),
                 ('ipCidrRouteType', '1.3.6.1.2.1.4.24.4.1.6', False, None),      # 3 local, 4 remote
                 ('ipCidrRouteProto', '1.3.6.1.2.1.4.24.4.1.7', False, None))     # 2 local, 3 static, ...
+# AIRESPACE-WIRELESS-MIB on a Cisco AireOS controller (5520, 3504, 8540): its APs (index: the AP's
+# MAC as six numbers), each radio (MAC.slot) and the radio's load. The same measurements as a
+# 9800's MDT (state.py _wlc_*). Counts only: the client table (bsnMobileStation) is never asked.
+WLC_AP_FIELDS = (('bsnAPName', '1.3.6.1.4.1.14179.2.2.1.1.3', False, None),
+                 ('bsnAPOperationStatus', '1.3.6.1.4.1.14179.2.2.1.1.6', False, None),   # 1: associated
+                 ('bsnAPModel', '1.3.6.1.4.1.14179.2.2.1.1.16', False, None))
+WLC_RADIO_FIELDS = (('bsnAPIfType', '1.3.6.1.4.1.14179.2.2.2.1.2', False, None),          # 1: 2.4, 2: 5 GHz
+                    ('bsnAPIfPhyChannelNumber', '1.3.6.1.4.1.14179.2.2.2.1.4', False, None),
+                    ('bsnAPIfOperStatus', '1.3.6.1.4.1.14179.2.2.2.1.12', False, None))   # 1: down, 2: up
+WLC_LOAD_FIELDS = (('bsnAPIfLoadChannelUtilization', '1.3.6.1.4.1.14179.2.2.13.1.3', False, None),
+                   ('bsnAPIfLoadNumOfClients', '1.3.6.1.4.1.14179.2.2.13.1.4', False, None))
 HR_DEVICE_FIELDS = (('hrDeviceType', '1.3.6.1.2.1.25.3.2.1.2', False, None),      # processors: the CPU
                     ('hrDeviceDescr', '1.3.6.1.2.1.25.3.2.1.3', False, None))
 
@@ -172,6 +200,48 @@ def _host(address):
     return f'[{address}]' if ':' in address else address
 
 
+FACT_TABLE_FIELDS = {
+    'fb_entity': ENTITY_FIELDS, 'fb_entalias': ENT_ALIAS_FIELDS, 'fb_ifmac': IF_MAC_FIELDS, 'fb_ip': IP_FIELDS,
+    'fb_route': ROUTE_FIELDS, 'fb_vtp': VTP_FIELDS, 'fb_ifvlan': CISCO_IF_VLAN, 'fb_storage': STORAGE_FIELDS,
+    'fb_hrdevice': HR_DEVICE_FIELDS, 'fb_qvlan': QVLAN_FIELDS, 'fb_bridge': BRIDGE_FIELDS, 'fb_pvid': PVID_FIELDS,
+}
+# What each discovery action needs from a device (inventory_discovery.ACTIONS), read as often as the
+# action runs (issue #967): a table two actions share takes the shorter clock, and one only off
+# actions need isn't read. 'fields' are the scalars (sysDescr, sysLocation, ...).
+FACT_TABLES = {
+    'identity': ('fields', 'fb_entity', 'fb_storage', 'fb_hrdevice'),
+    'interfaces': ('fb_ifmac',),
+    'networks': ('fb_ip', 'fb_vtp', 'fb_ifvlan', 'fb_qvlan', 'fb_bridge', 'fb_pvid'),
+    'optics': ('fb_entity', 'fb_entalias'),
+    'routes': ('fb_route',),
+}
+
+
+def _fact_tables(t, cisco):
+    """The fact tables this device is read for, in order."""
+    out = ['fields', 'fb_entity', 'fb_entalias', 'fb_ifmac', 'fb_ip']
+    if t.get('kind') == 'firewall':
+        out.append('fb_route')
+    out += ['fb_vtp', 'fb_ifvlan'] if cisco else ['fb_storage', 'fb_hrdevice', 'fb_qvlan', 'fb_bridge', 'fb_pvid']
+    return out
+
+
+def _fact_groups(t, cisco, default):
+    """[(interval, [tables])], one Telegraf input per clock. Without a schedule from discovery
+    (``facts_every``), everything on ``default`` as before."""
+    tables = _fact_tables(t, cisco)
+    every = t.get('facts_every')
+    if not isinstance(every, dict):
+        return [(default, tables)]
+    clock = {}
+    for name in tables:
+        seconds = [int(every.get(a) or 0) for a, needs in FACT_TABLES.items() if name in needs]
+        seconds = [s for s in seconds if s > 0]
+        if seconds:
+            clock.setdefault(min(seconds), []).append(name)
+    return [(f'{s}s', clock[s]) for s in sorted(clock)]
+
+
 def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
     """Polling for one device: ports every ``interval`` (unless ``poll_ports`` is False), tables (ARP,
     MAC, neighbours) every ``tables_interval`` (unless ``tables`` is False), and what the device is
@@ -190,27 +260,31 @@ def snmp(t, interval='30s', tables_interval='60s', facts_interval='300s'):
         _table(lines, 'fb_cpu', CISCO_CPU if cisco else HOST_CPU)
         if cisco:
             _table(lines, 'fb_mem', CISCO_MEM)
+            _table(lines, 'fb_envtemp', CISCO_TEMP)
+        _table(lines, 'fb_sensor', SENSOR_FIELDS)
         lines.append('')
-    _snmp_head(lines, t, facts_interval)
-    lines.append('  name = "fb_facts"')
-    for field, oid in FACT_FIELDS:
-        lines += ['  [[inputs.snmp.field]]', f'    name = {q(field)}', f'    oid = {q(oid)}']
-    _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
-    _table(lines, 'fb_entity', ENTITY_FIELDS)
-    _table(lines, 'fb_entalias', ENT_ALIAS_FIELDS)
-    _table(lines, 'fb_ifmac', IF_MAC_FIELDS)
-    _table(lines, 'fb_ip', IP_FIELDS)
-    if t.get('kind') == 'firewall':
-        _table(lines, 'fb_route', ROUTE_FIELDS)
-    if cisco:
-        _table(lines, 'fb_vtp', VTP_FIELDS)
-        _table(lines, 'fb_ifvlan', CISCO_IF_VLAN)
-    else:
-        _table(lines, 'fb_storage', STORAGE_FIELDS)
-        _table(lines, 'fb_hrdevice', HR_DEVICE_FIELDS)
-        _table(lines, 'fb_qvlan', QVLAN_FIELDS)
-        _table(lines, 'fb_bridge', BRIDGE_FIELDS)
-        _table(lines, 'fb_pvid', PVID_FIELDS)
+    for every, tables in _fact_groups(t, cisco, facts_interval):
+        _snmp_head(lines, t, every)
+        lines.append('  name = "fb_facts"')
+        if 'fields' in tables:
+            for field, oid in FACT_FIELDS:
+                lines += ['  [[inputs.snmp.field]]', f'    name = {q(field)}', f'    oid = {q(oid)}']
+        _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
+        for name in tables:
+            if name != 'fields':
+                _table(lines, name, FACT_TABLE_FIELDS[name])
+        lines.append('')
+    if t.get('wireless'):
+        # Polled even while LibreNMS polls the ports: its AP data isn't in its API.
+        _snmp_head(lines, t, '60s')
+        lines.append('  name = "fb_wlc"')
+        _tags(lines, 'inputs.snmp', t, {'driver': 'snmp'})
+        _table(lines, 'fb_wlc_ap', WLC_AP_FIELDS)
+        _table(lines, 'fb_wlc_radio', WLC_RADIO_FIELDS)
+        _table(lines, 'fb_wlc_rrm', WLC_LOAD_FIELDS)
+        lines.append('')
+    if lines and lines[-1] == '':
+        lines.pop()
     if t.get('tables', True):
         lines.append('')
         _snmp_head(lines, t, tables_interval)
@@ -323,6 +397,10 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
                   '    fb_mdt_iosxe_if = "Cisco-IOS-XE-interfaces-oper:interfaces/interface"',
                   '    fb_mdt_nxos_if = "sys/intf"',
                   '    fb_mdt_iosxe_arp = "Cisco-IOS-XE-arp-oper:arp-data/arp-vrf/arp-oper"',
+                  # A Catalyst 9800 wireless controller (state.py _wlc_*): its APs, radios and their load.
+                  f'    fb_wlc_ap = {q(WLC_PATHS["fb_wlc_ap"])}',
+                  f'    fb_wlc_radio = {q(WLC_PATHS["fb_wlc_radio"])}',
+                  f'    fb_wlc_rrm = {q(WLC_PATHS["fb_wlc_rrm"])}',
                   '  [inputs.cisco_telemetry_mdt.tags]', '    driver = "mdt"', '']
     if not any(line.startswith('[[inputs.') for line in lines):
         # Telegraf won't start without an input: one that never sends anything keeps it waiting.
@@ -352,11 +430,17 @@ def device_config(t, collector):
                        '    path openconfig-interfaces:interfaces/interface/state\n'
                        '  subscription 1\n    dst-grp 1\n    snsr-grp 1 sample-interval 10000')
         elif t.get('platform') == 'iosxe':
+            receiver = (f' receiver ip address {collector} {MDT_PORT} protocol '
+                        + ('grpc-tls profile <trustpoint>' if tls else 'grpc-tcp'))
             out.append('telemetry ietf subscription 101\n encoding encode-kvgpb\n'
                        ' filter xpath /interfaces-ios-xe-oper:interfaces/interface\n stream yang-push\n'
-                       ' update-policy periodic 1000\n'
-                       f' receiver ip address {collector} {MDT_PORT} protocol '
-                       + ('grpc-tls profile <trustpoint>' if tls else 'grpc-tcp'))
+                       ' update-policy periodic 1000\n' + receiver)
+            if t.get('wireless'):
+                # update-policy is in centiseconds: APs every 30 s, enough for the Wi-Fi view.
+                for number, xpath in enumerate(WLC_XPATHS, start=102):
+                    out.append(f'telemetry ietf subscription {number}\n encoding encode-kvgpb\n'
+                               f' filter xpath {xpath}\n stream yang-push\n'
+                               ' update-policy periodic 3000\n' + receiver)
     if 'gnmi' in t['drivers']:
         if t.get('platform') == 'nxos':
             out.append('feature grpc\ngrpc port 50051\ngrpc certificate <trustpoint>\nfeature openconfig')

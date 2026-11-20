@@ -124,6 +124,43 @@ def test_ports_rates_and_state_from_snmp(plugin):
     assert [d["hostname"] for d in plugin.devices()] == ["sw-a-01"]
 
 
+def test_the_temperature_like_librenms(plugin):
+    """Issue #1085: the hottest fresh sensor, from CISCO-ENVMON (degrees) or ENTITY-SENSOR (scaled)."""
+    now = time.time()
+    state.state.apply_text(snmp_poll(now, 1000), now)
+    assert "temperature" not in plugin.device_details("sw-a-01")
+    ns = int(now * 1e9)
+    state.state.apply_text("\n".join([
+        f"fb_envtemp,{SW},index=1 tempValue=34i {ns}",
+        f"fb_envtemp,{SW},index=2 tempValue=0i {ns}",                       # an empty slot
+        # NX-OS: 41.5 °C as 415 with one decimal; a fan (type 10) and millidegrees (scale 8) are left out.
+        f"fb_sensor,{CORE},index=21590 sensorType=8i,sensorScale=9i,sensorPrecision=1i,sensorValue=415i {ns}",
+        f"fb_sensor,{CORE},index=22000 sensorType=10i,sensorScale=9i,sensorPrecision=0i,sensorValue=5400i {ns}",
+        f"fb_sensor,{CORE},index=22001 sensorType=8i,sensorScale=8i,sensorPrecision=0i,sensorValue=90000i {ns}",
+    ]), now)
+    assert plugin.device_details("sw-a-01")["temperature"] == 34
+    assert state.state.devices["core-01"].temperature() == 41.5
+    # A sensor that stopped answering doesn't stay as the reading.
+    assert state.state.devices["sw-a-01"].temperature(now + state.STALE + 1) is None
+
+
+def test_before_the_first_poll_it_says_waiting(plugin):
+    """Issue #1085: a trap names one port before the port table is in; that isn't the port count."""
+    state.state.know([{"name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp", "traps"]}])
+    now = time.time()
+    state.state.apply_text('snmp_trap,source=192.0.2.21,oid=.1.3.6.1.6.3.1.1.5.3,driver=traps '
+                           '.1.3.6.1.2.1.2.2.1.1.10101=10101i', now)
+    details = plugin.device_details("sw-a-01")
+    assert details["status"] == "unknown" and details["waiting"] is True and "up_ports" not in details
+    state.state.apply_text(snmp_poll(now, 1000), now)
+    assert plugin.device_details("sw-a-01")["status"] == "online"
+    # While LibreNMS polls the ports there is no poll to wait for.
+    state.state.reset()
+    state.state.know([{"name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp"], "poll_ports": False}])
+    state.state.apply_text(f"fb_system,{SW} sysUpTime=1i {int(now * 1e9)}", now)
+    assert plugin.device_details("sw-a-01")["status"] == "online"
+
+
 def test_the_devices_widget_for_dashboards(plugin, client):
     import time
     assert client.get("/api/plugins/telemetry/widgets/devices").get_json()["sub"] == "No devices set up yet."
@@ -463,6 +500,7 @@ def test_a_device_that_sends_by_itself_needs_no_login(client, tmp_path, monkeypa
     add(client, name="sw-quiet", mgmt_ip="192.0.2.42", features={"telemetry": True})     # nothing to ask with
     found = {t["name"]: t for t in targets.from_inventory()}
     assert list(found) == ["fw-01"] and found["fw-01"]["drivers"] == ["push"] and found["fw-01"]["kind"] == "firewall"
+    assert found["fw-01"]["facts_every"]["routes"] == 15 * 60          # discovery's clock, by device type
     assert targets.any_device()
 
 
@@ -839,3 +877,38 @@ def test_victoriametrics_names_agent_numbers_by_agent(monkeypatch):
     assert sent[0] == "fb_agent_points,agent=ab12 value=3.0 1000000000000"
     assert store.series("agent:ab12", None, "points", hours=1, now=2000) == [[1000, 3.0]]
     assert asked == ['fb_agent_points_value{agent="ab12"}']
+
+
+def test_what_a_device_is_is_read_as_often_as_discovery_uses_it():
+    """Issue #967: the fact tables follow the discovery actions' clocks, not a fixed five minutes."""
+    import tomllib
+    switch = {"id": "a", "name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp"], "platform": "ios",
+              "kind": "switch", "community": "public", "tables": False,
+              "facts_every": {"identity": 3600, "interfaces": 900, "networks": 900, "optics": 3600, "routes": 0}}
+    facts = [i for i in tomllib.loads(telegraf.render([switch], "http://x/write", "tok"))["inputs"]["snmp"]
+             if i["name"] == "fb_facts"]
+    by_clock = {i["interval"]: sorted(t["name"] for t in i.get("table", [])) for i in facts}
+    assert by_clock == {"900s": ["fb_ifmac", "fb_ifvlan", "fb_ip", "fb_vtp"], "3600s": ["fb_entalias", "fb_entity"]}
+    assert [i["interval"] for i in facts if i.get("field")] == ["3600s"]          # sysDescr & co with identity
+    # A table two actions share takes the shorter clock; an action that is off reads nothing.
+    shared = {**switch, "facts_every": {"identity": 3600, "optics": 1800}}
+    facts = [i for i in tomllib.loads(telegraf.render([shared], "http://x/write", "tok"))["inputs"]["snmp"]
+             if i["name"] == "fb_facts"]
+    assert {i["interval"]: sorted(t["name"] for t in i.get("table", [])) for i in facts} == {
+        "1800s": ["fb_entalias", "fb_entity"], "3600s": []}
+    off = {**switch, "facts_every": dict.fromkeys(switch["facts_every"], 0)}
+    assert 'name = "fb_facts"' not in telegraf.render([off], "http://x/write", "tok")
+    # Without a schedule (a Floorbit that sends none): everything every five minutes, as before.
+    plain = {k: v for k, v in switch.items() if k != "facts_every"}
+    facts = [i for i in tomllib.loads(telegraf.render([plain], "http://x/write", "tok"))["inputs"]["snmp"]
+             if i["name"] == "fb_facts"]
+    assert [i["interval"] for i in facts] == ["300s"]
+
+
+def test_the_targets_carry_discoverys_schedule_per_device_type():
+    from floorbit import inventory_discovery
+    data = {inventory_discovery.SCHEDULES: {"optics": 0, "networks": 30}}
+    switch = inventory_discovery.facts_every(data, "switch")
+    assert switch["optics"] == 0 and switch["networks"] == 1800 and switch["identity"] == 3600
+    assert switch["routes"] == 0                                    # routes are read from firewalls only
+    assert inventory_discovery.facts_every(data, "firewall")["routes"] == 15 * 60

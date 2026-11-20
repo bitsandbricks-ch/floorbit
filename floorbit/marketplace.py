@@ -521,15 +521,39 @@ def archive_file(name):
     return None
 
 
+def withdrawn_running():
+    """``[(id, version, why)]`` for installed versions the index has withdrawn. From the index
+    already fetched only (the background loop keeps it fresh): Problems never waits on GitHub."""
+    with _cache_lock:
+        hit = _cache.get(source()['url'])
+    if not hit:
+        return []
+    have, out = installed(), []
+    for entry in hit[1].get('plugins') or []:
+        pid = str(entry.get('id', '')) if isinstance(entry, dict) else ''
+        running = (have.get(pid) or {}).get('version')
+        why = next((v['withdrawn'] for v in versions_of(entry) if v['version'] == running), '') if running else ''
+        if why:
+            out.append((pid, running, why))
+    return out
+
+
 def init_marketplace(app, registry, start_background=True):
     sync(registry)
     started = threading.Event()
 
     def loop():
         from . import store
-        seen, retry, backoff = None, 0.0, SYNC_EVERY
+        seen, retry, backoff, asked = None, 0.0, SYNC_EVERY, 0.0
         while True:
             time.sleep(SYNC_EVERY)
+            # Read the index now and then while plugins are installed, so a version withdrawn
+            # meanwhile reaches Problems without anyone opening the Marketplace.
+            if time.monotonic() - asked >= INDEX_TTL:
+                asked = time.monotonic()
+                with contextlib.suppress(Exception):
+                    if installed():
+                        fetch_index(source())
             try:
                 now = store.stamp(_state_path())
             except Exception:  # noqa: BLE001  # the database being away is not this loop's problem

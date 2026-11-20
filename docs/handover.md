@@ -20,7 +20,7 @@ last handover. It also gives them a place to leave a note for the next shift. Is
 - **Seat notes from this shift:** the [crew notes on seats](seats.md#the-inspector) written or changed since the
   last handover, newest first, each linking to its seat. Only shown when there are some; they are
   not posted to Discord.
-- **Muted right now:** every switch and service whose [alerts are muted](alerts.md#muting-a-switch-or-a-service),
+- **Muted right now:** every switch and service whose [alerts are muted](alerts.md#muting-a-switch-a-service-or-an-access-point),
   until when, by whom and why, so a mute set by the last shift is not forgotten. The
   [crew notice](crew-notice.md) that is up is shown at the top.
 - **Coming up this shift:** the [programme](schedule.md) items that start in the next 8 hours,

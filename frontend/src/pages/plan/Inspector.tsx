@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, CopyButton, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
+import { Anchor, Badge, Button, CopyButton, Group, Stack, Table, Text, Title } from '@mantine/core'
 import { IconExternalLink, IconMapPin, IconQrcode } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -13,7 +13,7 @@ import { SeatSpeedTests } from './SeatSpeedTests'
 import { WatchSeat } from './WatchSeat'
 import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, linkSpans, rate } from './model'
 import { SeatGlyph } from './SeatMap'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { clock, dayClock } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
@@ -49,7 +49,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
           <Button variant="subtle" size="compact-sm" onClick={onClose}>{t('plan.close')}</Button>
         </Group>
       </Group>
-      {q.isPending && <Loader size="sm" aria-label={t('common.loading')} />}
+      {q.isPending && <LoadingState lines />}
       <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
       {d && (
         <>

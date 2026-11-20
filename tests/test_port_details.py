@@ -84,6 +84,8 @@ def test_device_ports_for_the_attention_watch(monkeypatch):
     calls = []
 
     def fake_get(url, params=None, **kwargs):
+        if url.endswith('/ip'):
+            return FakeResponse(404)   # LibreNMS's answer for a switch without addresses
         calls.append(params['columns'])
         if 'ifLastChange' in params['columns']:
             return FakeResponse(500)   # a LibreNMS that doesn't know the column
@@ -94,7 +96,11 @@ def test_device_ports_for_the_attention_watch(monkeypatch):
     [port] = client.fetch_device_ports('sw-a-01.example.com')
     assert port['name'] == 'Gi1/0/14' and port['last_change'] is None
     assert port['description'] == 'seat A-14' and port['duplex'] == 'full' and port['errors_in'] == 3
-    assert len(calls) == 2
+    # The fact and watch columns, refused, then the detail ones; the next poll asks only those.
+    assert len(calls) == 3
+    calls.clear()
+    client.fetch_device_ports('sw-a-01.example.com')
+    assert len(calls) == 1
 
 
 def test_port_clients_reads_the_mac_table_by_port_name(monkeypatch):

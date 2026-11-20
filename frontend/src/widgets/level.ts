@@ -25,6 +25,10 @@ const FLOOR: Record<Kind, { m: [number, number]; l: [number, number] }> = {
   pie: { m: [280, 160], l: [480, 300] },
 }
 
+/** Below this box (px) even the small level is cut off: the editor warns (#928). */
+export const SMALL_MIN: [number, number] = [110, 56]
+export const tooSmall = (w: number, h: number) => w < SMALL_MIN[0] || h < SMALL_MIN[1]
+
 /** The level for a box of ``w`` × ``h`` px, unless the pane pins one. */
 export function pickLevel(kind: Kind, w: number, h: number, pin: LevelPin = 'auto'): Level {
   if (pin !== 'auto') return pin

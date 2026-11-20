@@ -19,7 +19,7 @@ import time
 
 from integrations import config, events
 
-from . import features, firewalls, game_servers, services
+from . import capacity, features, firewalls, game_servers, services
 from .plugins import PluginError
 
 KINDS = ('dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other')
@@ -66,7 +66,19 @@ def clean(spec, raw):
         out.append({'id': check_id, 'name': _text(item['name'], 60), 'kind': kind, 'status': status,
                     'summary': _text(item.get('summary'), 120), 'metrics': metrics,
                     'link': _link(item.get('link')), 'plugin': spec.id, 'plugin_name': spec.name})
+        pool = capacity.clean(item.get('capacity'))
+        if pool:
+            out[-1]['capacity'] = pool
     return out
+
+
+def _with_forecast(check):
+    """The summary, with when the pool runs full when that is why the check needs a look."""
+    fc = check.get('forecast') or {}
+    if fc.get('raised') and fc.get('full_in_min'):
+        return f"{check['summary']}, full in about {fc['full_in_min']} min" if check['summary'] \
+            else f"Full in about {fc['full_in_min']} min"
+    return check['summary']
 
 
 class _FeedSpec:
@@ -86,6 +98,7 @@ class HealthWall:
 
     def reset(self):
         """Forget everything seen so far; the next poll is a baseline again."""
+        self.forecaster = capacity.Forecaster()
         self.checks = {}          # id -> the last cleaned check, with 'since'
         self.confirmed = {}       # id -> the status that counts (what alerts are about)
         self._pending = {}        # id -> (candidate status, times seen)
@@ -181,6 +194,14 @@ class HealthWall:
         now = time.time()
         need = config.get_int('HEALTH_CONFIRM', 2, minimum=1)
         changes = []
+        for check in found:
+            if check.get('capacity'):
+                check['forecast'] = fc = self.forecaster.observe(check['id'], check['capacity'], now)
+                # Still up by the plugin's own threshold, but filling fast: worth a look now (#1061).
+                if fc['level'] and check['status'] == 'up':
+                    check['status'] = fc['level']
+                    fc['raised'] = True
+        self.forecaster.keep_only([c['id'] for c in found if c.get('capacity')])
         with self._lock:
             previous = self.checks
             self.checks = {}
@@ -203,7 +224,7 @@ class HealthWall:
                 self._pending.pop(check['id'], None)
                 self.confirmed[check['id']] = check['status']
                 changes.append({'id': check['id'], 'name': check['name'], 'kind': check['kind'],
-                                'status': check['status'], 'previous': was, 'summary': check['summary']})
+                                'status': check['status'], 'previous': was, 'summary': _with_forecast(check)})
             # Services a plugin stopped reporting (or a plugin turned off) leave the wall quietly.
             for gone in set(self.confirmed) - set(self.checks):
                 self.confirmed.pop(gone, None)

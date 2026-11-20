@@ -99,5 +99,5 @@ telegraf/
 .coverage
 .coverage.*
 
-# The demo server writes its syslog here.
-syslog/
+# Written by a local demo server run from the repository.
+/syslog/

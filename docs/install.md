@@ -44,9 +44,11 @@ docker compose logs floorbit | grep "setup code"
 ```
 
 The code changes on every restart and after 10 wrong tries. With it you create the first account
-(an admin), then the setup walks you through NetBox, LibreNMS, importing switches and the look.
-Every step can be skipped and done later in Settings; until you finish or skip to the end, the
-floor plan sends admins back to it.
+(an admin). Then **Set up** shows what the event needs, in order: the event's name and dates, the
+inventory, monitoring with a local agent, the floor plan, seats to ports, alerts and the crew. Each
+step says whether it is done, needs a look or hasn't started, from what is really there, and opens
+the one place it is set. Any step can be skipped. Until you press **Done for now**, the floor plan
+sends admins back to it; after that, Settings points at the steps still open.
 
 Without the browser, put a name and password in `.env` before the first start:
 

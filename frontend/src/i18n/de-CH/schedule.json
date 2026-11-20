@@ -20,7 +20,7 @@
   "eventEnd": "Event endet",
   "saveEvent": "Zeiten speichern",
   "saved": "Gespeichert.",
-  "empty": "Noch nichts geplant. Füge einen Punkt hinzu oder importiere eine iCal-Datei.",
+  "empty": "Füge einen Punkt hinzu oder importiere eine iCal-Datei.",
   "editNamed": "{{title}} ändern",
   "deleteNamed": "{{title}} entfernen",
   "kind": {
@@ -29,5 +29,6 @@
     "meal": "Essen",
     "quiet": "Nachtruhe",
     "other": "Anderes"
-  }
+  },
+  "emptyTitle": "Noch nichts geplant"
 }
