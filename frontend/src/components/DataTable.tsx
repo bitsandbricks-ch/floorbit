@@ -4,7 +4,7 @@ import {
   flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,
   type ColumnDef, type PaginationState, type SortingState,
 } from '@tanstack/react-table'
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, useState, type CSSProperties, type HTMLAttributes, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import './DataTable.css'
@@ -19,13 +19,20 @@ export type DataColumn<T> = {
   cell: (row: T) => ReactNode
   /** The value to sort by; leave it out for a column that doesn't sort. */
   sort?: (row: T) => string | number | null | undefined
+  /** The first click sorts from the most (or latest) down, for counts, rates and times. */
+  descFirst?: boolean
   /** CSS width, e.g. 44 or '20%'. */
   width?: number | string
   mono?: boolean
+  /** Numbers line up on the right. */
+  numeric?: boolean
   /** Lets long text (a log message, a description) wrap; other cells stay on one line. */
   wrap?: boolean
   /** Left out on a phone, where the table keeps only what names the row. */
   hideOnPhone?: boolean
+  /** With `cards` on a phone: 'inline' shares the card's first line (seat, name, state), 'actions'
+   *  goes to its top right corner, 'label' gets the column's name in front. */
+  card?: 'inline' | 'actions' | 'label'
 }
 
 export type DataTableProps<T> = {
@@ -44,10 +51,14 @@ export type DataTableProps<T> = {
   /** The line under the table, e.g. "12 devices"; it gets the row count. */
   count?: (n: number) => ReactNode
   rowStyle?: (row: T) => CSSProperties | undefined
+  /** Extra attributes for a row, such as the class and aria-selected of the selected one. */
+  rowProps?: (row: T) => HTMLAttributes<HTMLTableRowElement> | undefined
   /** Keep the sort and page in the address (?sort=name&page=2), so a link or a reload shows the same view.
    *  Off where several tables share one page, such as a dashboard. */
   urlState?: boolean
   density?: 'default' | 'compact'
+  /** On a phone each row becomes a small card instead of a narrow table (`card` on the columns). */
+  cards?: boolean
   /** striped rows, for long uniform lists such as logs. */
   striped?: boolean
   /** Below this width the table scrolls sideways instead of squeezing. */
@@ -60,8 +71,8 @@ export type DataTableProps<T> = {
 /** The one table every page uses (#1015): sorting on the columns that can, paging, the empty state
  *  and the count. Search and filters sit above it on the page, and narrow `rows`. */
 export function DataTable<T>(props: DataTableProps<T>) {
-  const { rows, columns, rowKey, label, defaultSort, pageSize = 50, empty, count, rowStyle, urlState = true,
-    density = 'default', minWidth, bare, className, striped } = props
+  const { rows, columns, rowKey, label, defaultSort, pageSize = 50, empty, count, rowStyle, rowProps, urlState = true,
+    density = 'default', minWidth, bare, className, striped, cards } = props
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const initialSort: SortingState = defaultSort ? [{ id: defaultSort.id, desc: !!defaultSort.desc }] : []
@@ -128,12 +139,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
   if (!rows.length) return <>{empty ?? <Text c="dimmed">{t('table.empty')}</Text>}</>
 
   const byId = new Map(columns.map((c) => [c.id, c]))
-  const cellClass = (c?: DataColumn<T>) => [c?.hideOnPhone && 'fb-dt-phone-hide', c?.mono && 'fb-dt-mono', c?.wrap && 'fb-dt-wrap'].filter(Boolean).join(' ') || undefined
+  const cellClass = (c?: DataColumn<T>) => [c?.hideOnPhone && 'fb-dt-phone-hide', c?.mono && 'fb-dt-mono', c?.wrap && 'fb-dt-wrap', c?.numeric && 'fb-dt-num',
+    cards && c?.card === 'inline' && 'fb-stack-inline', cards && c?.card === 'actions' && 'fb-stack-actions'].filter(Boolean).join(' ') || undefined
   const body = (
     // On a phone the columns marked hideOnPhone go, so the rest fit without the wide minimum.
     <div className="fb-dt-scroll" style={minWidth ? ({ '--fb-dt-min': `${minWidth}px` } as CSSProperties) : undefined}>
       <Table highlightOnHover striped={striped} verticalSpacing={density === 'compact' ? 4 : 8} fz="sm" aria-label={label}
-        className={['fb-dt', density === 'compact' && 'is-compact', className].filter(Boolean).join(' ')}>
+        className={['fb-dt', density === 'compact' && 'is-compact', cards && 'fb-table-stack', className].filter(Boolean).join(' ')}>
         <Table.Thead>
           {table.getHeaderGroups().map((hg) => (
             <Table.Tr key={hg.id}>
@@ -144,7 +156,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   <Table.Th key={h.id} w={c?.width} className={cellClass(c)}
                     aria-sort={sorted ? (sorted === 'desc' ? 'descending' : 'ascending') : undefined}>
                     {h.column.getCanSort() ? (
-                      <UnstyledButton className="fb-sort" onClick={() => setSorting([{ id: h.column.id, desc: sorted === 'asc' }])}>
+                      <UnstyledButton className="fb-sort" onClick={() => setSorting([{ id: h.column.id, desc: sorted ? sorted === 'asc' : !!c?.descFirst }])}>
                         {flexRender(h.column.columnDef.header, h.getContext())}
                         {sorted === 'asc' ? <IconChevronUp size={12} /> : sorted === 'desc' ? <IconChevronDown size={12} />
                           : <IconSelector size={12} className="fb-dt-sortable" aria-hidden />}
@@ -158,9 +170,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
         </Table.Thead>
         <Table.Tbody>
           {table.getRowModel().rows.map((row) => (
-            <Table.Tr key={row.id} style={rowStyle?.(row.original)}>
+            <Table.Tr key={row.id} {...rowProps?.(row.original)} style={rowStyle?.(row.original)}>
               {row.getVisibleCells().map((cell) => (
-                <Table.Td key={cell.id} className={cellClass(byId.get(cell.column.id))}>
+                <Table.Td key={cell.id} className={cellClass(byId.get(cell.column.id))}
+                  data-label={cards && byId.get(cell.column.id)?.card === 'label' && typeof byId.get(cell.column.id)?.header === 'string'
+                    ? byId.get(cell.column.id)?.header as string : undefined}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </Table.Td>
               ))}

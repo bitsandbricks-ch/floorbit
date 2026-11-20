@@ -278,7 +278,7 @@ def test_checkin_records_ip_and_mac(app, checkin_env, monkeypatch):
     info = c.get('/api/checkin/info', environ_base={'REMOTE_ADDR': '10.0.2.144'}).get_json()
     assert info == {'open': True, 'opens_at': None, 'ip': '10.0.2.144', 'checkin': None,
                     'suggested_seat': None, 'pin_required': False, 'address': None, 'on_pc': True,
-                    'outside': False}
+                    'outside': False, 'hall': None}
     r = post_checkin(c, 'd-22', 'Reykime', '10.0.2.144').get_json()
     # The MAC is looked up in the background, so the page answers at once.
     assert r == {'ok': True, 'seat': 'D-22', 'username': 'Reykime', 'ip': '10.0.2.144', 'mac_found': False,

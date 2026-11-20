@@ -62,7 +62,7 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 | **One database layer** | SQLite by default, Postgres for bigger or hosted installs, same migrations. No JSON-file backend. See [database.md](database.md). |
 | **Valkey for cache and live only** | Durable data goes to the database; Valkey holds cache, live updates and pub/sub (env stays `REDIS_*`). |
 | **Agent plugins configured from the app** | The agent reads no plugin settings from its own env; the hosted side hands them over. |
-| **Agent settings from the app, env wins** | An agent's own settings are set on its page in Floorbit; a value its own env sets wins and the page shows each value's source. Its safety limits (actions, plugin updates, networks it may reach) are env-only, so a stolen login can't widen them. Floorbit rolls keys (the agent fetches them) and signs agent certificates with its own CA; private keys stay on the agent. |
+| **Agent settings from the app, env wins** | An agent's own settings are set on its page in Floorbit; a value its own env sets wins and the page shows each value's source. Its safety limits (actions, plugin updates, networks it may reach) are env-only, so a stolen login can't widen them. Floorbit rolls keys (the agent fetches them) and signs agent certificates with its own CA; an agent's own private key stays on the agent. The one exception is the tenant's Let's Encrypt certificate (`<tenant>.agent.<domain>`, when the platform has a domain): its key is shared by the tenant's agents, so Floorbit makes it, keeps it sealed, hands it to each agent only encrypted to that agent's own key, and replaces it when an agent that had it is revoked. |
 
 ### Building blocks
 
@@ -103,7 +103,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   See [dashboards.md](dashboards.md).
 - **Shared components, no look-alikes.** Before building a card, table, form field or dialog, use
   what exists: `EntitySelect`, `ConfirmButton`/`ConfirmIcon`, `DateTimeInput`, `PageTabs`,
-  `SidePanel`, `StatCard`, the telemetry components. New visual blocks become shared components or
+  `SidePanel`, `StatCard`, `StateBadge`/`StateBit` (one tone and word per state word, from
+  `components/stateTone.ts`), the telemetry components. New visual blocks become shared components or
   widgets.
 - **One table.** Every table is `DataTable` (`frontend/src/components/DataTable.tsx`): sorting,
   paging, the empty state and the count, with the view kept in the address. The dashboard's table
@@ -135,7 +136,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   notifications on the right; no second title row on a computer), a status line. Pinned favourites per person, including
   dashboards. The tenant switcher shows only with two or more tenants.
 - **Sidebar, about a dozen rows:** Overview and Floor plan · **Work:** Helpdesk · **Monitoring:**
-  Services, Network, Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
+  Health, Network (Topology, Firewalls, Wi-Fi, Telemetry, Security), Services (DNS, LAN cache),
+  Traffic (Games, Stats, Speed tests), Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
   Pre-flight, Logs · **Screens:** Dashboards. Settings is the gear at the foot; the event's own
   pages (schedule, changelog, replay, report) are in the event menu at the top. A row holds its
   pages as tabs (Helpdesk: Problems, Incidents, My jobs, Handover, Status updates); a new page
@@ -170,6 +172,14 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   (the sidebar is 15px).
 - **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
   for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
+- **One switch per capability:** what the crew wants is turned on in one place; the switch turns its
+  settings, features and plugins on together and lists what it still needs.
+- **Settings rows:** name and help on the left, the control on the right at one width; changes
+  collect in the save bar until Save.
+  Values only whoever runs the server needs are marked `advanced` and fold under Advanced. An agent's
+  settings use the same rows and save bar. Pages name a value in words; an env var's name only
+  shows in a tooltip. A plugin's settings have one home, its plugin page, including the values that
+  differ per agent (its Per agent tab); Settings search and the agent's page link there.
 - **Deletes ask first** (`ConfirmButton`), never `window.confirm`, `alert` or `prompt`.
 - **Languages:** English and Swiss German everywhere (pages, server errors, Discord, logs); standard
   German is derived. No "ß". Terms: Sitzblock, Störung, Hallenplan, Mandant.

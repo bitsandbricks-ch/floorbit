@@ -9,6 +9,7 @@ import type { InventoryEntry, InventoryOverview, InventoryType } from '@/api/typ
 import { DataTable } from '@/components/DataTable'
 import { LoadingState } from '@/components/ui'
 import type { GroupFilter } from './GroupTree'
+import { BoolCell } from './BoolCell'
 import { DeviceIcon } from './icons'
 import { effectiveLook, typeName } from './model'
 import { groupAndBelow, useEntries } from './scope'
@@ -80,7 +81,8 @@ export function EntriesView({ type, overview, group, tags, canEdit, onOpen, sour
               ...(type.sort === 'linked' ? [{ id: 'what', header: t('inventory.entries.what'), sort: (e: InventoryEntry) => e.summary ?? '',
                 cell: (e: InventoryEntry) => <>{e.summary}{e.detail && <Text size="xs" c="dimmed">{e.detail}</Text>}</> }] : []),
               ...shown.map((f) => ({ id: `f-${f.key}`, header: t(`inventory.types.fieldLabel.${f.key}`, { defaultValue: f.label }), hideOnPhone: true,
-                sort: (e: InventoryEntry) => String(value(e, f.key) ?? ''), cell: (e: InventoryEntry) => value(e, f.key) })),
+                sort: (e: InventoryEntry) => String(value(e, f.key) ?? ''),
+                cell: (e: InventoryEntry) => f.kind === 'bool' ? <BoolCell type={type} entry={e} field={f} canEdit={canEdit} /> : value(e, f.key) })),
               { id: 'group', header: t('inventory.groups.one'), hideOnPhone: true, sort: (e) => groups.find((g) => g.id === e.group_id)?.name ?? '',
                 cell: (e) => groups.find((g) => g.id === e.group_id)?.name ?? '' },
             ]} />

@@ -17,3 +17,15 @@ def test_they_need_settings_manage(app_module):
     anonymous = app_module.app.test_client()
     for path in ('/settings/netbox', '/settings/plugins/http-check'):
         assert anonymous.get(path).status_code in (302, 401, 403), path
+
+
+def test_a_trailing_slash_opens_settings_too(client):
+    assert b'<title>Settings' in client.get('/settings/').data
+
+
+def test_server_internals_are_marked_advanced(client):
+    # #991: file paths, rates and caches fold under Advanced; what crews change stays in view.
+    fields = {f['key']: f for f in client.get('/api/settings').get_json()['fields']}
+    assert fields['integrations.checkin_file'].get('advanced') is True
+    assert fields['cache.ttl_arp'].get('advanced') is True
+    assert not fields['integrations.checkin_enabled'].get('advanced')

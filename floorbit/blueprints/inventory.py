@@ -133,11 +133,22 @@ def _sync_from_agent():
     return reports
 
 
+def _set_up(spec):
+    """Whether an inventory plugin has what it needs to sync. NetBox needs its URL and token; the
+    plugin spec has no "configured" for inventory plugins, so the others count once they are on."""
+    if spec.id != 'netbox':
+        return True
+    settings = _registry().settings_of(spec)
+    return bool(settings.get('url') and settings.get('token'))
+
+
 def _sources(data):
     log = inventory.sync_log(data)
     out = []
     for spec in _feeders():
         last = next((r for r in log if r.get('plugin') == spec.id), None)
+        if last is None and not _set_up(spec):
+            continue        # NetBox without a URL: "not synced yet" would read as something to fix
         via = ' (local agent)' if last and last.get('via') == 'agent' else ''
         out.append({'id': spec.id, 'name': spec.name + via, 'last_sync': last})
     if agent_link.active():
@@ -149,9 +160,10 @@ def _sources(data):
             if r.get('plugin') not in known:
                 known.add(r['plugin'])
                 out.append({'id': r['plugin'], 'name': f"{r.get('name') or r['plugin']} (local agent)", 'last_sync': r})
-        if not via_agent:   # nothing came from it yet: show it, with its last error if any
+        if not via_agent:   # nothing came from it yet: shown only when asking it failed
             last = next((r for r in log if r.get('plugin') == 'agent'), None)
-            out.append({'id': 'agent', 'name': 'Local agent', 'last_sync': last})
+            if last:
+                out.append({'id': 'agent', 'name': 'Local agent', 'last_sync': last})
     if inventory_discovery.available():
         out.append({'id': inventory_discovery.PLUGIN, 'name': inventory_discovery.NAME,
                     'last_sync': inventory_discovery.last(data)})

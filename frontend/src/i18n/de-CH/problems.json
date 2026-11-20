@@ -67,5 +67,12 @@
   "copied": "Kopiert",
   "seats": "Plätze",
   "range": "{{from}}–{{to}} von {{count}}",
-  "pages": "Seiten"
+  "pages": "Seiten",
+  "seatsAffected_one": "1 Platz betroffen",
+  "seatsAffected_other": "{{count}} Plätze betroffen",
+  "switchesBehind_one": "1 Switch dahinter",
+  "switchesBehind_other": "{{count}} Switches dahinter",
+  "behindCause": "Hinter {{name}}, der down ist: dort anfangen",
+  "showSeats": "Plätze zeigen",
+  "hideSeats": "Plätze ausblenden"
 }

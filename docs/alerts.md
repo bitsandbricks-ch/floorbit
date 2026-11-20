@@ -45,6 +45,25 @@ switch is open, the button becomes **Incident open**, which opens the board filt
 **Copy list** in the page header copies the problems shown (after the kind filter) as plain text,
 with the time, the counts and the mutes, for pasting into the crew chat or a ticket.
 
+## Seats behind a failure
+
+A down switch or a down link between switches (issue #950) says what it cuts off: "24 seats
+affected · 2 switches behind it", with the seat names one click away. Seat names only, never who
+sits there.
+
+- **Behind** comes from the links on the [topology](topology.md): a switch is cut off when no path
+  of up links through online boxes reaches the core. The core is the routers and firewalls the links
+  reach; where the links name none, each group of linked switches takes its busiest switch (the most
+  links). Without links only the down switch's own seats count.
+- **A switch's seats** come from every place that knows them: the last port read, what was
+  remembered while the switch went down, the seat mapping, ports learned at check-in or on the seat
+  walk, and the patch plan's cables.
+- When the switch before it dies, monitoring loses the ones behind too. Those say **"Behind
+  sw-a-01, which is down: start there"**, so the crew goes to the cause first.
+- On the floor plan every seat cut off turns red (offline), for attendees too; the crew's plan also
+  knows which switch or link is to blame.
+- A single seat port that goes down takes only that seat, which the plan already shows as offline.
+
 ## Seats with trouble
 
 After the problems, the list holds ports and seats an ops person should look at, newest first.

@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Group, Modal, MultiSelect, NumberInput, Paper, SimpleGrid, Stack, Table, Text, TextInput, Title,
+  Alert, Badge, Button, Group, Modal, MultiSelect, NumberInput, Paper, SimpleGrid, Stack, Text, TextInput, Title,
   Tooltip,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { FirewallCard, FirewallList, FirewallRange } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 
@@ -125,48 +126,34 @@ function Ranges({ ranges, canEdit, onEdit }: { ranges: FirewallRange[]; canEdit:
     onSuccess: () => void qc.invalidateQueries({ queryKey: qk.firewalls }),
   })
   return (
-    // One card per range on a phone (ui.css), so Edit and Remove stay on screen.
-    <Table verticalSpacing="xs" className="fb-table-stack">
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>{t('firewalls.range')}</Table.Th>
-            <Table.Th>{t('firewalls.now')}</Table.Th>
-            <Table.Th>{t('firewalls.line')}</Table.Th>
-            <Table.Th ta="right">{t('firewalls.seats')}</Table.Th>
-            {canEdit && <Table.Th />}
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {ranges.map((r) => (
-            <Table.Tr key={r.id}>
-              <Table.Td>
-                <Text size="sm" ff="monospace">{r.cidr}</Text>
-                {r.name && <Text size="xs" c="dimmed">{r.name}</Text>}
-                {r.source === 'import' && <Badge size="xs" variant="light" color="gray">{t('firewalls.fromPlugin', { plugin: r.plugin || 'NetBox' })}</Badge>}
-              </Table.Td>
-              <Table.Td data-label={t('firewalls.now')}>
-                <Group gap={6} wrap="nowrap">
-                  {r.now && <Text size="sm" ff="monospace">{r.now}</Text>}
-                  <Badge size="sm" color={ROUTE_TONE[r.state]} variant="light">{t(`firewalls.route.${r.state}`)}</Badge>
-                </Group>
-              </Table.Td>
-              <Table.Td data-label={t('firewalls.line')}><Text size="sm">{r.firewalls.join(' → ')}</Text></Table.Td>
-              <Table.Td ta="right" data-label={t('firewalls.seats')}>{r.seats}</Table.Td>
-              {canEdit && (
-                <Table.Td>
-                  <Group gap={4} justify="flex-end" wrap="nowrap">
-                    {r.source === 'import'
-                      ? <Text size="xs" c="dimmed">{t('firewalls.fromPluginHelp', { plugin: r.plugin || 'NetBox' })}</Text>
-                      : <Button size="compact-sm" variant="default" onClick={() => onEdit(r)}>{t('firewalls.edit')}</Button>}
-                    <ConfirmButton size="compact-sm" variant="subtle" danger label={t('firewalls.remove')}
-                      question={t('firewalls.removeQuestion', { range: r.cidr })} onConfirm={() => remove.mutate(r.id)} />
-                  </Group>
-                </Table.Td>
-              )}
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-    </Table>
+    // One card per range on a phone, so Edit and Remove stay on screen.
+    <DataTable label={t('firewalls.ranges', { count: ranges.length })} rows={ranges} rowKey={(r) => r.id} defaultSort={{ id: 'range' }} urlState={false} pageSize={0} bare cards
+      columns={[
+        { id: 'range', header: t('firewalls.range'), sort: (r) => r.cidr, cell: (r) => (
+          <>
+            <Text size="sm" ff="monospace">{r.cidr}</Text>
+            {r.name && <Text size="xs" c="dimmed">{r.name}</Text>}
+            {r.source === 'import' && <Badge size="xs" variant="light" color="gray">{t('firewalls.fromPlugin', { plugin: r.plugin || 'NetBox' })}</Badge>}
+          </>
+        ) },
+        { id: 'now', header: t('firewalls.now'), card: 'label', sort: (r) => r.state, cell: (r) => (
+          <Group gap={6} wrap="nowrap">
+            {r.now && <Text size="sm" ff="monospace">{r.now}</Text>}
+            <Badge size="sm" color={ROUTE_TONE[r.state]} variant="light">{t(`firewalls.route.${r.state}`)}</Badge>
+          </Group>
+        ) },
+        { id: 'line', header: t('firewalls.line'), card: 'label', wrap: true, cell: (r) => r.firewalls.join(' → ') },
+        { id: 'seats', header: t('firewalls.seats'), card: 'label', numeric: true, sort: (r) => r.seats, cell: (r) => r.seats },
+        ...(canEdit ? [{ id: 'actions', header: null, cell: (r: FirewallRange) => (
+          <Group gap={4} justify="flex-end" wrap="nowrap">
+            {r.source === 'import'
+              ? <Text size="xs" c="dimmed">{t('firewalls.fromPluginHelp', { plugin: r.plugin || 'NetBox' })}</Text>
+              : <Button size="compact-sm" variant="default" onClick={() => onEdit(r)}>{t('firewalls.edit')}</Button>}
+            <ConfirmButton size="compact-sm" variant="subtle" danger label={t('firewalls.remove')}
+              question={t('firewalls.removeQuestion', { range: r.cidr })} onConfirm={() => remove.mutate(r.id)} />
+          </Group>
+        ) }] : []),
+      ]} />
   )
 }
 
