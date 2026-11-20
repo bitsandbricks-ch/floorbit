@@ -70,6 +70,67 @@ def row_letters(block):
     return [row_letter(start + (rows - 1 - r if flip else r)) for r in range(rows)]
 
 
+def label(block):
+    """What people call a block: its name, or for a block named by its rows (which has none), the
+    row letters it holds (C to D, with an en dash). Never empty for a block with rows, so no picker
+    shows a dash."""
+    if block.get('name'):
+        return str(block['name'])
+    letters = sorted(row_letters(block), key=letter_index)
+    if not letters:
+        return ''
+    return letters[0] if len(letters) == 1 else f'{letters[0]}\u2013{letters[-1]}'
+
+
+def row_names(block):
+    """Each row's name, top row of the block first: its letter in a ``rows`` block, else 1, 2, ..."""
+    return row_letters(block) or [str(n + 1) for n in range(int(block.get('rows') or 0))]
+
+
+def row_id(block, index):
+    """A row's id: its block and its place in the block (1 is the top row as drawn)."""
+    return f"{block['id']}:{index}"
+
+
+def hall_rows(data):
+    """Every row of the hall, by name: ``[{id, block, block_label, index, name, naming, seats}]``,
+    blocks in the order people read them, rows top first. The crew works a row at a time: a walker
+    takes a row, a row is patched to one switch and fed by one circuit."""
+    out = []
+    blocks = sorted((b for b in data.get('seat_blocks') or [] if b.get('id')),
+                    key=lambda b: (letter_index(row_letters(b)[0]) if row_letters(b) else 10**6,
+                                   label(b).lower()))
+    for block in blocks:
+        names = row_names(block)
+        for i, row in enumerate(block_rows(block)):
+            out.append({'id': row_id(block, i + 1), 'block': block['id'], 'block_label': label(block),
+                        'index': i + 1, 'name': names[i] if i < len(names) else str(i + 1),
+                        'naming': block.get('naming') or 'block', 'seats': [s.upper() for s in row]})
+    return out
+
+
+def row_label(row):
+    """What a ``hall_rows`` row is called in pickers and lists: its letter, or for a block numbered
+    as a whole, the block and the row ("A 2")."""
+    return row['name'] if row['naming'] == 'rows' else f"{row['block_label']} {row['name']}".strip()
+
+
+def pick_rows(data, ids):
+    """The rows behind ``ids`` (``hall_rows`` ids), in the order given; ValueError naming the first
+    unknown one. Each row comes once."""
+    by_id = {r['id']: r for r in hall_rows(data)}
+    picked, seen = [], set()
+    for raw in ids if isinstance(ids, list) else []:
+        key = str(raw or '').strip()
+        if key in seen:
+            continue
+        if key not in by_id:
+            raise ValueError(key)
+        seen.add(key)
+        picked.append(by_id[key])
+    return picked
+
+
 def seat_one_first(block):
     """Is seat 1 of each row in the block's first column? Decides where "start" puts a row letter."""
     first = _quarter(block) in (0, 1)

@@ -3,6 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SyslogLine, LogsData, LogStatus } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Logs from './Logs'
+import { useLocation } from 'react-router-dom'
+
+function Where() {
+  return <output data-testid="where">{useLocation().search}</output>
+}
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -70,9 +75,36 @@ describe('Logs', () => {
     })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Logs />)
+    await screen.findByText('line 400')
+    // Only on the last page, where the lines run out.
+    expect(screen.queryByRole('button', { name: 'Older lines' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '4' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Older lines' }))
     expect(await screen.findByText('an older one')).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Older lines' })).not.toBeInTheDocument())
+  })
+
+  it('shows 50 lines a page, sorts by level and holds the tail meanwhile (issue #1206)', async () => {
+    const page = Array.from({ length: 120 }, (_, i) => line(120 - i, i === 100 ? { severity: 'emerg', message: 'the worst one' } : {}))
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs': logs(page) }).fn)
+    renderWithApp(<Logs />)
+    expect(await screen.findByText('line 120')).toBeInTheDocument()
+    expect(screen.getByText('120 lines loaded')).toBeInTheDocument()
+    expect(screen.getAllByRole('row')).toHaveLength(51)   // the header and 50 lines
+    expect(screen.queryByText('the worst one')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Level/ }))
+    expect(await screen.findByText('the worst one')).toBeInTheDocument()
+    expect(screen.getByText('Live, paused')).toBeInTheDocument()
+  })
+
+  it('keeps the filters in the address (issue #1206)', async () => {
+    const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs': logs([line(1)]),
+      'GET /api/logs?q=uplink': logs([line(2, { message: 'uplink flapped' })]) })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<><Logs /><Where /></>)
+    fireEvent.change(await screen.findByLabelText('Search'), { target: { value: 'uplink' } })
+    expect(await screen.findByText('uplink flapped', {}, { timeout: 2000 })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('?q=uplink'))
   })
 
   it('opens filtered from a link', async () => {

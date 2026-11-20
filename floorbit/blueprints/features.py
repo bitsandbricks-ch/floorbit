@@ -3,12 +3,14 @@
 - ``GET /api/features``: which features are off, for the navigation. Anyone who sees the floor plan.
 - ``GET /settings/features``: the page (React), admins only.
 - ``GET|PUT /api/settings/features``: every feature with its state; ``{"power": false}`` turns one off.
+- ``GET /api/settings/capabilities``: each capability (floorbit/capabilities.py), on, off or partly,
+  with what it still needs. ``PUT /api/settings/capabilities/<id>`` ``{"on": true}`` switches its parts.
 """
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import audit, features, spa
+from .. import audit, capabilities, features, spa
 
 bp = Blueprint('features', __name__)
 
@@ -40,3 +42,32 @@ def change_features():
         audit.record('settings', 'Turned features on or off', user=g.get('audit_user'), target=words)
         events.publish('features.changed', {})
     return jsonify({'features': features.status(), 'env': features.ENV})
+
+
+def _capabilities():
+    from .. import agent_link, sources
+    return capabilities.status(current_app.extensions['floorbit_settings'], sources.registry,
+                               agents=agent_link.all_agents())
+
+
+@bp.route('/api/settings/capabilities', methods=['GET'])
+def list_capabilities():
+    return jsonify({'capabilities': _capabilities()})
+
+
+@bp.route('/api/settings/capabilities/<cap_id>', methods=['PUT'])
+def switch_capability(cap_id):
+    from .. import agent_plugins, runtime, sources
+    body = request.get_json(silent=True) or {}
+    settings = current_app.extensions['floorbit_settings']
+    try:
+        changed = capabilities.switch(cap_id, body.get('on'), settings, sources.registry)
+    except capabilities.CapabilityError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    if changed:
+        runtime.apply(settings)
+        agent_plugins.reload_agents()     # the agents pull it within a minute anyway
+        audit.record('settings', 'Turned a capability on' if body['on'] else 'Turned a capability off',
+                     user=g.get('audit_user'), target=f"{cap_id}: {', '.join(changed)}")
+        events.publish('features.changed', {})
+    return jsonify({'capabilities': _capabilities()})

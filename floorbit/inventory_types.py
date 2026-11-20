@@ -69,6 +69,8 @@ BUILTIN = {
     'vlan': {'name': 'VLAN or IP range', 'sort': 'stored', 'icon': 'vlan', 'fields': [
         _f('vlan_id', 'VLAN ID', 'number'),
         _f('prefix', 'Prefix'),
+        # With a VLAN and a prefix the range is a lookup segment (floorbit/segments.py): off by default.
+        _f('lookups', 'Check-in lookups', 'bool', default='no'),
         _f('gateway', 'Gateway'),
         _f('purpose', 'Purpose', 'choice', choices=['Seats', 'Crew', 'Servers', 'Management', 'Wi-Fi', 'Other']),
     ]},
@@ -303,7 +305,7 @@ def _cable(c):
              f"{c['length_m']} m" if c.get('length_m') else '']
     return {'id': c['id'], 'name': c.get('label') or ends[0],
             'summary': ' → '.join(x for x in ends if x), 'detail': ' · '.join(x for x in extra if x),
-            'link': f"/cables?q={c.get('label') or ''}"}
+            'link': f"/cables/{c['id']}"}
 
 
 def _records(data, type_id):
@@ -318,9 +320,9 @@ def _records(data, type_id):
     boards, circuits = power._stored(data)
     if type_id == 'power-board':
         return [{'id': b['id'], 'name': b.get('name') or '', 'summary': b.get('location') or '', 'detail': '',
-                 'link': '/power'} for b in boards if b.get('id')]
+                 'link': f"/power/boards/{b['id']}"} for b in boards if b.get('id')]
     names = {b.get('id'): b.get('name') or '' for b in boards}
-    return [{'id': c['id'], 'name': c.get('name') or '', 'link': '/power', 'detail': '',
+    return [{'id': c['id'], 'name': c.get('name') or '', 'link': f"/power/circuits/{c['id']}", 'detail': '',
              'summary': ' · '.join(x for x in (names.get(c.get('board'), ''), c.get('phase') or '',
                                                f"{c['rating_a']} A" if c.get('rating_a') else '') if x)}
             for c in circuits if c.get('id')]

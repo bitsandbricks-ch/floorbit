@@ -58,5 +58,11 @@
   "importHelp": "Liest die NetBox-Prefixe mit dem Custom Field floorbit_firewalls (ihre Firewalls, in Reihenfolge). Jeder Import ersetzt den letzten; hier geplante Bereiche bleiben.",
   "fromPlugin": "Aus {{plugin}}",
   "fromPluginHelp": "In {{plugin}} ändern und neu importieren.",
-  "noMonitoring": "Es ist keine Monitoring-Quelle eingerichtet, darum zeigen die Bereiche ihre geplante Firewall. Ein Admin fügt LibreNMS (oder ein anderes Monitoring-Plugin) unter Einstellungen hinzu."
+  "noMonitoring": "Es ist keine Monitoring-Quelle eingerichtet, darum zeigen die Bereiche ihre geplante Firewall. Ein Admin fügt LibreNMS (oder ein anderes Monitoring-Plugin) unter Einstellungen hinzu.",
+  "forSwitches": "Für: {{switches}}",
+  "editSwitches": "Switches",
+  "switches": "Switches und Switch-Gruppen",
+  "switchesHelp": "Optional. Plätze hinter diesen Switches mit einer Adresse ausserhalb ihrer Bereiche erscheinen unter Probleme: falscher Port, falsches VLAN oder ein eigener Router. Leer gilt für jeden Switch der Bereich, in dem die meisten seiner Plätze sind.",
+  "switchGroups": "Switch-Gruppen",
+  "switchList": "Switches"
 }

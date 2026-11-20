@@ -1,6 +1,6 @@
-import { Alert, Anchor, Badge, Button, ColorInput, FileButton, Group, Image, NumberInput, Paper, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, ThemeIcon } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Collapse, ColorInput, FileButton, Group, Image, NumberInput, Paper, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, ThemeIcon, Tooltip, UnstyledButton } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
-import { IconCircleCheck, IconCircleX, IconDownload, IconUpload } from '@tabler/icons-react'
+import { IconChevronRight, IconCircleCheck, IconCircleX, IconDownload, IconUpload } from '@tabler/icons-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
@@ -133,67 +133,83 @@ export function FieldRow({ field, info, change, onChange, onReset, onUndo }: {
   const help = field.help ? t(keys(`fields.${k(field.key)}.help`), { defaultValue: field.help }) : undefined
   const placeholder = field.placeholder ? t(keys(`fields.${k(field.key)}.placeholder`), { defaultValue: field.placeholder }) : undefined
   const error = dirty && !resetting && invalid(field, change) ? t('settings.invalid') : undefined
-  const common = { label, description: help, disabled: resetting, error }
-  const wide = { maw: 560 }   // long enough for a URL, short enough to read
+  // The label and help stand on the left of the row, so the control only needs its id (#994).
+  const id = `setting-${field.key.replace(/[^a-z0-9]+/gi, '-')}`
+  const helpId = help ? `${id}-help` : undefined
+  const common = { id, disabled: resetting, error, 'aria-describedby': helpId, w: '100%' }
 
   let input: ReactNode
   switch (field.type) {
     case 'bool':
-      input = <Switch {...common} error={undefined} checked={!!value} onChange={(e) => onChange(e.currentTarget.checked)} />
+      input = <Switch id={id} disabled={resetting} aria-describedby={helpId} checked={!!value} onChange={(e) => onChange(e.currentTarget.checked)} />
       break
     case 'secret':
       // Saved, but the vault can't open it (the key changed): say so instead of just "not set".
-      input = <PasswordInput {...common} {...wide} autoComplete="new-password" value={typeof change === 'string' ? change : ''}
+      input = <PasswordInput {...common} autoComplete="new-password" value={typeof change === 'string' ? change : ''}
         error={error ?? (info.unreadable && !dirty ? t('settings.secretUnreadable') : undefined)}
         placeholder={info.is_set ? t('settings.secretSet') : t('settings.secretUnset')} onChange={(e) => onChange(e.currentTarget.value)} />
       break
     case 'int':
-      input = <NumberInput {...common} maw={260} value={value as number} min={field.min} max={field.max} allowDecimal={false}
+      input = <NumberInput {...common} value={value as number} min={field.min} max={field.max} allowDecimal={false}
         rightSection={field.unit ? <Text size="xs" c="dimmed" pr="xs">{t(`settings.unit.${field.unit}`, { defaultValue: field.unit })}</Text> : undefined}
         rightSectionWidth={field.unit ? 70 : undefined}
         onChange={(v) => onChange(v === '' ? '' : Number(v))} />
       break
     case 'choice':
-      input = <Select {...common} maw={360} allowDeselect={false} value={value as string}
+      input = <Select {...common} allowDeselect={false} value={value as string}
         data={(field.options ?? []).map((o) => ({ value: o.value, label: t(`settings.presets.${o.value}`, { defaultValue: o.label }) }))}
         onChange={(v) => v && onChange(v)} />
       break
     case 'color':
-      input = <ColorInput {...common} maw={260} format="hex" eyeDropperButtonProps={{ 'aria-label': t('settings.pickColour') }} value={(value as string) || ''} placeholder={t('settings.derived')}
+      input = <ColorInput {...common} format="hex" eyeDropperButtonProps={{ 'aria-label': t('settings.pickColour') }} value={(value as string) || ''} placeholder={t('settings.derived')}
         onChange={(v) => onChange(v.toLowerCase())} />
       break
     case 'list':
-      input = <TextInput {...common} {...wide} value={((value as string[]) ?? []).join(', ')} placeholder={placeholder}
+      input = <TextInput {...common} value={((value as string[]) ?? []).join(', ')} placeholder={placeholder}
         onChange={(e) => onChange(e.currentTarget.value.split(',').map((s) => s.trim()).filter(Boolean))} />
       break
     case 'image':
-      input = <ImageField common={common} value={(value as string) || ''} onChange={onChange} />
+      input = <ImageField label={label} disabled={resetting} value={(value as string) || ''} onChange={onChange} />
       break
     default:
-      input = <TextInput {...common} {...wide} type={field.type === 'url' ? 'url' : 'text'} spellCheck={false} placeholder={placeholder}
+      input = <TextInput {...common} type={field.type === 'url' ? 'url' : 'text'} spellCheck={false} placeholder={placeholder}
         value={(value as string) ?? ''} onChange={(e) => onChange(e.currentTarget.value.trim().replace(/\/+$/, ''))} />
   }
 
   return (
-    <Stack gap={4} data-key={field.key}>
-      {input}
-      <Group gap="xs">
-        {dirty
-          ? <Badge size="sm" variant="light" color="warn" tt="none">{t(resetting ? 'settings.willReset' : 'settings.unsaved')}</Badge>
-          : <Badge size="sm" variant="light" color={info.source === 'saved' ? 'bit' : 'gray'} tt="none">{t(`settings.source.${info.source}`)}</Badge>}
-        {field.env && <Text size="xs" c="dimmed" ff="monospace">{field.env}{info.env_set ? ` ${t('settings.envSet')}` : ''}</Text>}
-        {info.source === 'saved' && !dirty && (
-          <Anchor component="button" type="button" size="xs" onClick={onReset}>
-            {t(field.type === 'secret' ? 'settings.removeSecret' : 'settings.reset')}
-          </Anchor>
-        )}
-        {dirty && <Anchor component="button" type="button" size="xs" onClick={onUndo}>{t('settings.undo')}</Anchor>}
-      </Group>
-    </Stack>
+    <div className="fb-setting-row" data-key={field.key}>
+      <div className="fb-setting-about">
+        {field.type === 'image' ? <Text size="sm" fw={500}>{label}</Text>
+          : <Text component="label" htmlFor={id} size="sm" fw={500}>{label}</Text>}
+        {help && <Text id={helpId} size="xs" c="dimmed">{help}</Text>}
+        <Group gap="xs" mt={2}>
+          {dirty && <Badge size="sm" variant="light" color="warn" tt="none">{t(resetting ? 'settings.willReset' : 'settings.unsaved')}</Badge>}
+          {dirty && <Anchor component="button" type="button" size="xs" onClick={onUndo}>{t('settings.undo')}</Anchor>}
+          {!dirty && <SourceTag info={info} env={field.env ?? undefined} />}
+          {info.source === 'saved' && !dirty && (
+            <Anchor component="button" type="button" size="xs" onClick={onReset}>
+              {t(field.type === 'secret' ? 'settings.removeSecret' : 'settings.reset')}
+            </Anchor>
+          )}
+        </Group>
+      </div>
+      <div className="fb-setting-control">{input}</div>
+    </div>
   )
 }
 
-function ImageField({ common, value, onChange }: { common: { label: string; description?: string; disabled: boolean }; value: string; onChange: (v: string) => void }) {
+/** Where a value comes from, said only when it isn't the default; the env var name is for whoever runs the server, so it waits in a tooltip (#992). */
+function SourceTag({ info, env }: { info: Value; env?: string }) {
+  const { t } = useTranslation()
+  if (info.source === 'default') return null
+  const text = <Text size="xs" c="dimmed" data-source={info.source}>{t(`settings.source.${info.source}`)}</Text>
+  const tip = env && (info.source === 'env' || info.env_set)
+    ? t(info.source === 'env' ? 'settings.envTip' : 'settings.envOverridden', { env })
+    : null
+  return tip ? <Tooltip label={tip} withArrow multiline maw={320}><span tabIndex={0}>{text}</span></Tooltip> : text
+}
+
+function ImageField({ label, disabled, value, onChange }: { label: string; disabled: boolean; value: string; onChange: (v: string) => void }) {
   const { t } = useTranslation()
   const [tooBig, setTooBig] = useState(false)
   const pick = (file: File | null) => {
@@ -206,16 +222,14 @@ function ImageField({ common, value, onChange }: { common: { label: string; desc
   }
   return (
     <Stack gap={4}>
-      <Text size="sm" fw={500}>{common.label}</Text>
-      {common.description && <Text size="xs" c="dimmed">{common.description}</Text>}
       <Group gap="sm">
         {value && <Paper withBorder p={4} radius="md"><Image src={value} alt="" h={40} w="auto" fit="contain" /></Paper>}
-        <FileButton onChange={pick} accept="image/svg+xml,image/png,image/jpeg,image/webp" disabled={common.disabled}>
-          {(props) => <Button {...props} variant="default" size="xs">{t('settings.chooseImage')}</Button>}
+        <FileButton onChange={pick} accept="image/svg+xml,image/png,image/jpeg,image/webp" disabled={disabled}>
+          {(props) => <Button {...props} variant="default" size="xs" aria-label={`${label}: ${t('settings.chooseImage')}`}>{t('settings.chooseImage')}</Button>}
         </FileButton>
-        {value && <Button variant="subtle" size="xs" color="down" disabled={common.disabled} onClick={() => onChange('')}>{t('settings.removeImage')}</Button>}
+        {value && <Button variant="subtle" size="xs" color="down" disabled={disabled} onClick={() => onChange('')}>{t('settings.removeImage')}</Button>}
       </Group>
-      {tooBig && <Text size="xs" c="down" role="alert">{t('settings.imageTooBig', { name: common.label })}</Text>}
+      {tooBig && <Text size="xs" c="down" role="alert">{t('settings.imageTooBig', { name: label })}</Text>}
     </Stack>
   )
 }
@@ -264,31 +278,61 @@ export function SettingsForm({ ed, children }: { ed: SettingsEditor; children: R
 }
 
 /** One section's fields; ``only`` limits it to some of them (search results). */
-export function SectionPanel({ ed, section, only, title, actions }: {
-  ed: SettingsEditor; section: SettingsAnswer['sections'][number]; only?: Set<string>; title?: ReactNode; actions?: ReactNode
+export function SectionPanel({ ed, section, only, title, desc, actions }: {
+  ed: SettingsEditor; section: SettingsAnswer['sections'][number]; only?: Set<string>; title?: ReactNode
+  /** null leaves the section's description out (a page that already says it, like a plugin's). */
+  desc?: ReactNode | null; actions?: ReactNode
 }) {
   const { t } = useTranslation()
   const d = ed.d
   if (!d) return null
   const s = section
   const fields = d.fields.filter((f) => f.section === s.id && (!only || only.has(f.key)))
+  const basic = fields.filter((f) => !f.advanced)
+  const advanced = fields.filter((f) => f.advanced)
+  const row = (f: Field, i: number, list: Field[]) => (
+    <Stack key={f.key} gap={0}>
+      {/* Above the Custom-only colours, which its text ("the colours below") points at. */}
+      {s.id === 'appearance' && f.theme === 'custom' && list[i - 1]?.theme !== 'custom' && <ThemeHint current={ed.current} />}
+      <FieldRow field={f} info={d.values[f.key]} change={ed.changes[f.key]}
+        onChange={(v) => ed.setField(f, v)} onReset={() => ed.reset(f.key)} onUndo={() => ed.drop(f.key)} />
+    </Stack>
+  )
   return (
     <Panel id={`sec-${s.id}`} title={title ?? sectionTitle(t, s)}
-      desc={t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
+      desc={desc === null ? undefined : desc ?? t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
       actions={actions ?? (TESTABLE.has(s.id) && (
         <Button variant="default" size="xs" onClick={() => void ed.test.run(s.id)}>{t('settings.test')}</Button>
       ))}>
-      <Stack gap="lg">
+      <Stack gap={0} className="fb-setting-rows">
         {TESTABLE.has(s.id) && <TestLine result={ed.test.results[s.id] ?? null} />}
-        {fields.map((f, i) => (
-          <Stack key={f.key} gap="lg">
-            {/* Above the Custom-only colours, which its text ("the colours below") points at. */}
-            {s.id === 'appearance' && f.theme === 'custom' && fields[i - 1]?.theme !== 'custom' && <ThemeHint current={ed.current} />}
-            <FieldRow field={f} info={d.values[f.key]} change={ed.changes[f.key]}
-              onChange={(v) => ed.setField(f, v)} onReset={() => ed.reset(f.key)} onUndo={() => ed.drop(f.key)} />
-          </Stack>
-        ))}
+        {basic.map(row)}
       </Stack>
+      {advanced.length > 0 && (
+        <Advanced count={advanced.length} open={!!only || advanced.some((f) => ed.changes[f.key] !== undefined)} alone={!basic.length}>
+          <Stack gap={0} className="fb-setting-rows">{advanced.map(row)}</Stack>
+        </Advanced>
+      )}
     </Panel>
+  )
+}
+
+/** A section's server-side values, folded: open when searching or when one of them has an unsaved change.
+ *  The agent settings fold theirs the same way, with their own hint. */
+export function Advanced({ count, open, alone = false, hint, children }: {
+  count: number; open: boolean; alone?: boolean; hint?: string; children: ReactNode
+}) {
+  const { t } = useTranslation()
+  const [shown, setShown] = useState(false)
+  const opened = shown || open
+  return (
+    <div className={alone ? 'fb-setting-advanced is-alone' : 'fb-setting-advanced'}>
+      <UnstyledButton className="fb-setting-advanced-toggle" aria-expanded={opened} onClick={() => setShown(!opened)}>
+        <IconChevronRight size={14} className={opened ? 'is-open' : undefined} aria-hidden />
+        <Text size="sm" fw={600} component="span">{t('settings.advanced', { count })}</Text>
+        <Text size="xs" c="dimmed" component="span">{hint ?? t('settings.advancedHint')}</Text>
+      </UnstyledButton>
+      <Collapse expanded={opened}>{children}</Collapse>
+    </div>
   )
 }

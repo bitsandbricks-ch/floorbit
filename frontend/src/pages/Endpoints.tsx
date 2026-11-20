@@ -1,4 +1,4 @@
-import { Anchor, Badge, Group, Stack, Table, Text, TextInput } from '@mantine/core'
+import { Anchor, Badge, Group, Stack, Text, TextInput } from '@mantine/core'
 import { IconSearch } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -7,6 +7,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { EndpointAnswer, EndpointRow } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
@@ -82,41 +83,24 @@ export default function Endpoints() {
           <EmptyState title={t('endpoints.none')} desc={t('endpoints.noneDesc', { days: query.data?.status.keep_days ?? 7 })} />
         ) : (
           <Panel padding={0}>
-            <Table.ScrollContainer minWidth={760}>
-              <Table striped highlightOnHover>
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>{t('endpoints.col.ip')}</Table.Th>
-                    <Table.Th>{t('endpoints.col.mac')}</Table.Th>
-                    <Table.Th>{t('endpoints.col.port')}</Table.Th>
-                    <Table.Th>{t('endpoints.col.seat')}</Table.Th>
-                    <Table.Th>{t('endpoints.col.vlan')}</Table.Th>
-                    <Table.Th>{t('endpoints.col.seen')}</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {rows.map((r) => (
-                    <Table.Tr key={`${r.mac}|${r.ip}|${r.device}|${r.port}|${r.first_seen}`}>
-                      <Table.Td ff="monospace">{r.ip ?? '–'}</Table.Td>
-                      <Table.Td ff="monospace">{r.mac}</Table.Td>
-                      <Table.Td>{portLink(r)}</Table.Td>
-                      <Table.Td>
-                        {r.seat ? <Anchor component={Link} to={`/endpoints?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor> : '–'}
-                      </Table.Td>
-                      <Table.Td>{r.vlan ?? '–'}</Table.Td>
-                      <Table.Td>
-                        <Group gap={6} wrap="nowrap">
-                          {now - r.last_seen < NOW_WINDOW
-                            ? <Badge color="up" variant="light" tt="none">{t('endpoints.now')}</Badge>
-                            : <Text span size="sm">{ago(r.last_seen)}</Text>}
-                          <Text span size="xs" c="dimmed">{t('endpoints.since', { when: dateTime(r.first_seen) })}</Text>
-                        </Group>
-                      </Table.Td>
-                    </Table.Tr>
-                  ))}
-                </Table.Tbody>
-              </Table>
-            </Table.ScrollContainer>
+            <DataTable label={t('endpoints.title')} rows={rows} rowKey={(r) => `${r.mac}|${r.ip}|${r.device}|${r.port}|${r.first_seen}`}
+              defaultSort={{ id: 'seen', desc: true }} minWidth={760} bare striped
+              columns={[
+                { id: 'ip', header: t('endpoints.col.ip'), sort: (r) => r.ip ?? '', mono: true, cell: (r) => r.ip ?? '–' },
+                { id: 'mac', header: t('endpoints.col.mac'), sort: (r) => r.mac, mono: true, cell: (r) => r.mac },
+                { id: 'port', header: t('endpoints.col.port'), sort: (r) => `${r.device} ${r.port}`, cell: (r) => portLink(r) },
+                { id: 'seat', header: t('endpoints.col.seat'), sort: (r) => r.seat ?? '', cell: (r) =>
+                  (r.seat ? <Anchor component={Link} to={`/endpoints?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor> : '–') },
+                { id: 'vlan', header: t('endpoints.col.vlan'), sort: (r) => r.vlan ?? -1, hideOnPhone: true, cell: (r) => r.vlan ?? '–' },
+                { id: 'seen', header: t('endpoints.col.seen'), sort: (r) => r.last_seen, cell: (r) => (
+                  <Group gap={6} wrap="nowrap">
+                    {now - r.last_seen < NOW_WINDOW
+                      ? <Badge color="up" variant="light" tt="none">{t('endpoints.now')}</Badge>
+                      : <Text span size="sm">{ago(r.last_seen)}</Text>}
+                    <Text span size="xs" c="dimmed">{t('endpoints.since', { when: dateTime(r.first_seen) })}</Text>
+                  </Group>
+                ) },
+              ]} />
           </Panel>
         )}
       </Stack>

@@ -21,10 +21,6 @@ _lock = threading.Lock()
 # (method, URL rule) -> (area, action). Requests not listed here aren't logged: reads, the
 # attendee check-in (it has its own history), lookups sent as POST, connection tests.
 ACTIONS = {
-    ('POST', '/api/settings/segments'): ('settings', 'Added network segment'),
-    ('PATCH', '/api/settings/segments/<seg_id>'): ('settings', 'Changed network segment'),
-    ('DELETE', '/api/settings/segments/<seg_id>'): ('settings', 'Removed network segment'),
-    ('POST', '/api/settings/segments/discover'): ('settings', 'Took network segments from discovery'),
     ('POST', '/api/checkins/lookup-window'): ('check-in', 'Opened the check-in lookups'),
     ('DELETE', '/api/checkins/lookup-window'): ('check-in', 'Closed the check-in lookups'),
     ('POST', '/api/settings/webhooks'): ('settings', 'Added webhook'),

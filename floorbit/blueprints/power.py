@@ -66,7 +66,9 @@ def power_flags():
 
 
 @bp.route('/power')
-def power_page():
+@bp.route('/power/boards/<_id>')
+@bp.route('/power/circuits/<_id>')
+def power_page(_id=None):
     return spa.render('Electrics')
 
 
