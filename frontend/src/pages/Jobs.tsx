@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Paper, Select, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Button, Group, Paper, Select, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,9 +9,11 @@ import type { DutyStatus, Job, JobsData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { JobPlan } from './jobs/JobPlan'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
+import { toastDone } from '@/components/toast'
+import { IconChecklist } from '@tabler/icons-react'
 
 function since(ts: number) {
   return clock(ts)
@@ -67,7 +69,6 @@ export default function Jobs() {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const jobs = useQuery({ queryKey: qk.jobs, queryFn: () => get<JobsData>('/api/jobs'), refetchInterval: 15_000 })
-  const [message, setMessage] = useState<string | null>(null)
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.jobs })
   useLiveEvent('incident.changed', refresh)
   const duty = useMutation({
@@ -77,7 +78,7 @@ export default function Jobs() {
   const answer = useMutation({
     mutationFn: (v: { id: string; kind: 'take' | 'done' | 'give-back'; note: string }) => post(`/api/jobs/${v.id}/${v.kind}`, { note: v.note }),
     onSuccess: (_r, v) => {
-      setMessage(v.kind === 'done' ? t('jobs.doneMsg') : v.kind === 'give-back' ? t('jobs.backMsg') : null)
+      if (v.kind !== 'take') toastDone(v.kind === 'done' ? t('jobs.doneMsg') : t('jobs.backMsg'))
       refresh()
     },
   })
@@ -91,7 +92,6 @@ export default function Jobs() {
       <PageHead title={t('jobs.title')} desc={t('jobs.intro')} />
       <Stack gap="md">
         <ErrorBanner error={error} />
-        {message && <Alert color="up" role="status" withCloseButton onClose={() => setMessage(null)}>{message}</Alert>}
         {jobs.isPending ? <LoadingState /> : data && (
           <>
             <Paper withBorder radius="lg" p="sm">
@@ -108,7 +108,7 @@ export default function Jobs() {
             {data.me.on_duty && data.auto && <Text size="sm" c="dimmed">{t('jobs.autoOn')}</Text>}
             {(data.done ?? 0) > 0 && <Text size="sm" c="up" role="status">{t('jobs.doneLately', { count: data.done })}</Text>}
             {data.jobs.length === 0 ? (
-              <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('jobs.none')}</Text></Paper>
+              <Paper withBorder radius="lg"><EmptyState icon={<IconChecklist size={24} />} title={t('jobs.none')} /></Paper>
             ) : data.jobs.map((job) => (
               <JobCard key={job.id} job={job} busy={answer.isPending && answer.variables?.id === job.id}
                 onAnswer={(kind, note) => answer.mutate({ id: job.id, kind, note })} />

@@ -1,4 +1,4 @@
-"""Network segments (issue #946, floorbit/segments.py) and the agent's one-off SNMP GETs
+"""Network segments (issues #946, #1029, floorbit/segments.py) and the agent's one-off SNMP GETs
 (floorbit/telemetry/snmpget.py)."""
 import socket
 import threading
@@ -9,19 +9,20 @@ from floorbit import segments
 from floorbit.telemetry import snmpget
 
 
-def test_segments_start_with_lookups_off_and_are_checked(client):
-    r = client.post('/api/settings/segments', json={'vlan': 110, 'network': '10.10.1.7/22', 'name': ' Seats  A '})
+def test_a_range_with_a_vlan_and_a_prefix_is_a_segment_with_lookups_off(client):
+    entries = '/api/inventory/entries/vlan'
+    r = client.post(entries, json={'name': 'Seats A', 'fields': {'vlan_id': 110, 'prefix': '10.10.1.7/22'}})
     assert r.status_code == 201
-    seg = r.get_json()['segment']
-    assert seg['network'] == '10.10.0.0/22' and seg['name'] == 'Seats A' and seg['lookups'] is False
-    assert client.post('/api/settings/segments', json={'vlan': 111, 'network': '10.10.0.0/22'}).status_code == 400
-    assert client.post('/api/settings/segments', json={'vlan': 5000, 'network': '10.20.0.0/24'}).status_code == 400
-    assert client.post('/api/settings/segments', json={'vlan': 5, 'network': 'example'}).status_code == 400
-    changed = client.patch(f'/api/settings/segments/{seg["id"]}', json={'lookups': True}).get_json()['segment']
-    assert changed['lookups'] is True
-    assert segments.for_ip('10.10.2.40')['vlan'] == 110 and segments.for_ip('10.11.0.1') is None
-    assert client.delete(f'/api/settings/segments/{seg["id"]}').status_code == 200
-    assert client.get('/api/settings/segments').get_json()['segments'] == []
+    seg_id = r.get_json()['id']
+    client.post(entries, json={'name': 'Only a VLAN', 'fields': {'vlan_id': 120}})        # no prefix: not one
+    client.post(entries, json={'name': 'Too big', 'fields': {'vlan_id': 130, 'prefix': '10.0.0.0/7'}})
+    found = segments.all_segments()
+    assert [(s['vlan'], s['network'], s['name'], s['lookups'], s['source']) for s in found] == \
+        [(110, '10.10.0.0/22', 'Seats A', False, 'manual')]
+    assert not segments.lookups_on()
+    assert client.patch(f'{entries}/{seg_id}', json={'fields': {'lookups': True}}).status_code == 200
+    assert segments.lookups_on() and segments.for_ip('10.10.2.40')['vlan'] == 110
+    assert segments.for_ip('10.11.0.1') is None
 
 
 def test_the_narrowest_range_wins():
@@ -30,37 +31,38 @@ def test_the_narrowest_range_wins():
     assert segments.for_ip('10.99.1.1', found)['vlan'] == 1
 
 
-def test_crew_cannot_change_segments(kiosk_client):
-    assert kiosk_client.get('/api/settings/segments').status_code == 403
-    assert kiosk_client.post('/api/settings/segments', json={'vlan': 1, 'network': '10.0.0.0/24'}).status_code == 403
-
-
 @pytest.mark.parametrize('name,vlan', [('Vlan110', 110), ('Vl20', 20), ('vlanif 30', 30), ('irb.40', 40),
                                        ('GigabitEthernet1/0/1', None), ('Vlan5000', None)])
 def test_vlan_interfaces_by_name(name, vlan):
     assert segments.vlan_of_interface(name) == vlan
 
 
-def test_discovery_proposes_segments_and_never_overwrites_a_hand_edit(client, monkeypatch):
+def test_discovery_gives_a_vlan_interfaces_range_its_vlan_and_keeps_hand_edits(client):
+    from floorbit import inventory_discovery
     from floorbit.store import load_data, save_data
-    data = load_data()
-    data['inventory_discovered'] = {'dev-1': {'vlans': [{'id': 110, 'name': 'SEATS-A'}],
-                                              'svis': [{'vlan': 110, 'network': '10.10.0.0/22', 'if_index': 110},
-                                                       {'vlan': 120, 'network': '10.12.0.0/24', 'if_index': 120}]}}
-    save_data(data)
-    assert client.post('/api/settings/segments/discover').get_json() == {'added': 2, 'updated': 0, 'found': 2}
-    found = {s['vlan']: s for s in client.get('/api/settings/segments').get_json()['segments']}
-    assert found[110]['name'] == 'SEATS-A' and found[110]['if_index'] == 110 and found[110]['source'] == 'discovery'
-    assert not any(s['lookups'] for s in found.values())            # off until someone turns them on
-    client.patch(f'/api/settings/segments/{found[120]["id"]}', json={'name': 'Crew', 'lookups': True})
-    client.patch(f'/api/settings/segments/{found[110]["id"]}', json={'lookups': True})
-    data = load_data()
-    data['inventory_discovered']['dev-1']['vlans'] = [{'id': 110, 'name': 'SEATS-A-NEW'}, {'id': 120, 'name': 'X'}]
-    save_data(data)
-    client.post('/api/settings/segments/discover')
-    found = {s['vlan']: s for s in client.get('/api/settings/segments').get_json()['segments']}
-    assert found[110]['name'] == 'SEATS-A-NEW' and found[110]['lookups'] is True     # discovery's own: corrected
-    assert found[120]['name'] == 'Crew'                                              # changed by hand: kept
+
+    def discover(svis, vlans):
+        data = load_data()
+        found = [{'vlans': vlans, 'networks': ['192.0.2.0/24'], 'svis': svis}]
+        inventory_discovery._entries(data, found, {})
+        save_data(data)
+    discover([{'vlan': 110, 'network': '10.10.0.0/22', 'if_index': 110}], [{'id': 110, 'name': 'SEATS-A'}])
+    found = {s['network']: s for s in segments.all_segments()}
+    assert set(found) == {'10.10.0.0/22'}          # 192.0.2.0/24 has no VLAN interface: not a segment
+    assert found['10.10.0.0/22']['vlan'] == 110 and found['10.10.0.0/22']['source'] == 'discovery'
+    assert found['10.10.0.0/22']['lookups'] is False
+    seg_id = found['10.10.0.0/22']['id']
+    client.patch(f'/api/inventory/entries/vlan/{seg_id}', json={'fields': {'lookups': True, 'vlan_id': 111}})
+    discover([{'vlan': 112, 'network': '10.10.0.0/22', 'if_index': 112}], [])
+    seg = segments.all_segments()[0]
+    assert seg['vlan'] == 111 and seg['lookups'] is True             # changed by hand: kept
+
+
+def test_discovery_keeps_vlan_interfaces():
+    """The VLAN interfaces survive discovery's copy of the facts (issue #1070)."""
+    from floorbit import inventory_discovery
+    action = next(a for a in inventory_discovery.ACTIONS if a['id'] == 'networks')
+    assert 'svis' in action['keys']
 
 
 def test_the_facts_name_vlan_interfaces():

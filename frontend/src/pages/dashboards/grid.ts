@@ -9,6 +9,29 @@ export const MAX_SECTIONS = 12
 /** Row height when the dashboard scrolls (``fit`` off), in pixels. */
 export const ROW_PX = 40
 
+/** On a Page, panel heights (rows) snap to where a widget reads small, medium and large (#923):
+ *  with the pane's title, 3 rows draw a number, 5 a short list or a graph, 8 the details. Above
+ *  large any height goes. */
+export const PAGE_HEIGHTS = [3, 5, 8]
+
+/** On a phone, a panel this narrow and short (a quarter of the width, up to M) is a small number:
+ *  two sit side by side instead of one per row (#923). */
+export const phonePair = (p: Box) => p.w <= COLS / 4 && p.h <= PAGE_HEIGHTS[1]
+const TOP = PAGE_HEIGHTS[PAGE_HEIGHTS.length - 1]
+
+/** The page height nearest ``h`` (a tie goes up). */
+export function snapHeight(h: number): number {
+  if (h >= TOP) return h
+  return PAGE_HEIGHTS.reduce((best, x) => (Math.abs(x - h) <= Math.abs(best - h) ? x : best))
+}
+
+/** One step up (``dir`` 1) or down (-1) from ``h``: the next page height, a row at a time above large. */
+export function stepHeight(h: number, dir: 1 | -1): number {
+  if (dir > 0) return h >= TOP ? h + 1 : PAGE_HEIGHTS.find((x) => x > h) ?? TOP
+  if (h > TOP) return h - 1
+  return [...PAGE_HEIGHTS].reverse().find((x) => x < h) ?? PAGE_HEIGHTS[0]
+}
+
 export interface Panel { x: number; y: number; w: number; h: number; node: Node }
 export interface Section { title?: string; folded?: boolean; panels: Panel[] }
 type Box = Pick<Panel, 'x' | 'y' | 'w' | 'h'>

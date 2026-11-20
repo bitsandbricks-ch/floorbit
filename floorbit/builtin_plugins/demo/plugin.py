@@ -33,6 +33,9 @@ HALF_DUPLEX = ('B', 5)        # one seat with a bad cable
 ERRORS = ('D', 17)
 SWAPPED = (('B', 2), ('B', 3))   # two players sat down at each other's seats
 CREW_LAPTOP = ('sw-d-01', 'Gi1/0/40')   # on a port no seat is patched to
+# More than one machine on a seat port (issue #1119): a console next to the PC, and a small
+# router someone brought, with the machines behind it.
+SHARED_SEATS = {('A', 5): 1, ('C', 4): 5}
 FLAPPING_PORT = ('C', 9)      # a loose cable: the link drops every 45 seconds
 BOUNCE_SECONDS = 10          # a demo bounce keeps the port down this long
 _bounced = {}                 # (switch, port) -> time the port comes back
@@ -586,6 +589,8 @@ class Plugin(Plugin):
             machine = where.get(swap.get((block, number)), i)
             if _taken(machine):
                 out.append({'port': port, 'mac': _mac(machine), 'vlan': 100})
+                out += [{'port': port, 'mac': f'02:00:00:03:{i:02x}:{n:02x}', 'vlan': 100}
+                        for n in range(SHARED_SEATS.get((block, number), 0))]
         if out:
             # The uplink sees every MAC behind it.
             out += [{'port': ACCESS_UPLINK, 'mac': f'02:00:00:01:00:{n:02x}', 'vlan': 100} for n in range(12)]
@@ -682,9 +687,13 @@ class Plugin(Plugin):
                  'version 15.2', f'hostname {name}', '!',
                  'enable secret 9 $9$demo.example.hash', 'username netops privilege 15 secret 9 $9$demo.example.hash',
                  '!', 'vlan 100', ' name players', 'vlan 999', ' name mgmt', '!']
-        for seat, _b, _n, _i, port in self._demo_ports(name):
-            lines += [f'interface {port}', f' description Seat {seat}', ' switchport access vlan 100',
-                      ' switchport mode access', ' spanning-tree portfast', ' spanning-tree bpduguard enable']
+        for i, (seat, _b, _n, _i, port) in enumerate(self._demo_ports(name)):
+            # A few slips for the seat port check (issue #1059): sw-d-02 lost BPDU guard on its first
+            # ports (its broadcast storm), sw-b-02 has one port left in the default VLAN.
+            vlan = [] if (name, i) == ('sw-b-02', 2) else [' switchport access vlan 100']
+            guard = [] if name == 'sw-d-02' and i < 3 else [' spanning-tree bpduguard enable']
+            lines += [f'interface {port}', f' description Seat {seat}', *vlan,
+                      ' switchport mode access', ' spanning-tree portfast', *guard]
             if (name, port) in _shut:
                 lines.append(' shutdown')
             lines.append('!')

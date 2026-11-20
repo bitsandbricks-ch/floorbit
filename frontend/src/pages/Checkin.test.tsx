@@ -54,6 +54,40 @@ describe('Checkin', () => {
     expect(screen.queryByText(/Your IP/)).not.toBeInTheDocument()
   })
 
+  describe('on Floorbit\'s own address', () => {
+    const hall = (sure: boolean) => info({ ip: null, outside: true, address: 'checkin.lan', hall: { url: 'http://checkin.lan/checkin?via=abc', sure } })
+    afterEach(() => sessionStorage.clear())
+
+    it('goes on to the event network by itself when Floorbit is sure the PC is in the hall', async () => {
+      const assign = vi.fn()
+      vi.stubGlobal('location', { ...window.location, search: '?pin=K7M2X', assign })
+      vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': hall(true) }).fn)
+      renderWithApp(<Checkin />, '/checkin')
+      expect(await screen.findByText(/Taking you to the check-in on the event network/)).toBeInTheDocument()
+      expect(assign).toHaveBeenCalledWith('http://checkin.lan/checkin?via=abc&pin=K7M2X')
+    })
+
+    it('offers it otherwise, and the seat and nick still count from here', async () => {
+      const assign = vi.fn()
+      vi.stubGlobal('location', { ...window.location, assign })
+      vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': hall(false) }).fn)
+      renderWithApp(<Checkin />, '/checkin')
+      fireEvent.click(await screen.findByRole('button', { name: /Continue on the event network/ }))
+      expect(assign).toHaveBeenCalledWith('http://checkin.lan/checkin?via=abc')
+      expect(screen.getByLabelText(/PIN from your seat card/)).toBeInTheDocument()
+    })
+
+    it('doesn\'t go again by itself when the trip just failed', async () => {
+      sessionStorage.setItem('fb-checkin-hall-trip', String(Date.now()))
+      const assign = vi.fn()
+      vi.stubGlobal('location', { ...window.location, assign })
+      vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': hall(true) }).fn)
+      renderWithApp(<Checkin />, '/checkin')
+      expect(await screen.findByText(/The event network didn't open/)).toBeInTheDocument()
+      expect(assign).not.toHaveBeenCalled()
+    })
+  })
+
   it('offers only the PIN when the server asks for it', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': info({ pin_required: true }) }).fn)
     renderWithApp(<Checkin />, '/checkin')

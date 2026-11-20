@@ -5,7 +5,7 @@
   "publicOff": "Die öffentliche Seite /status ist ausgeschaltet. Ein Admin schaltet sie unter Einstellungen > Attendee pages ein.",
   "shows": "Die öffentliche Seite zeigt",
   "since": "seit {{time}}",
-  "automatic": "Aus dem Status der Switches ermittelt.",
+  "automatic": "Aus Switches, Firewalls, Internetleitungen, DNS und DHCP ermittelt.",
   "setBy": "{{state}}, gesetzt von {{who}} um {{time}}. Automatisch wäre: {{auto}}.",
   "setState": "Status setzen",
   "note": "Notiz für die Crew",

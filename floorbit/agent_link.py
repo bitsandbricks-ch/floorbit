@@ -35,6 +35,20 @@ from .store import load_data, load_shared, save_data
 KEY = 'agents'
 PREFIX = 'fba_'
 MAX_AGENTS = 10
+AGENT_IMAGE = 'ghcr.io/bitsandbricks-ch/floorbit-agent'
+_AGENT_REF = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'AGENT_REF')
+
+
+def agent_image():
+    """The agent image to run, tagged with the agent commit this Floorbit is built and tested with
+    (AGENT_REF; the agent's image workflow tags every main commit with its short sha). ``latest``
+    only when the file is missing, as in an old image."""
+    try:
+        with open(_AGENT_REF) as f:
+            ref = f.read().strip()
+    except OSError:
+        ref = ''
+    return f"{AGENT_IMAGE}:{ref[:12]}" if re.fullmatch(r'[0-9a-f]{40}', ref) else f'{AGENT_IMAGE}:latest'
 NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}\Z')
 KEY_RE = re.compile(r'^fba_([0-9a-f]{8})_([A-Za-z0-9_-]{20,80})\Z')
 CONNECTED_FOR = 60       # an agent that asked for work this recently counts as connected
@@ -55,7 +69,7 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # terminal (floorbit/switch_link.py).
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
-           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours',
+           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours', 'device_facts',
            'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload',
            'switch_call', 'shell_open', 'shell_io', 'shell_close', 'plugin_test')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}\Z')
@@ -169,6 +183,7 @@ def _forget_cache():
     _active = _routes = None
     _pins[0] = None
     _doors.clear()
+    _set_up.update(at=None, value=True)
 
 
 _routes = None   # ((data file, mtime), routing)
@@ -207,11 +222,17 @@ def enrolled(agent_id):
 REPORT_KEYS = ('up_seconds', 'reconnects', 'link_drops', 'calls_busy', 'answers_failed',
                'syslog_received', 'syslog_sent', 'syslog_dropped', 'syslog_backlog', 'flows_packets',
                'captive_shown', 'captive_done', 'front_door_passed', 'front_door_failed')
+# Numbers the agent's relays now count as plugins (their gauges in ``plugins.<id>.metrics``), not
+# in the agent's own counters, which stay at 0: the page, the graphs and the history read these keys.
+PLUGIN_NUMBERS = {'syslog_received': ('syslog-relay', 'received'), 'syslog_dropped': ('syslog-relay', 'dropped'),
+                  'syslog_backlog': ('syslog-relay', 'waiting'), 'flows_packets': ('netflow-relay', 'packets'),
+                  'front_door_passed': ('front-door', 'requests_passed'),
+                  'front_door_failed': ('front-door', 'requests_failed')}
 REPORT_FRESH = 180        # seconds: an older report says more about the past than about now
 
 
 # The first argument is a switch.
-HOST_METHODS = ('device_details', 'port_stats', 'device_ports', 'port_clients', 'neighbours')
+HOST_METHODS = ('device_details', 'port_stats', 'device_ports', 'port_clients', 'neighbours', 'device_facts')
 
 
 def _hall_of(by_name, hostname):
@@ -657,6 +678,7 @@ class Tunnel:
         self._reports = {}        # agent id -> the agent's own numbers, as it last sent them
         self._links = {}          # agent id -> WebSocket links open to this pod
         self._asking = {}         # agent id -> None while in take(), else when it last left it
+        self._era = 0             # bumped by reset(): a take() from before it gives up
         self.last_seen = None
 
     def reset(self):
@@ -670,6 +692,9 @@ class Tunnel:
             self._relayed.clear()
             self._reports.clear()
             self.last_seen = None
+            # A long poll still waiting from before must not take calls made after the reset.
+            self._era += 1
+            self._cond.notify_all()
 
     def relayed(self, agent, kind, count=0, now=None):
         """An agent sent syslog or a flow summary: the Local agents page shows what each one relays."""
@@ -866,13 +891,16 @@ class Tunnel:
             return call.targets is None or agent in call.targets
 
         with self._cond:
+            era = self._era
             self._asking[agent] = None
             try:
-                while not any(mine(c) for c in self._pending):
+                while self._era == era and not any(mine(c) for c in self._pending):
                     left = deadline - time.monotonic()
                     if left <= 0:
                         return []
                     self._cond.wait(left)
+                if self._era != era:
+                    return []
                 out = []
                 for call in list(self._pending):
                     if len(out) >= limit:
@@ -883,7 +911,8 @@ class Tunnel:
                         out.append({'id': call.id, 'method': call.method, 'args': call.args})
                 return out
             finally:
-                self._asking[agent] = time.monotonic()
+                if self._era == era:
+                    self._asking[agent] = time.monotonic()
 
     def _nobody_asking(self, targets, now):
         """The agents (of ``targets``) that should have taken a call but didn't ask lately; empty
@@ -931,6 +960,10 @@ class Tunnel:
         plugins = clean_health(raw.get('plugins'))
         if plugins:
             clean['plugins'] = plugins
+            for key, (pid, metric) in PLUGIN_NUMBERS.items():
+                value = (plugins.get(pid) or {}).get('metrics', {}).get(metric)
+                if value is not None and value >= 0:
+                    clean[key] = max(clean.get(key) or 0, value)
         from .agent_plugins import clean_updates, clean_vrrp
         from .agent_settings import clean_report
         for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report)):
@@ -1041,6 +1074,7 @@ def _clean_feeds(feeds):
 # ── The monitoring source it feeds ─────────────────────────────────────────────────────────────
 
 SET_UP_EVERY = 30         # seconds an agent's "is monitoring set up?" answer is kept
+SET_UP_RETRY = 5          # seconds before asking again when the agent didn't answer
 _set_up = {'at': None, 'value': True}
 
 
@@ -1052,14 +1086,17 @@ def monitoring_set_up(now=None):
     now = time.monotonic() if now is None else now
     if _set_up['at'] is not None and 0 <= now - _set_up['at'] < SET_UP_EVERY:
         return _set_up['value']
-    _set_up['at'] = now
     if tunnel.connected_agents():
+        # Kept only once an agent answered: right after it connects the first ask can miss, and the
+        # pages' calls in the meantime would all go to an agent with nothing to answer them.
         try:
             _set_up['value'] = bool(ask('configured'))
+            _set_up['at'] = now
         except AgentUnavailable:
-            pass
+            _set_up['at'] = now - SET_UP_EVERY + SET_UP_RETRY    # a hung link must not slow every page
         except AgentError:
             _set_up['value'] = False      # the agent answered: no monitoring plugin there
+            _set_up['at'] = now
     return _set_up['value']
 
 def monitoring_source():
@@ -1099,5 +1136,13 @@ def monitoring_source():
 
         def neighbours(self, hostname):
             return self._call('neighbours', hostname) or []
+
+        def device_facts(self, hostname):
+            # An agent older than this method says it doesn't know it: discovery then has no facts.
+            try:
+                return self._call('device_facts', hostname) or {}
+            except PluginError as exc:
+                print(f'[agent] device_facts failed: {exc}')
+                return {}
 
     return AgentMonitoring()

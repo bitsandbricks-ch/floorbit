@@ -34,6 +34,16 @@ describe('PublicStatus', () => {
     expect(screen.getByText('Seat block C')).toBeInTheDocument()
   })
 
+  it('says what players notice when a firewall or internet line is down (#1038)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /status.json': status({
+      state: 'degraded', reasons: ['firewall', 'internet_slow'] }) }).fn)
+    renderWithApp(<PublicStatus />, '/status')
+    expect(await screen.findByText('Part of the network is down')).toBeInTheDocument()
+    expect(screen.getByText('Some things players need are failing. The crew is on it.')).toBeInTheDocument()
+    expect(screen.queryByText(/Some seats have no network/)).toBeNull()
+    expect(screen.getByText('One internet line is down: the internet may be slower.')).toBeInTheDocument()
+  })
+
   it('shows maintenance set by the crew, and times in 24 hours', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /status.json': status({ state: 'maintenance', since: now - 600 }) }).fn)
     const { container } = renderWithApp(<PublicStatus />, '/status')

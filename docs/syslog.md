@@ -81,9 +81,14 @@ line whose time is far off (a switch with a wrong clock) gets the time it arrive
 
 - **Search:** words that all have to be in the line (message, device, program or seat).
 - **Device, Seat, Port, Level:** filters. Level shows that level and worse. Clicking a device in the
-  list filters by it.
-- **Live:** on by default; new lines appear every 3 seconds.
-- **Older lines:** the page shows the newest 200 and pages back from there.
+  list filters by it. The search, the filters and the log shown are kept in the address
+  (`/logs?device=sw-a-01&severity=err`), so a reload or a pasted link shows the same lines.
+- **Pages and sorting:** 50 lines a page, newest first. Time, Level and Device sort the lines loaded
+  so far; the page and the order are in the address too (`?page=2&sort=-level`).
+- **Live:** on by default; new lines appear every 3 seconds. Past the first page or in another order
+  it pauses ("Live, paused"), so the lines don't move while you read.
+- **Older lines:** the page loads the newest 200; on the last page, **Older lines** reads the next
+  200 and jumps to them.
 - The line above the list says whether the receiver is listening, how many lines are kept and how
   many were dropped.
 

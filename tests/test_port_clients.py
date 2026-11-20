@@ -3,6 +3,7 @@ import pytest
 
 from floorbit import port_clients, sources
 from integrations import events, seat_sources
+from tests.test_rbac import sign_in_as
 
 
 class Fdb:
@@ -38,7 +39,8 @@ def hall(client, app_module, monkeypatch):
     monkeypatch.setattr(seat_sources, "load", lambda max_age=None: seats)
     client.post("/api/seat-blocks", json={"name": "A", "x": 10, "y": 10, "cols": 4, "rows": 1})
     block = next(b for b in client.get("/api/seat-blocks").get_json() if b["name"] == "A")
-    r = client.post("/api/cables/block", json={"block": block["id"], "switch": "sw-a-01", "first_port": "Gi1/0/1"})
+    r = client.post("/api/cables/block", json={"rows": [f"{block['id']}:1"], "switch": "sw-a-01",
+                                               "first_port": "Gi1/0/1"})
     assert r.status_code == 200, r.get_json()
     client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/48"})      # the uplink: no seat
     finder = app_module.app.extensions["floorbit_port_clients"]
@@ -79,6 +81,39 @@ def test_unplanned_and_moved_clients(hall, client):
     assert client.get("/api/cables/clients").get_json()["unplanned"] == {"count": 0, "rows": []}
 
 
+def test_seat_ports_with_more_than_one_machine(hall, client):
+    """A console next to the PC, and a router someone brought (issue #1119): counts, never MACs."""
+    hall["fdb"].tables["sw-a-01"] = [
+        {"port": "Gi1/0/1", "mac": mac(1)}, {"port": "Gi1/0/1", "mac": mac(2)},
+        *({"port": "Gi1/0/3", "mac": mac(60 + i)} for i in range(6)),
+        *({"port": "Gi1/0/48", "mac": mac(40 + i)} for i in range(10)),   # the uplink stays out
+        {"port": "Gi1/0/2", "mac": mac(3)},
+    ]
+    body = read(hall, client)
+    assert body["shared"]["rows"] == [
+        {"switch": "sw-a-01", "port": "Gi1/0/3", "seat": "A-3", "cable": body["shared"]["rows"][0]["cable"],
+         "macs": 6, "desk_switch": True},
+        {"switch": "sw-a-01", "port": "Gi1/0/1", "seat": "A-1", "cable": body["shared"]["rows"][1]["cable"],
+         "macs": 2, "desk_switch": False},
+    ]
+    assert "mac" not in body["shared"]["rows"][0]
+    attention = client.get("/api/problems").get_json()["attention"]
+    shared = [a for a in attention if a["kind"] == "shared"]
+    assert [a["title"] for a in shared] == ["Seat A-3: a switch or router on the seat port (6 machines)",
+                                            "Seat A-1: 2 machines on one seat port"]
+    assert shared[0]["where"] == "sw-a-01 Gi1/0/3" and shared[0]["link"] == "/plan?seat=A-3"
+
+
+def test_many_shared_seat_ports_are_one_line():
+    rows = [{"switch": "sw", "port": f"Gi1/0/{n}", "seat": f"A-{n}", "cable": "", "macs": 2 + (n == 1) * 5,
+             "desk_switch": n == 1} for n in range(1, 8)]
+    [item] = port_clients.problems({"shared": {"count": 7, "rows": rows}})
+    assert (item["title"], item["where"], item["seat"]) == (
+        "7 seat ports have more than one machine", "1 looks like a desk switch or router", None)
+    assert port_clients.problems({"shared": {"count": 0, "rows": []}}) == []
+    assert port_clients.problems({}) == []
+
+
 def test_a_dhcp_lease_fills_in_what_arp_has_not_seen_yet(hall, client):
     from floorbit.dhcp_leases import leases
     hall["fdb"].tables["sw-a-01"] = [{"port": "Gi1/0/2", "mac": mac(3)}]
@@ -115,3 +150,50 @@ def test_viewers_without_the_seat_mapping_may_not_look(app_module):
     from tests.test_rbac import sign_in_as
     assert sign_in_as(app_module, "vi4", "viewer").get("/api/cables/clients").status_code == 403
     assert sign_in_as(app_module, "te4", "tech").get("/api/cables/clients").status_code == 200
+
+
+def test_ips_without_a_port_and_seats_without_a_machine(hall, client, monkeypatch):
+    """Issue #949: PCs that never check in show up from the tables LibreNMS polls anyway."""
+    fdb = hall["fdb"]
+    fdb.tables["sw-a-01"] = [{"port": "Gi1/0/1", "mac": mac(1)}, {"port": "Gi1/0/7", "mac": mac(7)}]
+    fdb.arp_rows = [{"ipv4_address": "192.0.2.11", "mac_address": mac(1)},
+                    {"ipv4_address": "192.0.2.1", "mac_address": mac(0xfe)},     # the gateway
+                    {"ipv4_address": "192.0.2.50", "mac_address": mac(0x50)},    # nowhere on an edge port
+                    {"ipv4_address": "192.0.2.12", "mac_address": mac(2)}]       # A-2's IP, no port seen
+    from integrations import checkin
+    monkeypatch.setattr(checkin, "load_all", lambda: {})
+    body = read(hall, client)
+    assert [r["ip"] for r in body["no_port"]["rows"]] == ["192.0.2.12", "192.0.2.50"]
+    assert body["no_port"]["rows"][0]["ip_seat"] == "A-2"
+    assert body["empty"]["count"] == 0                          # before check-ins: no noise
+    monkeypatch.setattr(checkin, "load_all", lambda: {"A-1": {"nick": "x"}})
+    body = read(hall, client)
+    assert [r["seat"] for r in body["empty"]["rows"]] == ["A-2", "A-3", "A-4"]
+
+
+def test_a_switch_that_did_not_answer_lists_no_portless_ips(hall, client):
+    fdb = hall["fdb"]
+    fdb.broken.add("sw-a-01")
+    fdb.arp_rows = [{"ipv4_address": "192.0.2.50", "mac_address": mac(0x50)}]
+    assert read(hall, client)["no_port"]["count"] == 0
+
+
+def test_an_ignored_machine_leaves_the_lists(hall, client, app_module):
+    fdb = hall["fdb"]
+    fdb.tables["sw-a-01"] = [{"port": "Gi1/0/7", "mac": mac(7)}]
+    fdb.arp_rows = [{"ipv4_address": "192.0.2.50", "mac_address": mac(0x50)}]
+    body = read(hall, client)
+    assert body["unplanned"]["count"] == 1 and body["no_port"]["count"] == 1
+    r = client.post("/api/cables/clients/ignored", json={"mac": mac(7).upper(), "note": "printer"})
+    assert r.status_code == 200
+    assert client.post("/api/cables/clients/ignored", json={"mac": "nope"}).status_code == 400
+    body = client.get("/api/cables/clients").get_json()            # gone now, before the next read
+    assert body["unplanned"]["count"] == 0 and body["ignored"] == 1
+    client.post("/api/cables/clients/ignored", json={"mac": mac(0x50)})
+    assert read(hall, client)["no_port"]["count"] == 0
+    [row, _] = client.get("/api/cables/clients/ignored").get_json()["ignored"]
+    assert row["mac"] == mac(7) and row["note"] == "printer"
+    assert client.delete(f"/api/cables/clients/ignored/{mac(7)}").status_code == 200
+    assert read(hall, client)["unplanned"]["count"] == 1
+    viewer = sign_in_as(app_module, "vi9", "viewer")
+    assert viewer.post("/api/cables/clients/ignored", json={"mac": mac(9)}).status_code == 403

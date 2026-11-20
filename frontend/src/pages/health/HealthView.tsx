@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Group, Loader, Text } from '@mantine/core'
+import { Anchor, Button, Group, Text } from '@mantine/core'
 import { IconBellOff, IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type CSSProperties, useEffect, useState } from 'react'
@@ -10,6 +10,7 @@ import { useCan, useHealth } from '@/api/queries'
 import type { HealthCheck, HealthKind, HealthWall, State } from '@/api/types'
 import type { ViewProps } from '@/widgets/views'
 import { clock } from '@/lib/time'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 
 const KINDS: HealthKind[] = ['dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other']
 const STATES: State[] = ['down', 'warn', 'up', 'unknown']
@@ -134,12 +135,8 @@ export default function HealthView({ expanded }: ViewProps) {
           )}
         </Group>
       )}
-      {error && (
-        <Alert color="down" role="alert" mb="md">
-          {t('common.error', { message: error.message })}
-        </Alert>
-      )}
-      {health.isPending ? <Loader size="sm" aria-label={t('common.loading')} /> : health.data && <Wall wall={health.data} compact={!expanded} />}
+      <ErrorBanner error={error} mb="md" onRetry={health.error ? () => void health.refetch() : undefined} />
+      {health.isPending ? <LoadingState lines={!expanded} /> : health.data && <Wall wall={health.data} compact={!expanded} />}
     </>
   )
 }

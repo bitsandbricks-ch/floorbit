@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, Paper, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,7 @@ import { qk } from '@/api/keys'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
 
 type Tenant = { id: string; name: string; url: string; status: 'active' | 'suspended' }
 type Answer = { tenants: Tenant[]; here: string }
@@ -26,8 +26,7 @@ function NewTenant({ onMade }: { onMade: (m: Made) => void }) {
     onSuccess: (m) => { setId(''); setName(''); setUrl(''); setAdmin(''); onMade(m) },
   })
   return (
-    <Paper withBorder radius="lg" p="md">
-      <Title order={2} size="h4" mb="xs">{t('tenants.new')}</Title>
+    <Panel title={t('tenants.new')}>
       <Stack gap="sm">
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <TextInput label={t('tenants.id')} description={t('tenants.idHelp')} value={id} maxLength={40} required
@@ -44,7 +43,7 @@ function NewTenant({ onMade }: { onMade: (m: Made) => void }) {
           <Button loading={make.isPending} disabled={!id.trim()} onClick={() => make.mutate()}>{t('tenants.add')}</Button>
         </Group>
       </Stack>
-    </Paper>
+    </Panel>
   )
 }
 
@@ -172,12 +171,11 @@ export default function Tenants() {
         )}
         {query.isPending ? <LoadingState /> : d && (
           <>
-            <Paper withBorder radius="lg" p="md">
-              <Title order={2} size="h4" mb="xs">{t('tenants.list', { count: d.tenants.length })}</Title>
+            <Panel title={t('tenants.list', { count: d.tenants.length })}>
               <Stack gap="sm">
                 {d.tenants.map((tn) => <Row key={tn.id} tenant={tn} here={d.here} onChanged={refresh} />)}
               </Stack>
-            </Paper>
+            </Panel>
             <NewTenant onMade={(m) => { setMade(m); refresh() }} />
             <Text size="sm" c="dimmed">{t('tenants.docs')}</Text>
           </>

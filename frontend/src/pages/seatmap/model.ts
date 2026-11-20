@@ -1,7 +1,8 @@
 import type { SeatRow } from '@/api/types'
 
-export function matches(row: SeatRow, query: string, onlyManual: boolean) {
+export function matches(row: SeatRow, query: string, onlyManual: boolean, onlyOffPlan = false) {
   if (onlyManual && !row.manual) return false
+  if (onlyOffPlan && row.on_plan !== false) return false
   const q = query.trim().toLowerCase()
   if (!q) return true
   return [row.seat, `${row.switch} ${row.port}`, row.nick, row.ip, row.mac, row.manual?.note ?? ''].some((v) => v.toLowerCase().includes(q))
