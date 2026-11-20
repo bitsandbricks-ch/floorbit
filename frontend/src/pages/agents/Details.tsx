@@ -1,9 +1,10 @@
-import { Badge, Button, Group, Table, Text } from '@mantine/core'
+import { Badge, Button, Group, Text } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { AgentPluginHealth, AgentReport, AgentStats } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { ago } from '@/lib/time'
 import { HintAnchor } from './HintAnchor'
 import { PLUGIN_COLOR, pluginSays, uptime } from './model'
@@ -94,45 +95,31 @@ export function PluginTable({ plugins, lang, agentId }: { plugins?: Record<strin
   const ids = Object.keys(plugins ?? {}).sort()
   if (!plugins || !ids.length) return <Text size="sm" c="dimmed">{t('agents.noPluginReport')}</Text>
   return (
-    <Table verticalSpacing="sm" className="fb-table-stack" aria-label={t('agents.plugins')}>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>{t('agents.col.plugin')}</Table.Th>
-          <Table.Th>{t('agents.col.state')}</Table.Th>
-          <Table.Th>{t('agents.col.numbers')}</Table.Th>
-          <Table.Th>{t('agents.col.lastError')}</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {ids.map((id) => {
+    <DataTable rows={ids} rowKey={(id) => id} label={t('agents.plugins')} urlState={false} pageSize={0} bare cards
+      columns={[
+        { id: 'plugin', header: t('agents.col.plugin'), card: 'inline',
+          cell: (id) => <Badge variant="light" color={PLUGIN_COLOR[plugins[id].status] ?? 'gray'} tt="none">{id}</Badge> },
+        { id: 'state', header: t('agents.col.state'), card: 'label', wrap: true, cell: (id) => {
           const p = plugins[id]
-          const last = p.errors[p.errors.length - 1]
           const says = pluginSays(p, t, agentId)
           const tone = p.status === 'error' ? 'down' : p.status === 'warning' ? 'warn' : 'dimmed'
           return (
-            <Table.Tr key={id}>
-              <Table.Td className="fb-stack-inline">
-                <Badge variant="light" color={PLUGIN_COLOR[p.status] ?? 'gray'} tt="none">{id}</Badge>
-              </Table.Td>
-              <Table.Td data-label={t('agents.col.state')}>
-                <Text size="sm">{p.running ? t(`agents.pluginStatus.${p.status}`) : t('agents.pluginNotRunning')}</Text>
-                {says.text && <Text size="xs" c={tone} style={{ overflowWrap: 'anywhere' }}>{says.text}{says.link && <>{' '}<HintAnchor link={says.link} /></>}</Text>}
-                {says.detail && <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{says.detail}</Text>}
-              </Table.Td>
-              <Table.Td data-label={t('agents.col.numbers')}>
-                <Text size="xs" c="dimmed">
-                  {Object.entries(p.metrics).map(([k, v]) => `${k.replace(/_/g, ' ')} ${v.toLocaleString(lang)}`).join(' · ') || '–'}
-                </Text>
-              </Table.Td>
-              <Table.Td data-label={t('agents.col.lastError')}>
-                {last
-                  ? <Text size="xs" c="down" style={{ overflowWrap: 'anywhere' }}>{last.at ? `${ago(last.at, lang)}: ` : ''}{last.error}</Text>
-                  : <Text size="xs" c="dimmed">–</Text>}
-              </Table.Td>
-            </Table.Tr>
+            <>
+              <Text size="sm">{p.running ? t(`agents.pluginStatus.${p.status}`) : t('agents.pluginNotRunning')}</Text>
+              {says.text && <Text size="xs" c={tone} style={{ overflowWrap: 'anywhere' }}>{says.text}{says.link && <>{' '}<HintAnchor link={says.link} /></>}</Text>}
+              {says.detail && <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{says.detail}</Text>}
+            </>
           )
-        })}
-      </Table.Tbody>
-    </Table>
+        } },
+        { id: 'numbers', header: t('agents.col.numbers'), card: 'label', wrap: true, cell: (id) => (
+          <Text size="xs" c="dimmed">
+            {Object.entries(plugins[id].metrics).map(([k, v]) => `${k.replace(/_/g, ' ')} ${v.toLocaleString(lang)}`).join(' · ') || '–'}
+          </Text>
+        ) },
+        { id: 'error', header: t('agents.col.lastError'), card: 'label', wrap: true, cell: (id) => {
+          const last = plugins[id].errors[plugins[id].errors.length - 1]
+          return last ? <Text size="xs" c="down" style={{ overflowWrap: 'anywhere' }}>{last.at ? `${ago(last.at, lang)}: ` : ''}{last.error}</Text> : <Text size="xs" c="dimmed">–</Text>
+        } },
+      ]} />
   )
 }

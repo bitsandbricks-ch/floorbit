@@ -113,6 +113,7 @@
   "showSilent": "Nie gehört",
   "edit": "Einrichten und testen",
   "open": "Öffnen",
+  "tableLabel": "Telemetrie-Geräte",
   "noMatch": "Kein Gerät passt.",
   "state": {
     "col": "Zustand",

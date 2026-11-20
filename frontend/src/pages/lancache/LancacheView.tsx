@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Group, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Table, Text } from '@mantine/core'
+import { Alert, Anchor, Badge, Group, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Text } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { ActionResult, LancacheAgent, LancacheOverview } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { DataTable } from '@/components/DataTable'
 import { StatTile } from '@/components/StatTile'
 import { ErrorBanner } from '@/components/ui'
 import { ago, dayClock } from '@/lib/time'
@@ -147,30 +148,16 @@ function Downloads({ data }: { data: LancacheOverview }) {
     <section className="fb-stats-panel wide" aria-labelledby="lc-downloads">
       <h2 id="lc-downloads">{t('lancache.downloads')}</h2>
       {data.downloads.length === 0 ? <Text size="sm" c="dimmed">{t('lancache.noDownloads', { count: data.min_clients })}</Text> : (
-        <Table.ScrollContainer minWidth={560}>
-          <Table striped withRowBorders={false} verticalSpacing={4}>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>{t('lancache.item')}</Table.Th>
-                <Table.Th>{t('lancache.service')}</Table.Th>
-                <Table.Th ta="right">{t('lancache.bytes')}</Table.Th>
-                <Table.Th ta="right">{t('lancache.fromCache')}</Table.Th>
-                <Table.Th ta="right">{t('lancache.players')}</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {data.downloads.map((d) => (
-                <Table.Tr key={`${d.cache}/${d.item}`}>
-                  <Table.Td ff="monospace" fz="sm">{d.item}</Table.Td>
-                  <Table.Td>{t(`games.cacheName.${d.cache}`, { defaultValue: d.cache })}</Table.Td>
-                  <Table.Td ta="right">{bytes(d.hit_bytes + d.miss_bytes)}</Table.Td>
-                  <Table.Td ta="right">{pct(d.hit_ratio)}</Table.Td>
-                  <Table.Td ta="right">{d.clients}</Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        <DataTable rows={data.downloads} rowKey={(d) => `${d.cache}/${d.item}`} label={t('lancache.downloads')} urlState={false} pageSize={25}
+          bare striped density="compact" minWidth={560} defaultSort={{ id: 'bytes', desc: true }}
+          columns={[
+            { id: 'item', header: t('lancache.item'), mono: true, sort: (d) => d.item, cell: (d) => d.item },
+            { id: 'service', header: t('lancache.service'), sort: (d) => d.cache, cell: (d) => t(`games.cacheName.${d.cache}`, { defaultValue: d.cache }) },
+            { id: 'bytes', header: t('lancache.bytes'), numeric: true, descFirst: true, sort: (d) => d.hit_bytes + d.miss_bytes,
+              cell: (d) => bytes(d.hit_bytes + d.miss_bytes) },
+            { id: 'ratio', header: t('lancache.fromCache'), numeric: true, descFirst: true, sort: (d) => d.hit_ratio ?? -1, cell: (d) => pct(d.hit_ratio) },
+            { id: 'players', header: t('lancache.players'), numeric: true, descFirst: true, sort: (d) => d.clients, cell: (d) => d.clients },
+          ]} />
       )}
       <Text size="xs" c="dimmed" mt={6}>
         {t('lancache.downloadsText', { count: data.min_clients })}
