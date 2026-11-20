@@ -284,9 +284,13 @@ def run(only=None, device_ids=None):
         data = load_data()
         pairs = [(d, r) for d, r in match(inventory.devices(data), rows) if device_ids is None or d['id'] in device_ids]
         report['received'] = len(pairs)
+        from . import inventory_properties
         for dev, row in pairs:
             values = fields_of(row)
             found[dev['id']] = (values, row)
+            # What the source read, whatever the fill rules keep: the readings of the property view.
+            inventory_properties.record_readings(data, dev['id'], row.get('source') or getattr(mon, 'name', ''),
+                                                 values, row, report['at'])
             if not does('identity', dev):
                 continue
             report['actions']['identity']['devices'] += 1
@@ -370,6 +374,8 @@ def run(only=None, device_ids=None):
             else:
                 kept.pop(dev_id, None)
         data['inventory_discovered'] = kept
+        from . import inventory_properties
+        inventory_properties.forget(data, {d['id'] for d in data.get('inventory') or []})
         if ran & {'networks', 'optics'}:
             _entries(data, list(kept.values()), report)
         save_data(data)

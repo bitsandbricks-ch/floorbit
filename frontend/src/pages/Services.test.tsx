@@ -173,7 +173,7 @@ describe('Services counts what the health panes count (#1037)', () => {
     expect(screen.getByRole('region', { name: 'Firewalls' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'DHCP' })).toBeInTheDocument()
     // Uplinks come from the page's own list, not twice: 4 own rows + fw-03 + DHCP players.
-    expect(screen.getByText('All 6')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: 'Show: All' })).getByText('6')).toBeInTheDocument()
     expect(screen.getAllByRole('group', { name: 'Provider A' })).toHaveLength(1)
   })
 })
