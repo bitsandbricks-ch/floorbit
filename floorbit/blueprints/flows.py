@@ -8,10 +8,15 @@ import time
 
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import i18n
+from .. import i18n, spa
 from ..flows import classify, store
 
 bp = Blueprint('flows', __name__)
+
+
+@bp.route('/traffic')
+def traffic_page():
+    return spa.render('Traffic')
 
 ANOMALY_KINDS = {'p2p': 'P2P or torrent traffic', 'burst': 'Packet burst', 'rogue-dhcp': 'DHCP server at a seat',
                  'rogue-dns': 'DNS server at a seat'}

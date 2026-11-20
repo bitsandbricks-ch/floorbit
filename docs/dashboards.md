@@ -173,9 +173,11 @@ Services, Traffic, Power, Plugins) or search by name. **Open** shows one big in 
 puts it at the end of a dashboard you pick. A widget whose feature is off says so instead of its
 content.
 
-Read-only pages live only as widgets now: service health, stats, traffic, DNS, games, Wi-Fi, speed
-tests and the stats wall have no page of their own. Pages where you change something (Services,
-Power, Network status, Endpoints) keep their page and add a widget for their read-only part.
+A rich widget and its Monitoring page are one component: service health, Wi-Fi, DNS, the LAN cache,
+traffic, games, stats and speed tests are widgets here and pages under Monitoring in the sidebar
+(Health; Network > Wi-Fi; Services > DNS, LAN cache; Traffic > Games, Stats, Speed tests), the page
+showing the widget at its big size. Pages where you change something (Services, Power, Network
+status, Endpoints) keep their page and add a widget for their read-only part.
 
 ## Ready-made dashboards
 
@@ -278,7 +280,8 @@ A dashboard is `sections` (each with an optional `title`, `folded` and its `pane
 as one split tree (`root`) are read as one panel filling the screen. How panels make room is in
 `frontend/src/pages/dashboards/grid.ts`.
 A rich widget is a React component registered with one line in `frontend/src/widgets/views.ts`; it
-gets `expanded` and has no page or route of its own. Its `area` groups it in the gallery, `feature`
+gets `expanded`; a Monitoring page shows it big through `pages/monitoring/ViewPage.tsx` (one route in
+`App.tsx`, one entry in `floorbit/page_index.py`, a tab in `nav/sections.ts`). Its `area` groups it in the gallery, `feature`
 names the feature that turns it off, and `permission` who sees it. A view pane's `expanded: true`
 draws it big on the dashboard too. `GET /api/dashboard` lists the tiles this account may see. Floorbit's own tiles are one line in
 `TILES` (`floorbit/dashboard_core.py`) plus their builder in `CORE_TILES`
