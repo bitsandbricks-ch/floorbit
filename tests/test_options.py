@@ -9,8 +9,20 @@ def test_switches_seats_and_blocks_come_from_the_plan(client):
     seats = [o["value"] for o in client.get("/api/options/seats").get_json()["options"]]
     assert seats[:3] == ["A-1", "A-2", "A-3"] and seats[-1] == "A-11"          # natural order
     assert "sw-a-01" in [o["value"] for o in client.get("/api/options/switches").get_json()["options"]]
-    assert client.get("/api/options/blocks").get_json()["options"] == [{"value": "A", "label": "A", "hint": "11"}]
+    block = client.get("/api/seat-blocks").get_json()[0]
+    assert client.get("/api/options/blocks").get_json()["options"] == [
+        {"value": block["id"], "label": "A", "hint": "11"}]
     assert client.get("/api/options/nope").status_code == 404
+
+
+def test_a_block_named_by_its_rows_is_offered_by_its_row_letters(client):
+    """#1078: a block without a name of its own is named by its rows, and the picker lists it."""
+    client.post("/api/seat-blocks", json={"name": "B", "x": 10, "y": 10, "cols": 2, "rows": 1})
+    client.post("/api/seat-blocks", json={"name": "", "x": 60, "y": 10, "cols": 2, "rows": 2, "naming": "rows",
+                                          "row_start": "C"})
+    opts = client.get("/api/options/blocks").get_json()["options"]
+    assert [(o["label"], o["hint"]) for o in opts] == [("B", "2"), ("C\u2013D", "4")]
+    assert all(o["value"] for o in opts)
 
 
 def test_ports_list_free_ones_first_and_say_who_holds_the_rest(client, monkeypatch):

@@ -539,3 +539,16 @@ def test_history_kept_per_agent_and_served(client, anon_client):
     assert [v for _, v in series["heard"]] == [4.0, 4.0] and series["reconnects"][0][1] == 1.0
     assert client.get("/api/agents/nobody/history").status_code == 404
     assert anon_client.get(f"/api/agents/{made['id']}/history").status_code in (401, 403)
+
+
+def test_a_long_poll_from_before_a_reset_takes_nothing_after_it():
+    """Tests reset the process-wide tunnel; a long poll left waiting from an earlier test must
+    neither take the next test's calls nor count as an agent that is asking (#1124)."""
+    got = {}
+    poller = threading.Thread(target=lambda: got.setdefault("calls", agent_link.tunnel.take(wait=5, agent="old")))
+    poller.start()
+    time.sleep(0.2)
+    agent_link.tunnel.reset()
+    poller.join(2)
+    assert not poller.is_alive() and got["calls"] == []
+    assert "old" not in agent_link.tunnel._asking

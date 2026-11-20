@@ -8,6 +8,7 @@ export const qk = {
   seatHelp: (seat: string, k: string) => ['public', 'help', seat, k] as const,
   dashboard: ['dashboard'] as const,
   boards: ['dashboards'] as const,
+  savedWidgets: ['saved-widgets'] as const,
   board: (id: string) => ['dashboards', id] as const,
   widget: (url: string) => ['widget', url] as const,
   plugins: ['plugins'] as const,

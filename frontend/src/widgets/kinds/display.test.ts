@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Widget } from '@/api/types'
-import { applyDisplay, displaysFor, mappingFor, toneAt } from './display'
+import { applyDisplay, displaysFor, mappingFor, seriesColour, seriesLabels, toneAt } from './display'
 import { formatValue } from './shape'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
@@ -38,5 +38,16 @@ describe('pane display', () => {
   it('offers row settings only for rows and number settings only for numbers', () => {
     expect(displaysFor(blocks)).toEqual({ numbers: true, colours: true, rows: true })
     expect(displaysFor({ ...base, type: 'stat', value: 'ok', unit: '', tone: '' })).toEqual({ numbers: false, colours: false, rows: false })
+  })
+
+  it('renames, recolours and hides series and rows by their label', () => {
+    const traffic: Widget = { ...base, type: 'series', unit: 'bit/s', series: [
+      { label: 'Download', points: [[1, 1]] }, { label: 'Upload', points: [[1, 2]] }] }
+    expect(seriesLabels(traffic)).toEqual(['Download', 'Upload'])
+    const out = applyDisplay(traffic, { overrides: [{ match: 'Download', name: 'Down', colour: 'orange' }, { match: 'Upload', hide: true }] })
+    expect(out.type === 'series' && out.series).toEqual([{ label: 'Down', points: [[1, 1]], colour: seriesColour('orange') }])
+    const rows = applyDisplay(blocks, { overrides: [{ match: 'B', hide: true }, { match: 'C', name: 'Hall C', colour: 'blue' }] })
+    expect(rows.type === 'list' && rows.items.map((i) => [i.label, i.colour])).toEqual([
+      ['A10', undefined], ['A2', undefined], ['Hall C', seriesColour('blue')]])
   })
 })

@@ -118,24 +118,27 @@ uplink when the access switch hasn't seen the laptop ([#954](https://github.com/
 
 ## Who reads the seat's port
 
-A learned or cabled port is what the rest of Floorbit uses to say "this port is that seat".
+A hand-entered, cabled or learned port is what the rest of Floorbit uses to say "this port is that
+seat". `cables.port_seats()` is the one place that decides, so every reader agrees.
 
 ```mermaid
 flowchart LR
-  cab["Cables to a seat<br/>(Cables page, patch plan)"] --> ps["cables.port_seats()<br/>a cable wins"]
+  hand["Hand entry with switch + port<br/>(Seat mapping page)"] --> ps["cables.port_seats()<br/>hand entry, then cable,<br/>then learned"]
+  cab["Cables to a seat<br/>(Cables page, patch plan)"] --> ps
   lp["Learned ports<br/>seat_ports.json<br/>(PIN check-in, seat walk)"] --> ps
   ps --> watch["Port watch every 120 s<br/>(attention.py)"]
   alias["Port description (ifAlias)<br/>names the seat"] --> watch
   watch --> state["Seat online / offline<br/>on the plan and Seats view"]
   watch --> att["Needs attention:<br/>no check-in, flapping, errors"]
   watch --> sp["Status page: seats behind a switch"]
-  hand["Hand entry with switch + port<br/>(Seat mapping page)"] --> src["Seat sources merge"]
+  hand --> src["Seat sources merge"]
   ps --> src
   src --> insp["Seat inspector, search,<br/>switch of a seat"]
 ```
 
-Hand entries reach the seat sources, but not `cables.port_seats()`, so the port watch does not see
-them: a seat whose port was only typed in by hand stays `unknown` on the plan ([#953](https://github.com/bitsandbricks-ch/floorbit/issues/953)).
+A hand entry moves its seat: a cable or learned port that named the same seat elsewhere no longer
+counts for it. Check-in and the seat walk still compare a port against the patch plan alone
+(`port_seats(learned=False)`): cables only.
 
 ## Planned: check-in driven lookups
 

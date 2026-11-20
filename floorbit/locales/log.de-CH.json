@@ -171,6 +171,8 @@
   "Saved dashboard": "Dashboard gespeichert",
   "Changed the sidebar sections": "Bereiche der Seitenleiste geändert",
   "Removed dashboard": "Dashboard entfernt",
+  "Saved widget": "Widget gespeichert",
+  "Removed widget": "Widget entfernt",
   "Saved floor plan as template": "Hallenplan als Vorlage gespeichert",
   "Saved role": "Rolle gespeichert",
   "Saved sign-in provider": "Anmeldeanbieter gespeichert",
@@ -206,6 +208,8 @@
   "Took down the crew notice": "Crew-Hinweis abgehängt",
   "Took job": "Auftrag übernommen",
   "Turned automatic dispatch on or off": "Automatische Zuteilung ein- oder ausgeschaltet",
+  "Turned a capability off": "Eine Fähigkeit ausgeschaltet",
+  "Turned a capability on": "Eine Fähigkeit eingeschaltet",
   "Turned features on or off": "Funktionen ein- oder ausgeschaltet",
   "Turned port on": "Port eingeschaltet",
   "Turned port on: failed": "Port einschalten: fehlgeschlagen",
@@ -349,5 +353,7 @@
   "Signed a certificate for a local agent": "Zertifikat für einen lokalen Agent signiert",
   "Looked at the LibreNMS alerts token": "LibreNMS-Alarm-Token angesehen",
   "Made a new LibreNMS alerts token": "Neues LibreNMS-Alarm-Token erstellt",
-  "Cleared a LibreNMS alert": "LibreNMS-Alarm geschlossen"
+  "Cleared a LibreNMS alert": "LibreNMS-Alarm geschlossen",
+  "Ignored a machine": "Gerät ignoriert",
+  "Stopped ignoring a machine": "Gerät nicht mehr ignoriert"
 }

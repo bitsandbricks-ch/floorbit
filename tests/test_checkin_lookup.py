@@ -73,14 +73,16 @@ def test_a_known_mac_skips_the_core_and_a_dead_switch_is_not_the_end():
 
 # ── on the hosted side: segment, window, order, sharing ───────────────────────────────────────
 
-def _segment(client, on=True, **extra):
-    seg = client.post('/api/settings/segments', json={'vlan': 110, 'network': '192.0.2.0/24'}).get_json()['segment']
+def _segment(client, on=True):
+    """VLAN 110 with 192.0.2.0/24 in the inventory, found by discovery on core-01's Vlan110."""
+    r = client.post('/api/inventory/entries/vlan', json={
+        'name': 'Seats', 'fields': {'vlan_id': 110, 'prefix': '192.0.2.0/24', 'lookups': on}})
+    assert r.status_code == 201, r.get_json()
     from floorbit.store import load_data, save_data
     data = load_data()
-    for s in data['segments']:
-        s.update({'lookups': on, 'device': 'core-01', 'if_index': 110, **extra})
+    data.setdefault('inventory', []).append({'id': 'core-dev', 'name': 'core-01'})
+    data['inventory_discovered'] = {'core-dev': {'svis': [{'vlan': 110, 'network': '192.0.2.0/24', 'if_index': 110}]}}
     save_data(data)
-    return seg
 
 
 def test_no_lookup_outside_a_segment_with_lookups_on(client):

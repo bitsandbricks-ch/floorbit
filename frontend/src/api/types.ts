@@ -36,9 +36,9 @@ export type Widget = WidgetBase &
     /** ``min`` and ``max`` let a stat show as a gauge. ``text`` never comes from the server: a
      *  pane's value mapping sets it to show instead of the number (widgets/kinds/display.ts). */
     | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number; text?: string }
-    | { type: 'status'; items: { label: string; state: State; detail: string }[] }
+    | { type: 'status'; items: { label: string; state: State; detail: string; device?: string }[] }
     /** ``number`` (and ``max``) on items let a list show as bars or a pie. */
-    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number }[] }
+    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number; colour?: string; device?: string }[] }
     | {
         type: 'table'
         columns: { key: string; label: string }[]
@@ -46,7 +46,9 @@ export type Widget = WidgetBase &
       }
     | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
     /** Up to four lines of [unix seconds, value], oldest first. */
-    | { type: 'series'; series: { label: string; points: [number, number][] }[]; unit: string }
+    | { type: 'series'; series: { label: string; points: [number, number][]; colour?: string; ghost?: boolean }[]; unit: string
+      /** What happened when, drawn as lines across the graph. */
+      marks?: { t: number; label: string; tone: Tone }[] }
   )
 
 /** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */
@@ -99,6 +101,10 @@ export interface WidgetTile {
   size: 'small' | 'wide'
   refresh: number
   url: string
+  /** A pane may pick the time it shows (``?range=``) and compare it (``?compare=``), issue #960. */
+  ranges?: boolean
+  /** It can mark what happened on its graph (``?marks=1``): switches down, incidents. */
+  marks?: boolean
 }
 
 export interface ActionTile {
@@ -1373,6 +1379,10 @@ export interface PortClients {
   as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+  /** Issue #949: IPs ARP knows on no seat port, and cabled seats with no machine (once check-ins started). */
+  no_port?: { count: number; rows: { mac: string; ip: string; ip_seat: string }[] }
+  empty?: { count: number; rows: { seat: string; switch: string; port: string }[] }
+  ignored?: number
 }
 /** Walking the row (issue #473): ports that came up since the walk began. */
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }
