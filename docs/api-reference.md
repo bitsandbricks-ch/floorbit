@@ -1123,6 +1123,7 @@ Source: [`floorbit/blueprints/wifi.py`](https://github.com/bitsandbricks-ch/floo
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/wifi` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `wifi` |
+| GET | `/api/wifi/history` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `wifi` |
 
 ## floorbit.settings
 
