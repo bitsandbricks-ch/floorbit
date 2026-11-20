@@ -236,7 +236,10 @@ plugin shows its error on Settings > Plugins and can't be turned on; it never st
   `FLOORBIT_PLUGIN_<ID>_<KEY>` (for example `FLOORBIT_PLUGIN_MY_PLUGIN_TOKEN`). A plugin can't pick
   another variable name, so it can't read `SECRET_KEY` or another integration's token that way.
 - **Errors:** raise `PluginError("...")` for a message the person should see. Anything else is
-  logged on Settings > Plugins > Log, and the person sees that the plugin failed.
+  logged on Settings > Plugins > Log, and the person sees that the plugin failed. When one of your
+  methods has failed on every call for a few minutes, Problems says the plugin keeps failing, with
+  the last message. Each method counts on its own: your seat mapping working doesn't hide your Wi-Fi
+  access points failing.
 - **HTTP:** `self.ctx.http()` sets a timeout (at most 60 s), verifies TLS unless the plugin's
   `verify_ssl` setting is off, and doesn't follow redirects.
 - **Hooks** run in the background, so a slow plugin never slows a request.
