@@ -6,6 +6,7 @@ They run where the collector runs: in Floorbit when it is self-hosted, on the lo
 is hosted (the agent gets the targets with their secrets over its TLS link). Logins are opened
 for one poll and dropped.
 """
+import re
 import time
 
 import requests
@@ -23,6 +24,17 @@ class PollError(RuntimeError):
 class LoginRefused(PollError):
     """The device said no to the login: not tried again until someone fixes it, so a wrong password
     never locks the account out or fills the AAA server with alarms."""
+
+
+ERRNO_RE = re.compile(r'\[Errno -?\d+\] ([^)"\'\]]+)')
+
+
+def _why(exc):
+    """The cause as the operating system said it ("Connection refused", "Name or service not
+    known"): the type alone ("ConnectionError") reads the same for a closed port, no route and a
+    wrong name, and the problem's kind comes from these words (problems.kind_of)."""
+    found = ERRNO_RE.findall(str(exc))
+    return f'{type(exc).__name__}: {found[-1].strip()}' if found else type(exc).__name__
 
 
 def _session(t, user=None, password=None):
@@ -72,7 +84,7 @@ def nxapi(t, now=None):
         resp = s.post(_base(t) + '/ins', json=calls, headers={'content-type': 'application/json-rpc'},
                       timeout=TIMEOUT)
     except requests.RequestException as exc:
-        raise PollError(f'NX-API on {t["name"]}: {type(exc).__name__}') from None
+        raise PollError(f'NX-API on {t["name"]}: {_why(exc)}') from None
     if resp.status_code == 401:
         raise LoginRefused(f'NX-API on {t["name"]} refused the login.')
     if not resp.ok:
@@ -137,7 +149,7 @@ def restconf(t, now=None):
         try:
             resp = s.get(_base(t) + '/restconf/data/' + path, headers=headers, timeout=TIMEOUT)
         except requests.RequestException as exc:
-            raise PollError(f'RESTCONF on {t["name"]}: {type(exc).__name__}') from None
+            raise PollError(f'RESTCONF on {t["name"]}: {_why(exc)}') from None
         if resp.status_code == 401:
             raise LoginRefused(f'RESTCONF on {t["name"]} refused the login.')
         if resp.status_code == 404:
@@ -185,7 +197,7 @@ def opnsense(t, now=None):
         try:
             resp = s.get(_base(t) + '/api/' + path, timeout=TIMEOUT)
         except requests.RequestException as exc:
-            raise PollError(f'OPNsense API on {t["name"]}: {type(exc).__name__}') from None
+            raise PollError(f'OPNsense API on {t["name"]}: {_why(exc)}') from None
         if resp.status_code in (401, 403):
             raise LoginRefused(f'OPNsense on {t["name"]} refused the API key.')
         if not resp.ok:

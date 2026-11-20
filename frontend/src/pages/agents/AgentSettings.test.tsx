@@ -10,12 +10,11 @@ afterEach(() => vi.unstubAllGlobals())
 
 const page = (over: Partial<AgentSettingsPage> = {}): AgentSettingsPage => ({
   fields: [
-    { key: 'lan_url', env: 'FLOORBIT_AGENT_LAN_URL', type: 'url', default: '', restart: false },
     { key: 'telemetry_port', env: 'FLOORBIT_TELEMETRY_PORT', type: 'int', default: 8186, restart: true, min: 1, max: 65535 },
     { key: 'metrics', env: 'FLOORBIT_AGENT_METRICS', type: 'listen', default: '0.0.0.0:9520', restart: true },
     { key: 'metrics_token', env: 'FLOORBIT_AGENT_METRICS_TOKEN', type: 'secret', default: '', restart: true },
   ],
-  values: { lan_url: 'http://192.0.2.10:8908', metrics_token: true },
+  values: { metrics: '0.0.0.0:9600', metrics_token: true },
   local_only: ['FLOORBIT_AGENT_ALLOW_ACTIONS', 'FLOORBIT_AGENT_SWITCH_NETS'],
   plugins: [{ id: 'flows', name: 'NetFlow', values: {},
     fields: [{ key: 'port', label: 'Port', type: 'int', default: null, min: 1, max: 65535 }] }],
@@ -26,9 +25,8 @@ function agent(): Agent {
   const a = busyAgent()
   return { ...a, report: { ...a.report!, settings: {
     values: {
-      lan_url: { source: 'floorbit', value: 'http://192.0.2.10:8908' },
       telemetry_port: { source: 'env', value: '9000' },
-      metrics: { source: 'default', value: '0.0.0.0:9520' },
+      metrics: { source: 'floorbit', value: '0.0.0.0:9600' },
       metrics_token: { source: 'floorbit', set: true },
       FLOORBIT_AGENT_ALLOW_ACTIONS: { source: 'env', value: 'no' },
     },
@@ -58,11 +56,11 @@ describe('AgentSettingsForm', () => {
     expect(within(hall).getByText('not set')).toBeInTheDocument()
 
     expect(screen.getByRole('button', { name: 'Save 0 changes' })).toBeDisabled()
-    fireEvent.change(screen.getByLabelText(/Address in the hall/), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText(/Metrics listener/), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText(/^Port/), { target: { value: '2055' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save 2 changes' }))
     await vi.waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body)
-      .toEqual({ settings: { lan_url: null }, plugins: { flows: { port: 2055 } } }))
+      .toEqual({ settings: { metrics: null }, plugins: { flows: { port: 2055 } } }))
     expect(await screen.findByRole('button', { name: 'Save 0 changes' })).toBeDisabled()
   })
 })

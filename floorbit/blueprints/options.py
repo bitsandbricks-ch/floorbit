@@ -1,5 +1,5 @@
 """The choices for every field that names something Floorbit already knows: switches, their ports,
-seats, blocks, halls, firewalls, agents, users, teams, patch panels and their ports.
+seats, blocks, rows, halls, firewalls, agents, users, teams, patch panels and their ports.
 
 A switch or a seat is never typed in: the page asks ``GET /api/options/<kind>`` and shows a
 searchable list (``frontend/src/components/ui/EntitySelect.tsx``). One endpoint, one component, so
@@ -51,7 +51,13 @@ def _ports(data, switch):
     from ..syslog import canonical_port
     if not switch:
         return []
-    names = [p.get('name') for p in sources.monitoring().device_ports(switch) or [] if p.get('name')]
+    names, seen = [], set()
+    for p in sources.monitoring().device_ports(switch) or []:
+        # One entry per port even when a source lists it twice: a picker can't hold the same
+        # value twice (Mantine refuses it and the whole form breaks, #972).
+        if p.get('name') and p['name'] not in seen:
+            seen.add(p['name'])
+            names.append(p['name'])
     held = {}
     for c in cables.all_cables(data):
         if c['switch'].lower() == switch.lower():
@@ -61,7 +67,8 @@ def _ports(data, switch):
         if str(m.get('switch') or '').lower() == switch.lower() and m.get('port'):
             held.setdefault(canonical_port(m['port']), seat)
     for c in cables.all_cables(data):   # a cabled port the source doesn't list (switch away) still shows
-        if c['switch'].lower() == switch.lower() and c['port'] not in names:
+        if c['switch'].lower() == switch.lower() and c['port'] not in seen:
+            seen.add(c['port'])
             names.append(c['port'])
     out = [{'value': n, 'label': n, 'used': held.get(canonical_port(n))} for n in names]
     return sorted(out, key=lambda o: (bool(o['used']), _natural(o['value'])))
@@ -145,12 +152,24 @@ def _pages(_data):
     return [{'value': p['id'], 'label': p['label'], 'hint': p['href']} for p in page_index.for_context(ctx)]
 
 
+def _rows(data):
+    """Rows by name, grouped by their block (C and D under the block C to D); the hint is the seat
+    count. A row of a block numbered as a whole is the block and the row: "A 2"."""
+    from ..seat_names import hall_rows
+
+    def name(r):
+        return r['name'] if r['naming'] == 'rows' else f"{r['block_label']} {r['name']}".strip()
+    return [{'value': r['id'], 'label': name(r), 'group': r['block_label'], 'hint': str(len(r['seats']))}
+            for r in hall_rows(data)]
+
+
 KINDS = {
     'devices': ('floorplan.view', _devices),
     'switches': ('floorplan.view', _switches),
     'seats': ('floorplan.view', _seats),
     'panels': ('floorplan.view', _panels),
     'blocks': ('floorplan.view', _blocks),
+    'rows': ('floorplan.view', _rows),
     'halls': ('floorplan.view', _halls),
     'firewalls': ('floorplan.view', _firewalls),
     'agents': ('settings.manage', _agents),
