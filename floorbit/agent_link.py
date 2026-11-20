@@ -35,6 +35,20 @@ from .store import load_data, load_shared, save_data
 KEY = 'agents'
 PREFIX = 'fba_'
 MAX_AGENTS = 10
+AGENT_IMAGE = 'ghcr.io/bitsandbricks-ch/floorbit-agent'
+_AGENT_REF = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'AGENT_REF')
+
+
+def agent_image():
+    """The agent image to run, tagged with the agent commit this Floorbit is built and tested with
+    (AGENT_REF; the agent's image workflow tags every main commit with its short sha). ``latest``
+    only when the file is missing, as in an old image."""
+    try:
+        with open(_AGENT_REF) as f:
+            ref = f.read().strip()
+    except OSError:
+        ref = ''
+    return f"{AGENT_IMAGE}:{ref[:12]}" if re.fullmatch(r'[0-9a-f]{40}', ref) else f'{AGENT_IMAGE}:latest'
 NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}\Z')
 KEY_RE = re.compile(r'^fba_([0-9a-f]{8})_([A-Za-z0-9_-]{20,80})\Z')
 CONNECTED_FOR = 60       # an agent that asked for work this recently counts as connected
