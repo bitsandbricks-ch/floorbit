@@ -60,7 +60,16 @@
     "tls": "{{driver}}: TLS mit {{address}} ist fehlgeschlagen. Prüfe sein Zertifikat oder schalte die TLS-Prüfung für es aus.",
     "listen": "{{driver}}: Telegraf kann seinen Port nicht öffnen. Benutzt ihn ein anderes Programm?",
     "other": "{{driver}}: {{detail}}",
-    "docs": "Was prüfen"
+    "docs": "Was prüfen",
+    "scopeDevice": "ganzes Gerät",
+    "scopeVlan": "VLAN {{vlan}}",
+    "scopeTable": "Tabelle {{table}}",
+    "since": "begann {{ago}}",
+    "count_one": "{{count}} Mal",
+    "count_other": "{{count}} Mal",
+    "showLine": "Zeile des Collectors",
+    "hideLine": "Zeile des Collectors ausblenden",
+    "lastAt": "zuletzt {{at}}"
   },
   "test": {
     "button": "Jetzt testen",
@@ -100,7 +109,7 @@
   "anyAgent": "Jeder Agent",
   "summary": "Telemetrie auf einen Blick",
   "heardCard": "Gehört von",
-  "problemsCard": "Mit Problemen",
+  "problemsCard": "Brauchen einen Blick",
   "noProblems": "alles ruhig",
   "collectorTab": "Sammler",
   "agentsTitle": "Pro Agent",
@@ -108,9 +117,6 @@
   "turnOn": "Für alle Geräte einschalten",
   "search": "Gerät suchen",
   "show": "Anzeigen",
-  "showAll": "Alle",
-  "showProblems": "Mit Problemen",
-  "showSilent": "Nie gehört",
   "edit": "Einrichten und testen",
   "open": "Öffnen",
   "noMatch": "Kein Gerät passt.",
@@ -129,5 +135,16 @@
     "up": "Sendet",
     "pinned": "Diesem Agent gegeben",
     "pushed": "Sendet selbst"
-  }
+  },
+  "problemKind": {
+    "auth": "Login abgelehnt",
+    "tls": "TLS fehlgeschlagen",
+    "refused": "Nichts hört",
+    "unreachable": "Keine Route",
+    "timeout": "Keine Antwort",
+    "listen": "Kann nicht lauschen",
+    "other": "Anderes"
+  },
+  "allAgents": "Alle Agents",
+  "allDrivers": "Alle Collectors"
 }

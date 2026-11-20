@@ -58,9 +58,9 @@ describe('AgentDetail', () => {
       ] },
     })
     const table = await screen.findByRole('table', { name: 'Devices and their state' })
-    expect(within(table).getByText('Sends nothing')).toBeInTheDocument()
+    expect(within(table).getAllByText('Sends nothing')).toHaveLength(2)     // the column, and under the name on phones
     expect(within(table).getByText('Given to this agent')).toBeInTheDocument()
-    expect(within(table).getByText('Sends')).toBeInTheDocument()
+    expect(within(table).getAllByText('Sends').length).toBeGreaterThan(0)
     expect(within(table).getByText('52 ports, 10 MACs, 0 ARP, 2 neighbours')).toBeInTheDocument()
     expect(within(table).getAllByRole('button', { name: 'Test now' })).toHaveLength(2)
     fireEvent.click(screen.getByRole('radio', { name: 'Needs a look (1)' }))
@@ -75,7 +75,7 @@ describe('AgentDetail', () => {
       ] },
     })
     expect(await screen.findByText('The agent is not connected')).toBeInTheDocument()
-    expect(screen.getByText('Unknown')).toBeInTheDocument()
+    expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: 'Test now' })).not.toBeInTheDocument()
   })
 
