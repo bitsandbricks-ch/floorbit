@@ -1,5 +1,5 @@
 """The choices for every field that names something Floorbit already knows: switches, their ports,
-seats, blocks, halls, firewalls, agents, users, teams, patch panels and their ports.
+seats, blocks, rows, halls, firewalls, agents, users, teams, patch panels and their ports.
 
 A switch or a seat is never typed in: the page asks ``GET /api/options/<kind>`` and shows a
 searchable list (``frontend/src/components/ui/EntitySelect.tsx``). One endpoint, one component, so
@@ -93,9 +93,13 @@ def _seats(data):
 
 
 def _blocks(data):
+    """Every seat block by its id, under what people call it: a block named by its rows has no
+    name of its own, so it goes by its row letters ("C to D")."""
+    from ..seat_names import label
     size = lambda b: int(b.get('cols') or 0) * int(b.get('rows') or 0)   # noqa: E731
-    return sorted(({'value': b['name'], 'label': b['name'], 'hint': str(size(b))}
-                   for b in data.get('seat_blocks') or [] if b.get('name')), key=lambda o: _natural(o['value']))
+    out = [{'value': b['id'], 'label': label(b) or b['id'], 'hint': str(size(b))}
+           for b in data.get('seat_blocks') or [] if b.get('id')]
+    return sorted(out, key=lambda o: _natural(o['label']))
 
 
 def _halls(data):
@@ -152,12 +156,21 @@ def _pages(_data):
     return [{'value': p['id'], 'label': p['label'], 'hint': p['href']} for p in page_index.for_context(ctx)]
 
 
+def _rows(data):
+    """Rows by name, grouped by their block (C and D under the block C to D); the hint is the seat
+    count. A row of a block numbered as a whole is the block and the row: "A 2"."""
+    from ..seat_names import hall_rows, row_label
+    return [{'value': r['id'], 'label': row_label(r), 'group': r['block_label'], 'hint': str(len(r['seats']))}
+            for r in hall_rows(data)]
+
+
 KINDS = {
     'devices': ('floorplan.view', _devices),
     'switches': ('floorplan.view', _switches),
     'seats': ('floorplan.view', _seats),
     'panels': ('floorplan.view', _panels),
     'blocks': ('floorplan.view', _blocks),
+    'rows': ('floorplan.view', _rows),
     'halls': ('floorplan.view', _halls),
     'firewalls': ('floorplan.view', _firewalls),
     'agents': ('settings.manage', _agents),

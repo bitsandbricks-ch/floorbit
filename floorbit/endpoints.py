@@ -85,7 +85,7 @@ class History:
         from .database import DatabaseError
         now = int(time.time() if now is None else now)
         seats = None
-        changed = []
+        changed, dropped = [], []
         with self._lock:
             try:
                 if self.open is None:
@@ -94,6 +94,15 @@ class History:
                 self.error = str(exc)[:200]
                 self.open = None
                 return 0
+            # ARP (the core) and MAC tables (the access switches) arrive in separate rounds: a MAC
+            # can show up without its port for a round. That row is the same sighting, not a
+            # machine behind a router, so it is folded into the port's row (issue #873).
+            ported, portless = set(), {}
+            for k in self.open:
+                if k[3]:
+                    ported.add((k[0], k[1]))
+                else:
+                    portless.setdefault((k[0], k[1]), []).append(k)
             for s in sightings:
                 mac = mac_hex(s.get('mac'))
                 if not mac:
@@ -104,6 +113,8 @@ class History:
                 if not device:
                     continue
                 key = (mac, ip, device, _port_key(port))
+                if not key[3] and (mac, ip) in ported:
+                    continue        # the access switch's entry aged out first: still on its port
                 row = self.open.get(key)
                 if row is None or now - row['last_seen'] > GAP:
                     if seats is None:
@@ -113,6 +124,15 @@ class History:
                         'mac': mac, 'ip': ip, 'device': device, 'port_key': key[3], 'first_seen': now,
                         'port': port, 'seat': seats.get((device.lower(), key[3]), '') if port else '',
                         'vlan': int(vlan) if str(vlan or '').isdigit() else None, 'last_seen': now}
+                    if key[3]:
+                        ported.add((mac, ip))
+                        for old in portless.pop((mac, ip), ()):
+                            early = self.open.pop(old, None)
+                            if early is None:
+                                continue
+                            dropped.append(early)
+                            row['first_seen'] = min(row['first_seen'], early['first_seen'])
+                            changed[:] = [c for c in changed if c is not early]
                 elif now > row['last_seen']:
                     row['last_seen'] = now
                 else:
@@ -123,6 +143,7 @@ class History:
             self.open = {k: r for k, r in self.open.items() if latest - r['last_seen'] <= GAP}
         if changed:
             try:
+                self._drop(dropped)
                 self._write(changed)
             except DatabaseError as exc:      # the database is away: skip this round, never stop
                 self.error = str(exc)[:200]
@@ -132,6 +153,11 @@ class History:
                 self.prune(now)
         self.written += len(changed)
         return len(changed)
+
+    def _drop(self, rows):
+        for r in rows:
+            self.db.run('DELETE FROM floorbit_endpoints WHERE mac = ? AND ip = ? AND device = ? AND port_key = ? '
+                        'AND first_seen = ?', (r['mac'], r['ip'], r['device'], r['port_key'], r['first_seen']))
 
     def _write(self, rows):
         marks = '(' + ', '.join('?' * len(COLUMNS)) + ')'

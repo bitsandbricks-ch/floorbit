@@ -5,7 +5,10 @@ import { fakeFetch, renderWithApp } from '@/test/render'
 import { contrast } from '@/colorContrast'
 import Settings, { type SettingsAnswer } from './Settings'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  document.getElementById('fb-nav-data')?.remove()
+})
 
 const page = (route = '/settings') =>
   renderWithApp(<Routes><Route path="/settings/:section?" element={<Settings />} /></Routes>, route)
@@ -106,6 +109,38 @@ describe('Settings', () => {
     expect(api.calls.some((c) => c.path === '/api/settings')).toBe(false)
   })
 
+  it('says where a value comes from only when it is not the default, with the env var in a tooltip', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer }).fn)
+    page('/settings/discord')
+    const fromEnv = await screen.findByText("Set by the server's environment")
+    // The default webhook URL says nothing, and no env var name stands on the page.
+    expect(screen.getAllByText(/^Set /)).toHaveLength(1)
+    expect(screen.queryByText(/DISCORD_/)).toBeNull()
+    fireEvent.mouseEnter(fromEnv.closest('span') as HTMLElement)
+    expect(await screen.findByText(/environment variable DISCORD_TOKEN/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: /General/ }))
+    expect(await screen.findByText('Set here')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
+  })
+
+  it('keeps Tenants under System on one tenant, and gives it a tab only with several', async () => {
+    const pages = { pages: [{ href: '/settings', id: 'settings', label: 'Settings' }, { href: '/settings/tenants', id: 'tenants', label: 'Tenants' }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer, 'GET /api/pages': pages }).fn)
+    const one = page('/settings/cache')
+    expect(await screen.findByRole('tab', { name: /System/ })).toHaveAttribute('aria-selected', 'true')
+    expect(await screen.findByRole('link', { name: 'Tenants' })).toHaveAttribute('href', '/settings/tenants')
+    expect(screen.queryByRole('tab', { name: /Tenants/ })).toBeNull()
+    one.unmount()
+
+    const el = document.createElement('script')
+    el.type = 'application/json'
+    el.id = 'fb-nav-data'
+    el.textContent = JSON.stringify({ tenants: true })
+    document.body.append(el)
+    page('/settings/cache')
+    expect(await screen.findByRole('tab', { name: /Tenants/ })).toBeInTheDocument()
+  })
+
   it('works out the contrast like the server', () => {
     expect(contrast('#ffffff', '#000000')).toBeCloseTo(21, 0)
   })
@@ -132,5 +167,17 @@ describe('Settings in German', () => {
     expect(await screen.findByLabelText('Host-Gruppe')).toBeInTheDocument()
     expect(screen.getByText('Nur Hosts in dieser Gruppe werden gelesen.')).toBeInTheDocument()
     expect(screen.getByText(/Zustand, Verkehr und Fehler der Ports aus Zabbix/)).toBeInTheDocument()
+  })
+
+  it('folds the server-side values of a section under Advanced', async () => {
+    const folded: SettingsAnswer = { ...answer, fields: answer.fields.map((f) => f.key === 'discord.token' ? { ...f, advanced: true } : f) }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': folded }).fn)
+    page('/settings/discord')
+    const toggle = await screen.findByRole('button', { name: /Advanced: 1 more/ })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByLabelText('Webhook URL')).toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('Bot token')).toBeInTheDocument()
   })
 })

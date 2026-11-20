@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Group, Modal, Paper, Stack, Table, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Modal, Stack, Text, TextInput } from '@mantine/core'
 import { IconPlus, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -6,8 +6,10 @@ import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { InventoryEntry, InventoryOverview, InventoryType } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { LoadingState } from '@/components/ui'
 import type { GroupFilter } from './GroupTree'
+import { BoolCell } from './BoolCell'
 import { DeviceIcon } from './icons'
 import { effectiveLook, typeName } from './model'
 import { groupAndBelow, useEntries } from './scope'
@@ -48,57 +50,42 @@ export function EntriesView({ type, overview, group, tags, canEdit, onOpen, sour
       {isPending && <LoadingState />}
       {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
       {data && (
-        <>
-          <Text size="sm" c="dimmed" mb="xs">{t('inventory.entries.count', { count: entries.length })}</Text>
-          {entries.length === 0 ? <Text>{data.entries.length ? t('inventory.noMatch') : t('inventory.entries.empty')}</Text> : (
-            <Paper withBorder radius="lg">
-              <Table.ScrollContainer minWidth={640}>
-                <Table highlightOnHover verticalSpacing="xs" fz="sm">
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th w={36} />
-                      <Table.Th>{t('inventory.field.name')}</Table.Th>
-                      {type.sort === 'linked' && <Table.Th>{t('inventory.entries.what')}</Table.Th>}
-                      {shown.map((f) => <Table.Th key={f.key}>{t(`inventory.types.fieldLabel.${f.key}`, { defaultValue: f.label })}</Table.Th>)}
-                      <Table.Th>{t('inventory.groups.one')}</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {entries.map((e) => {
-                      const look = effectiveLook(e, groups)
-                      return (
-                        <Table.Tr key={e.id}>
-                          <Table.Td><DeviceIcon icon={look.icon || type.icon || type.default_icon} color={look.color || type.color} size={24} /></Table.Td>
-                          <Table.Td>
-                            <Group gap={6} wrap="nowrap">
-                              <Anchor component="button" type="button" fw={600} ta="left" onClick={() => onOpen(e.id)}>{e.name}</Anchor>
-                              {e.sources?.map((s) => (
-                                <Badge key={s} size="xs" variant={e.gone?.includes(s) ? 'outline' : 'light'} color={e.gone?.includes(s) ? 'warn' : 'trace'} tt="none">
-                                  {e.gone?.includes(s) ? t('inventory.gone', { source: sourceName(s) }) : sourceName(s)}
-                                </Badge>
-                              ))}
-                            </Group>
-                            {e.tags.length > 0 && (
-                              <Group gap={4} mt={2}>
-                                {e.tags.map((tid) => {
-                                  const tag = overview.tags.find((x) => x.id === tid)
-                                  return tag && <Badge key={tid} size="xs" tt="none" variant="light" color={tag.color || 'gray'}>{tag.name}</Badge>
-                                })}
-                              </Group>
-                            )}
-                          </Table.Td>
-                          {type.sort === 'linked' && <Table.Td>{e.summary}{e.detail && <Text size="xs" c="dimmed">{e.detail}</Text>}</Table.Td>}
-                          {shown.map((f) => <Table.Td key={f.key}>{value(e, f.key)}</Table.Td>)}
-                          <Table.Td>{groups.find((g) => g.id === e.group_id)?.name ?? ''}</Table.Td>
-                        </Table.Tr>
-                      )
-                    })}
-                  </Table.Tbody>
-                </Table>
-              </Table.ScrollContainer>
-            </Paper>
-          )}
-        </>
+          <DataTable label={typeName(t, type)} rows={entries} rowKey={(e) => e.id} defaultSort={{ id: 'name' }} minWidth={640}
+            empty={<Text>{data.entries.length ? t('inventory.noMatch') : t('inventory.entries.empty')}</Text>}
+            count={(n) => t('inventory.entries.count', { count: n })}
+            columns={[
+              { id: 'icon', header: null, width: 36, cell: (e) => {
+                const look = effectiveLook(e, groups)
+                return <DeviceIcon icon={look.icon || type.icon || type.default_icon} color={look.color || type.color} size={24} />
+              } },
+              { id: 'name', header: t('inventory.field.name'), sort: (e) => e.name, cell: (e) => (
+                <>
+                  <Group gap={6} wrap="nowrap">
+                    <Anchor component="button" type="button" fw={600} ta="left" onClick={() => onOpen(e.id)}>{e.name}</Anchor>
+                    {e.sources?.map((s) => (
+                      <Badge key={s} size="xs" variant={e.gone?.includes(s) ? 'outline' : 'light'} color={e.gone?.includes(s) ? 'warn' : 'trace'} tt="none">
+                        {e.gone?.includes(s) ? t('inventory.gone', { source: sourceName(s) }) : sourceName(s)}
+                      </Badge>
+                    ))}
+                  </Group>
+                  {e.tags.length > 0 && (
+                    <Group gap={4} mt={2}>
+                      {e.tags.map((tid) => {
+                        const tag = overview.tags.find((x) => x.id === tid)
+                        return tag && <Badge key={tid} size="xs" tt="none" variant="light" color={tag.color || 'gray'}>{tag.name}</Badge>
+                      })}
+                    </Group>
+                  )}
+                </>
+              ) },
+              ...(type.sort === 'linked' ? [{ id: 'what', header: t('inventory.entries.what'), sort: (e: InventoryEntry) => e.summary ?? '',
+                cell: (e: InventoryEntry) => <>{e.summary}{e.detail && <Text size="xs" c="dimmed">{e.detail}</Text>}</> }] : []),
+              ...shown.map((f) => ({ id: `f-${f.key}`, header: t(`inventory.types.fieldLabel.${f.key}`, { defaultValue: f.label }), hideOnPhone: true,
+                sort: (e: InventoryEntry) => String(value(e, f.key) ?? ''),
+                cell: (e: InventoryEntry) => f.kind === 'bool' ? <BoolCell type={type} entry={e} field={f} canEdit={canEdit} /> : value(e, f.key) })),
+              { id: 'group', header: t('inventory.groups.one'), hideOnPhone: true, sort: (e) => groups.find((g) => g.id === e.group_id)?.name ?? '',
+                cell: (e) => groups.find((g) => g.id === e.group_id)?.name ?? '' },
+            ]} />
       )}
       {adding && <AddEntry type={type} onClose={() => setAdding(false)} onAdded={(id) => { setAdding(false); onOpen(id) }} />}
     </>

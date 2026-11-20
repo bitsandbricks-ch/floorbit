@@ -1,7 +1,9 @@
 import { Alert, Button, Code, CopyButton, Group, Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
+import { runCommand } from './runCommand'
 
-export type Made = { name: string; key: string; rotated?: boolean }
+/** ``image`` is the agent image tagged with the version this Floorbit is tested with (from the server). */
+export type Made = { name: string; key: string; image?: string; rotated?: boolean }
 
 function Copy({ value }: { value: string }) {
   const { t } = useTranslation()
@@ -17,12 +19,8 @@ function Copy({ value }: { value: string }) {
 /** A key just made (enrolled or "New key"): shown this once, with the command that starts the agent. */
 export function KeyAlert({ made, onClose }: { made: Made; onClose: () => void }) {
   const { t } = useTranslation()
-  const run = [
-    'docker run -d --restart on-failure:3 --name floorbit-agent \\',
-    `  -e FLOORBIT_URL=${window.location.origin} \\`,
-    `  -e FLOORBIT_AGENT_KEY=${made.key} \\`,
-    '  ghcr.io/bitsandbricks-ch/floorbit-agent',
-  ].join('\n')
+  const run = runCommand(made, window.location.origin)
+  const insecure = window.location.protocol === 'http:'
   return (
     <Alert color="up" role="status" withCloseButton onClose={onClose} title={t(made.rotated ? 'agents.rotatedTitle' : 'agents.madeTitle', { name: made.name })}>
       <Stack gap="xs">
@@ -33,6 +31,7 @@ export function KeyAlert({ made, onClose }: { made: Made; onClose: () => void })
         </Group>
         <Text size="sm" fw={600} mt="xs">{t('agents.runTitle')}</Text>
         <Code block style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{run}</Code>
+        {insecure && <Text size="sm" className="fb-tone-warn">{t('agents.runInsecure')}</Text>}
         <Group><Copy value={run} /></Group>
       </Stack>
     </Alert>

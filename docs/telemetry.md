@@ -1,7 +1,7 @@
 # Device telemetry
 
 Floorbit can hear from the hall's switches, routers and firewalls directly, without LibreNMS:
-port state, traffic and errors, MAC tables, ARP, LLDP and CDP neighbours, CPU and memory, a
+port state, traffic and errors, MAC tables, ARP, LLDP and CDP neighbours, CPU, memory and temperature, a
 firewall's gateways and states. [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/)
 does the collecting; Floorbit tells it what to ask and keeps what comes back.
 
@@ -25,6 +25,12 @@ setting **Who polls the switches** decides:
 Traps stay with Telemetry either way: they turn a port down or up within a second, while LibreNMS
 sees it on its next 5-minute poll. The device facts (model, software, interfaces) keep filling the
 inventory ([discovery](inventory.md)).
+
+With the ports Telemetry also reads the temperatures: CISCO-ENVMON-MIB on Catalyst and IOS-XE,
+ENTITY-SENSOR-MIB (the celsius sensors) on Nexus and others. A switch's status gives the hottest
+sensor heard in the last 3 minutes as `temperature`, in degrees C, where LibreNMS gives its sensors'
+average. Until a switch's first port poll is in, its status says `unknown` with `waiting: true`
+instead of counting only the ports a trap or a stream has named so far.
 
 When Telemetry polls, it walks the ARP and MAC tables every **ARP and MAC tables every (minutes)**
 (0: never). **Auto** (the default) walks them every 15 minutes while a [network segment](segments.md)
@@ -175,6 +181,61 @@ device's ports (`device_ports`), and the switch's budget in discovery's `discove
 A login the device refuses is blocked on the inventory device, like any stored login: it isn't
 tried again until a tech clears it or the password changes.
 
+## Wireless controllers
+
+### Catalyst 9800
+
+A Catalyst 9800 (the 9800-CL VM or the appliances) streams its access points over the same MDT
+dial-out as the switches, and the [Wi-Fi view](wifi.md) shows them: each AP up or down, and per
+radio its band, channel, width, channel utilization and client count, every 30 seconds.
+
+1. Add the controller to the inventory with platform **IOS-XE** and its model (`C9800-CL-K9`,
+   `C9800-40-K9`, ...): the model tells Floorbit it is a wireless controller. Turn the Telemetry
+   feature on and choose **MDT** as the way to collect.
+2. Paste **Device setup** from its Telemetry tab on the controller. Besides the interfaces it
+   subscribes to three paths, every 30 seconds:
+
+   | Path | What Floorbit takes |
+   | --- | --- |
+   | `/wireless-access-point-oper:access-point-oper-data/capwap-data` | each joined AP: name, model, joined or not |
+   | `/wireless-access-point-oper:access-point-oper-data/radio-oper-data` | each radio: band, channel, width, on or off |
+   | `/wireless-rrm-oper:rrm-oper-data/rrm-measurement` | each radio: channel utilization, clients |
+
+   ```
+   telemetry ietf subscription 102
+    encoding encode-kvgpb
+    filter xpath /wireless-access-point-oper:access-point-oper-data/capwap-data
+    stream yang-push
+    update-policy periodic 3000
+    receiver ip address 192.0.2.10 57000 protocol grpc-tcp
+   ```
+
+### AireOS (5520, 3504, 8540)
+
+An AireOS controller answers its access points over SNMP (AIRESPACE-WIRELESS-MIB). Add it to the
+inventory with its model (`AIR-CT5520-K9`, ...) and an SNMP login, and turn the Telemetry feature
+on. Every minute Telemetry reads three tables: the APs (`bsnAPTable`: name, model, joined), their
+radios (`bsnAPIfTable`: band, channel, on or off) and the radios' load (`bsnAPIfLoadParametersTable`:
+channel utilization, clients). It does this even while [LibreNMS polls](#who-polls-the-switches):
+LibreNMS reads the same tables but has no API for them. The client table (`bsnMobileStationTable`)
+is never asked for.
+
+### Both
+
+Every 30 seconds the controller's numbers are stored with the rest of the telemetry: `wifi_clients`
+on the controller, and per AP (as its `port`) `clients` and `utilization` (its busiest radio). The
+[Wi-Fi view](wifi.md) draws clients over time from them, and `GET /api/telemetry/series` reads any of
+them.
+
+An AP the controller stops naming reads **down** after three minutes and leaves the list after a
+day. When a Wi-Fi plugin (Cisco WLC, UniFi, ...) names the same AP, the stream wins.
+
+The controller's client list is never subscribed to. Should a controller stream one anyway (a
+`client-oper` path), it is neither understood nor stored.
+
+<!-- TODO(Mike): checked against the YANG models only; confirm the field names on a live 9800-CL
+with "Raw data" before the first event (docs: floorbit-wlc-telemetry). -->
+
 ## Two agents (VRRP)
 
 With two or more local agents sharing virtual IPs (the agent's `docs/vrrp.md`, active/passive or
@@ -263,6 +324,8 @@ accounts on the devices.
   authPriv (SHA/AES, the default for v3) wherever the devices allow it.
 - **Traps and Cisco MDT** carry no token, so Floorbit only takes them from a device set up here
   with that address (or MDT node name). Anything else is counted as unknown and dropped.
+- **A wireless controller's client list** (`client-oper` paths) is dropped before storage, whatever
+  alias it comes under.
 - **Cisco MDT over TLS:** plain gRPC lets anyone on the management network send counters. Give
   Telegraf a certificate (`FLOORBIT_TELEGRAF_MDT_CERT`, `FLOORBIT_TELEGRAF_MDT_KEY`, paths as
   Telegraf sees them, and `FLOORBIT_TELEGRAF_MDT_CA` to take only devices with a certificate from
@@ -294,3 +357,25 @@ each device's last report.
 The **Telemetry devices** widget (a dashboard tile, from the plugin) lists each device as up when
 it reported in the last minutes, with a link to the Telemetry page. On a hosted Floorbit it asks
 the local agent.
+
+### In the agent's log
+
+Every telemetry line in the agent's log carries a topic after the plugin's tag, so you can keep one
+kind with `grep '\[telemetry\] \[traps\]'` (or `docker compose logs agent | grep ...`):
+
+| Topic | What it says |
+| --- | --- |
+| `[settings]` | the devices Floorbit sent (names only, never logins) and who polls the switches |
+| `[telegraf]` | Telegraf starting, stopping, reloading its config, and its own warnings |
+| `[devices]` | a device first heard, gone silent, and the summary every few minutes |
+| `[snmp]` | the poll line every minute: points per device, and the devices that sent nothing |
+| `[traps]` | each trap as it comes in: the device, the trap and its port |
+| `[stream]` | gNMI and Cisco MDT: one line a minute with the points per device |
+| `[api]` | the API pollers (firewalls, controllers) |
+| `[push]` | each send to Floorbit: the series and the IP and MAC sightings, with how many parts |
+| `[test]` | **Test now** runs |
+| `[role]` | the agent becoming the collector or standing by (VRRP) |
+| `[lookup]` | a check-in asking the switches for one PC, and what it found |
+
+These lines are at info level. `FLOORBIT_AGENT_LOG_LEVEL=debug` adds Telegraf's chatter and the
+details behind each line.
