@@ -38,7 +38,8 @@ def hall(client, app_module, monkeypatch):
     monkeypatch.setattr(seat_sources, "load", lambda max_age=None: seats)
     client.post("/api/seat-blocks", json={"name": "A", "x": 10, "y": 10, "cols": 4, "rows": 1})
     block = next(b for b in client.get("/api/seat-blocks").get_json() if b["name"] == "A")
-    r = client.post("/api/cables/block", json={"block": block["id"], "switch": "sw-a-01", "first_port": "Gi1/0/1"})
+    r = client.post("/api/cables/block", json={"rows": [f"{block['id']}:1"], "switch": "sw-a-01",
+                                               "first_port": "Gi1/0/1"})
     assert r.status_code == 200, r.get_json()
     client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/48"})      # the uplink: no seat
     finder = app_module.app.extensions["floorbit_port_clients"]
