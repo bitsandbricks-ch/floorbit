@@ -10,9 +10,10 @@ switch along the path learns the MAC on its uplink first, so uplinks are skipped
 """
 import time
 
+from ..edge_ports import EDGE_PORT_MACS
 from . import snmpget
 
-UPLINK_MACS = 4
+UPLINK_MACS = EDGE_PORT_MACS     # floorbit/edge_ports.py
 MAX_SWITCHES = 64        # a lookup asks at most this many switches: never the whole hall at once
 
 

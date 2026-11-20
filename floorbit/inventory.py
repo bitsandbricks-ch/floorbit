@@ -104,6 +104,8 @@ def normalize(raw):
     dev['interfaces'] = [inventory_interfaces.normalize(i) for i in raw.get('interfaces') or []
                          if isinstance(i, dict) and i.get('name')][:inventory_interfaces.MAX_PER_DEVICE]
     dev['blocks'] = [b for b in raw.get('blocks') or [] if isinstance(b, dict) and b.get('credential_id')][:20]
+    # Hardware swaps (floorbit/switch_swap.py): which serial was in the box when.
+    dev['swaps'] = [x for x in raw.get('swaps') or [] if isinstance(x, dict)][-20:]
     return dev
 
 

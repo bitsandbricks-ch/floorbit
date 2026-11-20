@@ -3,12 +3,11 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { pickEvent, useTenantEvents, type TenantEvent } from '@/api/tenantEvents'
 import { useCloseOutside } from './closeOutside'
-import type { NavPage } from './sections'
 
 /** The event this browser works on, at the top of the sidebar: a click lists the tenant's events
- *  to switch to, and the event's own pages (schedule, changelog, replay, report: no sidebar rows of
- *  their own, issue #892). Plain markup like the rest of the sidebar. Shows nothing until the list answers. */
-export function EventPicker({ rail, sheet, pages = [] }: { rail: boolean; sheet?: boolean; pages?: NavPage[] }) {
+ *  to switch to. The event's pages have their own sidebar row, Events (issue #1201). Plain markup
+ *  like the rest of the sidebar. Shows nothing until the list answers. */
+export function EventPicker({ rail, sheet }: { rail: boolean; sheet?: boolean }) {
   const { t } = useTranslation()
   const data = useTenantEvents()
   const [open, setOpen] = useState(false)
@@ -55,9 +54,6 @@ export function EventPicker({ rail, sheet, pages = [] }: { rail: boolean; sheet?
             </button>
           ))}
           <hr />
-          {pages.filter((p) => p.id !== 'events').map((p) => (
-            <a key={p.id} className="fb-nav-menu-item" href={p.href} role="menuitem">{t(`goto.pages.${p.id}`, { defaultValue: p.label })}</a>
-          ))}
           <a className="fb-nav-menu-item" href="/events" role="menuitem">{t('nav.eventAll')}</a>
         </div>
       )}

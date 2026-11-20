@@ -54,6 +54,19 @@ describe('sections', () => {
     expect(hubTabs(pages, '/settings/users')).toBeNull()   // Settings draws its own tabs
   })
 
+  it('puts the Monitoring pages under their rows', () => {
+    const mon = [
+      { href: '/services', id: 'services', label: 'Services' }, { href: '/dns', id: 'dns', label: 'DNS' },
+      { href: '/traffic', id: 'traffic', label: 'Traffic' }, { href: '/games', id: 'games', label: 'Games' },
+      { href: '/topology', id: 'topology', label: 'Topology' }, { href: '/wifi', id: 'wifi', label: 'Wi-Fi' },
+      { href: '/health', id: 'health', label: 'Service health' },
+    ]
+    expect(hubTabs(mon, '/dns')?.tabs.map((p) => p.id)).toEqual(['services', 'dns'])
+    expect(hubTabs(mon, '/games')?.tabs.map((p) => p.id)).toEqual(['traffic', 'games'])
+    expect(hubTabs(mon, '/wifi')?.tabs.map((p) => p.id)).toEqual(['topology', 'wifi'])
+    expect(hubTabs(mon, '/health')).toBeNull()
+  })
+
   it('lights one row: the longest page that holds the path', () => {
     expect(activeHref(pages, '/incidents/qr')).toBe('/incidents')
     expect(activeHref(pages, '/settings/agents')).toBe('/settings/agents')
@@ -116,10 +129,11 @@ describe('Sidebar', () => {
     expect(monitoring).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it("keeps the event's pages out of the groups: they are in the event menu", () => {
-    render(<Sidebar boot={{ ...boot, pages: [...pages, { href: '/replay', id: 'replay', label: 'Event replay' }] }} path="/problems" renderLink={link} onGoTo={() => {}} />)
+  it("gives Events a row of its own under the start pages, lit by the event's pages (#1201)", () => {
+    const more = [...pages, { href: '/events', id: 'events', label: 'Events' }, { href: '/replay', id: 'replay', label: 'Event replay' }]
+    render(<Sidebar boot={{ ...boot, pages: more }} path="/replay" renderLink={link} onGoTo={() => {}} />)
     expect(within(main()).queryByRole('link', { name: 'Event replay' })).not.toBeInTheDocument()
-    expect(within(main()).queryByRole('button', { name: 'Event' })).not.toBeInTheDocument()
+    expect(within(main()).getByRole('link', { name: 'Events' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('pins favourites to the top, saved with the account when signed in', () => {

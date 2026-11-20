@@ -1,10 +1,17 @@
 import { ActionIcon, Group, Text, TextInput, Tooltip, UnstyledButton } from '@mantine/core'
 import { IconArrowDown, IconArrowUp, IconChevronDown, IconChevronRight, IconGripVertical, IconTrash } from '@tabler/icons-react'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { COLS, type Panel, ROW_PX, type Section, type Spot, rows } from './grid'
+import { COLS, type Panel, ROW_PX, type Section, type Spot, phonePair, rows, snapHeight, stepHeight } from './grid'
 import type { Path, Split } from './model'
 import { SplitView } from './SplitView'
+import type { PaneFit } from '@/widgets/levelReport'
+import { LargeContext, PaneKey, paneAt, paneKey, useLarge } from './large'
+import { LargeBar } from './LargeBar'
+import { DeviceGlance } from './DeviceGlance'
+import { useScreen } from './screen'
+import { Drill } from '@/widgets/drill'
+import { PaneView } from './Panes'
 
 export interface GridEditing {
   selected: Spot | null
@@ -17,14 +24,39 @@ export interface GridEditing {
   onPlace: (section: number, panel: number, box: Partial<Panel>, base: Panel[]) => void
   onSection: (section: number, change: Partial<Section> | null) => void
   onMoveSection: (section: number, by: -1 | 1) => void
+  onFit?: (fit: PaneFit | null) => void
 }
 
 const GAP = 8
 
 /** A dashboard's sections and their panels on the grid. With ``fit`` the rows share the screen's
  *  height (each section by its rows); otherwise rows are ROW_PX high and the page scrolls. */
-export function GridView({ sections, fit, cycle, editing }: { sections: Section[]; fit: boolean; cycle?: number; editing?: GridEditing }) {
+export function GridView({ sections, fit, cycle, editing, backAfter }: {
+  sections: Section[]; fit: boolean; cycle?: number; editing?: GridEditing
+  /** Seconds after which a large pane goes back to the dashboard by itself (a wall). */
+  backAfter?: number
+}) {
   const [folded, setFolded] = useState<Record<number, boolean>>({})
+  const { open, close } = useLarge()
+  // "Make large" (#925): the one pane fills the dashboard's area; a key that no longer fits shows the dashboard.
+  const large = !editing && open ? paneAt(sections, open) : null
+  // The device of the row picked in the large widget; a public wall has no account to read it with.
+  const [glance, setGlance] = useState<string | null>(null)
+  const { publicId } = useScreen()
+  const closeGlance = useCallback(() => setGlance(null), [])
+  if (large) {
+    return (
+      <div className={`fb-grid fb-grid-large${fit ? ' fit' : ''}`}>
+        <LargeBar onBack={() => { setGlance(null); close() }} backAfter={glance ? undefined : backAfter} />
+        <div className={`fb-grid-large-body${glance ? ' glancing' : ''}`}>
+          <Drill.Provider value={publicId ? null : setGlance}>
+            <LargeContext.Provider value><PaneView pane={large} cycle={cycle} /></LargeContext.Provider>
+          </Drill.Provider>
+          {glance && <DeviceGlance key={glance} id={glance} onClose={closeGlance} />}
+        </div>
+      </div>
+    )
+  }
   return (
     <div className={`fb-grid${fit ? ' fit' : ''}${editing ? ' editing' : ''}`}>
       {sections.map((section, s) => {
@@ -83,6 +115,8 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
 }) {
   const { t } = useTranslation()
   const body = useRef<HTMLDivElement>(null)
+  // The panel being resized: its size in cells shows on it while the corner moves (#928).
+  const [sizing, setSizing] = useState<number | null>(null)
   // Drags in grid cells: pointer travel over one cell's width (or one row's height) moves a cell.
   const drag = (i: number, mode: 'move' | 'size') => (e: React.PointerEvent<HTMLElement>) => {
     if (!editing || !body.current) return
@@ -98,9 +132,12 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
     const x0 = e.clientX, y0 = e.clientY
     const move = (ev: PointerEvent) => {
       const dx = Math.round((ev.clientX - x0) / col), dy = Math.round((ev.clientY - y0) / row)
-      editing.onPlace(index, i, mode === 'move' ? { x: start.x + dx, y: start.y + dy } : { w: start.w + dx, h: start.h + dy }, base)
+      // A Page snaps the height to small, medium or large (#923); a Screen shares its height out.
+      const h = fit ? start.h + dy : snapHeight(start.h + dy)
+      editing.onPlace(index, i, mode === 'move' ? { x: start.x + dx, y: start.y + dy } : { w: start.w + dx, h }, base)
     }
-    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up) }
+    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); setSizing(null) }
+    if (mode === 'size') setSizing(i)
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
   }
@@ -111,7 +148,8 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
     if (!d) return
     e.preventDefault()
     const p = section.panels[i]
-    editing.onPlace(index, i, e.shiftKey ? { w: p.w + d[0], h: p.h + d[1] } : { x: p.x + d[0], y: p.y + d[1] }, section.panels)
+    const h = !d[1] || fit ? p.h + d[1] : stepHeight(p.h, d[1] as 1 | -1)
+    editing.onPlace(index, i, e.shiftKey ? { w: p.w + d[0], h } : { x: p.x + d[0], y: p.y + d[1] }, section.panels)
   }
   const template = fit ? `repeat(${n}, minmax(0, 1fr))` : `repeat(${n}, ${ROW_PX}px)`
   return (
@@ -120,19 +158,24 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
         const here = (path: Path): Spot => ({ section: index, panel: i, path })
         const sel = editing?.selected
         return (
-          <div key={i} className="fb-grid-item" style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}`, ['--rows' as string]: p.h }}>
-            <SplitView node={p.node} cycle={cycle} editing={editing && {
-              selected: sel && sel.section === index && sel.panel === i ? sel.path : null,
-              onSelect: (path) => editing.onSelect(here(path)),
-              onSplit: (path, dir) => editing.onSplit(here(path), dir),
-              onRemove: (path) => editing.onRemove(here(path)),
-              onResize: (path, border, pct) => editing.onResizeSplit(here(path), border, pct),
-            }} />
+          <div key={i} className={`fb-grid-item${phonePair(p) ? ' pair' : ''}`}
+            style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}`, ['--rows' as string]: p.h, ['--at' as string]: p.y * COLS + p.x }}>
+            <PaneKey.Provider value={editing ? null : paneKey(index, i)}>
+              <SplitView node={p.node} cycle={cycle} editing={editing && {
+                selected: sel && sel.section === index && sel.panel === i ? sel.path : null,
+                onSelect: (path) => editing.onSelect(here(path)),
+                onSplit: (path, dir) => editing.onSplit(here(path), dir),
+                onRemove: (path) => editing.onRemove(here(path)),
+                onResize: (path, border, pct) => editing.onResizeSplit(here(path), border, pct),
+                onFit: editing.onFit,
+              }} />
+            </PaneKey.Provider>
             {editing && (
               <>
                 <button type="button" className="fb-grid-grip" aria-label={t('dashboards.edit.move')} title={t('dashboards.edit.moveHint')}
                   onPointerDown={drag(i, 'move')} onKeyDown={keys(i)}><IconGripVertical size={16} /></button>
                 <span className="fb-grid-corner" aria-hidden="true" onPointerDown={drag(i, 'size')} />
+                {sizing === i && <span className="fb-grid-size" role="status">{t('dashboards.edit.cells', { w: p.w, h: p.h })}</span>}
               </>
             )}
           </div>

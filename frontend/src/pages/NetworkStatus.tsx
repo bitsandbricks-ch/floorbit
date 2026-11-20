@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Group, Paper, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
+  Alert, Badge, Button, Group, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
 } from '@mantine/core'
 import { IconExternalLink, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -13,7 +13,7 @@ import { useCan } from '@/api/queries'
 import type { StatusArea, StatusPageData, StatusState } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { clock } from '@/lib/time'
 import { COLOR } from './status/state'
 
@@ -90,7 +90,7 @@ export default function NetworkStatus() {
           <>
             {!d.public && <Alert color="gray" variant="light">{t('status.publicOff')}</Alert>}
             <SimpleGrid cols={{ base: 1, md: 2 }}>
-              <Paper withBorder radius="lg" p="md">
+              <Panel>
                 <Text size="xs" c="dimmed">{t('status.shows')}</Text>
                 <Group gap="sm" mt={4}>
                   <Badge size="lg" color={COLOR[d.state]} variant="filled" tt="none" data-testid="state">{t(`status.state.${d.state}`)}</Badge>
@@ -126,9 +126,8 @@ export default function NetworkStatus() {
                     </Group>
                   </Stack>
                 )}
-              </Paper>
-              <Paper withBorder radius="lg" p="md">
-                <Title order={2} size="h5" mb="xs">{t('status.areas')}</Title>
+              </Panel>
+              <Panel title={t('status.areas')}>
                 {d.crew_areas.length === 0 ? <Text size="sm" c="dimmed">{t('status.noAreas')}</Text> : (
                   <Stack gap="xs">{d.crew_areas.map((a) => <AreaLine key={`${a.hall}-${a.block}`} a={a} />)}</Stack>
                 )}
@@ -142,10 +141,9 @@ export default function NetworkStatus() {
                   </Stack>
                 )}
                 <Text size="xs" c="dimmed" mt="sm">{t('status.namesHidden')}</Text>
-              </Paper>
+              </Panel>
             </SimpleGrid>
-            <Paper withBorder radius="lg" p="md">
-              <Title order={2} size="h5" mb="xs">{t('status.updates')}</Title>
+            <Panel title={t('status.updates')}>
               {canSet && (
                 <Stack gap="xs" mb="md">
                   {suggestions.length > 0 && (
@@ -183,7 +181,7 @@ export default function NetworkStatus() {
                   ))}
                 </Stack>
               )}
-            </Paper>
+            </Panel>
           </>
         )}
       </Stack>

@@ -8,6 +8,7 @@ export const qk = {
   seatHelp: (seat: string, k: string) => ['public', 'help', seat, k] as const,
   dashboard: ['dashboard'] as const,
   boards: ['dashboards'] as const,
+  savedWidgets: ['saved-widgets'] as const,
   board: (id: string) => ['dashboards', id] as const,
   widget: (url: string) => ['widget', url] as const,
   plugins: ['plugins'] as const,
@@ -22,6 +23,8 @@ export const qk = {
   // Under 'inventory', so saving the device refreshes it too.
   inventoryTelemetry: (id: string) => ['inventory', 'telemetry', id] as const,
   inventoryCredentials: ['inventory', 'credentials'] as const,
+  // Under 'inventory': a swap changes the device, an inventory edit changes the spares.
+  switchSwap: (id: string) => ['inventory', 'swap', id] as const,
   seatMap: ['seat-map'] as const,
   roles: ['roles'] as const,
   teams: ['teams'] as const,
@@ -32,6 +35,7 @@ export const qk = {
   handover: ['handover'] as const,
   cables: ['cables'] as const,
   wifi: (hall: string) => ['wifi', hall] as const,
+  wifiHistory: (hours: string) => ['wifi', 'history', hours] as const,
   checkinOverview: ['checkins', 'overview'] as const,
   checkinHistory: (query: string) => ['checkins', 'history', query] as const,
   incidentMarkers: ['incidents', 'markers'] as const,
@@ -96,6 +100,7 @@ export const qk = {
   commands: ['commands'] as const,
   terminal: ['terminal'] as const,
   configs: ['configs'] as const,
+  portCheck: ['configs', 'port-check'] as const,
   configHistory: (sw: string) => ['configs', sw] as const,
   configDiff: (sw: string, from: string, to: string) => ['configs', sw, 'diff', from, to] as const,
   forecast: ['forecast'] as const,

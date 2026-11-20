@@ -1,7 +1,9 @@
-# Past events
+# Events
 
-Issue #38. Every event is kept as its own record, and the events page (`/events`, linked from the
-report) compares them side by side.
+Issue #38. Every event is kept as its own record. The **Events** row in the sidebar (`/events`,
+issue #1201) lists them, with the event's own pages (schedule, changelog, replay, report,
+templates) as its tabs. The archive of past events and the side-by-side comparison follow the
+**Past events** feature; the event list itself is always there.
 
 ## Planning the next event
 

@@ -1,13 +1,9 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, Paper, SegmentedControl, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Group, Paper, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconSearch } from '@tabler/icons-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { post, put } from '@/api/client'
-import { qk } from '@/api/keys'
-import { usePluginLog, usePlugins } from '@/api/queries'
-import type { ActionResult, PluginInfo } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
+import { usePlugins } from '@/api/queries'
+import type { PluginInfo } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PageTabs } from '@/components/PageTabs'
@@ -17,138 +13,11 @@ import Marketplace from './plugins/Marketplace'
 import { useMarketplace } from './plugins/market'
 import { pluginName } from '@/lib/pluginName'
 import { PluginIcon } from './plugins/icon'
+import { Badges, OnOff } from './plugins/parts'
+import { describe, useToggle } from './plugins/toggle'
 
 type Result = { ok: boolean; text: string } | null
 
-
-/** Where the plugin's own documents stand against the ``schema:`` this version knows. */
-function DataSchema({ plugin }: { plugin: PluginInfo }) {
-  const { t } = useTranslation()
-  const want = plugin.schema ?? 0
-  const have = plugin.data_schema ?? 0
-  if (have === want) return <Text size="sm" c="dimmed">{t('plugins.schemaOk', { n: want })}</Text>
-  if (have > want) return <Text size="sm" className="fb-tone-err">{t('plugins.schemaNewer', { have, want })}</Text>
-  return <Text size="sm" className="fb-tone-warn">{t('plugins.schemaBehind', { have, want })}</Text>
-}
-
-function PluginLog({ id }: { id: string }) {
-  const { t } = useTranslation()
-  const { data, error, isPending } = usePluginLog(id, true)
-  if (isPending) return <Loader size="sm" aria-label={t('common.loading')} />
-  if (error) return <Text className="fb-tone-err">✕ {error.message}</Text>
-  return <pre className="fb-log">{data.lines.length ? data.lines.map((l) => `${l.time}  ${l.line}`).join('\n') : t('plugins.emptyLog')}</pre>
-}
-
-function useToggle(plugin: PluginInfo, done: (ok: boolean, text: string) => void) {
-  const { t } = useTranslation()
-  const client = useQueryClient()
-  return useMutation({
-    mutationFn: (enabled: boolean) => put<{ plugins: PluginInfo[] }>(`/api/settings/plugins/${encodeURIComponent(plugin.id)}`, { enabled }),
-    onSuccess: (data, enabled) => {
-      client.setQueryData(qk.plugins, { plugins: data.plugins })
-      void client.invalidateQueries({ queryKey: qk.dashboard })
-      done(true, t(enabled ? 'plugins.turnedOn' : 'plugins.turnedOff', { name: pluginName(t, plugin.id, plugin.name) }))
-    },
-    onError: (e) => done(false, e.message),
-  })
-}
-
-function OnOff({ plugin, toggle }: { plugin: PluginInfo; toggle: ReturnType<typeof useToggle> }) {
-  const { t } = useTranslation()
-  return (
-    <Switch
-      ml="auto"
-      checked={plugin.enabled}
-      disabled={!!plugin.error || toggle.isPending}
-      onChange={(e) => toggle.mutate(e.currentTarget.checked)}
-      label={plugin.enabled ? t('plugins.on') : t('plugins.off')}
-      aria-label={`${pluginName(t, plugin.id, plugin.name)}: ${plugin.enabled ? t('plugins.on') : t('plugins.off')}`}
-    />
-  )
-}
-
-function describe(plugin: PluginInfo, t: ReturnType<typeof useTranslation>['t']) {
-  return plugin.trust === 'builtin'
-    ? t([`integrationSettings.plugins.${plugin.id}`, `integrationSettings.sections.plugin-${plugin.id}.desc`], { defaultValue: plugin.description })
-    : plugin.description
-}
-
-function Badges({ plugin }: { plugin: PluginInfo }) {
-  const { t } = useTranslation()
-  const trust = ['builtin', 'development', 'official'].includes(plugin.trust) ? t(`plugins.trust.${plugin.trust}`) : plugin.trust
-  return (
-    <>
-      {plugin.version && <Text size="sm" c="dimmed" ff="monospace">v{plugin.version}</Text>}
-      <Badge variant="light" color={plugin.trust === 'builtin' || plugin.trust === 'official' ? 'bit' : 'warn'}>{trust}</Badge>
-      {plugin.uses.some((u) => u.id === 'agent') && <Badge variant="outline" color="gray">{t('plugins.agent')}</Badge>}
-    </>
-  )
-}
-
-/** The plugin's own page: on/off, test, actions and log. Its settings are below it (PluginSettings.tsx). */
-export function PluginCard({ plugin, titled = true }: { plugin: PluginInfo; titled?: boolean }) {
-  const { t } = useTranslation()
-  const [result, setResult] = useState<Result>(null)
-  const [showLog, setShowLog] = useState(false)
-  const done = (ok: boolean, text: string) => setResult({ ok, text })
-  const toggle = useToggle(plugin, done)
-  const test = useMutation({
-    mutationFn: () => post<{ ok: boolean; message: string }>(`/api/settings/plugins/${encodeURIComponent(plugin.id)}/test`),
-    onSuccess: (r) => done(r.ok, r.message),
-    onError: (e) => done(false, e.message),
-  })
-  const action = useMutation({
-    mutationFn: (id: string) => post<ActionResult>(`/api/plugins/${encodeURIComponent(plugin.id)}/actions/${encodeURIComponent(id)}`),
-    onSuccess: (r) => done(true, r.message),
-    onError: (e) => done(false, e.message),
-  })
-  const busy = toggle.isPending || test.isPending || action.isPending
-
-  return (
-    <Paper withBorder radius="lg" p="lg" component="section" id={`pl-${plugin.id}`}>
-      <Stack gap="sm">
-        <Group gap="sm" wrap="wrap">
-          {titled && <PluginIcon name={plugin.icon} size={34} />}
-          {titled && <Title order={3} fz="lg">{pluginName(t, plugin.id, plugin.name)}</Title>}
-          <Badges plugin={plugin} />
-          <OnOff plugin={plugin} toggle={toggle} />
-        </Group>
-        {plugin.description && <Text c="dimmed">{describe(plugin, t)}</Text>}
-        {plugin.error && (
-          <Alert color="down" role="alert">
-            ✕ {plugin.error}
-          </Alert>
-        )}
-        <Group gap={6} aria-label={t('plugins.uses')} role="list">
-          {plugin.uses.map((u) => (
-            <Badge key={u.id} variant="outline" color="gray" tt="none" title={u.label} role="listitem">
-              {u.id}
-            </Badge>
-          ))}
-        </Group>
-        {plugin.schema ? <DataSchema plugin={plugin} /> : null}
-        <Group gap="xs" wrap="wrap">
-          {plugin.enabled && plugin.has_test && (
-            <Button variant="default" disabled={busy} onClick={() => test.mutate()}>
-              {t('plugins.test')}
-            </Button>
-          )}
-          {plugin.enabled &&
-            plugin.actions.map((a) => (
-              <ConfirmButton key={a.id} variant="default" label={a.label} danger={a.danger} title={a.help} disabled={busy} onConfirm={() => action.mutate(a.id)} />
-            ))}
-          <Button variant="subtle" color="gray" onClick={() => setShowLog((v) => !v)} aria-expanded={showLog}>
-            {showLog ? t('plugins.hideLog') : t('plugins.log')}
-          </Button>
-        </Group>
-        <Text size="sm" role="status" className={result ? (result.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
-          {test.isPending ? t('plugins.testing') : action.isPending ? t('common.working') : result ? `${result.ok ? '✓' : '✕'} ${result.text}` : ''}
-        </Text>
-        {showLog && <PluginLog id={plugin.id} />}
-      </Stack>
-    </Paper>
-  )
-}
 
 /** One line of the list: what it is, whether it's on, and the way to its own page. */
 function PluginRow({ plugin }: { plugin: PluginInfo }) {

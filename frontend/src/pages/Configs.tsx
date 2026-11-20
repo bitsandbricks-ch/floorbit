@@ -1,6 +1,6 @@
 import {
   Alert, Anchor, Badge, Button, Code, Grid, Group, Loader, MultiSelect, Paper, PasswordInput, ScrollArea, SimpleGrid, Stack,
-  Table, Text, TextInput, Title,
+  Text, TextInput, Title,
 } from '@mantine/core'
 import { IconDownload, IconFlag, IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -12,10 +12,12 @@ import { qk } from '@/api/keys'
 import type {
   ConfigBackupResult, ConfigDiff, ConfigHistory, ConfigNightly, ConfigOverview, ConfigRow,
 } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { when } from './handover/format'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { PortCheckPanel } from './configs/PortCheck'
 
 /** Switch config backups and what changed during the event (issue #96). A typed switch login lives
  *  only in this page's state for one run; the nightly run uses the stored logins. */
@@ -94,6 +96,7 @@ export default function Configs() {
               </Paper>
             )}
             {selected ? <Detail sw={selected} onBack={() => open(null)} /> : <Overview rows={info.switches} onOpen={open} />}
+            {!selected && <PortCheckPanel />}
           </>
         )}
       </Stack>
@@ -143,32 +146,17 @@ function Overview({ rows, onOpen }: { rows: ConfigRow[]; onOpen: (sw: string) =>
         <Title order={2} size="h4">{t('configs.overview')}</Title>
         <Text size="sm" c="dimmed">{t('configs.summary', { changed, total: rows.length })}</Text>
       </Group>
-      <ScrollArea type="auto">
-        <Table striped highlightOnHover miw={560}>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('configs.switch')}</Table.Th>
-              <Table.Th>{t('configs.state')}</Table.Th>
-              <Table.Th>{t('configs.lastCopy')}</Table.Th>
-              <Table.Th>{t('configs.lastChecked')}</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {rows.map((r) => (
-              <Table.Tr key={r.switch}>
-                <Table.Td style={{ whiteSpace: 'nowrap' }}>
-                  {r.last
-                    ? <Anchor component="button" ff="monospace" onClick={() => onOpen(r.switch)}>{r.switch}</Anchor>
-                    : <Text ff="monospace" span>{r.switch}</Text>}
-                </Table.Td>
-                <Table.Td><State row={r} /></Table.Td>
-                <Table.Td>{r.last ? t('configs.byWhen', { when: when(r.last.at), by: r.last.by }) : '—'}</Table.Td>
-                <Table.Td>{r.checked ? t('configs.byWhen', { when: when(r.checked.at), by: r.checked.by }) : '—'}</Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </ScrollArea>
+      <DataTable label={t('configs.overview')} rows={rows} rowKey={(r) => r.switch} defaultSort={{ id: 'switch' }} minWidth={560} bare
+        columns={[
+          { id: 'switch', header: t('configs.switch'), sort: (r) => r.switch, mono: true, cell: (r) => (r.last
+            ? <Anchor component="button" ff="monospace" onClick={() => onOpen(r.switch)}>{r.switch}</Anchor>
+            : r.switch) },
+          { id: 'state', header: t('configs.state'), sort: (r) => (r.changed ? 0 : r.last ? 1 : 2), cell: (r) => <State row={r} /> },
+          { id: 'last', header: t('configs.lastCopy'), sort: (r) => r.last?.at ?? 0, hideOnPhone: true,
+            cell: (r) => (r.last ? t('configs.byWhen', { when: when(r.last.at), by: r.last.by }) : '—') },
+          { id: 'checked', header: t('configs.lastChecked'), sort: (r) => r.checked?.at ?? 0, hideOnPhone: true,
+            cell: (r) => (r.checked ? t('configs.byWhen', { when: when(r.checked.at), by: r.checked.by }) : '—') },
+        ]} />
     </Paper>
   )
 }

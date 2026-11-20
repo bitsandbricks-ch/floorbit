@@ -266,7 +266,7 @@ def labels_pdf(cables, base_url):
         for k, (c, end) in enumerate(items[start:start + per_page]):
             x, y = MX + (k % COLS) * w, MY + (k // COLS) * h
             page.rect(x + 3, y + 3, w - 6, h - 6, stroke='#c9ced6')
-            qr = segno.make(f"{base_url.rstrip('/')}/cables?cable={c['id']}", error='m')
+            qr = segno.make(f"{base_url.rstrip('/')}/cables/{c['id']}", error='m')
             matrix = list(qr.matrix)
             size = min(h - 24, 62.0)
             cell = size / len(matrix)
@@ -308,31 +308,21 @@ PORT_NUMBER_RE = re.compile(r'^(.*?)(\d+)$')
 MAX_BLOCK_SEATS = 1000
 
 
-def _rows(text, count):
-    """'2-3' or '2' or '' (all) -> the row numbers, counted from 1, top row first as drawn."""
-    text = str(text or '').strip()
-    if not text:
-        return list(range(1, count + 1))
-    m = re.match(r'^(\d+)\s*(?:-\s*(\d+))?$', text)
-    if not m:
-        raise CableError('Rows are a number or a range, for example 1-2.')
-    first, last = int(m.group(1)), int(m.group(2) or m.group(1))
-    if not 1 <= first <= last <= count:
-        raise CableError(f'This block has rows 1 to {count}.')
-    return list(range(first, last + 1))
-
-
 def plan_block(body, data=None):
-    """Which seat gets which port: ``{"cables": [{seat, switch, port}], "clashes": [...]}``.
+    """Which seat gets which port: ``{"rows": [names], "cables": [{seat, switch, port, block}], "clashes": [...]}``.
 
-    ``body``: ``block`` (id), ``switch``, ``first_port`` (the port of the first seat; the last number
-    counts up), ``order`` (``rows``: each row the same way; ``snake``: every other row back),
-    ``reverse`` (start at the last seat), ``rows`` (``"1-2"``; all when empty)."""
-    from .seat_names import block_rows
+    ``body``: ``rows`` (row ids from ``seat_names.hall_rows``, in the order they are patched; a row
+    is what a switch is patched along, whichever block it is in), ``switch``, ``first_port`` (the
+    port of the first seat; the last number counts up), ``order`` (``rows``: each row the same way;
+    ``snake``: every other row back), ``reverse`` (start at the last seat)."""
+    from . import seat_names
     data = load_data() if data is None else data
-    block = next((b for b in data.get('seat_blocks') or [] if b.get('id') == body.get('block')), None)
-    if not block:
-        raise CableError('Pick a seat block.', 404)
+    try:
+        rows = seat_names.pick_rows(data, body.get('rows'))
+    except ValueError:
+        raise CableError('That row is not on the floor plan any more.', 404) from None
+    if not rows:
+        raise CableError('Pick the rows to patch.')
     switch = _text(body.get('switch'), LIMITS['switch'])
     if not switch:
         raise CableError('Pick the switch the block is patched to.')
@@ -344,24 +334,25 @@ def plan_block(body, data=None):
     order = body.get('order') or 'rows'
     if order not in ('rows', 'snake'):
         raise CableError('The order is rows or snake.')
-    rows = block_rows(block)
     seats = []
-    for i, r in enumerate(_rows(body.get('rows'), len(rows))):
-        row = rows[r - 1]
-        seats += list(reversed(row)) if order == 'snake' and i % 2 else row
+    for i, row in enumerate(rows):
+        walked = list(reversed(row['seats'])) if order == 'snake' and i % 2 else row['seats']
+        seats += [(s, row['block']) for s in walked]
     if body.get('reverse'):
         seats.reverse()
     if len(seats) > MAX_BLOCK_SEATS:
         raise CableError(f'At most {MAX_BLOCK_SEATS} seats at once.')
     width = len(m.group(2)) if m.group(2).startswith('0') else 0     # Eth01 -> Eth02, not Eth2
     planned = [{'seat': seat.upper(), 'switch': switch, 'port': f'{prefix}{start + n:0{width}d}',
-                'block': block['id']} for n, seat in enumerate(seats)]
-    return {'block': block.get('name') or '', 'cables': planned, 'clashes': _clashes(planned, all_cables(data))}
+                'block': block} for n, (seat, block) in enumerate(seats)]
+    return {'rows': [r['name'] for r in rows], 'cables': planned, 'clashes': _clashes(planned, all_cables(data))}
 
 
-def _replaced(cable, planned_seats, block_id):
-    """One of this block's own cables on a seat being planned again: it makes way, no clash."""
-    return cable.get('block') == block_id and cable.get('source') == 'floorbit' and cable.get('seat') in planned_seats
+def _replaced(cable, planned):
+    """A cable Floorbit planned earlier for a seat being planned again (``planned``: seat -> its
+    block): it makes way, no clash."""
+    seat = cable.get('seat')
+    return seat in planned and cable.get('block') == planned[seat] and cable.get('source') == 'floorbit'
 
 
 def _clashes(planned, cables):
@@ -369,7 +360,7 @@ def _clashes(planned, cables):
     from .syslog import canonical_port
     if not planned:
         return []
-    block_id, planned_seats = planned[0]['block'], {p['seat'] for p in planned}
+    planned_seats = {p['seat']: p['block'] for p in planned}
     ports = {(c['switch'].lower(), canonical_port(c['port'])): c for c in cables}
     seats = {}
     for c in cables:
@@ -378,11 +369,11 @@ def _clashes(planned, cables):
     out = []
     for p in planned:
         on_port = ports.get((p['switch'].lower(), canonical_port(p['port'])))
-        if on_port and not _replaced(on_port, planned_seats, block_id):
+        if on_port and not _replaced(on_port, planned_seats):
             out.append({'seat': p['seat'], 'port': p['port'], 'kind': 'port', 'cable': on_port['label'],
                         'other_seat': on_port.get('seat') or '', 'imported': on_port.get('source') == 'import'})
         on_seat = seats.get(p['seat'])
-        if on_seat and not _replaced(on_seat, planned_seats, block_id) and on_seat is not on_port:
+        if on_seat and not _replaced(on_seat, planned_seats) and on_seat is not on_port:
             out.append({'seat': p['seat'], 'port': p['port'], 'kind': 'seat', 'cable': on_seat['label'],
                         'other_port': f"{on_seat['switch']} {on_seat['port']}",
                         'imported': on_seat.get('source') == 'import'})
@@ -403,16 +394,16 @@ def add_block(body, by, replace=False):
             raise CableError(f"{len(plan['clashes'])} ports or seats already have a cable.", 409)
         if not plan['cables']:
             return plan, 0
-        block_id, planned_seats = plan['cables'][0]['block'], {p['seat'] for p in plan['cables']}
+        planned_seats = {p['seat']: p['block'] for p in plan['cables']}
         in_way = {c['cable'] for c in plan['clashes']}
-        kept = [c for c in cables if not _replaced(c, planned_seats, block_id) and c['label'] not in in_way]
+        kept = [c for c in cables if not _replaced(c, planned_seats) and c['label'] not in in_way]
         removed = len(cables) - len(kept)
         if len(kept) + len(plan['cables']) > MAX_CABLES:
             raise CableError(f'Floorbit keeps at most {MAX_CABLES} cables.')
         now = time.time()
         for p in plan['cables']:
             kept.append({'id': uuid.uuid4().hex[:12], **clean({**p, 'label': _next_label(kept)}, kept),
-                         'block': block_id, 'source': 'floorbit', 'updated_at': now, 'by': by})
+                         'block': p['block'], 'source': 'floorbit', 'updated_at': now, 'by': by})
         data[KEY] = kept
         save_data(data)
     return plan, removed
@@ -475,9 +466,12 @@ def assign(body, by):
 
 def port_seats(data=None, learned=True):
     """{(switch lowercase, canonical port): seat} from the cables that end at a seat, and with
-    ``learned`` the ports seat check-ins found (integrations/checkin.py) where no cable says.
-    A cable wins: it is what the crew patched."""
+    ``learned`` also the ports seat check-ins and the seat walk found (integrations/checkin.py)
+    where no cable says, and the switch ports typed in by hand on the Seat mapping page. A hand
+    entry wins, as it does everywhere in the seat mapping (docs/seat-mapping.md), then a cable
+    (what the crew patched), then a learned port. Without ``learned``: the patch plan alone."""
     from .syslog import canonical_port
+    data = load_data() if data is None else data
     out = {}
     if learned:
         from integrations import checkin
@@ -487,4 +481,12 @@ def port_seats(data=None, learned=True):
             print(f'[cables] could not read the learned seat ports: {exc}')
     out.update({(c['switch'].lower(), canonical_port(c['port'])): c['seat']
                 for c in all_cables(data) if c.get('seat')})
+    if learned:
+        from . import seatmap
+        hand = {seatmap.port_key(e['switch'], e['port']): seat for seat, e in seatmap.entries(data).items()
+                if isinstance(e, dict) and e.get('switch') and e.get('port')}
+        # A hand entry moves its seat: the cable or learned port that named it elsewhere goes.
+        moved = set(hand.values())
+        out = {k: v for k, v in out.items() if v not in moved}
+        out.update(hand)
     return out

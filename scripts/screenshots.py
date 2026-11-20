@@ -87,6 +87,14 @@ TILE_DATA = {"name": "Tile data", "fit": True, "sections": [{"panels": [
     tile("traffic", 16, 0, 8, 8, reduce="avg", type="bar", title="Average traffic"),
     tile("traffic", 0, 8, 16, 8, legend=["min", "avg", "max"], title="Traffic, min, average and max"),
     tile("traffic", 16, 8, 8, 8, reduce="max", title="Peak traffic"),
+    # Numbers and colours (issue #960): steps by share of the max, top 3, a step line on a graph.
+    tile("seats_by_block", 0, 16, 8, 8, type="bar", sort="value-asc", limit=3, threshold_mode="percent",
+         thresholds=[{"at": 0, "tone": "err"}, {"at": 70, "tone": "warn"}, {"at": 85, "tone": "ok"}],
+         title="Emptiest blocks"),
+    tile("seats", 8, 16, 8, 8, type="gauge", threshold_mode="percent",
+         thresholds=[{"at": 50, "tone": "warn"}, {"at": 90, "tone": "ok"}]),
+    tile("traffic", 16, 16, 8, 8, short=True, decimals=1, thresholds=[{"at": 4e9, "tone": "warn"}],
+         title="Traffic over 4 Gbit/s"),
 ]}]}
 SEEDED = {"tile-levels": TILE_LEVELS, "tile-charts": TILE_CHARTS, "tile-data": TILE_DATA}
 

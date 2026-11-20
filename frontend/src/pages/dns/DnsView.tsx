@@ -7,7 +7,7 @@ import { qk } from '@/api/keys'
 import type { DnsData, DnsSite } from '@/api/types'
 import type { ViewProps } from '@/widgets/views'
 import { ErrorBanner } from '@/components/ui'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { clock, dayClock } from '@/lib/time'
 
 const W = 1000
@@ -83,11 +83,11 @@ function Board({ data, compact }: { data: DnsData; compact: boolean }) {
   return (
     <>
       <SimpleGrid cols={{ base: 2, sm: 4 }} mb="md">
-        <StatCard label={t('dns.lookups')} value={num(data.lookups)} />
-        <StatCard label={t('dns.blocked')} value={num(data.blocked)}
+        <StatTile label={t('dns.lookups')} value={num(data.lookups)} />
+        <StatTile label={t('dns.blocked')} value={num(data.blocked)}
           sub={data.block_share != null ? t('dns.share', { pct: (data.block_share * 100).toFixed(1) }) : undefined} />
-        <StatCard label={t('dns.named')} value={num(data.sites.length)} sub={t('dns.namedSub', { count: data.min_clients })} />
-        <StatCard label={t('dns.unnamed')} value={num(data.unnamed_lookups)} sub={t('dns.unnamedSub')} />
+        <StatTile label={t('dns.named')} value={num(data.sites.length)} sub={t('dns.namedSub', { count: data.min_clients })} />
+        <StatTile label={t('dns.unnamed')} value={num(data.unnamed_lookups)} sub={t('dns.unnamedSub')} />
       </SimpleGrid>
       <div className="fb-stats">
         <Chart hours={data.hours} label={t('dns.chartLabel', { lookups: num(data.lookups), blocked: num(data.blocked) })} />

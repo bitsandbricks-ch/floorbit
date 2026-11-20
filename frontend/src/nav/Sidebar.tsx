@@ -10,7 +10,7 @@ import { fetchOtherTenants, readFolded, readRail, saveFolded, saveRail, useNavPr
 import { useCloseOutside } from './closeOutside'
 import { EventPicker } from './EventPicker'
 import './nav.css'
-import { activeHref, boardHref, group, HUBS, isPluginPage, linkIcon, pageIcon, rowsOf, TABS, withParents, type CustomLink, type NavPage } from './sections'
+import { activeHref, boardHref, group, isPluginPage, linkIcon, pageIcon, rowsOf, TABS, withParents, type CustomLink, type NavPage } from './sections'
 
 export interface LinkProps {
   href: string
@@ -250,7 +250,7 @@ function Panel(props: PanelProps) {
         })}
       </div>
 
-      <EventPicker rail={rail} sheet={props.sheet} pages={HUBS.event.flatMap((id) => boot.pages.find((p) => p.id === id) ?? [])} />
+      <EventPicker rail={rail} sheet={props.sheet} />
 
       <button type="button" className="fb-nav-row fb-nav-search" onClick={props.onGoTo} title={rail ? t('nav.goTo') : undefined} aria-keyshortcuts="Control+K Meta+K">
         <IconSearch size={18} className="fb-nav-icon" aria-hidden="true" />

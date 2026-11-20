@@ -17,6 +17,7 @@ import { PageHead } from '@/components/PageHead'
 import { download, standaloneSvg, svgToPng } from './plan/exportImage'
 import { type Box as ViewBox, bounds, toDiagram, zoomAt } from './topology/camera'
 import { NODE_H, NODE_W, type Placed, arranged, gbit, layout, placeUplinks } from './topology/layout'
+import { StateBadge } from '@/components/State'
 
 const COLOR: Record<string, string> = {
   cat5e: 'var(--mantine-color-blue-6)', cat6: 'var(--mantine-color-blue-6)', cat6a: 'var(--mantine-color-blue-6)',
@@ -400,7 +401,7 @@ function NodePanel({ name, role, status, links, onPick }: {
     <Stack gap="xs">
       <Group justify="space-between" wrap="nowrap">
         <Title order={3} size="h5">{name}</Title>
-        <Badge color={status === 'online' ? 'up' : status === 'offline' ? 'down' : 'gray'} variant="light">{t(`topology.status.${status}`)}</Badge>
+        <StateBadge size="md" state={status} label={t(`topology.status.${status}`)} />
       </Group>
       <Text size="sm" c="dimmed">{t(`topology.roles.${role}`, { defaultValue: role })} · {t('topology.links', { count: links.length })}</Text>
       {links.map((l) => {
