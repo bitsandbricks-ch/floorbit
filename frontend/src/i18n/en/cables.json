@@ -29,7 +29,6 @@
   "cable": "Cable",
   "direct": "Direct",
   "edit": "Edit",
-  "open": "Open",
   "save": "Save",
   "delete": "Delete",
   "fromImport": "This cable comes from {{plugin}}. Change it there and import again.",
@@ -100,5 +99,8 @@
   "areasSkip": "Empty: not to seats",
   "areasBatch": "Ports {{first}}-{{last}}: first seat",
   "areasSave": "Save areas",
-  "areaHint": "Area {{label}}"
+  "areaHint": "Area {{label}}",
+  "back": "All cables",
+  "notFound": "This cable is gone.",
+  "noRights": "Only crew who may edit the floor plan add cables."
 }

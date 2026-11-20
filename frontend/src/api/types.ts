@@ -173,6 +173,10 @@ export interface Device extends Record<InventoryField, string> {
   fields?: Record<string, string>
   interface_count?: number
   blocked?: number
+  /** Live, in the list only: the status monitor's state (null before it polled) and ports up of all. */
+  state?: 'online' | 'offline' | 'unknown' | null
+  ports?: { up: number; total: number } | null
+  drift?: number
 }
 
 /** Icon, colour, tags, properties and feature switches: what devices, groups and tags all carry. */
