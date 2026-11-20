@@ -17,6 +17,11 @@
   "delete": "Delete",
   "clock": "Time",
   "stale": "No connection to the server: showing what was last read.",
+  "suggestScreen": {
+    "text": "This dashboard is a Page: it scrolls, so on a screen nobody touches part of it stays out of sight. As a Screen it fits.",
+    "make": "Make it a Screen",
+    "keep": "Keep it a Page"
+  },
   "canvasHint": "Drag a widget by its handle, resize it by its corner (with the keyboard: arrows, Shift+arrows). Click it to set it up or split it. At most {{max}} widgets on {{cols}} columns.",
   "edit": {
     "pick": "Set up this pane",
@@ -27,14 +32,18 @@
     "addWidget": "Add widget",
     "addSection": "Add section",
     "move": "Move widget",
-    "moveHint": "Drag to move. Arrow keys move it, Shift+arrows resize it."
+    "moveHint": "Drag to move. Arrow keys move it, Shift+arrows resize it.",
+    "cells": "{{w}} × {{h}} cells",
+    "rowsShown": "{{shown}} of {{total}} rows",
+    "tooSmall": "Too small"
   },
   "kind": {
     "plan": "Plan",
     "view": "Widget",
     "tile": "Tile",
     "empty": "Empty",
-    "text": "Text"
+    "text": "Text",
+    "widget": "Saved widget"
   },
   "area": {
     "hall": "Whole hall",
@@ -99,7 +108,29 @@
     "reduceHint": "Turns the data into one number (one per line for a graph).",
     "reduceGroupHint": "One number per group, from the first number column (a count without one).",
     "legend": "Legend shows",
-    "legendHint": "Empty: the latest value, plus max and average when large."
+    "legendHint": "Empty: the latest value, plus max and average when large.",
+    "widget": "Saved widget",
+    "noWidgets": "No saved widget matches.",
+    "noWidgetsHint": "No saved widgets yet. Make one on",
+    "widgetHint": "The pane follows the widget: a change on the Widgets page shows here too.",
+    "clone": "Clone into this dashboard",
+    "cloneHint": "Makes a tile of its own with the same settings, for this dashboard only. It no longer follows the widget.",
+    "range": "Time shown",
+    "compareDay": "Compare with yesterday",
+    "compareDayHint": "A dotted line: yesterday at the same times, by the hour.",
+    "events": "Mark what happened",
+    "eventsHint": "Switches going down or coming back, and incidents, as lines on the graph.",
+    "spark": "History under the number",
+    "sparkHint": "A small line of how it went, when the pane is too small for the graph.",
+    "change": "Show the change",
+    "changeHint": "An arrow with how much it moved since an hour ago (or since the start of the data).",
+    "textSize": "Number size",
+    "textSizeHint": "The big number of a number, gauge or pie, for a wall seen from afar or a crowded screen.",
+    "refresh": "Refresh",
+    "refreshHint": "How often this pane asks again. Faster means fresher numbers and more load.",
+    "drawn": "Draws as {{level}} at this size.",
+    "drawnRows": "{{shown}} of {{total}} rows show: make it taller to show all.",
+    "drawnTooSmall": "Too small to read at this size: make it bigger."
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",
@@ -112,22 +143,37 @@
     "viewGone": "This widget is gone.",
     "noText": "Write something in the pane's settings.",
     "private": "Needs an account: not shown on a public screen.",
-    "openBig": "Open big",
-    "openBigNamed": "Open {{name}} big",
+    "openBig": "Make large",
+    "openBigNamed": "Make {{name}} large",
     "viewOff": "This widget's feature is turned off (Settings > Features).",
-    "dropped": "Left out, doesn't fit with the first tile: {{names}}"
+    "dropped": "Left out, doesn't fit with the first tile: {{names}}",
+    "widgetGone": "This saved widget is gone. Edit the dashboard to pick another."
   },
   "textSize": {
-    "s": "S",
-    "m": "M",
-    "l": "L",
-    "xl": "XL"
+    "s": "Small",
+    "m": "Normal",
+    "l": "Large"
   },
   "align": {
     "start": "Left",
     "center": "Centre"
   },
-  "fit": "Fit to screen",
+  "layout": "Layout",
+  "layoutPage": "Page: scrolls",
+  "layoutScreen": "Screen: fits",
+  "frame": "Header and status line in full screen",
+  "nextBoard": "Next: {{name}}",
+  "attention": {
+    "held": "Rotation waits",
+    "more_one": "+{{count}} more",
+    "more_other": "+{{count}} more",
+    "hint": "Open an incident or mute it to clear this"
+  },
+  "large": {
+    "back": "Back to the dashboard",
+    "esc": "Esc goes back",
+    "backAfter": "Goes back by itself in {{seconds}} s · Esc"
+  },
   "section": {
     "new": "New section",
     "untitled": "Section title (empty: just a divider)",
@@ -243,6 +289,65 @@
       "value-asc": "Smallest first",
       "name-asc": "Name A–Z",
       "name-desc": "Name Z–A"
+    },
+    "axis": "Value axis",
+    "axisHint": "Fixed ends keep graphs on a wall comparable; values outside sit on the edge.",
+    "yMin": "From",
+    "yMax": "Up to",
+    "yLog": "Log scale (for values far apart, like bytes)",
+    "series": "Series",
+    "rowsLook": "Rows",
+    "seriesHint": "Rename, recolour or hide one, found by its name in the data.",
+    "seriesPick": "Series",
+    "seriesName": "Show as",
+    "colourAuto": "Auto",
+    "hide": "Hide",
+    "addSeries": "Add a setting",
+    "colours": {
+      "green": "Green",
+      "cyan": "Cyan",
+      "violet": "Violet",
+      "pink": "Pink",
+      "orange": "Orange",
+      "blue": "Blue",
+      "grey": "Grey"
     }
+  },
+  "range": {
+    "auto": "Auto",
+    "1h": "1 h",
+    "6h": "6 h",
+    "24h": "24 h",
+    "event": "Event"
+  },
+  "refresh": {
+    "auto": "As the tile sets it (every {{seconds}} s)",
+    "seconds": "Every {{count}} seconds",
+    "minutes_one": "Every minute",
+    "minutes_other": "Every {{count}} minutes"
+  },
+  "boardRange": "Time shown",
+  "boardRangeHint": "Every graph that can, unless its pane picks its own. Viewers can change it for themselves.",
+  "changed": "Changed",
+  "copy": "Make a copy",
+  "copyName": "{{name}} (copy)",
+  "reset": "Reset to default",
+  "resetConfirm": "Reset: drop the changes",
+  "glance": {
+    "close": "Close",
+    "noDetail": "No more about this device here: open its page.",
+    "ports_one": "{{count}} port",
+    "ports_other": "{{count}} ports",
+    "wired": "Wired: {{what}}",
+    "runsHere": "Goes down with it",
+    "open": "Open the device page",
+    "portsTab": "Its ports",
+    "telemetryTab": "Its telemetry",
+    "cables_one": "{{count}} cable",
+    "cables_other": "{{count}} cables",
+    "circuits_one": "{{count}} circuit",
+    "circuits_other": "{{count}} circuits",
+    "uplinks_one": "{{count}} internet line",
+    "uplinks_other": "{{count}} internet lines"
   }
 }

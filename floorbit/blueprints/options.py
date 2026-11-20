@@ -93,12 +93,13 @@ def _seats(data):
 
 
 def _blocks(data):
-    """Every seat block by id: a block named by its rows has no name, so it goes by its row letters
-    (C to D), like everywhere else (#1078)."""
+    """Every seat block by its id, under what people call it: a block named by its rows has no
+    name of its own, so it goes by its row letters ("C to D")."""
     from ..seat_names import label
     size = lambda b: int(b.get('cols') or 0) * int(b.get('rows') or 0)   # noqa: E731
-    return sorted(({'value': b['id'], 'label': label(b) or b['id'], 'hint': str(size(b))}
-                   for b in data.get('seat_blocks') or [] if b.get('id')), key=lambda o: _natural(o['label']))
+    out = [{'value': b['id'], 'label': label(b) or b['id'], 'hint': str(size(b))}
+           for b in data.get('seat_blocks') or [] if b.get('id')]
+    return sorted(out, key=lambda o: _natural(o['label']))
 
 
 def _halls(data):

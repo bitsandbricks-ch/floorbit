@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanDrawing } from '@/api/types'
-import { type Node, areaView, at, depth, panes, planRows, remove, resize, seatsIn, split, starter } from './model'
+import { type Node, areaView, at, depth, paneRange, panes, planRows, rangedUrl, remove, resize, seatsIn, split, starter } from './model'
 
 const empty: Node = { pane: { kind: 'empty' } }
 
@@ -60,6 +60,27 @@ describe('areas', () => {
   it('counts the seats inside an area', () => {
     expect(seatsIn(drawing, { x: 350, y: 250, w: 100, h: 100 })).toEqual(['A-1', 'A-2'])
     expect(seatsIn(drawing, { x: 900, y: 500, w: 400, h: 300 })).toEqual([])
+  })
+})
+
+describe('a pane\'s time range (#960)', () => {
+  it('asks only a tile that takes it', () => {
+    const tile = { url: '/api/dashboard/floorbit/traffic', ranges: true }
+    expect(rangedUrl(tile, { range: '6h', compare: 'day' })).toBe('/api/dashboard/floorbit/traffic?range=6h&compare=day')
+    expect(rangedUrl(tile, {})).toBe(tile.url)
+    expect(rangedUrl({ url: '/x' }, { range: '1h' })).toBe('/x')
+  })
+
+  it('follows the dashboard\'s time unless the pane picks its own', () => {
+    expect(paneRange({}, '6h').range).toBe('6h')
+    expect(paneRange({ range: '1h' }, '6h').range).toBe('1h')
+    expect(paneRange({ compare: 'day' }, 'event')).toEqual({ range: 'event', compare: undefined })
+    expect(paneRange({ compare: 'day' }, '24h').compare).toBe('day')
+  })
+
+  it('asks for marks only from a tile that has them', () => {
+    expect(rangedUrl({ url: '/t', ranges: true, marks: true }, { range: '1h', events: true })).toBe('/t?range=1h&marks=1')
+    expect(rangedUrl({ url: '/t' }, { events: true })).toBe('/t')
   })
 })
 

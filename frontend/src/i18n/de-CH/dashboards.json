@@ -17,6 +17,11 @@
   "delete": "Löschen",
   "clock": "Uhrzeit",
   "stale": "Keine Verbindung zum Server: Angezeigt wird der letzte Stand.",
+  "suggestScreen": {
+    "text": "Dieses Dashboard ist eine Seite: Es scrollt, also bleibt auf einem Bildschirm, den niemand bedient, ein Teil unsichtbar. Als Bildschirm passt es hinein.",
+    "make": "Zum Bildschirm machen",
+    "keep": "Als Seite lassen"
+  },
   "canvasHint": "Zieh ein Widget am Griff, ändere die Grösse an der Ecke (mit der Tastatur: Pfeile, Shift+Pfeile). Klick es an, um es einzurichten oder zu teilen. Höchstens {{max}} Widgets auf {{cols}} Spalten.",
   "edit": {
     "pick": "Diesen Bereich einrichten",
@@ -27,14 +32,18 @@
     "addWidget": "Widget hinzufügen",
     "addSection": "Abschnitt hinzufügen",
     "move": "Widget verschieben",
-    "moveHint": "Ziehen zum Verschieben. Pfeiltasten verschieben, Shift+Pfeile ändern die Grösse."
+    "moveHint": "Ziehen zum Verschieben. Pfeiltasten verschieben, Shift+Pfeile ändern die Grösse.",
+    "cells": "{{w}} × {{h}} Felder",
+    "rowsShown": "{{shown}} von {{total}} Zeilen",
+    "tooSmall": "Zu klein"
   },
   "kind": {
     "plan": "Plan",
     "view": "Widget",
     "tile": "Kachel",
     "empty": "Leer",
-    "text": "Text"
+    "text": "Text",
+    "widget": "Gespeichertes Widget"
   },
   "area": {
     "hall": "Ganze Halle",
@@ -99,7 +108,29 @@
     "reduceHint": "Macht aus den Daten eine Zahl (bei einem Diagramm eine pro Linie).",
     "reduceGroupHint": "Eine Zahl pro Gruppe, aus der ersten Zahlenspalte (ohne eine: die Anzahl).",
     "legend": "Legende zeigt",
-    "legendHint": "Leer: den letzten Wert, gross dazu Max. und Durchschnitt."
+    "legendHint": "Leer: den letzten Wert, gross dazu Max. und Durchschnitt.",
+    "widget": "Gespeichertes Widget",
+    "noWidgets": "Kein gespeichertes Widget passt.",
+    "noWidgetsHint": "Noch keine gespeicherten Widgets. Erstelle eines unter",
+    "widgetHint": "Der Bereich folgt dem Widget: Änderungen auf der Seite Widgets erscheinen auch hier.",
+    "clone": "In dieses Dashboard klonen",
+    "cloneHint": "Macht eine eigene Kachel mit denselben Einstellungen, nur für dieses Dashboard. Sie folgt dem Widget dann nicht mehr.",
+    "range": "Gezeigte Zeit",
+    "compareDay": "Mit gestern vergleichen",
+    "compareDayHint": "Eine gepunktete Linie: gestern zur selben Zeit, pro Stunde.",
+    "events": "Ereignisse markieren",
+    "eventsHint": "Ausgefallene und wieder erreichbare Switches sowie Störungen als Linien in der Grafik.",
+    "spark": "Verlauf unter der Zahl",
+    "sparkHint": "Eine kleine Linie, wie es lief, wenn das Feld für die Grafik zu klein ist.",
+    "change": "Veränderung zeigen",
+    "changeHint": "Ein Pfeil, wie stark es sich seit einer Stunde bewegt hat (oder seit Beginn der Daten).",
+    "textSize": "Zahlengrösse",
+    "textSizeHint": "Die grosse Zahl bei Zahl, Tacho und Kreis, für eine Wand aus der Ferne oder einen vollen Bildschirm.",
+    "refresh": "Neu laden",
+    "refreshHint": "Wie oft dieses Feld neu fragt. Schneller heisst frischere Zahlen und mehr Last.",
+    "drawn": "Wird in dieser Grösse als {{level}} gezeichnet.",
+    "drawnRows": "{{shown}} von {{total}} Zeilen sichtbar: höher machen, um alle zu zeigen.",
+    "drawnTooSmall": "In dieser Grösse zu klein zum Lesen: grösser machen."
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",
@@ -112,22 +143,37 @@
     "viewGone": "Dieses Widget gibt es nicht mehr.",
     "noText": "Schreib etwas in die Einstellungen des Bereichs.",
     "private": "Braucht ein Konto: auf einem öffentlichen Bildschirm nicht gezeigt.",
-    "openBig": "Gross öffnen",
-    "openBigNamed": "{{name}} gross öffnen",
+    "openBig": "Gross zeigen",
+    "openBigNamed": "{{name}} gross zeigen",
     "viewOff": "Die Funktion dieses Widgets ist ausgeschaltet (Einstellungen > Funktionen).",
-    "dropped": "Weggelassen, passt nicht zur ersten Kachel: {{names}}"
+    "dropped": "Weggelassen, passt nicht zur ersten Kachel: {{names}}",
+    "widgetGone": "Dieses gespeicherte Widget gibt es nicht mehr. Bearbeite das Dashboard, um ein anderes zu wählen."
   },
   "textSize": {
-    "s": "S",
-    "m": "M",
-    "l": "L",
-    "xl": "XL"
+    "s": "Klein",
+    "m": "Normal",
+    "l": "Gross"
   },
   "align": {
     "start": "Links",
     "center": "Zentriert"
   },
-  "fit": "An Bildschirm anpassen",
+  "layout": "Layout",
+  "layoutPage": "Seite: scrollt",
+  "layoutScreen": "Bildschirm: passt",
+  "frame": "Kopfzeile und Statuszeile im Vollbild",
+  "nextBoard": "Danach: {{name}}",
+  "attention": {
+    "held": "Wechsel wartet",
+    "more_one": "+{{count}} weiteres",
+    "more_other": "+{{count}} weitere",
+    "hint": "Störung eröffnen oder stumm schalten, dann verschwindet das"
+  },
+  "large": {
+    "back": "Zurück zum Dashboard",
+    "esc": "Esc geht zurück",
+    "backAfter": "Geht nach {{seconds}} s von selbst zurück · Esc"
+  },
   "section": {
     "new": "Neuer Abschnitt",
     "untitled": "Titel des Abschnitts (leer: nur eine Trennlinie)",
@@ -243,6 +289,65 @@
       "value-asc": "Kleinste zuerst",
       "name-asc": "Name A–Z",
       "name-desc": "Name Z–A"
+    },
+    "axis": "Werteachse",
+    "axisHint": "Feste Enden machen Grafiken auf einer Wand vergleichbar; Werte ausserhalb liegen am Rand.",
+    "yMin": "Von",
+    "yMax": "Bis",
+    "yLog": "Logarithmische Skala (für weit auseinanderliegende Werte wie Bytes)",
+    "series": "Reihen",
+    "rowsLook": "Zeilen",
+    "seriesHint": "Eine umbenennen, umfärben oder ausblenden, gefunden über ihren Namen in den Daten.",
+    "seriesPick": "Reihe",
+    "seriesName": "Anzeigen als",
+    "colourAuto": "Automatisch",
+    "hide": "Ausblenden",
+    "addSeries": "Einstellung hinzufügen",
+    "colours": {
+      "green": "Grün",
+      "cyan": "Cyan",
+      "violet": "Violett",
+      "pink": "Rosa",
+      "orange": "Orange",
+      "blue": "Blau",
+      "grey": "Grau"
     }
+  },
+  "range": {
+    "auto": "Auto",
+    "1h": "1 h",
+    "6h": "6 h",
+    "24h": "24 h",
+    "event": "Event"
+  },
+  "refresh": {
+    "auto": "Wie die Kachel es vorgibt (alle {{seconds}} s)",
+    "seconds": "Alle {{count}} Sekunden",
+    "minutes_one": "Jede Minute",
+    "minutes_other": "Alle {{count}} Minuten"
+  },
+  "boardRange": "Gezeigte Zeit",
+  "boardRangeHint": "Für jede Grafik, die es kann, ausser ihr Feld wählt selbst. Zuschauer können es für sich ändern.",
+  "changed": "Geändert",
+  "copy": "Kopie erstellen",
+  "copyName": "{{name}} (Kopie)",
+  "reset": "Auf Standard zurücksetzen",
+  "resetConfirm": "Zurücksetzen: Änderungen verwerfen",
+  "glance": {
+    "close": "Schliessen",
+    "noDetail": "Hier nicht mehr zu diesem Gerät: öffne seine Seite.",
+    "ports_one": "{{count}} Port",
+    "ports_other": "{{count}} Ports",
+    "wired": "Verbunden: {{what}}",
+    "runsHere": "Fällt mit ihm aus",
+    "open": "Geräteseite öffnen",
+    "portsTab": "Seine Ports",
+    "telemetryTab": "Seine Telemetrie",
+    "cables_one": "{{count}} Kabel",
+    "cables_other": "{{count}} Kabel",
+    "circuits_one": "{{count}} Stromkreis",
+    "circuits_other": "{{count}} Stromkreise",
+    "uplinks_one": "{{count}} Internetleitung",
+    "uplinks_other": "{{count}} Internetleitungen"
   }
 }

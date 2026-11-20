@@ -9,9 +9,11 @@ type FieldType = 'url' | 'text' | 'secret' | 'list' | 'bool' | 'int' | 'choice' 
 export type Field = {
   key: string; section: string; label: string; type: FieldType; env: string | null
   help?: string; placeholder?: string; unit?: string; min?: number; max?: number; theme?: string
+  /** Only for whoever runs the server: folded under Advanced (#991). */
+  advanced?: boolean
   options?: { value: string; label: string }[]
 }
-export type Value = { source: 'saved' | 'env' | 'default'; value?: unknown; is_set?: boolean; unreadable?: boolean; env?: string; env_set?: boolean }
+export type Value = { source: 'saved' | 'env' | 'hosted' | 'default'; value?: unknown; is_set?: boolean; unreadable?: boolean; env?: string; env_set?: boolean }
 export type SettingsAnswer = {
   sections: { id: string; title: string; description: string }[]
   fields: Field[]

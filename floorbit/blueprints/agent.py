@@ -113,7 +113,7 @@ def enrol():
         return jsonify({'error': str(exc)}), exc.status
     audit.record('settings', 'Enrolled a local agent', g.get('audit_user'), record['name'])
     events.publish('agents.changed', {})
-    return jsonify({**record, 'key': key}), 201
+    return jsonify({**record, 'key': key, 'image': agent_link.agent_image()}), 201
 
 
 @bp.route('/api/agents/<agent_id>', methods=['PATCH'])
@@ -153,7 +153,7 @@ def rotate(agent_id):
         return jsonify({'error': str(exc)}), exc.status
     audit.record('agents', 'Made a new key for a local agent', g.get('audit_user'), name)
     events.publish('agents.changed', {})
-    return jsonify({'id': agent_id, 'name': name, 'key': key})
+    return jsonify({'id': agent_id, 'name': name, 'key': key, 'image': agent_link.agent_image()})
 
 
 @bp.route('/api/agents/ca.pem', methods=['GET'])

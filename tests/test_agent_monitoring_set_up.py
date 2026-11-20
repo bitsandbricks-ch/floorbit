@@ -52,3 +52,17 @@ def test_an_agent_with_no_monitoring_plugin_at_all(agent):
     state, _ = agent
     state['answer'] = agent_link.AgentError('No monitoring plugin is set up on the agent')
     assert agent_link.monitoring_set_up(now=0) is False
+
+
+def test_pages_stop_asking_an_agent_without_monitoring(agent, monkeypatch):
+    # Asking anyway failed every call and showed "Local agent has not answered yet" on Problems.
+    from floorbit import sources
+    _, calls = agent
+    monkeypatch.setattr(agent_link, 'active', lambda: True)
+    monkeypatch.setattr(sources, '_override', None)
+    sources.mark_failed('agent', 'The local agent is not connected.', 'Local agent')   # asked before it said
+    monitoring = sources.monitoring()
+    assert monitoring.enabled() is False
+    assert monitoring.neighbours('sw-a-01') == []
+    assert calls == ['configured']
+    assert not sources.offline()

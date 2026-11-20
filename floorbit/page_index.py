@@ -27,6 +27,15 @@ PAGES = (
     ('/topology', 'topology', 'Topology', None),
     ('/firewalls', 'firewalls', 'Firewalls', None),
     ('/services', 'services', 'Services', None),
+    ('/health', 'health', 'Service health', lambda c, can: c['feature_on']('health')),
+    ('/wifi', 'wifi', 'Wi-Fi', lambda c, can: c['feature_on']('wifi') and c.get('wifi_on')),
+    ('/dns', 'dns', 'DNS', lambda c, can: c['feature_on']('dns')),
+    ('/lancache', 'lancache', 'LAN cache', lambda c, can: _lancache_on()),
+    ('/traffic', 'traffic', 'Traffic', lambda c, can: c['feature_on']('traffic')),
+    ('/games', 'games', 'Games', lambda c, can: c['feature_on']('games')),
+    ('/stats', 'stats', 'Stats', None),
+    ('/speedtests', 'speedtests', 'Speed tests',
+     lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),
     ('/logs', 'logs', 'Logs',
      lambda c, can: c['feature_on']('syslog') and c.get('logs_page') and can('seats.view')),
     ('/security', 'security', 'Security', lambda c, can: c['feature_on']('security') and can('seats.view')),
@@ -65,6 +74,12 @@ PAGES = (
     ('/settings/sign-in', 'signIn', 'Sign-in providers', lambda c, can: can('settings.manage')),
     ('/settings/audit', 'audit', 'Audit log', lambda c, can: can('audit.read')),
 )
+
+
+def _lancache_on():
+    # The LAN cache plugin comes from the Marketplace: no page until it is installed and on.
+    from .blueprints.lancache import _plugin
+    return _plugin()[1]
 
 
 def _checkin_on():

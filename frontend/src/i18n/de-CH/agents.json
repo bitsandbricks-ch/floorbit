@@ -32,6 +32,7 @@
   "copy": "Kopieren",
   "copied": "Kopiert",
   "runTitle": "Agent im Eventnetz starten",
+  "runInsecure": "Dieses Floorbit läuft über einfaches http. Der Agent braucht darum FLOORBIT_AGENT_INSECURE=1 und schickt seinen Schlüssel unverschlüsselt. Nur für einen Test oder in einem Netz, dem du vertraust; für einen Event Floorbit hinter HTTPS stellen.",
   "docs": "Wie der Agent funktioniert und was er gefragt wird: docs/agent.md.",
   "relaySyslog": "Syslog",
   "relayFlows": "NetFlow",
@@ -253,7 +254,7 @@
     "range": "Zeitraum",
     "hours_one": "{{count}} h",
     "hours_other": "{{count}} h",
-    "none": "Noch keine Zahlen gespeichert. Sie beginnen mit den nächsten Meldungen des Agents, alle halbe Minute.",
+    "none": "Sie beginnen mit den nächsten Meldungen des Agents, alle halbe Minute.",
     "max": "max. {{n}}",
     "metric": {
       "points": "Telemetrie-Punkte",
@@ -276,19 +277,19 @@
       "reconnects": "{{n}} pro Minute jetzt",
       "syslog": "{{n}} pro Minute jetzt",
       "median_ms": "{{n}} ms jetzt"
-    }
+    },
+    "noneTitle": "Noch keine Zahlen gespeichert"
   },
   "cfg": {
     "title": "Agent-Einstellungen",
     "intro": "Floorbit schickt diese Werte an den Agent. Setzt die Umgebung des Agents einen Wert selbst, gilt dieser und das Feld ist hier gesperrt.",
     "source": {
-      "env": "Agent-Umgebung",
-      "floorbit": "Floorbit",
+      "env": "Von der Umgebung des Agents gesetzt",
+      "floorbit": "Hier gesetzt",
       "default": "Standard"
     },
     "secretSet": "Gesetzt (zum Ersetzen tippen)",
     "atRestart": "beim nächsten Start",
-    "envWins": "Auf dem Agent durch {{env}} gesetzt; das gilt vor Floorbit.",
     "field": {
       "metrics": "Metrics-Port",
       "metrics_token": "Metrics-Token",
@@ -319,18 +320,8 @@
       "log_level": "Wie viel der Agent in sein Log schreibt. Gilt sofort.",
       "log_summary": "Wie oft der Agent eine Zusammenfassung ins Log schreibt; 0 schaltet sie aus."
     },
-    "group": {
-      "general": "Allgemein",
-      "metrics": "Metrics",
-      "buffer": "Puffer",
-      "vrrp": "Geteilte Adressen (VRRP)",
-      "logs": "Logs"
-    },
-    "pluginsTitle": "Plugin-Einstellungen für diesen Agent",
-    "pluginsIntro": "Leere Felder nehmen die Einstellung des Plugins aus Einstellungen › Plugins.",
+    "pluginsIntro": "Einige Plugin-Einstellungen können pro Agent abweichen. Sie werden auf der Seite des Plugins gesetzt.",
     "pluginDefault": "Plugin-Einstellung: {{value}}",
-    "save_one": "1 Änderung speichern",
-    "save_other": "{{count}} Änderungen speichern",
     "hallTitle": "In der Halle gesetzte Grenzen",
     "hallIntro": "Was der Agent erreichen und tun darf. Nur seine eigene Umgebung setzt das, damit ein Floorbit-Login es nicht ausweiten kann.",
     "hallDefault": "nicht gesetzt",
@@ -363,6 +354,39 @@
       "info": "Info",
       "warning": "Warnungen",
       "error": "Fehler"
-    }
+    },
+    "envTip": "Aus der Umgebungsvariable {{env}} auf dem Agent. Dort ändern, wo der Agent gestartet wird.",
+    "advancedHint": "selten geändert; geteilte Adressen erscheinen ab einem zweiten Agent",
+    "saved": "Gespeichert. Der Agent übernimmt es bei der nächsten Abfrage.",
+    "hall": {
+      "FLOORBIT_AGENT_ALLOW_ACTIONS": {
+        "label": "Aktionen, die in der Halle etwas ändern",
+        "help": "Welche Plugin-Aktionen in der Halle etwas ändern dürfen, etwa den LAN-Cache leeren. Nach Name: plugin.aktion, plugin.* oder *.",
+        "unset": "keine erlaubt"
+      },
+      "FLOORBIT_AGENT_PLUGIN_UPDATES": {
+        "label": "Plugin-Updates",
+        "help": "Ob der Agent signierte Plugin-Updates selbst installiert (auto), auf eine Freigabe in der Halle wartet (approve) oder keine nimmt (off).",
+        "unset": "auto"
+      },
+      "FLOORBIT_AGENT_SWITCH_NETS": {
+        "label": "Netze für Switch-Logins",
+        "help": "Wohin sich Port-Aktionen, Befehle, Konfig-Backups und das Terminal anmelden dürfen.",
+        "unset": "nur private Adressen"
+      },
+      "FLOORBIT_AGENT_GAME_NETS": {
+        "label": "Netze für Gameserver",
+        "help": "Wo der Agent Gameserver nach ihrem Status fragen und Konsolenbefehle senden darf.",
+        "unset": "nur private Adressen"
+      },
+      "FLOORBIT_AGENT_PROBE_NETS": {
+        "label": "Netze für Dienst-Checks",
+        "help": "Wohin die Dienste-Ansicht DNS-Abfragen und TCP-Checks senden darf.",
+        "unset": "jede Adresse ausser der eigenen des Agents"
+      }
+    },
+    "pluginsTitle": "Plugin-Einstellungen für diesen Agent",
+    "pluginSame": "Nimmt die Einstellungen des Plugins.",
+    "pluginEdit": "Auf der Plugin-Seite setzen"
   }
 }

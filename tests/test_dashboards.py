@@ -118,7 +118,7 @@ def test_old_layouts_read_as_one_panel(app_module, client):
     assert dashboards.get("old")["sections"]
 
 
-def test_kiosk_is_ready_made_until_replaced(client):
+def test_kiosk_is_ready_made_until_changed_and_resets(client):
     kiosk = client.get("/api/dashboards/kiosk").get_json()
     assert kiosk["builtin"] is True and kiosk["fit"] is True
     panes = [p["node"]["pane"] for p in kiosk["sections"][0]["panels"]]
@@ -128,9 +128,14 @@ def test_kiosk_is_ready_made_until_replaced(client):
     mine = {"name": "Kiosk", "sections": [{"panels": [_panel(0, 0, 24, 12, "text")]}], "fit": True}
     assert client.put("/api/dashboards/kiosk", json=mine).status_code == 200
     listed = client.get("/api/dashboards").get_json()["layouts"]
-    assert [x.get("builtin") for x in listed if x["id"] == "kiosk"] == [None]
+    assert [(x.get("builtin"), x.get("changed")) for x in listed if x["id"] == "kiosk"] == [(None, True)]
+    # Reset to default: the saved one goes, the ready-made one is back.
     assert client.delete("/api/dashboards/kiosk").status_code == 200
-    assert client.get("/api/dashboards/kiosk").get_json()["builtin"] is True
+    back = client.get("/api/dashboards/kiosk").get_json()
+    assert back["builtin"] is True and "changed" not in back
+    # A dashboard of one's own is never "changed".
+    assert client.put("/api/dashboards/mine", json=mine).status_code == 200
+    assert "changed" not in client.get("/api/dashboards/mine").get_json()
 
 
 def test_checks(client):
@@ -202,6 +207,12 @@ def test_public_dashboards_open_without_an_account(client, anon_client, monkeypa
     assert set(plan["switches"][0]) == {"id", "name", "status", "x", "y"}
     assert "198.51.100.7" not in str(plan) and "player-six" not in str(plan)
     assert anon_client.get("/api/dashboards/hall/public/tiles/down").get_json()["type"] == "status"
+    # A row's inventory id is crew data: the open feed leaves it out (#925).
+    from floorbit.blueprints import plugins as tiles
+    monkeypatch.setitem(tiles.CORE_TILES, "down", lambda _q: {"type": "list", "items": [
+        {"label": "sw-a-01", "value": "7 min", "tone": "err", "device": "demo-sw-a-01"}]})
+    assert anon_client.get("/api/dashboards/hall/public/tiles/down").get_json()["items"] == [
+        {"label": "sw-a-01", "value": "7 min", "tone": "err"}]
     assert anon_client.get("/api/dashboards/hall/public/tiles/problems").status_code == 404
     assert anon_client.get("/api/dashboards/hall/public/tiles/switches").status_code == 404   # not on it
 
@@ -358,6 +369,84 @@ def test_a_tile_pane_keeps_how_it_shows_its_numbers(client):
     assert "whole number" in error(limit=0)
     assert "Sort" in error(sort="random")
     assert "mappings" in error(mappings=[{"text": "x"}] * 11)
+
+
+def test_a_tile_pane_keeps_its_axis_and_series_settings(client):
+    def save(**extra):
+        body = {"name": "Axis", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {
+            "pane": {"kind": "tile", "tile": "floorbit/w/traffic", **extra}}}]}]}
+        return client.put("/api/dashboards/axis", json=body)
+    shown = {"y_min": 1, "y_max": 10e9, "y_log": True, "overrides": [
+        {"match": "Download", "name": "Down", "colour": "cyan"}, {"match": "Upload", "hide": True}]}
+    r = save(**shown)
+    assert r.status_code == 200, r.get_json()
+    pane = r.get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert pane == {"kind": "tile", "tile": "floorbit/w/traffic", **shown}
+    # A setting that changes nothing is dropped.
+    r = save(overrides=[{"match": "Upload", "name": " "}], y_log=False)
+    assert r.get_json()["sections"][0]["panels"][0]["node"]["pane"] == {"kind": "tile", "tile": "floorbit/w/traffic"}
+
+    def error(**extra):
+        return save(**extra).get_json()["error"]
+    assert "above its minimum" in error(y_min=5, y_max=5)
+    assert "above 0" in error(y_log=True, y_min=0)
+    assert "must be a number" in error(y_max="lots")
+    assert "series colour" in error(overrides=[{"match": "Download", "colour": "red"}])
+    assert "Pick the series" in error(overrides=[{"name": "x"}])
+    assert "series settings" in error(overrides=[{"match": "a", "hide": True}] * 11)
+
+
+def test_a_tile_pane_keeps_its_time_range(client):
+    def save(**extra):
+        body = {"name": "Range", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {
+            "pane": {"kind": "tile", "tile": "floorbit/w/traffic", **extra}}}]}]}
+        return client.put("/api/dashboards/range", json=body)
+    pane = save(range="6h", compare="day").get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert pane["range"] == "6h" and pane["compare"] == "day"
+    assert "time range" in save(range="week").get_json()["error"]
+    assert "Compare" in save(compare="lastyear").get_json()["error"]
+    assert "nothing to compare" in save(range="event", compare="day").get_json()["error"]
+
+
+def test_a_tile_pane_keeps_showing_events(client):
+    body = {"name": "Events", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {
+        "pane": {"kind": "tile", "tile": "floorbit/w/traffic", "events": True}}}]}]}
+    pane = client.put("/api/dashboards/events", json=body).get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert pane["events"] is True
+
+
+def test_a_tile_pane_sets_its_refresh_text_size_and_stat_extras(client):
+    def put(**extra):
+        body = {"name": "Extras", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4, "node": {
+            "pane": {"kind": "tile", "tile": "floorbit/w/traffic", **extra}}}]}]}
+        return client.put("/api/dashboards/extras", json=body)
+    r = put(refresh=30, text_size="l", spark=True, change=True)
+    assert r.status_code == 200, r.get_json()
+    pane = r.get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert (pane["refresh"], pane["text_size"], pane["spark"], pane["change"]) == (30, "l", True, True)
+    assert "text_size" not in put(text_size="m").get_json()["sections"][0]["panels"][0]["node"]["pane"]
+    assert put(refresh=5).get_json()["error"] == "Refresh every 10, 30, 60 or 300 seconds."
+    assert put(refresh=True).status_code == 400
+    assert put(text_size="xl").get_json()["error"] == "Text size is small, normal or large."
+
+
+def test_a_dashboard_sets_the_time_its_graphs_show(client):
+    body = {"name": "Times", "public": True, "range": "6h", "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4,
+            "node": {"pane": {"kind": "tile", "tile": "floorbit/w/traffic"}}}]}]}
+    r = client.put("/api/dashboards/times", json=body)
+    assert r.status_code == 200 and r.get_json()["range"] == "6h"
+    assert client.get("/api/dashboards/times/public").get_json()["board"]["range"] == "6h"
+    assert client.put("/api/dashboards/times", json={**body, "range": "week"}).status_code == 400
+    assert "range" not in client.put("/api/dashboards/times", json={**body, "range": ""}).get_json()
+
+
+def test_a_dashboard_can_hide_its_full_screen_header(client):
+    body = {"name": "Wall", "public": True, "sections": [{"panels": [{"x": 0, "y": 0, "w": 6, "h": 4,
+            "node": {"pane": {"kind": "text", "text": "Hi"}}}]}]}
+    # On by default: nothing is stored until a dashboard switches it off.
+    assert "frame" not in client.put("/api/dashboards/wall", json=body).get_json()
+    assert client.put("/api/dashboards/wall", json={**body, "frame": False}).get_json()["frame"] is False
+    assert client.get("/api/dashboards/wall/public").get_json()["board"]["frame"] is False
 
 
 def test_a_pane_can_show_one_row(client):
