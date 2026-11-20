@@ -89,11 +89,12 @@ def test_the_laptop_is_always_identified_through_the_agent(hall, client, monkeyp
     r = hall.post("/api/seat-walk/locate", json={"seat": "A-1"}, environ_base={"REMOTE_ADDR": ip})
     assert r.status_code == 409 and "Identify it again" in r.get_json()["error"]
 
-    assert hall.post("/api/seat-walk/hello").status_code == 409     # no agent address yet
-    monkeypatch.setenv("SEAT_WALK_AGENT_URL", "http://192.0.2.10:8908/")
+    assert hall.post("/api/seat-walk/hello").status_code == 409     # no agent reached yet
+    # Nothing typed for the walk: the check-in name on the seat cards is where every agent answers.
+    monkeypatch.setenv("CHECKIN_ADDRESS", "http://Checkin.LAN.example/")
     made = hall.post("/api/seat-walk/hello").get_json()
     token = made["hello"]
-    assert made["url"] == f"http://192.0.2.10:8908/floorbit/hello/{token}"
+    assert made["url"] == f"http://checkin.lan.example/floorbit/hello/{token}"
     assert hall.get(f"/api/seat-walk/hello/{token}").get_json() == {}             # waiting for the laptop
     assert hall.post("/api/seat-walk/locate", json={"seat": "A-1", "hello": token}).status_code == 409
 
@@ -237,3 +238,18 @@ def test_a_closed_event_without_a_schedule_counts_from_closing(hall):
     with tenancy.using_event(tenancy.find(later["id"])):
         # The live event has no end yet: its mappings stay.
         assert "A-1" in checkin.learned_ports()
+
+
+def test_without_a_check_in_name_the_walk_goes_where_an_agent_was_reached(client, monkeypatch):
+    from floorbit import agent_link, seat_walk
+    monkeypatch.delenv("CHECKIN_ADDRESS", raising=False)
+    monkeypatch.setattr(agent_link, "all_agents", lambda: [
+        {"connected": False, "report": {"lan_url": "http://10.9.9.9"}},
+        {"connected": True, "report": {"lan_url": "http://10.20.0.5"}}])
+    assert seat_walk.agent_url() == "http://10.20.0.5"
+
+
+def test_through_the_front_door_the_laptop_is_known_at_once(client, front_door):
+    made = client.post("/api/seat-walk/hello", environ_base={"REMOTE_ADDR": "10.20.1.31"}).get_json()
+    assert made["ip"] == "10.20.1.31" and "url" not in made
+    assert client.get(f"/api/seat-walk/hello/{made['hello']}").get_json()["ip"] == "10.20.1.31"

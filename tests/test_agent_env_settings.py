@@ -63,12 +63,23 @@ def test_on_the_agent_its_environment_no_longer_sets_plugins(tmp_path):
     assert store.get("librenms.url") == "" and store.source("librenms.url") == "default"
 
 
-def test_the_local_agent_gets_syslog_flows_and_the_front_door_once(client):
+def test_the_local_agent_gets_syslog_and_flows_once(client):
     registry = sources.registry
-    assert agent_plugins.local_defaults(registry) == ["syslog-relay", "netflow-relay", "front-door"]
+    assert agent_plugins.local_defaults(registry) == ["syslog-relay", "netflow-relay"]
     store = registry.settings_store
     assert store.get("plugin.syslog-relay.port") == 5514 and store.get("plugin.netflow-relay.port") == 2055
-    assert store.get("plugin.front-door.address") == "0.0.0.0:8443"
-    client.put("/api/settings/plugins/front-door", json={"enabled": False})
+    client.put("/api/settings/plugins/syslog-relay", json={"enabled": False})
     assert agent_plugins.local_defaults(registry) == []       # once: turned off stays off
-    assert not registry.enabled(registry.specs["front-door"])
+    assert not registry.enabled(registry.specs["syslog-relay"])
+
+
+def test_the_front_door_is_on_by_default_yet_an_agents_own_address_goes_in(client):
+    registry = sources.registry
+    spec = registry.specs["front-door"]
+    assert registry.enabled(spec) and registry.settings_store.get("plugin.front-door.address") == "0.0.0.0:8443"
+    agent = {"name": "hall-1"}
+    got = agent_plugins.import_env(agent, {"plugin.front-door.address": "0.0.0.0:9443"}, ["front-door"], registry)
+    assert got["imported"] == ["front-door"]
+    assert registry.settings_store.get("plugin.front-door.address") == "0.0.0.0:9443"
+    client.put("/api/settings/plugins/front-door", json={"enabled": False})
+    assert not registry.enabled(spec)                          # turned off stays off

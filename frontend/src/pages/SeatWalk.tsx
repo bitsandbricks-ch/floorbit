@@ -4,24 +4,32 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AreaDrift } from './switchAreas/AreaDrift'
-import { ApiError, del, get, post } from '@/api/client'
+import { ApiError, del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import type { SeatLocated, SeatWalkHello, SeatWalkInfo, WalkPort } from '@/api/types'
+import { useLiveEvent } from '@/api/live'
+import type { SeatLocated, SeatWalker, SeatWalkHello, SeatWalkInfo, WalkPort } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { RowsSelect } from '@/components/RowsSelect'
+import { HallRows } from './seatWalk/HallRows'
 import { leave } from './seatWalkLeave'
 
 /** How long the page keeps asking before it says the lookup failed. Each request tries about 20 s;
  *  a monitoring source that only polls the MAC tables every minute or so needs a few of them. */
 export const GIVE_UP_MS = 90_000
+/** With the laptop known at once (through the agent, or a typed MAC) the page watches for the cable
+ *  by itself: it asks again every few seconds until the laptop shows up on a new port (#1000). */
+export const WATCH_EVERY_MS = 3_000
+export const WATCH_FOR_MS = 5 * 60_000
+/** After a seat is found the walk moves on by itself, unless there is something to read. */
+export const NEXT_AFTER_MS = 2_000
 
 type Done = { seat: string; port: WalkPort; how: SeatLocated['how']; ms: number }
 type Status =
   | { kind: 'idle' }
   | { kind: 'identifying' }
-  | { kind: 'looking'; started: number; last?: SeatLocated }
+  | { kind: 'looking'; started: number; last?: SeatLocated; waiting?: boolean }
   | { kind: 'found'; result: SeatLocated; ms: number }
   | { kind: 'failed'; result?: SeatLocated; error?: string }
 
@@ -35,7 +43,7 @@ export const MAC_RE = /^([0-9a-f]{2}[:-]?){5}[0-9a-f]{2}$|^([0-9a-f]{4}\.){2}[0-
 const KEPT = 'floorbit-seat-walk'
 export type Kept = {
   rows: string[]; order: string; at: number; done: Done[]; previous: WalkPort | null
-  laptop: { mac: string; ip: string } | null; mac: string
+  laptop: { mac: string; ip: string } | null; mac: string; walker?: string | null
 }
 function readKept(): Kept | null {
   try { return JSON.parse(sessionStorage.getItem(KEPT) ?? 'null') as Kept | null } catch { return null }
@@ -67,9 +75,9 @@ function takeHello(): string | null {
 }
 
 /** The walk: one seat at a time. Plug in, Locate, see the port (or why not), next seat. */
-function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: {
+function Walk({ info, seats, startAt, rows, order, typedMac, walker, resumed, onStop }: {
   info: SeatWalkInfo; seats: { seat: string; port: WalkPort | null }[]; startAt: number
-  rows: string[]; order: string; typedMac: string
+  rows: string[]; order: string; typedMac: string; walker: string | null
   resumed: { kept: Kept; hello: string } | null; onStop: () => void
 }) {
   const { t } = useTranslation()
@@ -84,6 +92,8 @@ function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: 
   const laptop = useRef<{ mac: string; ip: string } | null>(resumed?.kept.laptop ?? null)
   const previous = useRef<WalkPort | null>(resumed?.kept.previous ?? null)
   const seat = seats[at]?.seat
+  // Known at once (through the agent, or a typed MAC): no Locate to press, the page watches.
+  const auto = Boolean(typedMac || info.through_agent)
 
   useEffect(() => {
     if (status.kind !== 'looking') return
@@ -101,7 +111,12 @@ function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: 
       try {
         const made = await post<SeatWalkHello>('/api/seat-walk/hello')
         if (run.current !== mine) return
-        keep({ rows, order, at, done, previous: previous.current, laptop: laptop.current, mac: typedMac })
+        if (made.ip || !made.url) {
+          // Opened through an agent: it already named this laptop, no trip needed.
+          void locate(made.hello)
+          return
+        }
+        keep({ rows, order, at, done, previous: previous.current, laptop: laptop.current, mac: typedMac, walker })
         const back = `${window.location.origin}${window.location.pathname}?hello=${encodeURIComponent(made.hello)}`
         leave.to(`${made.url}?back=${encodeURIComponent(back)}`)
       } catch (e) {
@@ -133,13 +148,20 @@ function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: 
         void qc.invalidateQueries({ queryKey: qk.seatWalkAll })
         return
       }
+      if (auto && Date.now() - started < WATCH_FOR_MS) {
+        // Not on a new port yet: the cable isn't in, or the switch hasn't seen the laptop. Ask again.
+        setStatus({ kind: 'looking', started, last: result, waiting: true })
+        await new Promise((r) => window.setTimeout(r, WATCH_EVERY_MS))
+        if (run.current !== mine) return
+        continue
+      }
       if (!result.retry || Date.now() - started > GIVE_UP_MS) {
         setStatus({ kind: 'failed', result })
         return
       }
       setStatus({ kind: 'looking', started, last: result })
     }
-  }, [seat, qc, typedMac, rows, order, at, done])
+  }, [seat, qc, typedMac, rows, order, at, done, auto, walker])
 
   // Back from the agent with this seat's code: carry on where the crew pressed Locate.
   const resumedOnce = useRef(false)
@@ -152,6 +174,31 @@ function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: 
   }, [resumed, locate])
 
   const go = (n: number) => { run.current++; setStatus({ kind: 'idle' }); setAt(n) }
+
+  // Each new seat starts watching by itself, once: after Cancel or Undo the crew presses Locate.
+  const autoFor = useRef<number | null>(resumed ? resumed.kept.at : null)
+  useEffect(() => {
+    if (!auto || !seat || status.kind !== 'idle' || autoFor.current === at) return
+    autoFor.current = at
+    void locate()
+  }, [auto, seat, at, status.kind, locate])
+
+  // Found with nothing to read: on to the next seat by itself; the list below keeps Undo.
+  const quiet = status.kind === 'found' && !status.result.plan_seat && !status.result.replaced?.length
+  useEffect(() => {
+    if (!auto || !quiet) return
+    const timer = window.setTimeout(() => { run.current++; setStatus({ kind: 'idle' }); setAt(at + 1) }, NEXT_AFTER_MS)
+    return () => window.clearTimeout(timer)
+  }, [auto, quiet, at])
+
+  // Where this walker is, for the others' overview; also says the walk is still on.
+  useEffect(() => {
+    if (!walker) return
+    const say = () => void put(`/api/seat-walk/walkers/${walker}`, { seat: seat ?? null }).catch(() => undefined)
+    say()
+    const timer = window.setInterval(say, 60_000)
+    return () => window.clearInterval(timer)
+  }, [walker, seat])
   const undo = async () => {
     if (!seat) return
     await del(`/api/seat-walk/${encodeURIComponent(seat)}`).catch(() => undefined)
@@ -200,12 +247,12 @@ function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: 
             <Button size="compact-sm" variant="subtle" onClick={onStop}>{t('seatWalk.stop')}</Button>
           </Group>
           <Title order={2} size="h1">{seat}</Title>
-          <Text>{t('seatWalk.plugIn', { seat })}</Text>
+          <Text>{t(auto ? 'seatWalk.plugInAuto' : 'seatWalk.plugIn', { seat })}</Text>
           {typedMac && <Text size="sm" c="dimmed">{t('seatWalk.usingMac', { mac: typedMac })}</Text>}
           {had && status.kind === 'idle' && (
             <Text size="sm" c="dimmed">{t(had.source === 'walk' ? 'seatWalk.hadWalk' : 'seatWalk.hadCheckin', { port: portText(had) })}</Text>
           )}
-          {status.kind !== 'found' && (
+          {status.kind !== 'found' && !(auto && (status.kind === 'looking' || status.kind === 'identifying')) && (
             <Button size="lg" mt="xs" leftSection={<IconPlugConnected size={20} />} loading={status.kind === 'looking' || status.kind === 'identifying'}
               onClick={() => void locate()}>
               {status.kind === 'failed' ? t('seatWalk.tryAgain') : t('seatWalk.locate')}
@@ -225,10 +272,11 @@ function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: 
             <Stack gap="xs">
               <Group gap="sm" wrap="nowrap">
                 <Loader size="sm" />
-                <Text fw={600}>{t('seatWalk.looking', { seconds })}</Text>
+                <Text fw={600}>{status.waiting ? t('seatWalk.waiting', { seat }) : t('seatWalk.looking', { seconds })}</Text>
               </Group>
               <Text size="sm" c="dimmed">
-                {status.last?.stale ? t('seatWalk.stillOld')
+                {status.waiting ? t('seatWalk.waitingHint')
+                  : status.last?.stale ? t('seatWalk.stillOld')
                   : info.switch_lookup ? t('seatWalk.lookingSwitch') : t('seatWalk.lookingMonitoring')}
               </Text>
               <Group>
@@ -262,6 +310,7 @@ function Walk({ info, seats, startAt, rows, order, typedMac, resumed, onStop }: 
               )}
               {planFixed && <Text size="sm">{t('seatWalk.planFixed')}</Text>}
               <AreaDrift drift={status.result.area_drift} />
+              {auto && quiet && nextSeat && <Text size="sm" c="dimmed">{t('seatWalk.nextSoon', { seat: nextSeat })}</Text>}
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" mt="xs">
                 <Button size="lg" data-autofocus onClick={() => go(at + 1)}>
                   {nextSeat ? t('seatWalk.next', { seat: nextSeat }) : t('seatWalk.finish')}</Button>
@@ -326,6 +375,11 @@ export default function SeatWalk() {
   const [skipKnown, setSkipKnown] = useState(true)
   const [walking, setWalking] = useState(!!resumed)
   const [mac, setMac] = useState(resumed?.kept.mac ?? '')
+  const [walker, setWalker] = useState<string | null>(resumed?.kept.walker ?? null)
+  const [held, setHeld] = useState<string[] | null>(null)       // who walks one of the picked rows
+  const [starting, setStarting] = useState(false)
+  const qc = useQueryClient()
+  useLiveEvent('seat-walk.changed', () => void qc.invalidateQueries({ queryKey: qk.seatWalkAll }))
   const macOk = !mac.trim() || MAC_RE.test(mac.trim())
   const info = useQuery({
     queryKey: qk.seatWalk(rows.join(','), order),
@@ -335,15 +389,34 @@ export default function SeatWalk() {
   const firstOpen = skipKnown ? seats.findIndex((s) => !s.port) : 0
   const known = seats.filter((s) => s.port).length
   const d = info.data
+  // Start claims the rows, so two walkers don't walk the same row; a row someone left can be taken.
+  const start = async (take = false) => {
+    setStarting(true)
+    try {
+      const made = await post<SeatWalker>('/api/seat-walk/walkers', { rows, take })
+      setWalker(made.id); setHeld(null); setWalking(true)
+      void qc.invalidateQueries({ queryKey: qk.seatWalkAll })
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) setHeld((e.data.held as string[] | undefined) ?? [])
+      else throw e
+    } finally {
+      setStarting(false)
+    }
+  }
+  const stop = () => {
+    if (walker) void del(`/api/seat-walk/walkers/${walker}`).catch(() => undefined)
+    keep(null); cameBack = null; setWalker(null); setWalking(false)
+    void qc.invalidateQueries({ queryKey: qk.seatWalkAll })
+  }
   return (
     <Layout title={t('seatWalk.title')} back={{ href: '/checkins', label: t('crewCheckin.title') }}>
       <PageHead title={t('seatWalk.title')} desc={walking ? undefined : t('seatWalk.intro')} />
       {walking && d && seats.length ? (
         <Walk info={d} seats={seats} startAt={Math.max(0, firstOpen)} rows={rows} order={order}
-          typedMac={macOk ? mac.trim() : ''} resumed={resumed} onStop={() => { keep(null); cameBack = null; setWalking(false) }} />
+          typedMac={macOk ? mac.trim() : ''} walker={walker} resumed={resumed} onStop={stop} />
       ) : (
         <Stack gap="md">
-          {d && !d.agent_url && !mac.trim() && <Alert color="warn">{t('seatWalk.noAgent')}</Alert>}
+          {d && !d.agent_url && !d.through_agent && !mac.trim() && <Alert color="warn">{t('seatWalk.noAgent')}</Alert>}
           {d && !d.switch_lookup && !d.monitoring && <Alert color="down">{t('seatWalk.noLookup')}</Alert>}
           <Paper withBorder radius="lg" p="lg">
             <Stack gap="sm">
@@ -360,12 +433,22 @@ export default function SeatWalk() {
                 value={mac} onChange={(e) => setMac(e.currentTarget.value)} maxLength={17}
                 error={macOk ? undefined : t('seatWalk.macBad')} autoComplete="off" spellCheck={false} />
               {info.error && <Alert color="down" role="alert">{info.error.message}</Alert>}
-              <Button disabled={!seats.length || firstOpen < 0 || !macOk} onClick={() => setWalking(true)}>
+              {held && (
+                <Alert color="warn" role="alert">
+                  <Stack gap="xs">
+                    <Text size="sm">{t('seatWalk.held', { who: held.join(', ') || '?' })}</Text>
+                    <Group><Button size="compact-sm" variant="default" onClick={() => void start(true)}>{t('seatWalk.takeOver')}</Button></Group>
+                  </Stack>
+                </Alert>
+              )}
+              <Button disabled={!seats.length || firstOpen < 0 || !macOk} loading={starting} onClick={() => void start()}>
                 {!seats.length ? t('seatWalk.pick') : firstOpen < 0 ? t('seatWalk.allKnown')
                   : t('seatWalk.start', { seat: seats[Math.max(0, firstOpen)].seat })}
               </Button>
             </Stack>
           </Paper>
+          {d?.hall && <HallRows rows={d.hall} mine={walker}
+            onPick={(id) => setRows((r) => (r.includes(id) ? r : [...r, id]))} />}
           {d && (
             <Paper withBorder radius="lg" p="lg">
               <Stack gap={6}>
