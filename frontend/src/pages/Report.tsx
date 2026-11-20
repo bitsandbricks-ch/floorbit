@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Group, Paper, SimpleGrid, Stack, Switch, Table, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Group, Paper, SimpleGrid, Stack, Switch, Text, Title } from '@mantine/core'
 import { IconDownload } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
@@ -8,6 +8,7 @@ import { qk } from '@/api/keys'
 import { useCan, useFeature } from '@/api/queries'
 import type { EventReport, ReportHour } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { DataTable, type DataTableProps } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { bytes, duration, hourPath, pdfUrl, stamp } from './report/format'
@@ -16,6 +17,9 @@ import { bps } from './stats/format'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { StatTile } from '@/components/StatTile'
 import { incidentTitle } from '@/lib/incidentTitle'
+
+type PortRow = EventReport['problem_ports'][number]
+type IncidentRow = EventReport['incidents']['items'][number]
 
 const W = 1000
 const H = 140
@@ -44,18 +48,12 @@ function Chart({ title, label, hours, children, keys }: {
   )
 }
 
-function Section({ title, empty, rows, head }: { title: string; empty: string; rows: ReactNode[]; head: string[] }) {
+function Section<T>({ title, empty, ...table }: { title: string; empty: string } & Pick<DataTableProps<T>, 'rows' | 'columns' | 'rowKey'>) {
   return (
     <Paper withBorder radius="lg" p="md">
       <Title order={2} size="h4" mb="xs">{title}</Title>
-      {rows.length === 0 ? <Text size="sm" c="dimmed">{empty}</Text> : (
-        <Table.ScrollContainer minWidth={560}>
-          <Table striped>
-            <Table.Thead><Table.Tr>{head.map((h) => <Table.Th key={h}>{h}</Table.Th>)}</Table.Tr></Table.Thead>
-            <Table.Tbody>{rows}</Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      )}
+      <DataTable {...table} label={title} urlState={false} pageSize={0} bare striped minWidth={560}
+        empty={<Text size="sm" c="dimmed">{empty}</Text>} />
     </Paper>
   )
 }
@@ -174,44 +172,44 @@ export default function Report() {
               </SimpleGrid>
             )}
 
-            <Section title={t('report.outages')} empty={t('report.noOutages')}
-              head={[t('report.switch'), t('report.times'), t('report.downAll'), t('report.longest')]}
-              rows={r.outages.map((o) => (
-                <Table.Tr key={o.switch}>
-                  <Table.Td>{o.switch}</Table.Td>
-                  <Table.Td>{o.times}</Table.Td>
-                  <Table.Td>{duration(o.down_s)}{o.still_down && <Text span c="down" size="sm"> · {t('report.stillDown')}</Text>}</Table.Td>
-                  <Table.Td>{duration(o.longest_s)}</Table.Td>
-                </Table.Tr>
-              ))} />
+            <Section title={t('report.outages')} empty={t('report.noOutages')} rows={r.outages} rowKey={(o) => o.switch}
+              columns={[
+                { id: 'switch', header: t('report.switch'), sort: (o) => o.switch, cell: (o) => o.switch },
+                { id: 'times', header: t('report.times'), numeric: true, descFirst: true, sort: (o) => o.times, cell: (o) => o.times },
+                { id: 'down', header: t('report.downAll'), descFirst: true, sort: (o) => o.down_s,
+                  cell: (o) => <>{duration(o.down_s)}{o.still_down && <Text span c="down" size="sm"> · {t('report.stillDown')}</Text>}</> },
+                { id: 'longest', header: t('report.longest'), descFirst: true, sort: (o) => o.longest_s, cell: (o) => duration(o.longest_s) },
+              ]} />
 
-            <Section title={t('report.ports')} empty={t('report.noPorts')}
-              head={[t('report.switch'), t('report.port'), t('report.seat'), t('report.problems'), t('report.what'),
-                ...(r.people ? [t('report.nick'), t('report.ip')] : [])]}
-              rows={r.problem_ports.map((p) => (
-                <Table.Tr key={`${p.switch}|${p.port}`}>
-                  <Table.Td>{p.switch}</Table.Td>
-                  <Table.Td>{p.port}</Table.Td>
-                  <Table.Td>{p.seat ?? '–'}</Table.Td>
-                  <Table.Td>{p.count}</Table.Td>
-                  <Table.Td>{Object.entries(p.kinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${t(`report.kind_${k}`, { defaultValue: k })} ${n}×`).join(', ')}</Table.Td>
-                  {r.people && <><Table.Td>{p.nick ?? '–'}</Table.Td><Table.Td>{p.ip ?? '–'}</Table.Td></>}
-                </Table.Tr>
-              ))} />
+            <Section title={t('report.ports')} empty={t('report.noPorts')} rows={r.problem_ports} rowKey={(p) => `${p.switch}|${p.port}`}
+              columns={[
+                { id: 'switch', header: t('report.switch'), sort: (p) => p.switch, cell: (p) => p.switch },
+                { id: 'port', header: t('report.port'), sort: (p) => p.port, cell: (p) => p.port },
+                { id: 'seat', header: t('report.seat'), sort: (p) => p.seat, cell: (p) => p.seat ?? '–' },
+                { id: 'count', header: t('report.problems'), numeric: true, descFirst: true, sort: (p) => p.count, cell: (p) => p.count },
+                { id: 'what', header: t('report.what'), wrap: true,
+                  cell: (p) => Object.entries(p.kinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${t(`report.kind_${k}`, { defaultValue: k })} ${n}×`).join(', ') },
+                ...(r.people ? [
+                  { id: 'nick', header: t('report.nick'), cell: (p: PortRow) => p.nick ?? '–' },
+                  { id: 'ip', header: t('report.ip'), mono: true, cell: (p: PortRow) => p.ip ?? '–' },
+                ] : []),
+              ]} />
 
-            <Section title={t('report.incidents')} empty={t('report.noIncidents')}
-              head={[t('report.opened'), t('report.where'), t('report.what'), t('report.team'), t('report.took'),
-                ...(r.people ? [t('report.reportedBy'), t('report.nick')] : [])]}
-              rows={r.incidents.items.map((i, n) => (
-                <Table.Tr key={n}>
-                  <Table.Td>{stamp(i.start)}</Table.Td>
-                  <Table.Td>{i.seat ?? i.switch ?? i.circuit ?? '–'}</Table.Td>
-                  <Table.Td>{incidentTitle(i.title, t)}{i.source === 'helpdesk' && <Text span c="dimmed" size="xs"> ({t('report.fromSeat')}{i.reports > 1 ? `, ${i.reports}×` : ''})</Text>}</Table.Td>
-                  <Table.Td>{i.team ?? '–'}</Table.Td>
-                  <Table.Td>{i.end ? duration(i.end - i.start) : <Text span c="down" size="sm">{t('report.open')}</Text>}</Table.Td>
-                  {r.people && <><Table.Td>{i.reported_by ?? '–'}</Table.Td><Table.Td>{i.nick ?? '–'}</Table.Td></>}
-                </Table.Tr>
-              ))} />
+            <Section title={t('report.incidents')} empty={t('report.noIncidents')} rows={r.incidents.items} rowKey={(i, n) => `${i.start}-${n}`}
+              columns={[
+                { id: 'opened', header: t('report.opened'), sort: (i) => i.start, cell: (i) => stamp(i.start) },
+                { id: 'where', header: t('report.where'), sort: (i) => i.seat ?? i.switch ?? i.circuit, cell: (i) => i.seat ?? i.switch ?? i.circuit ?? '–' },
+                { id: 'what', header: t('report.what'), wrap: true, cell: (i) => (
+                  <>{incidentTitle(i.title, t)}{i.source === 'helpdesk' && <Text span c="dimmed" size="xs"> ({t('report.fromSeat')}{i.reports > 1 ? `, ${i.reports}×` : ''})</Text>}</>
+                ) },
+                { id: 'team', header: t('report.team'), sort: (i) => i.team, cell: (i) => i.team ?? '–' },
+                { id: 'took', header: t('report.took'), descFirst: true, sort: (i) => (i.end ? i.end - i.start : Number.MAX_SAFE_INTEGER),
+                  cell: (i) => (i.end ? duration(i.end - i.start) : <Text span c="down" size="sm">{t('report.open')}</Text>) },
+                ...(r.people ? [
+                  { id: 'reporter', header: t('report.reportedBy'), cell: (i: IncidentRow) => i.reported_by ?? '–' },
+                  { id: 'nick', header: t('report.nick'), cell: (i: IncidentRow) => i.nick ?? '–' },
+                ] : []),
+              ]} />
             {/* Underlined: in the dark theme the link colour alone is too close to the text around it (issue #356). */}
             {!!r.incidents.repeat_seats?.length && (
               <Text size="sm">
