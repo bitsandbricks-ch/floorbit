@@ -18,6 +18,7 @@ import {
 import { GridView } from './dashboards/GridView'
 import { type Board, type Node, MAX_PANES, TIME_RANGES, type TimeRange, boardName, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
 import { PaneForm } from './dashboards/PaneForm'
+import type { PaneFit } from '@/widgets/levelReport'
 import './dashboards/dashboards.css'
 
 /** Dashboards (floorbit/dashboards.py): widgets on a grid, for the ops desk or a big screen.
@@ -121,6 +122,8 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
   const [open, setOpen] = useState(board?.public ?? false)
   const [frame, setFrame] = useState(board?.frame !== false)
   const [selected, setSelected] = useState<Spot | null>({ section: 0, panel: 0, path: [] })
+  // How the picked pane draws now, from the pane itself (#928).
+  const [drawn, setDrawn] = useState<PaneFit | null>(null)
   const node = selected ? sections[selected.section]?.panels[selected.panel]?.node : undefined
   const picked = node && selected ? at(node, selected.path) : null
   const done = () => { void qc.invalidateQueries({ queryKey: qk.boards }); onDone() }
@@ -206,6 +209,7 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
             <GridView sections={sections} fit={fit} cycle={cycle || undefined} editing={{
               selected,
               onSelect: setSelected,
+              onFit: setDrawn,
               onSplit: (spot, dir) => { if (!full) withNode(spot, (n) => split(n, spot.path, dir)); setSelected(spot) },
               onRemove: (spot) => {
                 if (spot.path.length) withNode(spot, (n) => remove(n, spot.path))
@@ -234,7 +238,7 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
         </div>
         <Paper withBorder radius="lg" p="md" className="fb-board-side" component="aside" aria-label={t('dashboards.form.label')}>
           {picked && isPane(picked) && selected
-            ? <PaneForm key={`${selected.section}.${selected.panel}.${selected.path.join('.')}`} pane={picked.pane}
+            ? <PaneForm key={`${selected.section}.${selected.panel}.${selected.path.join('.')}`} pane={picked.pane} drawn={drawn}
                 onChange={(pane) => withNode(selected, (n) => setPane(n, selected.path, pane))} />
             : <Text size="sm" c="dimmed">{t('dashboards.form.pickOne')}</Text>}
         </Paper>

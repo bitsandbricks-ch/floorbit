@@ -1,11 +1,11 @@
 import { ActionIcon, Group, Tooltip } from '@mantine/core'
 import { IconLayoutColumns, IconLayoutRows, IconSettings, IconTrash } from '@tabler/icons-react'
-import { Fragment, useContext, useMemo, useRef, useState } from 'react'
+import { Fragment, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isPane, type Node, type Path, type Split } from './model'
 import { PaneView } from './Panes'
 import { PaneKey } from './large'
-import { LevelReport } from '@/widgets/levelReport'
+import { LevelReport, type PaneFit } from '@/widgets/levelReport'
 import type { Level } from '@/widgets/level'
 
 export interface Editing {
@@ -14,6 +14,8 @@ export interface Editing {
   onSplit: (path: Path, dir: Split) => void
   onRemove: (path: Path) => void
   onResize: (path: Path, border: number, pct: number) => void
+  /** The picked pane says how it draws, for the settings panel. */
+  onFit?: (fit: PaneFit | null) => void
 }
 
 const same = (a: Path | null, b: Path) => !!a && a.length === b.length && a.every((v, i) => v === b[i])
@@ -28,6 +30,12 @@ export function SplitView({ node, path = [], editing, cycle }: { node: Node; pat
   const [tight, setTight] = useState(false)
   const [rows, setRows] = useState<[number, number] | null>(null)
   const report = useMemo(() => ({ level: (l: Level, small: boolean) => { setLevel(l); setTight(small) }, rows: (shown: number, total: number) => setRows([shown, total]) }), [])
+  const picked = !!editing && isPane(node) && same(editing.selected, path)
+  const onFit = editing?.onFit
+  const cut = level === 'm' ? rows : null
+  useEffect(() => {
+    if (picked && onFit) onFit(level ? { level, tight, rows: cut } : null)
+  }, [picked, onFit, level, tight, cut?.[0], cut?.[1]])   // eslint-disable-line react-hooks/exhaustive-deps
   if (isPane(node)) {
     return (
       <div className={`fb-split-pane${editing && same(editing.selected, path) ? ' selected' : ''}`}>

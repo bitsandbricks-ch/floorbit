@@ -123,7 +123,10 @@
     "textSize": "Number size",
     "textSizeHint": "The big number of a number, gauge or pie, for a wall seen from afar or a crowded screen.",
     "refresh": "Refresh",
-    "refreshHint": "How often this pane asks again. Faster means fresher numbers and more load."
+    "refreshHint": "How often this pane asks again. Faster means fresher numbers and more load.",
+    "drawn": "Draws as {{level}} at this size.",
+    "drawnRows": "{{shown}} of {{total}} rows show: make it taller to show all.",
+    "drawnTooSmall": "Too small to read at this size: make it bigger."
   },
   "pane": {
     "failed": "Couldn't load the plan. Trying again.",

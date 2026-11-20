@@ -9,4 +9,11 @@ export interface FitReport {
   rows: (shown: number, total: number) => void
 }
 
+/** How the picked pane draws, for the editor's settings panel (#928). ``rows``: shown and total for a cut list. */
+export interface PaneFit {
+  level: Level
+  tight: boolean
+  rows: [number, number] | null
+}
+
 export const LevelReport = createContext<FitReport | null>(null)

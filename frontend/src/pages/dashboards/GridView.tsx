@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { COLS, type Panel, ROW_PX, type Section, type Spot, phonePair, rows, snapHeight, stepHeight } from './grid'
 import type { Path, Split } from './model'
 import { SplitView } from './SplitView'
+import type { PaneFit } from '@/widgets/levelReport'
 import { LargeContext, PaneKey, paneAt, paneKey, useLarge } from './large'
 import { LargeBar } from './LargeBar'
 import { PaneView } from './Panes'
@@ -20,6 +21,7 @@ export interface GridEditing {
   onPlace: (section: number, panel: number, box: Partial<Panel>, base: Panel[]) => void
   onSection: (section: number, change: Partial<Section> | null) => void
   onMoveSection: (section: number, by: -1 | 1) => void
+  onFit?: (fit: PaneFit | null) => void
 }
 
 const GAP = 8
@@ -155,6 +157,7 @@ function GridBody({ section, index, fit, rows: n, cycle, editing }: {
                 onSplit: (path, dir) => editing.onSplit(here(path), dir),
                 onRemove: (path) => editing.onRemove(here(path)),
                 onResize: (path, border, pct) => editing.onResizeSplit(here(path), border, pct),
+                onFit: editing.onFit,
               }} />
             </PaneKey.Provider>
             {editing && (

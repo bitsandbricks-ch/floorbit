@@ -123,7 +123,10 @@
     "textSize": "Zahlengrösse",
     "textSizeHint": "Die grosse Zahl bei Zahl, Tacho und Kreis, für eine Wand aus der Ferne oder einen vollen Bildschirm.",
     "refresh": "Neu laden",
-    "refreshHint": "Wie oft dieses Feld neu fragt. Schneller heisst frischere Zahlen und mehr Last."
+    "refreshHint": "Wie oft dieses Feld neu fragt. Schneller heisst frischere Zahlen und mehr Last.",
+    "drawn": "Wird in dieser Grösse als {{level}} gezeichnet.",
+    "drawnRows": "{{shown}} von {{total}} Zeilen sichtbar: höher machen, um alle zu zeigen.",
+    "drawnTooSmall": "In dieser Grösse zu klein zum Lesen: grösser machen."
   },
   "pane": {
     "failed": "Der Plan liess sich nicht laden. Neuer Versuch läuft.",

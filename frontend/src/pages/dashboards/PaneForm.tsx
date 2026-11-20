@@ -9,6 +9,7 @@ import type { SeatViewData, WidgetTile } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { VIEWS } from '@/widgets/views'
 import { KIND_PICKS, LEVEL_PINS, type KindPick, type LevelPin } from '@/widgets/level'
+import type { PaneFit } from '@/widgets/levelReport'
 import { LINE_STYLES, STACKS, TRENDS, kindsFor, looksFor, resolveKind } from '@/widgets/kinds/shape'
 import { CALCS, type Calc, MAX_SOURCES, groupKeys } from '@/widgets/kinds/combine'
 import { usePaneData } from '@/widgets/usePaneData'
@@ -36,7 +37,19 @@ function blank(kind: PaneKind, title?: string, hide?: boolean): Pane {
 }
 
 /** The settings of the pane picked in the editor. */
-export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) => void }) {
+/** How the pane draws at its size now (#928): the level, a list's cut rows, or too small. */
+function Drawn({ fit }: { fit: PaneFit }) {
+  const { t } = useTranslation()
+  const cut = fit.rows && fit.rows[0] < fit.rows[1] ? fit.rows : null
+  return (
+    <Text size="xs" role="status" className={fit.tight || cut ? 'fb-tone-warn' : undefined} c={fit.tight || cut ? undefined : 'dimmed'}>
+      {fit.tight ? t('dashboards.form.drawnTooSmall') : t('dashboards.form.drawn', { level: t(`dashboards.level.${fit.level}`) })}
+      {!fit.tight && cut && ` ${t('dashboards.form.drawnRows', { shown: cut[0], total: cut[1] })}`}
+    </Text>
+  )
+}
+
+export function PaneForm({ pane, onChange, drawn }: { pane: Pane; onChange: (p: Pane) => void; drawn?: PaneFit | null }) {
   const { t } = useTranslation()
   return (
     <Stack gap="sm">
@@ -48,6 +61,7 @@ export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) =
         onChange={(e) => onChange({ ...pane, title: e.currentTarget.value || undefined })} />
       <Switch label={t('dashboards.form.hideTitle')} checked={!!pane.hide_title}
         onChange={(e) => onChange({ ...pane, hide_title: e.currentTarget.checked || undefined })} />
+      {drawn && <Drawn fit={drawn} />}
       {pane.kind === 'text' && <TextFields pane={pane} onChange={onChange} />}
       {pane.kind === 'plan' && <PlanFields pane={pane} onChange={onChange} />}
       {pane.kind === 'view' && (

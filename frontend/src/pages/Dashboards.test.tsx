@@ -37,4 +37,18 @@ describe('Dashboards', () => {
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toMatchObject({ name: 'Kiosk (copy)', public: false, fit: true }))
     expect(api.calls.find((c) => c.method === 'PUT')?.path).toBe('/api/dashboards/kiosk-copy-2')
   })
+
+  it('says in the settings how the picked pane draws at its size', async () => {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(400)
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(240)
+    const tile = { x: 0, y: 0, w: 8, h: 6, node: { pane: { kind: 'tile', tile: 'floorbit/w/down' } } }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/dashboards': { layouts: [{ ...kiosk, changed: false, sections: [{ panels: [tile] }] }] },
+      'GET /api/dashboard': { tiles: [{ plugin: 'floorbit', plugin_name: 'Floorbit', id: 'down', label: 'Switches down', size: 'small', refresh: 15, url: '/api/dashboard/floorbit/down' }] },
+      'GET /api/dashboard/floorbit/down': { id: 'down', type: 'list', items: [{ label: 'sw-a-01', value: '7 min', tone: 'err' }], sub: '', link: '' },
+      'GET /api/auth/me': editor,
+    }).fn)
+    renderWithApp(<Dashboards />, '/dashboards?edit=kiosk')
+    expect(await screen.findByText(/^Draws as (Small|Medium|Large) at this size\./)).toBeInTheDocument()
+  })
 })
