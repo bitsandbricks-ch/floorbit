@@ -124,6 +124,7 @@
     "askAdmin": "Ein Admin kann den Platz-Check-in in den Einstellungen einschalten. Die Check-ins früherer Events stehen unten.",
     "turnOn": "Check-in-Einstellungen"
   },
+  "noMatch": "Kein Check-in passt.",
   "lookups": {
     "title": "Switches fragen",
     "open": "Offen bis {{until}}",
