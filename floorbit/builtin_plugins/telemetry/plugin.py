@@ -199,8 +199,9 @@ class Plugin(Base):
 
     def _uplinks(self, dev):
         """Port keys that lead to other switches, and the MAC count per port."""
+        from floorbit.edge_ports import EDGE_PORT_MACS
         from floorbit.telemetry.clients import uplinks
-        return uplinks(dev, int(self.settings.get('uplink_macs') or 8))
+        return uplinks(dev, EDGE_PORT_MACS)
 
     def find_mac(self, mac):
         """(device, port name, vlan, MACs on that port) of the access port a MAC is on, or None."""
