@@ -129,10 +129,11 @@ describe('Sidebar', () => {
     expect(monitoring).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it("keeps the event's pages out of the groups: they are in the event menu", () => {
-    render(<Sidebar boot={{ ...boot, pages: [...pages, { href: '/replay', id: 'replay', label: 'Event replay' }] }} path="/problems" renderLink={link} onGoTo={() => {}} />)
+  it("gives Events a row of its own under the start pages, lit by the event's pages (#1201)", () => {
+    const more = [...pages, { href: '/events', id: 'events', label: 'Events' }, { href: '/replay', id: 'replay', label: 'Event replay' }]
+    render(<Sidebar boot={{ ...boot, pages: more }} path="/replay" renderLink={link} onGoTo={() => {}} />)
     expect(within(main()).queryByRole('link', { name: 'Event replay' })).not.toBeInTheDocument()
-    expect(within(main()).queryByRole('button', { name: 'Event' })).not.toBeInTheDocument()
+    expect(within(main()).getByRole('link', { name: 'Events' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('pins favourites to the top, saved with the account when signed in', () => {

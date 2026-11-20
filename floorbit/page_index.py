@@ -57,7 +57,9 @@ PAGES = (
      lambda c, can: c['feature_on']('status_page') and can('incidents.work')),
     ('/replay', 'replay', 'Event replay', lambda c, can: c['feature_on']('replay')),
     ('/report', 'report', 'Event report', lambda c, can: c['feature_on']('report')),
-    ('/events', 'events', 'Past events', lambda c, can: c['feature_on']('past_events')),
+    # The tenant's events (make one, copy one, make it live) are core: only the archive of past
+    # events on the page follows the past_events feature (issue #1201).
+    ('/events', 'events', 'Events', None),
     ('/templates', 'templates', 'Floor plan templates', None),
     ('/settings', 'settings', 'Settings', lambda c, can: can('settings.manage')),
     ('/settings/plugins', 'plugins', 'Plugins', lambda c, can: can('settings.manage')),
