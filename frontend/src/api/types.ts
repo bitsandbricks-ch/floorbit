@@ -1840,7 +1840,7 @@ export interface AgentSettingsReport {
   values: Record<string, { source: SettingSource; value?: string; set?: boolean }>
   pending?: string[]
   key?: 'stored' | 'env' | 'file'
-  cert?: { not_after: number; names: string[]; source: SettingSource; floorbit_ca: boolean }
+  cert?: { not_after: number; names: string[]; source: SettingSource; floorbit_ca: boolean; public?: boolean }
 }
 
 /** One of an agent's own settings (agent_settings.FIELDS). */
@@ -1868,6 +1868,14 @@ export interface AgentSettingsPage {
   renewed_at: number | null
   cert: { issued_at: number; not_after: number; names: string[] } | null
   cert_asked: number | null
+  /** The tenant's Let's Encrypt certificate, when the platform has a domain for the agents. */
+  public_cert?: {
+    name: string; not_after: number | null; issued_at: number | null; error: string | null; failed_at: number | null
+    /** Why the name doesn't reach Floorbit yet (public DNS, port 80); nothing is ordered until it does. */
+    waiting?: string | null; checked_at?: number | null
+  } | null
+  /** When this agent last took that certificate's key. */
+  public_cert_at?: number | null
 }
 
 export interface AgentPluginHealth {

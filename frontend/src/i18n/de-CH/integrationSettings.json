@@ -587,10 +587,6 @@
       "label": "ARP- und MAC-Tabellen alle (Minuten)",
       "help": "Wie oft Telemetrie die ARP- und MAC-Tabellen abfragt, solange sie abfragt. 0: nie. Nicht verwendet, solange LibreNMS abfragt."
     },
-    "plugin_telemetry_uplink_macs": {
-      "label": "MAC-Grenze für Uplinks",
-      "help": "Ein Port, der mehr MAC-Adressen sieht als diese Zahl, gilt als Uplink und wird übersprungen, wenn Floorbit sucht, wo ein Platz eingesteckt ist."
-    },
     "plugin_telemetry_exclude": {
       "label": "Ports ignorieren",
       "help": "Teile von Portnamen, die nie der Port eines Platzes sind (Trunks, Port-Channels, SVIs), durch Kommas getrennt."

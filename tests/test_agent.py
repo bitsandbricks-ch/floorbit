@@ -69,7 +69,9 @@ def answer_like_librenms(anon_client, key, stop):
         got = anon_client.get("/api/agent/v1/calls?wait=0.5", headers=head(key)).get_json()["calls"]
         out = []
         for c in got:
-            if c["method"] == "devices":
+            if c["method"] == "configured":     # LibreNMS is set up on this agent
+                out.append({"id": c["id"], "ok": True, "result": True})
+            elif c["method"] == "devices":
                 out.append({"id": c["id"], "ok": True, "result": [{"hostname": "sw-a-01", "status": 1}]})
             elif c["method"] == "device_details":
                 out.append({"id": c["id"], "ok": True, "result": {"status": "online", "hostname": c["args"][0]}})

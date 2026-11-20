@@ -280,6 +280,9 @@ def upgrade_layout(layout):
 def run_at_start(log=print):
     """Bring the current event's document and its tenant's up to date, and save them."""
     from . import store
+    moved = store.lift_from_live_event()
+    if moved:
+        log(f"[upgrades] Moved {', '.join(moved)} from the live event to the tenant.")
     data = store.load_data()          # applies the steps
     if getattr(data, '_upgraded', False):
         store.save_data(data)
