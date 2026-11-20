@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SetupState } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -32,40 +32,33 @@ describe('Setup', () => {
     })
   })
 
-  it('tests and saves NetBox, then moves on', async () => {
+  it('lists what the event needs, says what each step misses and skips one', async () => {
+    const checklist = { done: false, steps: [
+      { id: 'event', state: 'look', href: '/schedule', facts: { name: true, dates: false, logo: false } },
+      { id: 'inventory', state: 'done', href: '/inventory', facts: { devices: 37, netbox: true } },
+      { id: 'monitoring', state: 'look', href: '/settings/agents', facts: { agents: 1, connected: 0, source: true } },
+      { id: 'alerts', state: 'todo', href: '/settings/discord', facts: { discord: false, webhooks: 0 } },
+      { id: 'crew', state: 'skipped', href: '/settings/users', facts: { users: 1, teams: 0 } },
+    ] }
     const fake = fakeFetch({
       'GET /api/auth/me': admin,
       'GET /api/setup': state(),
-      'POST /api/settings/test/netbox': { ok: true, message: 'Connected to NetBox 4.1' },
-      'PUT /api/settings': {},
-      'POST /api/setup/steps/netbox': state({ steps: { netbox: 'done' } }),
+      'GET /api/setup/checklist': checklist,
+      'POST /api/setup/steps/alerts': {},
     })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Setup />)
-    fireEvent.change(await screen.findByLabelText('URL'), { target: { value: 'https://netbox.example.com' } })
-    fireEvent.change(screen.getByLabelText(/API token/), { target: { value: 'example-token' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Test the connection' }))
-    expect(await screen.findByText('Connected to NetBox 4.1')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Save and continue' }))
-    await waitFor(() => expect(fake.calls.some((c) => c.path === '/api/setup/steps/netbox')).toBe(true))
-    expect(fake.calls.find((c) => c.method === 'PUT')?.body).toEqual({
-      'netbox.url': 'https://netbox.example.com', 'netbox.token': 'example-token', 'netbox.verify_ssl': true,
-    })
-    expect(await screen.findByText(/live status, ports/)).toBeInTheDocument()   // the LibreNMS step
-  })
-
-  it('skips steps without saving anything', async () => {
-    const fake = fakeFetch({
-      'GET /api/auth/me': admin,
-      'GET /api/setup': state({ steps: { netbox: 'skipped', librenms: 'skipped' } }),
-      'POST /api/setup/steps/switches': {},
-    })
-    vi.stubGlobal('fetch', fake.fn)
-    renderWithApp(<Setup />)
-    expect(await screen.findByText(/press S and click/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
-    await waitFor(() => expect(fake.calls.find((c) => c.path === '/api/setup/steps/switches')?.body).toEqual({ state: 'skipped' }))
-    expect(fake.calls.some((c) => c.method === 'PUT')).toBe(false)
+    expect(await screen.findByText('2 of 5 steps done')).toBeInTheDocument()
+    expect(screen.getByText('Still missing: the dates (Schedule), a logo (optional).')).toBeInTheDocument()
+    expect(screen.getByText('37 devices in the inventory.')).toBeInTheDocument()
+    expect(screen.getByText('No agent is connected right now.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Set up: Monitoring: a local agent and live status' })).toHaveAttribute('href', '/settings/agents')
+    expect(screen.getByRole('link', { name: 'Open: Inventory: switches and devices' })).toHaveAttribute('href', '/inventory')
+    expect(screen.getByRole('button', { name: 'Undo skip' })).toBeInTheDocument()
+    const alerts = document.querySelector('[data-step="alerts"]') as HTMLElement
+    fireEvent.click(within(alerts).getByRole('button', { name: 'Skip' }))
+    await waitFor(() => expect(fake.calls.find((c) => c.path === '/api/setup/steps/alerts')?.body).toEqual({ state: 'skipped' }))
+    expect(screen.getByRole('button', { name: 'Done for now, open the floor plan' })).toBeInTheDocument()
   })
 
   it('tells someone else an admin is setting up', async () => {

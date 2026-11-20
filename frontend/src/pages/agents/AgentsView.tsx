@@ -1,8 +1,8 @@
 import { Anchor, Badge, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { StatCard } from '@/components/StatCard'
 import { ErrorBanner, LoadingState } from '@/components/ui'
+import { StatTile } from '@/components/StatTile'
 import type { ViewProps } from '@/widgets/views'
 import { AgentCard } from './AgentCard'
 import { agentHref, useAgents, useHalls, type AgentRow } from './data'
@@ -57,15 +57,15 @@ function Overview({ rows }: { rows: AgentRow[] }) {
   const num = (n: number) => n.toLocaleString(i18n.language)
   return (
     <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm" aria-label={t('agents.overview.title')} aria-live="polite">
-      <StatCard label={t('agents.overview.online')} value={`${online} / ${rows.length}`}
+      <StatTile label={t('agents.overview.online')} value={`${online} / ${rows.length}`}
         tone={online === rows.length ? 'up' : online ? 'warn' : 'down'} />
-      <StatCard label={t('agents.overview.look')} value={num(look.length)}
+      <StatTile label={t('agents.overview.look')} value={num(look.length)}
         tone={look.some((r) => r.tone === 'down') ? 'down' : look.length ? 'warn' : undefined}
         sub={look.length ? look.map((r) => r.agent.name).join(', ') : t('agents.overview.allGood')} />
-      <StatCard label={t('agents.overview.plugins')} value={plugins.length ? `${healthy} / ${plugins.length}` : '–'}
+      <StatTile label={t('agents.overview.plugins')} value={plugins.length ? `${healthy} / ${plugins.length}` : '–'}
         tone={plugins.length && healthy < plugins.length ? 'warn' : undefined}
         sub={plugins.length ? t('agents.overview.pluginsSub') : t('agents.overview.noPlugins')} />
-      <StatCard label={t('agents.overview.calls')} value={num(calls)}
+      <StatTile label={t('agents.overview.calls')} value={num(calls)}
         tone={failed ? 'warn' : undefined}
         sub={failed ? t('agents.statsFailed', { count: failed }) : t('agents.overview.noFailed')} />
     </SimpleGrid>

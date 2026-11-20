@@ -1,17 +1,8 @@
 {
-  "title": "Floorbit einrichten",
-  "intro": "Ein paar Schritte zum Start. Jeder lässt sich überspringen und später in den Einstellungen nachholen.",
+  "title": "Einrichten",
+  "intro": "Was der Event braucht, in der üblichen Reihenfolge. Jeder Schritt sagt, was schon da ist, und öffnet die eine Stelle, wo er eingestellt wird.",
   "introAccount": "Willkommen. Zuerst das Konto, mit dem du dich anmeldest: Es wird Admin.",
-  "optional": "Optional",
-  "skip": "Vorerst überspringen",
-  "continue": "Weiter",
-  "saveContinue": "Speichern und weiter",
-  "connected": "Schon verbunden. Fülle die Felder nur aus, um es zu ändern.",
-  "url": "URL",
-  "token": "API-Token",
-  "verify": "TLS-Zertifikat prüfen (aus bei einem selbst signierten)",
-  "test": "Verbindung testen",
-  "alreadyDone": "Floorbit ist eingerichtet. Ändern kannst du alles in den Einstellungen.",
+  "alreadyDone": "Floorbit ist eingerichtet. Nur Admins sehen die Checkliste.",
   "adminOnly": "Ein Admin richtet Floorbit noch ein.",
   "account": {
     "text": "Floorbit hat beim Start einen Einrichtungscode ins Log geschrieben. Er zeigt, dass du diesen Server betreibst.",
@@ -24,41 +15,77 @@
     "mismatch": "Die Passwörter stimmen nicht überein.",
     "create": "Admin-Konto erstellen"
   },
-  "netbox": {
-    "title": "NetBox",
-    "text": "Mit NetBox kommen deine Switches von dort, und du platzierst sie nur noch auf dem Hallenplan. Ohne NetBox fügst du sie von Hand hinzu.",
-    "tokenHelp": "Ein Token mit Leserechten reicht."
-  },
-  "librenms": {
-    "title": "LibreNMS",
-    "text": "LibreNMS liefert Live-Status, Ports, Traffic und welcher Platz an welchem Port hängt.",
-    "tokenHelp": "Ein Token mit Leserechten reicht."
-  },
-  "switches": {
-    "title": "Switches",
-    "netbox": "Hol die Switches jetzt aus NetBox. Später passiert das auch von selbst.",
-    "import": "Aus NetBox importieren",
-    "imported_one": "{{count}} Switch im Inventar.",
-    "imported_other": "{{count}} Switches im Inventar.",
-    "byHand": "Ohne NetBox fügst du Switches auf dem Hallenplan hinzu: S drücken und an die richtige Stelle klicken.",
-    "place": "Dann ziehst du jeden Switch dorthin, wo er in der Halle steht."
-  },
-  "theme": {
-    "title": "Aussehen",
-    "name": "Name des Events",
-    "nameHelp": "Erscheint oben in der Leiste und auf Kiosk-Bildschirmen. Optional.",
-    "label": "Theme",
-    "presets": {
-      "floorbit": "Floorbit",
-      "ops": "Ops-Desk: kompakt, fürs Netzwerkteam",
-      "kiosk": "Kiosk: gross und dunkel, für Bildschirme in der Halle",
-      "classic": "Classic: dunkel mit orangem Akzent"
-    },
-    "custom": "Farben und Logo deines Events:"
-  },
   "finish": {
-    "text": "Das wars. Als Nächstes kommt der Hallenplan.",
-    "later": "Alles hier lässt sich in den Einstellungen ändern.",
-    "open": "Hallenplan öffnen"
+    "later": "Diese Checkliste ist jederzeit über die Einstellungen erreichbar.",
+    "open": "Fürs Erste fertig, Hallenplan öffnen"
+  },
+  "check": {
+    "title": "Event einrichten",
+    "progress": "{{done}} von {{count}} Schritten erledigt",
+    "skip": "Überspringen",
+    "unskip": "Nicht mehr überspringen",
+    "go": "Einrichten",
+    "open": "Öffnen",
+    "state": {
+      "done": "Erledigt",
+      "look": "Braucht einen Blick",
+      "todo": "Nicht begonnen",
+      "skipped": "Übersprungen"
+    },
+    "event": {
+      "title": "Event: Name, Daten und Logo",
+      "done": "Name, Daten und Logo sind gesetzt.",
+      "doneNoLogo": "Name und Daten sind gesetzt. Ein Logo ist optional.",
+      "missing": "Es fehlt noch: {{list}}.",
+      "part": {
+        "name": "der Event-Name (Einstellungen › Aussehen)",
+        "dates": "die Daten (Programm)",
+        "logo": "ein Logo (optional)"
+      }
+    },
+    "inventory": {
+      "title": "Inventar: Switches und Geräte",
+      "done_one": "{{count}} Gerät im Inventar.",
+      "done_other": "{{count}} Geräte im Inventar.",
+      "netboxEmpty": "NetBox ist verbunden, aber es sind noch keine Geräte da. Auf der Inventar-Seite synchronisieren.",
+      "none": "NetBox verbinden oder die Switches auf der Inventar-Seite von Hand erfassen."
+    },
+    "monitoring": {
+      "title": "Monitoring: ein lokaler Agent und Live-Status",
+      "done_one": "{{connected}} von {{count}} Agent verbunden, Live-Status ist an.",
+      "done_other": "{{connected}} von {{count}} Agents verbunden, Live-Status ist an.",
+      "noAgent": "Einen lokalen Agent anmelden: Über ihn erreicht Floorbit das Event-Netz.",
+      "offline": "Gerade ist kein Agent verbunden.",
+      "noSource": "LibreNMS oder Telemetrie für den Live-Status der Switches einschalten."
+    },
+    "floor": {
+      "title": "Hallenplan: Sitzblöcke und Switches",
+      "done_one": "{{count}} Sitzblock, {{placed}} von {{devices}} Geräten platziert.",
+      "done_other": "{{count}} Sitzblöcke, {{placed}} von {{devices}} Geräten platziert.",
+      "noBlocks": "Die Sitzblöcke zeichnen.",
+      "noSwitches": "Die Switches dort platzieren, wo sie stehen."
+    },
+    "seats": {
+      "title": "Plätze zu Ports",
+      "done_one": "{{count}} Platz hat seinen Switch-Port.",
+      "done_other": "{{count}} Plätze haben ihren Switch-Port.",
+      "checkinOnly": "Der Check-in ist an, aber noch kein Platz hat seinen Port.",
+      "none": "Plätze Switch-Ports zuordnen, mit dem Platz-Rundgang durch die Halle gehen oder den Check-in einschalten."
+    },
+    "alerts": {
+      "title": "Alarme: Discord oder Webhooks",
+      "discord": "Discord ist verbunden.",
+      "webhooks_one": "{{count}} Webhook.",
+      "webhooks_other": "{{count}} Webhooks.",
+      "none": "Discord verbinden oder einen Webhook anlegen, damit die Crew von Störungen erfährt."
+    },
+    "crew": {
+      "title": "Crew-Konten und Teams",
+      "done_one": "{{count}} Konto, {{teams}} Teams.",
+      "done_other": "{{count}} Konten, {{teams}} Teams.",
+      "alone": "Bisher nur ein Konto. Die Crew und ihre Teams erfassen."
+    },
+    "nudge": "Event einrichten: {{done}} von {{count}} Schritten erledigt. Als Nächstes: {{next}}.",
+    "continue": "Weiter einrichten"
   }
 }
