@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Widget } from '@/api/types'
 import type { Level } from '../level'
+import { useNumberStyle } from './display'
 import { binsOf, formatValue, linesOf, valuesOf } from './shape'
 import { StatKind } from './Stat'
 
@@ -9,13 +10,14 @@ import { StatKind } from './Stat'
  *  height. Hover a column for its range and count. */
 export function HistogramKind({ widget, level, box }: { widget: Widget; level: Level; box: { w: number; h: number } }) {
   const { t, i18n } = useTranslation()
+  const style = useNumberStyle()
   const [hot, setHot] = useState<number | null>(null)
   if (level === 's') return <StatKind widget={widget} level={level} box={box} />
   const values = valuesOf(widget)
   const bins = binsOf(values, Math.max(2, Math.min(30, Math.floor(box.w / 22))))
   if (!bins.length) return <div className="fb-w-empty">{t('widgets.kind.noData')}</div>
   const unit = widget.type === 'series' || widget.type === 'sparkline' ? linesOf(widget).unit : ''
-  const fmt = (v: number) => formatValue(v, unit, i18n.language)
+  const fmt = (v: number) => formatValue(v, unit, i18n.language, style)
   const range = (b: { from: number; to: number }) => { const a = fmt(b.from), z = fmt(b.to); return `${a.value}–${z.value}${z.unit ? ` ${z.unit}` : ''}` }
   const top = Math.max(1, ...bins.map((b) => b.count))
   const plotH = box.h - 18 - 16 - (level === 'l' ? 18 : 0)

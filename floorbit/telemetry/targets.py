@@ -69,6 +69,9 @@ FEATURE = 'telemetry'
 API_DRIVER = {'nxos': 'nxapi', 'iosxe': 'restconf', 'opnsense': 'opnsense'}
 # What a device does on its own: these need no stored login.
 SENDING = ('push', 'mdt', 'traps')
+# A wireless controller by its model: a Catalyst 9800 (C9800-CL-K9, C9800-40-K9) streams its access
+# points over MDT, an AireOS one (AIR-CT5520-K9, AIR-CT3504-K9) answers them over SNMP.
+WLC_MODEL = re.compile(r'C?9800|AIR-?CT\d|wireless\s*(lan\s*)?controller', re.I)
 
 
 def _platform(text):
@@ -138,6 +141,7 @@ def _from_device(dev, snmp, api):
          # Cisco names the stream after the switch unless it is set up otherwise.
          'mdt_node': str(props.get('telemetry_mdt_node') or '').strip() or (dev['name'] if 'mdt' in drivers else None),
          'verify_tls': str(props.get('telemetry_verify_tls', 'true')).lower() not in ('false', '0', 'no', 'off'),
+         'wireless': bool(WLC_MODEL.search(str(dev.get('model') or ''))),
          'tables': True, 'snmp_version': '2c', 'logins': {}}
     if t['url'] and not t['url'].startswith('https://'):
         t['url'] = None
@@ -182,7 +186,8 @@ def from_inventory(data=None):
     found = {**bare, **api, **snmp}
     out = []
     for dev_id in sorted(found, key=lambda i: found[i]['name'].lower()):
-        found[dev_id]['iface_vlans'] = iface_vlans(inventory.find(data, dev_id) or {}, data)
+        whole = inventory.find(data, dev_id) or {}
+        found[dev_id].update(iface_vlans=iface_vlans(whole, data), model=whole.get('model') or '')
         t = _from_device(found[dev_id], (snmp.get(dev_id) or {}).get('credential'),
                          (api.get(dev_id) or {}).get('credential'))
         if t:
@@ -210,7 +215,8 @@ def for_device(device_id, data=None):
     platform = _platform(dev.get('platform'))
     flat = {'id': dev['id'], 'name': dev['name'], 'address': dev.get('mgmt_ip') or dev['name'],
             'role': dev.get('role') or '', 'platform': dev.get('platform') or '',
-            'properties': inventory_scope._properties(stack), 'iface_vlans': iface_vlans(dev, data)}
+            'properties': inventory_scope._properties(stack), 'iface_vlans': iface_vlans(dev, data),
+            'model': dev.get('model') or ''}
     target = _from_device(flat, logins.get('snmp'), logins.get('api')) if on else None
     if target:
         target = {k: v for k, v in target.items() if k not in SECRETS and k != 'logins'}

@@ -11,10 +11,12 @@
 .fb-split-border.movable:hover::after { background: var(--color-bit); }
 
 .fb-split-pane { position: relative; display: flex; min-width: 0; min-height: 0; flex: 1; }
-.fb-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--color-raised);
-  border: 1px solid var(--color-line); border-radius: 12px; overflow: hidden; }
-.fb-pane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 12px 6px; }
-.fb-pane-title { font-size: clamp(14px, 1.1vw, 22px); color: var(--color-fg); min-width: 0; }
+.fb-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--color-surface);
+  border: 1px solid var(--color-line); border-radius: var(--radius-card); overflow: hidden; }
+/* The panel look of the mocks and of every page (issues #934, #1011): a slight step above the page,
+   8px corners, flat; a quiet title row. */
+.fb-pane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px 4px; min-height: 30px; }
+.fb-pane-title { font-size: clamp(13.5px, 0.95vw, 20px); color: var(--color-fg); min-width: 0; }
 .fb-pane-count { font-size: clamp(13px, 0.95vw, 19px); white-space: nowrap; }
 .fb-pane-body { flex: 1; min-height: 0; position: relative; display: flex; }
 .fb-pane-body > * { flex: 1; }
@@ -22,11 +24,11 @@
 .fb-pane-note { margin: auto; padding: 16px; text-align: center; }
 .fb-pane-frame { flex: 1; border: 0; width: 100%; height: 100%; background: var(--color-surface); }
 /* A plan pane is the plan edge to edge: its own frame is the pane's. */
-.fb-pane-plan .fb-plan-wrap { height: 100%; min-height: 0; border: 0; border-radius: 0; }
+.fb-pane-plan .fb-plan-wrap { height: 100%; min-height: 0; border: 0; border-radius: 0; background: color-mix(in srgb, var(--color-ink) 60%, transparent); }
 .fb-pane-plan .fb-minimap { display: none; }
 
 /* The editor: each pane picks itself and carries its tools. */
-.fb-pane-pick { position: absolute; inset: 0; z-index: 2; background: transparent; border: 0; cursor: pointer; border-radius: 12px; }
+.fb-pane-pick { position: absolute; inset: 0; z-index: 2; background: transparent; border: 0; cursor: pointer; border-radius: var(--radius-card); }
 .fb-pane-pick:hover { background: color-mix(in srgb, var(--color-bit) 6%, transparent); }
 .fb-split-pane.selected .fb-pane-pick { box-shadow: inset 0 0 0 3px var(--color-bit); }
 .fb-pane-tools { position: absolute; top: 8px; right: 8px; z-index: 3; }
@@ -43,7 +45,7 @@
 }
 
 /* The grid: sections one below the other, panels placed on COLS columns (grid.ts). */
-.fb-grid { display: flex; flex-direction: column; gap: 8px; width: 100%; min-width: 0; }
+.fb-grid { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; }
 .fb-grid.fit { height: 100%; min-height: 0; }
 .fb-grid-section { display: flex; flex-direction: column; min-height: 0; gap: 6px; }
 .fb-grid-body { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); flex: 1; min-height: 0; position: relative; }

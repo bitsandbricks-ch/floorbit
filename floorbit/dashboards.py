@@ -37,6 +37,7 @@ Kept in data.json under ``dashboards``. Panes that name something gone (a hall, 
 show a note on the screen instead of failing: the screen keeps running.
 """
 import copy
+import math
 import re
 import threading
 import time
@@ -58,6 +59,10 @@ KINDS = ('plan', 'tile', 'view', 'text', 'empty')
 # What a tile pane may calculate (issue #959); the browser does the maths on the widgets' data.
 CALCS = ('count', 'sum', 'avg', 'min', 'max', 'first', 'last')
 MAX_ALSO = 3
+TONES = ('', 'ok', 'warn', 'err')
+SORTS = ('value-desc', 'value-asc', 'name-asc', 'name-desc')
+MAX_STEPS = 5
+MAX_MAPPINGS = 10
 KEY_RE = re.compile(r'^[\w.-]{1,64}\Z')
 SPLITS = ('row', 'column')
 AREAS = ('hall', 'block', 'zone', 'box')
@@ -97,8 +102,8 @@ def _view(view, expanded=False):
     return {'pane': {'kind': 'view', 'view': view, **({'expanded': True} if expanded else {})}}
 
 
-def _tile(tile):
-    return {'pane': {'kind': 'tile', 'tile': f'floorbit/w/{tile}'}}
+def _tile(tile, **look):
+    return {'pane': {'kind': 'tile', 'tile': f'floorbit/w/{tile}', **look}}
 
 
 def _at(x, y, w, h, node):
@@ -117,15 +122,23 @@ BUILTIN = {
         _at(18, 3, 6, 3, _tile('seats')),
         _at(18, 6, 6, 6, _tile('down')),
     ]}]},
-    # The crew's start page: the hall, what is red, and how busy the network is.
+    # The crew's start page: the numbers that matter, the hall, what is red, and how busy the network is.
     'overview': {'name': 'Overview', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 6, 3, _tile('switches')),
-        _at(6, 0, 6, 3, _tile('seats')),
-        _at(12, 0, 12, 6, _view('health')),
-        _at(0, 3, 12, 9, _plan(preset='ops')),
-        _at(12, 6, 12, 6, _tile('down')),
-        _at(0, 12, 12, 9, _view('stats')),
-        _at(12, 12, 12, 9, _view('traffic')),
+        _at(0, 0, 4, 3, _tile('seats')),
+        _at(4, 0, 4, 3, _tile('switches')),
+        _at(8, 0, 4, 3, _tile('bandwidth')),
+        _at(12, 0, 4, 3, _tile('peak')),
+        _at(16, 0, 4, 3, _tile('ports')),
+        _at(20, 0, 4, 3, _tile('incidents')),
+        _at(0, 3, 14, 9, _plan(preset='ops')),
+        _at(14, 3, 10, 5, _view('health')),
+        _at(14, 8, 10, 4, _tile('down')),
+        _at(0, 12, 8, 8, _tile('switch_states', type='status')),
+        _at(8, 12, 10, 8, _tile('traffic', type='graph', style='area')),
+        _at(18, 12, 6, 8, _tile('uplinks', type='bar')),
+        _at(0, 20, 8, 8, _tile('top_ports', type='bar', limit=8)),
+        _at(8, 20, 8, 8, _tile('traffic_mix', type='pie')),
+        _at(16, 20, 8, 8, _tile('anomalies', type='status')),
     ]}]},
     'health': {'name': 'Service health', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 24, 12, _view('health', expanded=True)),
@@ -135,11 +148,16 @@ BUILTIN = {
     'network': {'name': 'Network', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 6, 3, _tile('switches')),
         _at(6, 0, 6, 3, _tile('seats')),
-        _at(12, 0, 12, 6, _view('wifi')),
-        _at(0, 3, 12, 3, _view('endpoints')),
-        _at(0, 6, 16, 12, _view('stats', expanded=True)),
-        _at(16, 6, 8, 6, _tile('down')),
-        _at(16, 12, 8, 6, _view('network-status')),
+        _at(12, 0, 6, 3, _tile('bandwidth')),
+        _at(18, 0, 6, 3, _tile('ports')),
+        _at(0, 3, 16, 9, _tile('traffic', type='graph', style='area')),
+        _at(16, 3, 8, 9, _tile('down')),
+        _at(0, 12, 8, 9, _tile('uplinks', type='bar')),
+        _at(8, 12, 8, 9, _tile('top_ports', type='bar', limit=10)),
+        _at(16, 12, 8, 9, _tile('switch_states', type='status')),
+        _at(0, 21, 12, 6, _view('wifi')),
+        _at(12, 21, 12, 3, _view('endpoints')),
+        _at(12, 24, 12, 3, _view('network-status')),
     ]}]},
     'services': {'name': 'Services', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 24, 10, _view('services', expanded=True)),
@@ -147,10 +165,17 @@ BUILTIN = {
         _at(12, 10, 12, 8, _view('lancache')),
     ]}]},
     'traffic': {'name': 'Traffic', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 24, 14, _view('traffic', expanded=True)),
-        _at(0, 14, 12, 10, _view('dns')),
-        _at(12, 14, 12, 10, _view('games')),
-        _at(0, 24, 24, 8, _view('speedtests')),
+        _at(0, 0, 6, 3, _tile('bandwidth')),
+        _at(6, 0, 6, 3, _tile('peak')),
+        _at(12, 0, 12, 6, _tile('anomalies', type='status')),
+        _at(0, 3, 12, 9, _tile('traffic', type='graph', style='area')),
+        _at(12, 6, 12, 6, _tile('traffic_mix', type='pie')),
+        _at(0, 12, 8, 9, _tile('flow_services', type='bar', limit=10)),
+        _at(8, 12, 8, 9, _tile('traffic_areas', type='bar')),
+        _at(16, 12, 8, 9, _tile('top_ports', type='bar', limit=10)),
+        _at(0, 21, 12, 10, _view('dns')),
+        _at(12, 21, 12, 10, _view('games')),
+        _at(0, 31, 24, 8, _view('speedtests')),
     ]}]},
     'power': {'name': 'Power load', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 24, 14, _view('power-load', expanded=True)),
@@ -306,6 +331,7 @@ def _pane(raw):
             if value != allowed[0]:
                 pane[key] = value
         pane.update(_shaping(raw, tile))
+        pane.update(_display(raw))
     elif kind == 'view':
         view = str(raw.get('view') or '')
         if not ID_RE.match(view):
@@ -479,6 +505,68 @@ def _shaping(raw, tile):
         raise LayoutError(f'A calculation is one of: {", ".join(CALCS)}.')
     if legend:
         out['legend'] = legend
+    return out
+
+
+def _num(value, what, lo=None, hi=None, whole=False):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise LayoutError(f'{what} must be a number.')
+    if whole and (value != int(value) or not lo <= value <= hi):
+        raise LayoutError(f'{what} is a whole number from {lo} to {hi}.')
+    return int(value) if whole else value
+
+
+def _tone(value):
+    tone = value or ''
+    if tone not in TONES:
+        raise LayoutError(f'A colour is one of: {", ".join(t for t in TONES if t)}.')
+    return tone
+
+
+def _display(raw):
+    """How a tile pane shows its numbers (issue #960); left out when unused."""
+    out = {}
+    steps = raw.get('thresholds') or []
+    if not isinstance(steps, list) or len(steps) > MAX_STEPS:
+        raise LayoutError(f'A widget has at most {MAX_STEPS} colour steps.')
+    if steps:
+        out['thresholds'] = [{'at': _num((s or {}).get('at'), 'A colour step'), 'tone': _tone((s or {}).get('tone'))}
+                             for s in steps if isinstance(s, dict)]
+        if len(out['thresholds']) != len(steps):
+            raise LayoutError('A colour step must be a number.')
+        if raw.get('threshold_mode') not in (None, '', 'value', 'percent'):
+            raise LayoutError('Colour steps compare the value or the percent of the max.')
+        if raw.get('threshold_mode') == 'percent':
+            out['threshold_mode'] = 'percent'
+    maps = raw.get('mappings') or []
+    if not isinstance(maps, list) or len(maps) > MAX_MAPPINGS or not all(isinstance(m, dict) for m in maps):
+        raise LayoutError(f'A widget has at most {MAX_MAPPINGS} value mappings.')
+    if maps:
+        out['mappings'] = []
+        for m in maps:
+            entry = {'text': _text(m.get('text'), 40)}
+            for end in ('from', 'to'):
+                if m.get(end) is not None:
+                    entry[end] = _num(m[end], 'A mapped value')
+            if m.get('tone'):
+                entry['tone'] = _tone(m['tone'])
+            out['mappings'].append(entry)
+    unit = _text(raw.get('unit'), 16)
+    if unit:
+        out['unit'] = unit
+    if raw.get('decimals') is not None:
+        out['decimals'] = _num(raw['decimals'], 'Decimals', 0, 4, whole=True)
+    if raw.get('short'):
+        out['short'] = True
+    sort = raw.get('sort') or ''
+    if sort:
+        if sort not in SORTS:
+            raise LayoutError(f'Sort is one of: {", ".join(SORTS)}.')
+        out['sort'] = sort
+    if raw.get('limit') is not None:
+        out['limit'] = _num(raw['limit'], 'Show at most', 1, 100, whole=True)
+    if raw.get('hide_zero'):
+        out['hide_zero'] = True
     return out
 
 
