@@ -415,7 +415,7 @@ def using(tenant=None, event=None):
 TENANT_KEYS = frozenset({
     'auth_users', 'auth_teams', 'auth_roles', 'auth_oidc', 'auth_secret_key', 'api_tokens',
     'app_settings', 'default_settings', 'setup', 'features', 'credentials', 'agents', 'webhooks',
-    'command_templates', 'dashboards', 'agent_ca',
+    'command_templates', 'dashboards', 'agent_ca', 'agent_public_cert',
 })
 
 # Tenant parts an older Floorbit kept in each event's document (issue #1095): ``lift_from_live_event``

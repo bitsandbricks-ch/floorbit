@@ -1264,5 +1264,17 @@
  "No laptop in the hall has reached a local agent yet. Open the check-in page once from a seat, or set the check-in address.": "Noch kein Laptop in der Halle hat einen lokalen Agent erreicht. Öffne die Check-in-Seite einmal von einem Platz aus oder setze die Check-in-Adresse.",
  "Someone else is walking one of these rows.": "Jemand anderes geht schon eine dieser Reihen ab.",
  "This walk ended: start again.": "Dieser Rundgang ist beendet: Starte ihn neu.",
- "Too many walks at once.": "Zu viele Rundgänge gleichzeitig."
+ "Too many walks at once.": "Zu viele Rundgänge gleichzeitig.",
+ "The ACME directory answered HTTP {}.": "Das ACME-Verzeichnis antwortete mit HTTP {}.",
+ "The ACME server gave no nonce.": "Der ACME-Server gab keine Nonce.",
+ "The ACME server gave the account no address.": "Der ACME-Server gab dem Konto keine Adresse.",
+ "The ACME server is still at \"{}\" after {} s.": "Der ACME-Server steht nach {2} s noch bei «{1}».",
+ "The ACME server kept refusing the nonce.": "Der ACME-Server lehnte die Nonce immer wieder ab.",
+ "The ACME server offered no HTTP-01 challenge.": "Der ACME-Server bot keine HTTP-01-Prüfung an.",
+ "The ACME server sent no certificate.": "Der ACME-Server schickte kein Zertifikat.",
+ "The agent key must be an EC P-256 key. Update the agent.": "Der Schlüssel des Agents muss ein EC-P-256-Schlüssel sein. Aktualisiere den Agent.",
+ "The agents' Let's Encrypt certificate isn't there yet. The agent asks again later.": "Das Let's-Encrypt-Zertifikat der Agents ist noch nicht da. Der Agent fragt später wieder.",
+ "The certificate's key cannot be opened. The server log says why.": "Der Schlüssel des Zertifikats lässt sich nicht öffnen. Das Server-Log sagt warum.",
+ "The domain is a name like example.com.": "Die Domain ist ein Name wie example.com.",
+ "Unknown key envelope.": "Unbekannte Schlüsselhülle."
 }
