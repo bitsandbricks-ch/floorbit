@@ -43,7 +43,8 @@ asks the local agent to find it:
 2. The MAC, from the core's ARP entry on the segment's VLAN interface (from discovery). Skipped when
    the MAC is known already.
 3. The switches, one at a time, until one learned the MAC on a port that isn't an uplink:
-   - the switches serving the seat's row (its learned ports and the patch plan's cables);
+   - the switches serving the seat's row (its learned ports, the patch plan's cables and the
+     [switch areas](switch-areas.md));
    - then the rest of its block;
    - then every other switch that carries the VLAN.
 

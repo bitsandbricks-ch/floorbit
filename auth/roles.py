@@ -293,6 +293,9 @@ RULES = (
     # The crew's walk-through check-in names the laptop's MAC; saving a seat's port is seats.edit.
     ('/api/seat-walk', READ, 'seats.view'),
     ('/api/seat-walk', WRITE, 'seats.edit'),
+    ('/api/switch-areas', READ, 'seats.view'),
+    ('/api/switch-areas', WRITE, 'seats.edit'),
+    ('/switch-areas', READ, 'seats.view'),
     ('/seat-walk', READ, 'seats.view'),
     # Nicks and IPs per seat, and what a seat's IP resolves to: personal data.
     ('/api/seats/info', READ, 'seats.view'),
