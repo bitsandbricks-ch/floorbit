@@ -123,7 +123,7 @@ def _block(client, name="A", cols=4, rows=2):
 def test_a_block_is_patched_in_one_go(client):
     """Issue #473: "switch X from Gi1/0/1, along the rows" instead of one cable per seat."""
     block = _block(client)
-    body = {"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/1", "order": "rows"}
+    body = {"rows": [f"{block}:1", f"{block}:2"], "switch": "sw-a-01", "first_port": "Gi1/0/1", "order": "rows"}
     preview = client.post("/api/cables/block", json={**body, "dry_run": True}).get_json()
     assert [(c["seat"], c["port"]) for c in preview["cables"]] == [
         ("A-1", "Gi1/0/1"), ("A-2", "Gi1/0/2"), ("A-3", "Gi1/0/3"), ("A-4", "Gi1/0/4"),
@@ -132,7 +132,8 @@ def test_a_block_is_patched_in_one_go(client):
 
     snake = client.post("/api/cables/block", json={**body, "order": "snake", "dry_run": True}).get_json()
     assert [c["seat"] for c in snake["cables"]] == ["A-1", "A-2", "A-3", "A-4", "A-8", "A-7", "A-6", "A-5"]
-    back = client.post("/api/cables/block", json={**body, "reverse": True, "rows": "2", "dry_run": True}).get_json()
+    back = client.post("/api/cables/block", json={**body, "reverse": True, "rows": [f"{block}:2"],
+                                                       "dry_run": True}).get_json()
     assert [(c["seat"], c["port"]) for c in back["cables"]][:2] == [("A-8", "Gi1/0/1"), ("A-7", "Gi1/0/2")]
 
     made = client.post("/api/cables/block", json=body).get_json()
@@ -140,16 +141,16 @@ def test_a_block_is_patched_in_one_go(client):
     rows = client.get("/api/cables").get_json()["cables"]
     assert len(rows) == 8 and len({c["label"] for c in rows}) == 8 and all(c["block"] == block for c in rows)
     entries = client.get("/api/settings/audit?area=cables").get_json()["entries"]
-    assert any(e["action"] == "Patched block A" for e in entries)
+    assert any(e["action"] == "Patched rows 1, 2" for e in entries)
 
 
 def test_planning_a_block_again_moves_its_own_cables_only(client):
     block = _block(client)
-    client.post("/api/cables/block", json={"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/1", "rows": "1"})
-    client.post("/api/cables/block", json={"block": block, "switch": "sw-a-02", "first_port": "Gi1/0/1", "rows": "2"})
+    client.post("/api/cables/block", json={"rows": [f"{block}:1"], "switch": "sw-a-01", "first_port": "Gi1/0/1",})
+    client.post("/api/cables/block", json={"rows": [f"{block}:2"], "switch": "sw-a-02", "first_port": "Gi1/0/1",})
     # Shifted by one port: row 1 again, row 2 (another switch) stays.
-    again = client.post("/api/cables/block", json={"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/2",
-                                                   "rows": "1"}).get_json()
+    again = client.post("/api/cables/block", json={"rows": [f"{block}:1"], "switch": "sw-a-01",
+                                                   "first_port": "Gi1/0/2"}).get_json()
     assert again["created"] == 4 and again["removed"] == 4
     rows = {c["seat"]: (c["switch"], c["port"]) for c in client.get("/api/cables").get_json()["cables"]}
     assert rows["A-1"] == ("sw-a-01", "Gi1/0/2") and rows["A-5"] == ("sw-a-02", "Gi1/0/1") and len(rows) == 8
@@ -158,7 +159,7 @@ def test_planning_a_block_again_moves_its_own_cables_only(client):
 def test_cables_in_the_way_stop_it_unless_replaced(client):
     block = _block(client)
     hand = client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/3", "seat": "B-9"}).get_json()
-    body = {"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/1", "rows": "1"}
+    body = {"rows": [f"{block}:1"], "switch": "sw-a-01", "first_port": "Gi1/0/1",}
     preview = client.post("/api/cables/block", json={**body, "dry_run": True}).get_json()
     assert preview["clashes"] == [{"seat": "A-3", "port": "Gi1/0/3", "kind": "port", "cable": hand["label"],
                                    "other_seat": "B-9", "imported": False}]
@@ -171,12 +172,13 @@ def test_cables_in_the_way_stop_it_unless_replaced(client):
 
 def test_wrong_block_plans(client):
     block = _block(client)
-    for bad, status in (({"block": "nope"}, 404), ({"switch": ""}, 400), ({"first_port": "uplink"}, 400),
-                        ({"order": "zigzag"}, 400), ({"rows": "3"}, 400), ({"rows": "x"}, 400)):
-        body = {"block": block, "switch": "sw-a-01", "first_port": "Gi1/0/1", "dry_run": True, **bad}
+    for bad, status in (({"rows": ["nope:1"]}, 404), ({"rows": [f"{block}:3"]}, 404), ({"rows": []}, 400),
+                        ({"rows": "1"}, 400), ({"switch": ""}, 400), ({"first_port": "uplink"}, 400),
+                        ({"order": "zigzag"}, 400)):
+        body = {"rows": [f"{block}:1"], "switch": "sw-a-01", "first_port": "Gi1/0/1", "dry_run": True, **bad}
         assert client.post("/api/cables/block", json=body).status_code == status, bad
-    padded = client.post("/api/cables/block", json={"block": block, "switch": "sw", "first_port": "Eth1/09",
-                                                    "rows": "1", "dry_run": True}).get_json()
+    padded = client.post("/api/cables/block", json={"rows": [f"{block}:1"], "switch": "sw", "first_port": "Eth1/09",
+                                                    "dry_run": True}).get_json()
     assert [c["port"] for c in padded["cables"]] == ["Eth1/09", "Eth1/10", "Eth1/11", "Eth1/12"]
 
 
@@ -190,3 +192,27 @@ def test_a_cable_tells_the_port_watch_its_seat():
     data = {"cables": [{"switch": "SW-A-01", "port": "GigabitEthernet1/0/7", "seat": "A-7"},
                        {"switch": "sw-a-01", "port": "Gi1/0/8", "seat": ""}]}
     assert cables.port_seats(data) == {("sw-a-01", "gi1/0/7"): "A-7"}
+
+
+def test_a_hand_entry_wins_over_a_cable_and_a_learned_port(monkeypatch):
+    """Issue #953: a switch port typed in on the Seat mapping page counts for the port watch too."""
+    from integrations import checkin
+    monkeypatch.setattr(checkin, "learned_port_seats", lambda: {("sw-a-01", "gi1/0/9"): "A-9",
+                                                                ("sw-a-01", "gi1/0/3"): "A-3"})
+    data = {"cables": [{"switch": "sw-a-01", "port": "Gi1/0/7", "seat": "A-7"},
+                       {"switch": "sw-a-01", "port": "Gi1/0/8", "seat": "A-8"}],
+            "seat_map": {"A-1": {"switch": "SW-A-01", "port": "GigabitEthernet1/0/1"},
+                         "A-7": {"switch": "sw-a-01", "port": "Gi1/0/17"},     # moved off its cable
+                         "A-4": {"switch": "sw-a-01", "port": "Gi1/0/8"},      # the port A-8's cable names
+                         "A-5": {"nick": "only a nick"}}}
+    assert cables.port_seats(data) == {("sw-a-01", "gi1/0/1"): "A-1", ("sw-a-01", "gi1/0/17"): "A-7",
+                                       ("sw-a-01", "gi1/0/8"): "A-4", ("sw-a-01", "gi1/0/9"): "A-9",
+                                       ("sw-a-01", "gi1/0/3"): "A-3"}
+    # The patch plan alone, as the seat walk and check-in compare against, has no hand entries.
+    assert cables.port_seats(data, learned=False) == {("sw-a-01", "gi1/0/7"): "A-7", ("sw-a-01", "gi1/0/8"): "A-8"}
+
+
+def test_every_cable_has_its_own_page(client, built):
+    """A label's QR code opens /cables/<id>; /cables/new adds one (issue #877)."""
+    for path in ("/cables/c1", "/cables/new", "/cables/walk"):
+        assert client.get(path).status_code == 200, path

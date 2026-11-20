@@ -12,5 +12,8 @@
   "checkinTitle": "Bist du an der LAN?",
   "checkinText": "Checke an deinem Platz ein, damit dich die Netzwerk-Crew schnell findet, wenn etwas nicht geht.",
   "crewTitle": "Anmeldung für die Crew",
-  "checkinAddress": "Auf einem anderen PC eintippen:"
+  "checkinAddress": "Auf einem anderen PC eintippen:",
+  "claim": "Welcher Switch, welcher Port, welcher Platz.",
+  "claimSub": "Das Netz deiner LAN-Party, live auf dem Hallenplan.",
+  "claimEvent": "{{name}} · das Hallennetz aus Sicht der Crew."
 }

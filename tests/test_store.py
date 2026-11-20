@@ -183,3 +183,18 @@ def test_data_of_dropped_features_goes_with_the_next_write(client):
     data["planner"] = {"settings": {"model": "example"}}
     store.save_data(data)
     assert "planner" not in store.load_data()
+
+
+def test_a_document_is_saved_back_to_the_event_it_was_loaded_from(app_module):
+    """#1197: a thread that loaded one event's data.json and saves after another event took over
+    stored the first event's blocks whole in the second one."""
+    first = store.load_data()
+    first["seat_blocks"] = [{"id": "b1", "name": "A"}]
+    with store.using(event="events/other"):
+        store.save_data(first)                   # another event is current now
+        assert store.load_data()["seat_blocks"] == []
+    assert store.load_data()["seat_blocks"] == [{"id": "b1", "name": "A"}]
+    built = {"seat_blocks": [{"id": "b2", "name": "B"}]}  # built by the caller: goes where it is saved
+    with store.using(event="events/other"):
+        store.save_data(built)
+        assert [b["id"] for b in store.load_data()["seat_blocks"]] == ["b2"]

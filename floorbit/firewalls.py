@@ -74,7 +74,26 @@ def _clean(body, data, current=None):
     if len(out) > MAX_LINE:
         raise FirewallError(f'A range has at most {MAX_LINE} firewalls.')
     label = ' '.join(str(body.get('name', current.get('name')) or '').split())[:60]
-    return {'cidr': str(net), 'name': label, 'firewalls': out}
+    return {'cidr': str(net), 'name': label, 'firewalls': out, 'switches': _switches(body, data, current)}
+
+
+def _switches(body, data, current):
+    """The switches or switch groups a range is for (optional, issue #1062): inventory device or
+    group ids. A seat behind one of them with an address outside their ranges is flagged
+    (floorbit/seat_ranges.py). Without any, each switch's range is guessed from its seats."""
+    from . import inventory, inventory_scope
+    raw = body.get('switches', current.get('switches') or [])
+    if not isinstance(raw, list):
+        raise FirewallError('Send the switches as a list.')
+    known = {d['id'] for d in inventory.devices(data)} | {g['id'] for g in inventory_scope.groups(data)}
+    out = []
+    for item in raw:
+        item = str(item or '')
+        if item not in known:
+            raise FirewallError('Pick the switches and groups from the inventory.')
+        if item not in out:
+            out.append(item)
+    return out
 
 
 def save(body, by, range_id=None):
@@ -85,6 +104,12 @@ def save(body, by, range_id=None):
         row = next((r for r in rows if r.get('id') == range_id), None) if range_id else None
         if range_id and row is None:
             raise FirewallError('No such range.', 404)
+        if row is not None and row.get('source') == 'import' and set(body) == {'switches'}:
+            # Which switches a range is for is Floorbit's own: kept on an imported range too.
+            row['switches'] = _switches(body, data, row)
+            data[KEY] = stored
+            save_data(data)
+            return dict(row)
         if row is not None and row.get('source') == 'import':
             raise FirewallError(f"This range comes from {row.get('plugin') or 'NetBox'}: change it there and import "
                                 'again.', 409)
@@ -196,6 +221,8 @@ def import_from(registry, by):
         # A source that failed this time keeps its last import.
         kept = [r for r in _ranges(data) if r.get('source') != 'import' or r.get('plugin') not in answered]
         planned = {r['cidr'] for r in kept}
+        # The switches set on an imported range survive the next import (NetBox doesn't know them).
+        switches_before = {r['cidr']: r.get('switches') or [] for r in _ranges(data) if r.get('source') == 'import'}
         added, unknown, clash = [], 0, 0
         for plugin, raw in found:
             if not isinstance(raw, dict):
@@ -203,6 +230,7 @@ def import_from(registry, by):
             try:
                 fields = _clean({'cidr': raw.get('cidr'), 'name': raw.get('name'), 'firewalls': raw.get('firewalls')},
                                 data)
+                fields['switches'] = switches_before.get(fields['cidr'], [])
             except FirewallError:
                 unknown += 1   # one prefix with a typo in NetBox must not stop the rest
                 continue
@@ -341,6 +369,7 @@ def overview(now=None):
         ranges.append({'id': row['id'], 'cidr': row['cidr'], 'name': row.get('name') or '', 'firewalls': line,
                        'intended': line[0] if line else None, 'now': now_on, 'state': state,
                        'seats': seats.get(row['id'], 0), 'source': row.get('source') or 'floorbit',
+                       'switches': list(row.get('switches') or []),
                        'plugin': row.get('plugin') or ''})
     ranges.sort(key=lambda r: (ipaddress.ip_network(r['cidr']).version, ipaddress.ip_network(r['cidr'])))
     cards = []

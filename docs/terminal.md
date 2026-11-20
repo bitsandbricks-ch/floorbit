@@ -4,6 +4,12 @@ The **Switch terminal** page (`/terminal`) opens a terminal on one switch in the
 switch's own CLI, for what the saved [switch commands](commands.md) don't cover. Open it from the
 Commands page, or link to it with `/terminal?switch=sw-a-01`.
 
+The page is a workspace: one tab per open terminal, named after its switch with a dot that says
+whether it is still connected, and a **New** tab with the form that opens another. The terminal
+fills the page below the tabs; a tab you leave keeps running and keeps its scrollback. The **x** on a
+tab closes that terminal. When a switch hangs up, its tab stays with the reason until you close it.
+The terminal is dark in both themes.
+
 Code: [`floorbit/terminal.py`](../floorbit/terminal.py),
 [`floorbit/blueprints/terminal.py`](../floorbit/blueprints/terminal.py),
 [`frontend/src/pages/Terminal.tsx`](../frontend/src/pages/Terminal.tsx) (with
@@ -40,7 +46,7 @@ the switch prints is not logged: it can name MACs and IPs.
 | `TERMINAL_MAX_MINUTES` | `60` | Close it after this long in all. |
 
 At most 3 terminals per account and 10 in all are open at once. Leaving the page doesn't close a
-terminal right away: the page lists your open terminals, to go back to or close.
+terminal right away: coming back (or a reload) brings your open terminals back as tabs.
 
 ## API
 

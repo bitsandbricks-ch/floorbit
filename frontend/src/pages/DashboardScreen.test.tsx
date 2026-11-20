@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -54,6 +54,130 @@ describe('Dashboard screen', () => {
     await waitFor(() => expect(api.calls.some((c) => c.path === '/api/dashboards/kiosk')).toBe(true))
   })
 
+  it('frames the screen with a header and the status line, unless the dashboard switches them off', async () => {
+    const api = fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': { ...board, name: 'Ops wall' },
+      'GET /api/dashboards/traffic/public': { account: true, board: null, tiles: {}, app: '1' },
+      'GET /api/dashboards/traffic': { ...board, id: 'traffic', name: 'Traffic' },
+      'GET /api/tenant/events': { events: [{ id: 'e1', name: 'Autumn LAN', status: 'live' }], live: 'e1', current: 'e1' },
+      'GET /api/problems': { counts: { down: 2, warn: 0 }, checked_at: 0, problems: [] },
+      'GET /api/version': { app: '1' },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Routes><Route path="/dashboards/:id" element={<DashboardScreen />} /></Routes>, '/dashboards/kiosk?rotate=kiosk,traffic')
+    expect(await screen.findByText('Ops wall')).toBeInTheDocument()
+    expect(await screen.findByText('Autumn LAN')).toBeInTheDocument()
+    expect(await screen.findByText('Next: Traffic')).toBeInTheDocument()
+    expect(await screen.findByRole('contentinfo', { name: 'Status' })).toBeInTheDocument()
+  })
+
+  it('leaves the frame off when the dashboard says so, and a public wall asks for nothing more', async () => {
+    const api = fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: false, board: { ...board, frame: false }, tiles: {}, app: '1' },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    show()
+    expect(await screen.findByText('Welcome')).toBeInTheDocument()
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Time')).toBeInTheDocument()
+  })
+
+  it('makes a pane large in the dashboard area, and Esc goes back', async () => {
+    const api = fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: false, board, tiles: { 'floorbit/w/down': 'Switches down' }, app: '1' },
+      'GET /api/dashboards/kiosk/public/tiles/down': {
+        id: 'down', type: 'list', items: [{ label: 'sw-a-01', value: '7 min', tone: 'err' }], sub: '', link: '',
+      },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    layOut()
+    show()
+    ;(await screen.findByRole('button', { name: 'Make Switches down large' })).click()
+    expect(await screen.findByRole('button', { name: 'Back to the dashboard' })).toBeInTheDocument()
+    expect(screen.getByText('Goes back by itself in 60 s · Esc')).toBeInTheDocument()
+    expect(screen.getByText('sw-a-01')).toBeInTheDocument()
+    expect(screen.queryByText('Welcome')).not.toBeInTheDocument()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    expect(await screen.findByText('Welcome')).toBeInTheDocument()
+  })
+
+  it('calls attention to something down that nobody has taken yet', async () => {
+    const down = (id: string, extra: object = {}) => ({ id, kind: 'switch', level: 'down', title: `${id} down`, where: 'Hall A', since: null, link: '', ...extra })
+    const api = fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': board,
+      'GET /api/problems': { counts: { down: 3, warn: 0, muted: 0 }, checked_at: 0, mutes: [], quiet_hours: false, can_mute: true, problems: [
+        down('sw-a-01', { name: 'sw-a-01' }), down('sw-b-02', { incident: 'i1' }), down('sw-c-03', { muted: { until: 0, by: null, reason: '' } }),
+      ] },
+      'GET /api/dashboard': { tiles: [{ plugin: 'floorbit', plugin_name: 'Floorbit', id: 'down', label: 'Switches down', size: 'small', refresh: 15, url: '/api/dashboard/floorbit/down' }] },
+      'GET /api/dashboard/floorbit/down': { id: 'down', type: 'list', items: [{ label: 'sw-a-01', value: '7 min', tone: 'err' }], sub: '', link: '' },
+      'GET /api/version': { app: '1' },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    layOut()
+    show()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('sw-a-01 down')
+    // Taken (an incident) or muted: no call for attention.
+    expect(alert).not.toHaveTextContent('sw-b-02')
+    expect(alert).not.toHaveTextContent('sw-c-03')
+    // The pane that lists it pulses with the bar; the others don't.
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Switches down' })).toHaveClass('fb-pane-alert'))
+    expect(document.querySelectorAll('.fb-pane-alert')).toHaveLength(1)
+  })
+
+  it('a rotating wall waits on the dashboard that shows the problem, and looks on while this one does not', async () => {
+    const down = { id: 'sw-a-01', name: 'sw-a-01', kind: 'switch', level: 'down', title: 'sw-a-01 down', where: 'Hall A', since: null, link: '' }
+    const wall = (items: object[]) => fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': board,
+      'GET /api/dashboards/traffic/public': { account: true, board: null, tiles: {}, app: '1' },
+      'GET /api/dashboards/traffic': { ...board, id: 'traffic', name: 'Traffic' },
+      'GET /api/problems': { counts: { down: 1, warn: 0, muted: 0 }, checked_at: 0, mutes: [], quiet_hours: false, can_mute: true, problems: [down] },
+      'GET /api/dashboard': { tiles: [{ plugin: 'floorbit', plugin_name: 'Floorbit', id: 'down', label: 'Switches down', size: 'small', refresh: 15, url: '/api/dashboard/floorbit/down' }] },
+      'GET /api/dashboard/floorbit/down': { id: 'down', type: 'list', items, sub: '', link: '' },
+      'GET /api/version': { app: '1' },
+    })
+    const rotating = () => renderWithApp(<Routes><Route path="/dashboards/:id" element={<DashboardScreen />} /></Routes>, '/dashboards/kiosk?rotate=kiosk,traffic')
+    layOut()
+    vi.stubGlobal('fetch', wall([{ label: 'sw-a-01', value: '7 min', tone: 'err' }]).fn)
+    const { unmount } = rotating()
+    expect(await screen.findByRole('alert')).toHaveTextContent('sw-a-01 down')
+    expect(await screen.findByText('Rotation waits')).toBeInTheDocument()
+    unmount()
+    // Nothing here lists it: the wall moves on to look for it.
+    vi.stubGlobal('fetch', wall([{ label: 'sw-z-09', value: '1 min', tone: 'err' }]).fn)
+    rotating()
+    expect(await screen.findByRole('alert')).toHaveTextContent('sw-a-01 down')
+    expect(await screen.findByText('Next: Traffic')).toBeInTheDocument()
+    expect(screen.queryByText('Rotation waits')).not.toBeInTheDocument()
+  })
+
+  it('opens the device of a picked row beside a large widget, and Esc closes that first', async () => {
+    const tiles = { tiles: [{ plugin: 'floorbit', plugin_name: 'Floorbit', id: 'down', label: 'Switches down', size: 'small', refresh: 15, url: '/api/dashboard/floorbit/down' }] }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': board,
+      'GET /api/problems': { counts: { down: 0, warn: 0, muted: 0 }, checked_at: 0, mutes: [], quiet_hours: false, can_mute: true, problems: [] },
+      'GET /api/dashboard': tiles,
+      'GET /api/dashboard/floorbit/down': { id: 'down', type: 'list', items: [{ label: 'sw-a-01', value: '7 min', tone: 'err', device: 'dev-a' }], sub: '', link: '' },
+      'GET /api/inventory/dev-a': { id: 'dev-a', name: 'sw-a-01', role: 'access', model: 'C2960X', mgmt_ip: '', hall: 'Hall A', location: '', notes: '',
+        interfaces: [{ id: 'p1', hidden: false }, { id: 'p2', hidden: false }], runs_here: [], connected: { cables: [], circuits: [], uplinks: [] } },
+      'GET /api/version': { app: '1' },
+    }).fn)
+    layOut()
+    show()
+    ;(await screen.findByRole('button', { name: 'Make Switches down large' })).click()
+    fireEvent.click(await screen.findByRole('button', { name: 'sw-a-01' }))
+    const glance = await screen.findByRole('complementary', { name: 'sw-a-01' })
+    expect(await within(glance).findByText('2 ports')).toBeInTheDocument()
+    expect(within(glance).getByRole('link', { name: 'Open the device page' })).toHaveAttribute('href', '/inventory/devices/dev-a')
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'sw-a-01' })).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Back to the dashboard' })).toBeInTheDocument()
+  })
+
   it('keeps showing the board while the server is away, with a small note instead of a banner', async () => {
     const api = fakeFetch({
       'GET /api/dashboards/kiosk/public': { account: false, board, tiles: {}, app: '1' },
@@ -66,5 +190,53 @@ describe('Dashboard screen', () => {
     expect(await screen.findByText('No connection to the server: showing what was last read.')).toBeInTheDocument()
     expect(screen.getByText('Welcome')).toBeInTheDocument()
     expect(screen.queryByText(/Something went wrong/)).not.toBeInTheDocument()
+  })
+
+  it('offers a crew member who may edit to make a scrolling dashboard fit the screen', async () => {
+    let page = { ...board, fit: false, public: false }
+    const editor = { enabled: true, user: { username: 'ana', display_name: 'Ana', role: 'lead', permissions: ['floorplan.edit'] } }
+    const api = fakeFetch({
+      'GET /api/dashboards/kiosk/public': { status: 404, body: { error: 'not public' } },
+      'GET /api/dashboards/kiosk': () => ({ body: page }),
+      'PUT /api/dashboards/kiosk': (init: RequestInit | undefined) => ({ body: (page = { ...page, ...JSON.parse(String(init?.body)) }) }),
+      'GET /api/auth/me': editor,
+      'GET /api/version': { app: '1' },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    show()
+    fireEvent.click(await screen.findByRole('button', { name: 'Make it a Screen' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toMatchObject({ fit: true, name: 'Kiosk', public: false }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Make it a Screen' })).not.toBeInTheDocument())
+  })
+
+  it('asks no one who can not edit', async () => {
+    const page = { ...board, fit: false }
+    const viewer = { enabled: true, user: { username: 'vi', display_name: 'Vi', role: 'viewer', permissions: [] } }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board: page, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': page,
+      'GET /api/auth/me': viewer,
+      'GET /api/version': { app: '1' },
+    }).fn)
+    show()
+    expect(await screen.findByText('Welcome')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Make it a Screen' })).not.toBeInTheDocument()
+  })
+
+  it('stops asking on this screen once kept a Page', async () => {
+    const page = { ...board, fit: false }
+    const editor = { enabled: true, user: { username: 'ana', display_name: 'Ana', role: 'lead', permissions: ['floorplan.edit'] } }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board: page, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': page,
+      'GET /api/auth/me': editor,
+      'GET /api/version': { app: '1' },
+    }).fn)
+    localStorage.removeItem('fb.keepPage.kiosk')
+    show()
+    fireEvent.click(await screen.findByRole('button', { name: 'Keep it a Page' }))
+    expect(screen.queryByRole('button', { name: 'Make it a Screen' })).not.toBeInTheDocument()
+    expect(localStorage.getItem('fb.keepPage.kiosk')).toBe('1')
+    localStorage.removeItem('fb.keepPage.kiosk')
   })
 })

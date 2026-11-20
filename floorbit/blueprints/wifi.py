@@ -2,16 +2,22 @@
 
 - ``GET /api/wifi?hall=``: every access point with its radios (channel, load, client count), where
   it is on the floor plan, totals, busy APs and channel overlaps, and the hall's drawing.
+- ``GET /api/wifi/history?hours=``: clients over time on the controllers that stream to Telemetry.
 
 Client counts only, never who: reading needs ``floorplan.view``, like the floor plan.
 """
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import halls, wifi
+from .. import halls, spa, wifi
 from ..store import load_data
 from .screen import PLAN_H, PLAN_W, plan
 
 bp = Blueprint('wifi', __name__)
+
+
+@bp.route('/wifi')
+def wifi_page():
+    return spa.render('Wi-Fi')
 REACH = 140   # room around an AP on the drawing, in plan units: most of its circle
 
 
@@ -25,6 +31,19 @@ def wifi_flags():
         return {'wifi_on': bool(_registry().feeders('wifi'))}
     except Exception:  # noqa: BLE001 - a nav link must never break a page
         return {'wifi_on': False}
+
+
+@bp.route('/api/wifi/history', methods=['GET'])
+def history():
+    from ..database import DatabaseUnavailable
+    try:
+        hours = max(0.25, min(float(request.args.get('hours') or 6), 24 * 30))
+    except ValueError:
+        hours = 6
+    try:
+        return jsonify({**wifi.history(_registry(), hours), 'hours': hours})
+    except DatabaseUnavailable:
+        return jsonify({'error': 'The database is not answering.', 'code': 'database_unavailable'}), 503
 
 
 @bp.route('/api/wifi', methods=['GET'])
