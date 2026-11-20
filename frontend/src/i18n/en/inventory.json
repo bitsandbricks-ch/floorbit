@@ -1,6 +1,6 @@
 {
   "title": "Inventory",
-  "intro": "Every switch, router, firewall, server, VM and other device Floorbit knows, with their interfaces. Add them by hand, or let a plugin such as NetBox fill the list. What you change here wins: a sync never overwrites a field you edited and never deletes a device. Groups and tags carry settings, feature switches and credentials that their devices inherit.",
+  "intro": "Every device Floorbit knows, with its interfaces. What you change here wins over a sync.",
   "search": "Search",
   "searchPlaceholder": "Name, model, serial, IP…",
   "allRoles": "All roles",
@@ -159,6 +159,7 @@
       "serial": "Serial",
       "vlan_id": "VLAN ID",
       "prefix": "Prefix",
+      "lookups": "Check-in lookups",
       "gateway": "Gateway",
       "purpose": "Purpose"
     },
@@ -444,5 +445,24 @@
     "notFound": "This item is not in the inventory",
     "back": "Back to the inventory",
     "telemetryAdmins": "Admins see the last word, Test now and Raw data here."
+  },
+  "more": "More",
+  "groupsAndTags": "Groups and tags",
+  "anyGroup": "Any group",
+  "anyTag": "Any tag",
+  "allCount": "All {{count}}",
+  "manualOnly": "Added by hand",
+  "syncFailedShort": "{{source}} sync failed",
+  "syncedAgo": "{{source}} synced {{when}}",
+  "neverSyncedShort": "{{source}} not synced yet",
+  "ports": "Ports up",
+  "rowMenu": "More for {{name}}",
+  "open": "Open",
+  "state": {
+    "label": "State",
+    "any": "Any state",
+    "online": "Online",
+    "offline": "Offline",
+    "unknown": "Unknown"
   }
 }

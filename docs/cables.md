@@ -19,6 +19,11 @@ Nothing that Floorbit already knows is typed in: the switch, its port, the patch
 the seat are picked from lists. Ports list only the free ones (and keep the cable's own); tick
 **Also list ports that have a cable** to see the rest, with the seat on each.
 
+Each cable has its own page, `/cables/<id>`: the list links to it, its label's QR code opens it, and
+it's where the cable is changed, printed or deleted. **Add cable** opens `/cables/new`, which can
+take `switch`, `port`, `panel`, `panel_port` and `seat` from the address to start filled in. The
+floor plan's Edit mode still edits a cable in a dialog, so the plan stays in view.
+
 ## A whole block at once
 
 **Patch a block** makes a cable for every seat of a seat block, so a hall is a few dozen of these
@@ -64,7 +69,7 @@ and the ARP table for the seats' networks, and lists:
 - **machines on another seat's port**: the port is cabled to A-2, but the machine on it has A-3's IP
   (from the seat mapping). Players swapped seats, or two cables are swapped at the switch;
 - **machines on a port no cable explains**, with their MAC and IP, and the seat that IP belongs to.
-  **Patch to a seat** opens a new cable with the port and that seat filled in; **Infrastructure**
+  **Patch to a seat** opens a new cable's page with the port and that seat filled in; **Infrastructure**
   adds a cable without a seat (a crew laptop, an access point), so the port isn't asked about again.
 
 Ports with more than 4 MACs are uplinks or a switch under a desk, and ports cabled without a seat are
@@ -121,7 +126,7 @@ end (the seat, or the panel when there is no seat). Each label has:
 - the cable's label, large;
 - the end it goes on (`sw-a-01 Gi1/0/3` or `Seat A-3`), in bold;
 - where the other end goes, small, and the colour, length, type and speed;
-- a QR code that opens the cable on this page (`/cables?cable=<id>`).
+- a QR code that opens the cable's own page (`/cables/<id>`).
 
 The PDF holds the cables the search shows. A cable's own window prints just its two labels. Behind a
 reverse proxy, set `PUBLIC_URL` so the QR codes point at the address phones reach.

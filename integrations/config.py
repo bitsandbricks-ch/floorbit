@@ -216,15 +216,6 @@ SCHEMA = [
              'ingress). Only used behind a reverse proxy.'},
     {'key': 'CHECKIN_VALIDATE_SEATS', 'group': 'checkin', 'type': 'bool', 'default': True,
      'label': 'Only accept seats on the plan', 'help': 'Reject seat numbers that are not in any seat block.'},
-    {'key': 'CAPTIVE_ENABLED', 'group': 'checkin', 'type': 'bool', 'default': False,
-     'label': 'Captive portal (DHCP option 114)',
-     'help': 'Tell the local agent which machines checked in, so phones and laptops that did not see a quiet '
-             '"sign in to network" note that opens the check-in page. Needs the check-in page, the plugin '
-             '"Check-in note on phones" and option 114 in the event DHCP. Nothing is ever blocked.'},
-    {'key': 'SEAT_WALK_AGENT_URL', 'group': 'checkin', 'type': 'string', 'default': '',
-     'label': 'Local agent address for the seat walk-through',
-     'help': 'Where laptops in the hall reach the local agent\'s captive port, e.g. http://192.0.2.10:8908. '
-             'Empty: the address the agent reports (FLOORBIT_AGENT_LAN_URL).'},
     {'key': 'CHECKIN_VERIFY_RATE', 'group': 'checkin', 'type': 'int', 'default': 10,
      'label': 'Port lookups per second',
      'help': 'How many check-ins a second the background looks up in the monitoring source. A burst of '

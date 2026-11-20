@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Widget } from '@/api/types'
-import { binsOf, bucketsOf, formatValue, kindsFor, looksFor, partsOf, resolveKind, rowsOf, scaleOf, slices, stackLines, stateCounts, statOf, trendOf, valuesOf } from './shape'
+import { PALETTE, binsOf, changeOf, bucketsOf, formatValue, kindsFor, looksFor, partsOf, resolveKind, rowsOf, scaleOf, slices, stackLines, stateCounts, statOf, trendOf, valuesOf } from './shape'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
 const status: Widget = { ...base, type: 'status', items: [
@@ -41,6 +41,12 @@ describe('widget shapes', () => {
     expect(partsOf(status, name).map((p) => [p.label, p.value])).toEqual([['down', 1], ['warn', 1], ['up', 1]])
     const blocks: Widget = { ...base, type: 'list', items: [{ label: 'A', value: '2 / 3', tone: '', number: 2, max: 3 }] }
     expect(partsOf(blocks, name)[0]).toMatchObject({ label: 'A', value: 2, max: 3, text: '2 / 3' })
+    // One measure, one colour for bars; a pie gives each row its own (issue #1043).
+    const sites: Widget = { type: 'list', id: 'x', label: '', size: 'small', refresh: 60, sub: '', link: '', items: [
+      { label: 'a', value: '3', tone: '', number: 3 }, { label: 'b', value: '2', tone: '', number: 2 },
+      { label: 'c', value: '1', tone: 'err', number: 1 }] }
+    expect(partsOf(sites, name).map((p) => p.colour)).toEqual([PALETTE[0], PALETTE[0], 'var(--color-down)'])
+    expect(new Set(partsOf(sites, name, undefined, true).map((p) => p.colour)).size).toBe(3)
     expect(scaleOf({ ...base, type: 'stat', value: 5, unit: '', tone: '', max: 20 })).toEqual({ value: 5, min: 0, max: 20 })
   })
   it('keeps a pie to seven slices, the rest as other', () => {
@@ -84,5 +90,17 @@ describe('widget shapes', () => {
     expect(looksFor(two, 'graph')).toEqual(['stack', 'style', 'trend', 'legend'])
     expect(looksFor(two, 'histogram')).toEqual([])
     expect(looksFor({ ...base, type: 'sparkline', unit: '', points: [1] }, 'column')).toEqual(['trend'])
+  })
+
+  it('tells how a stat moved: against an hour before when the data goes back that far', () => {
+    const t0 = 1800000000
+    const series: Widget = { ...base, type: 'series', unit: '', series: [
+      { label: 'Down', points: [[t0, 40], [t0 + 1800, 50], [t0 + 3600, 80], [t0 + 5400, 100]] }] }
+    expect(changeOf(series)).toEqual({ from: 50, to: 100, pct: 100, hour: true, at: t0 + 1800 })
+    const short: Widget = { ...series, series: [{ label: 'Down', points: [[t0, 0], [t0 + 600, 3]] }] }
+    expect(changeOf(short)).toEqual({ from: 0, to: 3, hour: false, at: t0 })
+    expect(changeOf({ ...base, type: 'sparkline', unit: '', points: [4, 2, 3] })).toEqual({ from: 4, to: 3, pct: -25, hour: false })
+    expect(changeOf({ ...base, type: 'stat', value: 3, unit: '', tone: '' })).toBeNull()
+    expect(looksFor(series, 'stat')).toEqual(['spark', 'change'])
   })
 })

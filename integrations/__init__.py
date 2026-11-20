@@ -70,11 +70,18 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
 
     def short_checkin_address():
         """The short address (CHECKIN_ADDRESS, e.g. checkin.lan) typed on a PC lands on the
-        check-in page. First, before sign-in, which would send it to the crew's login."""
+        check-in page. First, before sign-in, which would send it to the crew's login. Through the
+        agent's front door any name does, for whoever isn't signed in (issue #1097): that port is
+        the attendees', and the crew open their pages by path."""
         if request.path != '/' or not config.get_bool('CHECKIN_ENABLED', False):
             return None
-        if checkin.is_short_address(request.host) or checkin.is_short_address(checkin.front_door_host()):
+        door = checkin.front_door_host()
+        if checkin.is_short_address(request.host) or checkin.is_short_address(door):
             return redirect('/checkin', code=302)
+        if checkin.attendee_ip():
+            from auth import current_user
+            if not current_user():
+                return redirect('/checkin', code=302)
         return None
     app.before_request_funcs.setdefault(None, []).insert(0, short_checkin_address)
     auth = app.extensions.get('auth')

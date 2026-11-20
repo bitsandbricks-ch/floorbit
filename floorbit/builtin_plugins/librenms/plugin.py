@@ -23,6 +23,9 @@ class Plugin(Plugin):
     def device_ports(self, hostname):
         return client.fetch_device_ports(hostname)
 
+    def device_facts(self, hostname):
+        return client.device_facts(hostname)
+
     def port_clients(self, hostname):
         return client.port_clients(hostname)
 

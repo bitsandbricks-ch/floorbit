@@ -26,6 +26,7 @@ import { useCustomIcons, useDeviceDetail, useInventoryGroups, useInventoryTypes 
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
 import { useDeviceTelemetry } from './telemetry'
 import { TelemetrySettings } from './TelemetrySettings'
+import { StateBadge } from '@/components/State'
 
 /** One device's own page (/inventory/devices/<id>): what it is, its ports, telemetry, settings and
  *  logins, each a tab. The inventory list links here; nothing opens a side panel. */
@@ -127,7 +128,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
       <PageHead
         icon={<DeviceIcon icon={icon} color={color} size={28} />}
         kicker={kicker}
-        title={<Group gap="sm" wrap="wrap" component="span">{dev.name}{dev.status && <Badge variant="light" tt="none" color={dev.status === 'active' ? 'up' : 'gray'}>{statusLabel(t, dev.status)}</Badge>}</Group>}
+        title={<Group gap="sm" wrap="wrap" component="span">{dev.name}{dev.status && <StateBadge size="md" state={dev.status === 'active' ? 'active' : 'idle'} label={statusLabel(t, dev.status)} />}</Group>}
         actions={<>
           {dev.placed && (
             <Button component={Link} to={`/plan?switch=${encodeURIComponent(dev.name)}`} variant="default" leftSection={<IconMap size={16} />}>

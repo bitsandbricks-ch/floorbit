@@ -1,6 +1,6 @@
 {
   "title": "Inventar",
-  "intro": "Alle Switches, Router, Firewalls, Server, VMs und weiteren Geräte, die Floorbit kennt, mit ihren Interfaces. Erfasse sie von Hand oder lass ein Plugin wie NetBox die Liste füllen. Was du hier änderst, gilt: Ein Sync überschreibt kein von Hand geändertes Feld und löscht nie ein Gerät. Gruppen und Tags tragen Einstellungen, Funktionsschalter und Zugangsdaten, die ihre Geräte erben.",
+  "intro": "Jedes Gerät, das Floorbit kennt, mit seinen Interfaces. Was du hier änderst, gewinnt gegen einen Sync.",
   "search": "Suchen",
   "searchPlaceholder": "Name, Modell, Seriennummer, IP…",
   "allRoles": "Alle Rollen",
@@ -159,6 +159,7 @@
       "serial": "Seriennummer",
       "vlan_id": "VLAN-ID",
       "prefix": "Präfix",
+      "lookups": "Check-in-Abfragen",
       "gateway": "Gateway",
       "purpose": "Zweck"
     },
@@ -444,5 +445,24 @@
     "notFound": "Dieses Element ist nicht im Inventar",
     "back": "Zurück zum Inventar",
     "telemetryAdmins": "Admins sehen hier die letzte Meldung, Jetzt testen und Rohdaten."
+  },
+  "more": "Mehr",
+  "groupsAndTags": "Gruppen und Tags",
+  "anyGroup": "Jede Gruppe",
+  "anyTag": "Jeder Tag",
+  "allCount": "Alle {{count}}",
+  "manualOnly": "Von Hand erfasst",
+  "syncFailedShort": "Sync von {{source}} fehlgeschlagen",
+  "syncedAgo": "{{source}} synchronisiert {{when}}",
+  "neverSyncedShort": "{{source}} noch nicht synchronisiert",
+  "ports": "Ports aktiv",
+  "rowMenu": "Mehr zu {{name}}",
+  "open": "Öffnen",
+  "state": {
+    "label": "Status",
+    "any": "Jeder Status",
+    "online": "Online",
+    "offline": "Offline",
+    "unknown": "Unbekannt"
   }
 }

@@ -42,7 +42,7 @@ from ..telemetry import storage, targets, telegraf
 
 bp = Blueprint('telemetry', __name__)
 MAX_UNZIPPED = 32 * 1024 * 1024
-METRICS = set(storage.PORT_METRICS) | set(storage.DEVICE_METRICS)
+METRICS = set(storage.PORT_METRICS) | set(storage.DEVICE_METRICS) | set(storage.WIFI_METRICS)
 
 
 def _given_token():

@@ -2,7 +2,7 @@
   "menu": "Crew notice",
   "title": "Crew notice",
   "editTitle": "Crew notice",
-  "intro": "One short message for the whole crew. It shows at the top of every crew page and on the floor plan, and replaces the notice before it.",
+  "intro": "One short message for the whole crew. It shows as a badge in the top bar of every crew page and on the floor plan, and replaces the notice before it.",
   "text": "Message",
   "left_one": "{{count}} character left",
   "left_other": "{{count}} characters left",
@@ -17,5 +17,6 @@
   "takeDown": "Take down",
   "by": "{{name}}, {{time}}",
   "until": "until {{time}}",
-  "hide": "Hide this notice"
+  "markRead": "Mark as read",
+  "change": "Change"
 }

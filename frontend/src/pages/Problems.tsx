@@ -16,6 +16,7 @@ import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
 import { ErrorBanner } from '@/components/ui'
 import { ago, clock } from '@/lib/time'
+import { StateBadge } from '@/components/State'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
 
@@ -34,7 +35,7 @@ function Row({ p, canMute, busy, onMute, onReport }: {
       <Group justify="space-between" align="flex-start" gap="xs">
         <Stack gap={2} style={{ minWidth: 0, flex: '1 1 240px' }}>
           <Group gap="xs">
-            <Badge variant="light" color={p.level === 'down' ? 'down' : 'warn'} tt="none">{t(`problems.kind.${p.kind}`)}</Badge>
+            <StateBadge size="md" state={p.level === 'down' ? 'down' : 'warn'} label={t(`problems.kind.${p.kind}`)} />
             <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{p.title}</Text>
           </Group>
           {p.where && <Text size="sm" c="dimmed">{p.where}</Text>}
@@ -67,7 +68,16 @@ function Row({ p, canMute, busy, onMute, onReport }: {
   )
 }
 
-type MuteTarget = { id: string; name: string; kind: 'switch' | 'health' }
+/** The ready-made dashboard with the Wi-Fi view (floorbit/dashboards.py). */
+const WIFI_LINK = '/dashboards/view/network'
+
+type MuteTarget = { id: string; name: string; kind: 'switch' | 'health' | 'wifi' }
+
+/** What /api/alerts/mutes takes for each kind: a service and an access point by name, a switch by its id. */
+const muteBody = (v: MuteTarget) => v.kind === 'health' ? { service_id: v.id.replace(/^health:/, '') }
+  : v.kind === 'wifi' ? { ap: v.name } : { switch_id: v.id }
+const MUTE_KINDS = ['health', 'wifi'] as const
+const muteKind = (kind: string): MuteTarget['kind'] => (MUTE_KINDS as readonly string[]).includes(kind) ? kind as MuteTarget['kind'] : 'switch'
 
 function MuteDialog({ target, busy, error, onClose, onSave }: {
   target: MuteTarget | null
@@ -79,7 +89,7 @@ function MuteDialog({ target, busy, error, onClose, onSave }: {
   const { t } = useTranslation()
   return (
     <Modal opened={!!target} onClose={onClose} title={t('problems.muteTitle', { name: target?.name })} closeButtonProps={{ 'aria-label': t('problems.cancel') }}>
-      <MuteForm text={t(target?.kind === 'health' ? 'problems.muteTextService' : 'problems.muteText')}
+      <MuteForm text={t(target?.kind === 'health' ? 'problems.muteTextService' : target?.kind === 'wifi' ? 'problems.muteTextAp' : 'problems.muteText')}
         busy={busy} error={error} onClose={onClose} onSave={onSave} />
     </Modal>
   )
@@ -136,9 +146,8 @@ export default function Problems() {
   useLiveEvent('incident.changed', refresh)
 
   const mute = useMutation({
-    // A service on the health wall is muted by its own id (issue #256), a switch by its id.
     mutationFn: (v: MuteTarget & { minutes: number; reason: string }) =>
-      post('/api/alerts/mutes', { [v.kind === 'health' ? 'service_id' : 'switch_id']: v.kind === 'health' ? v.id.replace(/^health:/, '') : v.id, minutes: v.minutes, reason: v.reason }),
+      post('/api/alerts/mutes', { ...muteBody(v), minutes: v.minutes, reason: v.reason }),
     onSuccess: () => { setTarget(null); refresh() },
     onError: (e) => setDialogError(e.message),
   })
@@ -204,7 +213,7 @@ export default function Problems() {
               {visible.map((p) => (
                 <Row key={p.id} p={p} canMute={data.can_mute} busy={mute.isPending || report.isPending}
                   onReport={data.can_report ? () => report.mutate(p) : undefined}
-                  onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: p.kind === 'health' ? 'health' : 'switch' }) }} />
+                  onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: muteKind(p.kind) }) }} />
               ))}
             </Stack>
           )}
@@ -223,7 +232,7 @@ export default function Problems() {
               <Stack gap={4}>
                 {data.mutes.map((m) => (
                   <Group key={m.switch_id} gap="sm">
-                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/health' : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/health' : m.kind === 'wifi' ? WIFI_LINK : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
                     {m.until - now < ENDING_SOON && (
                       <Badge color="warn" variant="light" tt="none">
                         {t('problems.endsIn', { count: Math.max(1, Math.ceil((m.until - now) / 60)) })}

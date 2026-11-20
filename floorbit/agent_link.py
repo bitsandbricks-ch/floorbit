@@ -55,7 +55,7 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # terminal (floorbit/switch_link.py).
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
-           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours',
+           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours', 'device_facts',
            'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload',
            'switch_call', 'shell_open', 'shell_io', 'shell_close', 'plugin_test')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}\Z')
@@ -211,7 +211,7 @@ REPORT_FRESH = 180        # seconds: an older report says more about the past th
 
 
 # The first argument is a switch.
-HOST_METHODS = ('device_details', 'port_stats', 'device_ports', 'port_clients', 'neighbours')
+HOST_METHODS = ('device_details', 'port_stats', 'device_ports', 'port_clients', 'neighbours', 'device_facts')
 
 
 def _hall_of(by_name, hostname):
@@ -657,6 +657,7 @@ class Tunnel:
         self._reports = {}        # agent id -> the agent's own numbers, as it last sent them
         self._links = {}          # agent id -> WebSocket links open to this pod
         self._asking = {}         # agent id -> None while in take(), else when it last left it
+        self._era = 0             # bumped by reset(): a take() from before it gives up
         self.last_seen = None
 
     def reset(self):
@@ -670,6 +671,9 @@ class Tunnel:
             self._relayed.clear()
             self._reports.clear()
             self.last_seen = None
+            # A long poll still waiting from before must not take calls made after the reset.
+            self._era += 1
+            self._cond.notify_all()
 
     def relayed(self, agent, kind, count=0, now=None):
         """An agent sent syslog or a flow summary: the Local agents page shows what each one relays."""
@@ -866,13 +870,16 @@ class Tunnel:
             return call.targets is None or agent in call.targets
 
         with self._cond:
+            era = self._era
             self._asking[agent] = None
             try:
-                while not any(mine(c) for c in self._pending):
+                while self._era == era and not any(mine(c) for c in self._pending):
                     left = deadline - time.monotonic()
                     if left <= 0:
                         return []
                     self._cond.wait(left)
+                if self._era != era:
+                    return []
                 out = []
                 for call in list(self._pending):
                     if len(out) >= limit:
@@ -883,7 +890,8 @@ class Tunnel:
                         out.append({'id': call.id, 'method': call.method, 'args': call.args})
                 return out
             finally:
-                self._asking[agent] = time.monotonic()
+                if self._era == era:
+                    self._asking[agent] = time.monotonic()
 
     def _nobody_asking(self, targets, now):
         """The agents (of ``targets``) that should have taken a call but didn't ask lately; empty
@@ -1099,5 +1107,13 @@ def monitoring_source():
 
         def neighbours(self, hostname):
             return self._call('neighbours', hostname) or []
+
+        def device_facts(self, hostname):
+            # An agent older than this method says it doesn't know it: discovery then has no facts.
+            try:
+                return self._call('device_facts', hostname) or {}
+            except PluginError as exc:
+                print(f'[agent] device_facts failed: {exc}')
+                return {}
 
     return AgentMonitoring()
