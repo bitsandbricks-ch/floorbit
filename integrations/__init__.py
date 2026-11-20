@@ -262,6 +262,28 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         body['verifier'] = {'last_error': verifier.last_error}
         return jsonify(body)
 
+    @bp.route('/api/checkins/lookup-window', methods=['GET', 'POST', 'DELETE'])
+    def checkin_lookup_window():
+        """When check-ins may ask the switches (floorbit/checkin_lookup.py): GET says, POST opens
+        it now for ``hours`` (default the event's), DELETE closes what was opened by hand."""
+        denied = checkin_disabled() or admin_denied()
+        if denied:
+            return denied
+        from flask import g
+
+        from floorbit import checkin_lookup, segments
+        who = g.get('audit_user') or '?'
+        try:
+            if request.method == 'POST':
+                body = request.get_json(silent=True) or {}
+                checkin_lookup.open_window(who, body.get('hours'))
+            elif request.method == 'DELETE':
+                checkin_lookup.close_window(who)
+        except checkin_lookup.WindowError as exc:
+            return jsonify({'error': str(exc)}), 400
+        return jsonify({**checkin_lookup.window(), 'segments_on': sum(1 for x in segments.all_segments()
+                                                                      if x.get('lookups'))})
+
     @bp.route('/api/checkins/<seat>/retry', methods=['POST'])
     def checkin_retry(seat):
         denied = checkin_disabled() or admin_denied()

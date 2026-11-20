@@ -97,6 +97,7 @@ nav:
       - LAN cache: lancache.md
       - Syslog: syslog.md
       - Device telemetry: telemetry.md
+      - Network segments: segments.md
       - IP and MAC history: endpoints.md
       - The right-click menu: context-menu.md
       - Kiosk and big screens: kiosk.md
