@@ -1994,6 +1994,9 @@ export interface CheckinInfo {
   address?: string | null
   /** True: not through the local agent's front door, so the seat's port can't be learned from here. */
   outside?: boolean
+  /** Outside on a PC: the agent's front door that knows this PC (url), and whether Floorbit is sure
+   *  this browser is in the hall, so the page goes there by itself (sure). */
+  hall?: { url: string; sure: boolean } | null
 }
 
 export type WiredState = 'pending' | 'verified' | 'not_wired' | 'unverified'
