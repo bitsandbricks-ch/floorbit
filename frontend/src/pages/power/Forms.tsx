@@ -1,15 +1,15 @@
-import { Alert, Button, Group, Input, Modal, MultiSelect, NumberInput, SegmentedControl, Select, Stack, TextInput } from '@mantine/core'
-import { useState } from 'react'
+import { Alert, Button, Group, Input, MultiSelect, NumberInput, SegmentedControl, Select, Stack, TextInput } from '@mantine/core'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Circuit, CircuitFeed, Phase, PowerBoard, PowerOverview } from '@/api/types'
 
 const PHASES: Phase[] = ['L1', 'L2', 'L3', '3P']
 
-function Buttons({ busy, onClose }: { busy: boolean; onClose: () => void }) {
+function Buttons({ busy, extra }: { busy: boolean; extra?: ReactNode }) {
   const { t } = useTranslation()
   return (
-    <Group justify="flex-end">
-      <Button variant="default" onClick={onClose}>{t('power.cancel')}</Button>
+    <Group justify="space-between">
+      {extra ?? <span />}
       <Button type="submit" loading={busy}>{t('power.save')}</Button>
     </Group>
   )
@@ -17,29 +17,13 @@ function Buttons({ busy, onClose }: { busy: boolean; onClose: () => void }) {
 
 const num = (v: string | number) => (v === '' ? null : Number(v))
 
-/** Add or change a distribution board. */
-export function BoardDialog({ board, open, busy, error, onClose, onSave }: {
-  board: PowerBoard | null
-  open: boolean
-  busy: boolean
-  error: string | null
-  onClose: () => void
-  onSave: (body: Partial<PowerBoard>) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <Modal opened={open} onClose={onClose} title={board ? t('power.editBoard', { name: board.name }) : t('power.newBoard')}>
-      <BoardForm board={board} busy={busy} error={error} onClose={onClose} onSave={onSave} />
-    </Modal>
-  )
-}
-
-// The forms mount with the dialog, so their fields start from what is being edited.
-function BoardForm({ board, busy, error, onClose, onSave }: {
+/** A distribution board's name, where it is and where it sits on the floor plan. The page that
+ *  shows it mounts the form again (a key) when the board changes, so the fields start from it. */
+export function BoardForm({ board, busy, error, extra, onSave }: {
   board: PowerBoard | null
   busy: boolean
   error: string | null
-  onClose: () => void
+  extra?: ReactNode
   onSave: (body: Partial<PowerBoard>) => void
 }) {
   const { t } = useTranslation()
@@ -57,7 +41,7 @@ function BoardForm({ board, busy, error, onClose, onSave }: {
           <NumberInput label={t('power.y')} min={0} max={100} value={y} onChange={setY} />
         </Group>
         {error && <Alert color="down" role="alert">{error}</Alert>}
-        <Buttons busy={busy} onClose={onClose} />
+        <Buttons busy={busy} extra={extra} />
       </Stack>
     </form>
   )
@@ -78,47 +62,30 @@ function toFeeds(values: string[]): CircuitFeed[] {
   return [...out].map(([block, rows]) => ({ block, rows: rows ?? [] }))
 }
 
-/** Add or change a circuit: its board, phase, fuse, meter and what it feeds. */
-export function CircuitDialog({ circuit, overview, switches, open, busy, error, onClose, onSave }: {
+/** A circuit: its board, phase, fuse, meter and what it feeds. */
+export function CircuitForm({ circuit, overview, switches, busy, error, extra, onSave, startBoard }: {
   circuit: Circuit | null
-  overview: PowerOverview
-  switches: { id: string; name: string }[]
-  open: boolean
-  busy: boolean
-  error: string | null
-  onClose: () => void
-  onSave: (body: Record<string, unknown>) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <Modal opened={open} onClose={onClose} size="lg" title={circuit ? t('power.editCircuit', { name: circuit.name }) : t('power.newCircuit')}>
-      <CircuitForm circuit={circuit} overview={overview} switches={switches} busy={busy} error={error} onClose={onClose} onSave={onSave} />
-    </Modal>
-  )
-}
-
-function CircuitForm({ circuit, overview, switches, busy, error, onClose, onSave }: {
-  circuit: Circuit | null
+  startBoard?: string | null
   overview: PowerOverview
   switches: { id: string; name: string }[]
   busy: boolean
   error: string | null
-  onClose: () => void
+  extra?: ReactNode
   onSave: (body: Record<string, unknown>) => void
 }) {
   const { t } = useTranslation()
   const [name, setName] = useState(circuit?.name ?? '')
-  const [board, setBoard] = useState<string | null>(circuit?.board ?? overview.boards[0]?.id ?? null)
+  const [board, setBoard] = useState<string | null>(circuit?.board ?? startBoard ?? overview.boards[0]?.id ?? null)
   const [phase, setPhase] = useState<Phase>(circuit?.phase ?? 'L1')
   const [rating, setRating] = useState<string | number>(circuit?.rating_a ?? 16)
   const [meter, setMeter] = useState(circuit?.meter ?? '')
   const [feeds, setFeeds] = useState<string[]>(toValues(circuit?.blocks ?? []))
   const [fed, setFed] = useState<string[]>(circuit?.switches ?? [])
   const blockOptions = overview.blocks.map((b) => ({
-    group: b.name || '?',
+    group: b.label || b.name,
     items: [
-      { value: b.id, label: t('power.allRows', { name: b.name }) },
-      ...Array.from({ length: b.rows }, (_, i) => ({ value: `${b.id}:${i + 1}`, label: t('power.row', { name: b.name, row: i + 1 }) })),
+      { value: b.id, label: t('power.allRows', { name: b.label || b.name }) },
+      ...Array.from({ length: b.rows }, (_, i) => ({ value: `${b.id}:${i + 1}`, label: t('power.row', { name: b.label || b.name, row: b.row_names?.[i] ?? i + 1 }) })),
     ],
   }))
   return (
@@ -141,32 +108,17 @@ function CircuitForm({ circuit, overview, switches, busy, error, onClose, onSave
         <MultiSelect label={t('power.rows')} data={blockOptions} value={feeds} onChange={setFeeds} searchable clearable />
         <MultiSelect label={t('power.switches')} data={switches.map((s) => ({ value: s.id, label: s.name }))} value={fed} onChange={setFed} searchable clearable />
         {error && <Alert color="down" role="alert">{error}</Alert>}
-        <Buttons busy={busy} onClose={onClose} />
+        <Buttons busy={busy} extra={extra} />
       </Stack>
     </form>
   )
 }
 
 /** Type in what the clamp meter or the board's display says. */
-export function ReadingDialog({ circuit, busy, error, onClose, onSave }: {
-  circuit: Circuit | null
+export function ReadingForm({ busy, error, extra, onSave }: {
   busy: boolean
   error: string | null
-  onClose: () => void
-  onSave: (body: { amps?: number; watts?: number }) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <Modal opened={!!circuit} onClose={onClose} title={t('power.readingTitle', { name: circuit?.name })}>
-      <ReadingForm busy={busy} error={error} onClose={onClose} onSave={onSave} />
-    </Modal>
-  )
-}
-
-function ReadingForm({ busy, error, onClose, onSave }: {
-  busy: boolean
-  error: string | null
-  onClose: () => void
+  extra?: ReactNode
   onSave: (body: { amps?: number; watts?: number }) => void
 }) {
   const { t } = useTranslation()
@@ -180,7 +132,7 @@ function ReadingForm({ busy, error, onClose, onSave }: {
         <NumberInput label={t('power.value')} min={0} decimalScale={2} value={value} onChange={setValue} required data-autofocus
           rightSection={unit === 'amps' ? 'A' : 'W'} />
         {error && <Alert color="down" role="alert">{error}</Alert>}
-        <Buttons busy={busy} onClose={onClose} />
+        <Buttons busy={busy} extra={extra} />
       </Stack>
     </form>
   )

@@ -299,6 +299,20 @@ def run(only=None, device_ids=None):
             else:
                 report['unchanged'] += 1
         save_data(data)
+    # What the device is (VLANs, networks, optics, ...): the row's own facts, and what the monitoring
+    # sources know beyond them, so LibreNMS alone fills these too (issue #966). Asked outside the
+    # lock: on a hosted Floorbit it is a call through the agent.
+    for dev, row in pairs:
+        if not any(does(a['id'], dev) for a in todo if a['keys']):
+            continue
+        own = row.get('facts') if isinstance(row.get('facts'), dict) else {}
+        try:
+            more = mon.device_facts(dev['name'])
+        except Exception as exc:  # noqa: BLE001 - one device's facts don't stop the run
+            print(f"[discovery] facts of {dev['name']} failed: {exc}")
+            more = {}
+        if isinstance(more, dict) and any(k not in own for k in more):
+            found[dev['id']] = (found[dev['id']][0], {**row, 'facts': {**more, **own}})
     polled = {dev['id'] for dev, row in pairs if does('interfaces', dev) and row.get('status', 1)}
     ports_ok = False
     if polled:

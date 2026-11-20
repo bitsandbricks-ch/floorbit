@@ -444,7 +444,9 @@ def dashboard():
               'plugin_name': registry.text(t['spec'], t['plugin_name'], lang)}
              for t in tiles]
     # Floorbit's own tiles first: they work with no plugin set up (issue #302).
-    return jsonify({'tiles': core.tiles(_lang(), _may_see_board(user)) + tiles})
+    from .. import features
+    off = features.off()
+    return jsonify({'tiles': core.tiles(_lang(), _may_see_board(user), lambda f: f not in off) + tiles})
 
 
 def _lang():
@@ -507,11 +509,40 @@ def _traffic_tile(user):
     return core.traffic_widget(_lang(), current_app.extensions['floorbit_stats'].snapshot())
 
 
+def _snapshot():
+    return current_app.extensions['floorbit_stats'].snapshot()
+
+
+def _flows(user):
+    """The flow summary as /api/flows gives it to this account, anomalies in its language."""
+    from .. import i18n
+    from .flows import _can, current, public
+    snap = current()
+    if not snap:
+        return None
+    out = public(snap, _can('seats.view'))
+    lang = _lang()
+    if lang != 'en':
+        found = out.get('anomalies') or []
+        out = {**out, 'anomalies': [{**a, 'title': i18n.log_text(a.get('title'), lang),
+                                     'detail': i18n.log_text(a.get('detail'), lang)} for a in found]}
+    return out
+
+
 # Floorbit's own tiles (dashboard_core.TILES): one builder each, None when this account may not see it.
 CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switches': _switches_tile,
               'seats': _seats_tile, 'down': _down_tile, 'switch_states': _switch_states_tile,
               'open_incidents': _open_incidents_tile, 'traffic': _traffic_tile,
-              'seats_by_block': _seats_by_block_tile}
+              'seats_by_block': _seats_by_block_tile,
+              'bandwidth': lambda user: core.bandwidth_widget(_lang(), _snapshot()),
+              'peak': lambda user: core.peak_widget(_lang(), _snapshot()),
+              'ports': lambda user: core.ports_widget(_lang(), _snapshot()),
+              'uplinks': lambda user: core.uplinks_widget(_lang(), _snapshot()),
+              'top_ports': lambda user: core.top_ports_widget(_lang(), _snapshot()),
+              'traffic_mix': lambda user: core.traffic_mix_widget(_lang(), _flows(user)),
+              'flow_services': lambda user: core.flow_services_widget(_lang(), _flows(user)),
+              'traffic_areas': lambda user: core.traffic_areas_widget(_lang(), _flows(user)),
+              'anomalies': lambda user: core.anomalies_widget(_lang(), _flows(user))}
 
 
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])
@@ -519,8 +550,10 @@ def core_widget(tile):
     refused = _allowed('floorplan.view')
     if refused:
         return refused
+    from .. import features
     build = CORE_TILES.get(tile)
-    widget = build(_user()) if build else None
+    feature = core.TILES.get(tile, {}).get('feature')
+    widget = build(_user()) if build and not (feature and not features.on(feature)) else None
     if widget is None:
         return _error('No such widget', 404)
     spec = core.TILES[tile]

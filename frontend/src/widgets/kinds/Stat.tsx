@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { Widget } from '@/api/types'
 import type { Level } from '../level'
+import { useNumberStyle } from './display'
 import { linesOf, stateCounts, statOf } from './shape'
 import { Graph } from './Graph'
 
@@ -9,7 +10,8 @@ const toneClass = (tone: string) => (tone ? ` fb-tone-${tone}` : '')
 /** One number, as big as the box allows. Medium adds how it is made up; large adds its history. */
 export function StatKind({ widget, level, box }: { widget: Widget; level: Level; box: { w: number; h: number } }) {
   const { t, i18n } = useTranslation()
-  const s = statOf(widget, i18n.language)
+  const style = useNumberStyle()
+  const s = statOf(widget, i18n.language, style)
   const counts = stateCounts(widget)
   const { lines } = linesOf(widget)
   const graphH = level === 'l' && lines.length ? Math.round(box.h * 0.45) : 0

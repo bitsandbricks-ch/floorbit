@@ -35,7 +35,7 @@ describe('Problems', () => {
     const muted = screen.getByRole('article', { name: 'sw-d-01 is offline' })
     expect(within(muted).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
     expect(within(muted).getByText(/Recabling/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Muted switches and services' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Muted alerts' })).toBeInTheDocument()
     // The muted switch opens on the floor plan, in its hall (issue #212).
     expect(screen.getByRole('link', { name: 'sw-d-01' })).toHaveAttribute('href', '/plan?switch=sw-d-01')
   })
@@ -138,6 +138,27 @@ describe('Problems', () => {
       .toEqual({ service_id: 'demo:game-1', minutes: 60, reason: '' }))
   })
 
+  it('mutes a Wi-Fi access point by its name', async () => {
+    const ap = { id: 'wifi:down:ap-stage', kind: 'wifi' as const, level: 'down' as const, title: 'ap-stage is down', where: 'wlc-01',
+      since: now, link: '/dashboards/view/network', mute_id: 'wifi:ap-stage', name: 'ap-stage', muted: null }
+    const fake = fakeFetch({
+      'GET /api/auth/me': me,
+      'GET /api/problems': list({ problems: [ap], mutes: [{ switch_id: 'wifi:ap-crew', kind: 'wifi', name: 'ap-crew', until: now + 600, at: now, by: 'kim', reason: '' }] }),
+      'POST /api/alerts/mutes': { status: 201, body: {} },
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Problems />)
+    const row = await screen.findByRole('article', { name: 'ap-stage is down' })
+    expect(within(row).getByText('Wi-Fi')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'ap-crew' })).toHaveAttribute('href', '/dashboards/view/network')
+    fireEvent.click(within(row).getByRole('button', { name: 'Mute' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Mute alerts for ap-stage' })
+    expect(within(dialog).getByText(/in the Wi-Fi view/)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Mute' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.path === '/api/alerts/mutes')?.body)
+      .toEqual({ ap: 'ap-stage', minutes: 60, reason: '' }))
+  })
+
   it('says when all is well', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems: [], mutes: [], counts: { down: 0, warn: 0, muted: 0 } }) }).fn)
     renderWithApp(<Problems />)
@@ -158,7 +179,7 @@ describe('Problems', () => {
     expect(lines[1]).toBe('- [Switch] sw-c-02 is offline (sw-c-02, started 5 minutes ago)')
     expect(lines[2]).toBe('- [Power] Circuit B row 2 getting close (86.9 %) (Feeds 12 seats, started now)')
     expect(lines[3]).toMatch(/^- \[Switch\] sw-d-01 is offline \(sw-d-01, started 1 minute ago, Muted until .+ by kim\)$/)
-    expect(text).toContain('Muted switches and services:\n- sw-d-01, Muted until')
+    expect(text).toContain('Muted alerts:\n- sw-d-01, Muted until')
     expect(text).toContain('(Recabling)')
   })
 })

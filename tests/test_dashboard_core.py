@@ -1,5 +1,7 @@
 """Floorbit's own dashboard tiles (issue #302): problems and incidents with no plugin set up."""
 
+import pytest
+
 from floorbit import dashboard_core
 from floorbit.plugins import validate
 from floorbit.plugins.widgets import check_widget
@@ -48,7 +50,7 @@ def test_only_people_who_see_the_board_get_the_incident_tile(app_module, client)
     viewer = _login(app_module, "vic", "viewer")
     tiles = viewer.get("/api/dashboard").get_json()["tiles"]
     assert [t["id"] for t in tiles if t["plugin"] == "floorbit"] == [
-        "problems", "switches", "seats", "down", "switch_states", "traffic", "seats_by_block"]
+        "problems", "switches", "seats", "down", "switch_states", "traffic", "seats_by_block", *STATS_TILES]
     assert viewer.get("/api/dashboard/floorbit/incidents").status_code == 404
     assert viewer.get("/api/dashboard/floorbit/open_incidents").status_code == 404
     assert viewer.get("/api/dashboard/floorbit/problems").status_code == 200
@@ -61,7 +63,7 @@ def test_no_plugin_may_take_the_id():
 def test_switch_and_seat_tiles(client):
     ids = [t["id"] for t in client.get("/api/dashboard").get_json()["tiles"] if t["plugin"] == "floorbit"]
     assert ids == ["problems", "incidents", "switches", "seats", "down", "switch_states", "open_incidents", "traffic",
-                   "seats_by_block"]
+                   "seats_by_block", *STATS_TILES]
     assert dashboard_core.switches_widget("en", {"online": 40, "offline": 2, "unknown": 1}) == {
         "type": "stat", "value": 40, "unit": "of 43 up", "tone": "err", "sub": "2 offline · 1 not known",
         "link": "/problems", "min": 0, "max": 43}
@@ -146,6 +148,72 @@ def test_seats_by_block_say_when_nobody_knows():
     body = dashboard_core.seats_by_block_widget("de", {"A": {"A1"}}, None)
     assert body["items"] == [{"label": "A", "value": "? / 1"}]
     assert body["sub"].startswith("Gerade nicht bekannt")
+
+
+STATS_TILES = ["bandwidth", "peak", "ports", "uplinks", "top_ports", "traffic_mix", "flow_services", "traffic_areas",
+               "anomalies"]
+SNAP = {"now": {"t": 160, "down": 4.8e9, "up": 9.4e9, "online": 93,
+                "ports_up": 138, "ports_down": 598, "ports_errors": 1},
+        "peak": {"bps": 16e9, "at": 100}, "day": {"peak_bps": 15.5e9},
+        "uplinks": [{"switch": "sw-a", "port": "Te1/1", "utilization": 0.5, "bps": 5e9},
+                    {"switch": "sw-b", "port": "Te1/1", "utilization": 0.85, "bps": 8.5e9}],
+        "top": [{"switch": "sw-a", "port": "Gi1/0/3", "seat": "A-3", "nick": "someone", "bps": 9e8},
+                {"switch": "sw-b", "port": "Gi1/0/9", "seat": None, "bps": 2e8}]}
+
+
+def test_the_stats_view_is_split_into_tiles():
+    bw = dashboard_core.bandwidth_widget("en", SNAP)
+    assert (bw["value"], bw["unit"], bw["sub"]) == (14.2e9, "bit/s", "↓ 4.8 Gbit/s · ↑ 9.4 Gbit/s")
+    peak = dashboard_core.peak_widget("en", SNAP, now=100 + 13 * 60)
+    assert peak["value"] == 16e9 and peak["sub"] == "13 min ago · 24 h peak 16 Gbit/s"
+    ports = dashboard_core.ports_widget("de", SNAP)
+    assert (ports["value"], ports["tone"], ports["sub"]) == (138, "warn", "598 offline · 1 mit Fehlern")
+    up = dashboard_core.uplinks_widget("en", SNAP)["items"]
+    assert up[0] == {"label": "sw-b Te1/1", "value": "85 % · 8.5 Gbit/s", "number": 85, "max": 100, "tone": "err"}
+    top = dashboard_core.top_ports_widget("en", SNAP)["items"]
+    # Seat numbers, never nicks: a dashboard may hang where anyone walks past.
+    assert [i["label"] for i in top] == ["Seat A-3", "sw-b Gi1/0/9"] and "someone" not in str(top)
+    for widget in (bw, peak, ports):
+        check_widget(widget, {"id": "x"})
+
+
+def test_stats_tiles_say_when_nothing_was_read():
+    assert dashboard_core.bandwidth_widget("en", {})["sub"] == "No traffic read yet"
+    assert dashboard_core.peak_widget("en", {})["value"] == "\u2013"
+    assert dashboard_core.uplinks_widget("en", {})["items"] == []
+
+
+FLOWS = {"mix_hour": {"gaming": 300, "web": 700}, "services": [{"name": "Steam", "category": "downloads", "seats": 12,
+                                                                 "bytes": 2e11}],
+         "areas": [{"area": "Block A", "bytes": 5e11}],
+         "anomalies": [{"kind": "p2p", "title": "P2P", "detail": "seat D-5", "first_seen": 100},
+                       {"kind": "rogue-dhcp", "title": "Rogue DHCP", "detail": "", "first_seen": 200}]}
+
+
+def test_the_traffic_view_is_split_into_tiles():
+    mix = dashboard_core.traffic_mix_widget("de", FLOWS)
+    assert [(i["label"], i["value"]) for i in mix["items"]] == [("Gaming", "30 % · 300 B"), ("Web", "70 % · 700 B")]
+    assert mix["sub"] == "Letzte Stunde: 1.0 kB"
+    assert dashboard_core.flow_services_widget("en", FLOWS)["items"][0]["value"] == "200 GB · 12 seats"
+    assert dashboard_core.traffic_areas_widget("en", FLOWS)["items"][0]["number"] == 5e11
+    odd = dashboard_core.anomalies_widget("en", FLOWS, now=260)["items"]
+    assert [(i["label"], i["state"]) for i in odd] == [("Rogue DHCP", "down"), ("P2P · seat D-5", "warn")]
+    assert dashboard_core.anomalies_widget("en", {"anomalies": []})["items"][0]["state"] == "up"
+    assert dashboard_core.traffic_mix_widget("en", None)["sub"] == "No flows yet"
+
+
+@pytest.mark.parametrize("tile", STATS_TILES)
+def test_every_stats_tile_answers(client, tile):
+    body = client.get(f"/api/dashboard/floorbit/{tile}").get_json()
+    assert body["type"] in ("stat", "list", "status"), body
+
+
+def test_traffic_tiles_go_with_the_traffic_feature(client, monkeypatch):
+    from floorbit import features
+    monkeypatch.setattr(features, "off", lambda data=None: {"traffic"})
+    ids = [t["id"] for t in client.get("/api/dashboard").get_json()["tiles"]]
+    assert "traffic_mix" not in ids and "bandwidth" in ids
+    assert client.get("/api/dashboard/floorbit/anomalies").status_code == 404
 
 
 def test_the_seats_by_block_tile_answers(client):
