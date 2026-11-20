@@ -1,6 +1,7 @@
 import type { State, Tone, Widget } from '@/api/types'
 import type { Kind, KindPick } from '../level'
 import type { Calc } from './combine'
+import type { NumberStyle, Threshold } from './display'
 
 /** What a widget's data can be drawn as. The first is its own kind. A stat counts anything; only
  *  time data draws as a graph; a gauge needs a scale and bars or a pie need numbers. */
@@ -24,14 +25,23 @@ export function resolveKind(w: Widget, pick: KindPick = 'auto'): Kind {
 
 const SI = ['', 'k', 'M', 'G', 'T']
 
-/** A number for a tile: bits and bytes scale (5.2 Gbit/s), counts get thousands separators. */
-export function formatValue(v: number, unit = '', lang?: string): { value: string; unit: string } {
+/** A number for a tile: bits and bytes scale (5.2 Gbit/s), counts get thousands separators.
+ *  ``style`` fixes the decimals or shortens big numbers (1.2k), as a pane sets it (issue #960). */
+export function formatValue(v: number, unit = '', lang?: string, style: NumberStyle = {}): { value: string; unit: string } {
+  const digits = (auto: number) => (style.decimals != null
+    ? { minimumFractionDigits: style.decimals, maximumFractionDigits: style.decimals }
+    : { maximumFractionDigits: auto })
   if (/^(bit|B)(\/s)?$/.test(unit) && Math.abs(v) >= 1000) {
     let i = 0
     while (Math.abs(v) >= 1000 && i < SI.length - 1) { v /= 1000; i++ }
-    return { value: v.toLocaleString(lang, { maximumFractionDigits: v < 10 ? 1 : 0 }), unit: `${SI[i]}${unit}` }
+    return { value: v.toLocaleString(lang, digits(v < 10 ? 1 : 0)), unit: `${SI[i]}${unit}` }
   }
-  return { value: v.toLocaleString(lang, { maximumFractionDigits: Math.abs(v) < 10 ? 2 : 1 }), unit }
+  if (style.short && Math.abs(v) >= 1000) {
+    let i = 0
+    while (Math.abs(v) >= 1000 && i < SI.length - 1) { v /= 1000; i++ }
+    return { value: `${v.toLocaleString(lang, digits(Math.abs(v) < 10 ? 1 : 0))}${SI[i]}`, unit }
+  }
+  return { value: v.toLocaleString(lang, digits(Math.abs(v) < 10 ? 2 : 1)), unit }
 }
 
 const BAD: Record<State, number> = { down: 0, warn: 1, unknown: 2, up: 3 }
@@ -39,10 +49,11 @@ const BAD: Record<State, number> = { down: 0, warn: 1, unknown: 2, up: 3 }
 export interface StatData { value: string; unit: string; tone: Tone; of?: number }
 
 /** One number for any shape: a stat as is, how many are up, how many rows, the latest reading. */
-export function statOf(w: Widget, lang?: string): StatData {
+export function statOf(w: Widget, lang?: string, style: NumberStyle = {}): StatData {
   switch (w.type) {
     case 'stat':
-      return typeof w.value === 'number' ? { ...formatValue(w.value, w.unit, lang), tone: w.tone } : { value: w.value, unit: w.unit, tone: w.tone }
+      if (w.text != null) return { value: w.text, unit: '', tone: w.tone }
+      return typeof w.value === 'number' ? { ...formatValue(w.value, w.unit, lang, style), tone: w.tone } : { value: w.value, unit: w.unit, tone: w.tone }
     case 'status': {
       const up = w.items.filter((i) => i.state === 'up').length
       const tone: Tone = w.items.some((i) => i.state === 'down') ? 'err' : w.items.some((i) => i.state === 'warn') ? 'warn' : w.items.length ? 'ok' : ''
@@ -52,12 +63,12 @@ export function statOf(w: Widget, lang?: string): StatData {
     case 'table': return { value: w.rows.length.toLocaleString(lang), unit: '', tone: '' }
     case 'sparkline': {
       const v = w.value ?? w.points[w.points.length - 1]
-      return v == null ? { value: '–', unit: w.unit, tone: '' } : { ...formatValue(v, w.unit, lang), tone: '' }
+      return v == null ? { value: '–', unit: w.unit, tone: '' } : { ...formatValue(v, w.unit, lang, style), tone: '' }
     }
     case 'series': {
       const pts = w.series[0]?.points ?? []
       const v = pts[pts.length - 1]?.[1]
-      return v == null ? { value: '–', unit: w.unit, tone: '' } : { ...formatValue(v, w.unit, lang), tone: '' }
+      return v == null ? { value: '–', unit: w.unit, tone: '' } : { ...formatValue(v, w.unit, lang, style), tone: '' }
     }
   }
 }
@@ -118,14 +129,15 @@ export type Trend = 'none' | 'linear' | 'average'
 export const TRENDS: Trend[] = ['none', 'linear', 'average']
 /** ``legend``: the calculations each line's legend entry shows, instead of the latest value (and
  *  max and average at large). */
-export interface Look { stack?: Stack; style?: LineStyle; trend?: Trend; legend?: Calc[] }
+export interface Look { stack?: Stack; style?: LineStyle; trend?: Trend; legend?: Calc[]; thresholds?: Threshold[]; number?: NumberStyle }
 
 /** Which look options mean something for this data drawn as this kind: stacking needs two or
  *  more series (or number columns), the line style needs a graph, a trend needs time. */
-export function looksFor(w: Widget, kind: Kind): (keyof Look)[] {
+export type LookKey = 'stack' | 'style' | 'trend' | 'legend'
+export function looksFor(w: Widget, kind: Kind): LookKey[] {
   const timed = w.type === 'series' || w.type === 'sparkline'
   const many = w.type === 'series' ? w.series.length > 1 : numberColumns(w).length > 1
-  const out: (keyof Look)[] = []
+  const out: LookKey[] = []
   if (many && ['graph', 'column', 'bar'].includes(kind)) out.push('stack')
   if (kind === 'graph') out.push('style')
   if (timed && (kind === 'graph' || kind === 'column')) out.push('trend')

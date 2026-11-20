@@ -1,6 +1,7 @@
 """Cables and patching (issue #97). The rules live in floorbit/cables.py.
 
-- ``GET /cables``: the page (React); ``/cables?cable=<id>`` opens one cable (what its labels' QR links to).
+- ``GET /cables``: the page (React); ``/cables/<id>`` is one cable's page (what its labels' QR links to),
+  ``/cables/new`` adds one.
 - ``GET /api/cables?q=&seat=``: the cables, and whether a plugin can import them.
 - ``POST /api/cables``, ``PATCH /api/cables/<id>``, ``DELETE /api/cables/<id>``: the crew's own cables.
 - ``POST /api/cables/import``: read the cables from NetBox again (replaces the last import).
@@ -10,7 +11,8 @@
 - ``GET /cables/walk``, ``GET /api/cables/walk?switch=&since=``: walking the row; the ports that
   came up since the walk began (walk.py).
 - ``POST /api/cables/assign``: ``{"seat", "switch", "port", "swap"}``: the seat is on that port.
-- ``POST /api/cables/block``: patch a whole seat block to a switch (issue #473). With ``dry_run``
+- ``POST /api/cables/block``: patch hall rows to a switch, in the order picked (``rows``: ids from
+  ``/api/seat-rows``; issue #473, #1057). With ``dry_run``
   it only says which seat gets which port and what is in the way; ``replace`` moves the crew's
   cables that are in the way.
 - ``GET /api/cables/labels.pdf?ids=&q=``: two labels per cable to print. ``GET /api/cables.csv``.
@@ -59,6 +61,11 @@ def _picked():
 @bp.route('/cables')
 def cables_page():
     return spa.render('Cables')
+
+
+@bp.route('/cables/<cable_id>')
+def cable_page(cable_id):
+    return spa.render('Cable')
 
 
 @bp.route('/api/cables', methods=['GET'])
@@ -120,7 +127,7 @@ def import_cables():
 def check_cables():
     watch = current_app.extensions.get('floorbit_attention')
     if watch is None or not watch.last_poll:
-        return jsonify({'last_poll': None, 'blocks': [], 'missing': {'count': 0, 'rows': []},
+        return jsonify({'last_poll': None, 'rows': [], 'missing': {'count': 0, 'rows': []},
                         'down': {'count': 0, 'rows': []}, 'unplanned': {'count': 0, 'rows': []},
                         'conflicts': {'count': 0, 'rows': []}, 'unread': []})
     return jsonify({'last_poll': watch.last_poll, **patch_check.check(watch.port_reads, watch.read_switches)})
@@ -212,7 +219,7 @@ def patch_block():
         return _error(exc)
     made = plan['cables']
     if made:
-        audit.record('cables', f"Patched block {plan['block'] or '?'}", g.get('audit_user'),
+        audit.record('cables', f"Patched rows {', '.join(plan['rows'])}", g.get('audit_user'),
                      f"{len(made)} seats to {made[0]['switch']} {made[0]['port']}-{made[-1]['port']}"
                      + (f', replaced {removed} cables' if removed else ''))
         events.publish('cables.changed', {})

@@ -108,6 +108,8 @@ class AttentionWatch:
             return []
         data = load_data()
         names = _seat_names(data)
+        from .plugins.helpers import uplink_pattern
+        uplink = uplink_pattern()       # the admin's uplink and trunk ports: never "up with no cable"
         checked_in = set(checkin.load_all()) if config.get_bool('CHECKIN_ENABLED', False) else None
         flaps = config.get_int('ATTENTION_FLAPS', 3, minimum=2)
         error_step = config.get_int('ATTENTION_ERRORS', 10, minimum=1)
@@ -131,7 +133,8 @@ class AttentionWatch:
                     continue
                 port_reads[(str(dev['name']).lower(), canonical_port(name))] = {
                     'switch': dev['name'], 'port': name, 'state': port.get('state'),
-                    'described_seat': seat_of(port.get('description'), names)}
+                    'described_seat': seat_of(port.get('description'), names),
+                    'uplink': bool(uplink.search(f"{name} {port.get('description') or ''}"))}
                 seat = (cabled.get((str(dev['name']).lower(), canonical_port(name)))
                         or seat_of(port.get('description'), names))
                 reads.append((dev, port, seat))
