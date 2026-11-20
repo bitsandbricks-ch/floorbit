@@ -113,5 +113,22 @@
   "showSilent": "Never heard",
   "edit": "Set up and test",
   "open": "Open",
-  "noMatch": "No device matches."
+  "tableLabel": "Telemetry devices",
+  "noMatch": "No device matches.",
+  "state": {
+    "col": "State",
+    "table": "Devices and their state",
+    "all": "All ({{count}})",
+    "look": "Needs a look ({{count}})",
+    "allFine": "Every device sends. Nothing needs a look.",
+    "silent": "Sends nothing",
+    "never": "Never heard",
+    "partial": "Partly",
+    "unknown": "Unknown",
+    "waiting": "Waits for traps",
+    "standby": "Other agent collects",
+    "up": "Sends",
+    "pinned": "Given to this agent",
+    "pushed": "Sends by itself"
+  }
 }
