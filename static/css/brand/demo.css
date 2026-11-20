@@ -5,7 +5,8 @@ body::after {
   position: fixed;
   /* Bottom right: the attribution sits in the middle and the account at the left. */
   right: 16px;
-  bottom: 12px;
+  /* Above the crew pages' pinned status line (frontend app.css), where there is one. */
+  bottom: calc(var(--fb-status-h, 0px) + 12px);
   z-index: 10000;
   padding: 4px 12px;
   border-radius: 999px;

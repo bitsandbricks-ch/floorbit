@@ -45,6 +45,8 @@ class ClientHttp:
 
 
 def fake_execute(method, args):
+    if method == 'configured':     # an agent with LibreNMS set up
+        return True
     if method == 'devices':
         return [{'hostname': 'sw-a-01', 'status': 1}]
     if method == 'device_details':
@@ -387,6 +389,8 @@ def test_calls_go_to_the_agent_for_the_hall(client, app_module):
 
     def site(name, switch):
         def execute(method, args):
+            if method == 'configured':
+                return True
             if method == 'devices':
                 return [{'hostname': switch, 'status': 1}]
             if method == 'device_details':
@@ -429,6 +433,8 @@ def test_two_agents_for_the_same_halls_answer_from_the_primary(client, app_modul
 
     def site(primary):
         def execute(method, args):
+            if method == 'configured':
+                return True
             if method == 'devices':
                 return [{'hostname': 'sw-a-01', 'status': 1}] if primary else []
             if method == 'device_ports':

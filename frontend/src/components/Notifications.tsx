@@ -9,6 +9,7 @@ import { ago } from '@/lib/time'
 import { inApp } from '@/nav/sections'
 import { NotifySettings } from './NotifySettings'
 import { SidePanel } from './SidePanel'
+import { StateBit } from './State'
 
 /** The bell's drawer: what needs a look right now, newest first, each leading to its page. */
 export function Notifications({ opened, onClose }: { opened: boolean; onClose: () => void }) {
@@ -41,7 +42,7 @@ export function Notifications({ opened, onClose }: { opened: boolean; onClose: (
           {list.map((p) => (
             <li key={p.id}>
               <Row href={p.link} onClick={onClose}>
-                <span className={`fb-bit is-${p.level}`} aria-hidden="true" />
+                <StateBit state={p.level} />
                 <span className="fb-notify-text">
                   <b>{p.title}</b>
                   {p.where && <small>{p.where}</small>}

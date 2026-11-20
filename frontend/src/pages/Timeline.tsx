@@ -1,7 +1,7 @@
 import {
   Badge, Button, Chip, Group, Paper, SegmentedControl, Stack, Text, TextInput, Title,
 } from '@mantine/core'
-import { IconDownload, IconSearch } from '@tabler/icons-react'
+import { IconDownload, IconHistory, IconSearch } from '@tabler/icons-react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,7 +11,7 @@ import { useLiveEvent } from '@/api/live'
 import type { TimelineData, TimelineEntry, TimelineKind } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { fieldsText } from '@/lib/auditFields'
 import { clockSeconds, dateOnly } from '@/lib/time'
 
@@ -105,7 +105,7 @@ export default function Timeline() {
         </Chip.Group>
         <ErrorBanner error={list.error} onRetry={() => void list.refetch()} />
         {list.isPending ? <LoadingState /> : rows.length === 0 ? (
-          <Text c="dimmed">{t('timeline.empty')}</Text>
+          <EmptyState icon={<IconHistory size={24} />} title={t('timeline.empty')} />
         ) : (
           <>
             {days.map(([day, entries]) => (

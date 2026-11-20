@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent, AgentUpdates } from '@/api/types'
+import type { Made } from './KeyAlert'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { ago } from '@/lib/time'
 
@@ -38,11 +39,11 @@ export function AgentRename({ agent }: { agent: Agent }) {
 }
 
 /** A new key to copy into the agent's env by hand: for an agent that is away (else "Roll key"). */
-export function NewKeyButton({ agent, onKey }: { agent: Agent; onKey: (made: { name: string; key: string }) => void }) {
+export function NewKeyButton({ agent, onKey }: { agent: Agent; onKey: (made: Made) => void }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const rotate = useMutation({
-    mutationFn: () => post<{ name: string; key: string }>(`/api/agents/${agent.id}/rotate`),
+    mutationFn: () => post<Made>(`/api/agents/${agent.id}/rotate`),
     onSuccess: (m) => { onKey(m); void qc.invalidateQueries({ queryKey: qk.agents }) },
   })
   return (

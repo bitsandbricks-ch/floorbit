@@ -28,5 +28,7 @@
     "min": "Gib {{min}} oder mehr ein.",
     "max": "Gib {{max}} oder weniger ein."
   },
-  "open": "Öffnen"
+  "open": "Öffnen",
+  "pickRows": "Reihen wählen",
+  "rowSeats": "{{row}} ({{count}} Plätze)"
 }

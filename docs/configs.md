@@ -47,6 +47,29 @@ Mark another copy as the baseline when the build is done and the event starts. C
 see its copies and the diff from the baseline to the latest copy; **Compare** shows any copy
 against the baseline, and each copy can be downloaded.
 
+## Seat port check
+
+**Seat port check**, under the switch list, reads each switch's last copy (no login needed) and
+checks every seat port, the ports the [seat mapping](seat-mapping.md) puts a seat on:
+
+| Rule | Passes when | Why |
+| --- | --- | --- |
+| PortFast | `spanning-tree portfast` on the port, or `spanning-tree portfast default` | otherwise a seat takes about 30 s to come up |
+| BPDU guard | `spanning-tree bpduguard enable`, or `spanning-tree portfast bpduguard default` | a player's own switch could loop the block |
+| Storm control | `storm-control broadcast level …` | one PC could flood the VLAN |
+| Access mode | `switchport mode access` | a seat port should never become a trunk |
+| One access VLAN | the port is in the access VLAN most seat ports of the switch use | a port in another VLAN lands the player in the wrong range |
+
+Uplinks and other ports without a seat aren't checked. For each rule a switch breaks, the panel
+lists the ports and the config that fixes them (`interface range …` with the command), ready to
+copy. The rules are written for Cisco IOS and IOS-XE.
+
+A rule the event doesn't use (no storm control anywhere, say) is turned off with its chip, for
+this event. While it is on and no switch follows it, Problems says so once instead of once per switch.
+
+The findings show under **Problems › Needs attention**, one per switch and rule. They are checked
+again with every new copy, so a change made during the event shows up after the next backup.
+
 ## Who
 
 Everything here needs `configs.read`: admins and leads by default. A config describes the whole
@@ -62,3 +85,6 @@ network, even without its secrets. Every backup is in the [audit log](audit.md),
 - `GET /api/configs/<switch>/<id>`: one copy (`?download=1` as a file).
 - `GET /api/configs/<switch>/diff?from=&to=`: unified diff lines, baseline to latest by default.
 - `POST /api/configs/<switch>/baseline` with `{id}`.
+- `GET /api/configs/port-check`: the seat port check, `{switches: [{switch, copy, seat_ports, checked,
+  findings: [{rule, label, ports, count, fix}]}], no_copy, off, rules}`.
+- `PUT /api/configs/port-check` with `{off: [rule ids]}`: the rules this event doesn't use.

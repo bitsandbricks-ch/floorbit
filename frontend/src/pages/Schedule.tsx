@@ -16,7 +16,7 @@ import type { ScheduleData, ScheduleItem, ScheduleKind } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { fromInput, toInput } from './schedule/time'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { revealForm } from '@/lib/revealForm'
 import { clock, dateOnly } from '@/lib/time'
 
@@ -147,8 +147,8 @@ export default function Schedule() {
               onDone={() => { setEditing(null); refresh() }} />
           )}
           {days.length === 0 ? (
-            <Paper withBorder radius="lg" p="lg">
-              <Group gap="sm" wrap="nowrap"><IconCalendarPlus size={22} /><Text c="dimmed">{t('schedule.empty')}</Text></Group>
+            <Paper withBorder radius="lg">
+              <EmptyState icon={<IconCalendarPlus size={24} />} title={t('schedule.emptyTitle')} desc={t('schedule.empty')} />
             </Paper>
           ) : days.map(([label, items]) => (
             <Paper key={label} withBorder radius="lg" p="md">

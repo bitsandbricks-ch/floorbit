@@ -29,10 +29,10 @@ def test_settings_are_checked_saved_and_reach_only_that_agent(client, anon_clien
     assert client.patch(f"/api/agents/{a['id']}/settings",
                         json={"plugins": {"netflow-relay": {"secret_thing": 1}}}).status_code == 400
     page = client.patch(f"/api/agents/{a['id']}/settings", json={
-        "settings": {"lan_url": "http://192.0.2.10:8908/", "buffer_max_mb": 512, "metrics_token": "example-token",
+        "settings": {"log_level": "debug", "buffer_max_mb": 512, "metrics_token": "example-token",
                      "vrrp_vips": "192.0.2.10/24, 192.0.2.11/24"},
         "plugins": {"netflow-relay": {"port": 2055}}}).get_json()
-    assert page["values"] == {"lan_url": "http://192.0.2.10:8908", "buffer_max_mb": 512, "metrics_token": True,
+    assert page["values"] == {"log_level": "debug", "buffer_max_mb": 512, "metrics_token": True,
                               "vrrp_vips": ["192.0.2.10/24", "192.0.2.11/24"]}
     relay = next(p for p in page["plugins"] if p["id"] == "netflow-relay")
     assert relay["values"] == {"port": 2055} and {f["key"] for f in relay["fields"]} == {"port", "bind"}
@@ -55,7 +55,7 @@ def test_settings_are_checked_saved_and_reach_only_that_agent(client, anon_clien
 def test_the_report_says_where_each_value_came_from(client, anon_client):
     a = enrol(client)
     sent = {"settings": {"values": {
-        "lan_url": {"source": "floorbit", "value": "http://192.0.2.10:8908"},
+        "log_level": {"source": "floorbit", "value": "debug"},
         "metrics_token": {"source": "env", "value": "example-token", "set": True},
         "FLOORBIT_AGENT_ALLOW_ACTIONS": {"source": "env", "value": "lancache.*"},
         "SOMETHING_ELSE": {"source": "env", "value": "x"}},
@@ -64,7 +64,7 @@ def test_the_report_says_where_each_value_came_from(client, anon_client):
                  "floorbit_ca": True}}}
     anon_client.post("/api/agent/v1/report", json={"report": sent}, headers=head(a["key"]))
     got = client.get("/api/agents").get_json()["agents"][0]["report"]["settings"]
-    assert got["values"]["lan_url"] == {"source": "floorbit", "value": "http://192.0.2.10:8908"}
+    assert got["values"]["log_level"] == {"source": "floorbit", "value": "debug"}
     assert got["values"]["metrics_token"] == {"source": "env", "set": True}           # never the token
     assert got["values"]["FLOORBIT_AGENT_ALLOW_ACTIONS"]["value"] == "lancache.*"
     assert "SOMETHING_ELSE" not in got["values"] and got["pending"] == ["buffer_max_mb"] and got["key"] == "stored"
