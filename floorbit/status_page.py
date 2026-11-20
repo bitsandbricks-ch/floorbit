@@ -4,10 +4,14 @@ What attendees see at ``/status`` during an outage: the overall state, which are
 seat blocks and their rows), and updates the crew posts. Never switch names or IPs: only the crew's
 own view names the switches.
 
-The state works itself out from the status monitor: every placed switch up is ``operational``;
-some down is ``degraded``; a router or firewall down, or half the switches or more, is ``outage``;
-the monitoring source unreachable is ``unknown`` (better than claiming all is fine). The crew can set
-the state by hand (for example ``maintenance``) until they clear it.
+The state works itself out from what players notice (issue #1038): the status monitor's switches
+(every placed switch up is ``operational``; some down is ``degraded``; a router or firewall down, or
+half the switches or more, is ``outage``) and the service health wall's network checks (a firewall
+down with its ranges failed over, an internet line, DNS or DHCP down: ``degraded``; every internet
+line down, or a range left without a firewall: ``outage``). Each such cause is a ``reason`` the page
+explains in plain words, never with a device name. The monitoring source unreachable is ``unknown``
+(better than claiming all is fine). The crew can set the state by hand (for example ``maintenance``)
+until they clear it.
 
 Which seats a switch serves comes from the port reads (a port's description names its seat, see
 floorbit/attention.py), remembered while the switch is down. A switch with no seats known counts
@@ -26,6 +30,9 @@ KEY = 'status_page'
 STATES = ('operational', 'degraded', 'outage', 'maintenance', 'unknown')
 SET_BY_HAND = ('operational', 'degraded', 'outage', 'maintenance')
 CORE_ROLES = ('router', 'firewall')
+RANK = {'operational': 0, 'degraded': 1, 'outage': 2}
+# Health wall kinds players feel network-wide; game servers, web sites and the cache are not "the network".
+REASON_KINDS = ('firewall', 'uplink', 'dns', 'dhcp')
 MAX_UPDATES = 50
 RECOVERED_FOR = 30 * 60   # how long an area stays under "Back up recently"
 MAX_TEXT = 500
@@ -180,8 +187,52 @@ def affected(data, down, show_names=False):
     return sorted(out, key=lambda a: (-(a['seats'] or 0), a['hall'], a['block']))
 
 
-def current(data, statuses, monitoring_up, show_names=False, now=None):
-    """The page: state, why, areas and updates. ``statuses`` is the monitor's {id: {'status'}}."""
+def reasons(checks, routed=None):
+    """What the health wall's checks mean for players: ``(state, [reason])``. ``checks`` are the wall's
+    checks; ``routed`` the seats off their planned firewall ({seat: {'state'}}, floorbit/firewalls.py)."""
+    down = {k: [c for c in checks or [] if c.get('kind') == k and c.get('status') == 'down'] for k in REASON_KINDS}
+    every = {k: [c for c in checks or [] if c.get('kind') == k] for k in REASON_KINDS}
+    out, state = [], 'operational'
+
+    def hit(reason, level):
+        nonlocal state
+        out.append(reason)
+        state = level if RANK[level] > RANK[state] else state
+
+    stranded = any(r.get('state') == 'down' for r in (routed or {}).values())
+    if stranded:
+        hit('no_firewall', 'outage')
+    elif down['firewall']:
+        hit('firewall', 'degraded')
+    if down['uplink']:
+        if len(down['uplink']) == len(every['uplink']):
+            hit('internet_down', 'outage')
+        else:
+            hit('internet_slow', 'degraded')
+    if down['dns']:
+        hit('dns', 'degraded')
+    if down['dhcp']:
+        hit('dhcp', 'degraded')
+    return state, out
+
+
+def _seat_areas(data, seats):
+    """Areas for a set of seat numbers, like ``affected`` but without switches."""
+    all_halls = {h['id']: h['name'] for h in halls.halls(data)}
+    wanted = {str(s).upper() for s in seats}
+    out = []
+    for block, block_hall, rows in _blocks(data):
+        mine = {s for s in rows if s.upper() in wanted}
+        if mine:
+            out.append({'hall': all_halls.get(block_hall, '') if len(all_halls) > 1 else '',
+                        'block': block.get('name') or '', 'rows': _rows_text({rows[s] for s in mine}),
+                        'seats': len(mine)})
+    return sorted(out, key=lambda a: (-(a['seats'] or 0), a['hall'], a['block']))
+
+
+def current(data, statuses, monitoring_up, show_names=False, now=None, checks=None, routed=None):
+    """The page: state, why, areas and updates. ``statuses`` is the monitor's {id: {'status'}};
+    ``checks`` the health wall's checks and ``routed`` the seats off their firewall (see ``reasons``)."""
     now = time.time() if now is None else now
     stored = _stored(data)
     placed = [d for d in inventory.devices(data) if d.get('x') is not None]
@@ -194,6 +245,17 @@ def current(data, statuses, monitoring_up, show_names=False, now=None):
         auto = 'outage'
     else:
         auto = 'degraded'
+    service_state, why = reasons(checks, routed)
+    if monitoring_up and RANK[service_state] > RANK.get(auto, 0):
+        auto = service_state
+    if down and monitoring_up:
+        why = ['switches', *why]
+    areas = affected(data, down, show_names) if down else []
+    # Seats whose range moved to another firewall feel it too: listed once, after the switch areas.
+    moved = [seat for seat, r in (routed or {}).items() if r.get('state') in ('failover', 'down')]
+    if moved and monitoring_up:
+        listed = {(a['hall'], a['block']) for a in areas}
+        areas += [a for a in _seat_areas(data, moved) if (a['hall'], a['block']) not in listed]
     override = stored['override']
     since = [s.get('since') for s in statuses.values() if s.get('status') == 'offline' and s.get('since')]
     # Back from offline in the last half hour (issue #394): attendees who saw the outage see it is over.
@@ -205,7 +267,8 @@ def current(data, statuses, monitoring_up, show_names=False, now=None):
         'auto_state': auto,
         'override': override,
         'since': min(since) if since and down else None,
-        'areas': affected(data, down, show_names) if down else [],
+        'reasons': why if monitoring_up else [],
+        'areas': areas,
         'updates': [{k: u.get(k) for k in ('id', 'at', 'text', 'state', 'area')} for u in stored['updates']],
         'recovered': affected(data, back, show_names) if back and monitoring_up else [],
         'recovered_at': max(statuses[d['id']]['since'] for d in back) if back and monitoring_up else None,

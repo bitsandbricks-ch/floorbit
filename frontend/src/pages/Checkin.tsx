@@ -8,6 +8,7 @@ import { qk } from '@/api/keys'
 import type { CheckinInfo } from '@/api/types'
 import { PublicPage } from '@/components/PublicPage'
 import { formatWhen } from '@/lib/time'
+import { LoadingState } from '@/components/ui'
 
 type Wired = 'pending' | 'verified' | 'not_wired' | 'unverified'
 type Done = { seat: string; username: string; wired?: Wired | null }
@@ -85,15 +86,17 @@ export default function Checkin() {
   useEffect(() => { if (going && hall) goToHall(hall.url) }, [going, hall])
 
   let body
-  if (info.isPending || going) {
+  if (going) {
     body = (
       <Paper withBorder radius="lg" p="lg">
         <Stack gap="sm" align="center" ta="center">
           <Loader aria-label={t('common.loading')} />
-          {going && <Text size="sm">{t('checkin.hall.going')}</Text>}
+          <Text size="sm">{t('checkin.hall.going')}</Text>
         </Stack>
       </Paper>
     )
+  } else if (info.isPending) {
+    body = <Paper withBorder radius="lg" p="lg"><LoadingState lines /></Paper>
   } else if (info.error) {
     body = (
       <Paper withBorder radius="lg" p="lg">

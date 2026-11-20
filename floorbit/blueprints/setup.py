@@ -6,6 +6,8 @@
   there are no accounts.
 - ``POST /api/setup/steps/<step>``: mark a step done or skipped (``settings.manage``).
 - ``POST /api/setup/finish``: setup is over; the floor plan stops sending admins here.
+- ``GET /api/setup/checklist``: what the event needs, each step done, needing a look or not started,
+  with where it is set (#988).
 
 Connecting NetBox and LibreNMS, the import and the theme use the settings, test and sync APIs.
 """
@@ -74,6 +76,26 @@ def overview():
         'switches': {'total': len(devices), 'placed': sum(d.get('x') is not None for d in devices)},
         'theme': store.get('theme.preset'),
     })
+
+
+@bp.route('/api/setup/checklist', methods=['GET'])
+def checklist():
+    from auth import teams as auth_teams
+    from integrations import seat_sources
+
+    from .. import agent_link, schedule, sources, webhooks
+    data = load_data()
+    auth = _auth()
+    registry = sources.registry
+    mapped = {seat for seat, row in seat_sources.load().items() if row.get('port')}
+    mapped |= {seat for seat, e in (data.get('seat_map') or {}).items() if isinstance(e, dict) and e.get('port')}
+    steps = setup.checklist(
+        data, current_app.extensions['floorbit_settings'], agents=agent_link.all_agents(),
+        users=auth.users.count() if auth and auth.enabled else 0,
+        teams=len(auth_teams.all_teams()) if auth and auth.enabled else 0,
+        hooks=len(webhooks.all_hooks()), monitoring=bool(registry and registry.monitoring_source()),
+        event_dates=schedule.get(data)['event'], mapped=len(mapped))
+    return jsonify({'steps': steps, 'done': setup.state(data)['done']})
 
 
 @bp.route('/api/setup/account', methods=['POST'])

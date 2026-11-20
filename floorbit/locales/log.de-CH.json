@@ -359,5 +359,6 @@
   "Revoked the agents' Let's Encrypt certificate": "Let's-Encrypt-Zertifikat der Agents widerrufen",
   "Set the domain for the agents' certificates": "Domain für die Zertifikate der Agents gesetzt",
   "The agents' Let's Encrypt certificate is replaced: a revoked agent had its key": "Das Let's-Encrypt-Zertifikat der Agents wird ersetzt: ein widerrufener Agent hatte seinen Schlüssel",
-  "Changed the seat port check rules": "Regeln der Platz-Port-Prüfung geändert"
+  "Changed the seat port check rules": "Regeln der Platz-Port-Prüfung geändert",
+  "Swapped switch hardware": "Switch-Hardware getauscht"
 }
