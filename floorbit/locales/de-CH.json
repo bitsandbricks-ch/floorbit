@@ -806,7 +806,6 @@
  "Give a MAC or an IP to look for.": "Gib eine MAC oder eine IP an, nach der gesucht wird.",
  "No switch sees this machine right now.": "Kein Switch sieht dieses Gerät gerade.",
  "Only a signed-in account keeps sidebar settings.": "Nur ein angemeldetes Konto speichert Einstellungen der Seitenleiste.",
- "The captive portal is turned off on this Floorbit.": "Das Captive Portal ist in diesem Floorbit ausgeschaltet.",
  "Enter the API token again for the new URL: a saved token is only sent to the URL it was saved for.": "Gib das API-Token für die neue URL nochmals ein: Ein gespeichertes Token geht nur an die URL, mit der es gespeichert wurde.",
  "The issuer can only change within the same host, because the client secret belongs to it. Add the new identity provider under a new ID.": "Der Issuer kann sich nur innerhalb desselben Hosts ändern, weil das Client-Secret zu ihm gehört. Füge den neuen Identity-Provider unter einer neuen ID hinzu.",
  "No switch port or IP address": "Kein Switch-Port und keine IP-Adresse",
@@ -1115,7 +1114,6 @@
  "Nothing can look up switch ports: turn on SSH port actions, telemetry or LibreNMS, or connect a local agent.": "Nichts kann Switch-Ports nachschlagen: Schalte SSH-Port-Aktionen, Telemetrie oder LibreNMS ein oder verbinde einen lokalen Agent.",
  "That seat is not on the floor plan.": "Diesen Platz gibt es im Hallenplan nicht.",
  "This laptop has {}, which is not in the seat networks. Turn off Wi-Fi and plug the cable in.": "Dieser Laptop hat {}, das ist nicht in den Platz-Netzen. Schalte das WLAN aus und steck das Kabel ein.",
- "No address for the local agent: set SEAT_WALK_AGENT_URL, or FLOORBIT_AGENT_LAN_URL on the agent.": "Keine Adresse für den lokalen Agent: Setze SEAT_WALK_AGENT_URL oder FLOORBIT_AGENT_LAN_URL beim Agent.",
  "That code is unknown or too old.": "Diesen Code gibt es nicht oder er ist zu alt.",
  "That is not a MAC address.": "Das ist keine MAC-Adresse.",
  "That walk-through code is unknown, used or too old.": "Diesen Rundgang-Code gibt es nicht, er wurde schon gebraucht oder ist zu alt.",
@@ -1231,5 +1229,9 @@
  "Pick the rows to patch.": "Wähle die Reihen, die gepatcht werden.",
  "No such switch in the inventory.": "Diesen Switch gibt es im Inventar nicht.",
  "Pick blocks, rows and seats from the lists.": "Wähle Blöcke, Reihen und Plätze aus den Listen.",
- "That is not on the floor plan any more.": "Das ist nicht mehr auf dem Hallenplan."
+ "That is not on the floor plan any more.": "Das ist nicht mehr auf dem Hallenplan.",
+ "No laptop in the hall has reached a local agent yet. Open the check-in page once from a seat, or set the check-in address.": "Noch kein Laptop in der Halle hat einen lokalen Agent erreicht. Öffne die Check-in-Seite einmal von einem Platz aus oder setze die Check-in-Adresse.",
+ "Someone else is walking one of these rows.": "Jemand anderes geht schon eine dieser Reihen ab.",
+ "This walk ended: start again.": "Dieser Rundgang ist beendet: Starte ihn neu.",
+ "Too many walks at once.": "Zu viele Rundgänge gleichzeitig."
 }
