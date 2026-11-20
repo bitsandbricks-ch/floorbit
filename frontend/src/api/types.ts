@@ -1365,6 +1365,10 @@ export interface PortClients {
   as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+  /** Issue #949: IPs ARP knows on no seat port, and cabled seats with no machine (once check-ins started). */
+  no_port?: { count: number; rows: { mac: string; ip: string; ip_seat: string }[] }
+  empty?: { count: number; rows: { seat: string; switch: string; port: string }[] }
+  ignored?: number
 }
 /** Walking the row (issue #473): ports that came up since the walk began. */
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }

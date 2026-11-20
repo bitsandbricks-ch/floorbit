@@ -314,6 +314,8 @@ RULES = (
     ('/api/dispatch', READ, 'incidents.assign'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
     # Which MAC and IP is on which seat port is personal data, like the seat mapping.
+    # Marking a MAC as not a seat PC (a printer, a crew PC): like marking its port infrastructure (issue #949).
+    ('/api/cables/clients/ignored', WRITE, 'floorplan.edit'),
     ('/api/cables/clients', None, 'seats.view'),
     ('/api/cables', WRITE, 'floorplan.edit'),
     ('/api/cable-plan', WRITE, 'floorplan.edit'),
