@@ -245,6 +245,10 @@ Source: [`floorbit/blueprints/dashboards.py`](https://github.com/bitsandbricks-c
 | GET | `/api/dashboards/<layout_id>/public` | anyone |  |
 | GET | `/api/dashboards/<layout_id>/public/plan` | anyone |  |
 | GET | `/api/dashboards/<layout_id>/public/tiles/<tile>` | anyone |  |
+| GET | `/api/widgets` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/widgets` | `floorplan.edit` |  |
+| DELETE | `/api/widgets/<widget_id>` | `floorplan.edit` |  |
+| PUT | `/api/widgets/<widget_id>` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.demo
 
@@ -619,7 +623,7 @@ Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/fl
 
 ## floorbit.blueprints.options
 
-The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, halls, firewalls, agents, users, teams, patch panels and their ports.
+The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, rows, halls, firewalls, agents, users, teams, patch panels and their ports.
 
 Source: [`floorbit/blueprints/options.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/options.py)
 
@@ -865,6 +869,7 @@ Source: [`floorbit/blueprints/seat_blocks.py`](https://github.com/bitsandbricks-
 | PUT | `/api/seat-blocks/<block_id>` | `floorplan.edit` |  |
 | POST | `/api/seat-blocks/many` | `floorplan.edit` |  |
 | POST | `/api/seat-blocks/merge` | `floorplan.edit` |  |
+| GET | `/api/seat-rows` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.seat_map
@@ -896,6 +901,9 @@ Source: [`floorbit/blueprints/seat_walk.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/seat-walk/hello` | `seats.edit` |  |
 | GET | `/api/seat-walk/hello/<token>` | `seats.view` |  |
 | POST | `/api/seat-walk/locate` | `seats.edit` |  |
+| POST | `/api/seat-walk/walkers` | `seats.edit` |  |
+| DELETE | `/api/seat-walk/walkers/<walker_id>` | `seats.edit` |  |
+| PUT | `/api/seat-walk/walkers/<walker_id>` | `seats.edit` |  |
 
 ## floorbit.blueprints.security
 
@@ -909,6 +917,20 @@ Source: [`floorbit/blueprints/security.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/security/<path:finding_id>/ack` | `seats.view` | `security` |
 | POST | `/api/security/check` | `plugins.run` | `security` |
 | GET | `/api/security/markers` | `seats.view` | `security` |
+
+## floorbit.blueprints.segments
+
+Network segments for on-demand lookups (issue #946). Rules in floorbit/segments.py, docs in docs/segments.md. Admins only: the routes sit under /api/settings (auth/roles.py).
+
+Source: [`floorbit/blueprints/segments.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/segments.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/settings/segments` | `settings.manage` |  |
+| POST | `/api/settings/segments` | `settings.manage` |  |
+| DELETE | `/api/settings/segments/<seg_id>` | `settings.manage` |  |
+| PATCH | `/api/settings/segments/<seg_id>` | `settings.manage` |  |
+| POST | `/api/settings/segments/discover` | `settings.manage` |  |
 
 ## floorbit.blueprints.services
 
@@ -1105,6 +1127,7 @@ Source: [`floorbit/blueprints/wifi.py`](https://github.com/bitsandbricks-ch/floo
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/wifi` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `wifi` |
+| GET | `/api/wifi/history` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `wifi` |
 
 ## floorbit.settings
 
@@ -1136,6 +1159,9 @@ Source: [`integrations/__init__.py`](https://github.com/bitsandbricks-ch/floorbi
 | POST | `/api/checkins/<seat>/retry` | `seats.edit` |  |
 | GET | `/api/checkins/history` | `seats.view` |  |
 | GET | `/api/checkins/history.csv` | `seats.view` |  |
+| DELETE | `/api/checkins/lookup-window` | `seats.edit` |  |
+| GET | `/api/checkins/lookup-window` | `seats.view` |  |
+| POST | `/api/checkins/lookup-window` | `seats.edit` |  |
 | GET | `/api/checkins/overview` | `seats.view` |  |
 | POST | `/api/checkins/refresh` | `seats.edit` |  |
 | GET | `/api/events` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |

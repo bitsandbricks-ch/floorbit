@@ -65,6 +65,27 @@ def test_a_port_naming_another_switch_is_an_uplink(client, hall):
     assert [u["port"] for u in read(client)["uplinks"]] == ["Gi1/0/48"]
 
 
+def test_planned_links_and_internet_lines_are_not_hall_traffic(client, hall):
+    # A core port to a firewall or the ISP has no seat and a description no rule knows (issue #1042):
+    # the plan says what it is, so the hall's total doesn't count the whole hall a second time.
+    busy(hall["mon"])
+    client.post("/api/switches", json={"name": "core-01", "x": 50, "y": 1})
+    hall["mon"].set("core-01", {**port("Ethernet1/47", description="ISP A"), "download_bps": 900 * M,
+                                "upload_bps": 5000 * M},
+                    {**port("Ethernet1/1", description="dist"), "download_bps": 400 * M, "upload_bps": 400 * M})
+    from floorbit.store import load_data, save_data
+    data = load_data()
+    data["links"] = [{"id": "l1", "a": "core-01", "a_port": "Eth1/1", "b": "dist-01", "b_port": "Te1/16"}]
+    data["services"] = {"uplinks": [{"id": "u1", "name": "ISP A", "device": "core-01", "port": "Ethernet1/47"}]}
+    save_data(data)
+    assert stats.link_ports(data) == {("core-01", "eth1/1"), ("dist-01", "te1/16"), ("core-01", "eth1/47")}
+    poll(hall, 1000)
+    body = read(client)
+    assert (body["now"]["down"], body["now"]["up"]) == (350 * M, 25 * M)
+    assert "core-01" not in [t["switch"] for t in body["top"]]
+    assert "core-01" in [u["switch"] for u in body["uplinks"]]
+
+
 def test_hour_day_and_event_peak(client, hall):
     mon = hall["mon"]
     busy(mon, a1=900)

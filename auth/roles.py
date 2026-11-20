@@ -322,6 +322,8 @@ RULES = (
     ('/api/port-areas', WRITE, 'floorplan.edit'),
     # Dashboards (floorbit/dashboards.py): what a screen shows is the floor crew's to arrange.
     ('/api/dashboards', WRITE, 'floorplan.edit'),
+    # Saved widgets: everyone who may arrange dashboards may change them (Mike, #1009).
+    ('/api/widgets', WRITE, 'floorplan.edit'),
     # Schedule: everyone reads it, leads plan it (floorbit/schedule.py).
     ('/api/schedule', WRITE, 'floorplan.edit'),
     # Status page: the crew's view and updates; /status itself is public (floorbit/status_page.py).

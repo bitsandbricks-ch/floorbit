@@ -27,8 +27,9 @@ every `ATTENTION_INTERVAL` seconds (120); each read becomes one sample here.
   counts at both seats. Uplinks are left out, so a frame isn't counted again on its way up.
 - **Seats online:** a port belongs to a seat when its description (ifAlias) names it, such as
   `Seat A-12`. Ports without a seat (servers, the stage) count towards bandwidth but not seats.
-- **Uplinks:** per switch, its busiest up port whose description matches `STATS_UPLINK_PATTERN`
-  (`uplink|trunk`, case-insensitive) or names another switch in the inventory, such as `to dist-01`.
+- **Uplinks:** per switch, its busiest up port that is one end of a planned link (Topology), an
+  internet line (Services), or whose description matches `STATS_UPLINK_PATTERN` (`uplink|trunk`,
+  case-insensitive) or names another switch in the inventory, such as `to dist-01`.
   TODO: ask Mike whether uplinks should come from the inventory (NetBox cables) instead.
 
 Samples are kept for 24 hours, together with the event's peak and the moments each seat went online

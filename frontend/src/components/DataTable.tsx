@@ -72,13 +72,16 @@ export type DataTableProps<T> = {
   head?: boolean
   /** 'compact': one short line ("1–8 of 40" and arrows) instead of the page buttons, for a box with no room. */
   pager?: 'full' | 'compact'
+  /** The page shown, counted from 0, when the caller turns pages itself (a wall widget, #925). */
+  page?: number
+  onPage?: (index: number) => void
 }
 
 /** The one table every page uses (#1015): sorting on the columns that can, paging, the empty state
  *  and the count. Search and filters sit above it on the page, and narrow `rows`. */
 export function DataTable<T>(props: DataTableProps<T>) {
   const { rows, columns, rowKey, label, defaultSort, pageSize = 50, empty, count, rowStyle, rowProps, urlState = true,
-    density = 'default', minWidth, bare, className, striped, cards, head = true, pager = 'full' } = props
+    density = 'default', minWidth, bare, className, striped, cards, head = true, pager = 'full', page, onPage } = props
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const initialSort: SortingState = defaultSort ? [{ id: defaultSort.id, desc: !!defaultSort.desc }] : []
@@ -94,11 +97,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
     // A ?sort= left by another table on the same address (a different tab) names no column here.
     return columns.some((c) => c.id === id && c.sort) ? [{ id, desc }] : initialSort
   })()
-  const pageIndex = urlState ? Math.max(0, (Number(params.get('page')) || 1) - 1) : localPage
+  const pageIndex = page ?? (urlState ? Math.max(0, (Number(params.get('page')) || 1) - 1) : localPage)
 
   const setUrl = (change: (p: URLSearchParams) => void) => setParams((p) => { const next = new URLSearchParams(p); change(next); return next }, { replace: true })
   const setSorting = (next: SortingState) => {
-    if (!urlState) { setLocalSort(next); setLocalPage(0); return }
+    if (!urlState) { setLocalSort(next); setLocalPage(0); onPage?.(0); return }
     setUrl((p) => {
       const s = next[0]
       const same = s && defaultSort && s.id === defaultSort.id && s.desc === !!defaultSort.desc
@@ -107,6 +110,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     })
   }
   const setPage = (index: number) => {
+    if (onPage) { onPage(index); return }
     if (!urlState) { setLocalPage(index); return }
     setUrl((p) => { if (index > 0) p.set('page', String(index + 1)); else p.delete('page') })
   }

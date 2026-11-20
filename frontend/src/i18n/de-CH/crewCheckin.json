@@ -124,5 +124,30 @@
     "askAdmin": "Ein Admin kann den Platz-Check-in in den Einstellungen einschalten. Die Check-ins früherer Events stehen unten.",
     "turnOn": "Check-in-Einstellungen"
   },
-  "noMatch": "Kein Check-in passt."
+  "noMatch": "Kein Check-in passt.",
+  "lookups": {
+    "title": "Switches fragen",
+    "open": "Offen bis {{until}}",
+    "openWhy": {
+      "doors": "seit Türöffnung",
+      "by_hand": "von Hand geöffnet",
+      "activity": "durch Check-ins offen gehalten"
+    },
+    "closed": "Geschlossen",
+    "intro": "Kennen die Tabellen einen PC noch nicht, fragen Check-ins die Switches mit wenigen SNMP-Anfragen nach diesem einen PC, in Segmenten mit eingeschalteten Abfragen. Nur solange dies offen ist: ab Türöffnung für {{hours}} h und 30 Minuten nach dem letzten Check-in.",
+    "noSegments": "Kein Segment hat Abfragen eingeschaltet, Check-ins warten deshalb auf die Tabellen.",
+    "segments": "Segmente für Abfragen",
+    "openNow": "Für {{hours}} h öffnen",
+    "close": "Schliessen",
+    "todo": {
+      "no_segment": "Die IP liegt in keinem Segment: MAC eingeben oder Port wählen.",
+      "segment_off": "Abfragen sind für VLAN {{vlan}} aus: MAC eingeben oder Port wählen.",
+      "no_core": "Für VLAN {{vlan}} ist kein Core bekannt: Erkennung laufen lassen oder MAC eingeben."
+    },
+    "state": {
+      "closed": "Nicht gefragt: das Abfragefenster ist zu.",
+      "error": "Der Agent hat auf die Abfrage nicht geantwortet.",
+      "not_found": "Noch kein Switch kennt ihn."
+    }
+  }
 }

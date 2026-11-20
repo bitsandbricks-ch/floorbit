@@ -124,5 +124,30 @@
     "askAdmin": "An admin can turn on seat check-in in the settings. Past events' check-ins are below.",
     "turnOn": "Check-in settings"
   },
-  "noMatch": "No check-in matches."
+  "noMatch": "No check-in matches.",
+  "lookups": {
+    "title": "Asking the switches",
+    "open": "Open until {{until}}",
+    "openWhy": {
+      "doors": "since doors opened",
+      "by_hand": "opened by hand",
+      "activity": "kept open by check-ins"
+    },
+    "closed": "Closed",
+    "intro": "When the tables don't know a PC yet, check-ins ask the switches for that one PC, with a few SNMP requests, in segments with lookups on. Only while this is open: from doors open for {{hours}} h, and 30 minutes after the last check-in.",
+    "noSegments": "No segment has lookups on, so check-ins wait for the tables.",
+    "segments": "Lookup segments",
+    "openNow": "Open for {{hours}} h",
+    "close": "Close",
+    "todo": {
+      "no_segment": "Its IP is in no segment: type the MAC or pick the port.",
+      "segment_off": "Lookups are off for VLAN {{vlan}}: type the MAC or pick the port.",
+      "no_core": "No core is known for VLAN {{vlan}}: run discovery, or type the MAC."
+    },
+    "state": {
+      "closed": "Not asked: the lookup window is closed.",
+      "error": "The agent didn't answer the lookup.",
+      "not_found": "No switch knows it yet."
+    }
+  }
 }

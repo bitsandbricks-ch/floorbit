@@ -30,7 +30,7 @@ const overview = (over: Partial<PowerOverview> = {}): PowerOverview => ({
   circuits: [circuit(), circuit({ id: 'c2', name: 'Network rack', state: 'tripped', load_pct: null, reading: null,
     tripped: { by: 'kim', at: now - 60 }, feeds_label: '', fed: { seats: [], switches: [{ id: 'core', name: 'core-01' }] } })],
   counts: { ok: 0, warn: 1, crit: 0, tripped: 1, unknown: 0 }, warn: 80, crit: 95, last_poll: null, plugins: 0,
-  blocks: [{ id: 'blk', name: 'A', rows: 2 }], can_edit: false, can_read: true, ...over,
+  blocks: [{ id: 'blk', name: 'A', rows: 2, label: 'A', row_names: ['1', '2'] }], can_edit: false, can_read: true, ...over,
 })
 const me = { enabled: true, user: { username: 'kim', display_name: 'Kim', role: 'viewer', permissions: ['floorplan.view'] } }
 
