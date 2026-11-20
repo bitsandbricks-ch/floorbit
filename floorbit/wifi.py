@@ -8,7 +8,8 @@ Plugins with ``uses: [wifi]`` answer ``wifi_aps()`` with one entry per access po
 Floorbit keeps client counts only: whatever else a plugin sends (client names, MACs) is dropped
 here and never stored. APs are matched by name to the inventory, and an AP placed on the floor
 plan is drawn there. Answers are kept for ``CACHE_SECONDS`` so a room of open pages asks the
-controller once.
+controller once. A controller that streams to Telemetry (a Catalyst 9800's MDT) comes first: an AP
+it names is not taken again from a plugin.
 """
 import math
 import threading
@@ -17,6 +18,7 @@ import time
 from .plugins import PluginError
 
 BANDS = ('2.4', '5', '6')
+STREAMED = 'telemetry'    # the plugin whose APs come from the controller's stream (a Catalyst 9800's MDT)
 CACHE_SECONDS = 20
 MAX_APS = 2000
 BUSY = 70          # channel utilization (%) past which an AP is busy
@@ -24,8 +26,11 @@ CROWDED = 40       # clients on one AP past which it is crowded
 # Two APs on the same channel closer than this (percent of the plan's width) hear each other: a
 # rough rule, since the plan has no scale and walls aren't drawn. 2.4 GHz reaches furthest.
 NEAR = {'2.4': 30.0, '5': 25.0, '6': 20.0}
+LINK = '/dashboards/view/network'   # the ready-made dashboard with the Wi-Fi view (floorbit/dashboards.py)
+BUSY_FOR = 300     # seconds an AP stays busy before it is a problem: one burst of downloads isn't
 _lock = threading.Lock()
 _cache = {'at': 0.0, 'value': None}
+_since = {}        # (what, AP name) -> when it was first seen like that, for problems()
 
 
 def _int(value, lo, hi):
@@ -58,8 +63,13 @@ def clean_ap(raw):
     radios.sort(key=lambda r: BANDS.index(r['band']))
     clients = _int(raw.get('clients'), 0, 100000)
     status = 'down' if str(raw.get('status') or '').lower() in ('down', 'offline', '0', 'false') else 'up'
-    return {'name': name, 'model': ' '.join(str(raw.get('model') or '').split())[:60], 'status': status,
-            'clients': clients if clients is not None else sum(r['clients'] for r in radios), 'radios': radios}
+    out = {'name': name, 'model': ' '.join(str(raw.get('model') or '').split())[:60], 'status': status,
+           'clients': clients if clients is not None else sum(r['clients'] for r in radios), 'radios': radios}
+    # The controller that streams it to Telemetry: its history is kept under that device (history()).
+    controller = ' '.join(str(raw.get('controller') or '').split())[:80]
+    if controller:
+        out['controller'] = controller
+    return out
 
 
 def ask(registry):
@@ -76,7 +86,8 @@ def ask(registry):
         except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
             feeds = []
             errors.append(f'Local agent: {exc}')
-        for feed in feeds:
+        # The controller's own stream (Telemetry) is newer than a plugin's poll: its APs win.
+        for feed in sorted(feeds, key=lambda f: f.get('plugin') != STREAMED):
             if 'error' in feed:
                 errors.append(f"{feed['name']} (local agent): {feed['error']}")
                 continue
@@ -86,7 +97,7 @@ def ask(registry):
                 if ap and ap['name'].lower() not in aps and len(aps) < MAX_APS:
                     aps[ap['name'].lower()] = {**ap, 'source': f"{feed['name']} (local agent)"}
     from . import agent_link
-    for spec in registry.feeders('wifi'):
+    for spec in sorted(registry.feeders('wifi'), key=lambda s: s.id != STREAMED):
         if spec.id in answered or not agent_link.may_call_here(spec):
             continue
         try:
@@ -102,6 +113,18 @@ def ask(registry):
     return value
 
 
+def history(registry, hours=6):
+    """Clients on every streaming controller over time: [[unix time, clients]], oldest first. Only
+    controllers that stream to Telemetry have a history (the samples are taken there, storage.py)."""
+    from .telemetry import storage
+    controllers = sorted({a['controller'] for a in ask(registry)[0] if a.get('controller')})
+    total = {}
+    for name in controllers:
+        for at, value in storage.storage().series(name, None, 'wifi_clients', hours):
+            total[at] = total.get(at, 0) + value
+    return {'controllers': controllers, 'points': [[at, total[at]] for at in sorted(total)]}
+
+
 def agent_active():
     from . import agent_link
     return agent_link.active()
@@ -110,6 +133,61 @@ def agent_active():
 def reset():
     with _lock:
         _cache.update(at=0.0, value=None)
+        _since.clear()
+
+
+def mute_key(name):
+    """The alert mute key of an AP, next to the switch ids (integrations/alerting.py)."""
+    return f'wifi:{name.lower()}'
+
+
+def _first_seen(seen, now):
+    """When each (what, name) in ``seen`` started; forgets what isn't so any more."""
+    with _lock:
+        for key in list(_since):
+            if key not in seen:
+                del _since[key]
+        for key in seen:
+            _since.setdefault(key, now)
+        return dict(_since)
+
+
+def problems(registry, data, muted, now=None):
+    """APs that are down, busy for BUSY_FOR, and co-channel overlaps, as Problems
+    (floorbit/problems.py). Only what the Wi-Fi view already has: nothing is asked anew."""
+    now = now or time.time()
+    view = overview(registry, data)
+    aps = {a['name']: a for a in view['aps']}
+    seen = {('down', n) for n in view['down']} | {('busy', n) for n in view['busy']}
+    since = _first_seen(seen, now)
+    out = []
+
+    def where(ap):
+        return ap.get('controller') or ap.get('source') or ''
+
+    def mute(name):
+        m = muted.get(mute_key(name))
+        return {'until': m['until'], 'by': m.get('by'), 'reason': m.get('reason')} if m else None
+
+    for name in view['down']:
+        out.append({'id': f'wifi:down:{name}', 'kind': 'wifi', 'level': 'down', 'title': f'{name} is down',
+                    'where': where(aps[name]), 'since': since[('down', name)], 'link': LINK,
+                    'mute_id': mute_key(name), 'name': name, 'muted': mute(name)})
+    for name in view['busy']:
+        if now - since[('busy', name)] < BUSY_FOR:
+            continue
+        ap = aps[name]
+        top = max((r['utilization'] or 0 for r in ap['radios']), default=0)
+        out.append({'id': f'wifi:busy:{name}', 'kind': 'wifi', 'level': 'warn',
+                    'title': f'{name} is busy: {top} % channel use, {ap["clients"]} clients',
+                    'where': where(ap), 'since': since[('busy', name)], 'link': LINK,
+                    'mute_id': mute_key(name), 'name': name, 'muted': mute(name)})
+    for o in view['overlaps']:
+        a, b = o['aps']
+        out.append({'id': f"wifi:overlap:{o['band']}:{o['channel']}:{a}:{b}", 'kind': 'wifi', 'level': 'warn',
+                    'title': f"{a} and {b} share channel {o['channel']} ({o['band']} GHz) close together",
+                    'where': 'Wi-Fi channel plan', 'since': None, 'link': LINK})
+    return out
 
 
 def _overlaps(placed):
@@ -163,4 +241,5 @@ def overview(registry, data):
         'sources': [s.name for s in registry.feeders('wifi')] + (['Local agent'] if agent_active() else []),
         'errors': errors,
         'thresholds': {'busy': BUSY, 'crowded': CROWDED},
+        'history': any(a.get('controller') for a in aps),
     }

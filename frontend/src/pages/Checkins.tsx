@@ -16,6 +16,7 @@ import { StatCard } from '@/components/StatCard'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { History } from './checkins/History'
+import { LookupNote, LookupWindow } from './checkins/LookupWindow'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/seat-mapping.md'
 const STATE_COLOR: Record<WiredState, string> = { pending: 'blue', verified: 'up', not_wired: 'gray', unverified: 'warn' }
@@ -105,6 +106,7 @@ export default function Checkins() {
               <StatCard label={t('crewCheckin.count.review')} value={num(d.counts.conflicts)} tone={d.counts.conflicts ? 'warn' : undefined}
                 sub={t('crewCheckin.count.reviewSub')} />
             </div>
+            {d.lookups && <LookupWindow w={d.lookups} canEdit={canEdit} onChange={refresh} />}
             <Tabs defaultValue={new URLSearchParams(window.location.search).get('tab') ?? 'checkins'} keepMounted={false}>
               <Tabs.List>
                 <Tabs.Tab value="checkins">{t('crewCheckin.tab.checkins', { count: d.rows.length })}</Tabs.Tab>
@@ -146,7 +148,8 @@ export default function Checkins() {
                           <Table.Tr key={r.seat} data-seat={r.seat}>
                             <Table.Td className="fb-stack-inline"><Anchor href={`/plan?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor></Table.Td>
                             <Table.Td className="fb-stack-inline">{r.username}{r.pin && <Badge size="xs" variant="light" ml={6}>{t('crewCheckin.pin')}</Badge>}</Table.Td>
-                            <Table.Td className="fb-stack-inline"><Badge color={STATE_COLOR[r.wired]} variant="light">{t(`crewCheckin.state.${r.wired}`)}</Badge></Table.Td>
+                            <Table.Td className="fb-stack-inline"><Badge color={STATE_COLOR[r.wired]} variant="light">{t(`crewCheckin.state.${r.wired}`)}</Badge>
+                              {r.wired !== 'verified' && <LookupNote lookup={r.lookup} />}</Table.Td>
                             <Table.Td data-label={t('crewCheckin.col.port')}>
                               <Text size="sm" ff="monospace">{portText(r.port ?? r.learned)}</Text>
                               {r.learned && <Text size="xs" c="dimmed">{t('crewCheckin.learned')}</Text>}
