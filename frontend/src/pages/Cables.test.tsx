@@ -142,10 +142,14 @@ describe('Cables', () => {
       failed: [{ switch: 'sw-c-03', error: 'timeout' }],
       moved: { count: 1, rows: [{ switch: 'sw-a-01', port: 'Gi1/0/2', mac: '02:00:00:00:00:03', ip: '192.0.2.13', ip_seat: 'A-3', seat: 'A-2', cable: 'C-0002' }] },
       unplanned: { count: 1, rows: [{ switch: 'sw-a-01', port: 'Gi1/0/30', mac: '02:00:00:00:00:30', ip: '192.0.2.40', ip_seat: 'A-9' }] },
+      no_port: { count: 1, rows: [{ mac: '02:00:00:00:00:50', ip: '192.0.2.50', ip_seat: '' }] },
+      empty: { count: 2, rows: [{ seat: 'A-4', switch: 'sw-a-01', port: 'Gi1/0/4' }, { seat: 'A-5', switch: 'sw-a-01', port: 'Gi1/0/5' }] },
+      ignored: 1,
     }
     const api = fakeFetch({
       ...OPTIONS, 'GET /api/auth/me': crew, 'GET /api/cables': data, 'GET /api/cables/clients?read=1': clients,
       'POST /api/cables': () => ({ status: 201, body: { ...mine, id: 'c4' } }),
+      'POST /api/cables/clients/ignored': { ok: true },
     })
     vi.stubGlobal('fetch', api.fn)
     app()
@@ -153,6 +157,15 @@ describe('Cables', () => {
     expect(screen.getByText('sw-a-01 Gi1/0/2 is cabled to A-2, but 192.0.2.13 is the IP of A-3')).toBeInTheDocument()
     expect(screen.getByText('1 machine on a port no cable explains')).toBeInTheDocument()
     expect(screen.getByText('No MAC table from: sw-c-03')).toBeInTheDocument()
+    // Issue #949: PCs that never check in.
+    expect(screen.getByText('1 IP in the seat networks on no seat port')).toBeInTheDocument()
+    expect(screen.getByText('192.0.2.50 · 02:00:00:00:00:50')).toBeInTheDocument()
+    expect(screen.getByText('2 seats cabled to a port with no machine')).toBeInTheDocument()
+    expect(screen.getByText('A-4 (sw-a-01 Gi1/0/4), A-5 (sw-a-01 Gi1/0/5)')).toBeInTheDocument()
+    expect(screen.getByText('1 machine ignored (printers, crew PCs)')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Ignore' })[1])
+    await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/cables/clients/ignored'
+      && (c.body as { mac: string }).mac === '02:00:00:00:00:50')).toBe(true))
     fireEvent.click(screen.getByRole('button', { name: 'Patch to a seat' }))
     // The new cable starts with the port, and the seat whose IP the machine has.
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Switch port' })).toHaveValue('Gi1/0/30'))

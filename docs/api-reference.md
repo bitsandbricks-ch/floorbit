@@ -162,6 +162,9 @@ Source: [`floorbit/blueprints/cables.py`](https://github.com/bitsandbricks-ch/fl
 | POST | `/api/cables/block` | `floorplan.edit` | `cables` |
 | GET | `/api/cables/check` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
 | GET | `/api/cables/clients` | `seats.view` | `cables` |
+| GET | `/api/cables/clients/ignored` | `seats.view` | `cables` |
+| POST | `/api/cables/clients/ignored` | `floorplan.edit` | `cables` |
+| DELETE | `/api/cables/clients/ignored/<mac>` | `floorplan.edit` | `cables` |
 | POST | `/api/cables/import` | `floorplan.edit` | `cables` |
 | GET | `/api/cables/labels.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
 | GET | `/api/cables/walk` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `cables` |
@@ -306,6 +309,8 @@ Source: [`floorbit/blueprints/features.py`](https://github.com/bitsandbricks-ch/
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/features` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/settings/capabilities` | `settings.manage` |  |
+| PUT | `/api/settings/capabilities/<cap_id>` | `settings.manage` |  |
 | GET | `/api/settings/features` | `settings.manage` |  |
 | PUT | `/api/settings/features` | `settings.manage` |  |
 
@@ -718,6 +723,8 @@ Source: [`floorbit/blueprints/platform.py`](https://github.com/bitsandbricks-ch/
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| GET | `/api/platform/agent-domain` | `settings.manage` |  |
+| PUT | `/api/platform/agent-domain` | `settings.manage` |  |
 | GET | `/api/platform/tenants` | `settings.manage` |  |
 | POST | `/api/platform/tenants` | `settings.manage` |  |
 | PATCH | `/api/platform/tenants/<tenant_id>` | `settings.manage` |  |
@@ -917,20 +924,6 @@ Source: [`floorbit/blueprints/security.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/security/<path:finding_id>/ack` | `seats.view` | `security` |
 | POST | `/api/security/check` | `plugins.run` | `security` |
 | GET | `/api/security/markers` | `seats.view` | `security` |
-
-## floorbit.blueprints.segments
-
-Network segments for on-demand lookups (issue #946). Rules in floorbit/segments.py, docs in docs/segments.md. Admins only: the routes sit under /api/settings (auth/roles.py).
-
-Source: [`floorbit/blueprints/segments.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/segments.py)
-
-| Method | Path | Needs | Feature |
-| --- | --- | --- | --- |
-| GET | `/api/settings/segments` | `settings.manage` |  |
-| POST | `/api/settings/segments` | `settings.manage` |  |
-| DELETE | `/api/settings/segments/<seg_id>` | `settings.manage` |  |
-| PATCH | `/api/settings/segments/<seg_id>` | `settings.manage` |  |
-| POST | `/api/settings/segments/discover` | `settings.manage` |  |
 
 ## floorbit.blueprints.services
 

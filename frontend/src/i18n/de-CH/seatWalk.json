@@ -53,6 +53,7 @@
   "seat": "Platz",
   "port": "Port",
   "time": "Zeit",
+  "doneList": "Gefundene Plätze",
   "agentAt": "Laptops werden über den lokalen Agent erkannt unter",
   "agentNone": "Kein lokaler Agent hat gemeldet, wo Laptops ihn erreichen.",
   "noAgent": "Noch kein Laptop in der Halle hat einen lokalen Agent erreicht. Öffne die Check-in-Seite einmal von einem Platz aus (oder setze die Check-in-Adresse unter Einstellungen, Check-in) oder tippe unten die MAC des Laptops ein.",

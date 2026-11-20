@@ -64,3 +64,20 @@ def test_a_viewer_finds_places_without_people(app_module):
     answer = viewer.get("/api/pages/find?q=sw")
     assert answer.status_code == 200
     assert all(set(p) == {"kind", "name", "href"} for p in answer.get_json()["places"])
+
+
+def test_monitoring_pages_have_their_own_address(client, built):
+    # Each Monitoring view is a page too (Health, Network > Wi-Fi, Services > DNS, Traffic, ...).
+    for path in ("/health", "/dns", "/traffic", "/games", "/stats", "/speedtests"):
+        assert client.get(path).status_code == 200, path
+    got = hrefs(client)
+    assert {"/health", "/dns", "/traffic", "/games", "/stats", "/speedtests"} <= set(got)
+    # No Wi-Fi source and no LAN cache plugin: their pages stay out of the list.
+    assert "/wifi" not in got and "/lancache" not in got
+
+
+def test_a_monitoring_page_goes_with_its_feature(client):
+    client.put("/api/settings/features", json={"traffic": False, "health": False})
+    got = hrefs(client)
+    assert "/traffic" not in got and "/health" not in got
+    assert client.get("/traffic").status_code == 404

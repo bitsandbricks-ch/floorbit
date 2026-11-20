@@ -69,6 +69,8 @@ BUILTIN = {
     'vlan': {'name': 'VLAN or IP range', 'sort': 'stored', 'icon': 'vlan', 'fields': [
         _f('vlan_id', 'VLAN ID', 'number'),
         _f('prefix', 'Prefix'),
+        # With a VLAN and a prefix the range is a lookup segment (floorbit/segments.py): off by default.
+        _f('lookups', 'Check-in lookups', 'bool', default='no'),
         _f('gateway', 'Gateway'),
         _f('purpose', 'Purpose', 'choice', choices=['Seats', 'Crew', 'Servers', 'Management', 'Wi-Fi', 'Other']),
     ]},

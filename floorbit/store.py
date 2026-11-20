@@ -415,8 +415,12 @@ def using(tenant=None, event=None):
 TENANT_KEYS = frozenset({
     'auth_users', 'auth_teams', 'auth_roles', 'auth_oidc', 'auth_secret_key', 'api_tokens',
     'app_settings', 'default_settings', 'setup', 'features', 'credentials', 'agents', 'webhooks',
-    'command_templates', 'dashboards',
+    'command_templates', 'dashboards', 'agent_ca', 'agent_public_cert',
 })
+
+# Tenant parts an older Floorbit kept in each event's document (issue #1095): ``lift_from_live_event``
+# moves the live event's copy up to the tenant's at start.
+LIFTED_KEYS = ('agent_ca',)
 
 
 def _files():
@@ -449,6 +453,29 @@ def load_shared():
     out = {k: v for k, v in found.items() if k not in TENANT_KEYS}
     out.update({k: tenant[k] for k in TENANT_KEYS if k in tenant})
     return out
+
+
+def lift_from_live_event():
+    """Move ``LIFTED_KEYS`` from the live event's document to the tenant's. The live event's copy is
+    the one in use (the agents' certificates are signed by its CA, crew devices trust it), so it
+    replaces one the tenant already has. Returns the keys it moved."""
+    path, tenant_path_ = _files()
+    if not tenant_path_:
+        return []
+    event = read_json(path)
+    if not isinstance(event, dict):
+        return []
+    moved = [k for k in LIFTED_KEYS if k in event]
+    if not moved:
+        return []
+    tenant = read_json(tenant_path_, {})
+    tenant = tenant if isinstance(tenant, dict) else {}
+    for key in moved:
+        tenant[key] = event.pop(key)
+    # The tenant's first: stopped in between, both have it, never neither.
+    write_json(tenant_path_, tenant)
+    write_json(path, event)
+    return moved
 
 
 def load_data():

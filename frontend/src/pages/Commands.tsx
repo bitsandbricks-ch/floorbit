@@ -16,6 +16,7 @@ import type { CommandInfo, CommandRun, CommandTemplate } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { StateBadge } from '@/components/State'
 
 interface RunBody {
   template: string
@@ -199,9 +200,8 @@ function Results({ run, terminal }: { run: CommandRun; terminal: boolean }) {
     <Stack gap="sm">
       <Group gap="xs">
         <Title order={2} size="h4">{run.label}{run.port ? ` · ${run.port}` : ''}</Title>
-        <Badge variant="light" color={failed ? 'warn' : 'up'} tt="none">
-          {failed ? t('commands.someFailed', { count: failed, total: run.results.length }) : t('commands.allOk', { count: run.results.length })}
-        </Badge>
+        <StateBadge size="md" state={failed ? 'warn' : 'up'}
+          label={failed ? t('commands.someFailed', { count: failed, total: run.results.length }) : t('commands.allOk', { count: run.results.length })} />
       </Group>
       <SimpleGrid cols={{ base: 1, md: Math.min(run.results.length, 2), xl: Math.min(run.results.length, 3) }}>
         {run.results.map((r) => (
@@ -218,9 +218,7 @@ function Results({ run, terminal }: { run: CommandRun; terminal: boolean }) {
                   </Tooltip>
                 )}
                 {r.ms !== undefined && <Text size="xs" c="dimmed">{t('commands.took', { s: (r.ms / 1000).toFixed(1) })}</Text>}
-                <Badge size="sm" variant="light" color={r.ok ? 'up' : 'down'} tt="none" miw="max-content">
-                  {r.ok ? t('commands.ok') : t('commands.failed')}
-                </Badge>
+                <StateBadge state={r.ok ? 'ok' : 'failed'} label={r.ok ? t('commands.ok') : t('commands.failed')} />
               </Group>
             </Group>
             {r.error && <Text size="sm" c="down" mb={6}>{r.error}</Text>}
