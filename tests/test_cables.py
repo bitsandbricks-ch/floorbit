@@ -192,3 +192,27 @@ def test_a_cable_tells_the_port_watch_its_seat():
     data = {"cables": [{"switch": "SW-A-01", "port": "GigabitEthernet1/0/7", "seat": "A-7"},
                        {"switch": "sw-a-01", "port": "Gi1/0/8", "seat": ""}]}
     assert cables.port_seats(data) == {("sw-a-01", "gi1/0/7"): "A-7"}
+
+
+def test_a_hand_entry_wins_over_a_cable_and_a_learned_port(monkeypatch):
+    """Issue #953: a switch port typed in on the Seat mapping page counts for the port watch too."""
+    from integrations import checkin
+    monkeypatch.setattr(checkin, "learned_port_seats", lambda: {("sw-a-01", "gi1/0/9"): "A-9",
+                                                                ("sw-a-01", "gi1/0/3"): "A-3"})
+    data = {"cables": [{"switch": "sw-a-01", "port": "Gi1/0/7", "seat": "A-7"},
+                       {"switch": "sw-a-01", "port": "Gi1/0/8", "seat": "A-8"}],
+            "seat_map": {"A-1": {"switch": "SW-A-01", "port": "GigabitEthernet1/0/1"},
+                         "A-7": {"switch": "sw-a-01", "port": "Gi1/0/17"},     # moved off its cable
+                         "A-4": {"switch": "sw-a-01", "port": "Gi1/0/8"},      # the port A-8's cable names
+                         "A-5": {"nick": "only a nick"}}}
+    assert cables.port_seats(data) == {("sw-a-01", "gi1/0/1"): "A-1", ("sw-a-01", "gi1/0/17"): "A-7",
+                                       ("sw-a-01", "gi1/0/8"): "A-4", ("sw-a-01", "gi1/0/9"): "A-9",
+                                       ("sw-a-01", "gi1/0/3"): "A-3"}
+    # The patch plan alone, as the seat walk and check-in compare against, has no hand entries.
+    assert cables.port_seats(data, learned=False) == {("sw-a-01", "gi1/0/7"): "A-7", ("sw-a-01", "gi1/0/8"): "A-8"}
+
+
+def test_every_cable_has_its_own_page(client, built):
+    """A label's QR code opens /cables/<id>; /cables/new adds one (issue #877)."""
+    for path in ("/cables/c1", "/cables/new", "/cables/walk"):
+        assert client.get(path).status_code == 200, path

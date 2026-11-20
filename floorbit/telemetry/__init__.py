@@ -86,6 +86,7 @@ class Runner:
     def __init__(self, log=print):
         self.log = log
         self._stop = threading.Event()
+        self.thread = None
         self.poll_errors = {}
         self.last_poll = None
         self.blocks = None
@@ -152,15 +153,19 @@ class Runner:
             except Exception as exc:  # noqa: BLE001  # a bad round must not end the collector
                 self.log(f'[telemetry] {type(exc).__name__}: {exc}')
 
-    def stop(self):
+    def stop(self, wait=None):
+        """Ends the loop; ``wait``: seconds to let a round in progress finish its writes."""
         self._stop.set()
+        if wait and self.thread is not None and self.thread is not threading.current_thread():
+            self.thread.join(wait)
 
 
 def start(log=print):
     global _runner
     if _runner is None:
         _runner = Runner(log)
-        threading.Thread(target=_runner.loop, name='telemetry', daemon=True).start()
+        _runner.thread = threading.Thread(target=_runner.loop, name='telemetry', daemon=True)
+        _runner.thread.start()
     return _runner
 
 

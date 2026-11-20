@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Checkbox, Code, Group, Loader, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Badge, Button, Checkbox, Code, Group, Loader, Paper, Select, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconCircleCheck, IconCircleX, IconPlugConnected } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -10,6 +10,7 @@ import { useCan } from '@/api/queries'
 import { useLiveEvent } from '@/api/live'
 import type { SeatLocated, SeatWalker, SeatWalkHello, SeatWalkInfo, WalkPort } from '@/api/types'
 import { Layout } from '@/components/Layout'
+import { DataTable } from '@/components/DataTable'
 import { PageHead } from '@/components/PageHead'
 import { RowsSelect } from '@/components/RowsSelect'
 import { HallRows } from './seatWalk/HallRows'
@@ -346,21 +347,12 @@ function DoneList({ done }: { done: Done[] }) {
   const { t } = useTranslation()
   if (!done.length) return null
   return (
-    <Paper withBorder radius="lg" p="sm">
-      <Table verticalSpacing={4}>
-        <Table.Thead><Table.Tr>
-          <Table.Th>{t('seatWalk.seat')}</Table.Th><Table.Th>{t('seatWalk.port')}</Table.Th><Table.Th>{t('seatWalk.time')}</Table.Th>
-        </Table.Tr></Table.Thead>
-        <Table.Tbody>
-          {done.map((d) => (
-            <Table.Tr key={d.seat}>
-              <Table.Td>{d.seat}</Table.Td><Table.Td>{portText(d.port)}</Table.Td>
-              <Table.Td>{(d.ms / 1000).toFixed(1)} s</Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
-    </Paper>
+    <DataTable rows={done} rowKey={(d) => d.seat} label={t('seatWalk.doneList')} urlState={false} pageSize={0} density="compact"
+      columns={[
+        { id: 'seat', header: t('seatWalk.seat'), cell: (d) => d.seat },
+        { id: 'port', header: t('seatWalk.port'), cell: (d) => portText(d.port) },
+        { id: 'time', header: t('seatWalk.time'), numeric: true, cell: (d) => `${(d.ms / 1000).toFixed(1)} s` },
+      ]} />
   )
 }
 

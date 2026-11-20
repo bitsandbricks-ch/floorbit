@@ -9,6 +9,15 @@ kinds of client stand out:
 - ``moved``: a client on seat A's port whose IP the seat mapping gives to seat B (players swapped
   seats, or the cables at the switch are swapped).
 
+Two more lists catch PCs that never check in (issue #949):
+
+- ``no_port``: an IP in the seat networks that ARP knows but no seat-switch edge port carries yet
+  (the gateways and the inventory's own boxes left out).
+- ``empty``: a seat cabled to a port with no machine on it; only once check-ins have started, so
+  the list isn't every seat before the doors open.
+
+A MAC the crew marked as ignored (a printer, a crew PC) leaves every list.
+
 Ports with many MACs are uplinks or a switch under a desk, and ports cabled without a seat are
 infrastructure: neither is a client. Reading every seat switch is many calls at 4000 seats, so a
 read runs in the background, at most every two minutes, and the page shows the last one.
@@ -26,6 +35,8 @@ from .store import load_data
 MAX_LISTED = 200
 UPLINK_MACS = 4          # more MACs than this on one port: an uplink or a desk switch, not a seat
 MIN_AGE = 120            # seconds between reads: LibreNMS itself refreshes MAC tables only when it polls
+EVERY = 300              # the background read (issue #949): LibreNMS polls the switches anyway
+IGNORED = 'port_clients_ignored'   # {mac: {by, at, note}} in the event's data
 WORKERS = 4              # switches read side by side: LibreNMS answers one FDB in about a second
 
 
@@ -85,8 +96,48 @@ def _hand_ports(data):
             for seat, e in seatmap.entries(data).items() if e.get('switch') and e.get('port')]
 
 
+def ignored(data):
+    raw = data.get(IGNORED)
+    return {str(k): v for k, v in raw.items() if isinstance(v, dict)} if isinstance(raw, dict) else {}
+
+
+def set_ignored(data, mac, on, by=None, note='', now=None):
+    """Marks a MAC as not a seat PC (or not any more); ValueError for something that isn't a MAC."""
+    mac = sources.normalise_mac(mac)
+    if not mac:
+        raise ValueError('That is not a MAC address.')
+    rows = ignored(data)
+    if on:
+        rows[mac] = {'by': by, 'at': time.time() if now is None else now, 'note': str(note or '').strip()[:80]}
+    else:
+        rows.pop(mac, None)
+    data[IGNORED] = rows
+    return mac
+
+
+def _infra_ips(data):
+    from . import inventory
+    return {d['mgmt_ip'] for d in inventory.devices(data) if d.get('mgmt_ip')}
+
+
+def _gateway(ip):
+    """The .1 of a /24 is the seat network's gateway, not a PC: left out of ``no_port``."""
+    try:
+        return ipaddress.ip_address(ip).packed[-1] == 1
+    except ValueError:
+        return False
+
+
+def _checkins_started():
+    from integrations import checkin
+    try:
+        return bool(checkin.load_all())
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def find(monitor, data, seats):
-    """One read: ``{"unplanned", "moved", "switches", "failed", "clients"}``."""
+    """One read: ``{"unplanned", "moved", "no_port", "empty", "switches", "failed", "clients"}``."""
     from .syslog import canonical_port  # syslog reads attention, which reads cables: late
     all_cables = cables_mod.all_cables(data) + _hand_ports(data) + _learned_cables()
     by_port = {}
@@ -112,14 +163,19 @@ def find(monitor, data, seats):
                 per_port.setdefault((switch, row['port']), set()).add(mac)
     mac_ip = _arp(monitor, networks(ip_seat)) if per_port else {}
 
+    skip = ignored(data)
     unplanned, moved, clients, seat_ips, seat_macs = [], [], 0, {}, {}
+    on_edge = set()
     for (switch, port), macs in sorted(per_port.items(), key=lambda kv: (kv[0][0].lower(), canonical_port(kv[0][1]))):
         if len(macs) > UPLINK_MACS:
             continue
+        on_edge |= macs
         cable = by_port.get((switch.lower(), canonical_port(port)))
         if cable and not cable.get('seat'):
             continue
         for mac in sorted(macs):
+            if mac in skip:
+                continue
             clients += 1
             # A laptop the ARP poll hasn't seen yet may already have its DHCP lease (dhcp_leases.py).
             ip = mac_ip.get(mac) or leases.ip_for_mac(mac) or ''
@@ -133,8 +189,39 @@ def find(monitor, data, seats):
                 seat_macs[cable['seat']] = {'mac_address': mac, 'ip_address': ip}
             if row['ip_seat'] and row['ip_seat'] != cable['seat'].upper():
                 moved.append({**row, 'seat': cable['seat'], 'cable': cable['label']})
-    return {'unplanned': _listed(unplanned), 'moved': _listed(moved), 'switches': len(switches),
+    # Only from a full read: a switch that didn't answer would make all its PCs look portless.
+    no_port, empty = [], []
+    if not failed:
+        infra = _infra_ips(data)
+        for mac, ip in sorted(mac_ip.items(), key=lambda kv: _ip_key(kv[1])):
+            if mac in on_edge or mac in skip or ip in infra or _gateway(ip):
+                continue
+            no_port.append({'mac': mac, 'ip': ip, 'ip_seat': ip_seat.get(ip, '')})
+    if _checkins_started():
+        read_ok = {s for s, rows, _err in reads if rows is not None}
+        busy = {(sw.lower(), canonical_port(p)) for (sw, p) in per_port}
+        seen = set()
+        for c in all_cables:
+            key = (c['switch'].lower(), canonical_port(c['port']))
+            if not c.get('seat') or c['switch'] not in read_ok or key in busy or c['seat'] in seen:
+                continue
+            seen.add(c['seat'])
+            empty.append({'seat': c['seat'].upper(), 'switch': c['switch'], 'port': c['port']})
+    return {'unplanned': _listed(unplanned), 'moved': _listed(moved), 'no_port': _listed(no_port),
+            'empty': _listed(sorted(empty, key=lambda r: _seat_key(r['seat']))), 'switches': len(switches),
             'failed': failed, 'clients': clients, 'seat_ips': seat_ips, 'seat_macs': seat_macs}
+
+
+def _ip_key(ip):
+    try:
+        return (0, ipaddress.ip_address(ip))
+    except ValueError:
+        return (1, ip)
+
+
+def _seat_key(seat):
+    from .page_index import _seat_key as key
+    return key(seat)
 
 
 def _start(work):
@@ -152,7 +239,15 @@ def without_cabled(state, data=None):
     from . import port_areas
     areas = port_areas.all_areas(data)
     left = [{**r, 'area': port_areas.hint(r['switch'], r['port'], areas)} for r in left]
-    return {**state, 'unplanned': {'count': state['unplanned']['count'] - (len(rows) - len(left)), 'rows': left}}
+    out = {**state, 'unplanned': {'count': state['unplanned']['count'] - (len(rows) - len(left)), 'rows': left}}
+    # Marked as ignored since the read: gone from the lists now, not at the next read.
+    skip = ignored(data if data is not None else load_data())
+    for key in ('unplanned', 'no_port'):
+        rows = out.get(key) or {'count': 0, 'rows': []}
+        kept = [r for r in rows['rows'] if r.get('mac') not in skip]
+        out[key] = {'count': rows['count'] - (len(rows['rows']) - len(kept)), 'rows': kept}
+    out['ignored'] = len(skip)
+    return out
 
 
 class Finder:
@@ -207,8 +302,8 @@ class Finder:
     def state(self):
         with self._lock:
             return {'as_of': self.as_of, 'reading': self._running, 'error': self.error,
-                    **(self.result or {'unplanned': _listed([]), 'moved': _listed([]), 'switches': 0,
-                                       'failed': [], 'clients': 0})}
+                    **(self.result or {'unplanned': _listed([]), 'moved': _listed([]), 'no_port': _listed([]),
+                                       'empty': _listed([]), 'switches': 0, 'failed': [], 'clients': 0})}
 
     def reset(self):
         with self._lock:
@@ -229,6 +324,25 @@ def seat_clients():
         return {seat: dict(v) for seat, v in finder.seat_macs.items()}
 
 
-def init_app(app):
+def _every(finder, stop):
+    """Reads every five minutes while a monitoring source is set up (issue #949), so the lists are
+    ready when the crew looks, not only once someone opens the cables page."""
+    while not stop.wait(EVERY):
+        try:
+            with finder.app.app_context():
+                if sources.monitoring().enabled():
+                    finder.request()
+        except Exception as exc:  # noqa: BLE001  # keep the thread alive
+            print(f'[port-clients] background read failed: {exc}')
+
+
+def init_app(app, start_background=True):
     global _finder
     _finder = app.extensions['floorbit_port_clients'] = Finder(app)
+    started, stop = threading.Event(), threading.Event()
+
+    @app.before_request
+    def start_port_clients_once():
+        if start_background and not started.is_set():
+            started.set()
+            threading.Thread(target=_every, args=(_finder, stop), name='port-clients-every', daemon=True).start()

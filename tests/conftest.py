@@ -188,6 +188,13 @@ def app_module(tmp_path, monkeypatch):
     # Its thread outlives the test and polls for real once the patch above is undone; an agent
     # coming back in a later test wakes every monitor (sources.status_wake), so stop this one.
     monitor.stop()
+    # The collector reads data.json and writes it back (its ingest token). Under Postgres every
+    # test's data.json is one row, so a round that read this test's accounts and wrote after the
+    # next test emptied the table brought them back ("User tester already exists", #1141).
+    from floorbit import telemetry
+    if telemetry._runner is not None:
+        telemetry._runner.stop(wait=10)
+        telemetry._runner = None
 
 
 @pytest.fixture

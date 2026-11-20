@@ -1,6 +1,7 @@
 """Cables and patching (issue #97). The rules live in floorbit/cables.py.
 
-- ``GET /cables``: the page (React); ``/cables?cable=<id>`` opens one cable (what its labels' QR links to).
+- ``GET /cables``: the page (React); ``/cables/<id>`` is one cable's page (what its labels' QR links to),
+  ``/cables/new`` adds one.
 - ``GET /api/cables?q=&seat=``: the cables, and whether a plugin can import them.
 - ``POST /api/cables``, ``PATCH /api/cables/<id>``, ``DELETE /api/cables/<id>``: the crew's own cables.
 - ``POST /api/cables/import``: read the cables from NetBox again (replaces the last import).
@@ -26,6 +27,7 @@ from flask import Blueprint, Response, current_app, g, jsonify, request
 from integrations import events
 
 from .. import agent_link, audit, cables, patch_check, port_areas, port_clients, spa, syslog, walk
+from ..store import load_data, save_data
 
 bp = Blueprint('cables', __name__)
 
@@ -59,6 +61,11 @@ def _picked():
 @bp.route('/cables')
 def cables_page():
     return spa.render('Cables')
+
+
+@bp.route('/cables/<cable_id>')
+def cable_page(cable_id):
+    return spa.render('Cable')
 
 
 @bp.route('/api/cables', methods=['GET'])
@@ -133,6 +140,32 @@ def port_clients_view():
     finder = current_app.extensions['floorbit_port_clients']
     started = finder.request() if request.args.get('read') == '1' else False
     return jsonify({**port_clients.without_cabled(finder.state()), 'started': started})
+
+
+@bp.route('/api/cables/clients/ignored', methods=['GET'])
+def ignored_clients():
+    """The MACs marked as not a seat PC (issue #949), with who did it."""
+    rows = port_clients.ignored(load_data())
+    return jsonify({'ignored': [{'mac': mac, **row} for mac, row in sorted(rows.items())]})
+
+
+@bp.route('/api/cables/clients/ignored', methods=['POST'])
+@bp.route('/api/cables/clients/ignored/<mac>', methods=['DELETE'])
+def ignore_client(mac=None):
+    """``{mac, note}``: a printer or a crew PC leaves the lists of machines without a seat; DELETE
+    puts it back."""
+    body = request.get_json(silent=True) or {}
+    data = load_data()
+    try:
+        mac = port_clients.set_ignored(data, mac or body.get('mac'), on=mac is None, by=g.get('audit_user'),
+                                       note=body.get('note'))
+    except ValueError:
+        return jsonify({'error': 'That is not a MAC address.'}), 400   # the only reason; no exception text out
+    save_data(data)
+    audit.record('cables', 'Ignored a machine' if request.method == 'POST' else 'Stopped ignoring a machine',
+                 g.get('audit_user'), mac)
+    events.publish('cables.changed', {})
+    return jsonify({'ok': True, 'mac': mac})
 
 
 @bp.route('/cables/walk')
