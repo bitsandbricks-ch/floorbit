@@ -12,10 +12,12 @@ from urllib.parse import quote
 import redis
 import requests
 
+from floorbit import edge_ports
 from floorbit.cache import get_cached_mac, get_redis_client, set_cached_mac
 from floorbit.runtime import rt
 
 from . import breaker
+from . import facts as librenms_facts
 from . import ports as librenms_ports
 from .memo import Memo
 
@@ -34,6 +36,8 @@ PORT_ROWS_TTL = 15
 def reset_caches():
     for memo in (_devices, _mac_counts, _resolved, _port_rows):
         memo.clear()
+    librenms_facts.reset_caches()
+    librenms_ports._refused.clear()
 
 
 def _ip(value):
@@ -122,8 +126,7 @@ def fetch_librenms_mac_table(hostname):
     return mac_data
 
 
-# More MACs than this on one port means a switch sits behind it: an uplink, not a seat.
-EDGE_PORT_MACS = 4
+EDGE_PORT_MACS = edge_ports.EDGE_PORT_MACS     # one rule for a seat's port (floorbit/edge_ports.py)
 
 
 def pick_edge_port(entries, macs_on_port, excludes=(), uplink=None):
@@ -508,7 +511,8 @@ def fetch_librenms_device_port_stats_by_interface(hostname, interface):
 
 
 def fetch_device_ports(hostname):
-    """Every port of one switch, summarised like port_stats plus its name and last change."""
+    """Every port of one switch, summarised like port_stats plus its name, last change and what
+    discovery takes as the interface's (mac, ips, vlan, mode; facts.port_facts)."""
     headers = {'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'}
     device = fetch_librenms_device_by_hostname(hostname, headers)
     if not device:
@@ -516,10 +520,26 @@ def fetch_device_ports(hostname):
     device_id = _seg(device.get('device_id') or device.get('hostname'))
     rows = librenms_ports.fetch_ports(
         rt.librenms_url, headers, device_id, verify=rt.librenms_verify_ssl,
-        tiers=(librenms_ports.WATCH_COLUMNS, librenms_ports.DETAIL_COLUMNS, librenms_ports.BASE_COLUMNS)) or []
+        tiers=(librenms_ports.FACT_COLUMNS, librenms_ports.WATCH_COLUMNS, librenms_ports.DETAIL_COLUMNS,
+               librenms_ports.BASE_COLUMNS)) or []
+    ips = librenms_facts.ips_by_port(device_id) if rows else {}
     return [{'name': row.get('ifName'), 'last_change': row.get('ifLastChange'),
-             **librenms_ports.summarize_port(row, rt.librenms_url, device.get('device_id'))}
+             **librenms_ports.summarize_port(row, rt.librenms_url, device.get('device_id')),
+             **librenms_facts.port_facts(row, ips)}
             for row in rows if row.get('ifName')]
+
+
+def device_facts(hostname):
+    """What LibreNMS knows the device is (VLANs, networks, optics), shaped like telemetry's
+    ``Device.summary()``; {} when LibreNMS doesn't know it."""
+    headers = {'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'}
+    device = fetch_librenms_device_by_hostname(hostname, headers)
+    if not device:
+        return {}
+    device_id = _seg(device.get('device_id') or device.get('hostname'))
+    ports = librenms_ports.fetch_ports(rt.librenms_url, headers, device_id, verify=rt.librenms_verify_ssl,
+                                       tiers=(['port_id', 'ifIndex', 'ifName'],)) or []
+    return librenms_facts.summary(device_id, ports)
 
 
 def list_devices():

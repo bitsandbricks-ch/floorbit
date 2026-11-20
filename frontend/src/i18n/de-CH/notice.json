@@ -2,7 +2,7 @@
   "menu": "Crew-Mitteilung",
   "title": "Crew-Mitteilung",
   "editTitle": "Crew-Mitteilung",
-  "intro": "Eine kurze Nachricht an die ganze Crew. Sie steht zuoberst auf jeder Crew-Seite und auf dem Hallenplan und ersetzt die vorherige.",
+  "intro": "Eine kurze Nachricht an die ganze Crew. Sie erscheint oben in der Leiste jeder Crew-Seite und auf dem Hallenplan und ersetzt die vorherige.",
   "text": "Nachricht",
   "left_one": "Noch {{count}} Zeichen",
   "left_other": "Noch {{count}} Zeichen",
@@ -17,5 +17,6 @@
   "takeDown": "Entfernen",
   "by": "{{name}}, {{time}}",
   "until": "bis {{time}}",
-  "hide": "Mitteilung ausblenden"
+  "markRead": "Als gelesen markieren",
+  "change": "Ändern"
 }

@@ -1,7 +1,7 @@
 {
   "title": "Walk the row",
   "intro": "Plug a laptop in at one seat after the other: Floorbit shows which switch port just came up, and one tap puts that seat on it.",
-  "pick": "Pick a block and its switch",
+  "pick": "Pick the rows and their switch",
   "start_one": "Start with {{count}} seat",
   "start_other": "Start with {{count}} seats",
   "progress": "Seat {{n}} of {{of}} · {{done}} found",

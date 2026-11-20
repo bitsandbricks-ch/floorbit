@@ -113,7 +113,7 @@ nav:
       - Network status page: status-page.md
       - Stats wall: stats-wall.md
       - Schedule: schedule.md
-      - Past events: events.md
+      - Events: events.md
   - How it works:
       - Overview: how-it-works.md
       - Seats, ports and MACs: how-seat-mapping.md

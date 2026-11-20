@@ -59,6 +59,17 @@ body {
 }
 .fb-topbar-search:hover { border-color: color-mix(in srgb, var(--color-fg) 22%, var(--color-line)); color: var(--color-muted); }
 .fb-topbar-bell { position: relative; }
+/* The crew notice (components/CrewNotice.tsx): coloured while new, quiet once read. */
+.fb-notice-badge {
+  display: flex; align-items: center; gap: 6px; height: 28px; max-width: 260px; padding: 0 10px; flex: none;
+  border: 1px solid transparent; border-radius: var(--radius-pill); font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
+}
+.fb-notice-badge.is-compact { width: 36px; height: 36px; padding: 0; justify-content: center; }
+.fb-notice-badge-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-notice-badge.is-info { background: color-mix(in srgb, var(--color-trace) 18%, transparent); color: var(--color-trace); }
+.fb-notice-badge.is-warn { background: color-mix(in srgb, var(--color-warn) 22%, transparent); color: var(--color-warn); }
+.fb-notice-badge.is-quiet { background: transparent; border-color: var(--color-line); color: var(--color-muted); }
+.fb-notice-badge:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; }
 .fb-topbar-count {
   position: absolute; top: 2px; right: 0; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-pill);
   background: var(--color-warn); color: #111; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
@@ -68,18 +79,28 @@ body {
 @media (max-width: 767.98px) { .fb-topbar { display: none; } }
 
 /* The status line under every page (components/StatusLine.tsx), with the attribution at its end. */
+/* Desktops: pinned to the window's foot like the top bar to its head, so the network state stays in
+   view on long pages (#1202). Phones keep it at the page's end: their tab bar already holds the foot. */
+:root { --fb-status-h: 33px; }
 .fb-status {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; min-height: 32px; padding: 4px 16px 4px 24px;
+  display: flex; align-items: center; flex-wrap: nowrap; gap: 6px 18px; min-height: 32px; padding: 4px 16px 4px 24px;
   border-top: 1px solid var(--color-line); background: var(--color-ink);
   font-family: var(--font-mono); font-size: 11.5px; color: var(--color-muted);
+  position: sticky; bottom: 0; z-index: 20; white-space: nowrap; overflow: hidden;
 }
 .fb-status-item { display: inline-flex; align-items: center; gap: 7px; color: inherit; text-decoration: none; }
 a.fb-status-item:hover { color: var(--color-fg); }
 .fb-status-grow { flex: 1; }
 .fb-status .fb-attribution { padding: 0; align-items: center; }
 .fb-status .fb-version { flex-basis: auto; font-size: 11px; }
+/* One line, so the pinned footer stays thin: the attribution's pills side by side, the least
+   needed parts first to go on narrower windows. */
+.fb-status .fb-attribution { flex-wrap: nowrap; }
+@media (max-width: 1279.98px) { .fb-status .fb-version { display: none; } }
+@media (max-width: 1023.98px) { .fb-status-when { display: none; } }
 @media (max-width: 767.98px) {
-  .fb-status { padding: 8px 16px; justify-content: center; }
+  :root { --fb-status-h: 0px; }
+  .fb-status { position: static; flex-wrap: wrap; white-space: normal; padding: 8px 16px; justify-content: center; }
   .fb-status-grow { display: none; }
 }
 
@@ -162,11 +183,12 @@ a.fb-status-item:hover { color: var(--color-fg); }
 
 .fb-header { justify-content: space-between; }
 .fb-header-brand { display: flex; align-items: center; height: 36px; color: inherit; }
+.fb-header-end { display: flex; align-items: center; gap: 6px; }
 .fb-header-brand .fb-brand { --fb-brand-h: 26px; }
 @media (min-width: 768px) {
   /* Keyboard focus must never land on something hidden: the sidebar has both. */
   /* Doubled class: nav.css loads later and would show the button again. */
-  .fb-header .fb-header-brand, .fb-header .fb-header-search { display: none; }
+  .fb-header .fb-header-brand, .fb-header .fb-header-search, .fb-header .fb-notice-badge { display: none; }
   .fb-header {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap; border: 0;
@@ -818,6 +840,74 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-login-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
 .fb-login-discord:hover { background: #4752c4; border-color: #4752c4; }
 
+/* The sign-in page (pages/Login.tsx, issue #1192): the event's brand and a hall on the left, the
+   way in on the right. Phones: one column, a short strip of the hall on top. Colours are the
+   theme's tokens, so the event's accent and highlight carry through. */
+.fb-signin { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 520px); background: var(--color-ink); }
+.fb-signin-hall {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 40px; min-width: 0;
+  padding: 44px clamp(32px, 5vw, 72px); overflow: hidden;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--color-fg) 8%, transparent) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+}
+.fb-signin-brand { --fb-brand-h: 30px; display: flex; }
+.fb-signin-brand .fb-public-logo { max-height: 48px; }
+.fb-signin-tagline { max-width: 720px; }
+.fb-signin-claim { margin: 0; font-size: clamp(28px, 2.7vw, 40px); line-height: 1.1; font-weight: 600; letter-spacing: -0.03em; color: var(--color-fg); }
+.fb-signin-sub { margin: 10px 0 0; font-size: 16px; color: var(--color-muted); }
+.fb-hall-art { --cell: 16px; align-self: center; display: flex; flex-direction: column; gap: 20px; }
+.fb-hall-block { display: flex; align-items: flex-start; gap: 12px; }
+.fb-hall-label { width: var(--cell); font: 500 12px/var(--cell) var(--font-mono); color: var(--color-muted); }
+.fb-hall-seats { display: grid; grid-template-columns: repeat(16, var(--cell)); gap: 5px; }
+.fb-hall-seat { height: var(--cell); border-radius: 4px; background: var(--color-raised); }
+.fb-hall-seat.is-in { background: color-mix(in srgb, var(--color-bit) 22%, var(--color-raised)); }
+.fb-hall-seat.is-warn { background: color-mix(in srgb, var(--color-warn) 45%, var(--color-raised)); }
+.fb-hall-seat.is-traced { background: var(--color-trace); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-trace) 22%, transparent); }
+.fb-hall-link { display: flex; align-items: center; height: var(--cell); }
+.fb-hall-wire { width: 44px; height: 2px; background: var(--color-line); }
+.fb-hall-wire.is-traced { background: var(--color-trace); }
+.fb-hall-switch {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px; white-space: nowrap;
+  font: 12px var(--font-mono); color: var(--color-muted);
+  background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-bit);
+}
+.fb-hall-switch.is-traced { border-color: var(--color-trace); color: var(--color-fg); }
+.fb-hall-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-up); }
+.fb-signin-side {
+  display: flex; flex-direction: column; gap: 24px; padding: 40px clamp(24px, 4vw, 72px) 24px;
+  background: var(--color-surface); border-left: 1px solid var(--color-line);
+}
+.fb-signin-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 28px; width: 100%; max-width: 380px; margin: 0 auto; }
+.fb-signin-title { font-size: 28px; letter-spacing: -0.025em; }
+.fb-signin-title[data-small] { font-size: 22px; }
+/* The attendee's way in, above the crew's sign-in. */
+.fb-signin-checkin {
+  display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: var(--radius-card);
+  background: var(--color-bit-soft); border: 1px solid color-mix(in srgb, var(--color-bit) 40%, transparent);
+}
+.fb-signin-checkin-head { display: flex; gap: 12px; align-items: flex-start; }
+.fb-signin-checkin-head svg { color: var(--color-bit); flex-shrink: 0; margin-top: 2px; }
+.fb-signin-checkin-title { font-size: 16px; }
+.fb-signin-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.fb-signin-prefs { display: flex; align-items: center; gap: 8px; }
+.fb-signin-foot .fb-attribution { padding: 0; }
+@media (max-width: 960px) {
+  .fb-signin { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .fb-signin-hall { gap: 18px; padding: 20px 16px; border-bottom: 1px solid var(--color-line); }
+  .fb-signin-brand { --fb-brand-h: 26px; }
+  .fb-hall-art { --cell: 10px; align-self: flex-start; gap: 10px; }
+  .fb-hall-block:nth-child(n + 3), .fb-hall-label, .fb-signin-tagline { display: none; }
+  .fb-hall-seats { gap: 4px; }
+  .fb-hall-seat { border-radius: 3px; }
+  .fb-hall-seat.is-traced { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-trace) 22%, transparent); }
+  .fb-hall-wire { width: 20px; }
+  .fb-hall-switch { font-size: 11px; padding: 2px 6px; }
+  .fb-hall-dot { display: none; }
+  .fb-signin-side { border-left: 0; padding: 24px 16px 16px; }
+  .fb-signin-body { max-width: 480px; justify-content: flex-start; gap: 24px; }
+}
+@media (max-width: 359px) { .fb-hall-art { display: none; } }
+
 /* Side panels, sections and fields (components/ui.tsx): one way to show an item's details. */
 /* Mantine puts the class on the drawer's inner wrapper too; only the panel itself is a column. */
 .mantine-Drawer-content.fb-sidepanel { display: flex; flex-direction: column; height: 100%; border-left: 1px solid var(--color-line); }
@@ -840,7 +930,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 /* Settings: the save bar stays on screen while there are unsaved changes. */
 .fb-savebar {
   position: sticky;
-  bottom: 12px;
+  bottom: calc(var(--fb-status-h) + 12px);
   margin-top: 16px;
   z-index: 5;
 }
@@ -1001,3 +1091,58 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 /* The shared filter bar (#1020): the filter's name quiet, its count in numbers. */
 .fb-filterbar-key { color: var(--color-muted); font-weight: 400; }
 .fb-filterbar-count { margin-left: 6px; font-family: var(--mantine-font-family-monospace); font-size: 12px; color: var(--color-muted); }
+/* A settings row (#994): what it is and its help on the left, the control on the right, every
+   control the same width, so a wide screen doesn't leave half the panel empty. One column on phones. */
+.fb-setting-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 8px 32px; align-items: start;
+  padding: 14px 0; border-top: 1px solid var(--mantine-color-default-border);
+}
+.fb-setting-rows > :first-child .fb-setting-row, .fb-setting-rows > .fb-setting-row:first-child { border-top: 0; padding-top: 4px; }
+.fb-setting-about { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 640px; }
+.fb-setting-control { min-width: 0; display: flex; justify-content: flex-start; }
+@media (max-width: 48em) {
+  .fb-setting-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Settings' folded Advanced part (#991): a quiet line under the section's own rows. */
+.fb-setting-advanced { border-top: 1px solid var(--mantine-color-default-border); margin-top: 4px; padding-top: 10px; }
+.fb-agent-fold:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+.fb-setting-advanced.is-alone { border-top: 0; margin-top: 0; padding-top: 0; }
+.fb-setting-advanced-toggle { display: inline-flex; align-items: baseline; gap: 8px; padding: 4px 0; }
+.fb-setting-advanced-toggle svg { transition: transform 120ms ease; align-self: center; }
+.fb-setting-advanced-toggle svg.is-open { transform: rotate(90deg); }
+
+/* Inventory list: sortable column heads and quiet row hints */
+.fb-sort { display: inline-flex; align-items: center; gap: 4px; font: inherit; color: inherit; white-space: nowrap; }
+.fb-sort:hover { color: var(--mantine-color-text); }
+.fb-dim { color: var(--mantine-color-dimmed); flex: none; }
+
+/* Switch terminal workspace (issue #1207): tabs on top, the terminal edge to edge below. The
+   terminal itself stays dark in both themes, like any console. */
+.fb-term { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.fb-term-tabs {
+  display: flex; align-items: stretch; gap: 2px; padding: 6px 8px 0; overflow-x: auto; flex: none;
+  border-bottom: 1px solid var(--color-line); background: var(--color-surface);
+}
+.fb-term-tab {
+  display: flex; align-items: center; gap: 2px; padding: 0 4px 0 0; border: 1px solid transparent;
+  border-bottom: 0; border-radius: 6px 6px 0 0; color: var(--color-muted); background: none; flex: none;
+}
+.fb-term-tab[data-active] { background: var(--fb-term-bg); border-color: var(--color-line); color: #e7e7ea; }
+.fb-term-tab-new[data-active] { background: var(--color-ink); color: var(--color-fg); }
+.fb-term-tab:hover:not([data-active]) { color: var(--color-fg); }
+.fb-term-tab-name, .fb-term-tab-new {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: none; border: 0;
+  color: inherit; font: inherit; font-size: 13px; cursor: pointer;
+}
+.fb-term-tab-name span:not(.fb-bit) { font-family: var(--font-mono); }
+.fb-term-tab-new { padding: 8px 12px; }
+.fb-term-tab[data-active] .mantine-ActionIcon-root { color: #a0a0a8; }
+.fb-term-body { flex: 1; min-height: 0; position: relative; background: var(--fb-term-bg); }
+.fb-term-pane { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.fb-term-pane[hidden] { display: none; }
+.fb-term-screen { flex: 1; min-height: 0; padding: 8px 4px 4px 12px; }
+.fb-term-new { position: absolute; inset: 0; overflow: auto; padding: 32px 16px; background: var(--color-ink); }
+.fb-term-connect { max-width: 760px; margin: 0 auto; }
+.fb-term-foot { flex: none; padding: 6px 12px; border-top: 1px solid var(--color-line); background: var(--color-surface); }
+:root { --fb-term-bg: #0b0b0f; }   /* the dark page colour, in both themes */

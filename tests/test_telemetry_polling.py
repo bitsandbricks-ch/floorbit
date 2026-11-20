@@ -103,3 +103,15 @@ def test_the_agent_executor_helper_falls_back_too(registry, monkeypatch):
                         lambda: [registry.specs['librenms'], registry.specs['telemetry']])
     assert sources.call_monitoring(registry, 'arp', '192.0.2.31')[0]['mac_address'] == '02:00:00:00:00:31'
     assert ('telemetry', 'arp') in calls
+
+
+def test_telemetry_polls_the_temperature_with_the_ports(registry, monkeypatch):
+    """Issue #1085: the switch panel keeps its temperature when Telemetry polls instead of LibreNMS."""
+    from floorbit import runtime
+    monkeypatch.setattr(runtime.rt, 'librenms_enabled', False)
+    plan = polling.plan(registry)
+    conf = '\n'.join(telegraf.snmp(polling.apply([SWITCH], plan)[0]))
+    assert 'fb_envtemp' in conf and '1.3.6.1.4.1.9.9.13.1.3.1.3' in conf     # CISCO-ENVMON
+    assert 'fb_sensor' in conf and '1.3.6.1.2.1.99.1.1.1.4' in conf          # ENTITY-SENSOR
+    other = '\n'.join(telegraf.snmp(polling.apply([{**SWITCH, 'platform': 'linux'}], plan)[0]))
+    assert 'fb_envtemp' not in other and 'fb_sensor' in other
