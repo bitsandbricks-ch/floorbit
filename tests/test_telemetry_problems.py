@@ -20,6 +20,9 @@ REFUSED = ("2026-11-19T08:18:30Z E! [inputs.snmp::sw-a-01] Error in plugin: agen
 GNMI = ('2026-11-19T08:21:05Z E! [inputs.gnmi::core-01] Error in plugin: failed to setup subscription: rpc error: '
         'code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 192.0.2.1:50051: '
         'connect: connection refused"')
+VLAN_TIMEOUT = ("2026-11-19T17:19:10Z E! [inputs.snmp::access-a1@vlan1] Error in plugin: agent udp://192.0.2.20:161: "
+                "gathering table fb_bridge: performing bulk walk for field ifIndex: request timeout (after 1 retries): "
+                "max retries exceeded")
 TARGET = {"id": "a1", "name": "sw-a-01", "address": "192.0.2.21", "kind": "switch", "platform": "ios",
           "drivers": ["snmp", "traps"], "snmp_version": "2c", "community": "example", "tables": True}
 
@@ -325,7 +328,9 @@ def test_the_crew_cannot_test_or_read_raw_lines(anon_client):
 def test_test_now_and_silent_devices_are_logged(tmp_path, monkeypatch):
     agent = importlib.import_module("floorbit.builtin_plugins.telemetry.agent")
     monkeypatch.setattr(supervisor, "binary", lambda: None)
-    ctx = AgentCtx("telemetry", {"targets": [TARGET]}, {}, state_dir=str(tmp_path))
+    # A device that only sends traps speaks when something happens: a quiet minute is no news.
+    traps_only = {**TARGET, "id": "a2", "name": "pdu-01", "drivers": ["traps"]}
+    ctx = AgentCtx("telemetry", {"targets": [TARGET, traps_only]}, {}, state_dir=str(tmp_path))
     plugin = agent.AgentPlugin(ctx)
     plugin.start()
     try:
@@ -340,3 +345,60 @@ def test_test_now_and_silent_devices_are_logged(tmp_path, monkeypatch):
         assert ctx.lines[-1] == "nothing in the last minute from 1: sw-a-01"
     finally:
         ctx.stopping.set()
+
+
+def test_a_vlan_that_does_not_answer_is_named_and_does_not_flap():
+    found = problems.parse_line(VLAN_TIMEOUT)
+    assert found["device"] == "access-a1" and found["vlan"] == 1 and found["table"] == "fb_bridge"
+    assert found["kind"] == "timeout"
+    hint = problems.hint(found)
+    assert "VLAN 1" in hint and "community@1" in hint and "ACL" not in hint and "telemetry_vlans" in hint
+    # A walk that times out without a VLAN: not blamed on the login alone.
+    walk = problems.parse_line(VLAN_TIMEOUT.replace("access-a1@vlan1", "access-a1"))
+    assert "vlan" not in walk and "fb_bridge" in problems.hint(walk)
+    # The switch's other polls answer: that doesn't end this VLAN's problem, so it isn't logged anew.
+    p = problems.Problems()
+    assert p.note(found, now=100)
+    p.heard({"access-a1"}, at=130)
+    assert not p.note(found, now=160)
+    assert [x["vlan"] for x in p.of("access-a1", now=170)] == [1]
+    assert p.of("access-a1", now=160 + problems.FORGET_AFTER + 1) == []
+
+
+def test_one_vlan_that_does_not_answer_is_not_a_failing_device(tmp_path, monkeypatch):
+    agent = importlib.import_module("floorbit.builtin_plugins.telemetry.agent")
+    line = VLAN_TIMEOUT.replace("access-a1@vlan1", "sw-a-01@vlan1").replace("192.0.2.20", "192.0.2.21")
+    monkeypatch.setenv("FLOORBIT_TELEGRAF_BIN", fake_telegraf(tmp_path, [line, REFUSED]))
+    ctx = AgentCtx("telemetry", {"targets": [TARGET]}, {"sends": {"series": {"privacy": "device"}}},
+                   state_dir=str(tmp_path))
+    plugin = agent.AgentPlugin(ctx)
+    plugin.start()
+    try:
+        assert wait_for(lambda: len(plugin.problems.current()) == 2)
+        # The device's own problem isn't hidden behind its VLAN's: both are logged.
+        assert any("no answer from 192.0.2.21:161 for VLAN 1" in x for x in ctx.lines)
+        assert any("nothing listens for SNMP" in x for x in ctx.lines)
+        token = (tmp_path / "own-telegraf-token").read_text()
+        time.sleep(1.1)
+        sent = b"fb_if,device=sw-a-01,driver=snmp,agent_host=192.0.2.21,ifIndex=1,ifName=Gi1/0/1 ifOperStatus=1i"
+        assert ctx.handler("POST", "/write", {"Authorization": f"Token {token}"}, sent)[0] == 204
+        # It sends: its own problem is over, VLAN 1's is not, and that is no failing device.
+        assert [p.get("vlan") for p in plugin.problems.current()] == [1]
+        plugin.report(time.time())
+        report = ctx.health_.report()
+        assert report["hint"] == "device_partial" and "1 of 1 devices answer only in part" in report["message"]
+        assert report["metrics"]["devices_failing"] == 0
+    finally:
+        plugin.stop()
+
+
+def test_api_poller_errors_keep_the_cause():
+    """"ConnectionError" alone reads the same for a closed port, no route and a wrong name."""
+    from floorbit.telemetry import pollers
+    refused = OSError('HTTPSConnectionPool(...): Failed to establish a new connection: '
+                      '[Errno 111] Connection refused"))')
+    named = OSError("Failed to resolve 'sw.example.org' ([Errno -2] Name or service not known)")
+    assert pollers._why(refused) == "OSError: Connection refused"
+    assert problems.kind_of(pollers._why(refused)) == "refused"
+    assert problems.kind_of(pollers._why(named)) == "unreachable"
+    assert pollers._why(TimeoutError("read timed out")) == "TimeoutError"

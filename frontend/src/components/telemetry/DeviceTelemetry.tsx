@@ -17,8 +17,9 @@ const PROBLEM_DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/d
 export function ProblemLine({ p }: { p: DeviceProblem }) {
   const { t } = useTranslation()
   const driver = t(`telemetry.driver.${p.driver}`, { defaultValue: p.driver })
-  const key = p.kind === 'timeout' && p.driver === 'snmp' ? 'timeout_snmp' : p.kind
-  const text = t(`telemetry.problem.${key}`, { driver, address: p.address || '–', detail: p.detail, defaultValue: p.hint || p.detail })
+  const snmpTimeout = p.kind === 'timeout' && p.driver === 'snmp'
+  const key = snmpTimeout ? (p.vlan ? 'timeout_vlan' : p.table ? 'timeout_table' : 'timeout_snmp') : p.kind
+  const text = t(`telemetry.problem.${key}`, { driver, address: p.address || '–', detail: p.detail, vlan: p.vlan, table: p.table, defaultValue: p.hint || p.detail })
   return (
     <Text size="xs" c={p.kind === 'other' ? 'warn' : 'down'} title={p.at ? `${p.detail} (${dateTime(p.at)})` : p.detail} style={{ overflowWrap: 'anywhere' }}>
       {text} <Anchor href={PROBLEM_DOCS} target="_blank" rel="noreferrer" size="xs">{t('telemetry.problem.docs')}</Anchor>
@@ -28,7 +29,7 @@ export function ProblemLine({ p }: { p: DeviceProblem }) {
 
 export function DeviceProblems({ problems }: { problems?: DeviceProblem[] }) {
   if (!problems?.length) return null
-  return <>{problems.map((p) => <ProblemLine key={`${p.driver}-${p.kind}`} p={p} />)}</>
+  return <>{problems.map((p) => <ProblemLine key={`${p.driver}-${p.kind}-${p.vlan ?? ''}`} p={p} />)}</>
 }
 
 function RawLines({ lines }: { lines: string[] }) {

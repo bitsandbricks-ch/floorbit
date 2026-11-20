@@ -7,7 +7,8 @@ does the collecting; Floorbit tells it what to ask and keeps what comes back.
 
 LibreNMS stays a choice: the **Telemetry** plugin is one more monitoring source next to LibreNMS,
 Prometheus, Zabbix and the rest (Settings > Plugins). Only one answers at a time; see
-[Who polls the switches](#who-polls-the-switches) for how Telemetry and LibreNMS share the work.
+[Who polls the switches](#who-polls-the-switches) for how Telemetry and LibreNMS share the work, and
+[Network segments](segments.md) for the VLANs where check-ins may look PCs up.
 
 ## Who polls the switches
 
@@ -26,7 +27,8 @@ sees it on its next 5-minute poll. The device facts (model, software, interfaces
 inventory ([discovery](inventory.md)).
 
 When Telemetry polls, it walks the ARP and MAC tables every **ARP and MAC tables every (minutes)**
-(default 1; 0: never). When the chosen source doesn't know an IP, Floorbit asks the other
+(0: never). **Auto** (the default) walks them every 15 minutes while a [network segment](segments.md)
+has lookups on, because check-ins then ask the switches for their one PC, and every minute otherwise. When the chosen source doesn't know an IP, Floorbit asks the other
 monitoring source before giving up, and the answer says which one gave it (`answered_by`). The
 agent's log says who polls whenever that changes:
 
@@ -74,9 +76,11 @@ in from each device (find and filter by problems or never heard), the collector'
     gNMI, NX-API and RESTCONF.
 
 2. **Catalyst IOS (2960-X, 4500 on IOS-XE 3.x)** answers MAC tables one VLAN at a time. That is
-   the default on IOS; Floorbit reads the VLANs on the device's interfaces, or the ones listed in
+   the default on IOS; Floorbit reads the VLANs the switch lists itself (discovery's VTP walk, without
+   the reserved 1002 to 1005), else the VLANs on its interfaces, or the ones listed in
    `telemetry_vlans`. Floorbit then asks `community@vlan` (v2c) or the
-   `vlan-<id>` context (v3). Nexus and IOS-XE 16+ answer Q-BRIDGE in one table.
+   `vlan-<id>` context (v3). A VLAN the switch doesn't have gets no answer at all, so each VLAN is
+   its own poll and a problem names it ("no answer for VLAN 30"). Nexus and IOS-XE 16+ answer Q-BRIDGE in one table.
 
 3. **Telegraf.** The local agent runs it: it is in the agent image, and the Telemetry plugin starts
    it, writes its config from the inventory's devices and reloads it when they change (agent.md,
@@ -99,12 +103,17 @@ agent's page names the first one, and the agent's log has each new one with the 
 | --- | --- | --- |
 | Nothing listens on *address* | The device answered "port closed" (ICMP port unreachable, TCP reset) | SNMP, gNMI or the API is off on the device, listens on another port, or only on another address (`snmp-server` on a management VRF) |
 | No answer from *address* | Nothing came back in time | For SNMP a wrong community or SNMPv3 login looks exactly like this (the device stays silent), as does an ACL that doesn't list the agent's address; for the others, a firewall on the way |
+| No answer for VLAN *n* | The switch answers SNMP, but not `community@n` (or the `vlan-n` context) | The switch doesn't have that VLAN (fix `telemetry_vlans`), or with SNMPv3 the user's group doesn't allow the `vlan-` contexts |
+| No answer while reading *table* | A table walk timed out | If the device's other data comes in, the walk is too slow: a very big table, or SNMP rate limited on the device. If nothing comes in, as "No answer" above |
 | Refused the login | The device said no to the user, password, SNMPv3 keys or API key | The login on the device or in Floorbit; refused logins aren't tried again until cleared (agent-plugins.md, "Failed logins") |
 | No route to *address* | The agent's machine can't reach that network | The address, and the agent machine's routes or VLAN |
 | TLS failed | The certificate didn't check out | The device's certificate, or turn off **Check TLS** for it |
 | Cannot open its listening port | Telegraf can't take traps or MDT | Another program holds the port in the container, or an old telegraf container still runs |
 
-A problem goes away when the device sends again, or after three minutes without the error.
+A problem goes away when the device sends again, or after three minutes without the error. One
+VLAN's or one table's problem only goes away by not coming back, since the device's other data keeps
+coming in. Such a device doesn't count as failing: the agent's health says "answer only in part"
+instead. A device that only sends traps isn't listed as silent when a minute passes without one.
 
 **Test now** collects from one device once, through the agent, and shows what came back or the exact
 error; **Raw data** shows the last lines Telegraf sent for it. On the agent machine,
@@ -138,7 +147,7 @@ where it comes from. A device's tab also shows its last word, **Test now**, **Ra
 | --- | --- |
 | `telemetry_drivers` | the ways to collect, like `snmp, traps, gnmi` (instead of the automatic ones) |
 | `telemetry_fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
-| `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs on its interfaces) |
+| `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs the switch lists, else the ones on its interfaces) |
 | `telemetry_agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
 | `telemetry_port_snmp`, `telemetry_port_gnmi`, `telemetry_port_api` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
 | `telemetry_address` | where the agent reaches the device, when not its management address |
@@ -165,6 +174,61 @@ device's ports (`device_ports`), and the switch's budget in discovery's `discove
 
 A login the device refuses is blocked on the inventory device, like any stored login: it isn't
 tried again until a tech clears it or the password changes.
+
+## Wireless controllers
+
+### Catalyst 9800
+
+A Catalyst 9800 (the 9800-CL VM or the appliances) streams its access points over the same MDT
+dial-out as the switches, and the [Wi-Fi view](wifi.md) shows them: each AP up or down, and per
+radio its band, channel, width, channel utilization and client count, every 30 seconds.
+
+1. Add the controller to the inventory with platform **IOS-XE** and its model (`C9800-CL-K9`,
+   `C9800-40-K9`, ...): the model tells Floorbit it is a wireless controller. Turn the Telemetry
+   feature on and choose **MDT** as the way to collect.
+2. Paste **Device setup** from its Telemetry tab on the controller. Besides the interfaces it
+   subscribes to three paths, every 30 seconds:
+
+   | Path | What Floorbit takes |
+   | --- | --- |
+   | `/wireless-access-point-oper:access-point-oper-data/capwap-data` | each joined AP: name, model, joined or not |
+   | `/wireless-access-point-oper:access-point-oper-data/radio-oper-data` | each radio: band, channel, width, on or off |
+   | `/wireless-rrm-oper:rrm-oper-data/rrm-measurement` | each radio: channel utilization, clients |
+
+   ```
+   telemetry ietf subscription 102
+    encoding encode-kvgpb
+    filter xpath /wireless-access-point-oper:access-point-oper-data/capwap-data
+    stream yang-push
+    update-policy periodic 3000
+    receiver ip address 192.0.2.10 57000 protocol grpc-tcp
+   ```
+
+### AireOS (5520, 3504, 8540)
+
+An AireOS controller answers its access points over SNMP (AIRESPACE-WIRELESS-MIB). Add it to the
+inventory with its model (`AIR-CT5520-K9`, ...) and an SNMP login, and turn the Telemetry feature
+on. Every minute Telemetry reads three tables: the APs (`bsnAPTable`: name, model, joined), their
+radios (`bsnAPIfTable`: band, channel, on or off) and the radios' load (`bsnAPIfLoadParametersTable`:
+channel utilization, clients). It does this even while [LibreNMS polls](#who-polls-the-switches):
+LibreNMS reads the same tables but has no API for them. The client table (`bsnMobileStationTable`)
+is never asked for.
+
+### Both
+
+Every 30 seconds the controller's numbers are stored with the rest of the telemetry: `wifi_clients`
+on the controller, and per AP (as its `port`) `clients` and `utilization` (its busiest radio). The
+[Wi-Fi view](wifi.md) draws clients over time from them, and `GET /api/telemetry/series` reads any of
+them.
+
+An AP the controller stops naming reads **down** after three minutes and leaves the list after a
+day. When a Wi-Fi plugin (Cisco WLC, UniFi, ...) names the same AP, the stream wins.
+
+The controller's client list is never subscribed to. Should a controller stream one anyway (a
+`client-oper` path), it is neither understood nor stored.
+
+<!-- TODO(Mike): checked against the YANG models only; confirm the field names on a live 9800-CL
+with "Raw data" before the first event (docs: floorbit-wlc-telemetry). -->
 
 ## Two agents (VRRP)
 
@@ -254,6 +318,8 @@ accounts on the devices.
   authPriv (SHA/AES, the default for v3) wherever the devices allow it.
 - **Traps and Cisco MDT** carry no token, so Floorbit only takes them from a device set up here
   with that address (or MDT node name). Anything else is counted as unknown and dropped.
+- **A wireless controller's client list** (`client-oper` paths) is dropped before storage, whatever
+  alias it comes under.
 - **Cisco MDT over TLS:** plain gRPC lets anyone on the management network send counters. Give
   Telegraf a certificate (`FLOORBIT_TELEGRAF_MDT_CERT`, `FLOORBIT_TELEGRAF_MDT_KEY`, paths as
   Telegraf sees them, and `FLOORBIT_TELEGRAF_MDT_CA` to take only devices with a certificate from
