@@ -218,7 +218,9 @@ Never build a path from `store.DATA_FILE`. Use:
 - `store.tenant_file(configured)` and `store.event_file(configured)` for a file someone can
   configure (`CHECKIN_FILE`, `PLUGINS_FILE`): on the first event it stays exactly as configured,
   on a later one the same name goes into that event's folder;
-- `store.load_data()` and `store.save_data()` for the current event's `data.json`.
+- `store.load_data()` and `store.save_data()` for the current event's `data.json`. A document from
+  `load_data()` is saved back to the event it was loaded from, even when another event is current by
+  then; a dict the caller built goes to the current event.
 
 Code runs for the live event unless it picks another one with `tenancy.using_event(event)`.
 
