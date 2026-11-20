@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { State, Widget } from '@/api/types'
 import type { Level } from '../level'
-import { partsOf, slices } from './shape'
+import { useNumberStyle } from './display'
+import { formatValue, partsOf, slices } from './shape'
 
 /** A donut of how a whole splits up: states, or a list's numbers (seven slices at most). Hover a
  *  slice or its legend row for its count and share. */
 export function PieKind({ widget, level, box }: { widget: Widget; level: Level; box: { w: number; h: number } }) {
   const { t, i18n } = useTranslation()
   const [hot, setHot] = useState<number | null>(null)
+  const style = useNumberStyle()
   const parts = slices(partsOf(widget, (s: State) => t(`widgets.state.${s}`), i18n.language), t('widgets.kind.other'), i18n.language)
   const total = parts.reduce((a, p) => a + p.value, 0)
   if (!total) return <div className="fb-w-empty">{t('widgets.kind.noData')}</div>
@@ -35,7 +37,7 @@ export function PieKind({ widget, level, box }: { widget: Widget; level: Level; 
           )
         })}
         </g>
-        <text x={50} y={focus ? 50 : 55} className="fb-w-pie-total">{focus ? focus.text : total.toLocaleString(i18n.language)}</text>
+        <text x={50} y={focus ? 50 : 55} className="fb-w-pie-total">{focus ? focus.text : centre(total, i18n.language, style)}</text>
         {focus && <text x={50} y={64} className="fb-w-pie-sub">{`${pct(focus.value)} %`}</text>}
       </svg>
       {legend && (
@@ -52,4 +54,9 @@ export function PieKind({ widget, level, box }: { widget: Widget; level: Level; 
       )}
     </div>
   )
+}
+
+/** The whole in the middle of the ring: short (1.1T, not 1,105,774,540,503), so it fits. */
+function centre(total: number, lang: string, style: { decimals?: number; short?: boolean }) {
+  return formatValue(total, '', lang, { short: true, ...style }).value
 }

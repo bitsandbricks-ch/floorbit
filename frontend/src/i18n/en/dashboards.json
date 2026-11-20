@@ -41,7 +41,9 @@
     "block": "Seat block",
     "zone": "Zone",
     "box": "My view",
-    "blockName": "Block {{name}}"
+    "blockName": "Block {{name}}",
+    "rows": "Rows {{rows}}",
+    "fromSeat": "Block at seat {{seat}}"
   },
   "labels": {
     "auto": "By zoom",
@@ -199,5 +201,44 @@
     "state": "State",
     "detail": "Detail",
     "value": "Value"
+  },
+  "display": {
+    "title": "Numbers and colours",
+    "unit": "Unit",
+    "unitAuto": "From the data",
+    "decimals": "Decimals",
+    "auto": "Automatic",
+    "short": "Short numbers (1.2k)",
+    "thresholds": "Colour steps",
+    "thresholdsHint": "From a value up, the number, bar or gauge takes a colour. Graphs show them as lines.",
+    "from": "From",
+    "to": "To",
+    "colour": "Colour",
+    "remove": "Remove",
+    "addStep": "Add a step",
+    "mode": "Steps compare",
+    "byValue": "Value",
+    "byPercent": "% of max",
+    "mappings": "Show values as text",
+    "mappingsHint": "A value or range shows as a word instead, such as 0 as \"Down\".",
+    "text": "Text",
+    "addMapping": "Add a mapping",
+    "sort": "Sort",
+    "sortData": "As the data comes",
+    "limit": "Show at most",
+    "all": "All",
+    "hideZero": "Hide rows that are 0",
+    "tone": {
+      "ok": "Green",
+      "warn": "Orange",
+      "err": "Red",
+      "none": "Neutral"
+    },
+    "sorts": {
+      "value-desc": "Biggest first",
+      "value-asc": "Smallest first",
+      "name-asc": "Name A–Z",
+      "name-desc": "Name Z–A"
+    }
   }
 }

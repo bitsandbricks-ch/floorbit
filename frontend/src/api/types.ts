@@ -33,8 +33,9 @@ interface WidgetBase {
 
 export type Widget = WidgetBase &
   (
-    /** ``min`` and ``max`` let a stat show as a gauge. */
-    | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number }
+    /** ``min`` and ``max`` let a stat show as a gauge. ``text`` never comes from the server: a
+     *  pane's value mapping sets it to show instead of the number (widgets/kinds/display.ts). */
+    | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number; text?: string }
     | { type: 'status'; items: { label: string; state: State; detail: string }[] }
     /** ``number`` (and ``max``) on items let a list show as bars or a pie. */
     | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number }[] }
