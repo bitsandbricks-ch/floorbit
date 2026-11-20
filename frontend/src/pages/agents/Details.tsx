@@ -90,7 +90,7 @@ export function Blocked({ agentId, plugins, lang, size = 'xs' }: { agentId: stri
 }
 
 /** Every plugin the agent runs, one row each: state, its message, all its numbers, the last error. */
-export function PluginTable({ plugins, lang }: { plugins?: Record<string, AgentPluginHealth>; lang: string }) {
+export function PluginTable({ plugins, lang, agentId }: { plugins?: Record<string, AgentPluginHealth>; lang: string; agentId?: string }) {
   const { t } = useTranslation()
   const ids = Object.keys(plugins ?? {}).sort()
   if (!plugins || !ids.length) return <Text size="sm" c="dimmed">{t('agents.noPluginReport')}</Text>
@@ -101,13 +101,13 @@ export function PluginTable({ plugins, lang }: { plugins?: Record<string, AgentP
           cell: (id) => <Badge variant="light" color={PLUGIN_COLOR[plugins[id].status] ?? 'gray'} tt="none">{id}</Badge> },
         { id: 'state', header: t('agents.col.state'), card: 'label', wrap: true, cell: (id) => {
           const p = plugins[id]
-          const says = pluginSays(p, t)
+          const says = pluginSays(p, t, agentId)
           const tone = p.status === 'error' ? 'down' : p.status === 'warning' ? 'warn' : 'dimmed'
           return (
             <>
               <Text size="sm">{p.running ? t(`agents.pluginStatus.${p.status}`) : t('agents.pluginNotRunning')}</Text>
-              {says.text && <Text size="xs" c={tone}>{says.text}{says.link && <>{' '}<HintAnchor link={says.link} /></>}</Text>}
-              {says.detail && <Text size="xs" c="dimmed">{says.detail}</Text>}
+              {says.text && <Text size="xs" c={tone} style={{ overflowWrap: 'anywhere' }}>{says.text}{says.link && <>{' '}<HintAnchor link={says.link} /></>}</Text>}
+              {says.detail && <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{says.detail}</Text>}
             </>
           )
         } },
@@ -118,7 +118,7 @@ export function PluginTable({ plugins, lang }: { plugins?: Record<string, AgentP
         ) },
         { id: 'error', header: t('agents.col.lastError'), card: 'label', wrap: true, cell: (id) => {
           const last = plugins[id].errors[plugins[id].errors.length - 1]
-          return last ? <Text size="xs" c="down">{last.at ? `${ago(last.at, lang)}: ` : ''}{last.error}</Text> : <Text size="xs" c="dimmed">–</Text>
+          return last ? <Text size="xs" c="down" style={{ overflowWrap: 'anywhere' }}>{last.at ? `${ago(last.at, lang)}: ` : ''}{last.error}</Text> : <Text size="xs" c="dimmed">–</Text>
         } },
       ]} />
   )

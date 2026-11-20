@@ -73,6 +73,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/cert` | `settings.manage` |  |
+| GET | `/api/agents/<agent_id>/devices` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/history` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/roll` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
@@ -941,6 +942,7 @@ Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/
 | PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | POST | `/api/services/check` | `floorplan.edit` |  |
 | POST | `/api/services/sites/common` | `floorplan.edit` |  |
+| GET | `/api/services/summary` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.setup
 

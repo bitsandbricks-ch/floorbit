@@ -50,8 +50,9 @@
   "count": {
     "checkedIn": "Eingecheckt",
     "pins": "{{used}} von {{total}} Platz-PINs benutzt",
+    "pinsNone": "Noch keine Platzkarten mit PIN",
     "verified": "Port gefunden",
-    "learned": "{{count}} Plätze mit gelerntem Port",
+    "learned": "{{count}} Platz-Ports aus Check-ins gelernt",
     "pending": "Port wird gesucht",
     "pendingSub": "{{count}} nach 15 Min. aufgegeben",
     "notWired": "Ohne Kabel",

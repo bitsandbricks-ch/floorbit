@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core'
+import { Anchor, Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core'
 import { IconDownload, IconFileImport, IconTemplate } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -12,6 +12,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ApplyDialog, EditDialog, ImportDialog, SaveDialog } from './templates/Dialogs'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
+import { toastDone } from '@/components/toast'
 
 type Open =
   | { kind: 'save'; template?: LayoutTemplate }
@@ -73,13 +74,12 @@ export default function Templates() {
   const qc = useQueryClient()
   const canEdit = useCan('floorplan.edit')
   const [open, setOpen] = useState<Open>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const list = useQuery({ queryKey: qk.templates, queryFn: () => get<{ templates: LayoutTemplate[] }>('/api/templates') })
   const halls = useQuery({ queryKey: qk.halls, queryFn: () => get<{ halls: Hall[] }>('/api/halls') })
   const refresh = () => qc.invalidateQueries({ queryKey: qk.templates })
   const done = (message: string) => {
     setOpen(null)
-    setNotice(message)
+    toastDone(message)
     void refresh()
   }
   const duplicate = useMutation({
@@ -106,7 +106,6 @@ export default function Templates() {
         )}
       />
       <Stack gap="md">
-        {notice && <Alert color="up" role="status" withCloseButton onClose={() => setNotice(null)}>{notice}</Alert>}
         <ErrorBanner error={error} />
         {list.isPending ? (
           <LoadingState />

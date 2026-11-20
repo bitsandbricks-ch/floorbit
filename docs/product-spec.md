@@ -106,6 +106,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   `SidePanel`, `StatTile` (every figure with a label: value, unit, "of N", trend, change, size),
   `StateBadge`/`StateBit` (one tone and word per state word, from `components/stateTone.ts`), the
   telemetry components. New visual blocks become shared components or widgets.
+- **Feedback is a toast:** after an action, `toastDone`/`toastFailed`, never an inline green box;
+  inline alerts only for states that stay.
+- **Loading, failing, empty:** `LoadingState` (skeletons, `lines` in panels and panes; spinners only
+  in buttons), `ErrorBanner` with Try again for anything that failed to load, `EmptyState`.
 - **One table.** Every table is `DataTable` (`frontend/src/components/DataTable.tsx`): sorting,
   paging, the empty state and the count, with the view kept in the address. The dashboard's table
   widget wraps the same component; pages never embed widgets. Fix it once and every table follows
@@ -178,6 +182,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   (the sidebar is 15px).
 - **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
   for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
+- **Lists filter the same way:** a search field and a chip per filter with counts (`FilterBar`),
+  kept in the address (`useFilters`) so a link or a reload shows the same view.
 - **Setup is a checklist:** what an event needs, in order, each step's state worked out from what is
   really there (never a box someone ticks) and linking to the one place it is set.
 - **One switch per capability:** what the crew wants is turned on in one place; the switch turns its

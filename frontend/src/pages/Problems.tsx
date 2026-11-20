@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, CopyButton, Group, Loader, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Modal, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconBellOff, IconCheck, IconCopy, IconReplace } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -14,7 +14,7 @@ import { PageHead } from '@/components/PageHead'
 import { StatTile } from '@/components/StatTile'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { ago, clock } from '@/lib/time'
 import { StateBadge } from '@/components/State'
 
@@ -223,7 +223,7 @@ export default function Problems() {
       )} />
       <ErrorBanner error={error} mb="md" />
       {list.isPending || !data ? (
-        <Loader size="sm" />
+        <LoadingState />
       ) : (
         <Stack gap="md">
           {data.quiet_hours && <Alert color="gray" variant="light">{t('problems.quiet')}</Alert>}
@@ -268,7 +268,7 @@ export default function Problems() {
               <Stack gap={4}>
                 {data.mutes.map((m) => (
                   <Group key={m.switch_id} gap="sm">
-                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/health' : m.kind === 'wifi' ? WIFI_LINK : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/services' : m.kind === 'wifi' ? WIFI_LINK : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
                     {m.until - now < ENDING_SOON && (
                       <Badge color="warn" variant="light" tt="none">
                         {t('problems.endsIn', { count: Math.max(1, Math.ceil((m.until - now) / 60)) })}
