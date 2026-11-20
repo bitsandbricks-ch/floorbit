@@ -1,6 +1,6 @@
 import './widgets.css'
 import type { Widget } from '@/api/types'
-import { type Kind, type KindPick, type Level, type LevelPin, pickLevel } from './level'
+import { type Kind, type KindPick, type Level, type LevelPin, pickLevel, tooSmall } from './level'
 import { BarsKind } from './kinds/Bars'
 import { ColumnsKind } from './kinds/Columns'
 import { GaugeKind } from './kinds/Gauge'
@@ -12,6 +12,8 @@ import { type Look, resolveKind } from './kinds/shape'
 import { NumberStyleContext } from './kinds/display'
 import { StatKind } from './kinds/Stat'
 import { useBox } from './useBox'
+import { LevelReport } from './levelReport'
+import { useContext, useEffect } from 'react'
 
 const NO_STYLE = {}
 /** The sub line under a widget: its 12px text plus the 4px gap (widgets.css). */
@@ -28,11 +30,16 @@ export function FitWidget({ widget, pick = 'auto', pin = 'auto', look, onMore }:
   const [ref, whole] = useBox<HTMLDivElement>()
   const kind = resolveKind(widget, pick)
   const level = pickLevel(kind, whole.w, whole.h, pin)
-  const sub = level !== 's' && !!widget.sub
+  const report = useContext(LevelReport)
+  const tight = tooSmall(whole.w, whole.h)
+  useEffect(() => { if (whole.w) report?.level(level, tight) }, [report, level, tight, whole.w])
+  // A stat with nothing to show ("–") keeps its sub line even when small: it says why.
+  const empty = widget.type === 'stat' && widget.value === '–'
+  const sub = !!widget.sub && (level !== 's' || empty)
   const box = { w: whole.w, h: Math.max(0, whole.h - (sub ? SUB_H : 0)) }
   return (
     <NumberStyleContext.Provider value={look?.number ?? NO_STYLE}>
-    <div className={`fb-w fb-w-is-${kind} fb-w-level-${level}`} data-kind={kind} data-level={level} ref={ref}>
+    <div className={`fb-w fb-w-is-${kind} fb-w-level-${level}${look?.text ? ` fb-w-text-${look.text}` : ''}`} data-kind={kind} data-level={level} ref={ref}>
       <div className="fb-w-area">
         {box.w > 0 && <Kind kind={kind} widget={widget} level={level} box={box} look={look} onMore={onMore} />}
       </div>
@@ -44,7 +51,7 @@ export function FitWidget({ widget, pick = 'auto', pin = 'auto', look, onMore }:
 
 function Kind({ kind, look, ...props }: { kind: Kind; widget: Widget; level: Level; box: { w: number; h: number }; look?: Look; onMore?: () => void }) {
   switch (kind) {
-    case 'stat': return <StatKind {...props} />
+    case 'stat': return <StatKind {...props} look={look} />
     case 'gauge': return <GaugeKind {...props} />
     case 'graph': return <Graph {...props} look={look} />
     case 'bar': return <BarsKind {...props} look={look} />

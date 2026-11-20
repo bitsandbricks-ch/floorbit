@@ -36,7 +36,7 @@ export const TABS = ['overview', 'floorPlan', 'helpdesk', 'services']
  *  neither lands in "more", so a new page shows up before anyone sorts it in. */
 export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'work', icon: IconLifebuoy, pages: ['helpdesk'] },
-  { id: 'monitoring', icon: IconActivityHeartbeat, pages: ['services', 'network', 'agents'] },
+  { id: 'monitoring', icon: IconActivityHeartbeat, pages: ['health', 'network', 'services', 'traffic', 'agents'] },
   { id: 'places', icon: IconArmchair, pages: ['seats', 'inventory'] },
   { id: 'tools', icon: IconTools, pages: ['console', 'preflight', 'logs'] },
   { id: 'screens', icon: IconDeviceTv, pages: ['dashboards'] },
@@ -48,8 +48,9 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
  *  page. */
 export const HUBS: Record<string, string[]> = {
   helpdesk: ['problems', 'incidents', 'jobs', 'handover', 'networkStatus'],
-  network: ['topology', 'firewalls', 'security'],
-  agents: ['telemetry'],
+  network: ['topology', 'firewalls', 'wifi', 'telemetry', 'security'],
+  services: ['dns', 'lancache'],
+  traffic: ['games', 'stats', 'speedtests'],
   seats: ['seatMapping', 'checkins', 'seatWalk', 'endpoints'],
   inventory: ['cables', 'power'],
   console: ['commands', 'terminal'],
@@ -107,7 +108,7 @@ const ICONS: Record<string, Icon> = {
   helpdesk: IconLifebuoy, network: IconNetwork, console: IconTerminal2, event: IconCalendarEvent,
   incidents: IconAlertCircle, jobs: IconClipboardCheck, handover: IconArrowsExchange,
   checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
-  dns: IconWorldWww, games: IconDeviceGamepad2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, power: IconBolt,
+  dns: IconWorldWww, games: IconDeviceGamepad2, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, lancache: IconServer, power: IconBolt,
   commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk,
   preflight: IconChecklist, templates: IconTemplate,
   schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,

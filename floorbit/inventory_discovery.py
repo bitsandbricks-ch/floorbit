@@ -373,8 +373,6 @@ def run(only=None, device_ids=None):
         if ran & {'networks', 'optics'}:
             _entries(data, list(kept.values()), report)
         save_data(data)
-    from . import segments
-    report['segments'] = segments.take_proposals()
     return _keep(report)
 
 
@@ -493,8 +491,12 @@ def _entries(data, found, report):
     """Every VLAN, network and transceiver the devices know, as inventory entries (the same rules
     as a plugin's: hand changes win, nothing is deleted)."""
     from . import inventory_scope, inventory_types
-    vlans, networks, optics = {}, set(), {}
+    vlans, networks, optics, vlan_of = {}, set(), {}, {}
     for n in found:
+        for svi in n.get('svis') or []:
+            # A network on a VLAN interface: the range knows its VLAN, which makes it a lookup segment.
+            vlan_of.setdefault(svi['network'], svi['vlan'])
+            networks.add(svi['network'])
         for v in n.get('vlans') or []:
             if v['name'] or v['id'] not in vlans:
                 vlans[v['id']] = v['name'] or vlans.get(v['id']) or ''
@@ -505,7 +507,9 @@ def _entries(data, found, report):
         return
     feed = {'vlan': [{'ref': f'vlan-{vid}', 'name': name or f'VLAN {vid}', 'fields': {'vlan_id': vid}}
                      for vid, name in sorted(vlans.items())]
-            + [{'ref': f'prefix-{net}', 'name': net, 'fields': {'prefix': net}} for net in sorted(networks)]}
+            + [{'ref': f'prefix-{net}', 'name': net,
+                'fields': {'prefix': net, **({'vlan_id': vlan_of[net]} if net in vlan_of else {})}}
+               for net in sorted(networks)]}
     if optics:
         feed['transceiver'] = [
             {'ref': f'optic-{key}', 'name': f'{o["model"] or "Transceiver"} {o["serial"]}',

@@ -6,10 +6,15 @@
 """
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import features, games
+from .. import features, games, spa
 from .flows import current as current_flows
 
 bp = Blueprint('games', __name__)
+
+
+@bp.route('/games')
+def games_page():
+    return spa.render('Games')
 
 
 @bp.route('/api/games', methods=['GET'])
