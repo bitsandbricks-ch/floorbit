@@ -25,7 +25,7 @@ import uuid
 
 from integrations import config, events
 
-from . import features
+from . import features, seat_names
 from .plugins import PluginError
 from .seat_names import block_rows
 from .store import load_data, save_data
@@ -94,9 +94,16 @@ def fed_by(circuit, data):
 
 def _feed_label(feed, blocks):
     block = blocks.get(feed.get('block'))
-    name = (block or {}).get('name') or '?'
+    if block is None:
+        return 'a removed block'
     rows = feed.get('rows') or []
-    return f"block {name}" + (f" row{'s' if len(rows) > 1 else ''} {', '.join(map(str, rows))}" if rows else '')
+    names = seat_names.row_names(block)
+    picked = [names[r - 1] if isinstance(r, int) and 0 < r <= len(names) else str(r) for r in rows]
+    if block.get('naming') == 'rows' and not block.get('name'):
+        # The rows are the hall's rows: "rows C, D" says it; "block ?" said nothing.
+        return f"row{'s' if len(picked) != 1 else ''} {', '.join(picked) if picked else seat_names.label(block)}"
+    rows_text = f" row{'s' if len(picked) > 1 else ''} {', '.join(picked)}" if picked else ''
+    return f"block {seat_names.label(block)}{rows_text}"
 
 
 # ── Cleaning what the browser sends ───────────────────────────────────────────
@@ -428,7 +435,8 @@ class PowerWatch:
         return {'enabled': enabled(), 'boards': sorted(boards, key=lambda b: b['name'].lower()),
                 'circuits': out, 'counts': counts, 'warn': warn, 'crit': crit, 'last_poll': self.last_poll,
                 'plugins': len(self.registry.feeders('power')),
-                'blocks': [{'id': b.get('id'), 'name': b.get('name') or '', 'rows': int(b.get('rows') or 0)}
+                'blocks': [{'id': b.get('id'), 'name': b.get('name') or '', 'label': seat_names.label(b),
+                            'rows': int(b.get('rows') or 0), 'row_names': seat_names.row_names(b)}
                            for b in data.get('seat_blocks') or []]}
 
     def markers(self):

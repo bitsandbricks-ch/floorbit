@@ -28,5 +28,7 @@
     "min": "Enter {{min}} or more.",
     "max": "Enter {{max}} or less."
   },
-  "open": "Open"
+  "open": "Open",
+  "pickRows": "Pick the rows",
+  "rowSeats": "{{row}} ({{count}} seats)"
 }
