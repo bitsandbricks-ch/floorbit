@@ -107,6 +107,9 @@ class NoMonitoring:
     def neighbours(self, hostname):
         return []
 
+    def device_facts(self, hostname):
+        return {}
+
     def arp(self, query):
         return []
 
@@ -228,6 +231,30 @@ class PluginMonitoring(NoMonitoring):
             return []
         return self._call('neighbours', hostname) or []
 
+    def device_facts(self, hostname):
+        """What a device is (VLANs, networks, optics, ...), shaped like telemetry's Device.summary(),
+        for discovery. Every monitoring plugin that is on and knows facts answers; telemetry's facts
+        come first and the others fill what it doesn't say (issue #966). Optional for plugins."""
+        from ..plugins.base import PluginError
+        # Demo data replaces the live sources; otherwise every set-up one may know something.
+        others = [] if self.name == 'demo' else [
+            s for s in self._registry.monitoring_sources() if s.id not in ('demo', self.name)]
+        out = {}
+        for spec in sorted([self._spec, *others], key=lambda s: s.id != 'telemetry'):
+            if not hasattr(spec.plugin_class() or object, 'device_facts'):
+                continue
+            try:
+                if spec is not self._spec and not self._registry.call(spec, 'configured'):
+                    continue
+                facts = self._registry.call(spec, 'device_facts', hostname)
+            except PluginError as exc:
+                print(f'[sources] {spec.id} device_facts failed: {exc}')
+                continue
+            for key, value in (facts if isinstance(facts, dict) else {}).items():
+                if value not in (None, '', [], {}) and key not in out:
+                    out[key] = value
+        return out
+
     def arp(self, query):
         result = self._remembered('arp', query)
         if isinstance(result, dict):   # stale: the list is under 'value'
@@ -276,6 +303,8 @@ def call_monitoring(registry, method, *args):
     if method == 'arp':
         result = registry.call(spec, 'arp', *args)
         return result or source._ask_others('arp', *args) or []
+    if method == 'device_facts':
+        return source.device_facts(*args)
     return registry.call(spec, method, *args)
 
 

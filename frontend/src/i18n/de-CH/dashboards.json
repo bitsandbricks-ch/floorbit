@@ -41,7 +41,9 @@
     "block": "Sitzblock",
     "zone": "Zone",
     "box": "Meine Ansicht",
-    "blockName": "Block {{name}}"
+    "blockName": "Block {{name}}",
+    "rows": "Reihen {{rows}}",
+    "fromSeat": "Block ab Platz {{seat}}"
   },
   "labels": {
     "auto": "Nach Zoom",
@@ -199,5 +201,44 @@
     "state": "Status",
     "detail": "Detail",
     "value": "Wert"
+  },
+  "display": {
+    "title": "Zahlen und Farben",
+    "unit": "Einheit",
+    "unitAuto": "Aus den Daten",
+    "decimals": "Nachkommastellen",
+    "auto": "Automatisch",
+    "short": "Kurze Zahlen (1.2k)",
+    "thresholds": "Farbstufen",
+    "thresholdsHint": "Ab einem Wert bekommt die Zahl, der Balken oder der Tacho eine Farbe. Diagramme zeigen sie als Linien.",
+    "from": "Von",
+    "to": "Bis",
+    "colour": "Farbe",
+    "remove": "Entfernen",
+    "addStep": "Stufe hinzufügen",
+    "mode": "Stufen vergleichen",
+    "byValue": "Wert",
+    "byPercent": "% vom Maximum",
+    "mappings": "Werte als Text zeigen",
+    "mappingsHint": "Ein Wert oder Bereich erscheint als Wort, etwa 0 als «Ausgefallen».",
+    "text": "Text",
+    "addMapping": "Zuordnung hinzufügen",
+    "sort": "Sortieren",
+    "sortData": "Wie die Daten kommen",
+    "limit": "Höchstens zeigen",
+    "all": "Alle",
+    "hideZero": "Zeilen mit 0 ausblenden",
+    "tone": {
+      "ok": "Grün",
+      "warn": "Orange",
+      "err": "Rot",
+      "none": "Neutral"
+    },
+    "sorts": {
+      "value-desc": "Grösste zuerst",
+      "value-asc": "Kleinste zuerst",
+      "name-asc": "Name A–Z",
+      "name-desc": "Name Z–A"
+    }
   }
 }

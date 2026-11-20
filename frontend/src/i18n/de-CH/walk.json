@@ -1,7 +1,7 @@
 {
   "title": "Reihe ablaufen",
   "intro": "Stecke einen Laptop an einem Platz nach dem anderen ein: Floorbit zeigt, welcher Switch-Port gerade hochkam, und ein Tippen setzt den Platz darauf.",
-  "pick": "Wähle einen Block und seinen Switch",
+  "pick": "Reihen und ihren Switch wählen",
   "start_one": "Mit {{count}} Platz beginnen",
   "start_other": "Mit {{count}} Plätzen beginnen",
   "progress": "Platz {{n}} von {{of}} · {{done}} gefunden",

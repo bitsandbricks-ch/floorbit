@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { State, Widget } from '@/api/types'
 import { clock, dayClock } from '@/lib/time'
 import type { Level } from '../level'
+import { useNumberStyle } from './display'
 import { bucketsOf, formatValue, linesOf, type Look, PALETTE, type Part, partsOf, partTip, type Stack, tipAt, trendOf } from './shape'
 import { StatKind } from './Stat'
 
@@ -94,12 +95,13 @@ function Column({ part, top, h, stack }: { part: Part; top: number; h: number; s
 
 function TimeColumns({ widget, level, box, look = {} }: { widget: Widget; level: Level; box: { w: number; h: number }; look?: Look }) {
   const { t, i18n } = useTranslation()
+  const style = useNumberStyle()
   const [hot, setHot] = useState<number | null>(null)
   const { lines, unit, timed } = linesOf(widget)
   const groupW = Math.max(6, lines.length * 6)
   const buckets = bucketsOf(lines, Math.max(1, Math.min(48, Math.floor(box.w / (groupW + 4)))))
   if (!buckets.length) return <div className="fb-w-empty">{t('widgets.kind.noData')}</div>
-  const fmt = (v: number) => { const f = formatValue(v, unit, i18n.language); return `${f.value}${f.unit ? ` ${f.unit}` : ''}` }
+  const fmt = (v: number) => { const f = formatValue(v, unit, i18n.language, style); return `${f.value}${f.unit ? ` ${f.unit}` : ''}` }
   const span = buckets[buckets.length - 1].to - buckets[0].from
   const when = (ts: number) => (timed ? (span >= 86400 ? dayClock(ts * 1000) : clock(ts * 1000)) : '')
   const stack = lines.length > 1 ? look.stack ?? 'none' : 'none'

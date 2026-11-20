@@ -46,13 +46,15 @@ sees the hall's public address, behind a reverse proxy the proxy's. The agent is
 network and sees the laptop as it is. Going through it every time, self-hosted or not, keeps the walk
 the same everywhere. Floorbit never takes the request's own address for the laptop's.
 
-The agent answers on its captive port (the **Check-in note on phones** plugin's address) at
-`/floorbit/hello/<code>`. Tell Floorbit where laptops reach it, one of:
+Nothing has to be set up for it. Floorbit works out how the laptop reaches an agent:
 
-- **Address in the hall** on the agent's settings page (or `FLOORBIT_AGENT_LAN_URL` on the agent),
-  for example `http://192.0.2.10:8908`. The agent reports it,
-  and the page uses the first connected agent that has one.
-- `SEAT_WALK_AGENT_URL` in Floorbit's settings, which wins.
+- **The walk page itself came through an agent** (the laptop opened the check-in name or an agent's
+  address): the agent's front door already told Floorbit the laptop's address. Done, no trip.
+- **Otherwise** the laptop opens `http://<check-in name>/floorbit/hello/<code>` once and comes
+  straight back. The check-in name (`CHECKIN_ADDRESS`) is the one on the seat cards; every agent's
+  front door answers it.
+- **No check-in name set:** the address browsers in the hall last reached an agent at. Each agent's
+  front door learns it from the requests it answers and reports it.
 
 A code is good for ten minutes, is used once, and only a signed-in page with `seats.edit` makes one.
 The agent sends the browser back only to the Floorbit it is enrolled with.
@@ -68,8 +70,18 @@ the address and looks for that MAC in the switches' MAC tables (or the monitorin
   blocked for about 30 seconds after the cable goes in.
 - **Wi-Fi off.** The laptop's address must be the one on the cable. With `CHECKIN_ALLOWED_NETWORKS`
   set, the page refuses addresses outside the seat networks.
-- **A local agent** with its captive port on and its address in the hall set, or the laptop's MAC
-  typed in.
+- **A local agent** in the hall, or the laptop's MAC typed in.
+
+## Walking with several people
+
+Pick your rows and press **Start**. The page then watches for the cable: plug it into the seat's
+socket and the page finds the port on its own and moves on to the next seat. There is no Locate
+button to press while it watches (it stays for a manual retry after five minutes without a port).
+
+Several people can walk at once, each with their own rows. The page lists every row in the hall with
+how many of its seats have a port, who walks it and at which seat they are now. A row someone else
+walks can't be started twice; **Take them over** moves those rows to you, for when the other walker
+left without stopping. A walk that has not said where it is for ten minutes counts as ended.
 
 ## Per event, cleared a day after
 

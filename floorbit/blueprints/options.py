@@ -1,5 +1,5 @@
 """The choices for every field that names something Floorbit already knows: switches, their ports,
-seats, blocks, halls, firewalls, agents, users, teams, patch panels and their ports.
+seats, blocks, rows, halls, firewalls, agents, users, teams, patch panels and their ports.
 
 A switch or a seat is never typed in: the page asks ``GET /api/options/<kind>`` and shows a
 searchable list (``frontend/src/components/ui/EntitySelect.tsx``). One endpoint, one component, so
@@ -152,12 +152,24 @@ def _pages(_data):
     return [{'value': p['id'], 'label': p['label'], 'hint': p['href']} for p in page_index.for_context(ctx)]
 
 
+def _rows(data):
+    """Rows by name, grouped by their block (C and D under the block C to D); the hint is the seat
+    count. A row of a block numbered as a whole is the block and the row: "A 2"."""
+    from ..seat_names import hall_rows
+
+    def name(r):
+        return r['name'] if r['naming'] == 'rows' else f"{r['block_label']} {r['name']}".strip()
+    return [{'value': r['id'], 'label': name(r), 'group': r['block_label'], 'hint': str(len(r['seats']))}
+            for r in hall_rows(data)]
+
+
 KINDS = {
     'devices': ('floorplan.view', _devices),
     'switches': ('floorplan.view', _switches),
     'seats': ('floorplan.view', _seats),
     'panels': ('floorplan.view', _panels),
     'blocks': ('floorplan.view', _blocks),
+    'rows': ('floorplan.view', _rows),
     'halls': ('floorplan.view', _halls),
     'firewalls': ('floorplan.view', _firewalls),
     'agents': ('settings.manage', _agents),
