@@ -5,7 +5,7 @@ import pytest
 import requests
 from conftest import FakeRedis
 
-from floorbit import cache, sources
+from floorbit import cache, segments, sources
 from floorbit.builtin_plugins.librenms import client
 from floorbit.runtime import rt
 
@@ -175,8 +175,8 @@ def test_discovery_fills_vlans_networks_and_optics_from_librenms_alone(client):
     assert sw['model'] == 'WS-C2960X-48FPD-L' and sw['platform'] == 'Cisco IOS'   # identity as before
     assert sw['discovered']['vlans'] == [{'id': 10, 'name': 'seats'}]
     assert sw['discovered']['networks'] == ['192.0.2.0/24']
-    seg = client.get('/api/settings/segments').get_json()['segments']             # the SVI's segment
-    assert [(x['vlan'], x['network'], x['if_index']) for x in seg] == [(10, '192.0.2.0/24', 90)]
+    seg = segments.all_segments()                                                  # the SVI's segment
+    assert [(x['vlan'], x['network'], x['source']) for x in seg] == [(10, '192.0.2.0/24', 'discovery')]
     assert sw['discovered']['transceivers'][0]['serial'] == 'AVX0001'
     assert fw['discovered']['networks'] == ['192.0.2.0/24']
     assert fw['discovered']['vlans'] == [{'id': 30, 'name': 'crew'}]
