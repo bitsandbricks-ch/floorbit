@@ -232,7 +232,7 @@ def main(argv=None):
     env = dict(os.environ, PYTHONPATH=ROOT, FLOORBIT_DATA_FILE=os.path.join(tmp, 'data.json'),
                CHECKIN_FILE=os.path.join(tmp, 'checkins.json'), SECRET_KEY='load-test-only',
                FLOORBIT_SECRET_KEY_FILE=os.path.join(tmp, 'secret.key'),
-               CHECKIN_ENABLED='true', CAPTIVE_ENABLED='true', CHECKIN_TRUST_PROXY='true',
+               CHECKIN_ENABLED='true', CHECKIN_TRUST_PROXY='true',
                CHECKIN_VERIFY_RATE=str(args.rate), PUBLIC_URL='https://floor.example.com',
                LOAD_LOOKUP_MS=str(args.lookup_ms))
     for name in ('NETBOX_URL', 'NETBOX_TOKEN', 'LIBRENMS_URL', 'LIBRENMS_TOKEN', 'FLOORBIT_DATABASE_URL'):

@@ -108,7 +108,7 @@ export function AgentSettingsForm({ agent }: { agent: Agent }) {
     )
   }
   const groups: [string, string[]][] = [
-    ['general', ['lan_url', 'telemetry_port']],
+    ['general', ['telemetry_port']],
     ['metrics', ['metrics', 'metrics_token']],
     ['buffer', ['buffer_max_mb', 'buffer_max_hours']],
     ['logs', ['log_level', 'log_summary']],
