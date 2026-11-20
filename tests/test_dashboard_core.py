@@ -86,10 +86,14 @@ def test_down_switches_tile_lists_what_is_down_and_for_how_long(client):
     }
     body = dashboard_core.down_widget("en", statuses, now=now)
     assert body == {"type": "list", "items": [
-        {"label": "sw-a-01", "value": "2 h 5 min", "tone": "err"},
-        {"label": "sw-b-01", "value": "7 min", "tone": "err"},
-        {"label": "sw-d-01", "value": "just now", "tone": "err"}]}
+        {"label": "sw-a-01", "value": "2 h 5 min", "tone": "err", "device": "a"},
+        {"label": "sw-b-01", "value": "7 min", "tone": "err", "device": "b"},
+        {"label": "sw-d-01", "value": "just now", "tone": "err", "device": "d"}]}
     assert dashboard_core.down_widget("de", statuses, now=now)["items"][1]["value"] == "7 Min."
+    # The device id survives the widget check, so a large widget can open the switch's glance (#925).
+    assert check_widget(body, {"id": "down"})["items"][0]["device"] == "a"
+    states = check_widget(dashboard_core.switch_states_widget("en", statuses, now=now), {"id": "s"})
+    assert [i.get("device") for i in states["items"]] == ["a", "b", "d", "c"]
     up = dashboard_core.down_widget("en", {"c": statuses["c"]}, now=now)
     assert up["items"] == [{"label": "All switches up", "state": "up"}]
     assert dashboard_core.down_widget("de", {}, now=now)["items"][0]["state"] == "unknown"

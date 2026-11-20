@@ -173,7 +173,7 @@ def down_widget(lang, statuses, now=None):
     if not down:
         return {'type': 'status', 'items': [{'label': text['all_up'], 'state': 'up'}]}
     items = [{'label': str(s.get('name') or s.get('id')), 'value': _down_for(text, now - (s.get('since') or now)),
-              'tone': 'err'} for s in down[:MAX_DOWN]]
+              'tone': 'err', 'device': s.get('id')} for s in down[:MAX_DOWN]]
     if len(down) > MAX_DOWN:
         items.append({'label': text['more'].format(n=len(down) - MAX_DOWN), 'value': ''})
     return {'type': 'list', 'items': items}
@@ -237,7 +237,8 @@ def switch_states_widget(lang, statuses, now=None):
     for s in statuses.values():
         state = STATE_OF.get(s.get('status'), 'unknown')
         detail = text['down_for'].format(t=_down_for(text, now - (s.get('since') or now))) if state == 'down' else ''
-        items.append({'label': str(s.get('name') or s.get('id')), 'state': state, 'detail': detail})
+        items.append({'label': str(s.get('name') or s.get('id')), 'state': state, 'detail': detail,
+                      'device': s.get('id')})
     items.sort(key=lambda i: (order[i['state']], i['label']))
     return {'type': 'status', 'items': items[:50], 'link': '/problems'}
 

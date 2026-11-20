@@ -95,8 +95,12 @@ def public_tile(layout_id, tile):
         return _error('No such dashboard.', 404)
     spec = core.TILES[tile]
     # No "Details" link: the pages it opens need an account.
-    widget = {**CORE_TILES[tile](None), 'link': ''}
-    return jsonify(check_widget(widget, {'id': tile, 'label': '', 'size': spec['size'], 'refresh': spec['refresh']}))
+    widget = check_widget({**CORE_TILES[tile](None), 'link': ''},
+                          {'id': tile, 'label': '', 'size': spec['size'], 'refresh': spec['refresh']})
+    # Nor which device a row is: inventory ids are crew data.
+    for item in widget.get('items') or []:
+        item.pop('device', None)
+    return jsonify(widget)
 
 
 @bp.route('/api/dashboards', methods=['GET'])

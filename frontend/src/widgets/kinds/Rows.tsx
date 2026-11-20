@@ -7,6 +7,7 @@ import { type Kind, type Level, ROW_H, rowsThatFit } from '../level'
 import { type Row, rowsOf, stateCounts, statOf } from './shape'
 import { LevelReport } from '../levelReport'
 import { AutoPage } from '../autoPage'
+import { Drill } from '../drill'
 
 const BAR_H = 34
 
@@ -25,6 +26,7 @@ export function RowsKind({ widget, kind, level, box, onMore }: {
   // Someone pointing at or typing in the list is reading it: it stops turning pages.
   const [held, setHeld] = useState(false)
   const every = useContext(AutoPage)
+  const drill = useContext(Drill)
 
   if (level === 's') {
     const s = statOf(widget, i18n.language)
@@ -104,7 +106,9 @@ export function RowsKind({ widget, kind, level, box, onMore }: {
                 return (
                   <td key={c.key} title={v || undefined} className={j > 0 && !table ? `fb-w-side${r.tone ? ` fb-tone-${r.tone}` : ''}` : undefined}>
                     {j === 0 && r.state && <span className={`fb-dot ${r.state}`} role="img" aria-label={t(`widgets.state.${r.state}`)} title={t(`widgets.state.${r.state}`)} />}
-                    {v}
+                    {j === 0 && big && drill && r.device
+                      ? <UnstyledButton className="fb-w-pick" onClick={() => drill(r.device!)}>{v}</UnstyledButton>
+                      : v}
                   </td>
                 )
               })}

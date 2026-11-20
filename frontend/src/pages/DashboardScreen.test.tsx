@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -152,6 +152,30 @@ describe('Dashboard screen', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('sw-a-01 down')
     expect(await screen.findByText('Next: Traffic')).toBeInTheDocument()
     expect(screen.queryByText('Rotation waits')).not.toBeInTheDocument()
+  })
+
+  it('opens the device of a picked row beside a large widget, and Esc closes that first', async () => {
+    const tiles = { tiles: [{ plugin: 'floorbit', plugin_name: 'Floorbit', id: 'down', label: 'Switches down', size: 'small', refresh: 15, url: '/api/dashboard/floorbit/down' }] }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/dashboards/kiosk/public': { account: true, board, tiles: {}, app: '1' },
+      'GET /api/dashboards/kiosk': board,
+      'GET /api/problems': { counts: { down: 0, warn: 0, muted: 0 }, checked_at: 0, mutes: [], quiet_hours: false, can_mute: true, problems: [] },
+      'GET /api/dashboard': tiles,
+      'GET /api/dashboard/floorbit/down': { id: 'down', type: 'list', items: [{ label: 'sw-a-01', value: '7 min', tone: 'err', device: 'dev-a' }], sub: '', link: '' },
+      'GET /api/inventory/dev-a': { id: 'dev-a', name: 'sw-a-01', role: 'access', model: 'C2960X', mgmt_ip: '', hall: 'Hall A', location: '', notes: '',
+        interfaces: [{ id: 'p1', hidden: false }, { id: 'p2', hidden: false }], runs_here: [], connected: { cables: [], circuits: [], uplinks: [] } },
+      'GET /api/version': { app: '1' },
+    }).fn)
+    layOut()
+    show()
+    ;(await screen.findByRole('button', { name: 'Make Switches down large' })).click()
+    fireEvent.click(await screen.findByRole('button', { name: 'sw-a-01' }))
+    const glance = await screen.findByRole('complementary', { name: 'sw-a-01' })
+    expect(await within(glance).findByText('2 ports')).toBeInTheDocument()
+    expect(within(glance).getByRole('link', { name: 'Open the device page' })).toHaveAttribute('href', '/inventory/devices/dev-a')
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'sw-a-01' })).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Back to the dashboard' })).toBeInTheDocument()
   })
 
   it('keeps showing the board while the server is away, with a small note instead of a banner', async () => {

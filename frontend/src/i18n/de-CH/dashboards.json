@@ -328,5 +328,22 @@
   "copy": "Kopie erstellen",
   "copyName": "{{name}} (Kopie)",
   "reset": "Auf Standard zurücksetzen",
-  "resetConfirm": "Zurücksetzen: Änderungen verwerfen"
+  "resetConfirm": "Zurücksetzen: Änderungen verwerfen",
+  "glance": {
+    "close": "Schliessen",
+    "noDetail": "Hier nicht mehr zu diesem Gerät: öffne seine Seite.",
+    "ports_one": "{{count}} Port",
+    "ports_other": "{{count}} Ports",
+    "wired": "Verbunden: {{what}}",
+    "runsHere": "Fällt mit ihm aus",
+    "open": "Geräteseite öffnen",
+    "portsTab": "Seine Ports",
+    "telemetryTab": "Seine Telemetrie",
+    "cables_one": "{{count}} Kabel",
+    "cables_other": "{{count}} Kabel",
+    "circuits_one": "{{count}} Stromkreis",
+    "circuits_other": "{{count}} Stromkreise",
+    "uplinks_one": "{{count}} Internetleitung",
+    "uplinks_other": "{{count}} Internetleitungen"
+  }
 }

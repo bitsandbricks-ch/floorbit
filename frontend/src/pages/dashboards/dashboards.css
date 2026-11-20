@@ -163,6 +163,15 @@
 .fb-grid-large-body { flex: 1; display: flex; flex-direction: column; min-height: calc(100vh - 200px); }
 .fb-grid-large.fit .fb-grid-large-body { min-height: 0; }
 .fb-grid-large-body > .fb-pane { flex: 1; min-height: 0; }
+/* The picked row's device beside the large widget (#925); below it on a phone. */
+.fb-grid-large-body.glancing { flex-direction: row; gap: 8px; }
+.fb-glance { flex: 0 0 300px; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; min-width: 0; overflow: auto;
+  border: 1px solid var(--color-line); border-radius: 10px; background: var(--color-raised); }
+.fb-glance-name { overflow-wrap: anywhere; }
+@media (max-width: 48em) {
+  .fb-grid-large-body.glancing { flex-direction: column; }
+  .fb-glance { flex-basis: auto; }
+}
 
 /* A Screen dashboard inside the app: its area ends above the status line (height set in BoardPage). */
 .fb-board-inline.fit { display: flex; min-height: 0; }

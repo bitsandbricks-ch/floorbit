@@ -75,6 +75,11 @@ level in the whole dashboard area; the sidebar and the time stay. The address ge
 browser's Back and a shared link work. **Back to the dashboard** or Esc goes back, and on a full
 screen it goes back by itself after a minute. **Details** jumps to the page behind it.
 
+In a large **Switch states** or **Switches down**, a switch's name opens its glance beside the list:
+what it is (role, model, management address), where it is, how many ports it has, what is wired to
+it, what goes down with it, and links to its device page, its ports and its telemetry. Esc closes
+the glance first, then the large view. A public screen nobody signed in to has no glance.
+
 In the pane's settings, **Show as** draws the same data as another kind where it makes sense:
 
 - a status as a number of what is up, as bars or as a pie of how many are in each state;

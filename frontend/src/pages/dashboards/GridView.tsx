@@ -1,6 +1,6 @@
 import { ActionIcon, Group, Text, TextInput, Tooltip, UnstyledButton } from '@mantine/core'
 import { IconArrowDown, IconArrowUp, IconChevronDown, IconChevronRight, IconGripVertical, IconTrash } from '@tabler/icons-react'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { COLS, type Panel, ROW_PX, type Section, type Spot, phonePair, rows, snapHeight, stepHeight } from './grid'
 import type { Path, Split } from './model'
@@ -8,6 +8,9 @@ import { SplitView } from './SplitView'
 import type { PaneFit } from '@/widgets/levelReport'
 import { LargeContext, PaneKey, paneAt, paneKey, useLarge } from './large'
 import { LargeBar } from './LargeBar'
+import { DeviceGlance } from './DeviceGlance'
+import { useScreen } from './screen'
+import { Drill } from '@/widgets/drill'
 import { PaneView } from './Panes'
 
 export interface GridEditing {
@@ -37,12 +40,19 @@ export function GridView({ sections, fit, cycle, editing, backAfter }: {
   const { open, close } = useLarge()
   // "Make large" (#925): the one pane fills the dashboard's area; a key that no longer fits shows the dashboard.
   const large = !editing && open ? paneAt(sections, open) : null
+  // The device of the row picked in the large widget; a public wall has no account to read it with.
+  const [glance, setGlance] = useState<string | null>(null)
+  const { publicId } = useScreen()
+  const closeGlance = useCallback(() => setGlance(null), [])
   if (large) {
     return (
       <div className={`fb-grid fb-grid-large${fit ? ' fit' : ''}`}>
-        <LargeBar onBack={close} backAfter={backAfter} />
-        <div className="fb-grid-large-body">
-          <LargeContext.Provider value><PaneView pane={large} cycle={cycle} /></LargeContext.Provider>
+        <LargeBar onBack={() => { setGlance(null); close() }} backAfter={glance ? undefined : backAfter} />
+        <div className={`fb-grid-large-body${glance ? ' glancing' : ''}`}>
+          <Drill.Provider value={publicId ? null : setGlance}>
+            <LargeContext.Provider value><PaneView pane={large} cycle={cycle} /></LargeContext.Provider>
+          </Drill.Provider>
+          {glance && <DeviceGlance key={glance} id={glance} onClose={closeGlance} />}
         </div>
       </div>
     )

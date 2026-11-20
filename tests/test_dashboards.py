@@ -207,6 +207,12 @@ def test_public_dashboards_open_without_an_account(client, anon_client, monkeypa
     assert set(plan["switches"][0]) == {"id", "name", "status", "x", "y"}
     assert "198.51.100.7" not in str(plan) and "player-six" not in str(plan)
     assert anon_client.get("/api/dashboards/hall/public/tiles/down").get_json()["type"] == "status"
+    # A row's inventory id is crew data: the open feed leaves it out (#925).
+    from floorbit.blueprints import plugins as tiles
+    monkeypatch.setitem(tiles.CORE_TILES, "down", lambda _q: {"type": "list", "items": [
+        {"label": "sw-a-01", "value": "7 min", "tone": "err", "device": "demo-sw-a-01"}]})
+    assert anon_client.get("/api/dashboards/hall/public/tiles/down").get_json()["items"] == [
+        {"label": "sw-a-01", "value": "7 min", "tone": "err"}]
     assert anon_client.get("/api/dashboards/hall/public/tiles/problems").status_code == 404
     assert anon_client.get("/api/dashboards/hall/public/tiles/switches").status_code == 404   # not on it
 

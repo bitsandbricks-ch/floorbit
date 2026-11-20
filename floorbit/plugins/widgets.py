@@ -6,6 +6,7 @@ Shapes (each may also have ``sub``, a short line under it, and ``link``, a path 
     {"type": "stat", "value": 42, "unit": "Mbit/s", "tone": "ok|warn|err|", "min": 0, "max": 100}
     {"type": "status", "items": [{"label": "DNS", "state": "up|down|warn|unknown", "detail": "12 ms"}]}
     {"type": "list", "items": [{"label": "sw-a-01", "value": "3 errors", "tone": "warn", "number": 3, "max": 48}]}
+    Status and list items may name the inventory device they are about: "device": "<id>".
     {"type": "table", "columns": [{"key": "name", "label": "Name"}], "rows": [{"name": "..."}]}
     {"type": "sparkline", "points": [1, 3, 2], "value": 2, "unit": "%", "min": 0, "max": 100}
     {"type": "series", "unit": "bit/s", "series": [{"label": "Download", "points": [[1763560000, 4.2e9], ...]}]}
@@ -74,6 +75,13 @@ def _list(raw, key):
     return value
 
 
+def _device(raw, item):
+    """``device``: the inventory id a row is about, so a large widget can open its glance (#925)."""
+    if raw.get('device'):
+        item['device'] = _text(raw.get('device'), 80)
+    return item
+
+
 def check_widget(raw, item):
     """A clean copy of what the plugin returned, or WidgetError."""
     if not isinstance(raw, dict):
@@ -92,7 +100,8 @@ def check_widget(raw, item):
             state = i.get('state', 'unknown') if isinstance(i, dict) else None
             if state not in STATES:
                 raise WidgetError(f'state must be one of {STATES}')
-            items.append({'label': _text(i.get('label'), 80), 'state': state, 'detail': _text(i.get('detail'), 120)})
+            item = {'label': _text(i.get('label'), 80), 'state': state, 'detail': _text(i.get('detail'), 120)}
+            items.append(_device(i, item))
         out['items'] = items
     elif kind == 'list':
         items = []
@@ -100,7 +109,7 @@ def check_widget(raw, item):
             if isinstance(i, dict):
                 item = {'label': _text(i.get('label'), 80), 'value': _text(i.get('value'), 80),
                         'tone': _tone(i.get('tone'))}
-                items.append(_numbers(i, item, ('number', 'max')))
+                items.append(_device(i, _numbers(i, item, ('number', 'max'))))
         out['items'] = items
     elif kind == 'table':
         cols = [{'key': _text(c.get('key'), 40), 'label': _text(c.get('label') or c.get('key'), 40)}

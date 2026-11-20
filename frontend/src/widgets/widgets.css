@@ -37,6 +37,8 @@
 .fb-w-sort { font: inherit; color: inherit; }
 .fb-w-sort:hover { color: var(--color-fg); }
 .fb-w-more { flex: none; height: 28px; display: flex; align-items: center; font-size: 13px; color: var(--color-bit); }
+.fb-w-pick { font: inherit; color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+.fb-w-pick:hover { color: var(--color-bit); }
 button.fb-w-more:hover { text-decoration: underline; }
 .fb-w-pager { flex: none; height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 12px;
   color: var(--color-muted); margin-top: auto; }

@@ -74,7 +74,8 @@ export function statOf(w: Widget, lang?: string, style: NumberStyle = {}): StatD
 }
 
 export interface Column { key: string; label: string }
-export interface Row { cells: Record<string, string>; state?: State; tone?: Tone }
+/** ``device``: the inventory device the row is about, for its glance in a large widget (#925). */
+export interface Row { cells: Record<string, string>; state?: State; tone?: Tone; device?: string }
 
 /** Rows for a list or table: status items worst first, so the problem is what fits. */
 export function rowsOf(w: Widget, labels: { name: string; value: string; state: string }): { columns: Column[]; rows: Row[] } {
@@ -83,12 +84,12 @@ export function rowsOf(w: Widget, labels: { name: string; value: string; state: 
       return {
         columns: [{ key: 'label', label: labels.name }, { key: 'detail', label: labels.state }],
         rows: [...w.items].sort((a, b) => BAD[a.state] - BAD[b.state])
-          .map((i) => ({ cells: { label: i.label, detail: i.detail }, state: i.state })),
+          .map((i) => ({ cells: { label: i.label, detail: i.detail }, state: i.state, device: i.device })),
       }
     case 'list':
       return {
         columns: [{ key: 'label', label: labels.name }, { key: 'value', label: labels.value }],
-        rows: w.items.map((i) => ({ cells: { label: i.label, value: i.value }, tone: i.tone })),
+        rows: w.items.map((i) => ({ cells: { label: i.label, value: i.value }, tone: i.tone, device: i.device })),
       }
     case 'table':
       return { columns: w.columns, rows: w.rows.map((r) => ({ cells: r })) }

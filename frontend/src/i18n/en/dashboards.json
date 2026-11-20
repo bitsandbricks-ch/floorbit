@@ -328,5 +328,22 @@
   "copy": "Make a copy",
   "copyName": "{{name}} (copy)",
   "reset": "Reset to default",
-  "resetConfirm": "Reset: drop the changes"
+  "resetConfirm": "Reset: drop the changes",
+  "glance": {
+    "close": "Close",
+    "noDetail": "No more about this device here: open its page.",
+    "ports_one": "{{count}} port",
+    "ports_other": "{{count}} ports",
+    "wired": "Wired: {{what}}",
+    "runsHere": "Goes down with it",
+    "open": "Open the device page",
+    "portsTab": "Its ports",
+    "telemetryTab": "Its telemetry",
+    "cables_one": "{{count}} cable",
+    "cables_other": "{{count}} cables",
+    "circuits_one": "{{count}} circuit",
+    "circuits_other": "{{count}} circuits",
+    "uplinks_one": "{{count}} internet line",
+    "uplinks_other": "{{count}} internet lines"
+  }
 }
