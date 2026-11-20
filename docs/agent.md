@@ -185,8 +185,16 @@ docker compose -f docker-compose.agent.yml logs -f    # "[agent] connected to â€
 docker run -d --restart on-failure:3 --name floorbit-agent \
   -e FLOORBIT_URL=https://floor.example.com \
   -e FLOORBIT_AGENT_KEY=fba_â€¦ \
-  ghcr.io/bitsandbricks-ch/floorbit-agent
+  -v floorbit-agent:/app/state \
+  -p 443:8443 -p 80:8080 -p 162:1162/udp -p 57000:57000 \
+  ghcr.io/bitsandbricks-ch/floorbit-agent:<version>
 ```
+
+The page fills in the image tag: the agent commit this Floorbit is built and tested with
+(`AGENT_REF`), so the two don't drift apart. The volume keeps the agent's state (its certificate
+and settings) over an update. The ports are those of what is on by default: attendees on 443 and
+80, SNMP traps and Cisco model-driven telemetry. For a Floorbit on plain `http://` (a test), the line
+also sets `FLOORBIT_AGENT_INSECURE=1`, and the page warns that the key then travels unencrypted.
 
 **Check the setup first.** `check` tries each part once (the hosted Floorbit and the key, the
 monitoring plugin, the inventory and health plugins, and the plugins that run on the agent), says which works and which doesn't, and exits with 0 when

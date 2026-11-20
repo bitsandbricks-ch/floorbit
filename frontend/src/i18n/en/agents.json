@@ -32,6 +32,7 @@
   "copy": "Copy",
   "copied": "Copied",
   "runTitle": "Start the agent on the event network",
+  "runInsecure": "This Floorbit is on plain http, so the agent needs FLOORBIT_AGENT_INSECURE=1 and sends its key unencrypted. Use it only for a test or on a network you trust; put Floorbit behind HTTPS for an event.",
   "docs": "How the agent works and what it is asked: docs/agent.md.",
   "relaySyslog": "Syslog",
   "relayFlows": "NetFlow",
