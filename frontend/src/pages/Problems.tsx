@@ -268,7 +268,7 @@ export default function Problems() {
               <Stack gap={4}>
                 {data.mutes.map((m) => (
                   <Group key={m.switch_id} gap="sm">
-                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/health' : m.kind === 'wifi' ? WIFI_LINK : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/services' : m.kind === 'wifi' ? WIFI_LINK : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
                     {m.until - now < ENDING_SOON && (
                       <Badge color="warn" variant="light" tt="none">
                         {t('problems.endsIn', { count: Math.max(1, Math.ceil((m.until - now) / 60)) })}
