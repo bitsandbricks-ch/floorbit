@@ -1241,5 +1241,18 @@
  "Pick the switches and groups from the inventory.": "Wähle die Switches und Gruppen aus dem Inventar.",
  "{}: {} of {} seats are outside its ranges": "{}: {} von {} Plätzen sind ausserhalb seiner Bereiche",
  "Check which ranges the switch is for, under Firewalls": "Prüfe unter Firewalls, für welche Bereiche der Switch gilt",
- "Seat {} is in the range {}": "Platz {} ist im Bereich {}"
+ "Seat {} is in the range {}": "Platz {} ist im Bereich {}",
+ "{}: {} seat ports without {}": "{}: {} Platz-Ports ohne {}",
+ "{}: {} seat ports not in VLAN {}": "{}: {} Platz-Ports nicht im VLAN {}",
+ "No switch has {} on its seat ports": "Kein Switch hat {} auf seinen Platz-Ports",
+ "Fix it, or turn the rule off under Switch configs": "Behebe es oder schalte die Regel unter Switch-Konfigs aus",
+ "Pick the rules to turn off from the list.": "Wähle die Regeln zum Ausschalten aus der Liste.",
+ "{}: {} seat port without {}": "{}: {} Platz-Port ohne {}",
+ "{}: {} seat port not in VLAN {}": "{}: {} Platz-Port nicht im VLAN {}",
+ "{} seat ports have more than one machine": "{} Platz-Ports haben mehr als ein Gerät",
+ "{} look like a desk switch or router": "{} sehen nach einem Switch oder Router am Platz aus",
+ "{} looks like a desk switch or router": "{} sieht nach einem Switch oder Router am Platz aus",
+ "Check them under Cables": "Unter Kabel prüfen",
+ "Seat {}: a switch or router on the seat port ({} machines)": "Platz {}: ein Switch oder Router am Platz-Port ({} Geräte)",
+ "Seat {}: {} machines on one seat port": "Platz {}: {} Geräte an einem Platz-Port"
 }

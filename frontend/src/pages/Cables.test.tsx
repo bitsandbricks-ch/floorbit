@@ -118,6 +118,10 @@ describe('Cables', () => {
       failed: [{ switch: 'sw-c-03', error: 'timeout' }],
       moved: { count: 1, rows: [{ switch: 'sw-a-01', port: 'Gi1/0/2', mac: '02:00:00:00:00:03', ip: '192.0.2.13', ip_seat: 'A-3', seat: 'A-2', cable: 'C-0002' }] },
       unplanned: { count: 1, rows: [{ switch: 'sw-a-01', port: 'Gi1/0/30', mac: '02:00:00:00:00:30', ip: '192.0.2.40', ip_seat: 'A-9' }] },
+      shared: { count: 2, rows: [
+        { switch: 'sw-a-01', port: 'Gi1/0/5', seat: 'A-5', cable: 'C-0005', macs: 6, desk_switch: true },
+        { switch: 'sw-a-01', port: 'Gi1/0/6', seat: 'A-6', cable: 'C-0006', macs: 2, desk_switch: false },
+      ] },
     }
     const api = fakeFetch({
       ...OPTIONS, 'GET /api/auth/me': crew, 'GET /api/cables': data, 'GET /api/cables/clients?read=1': clients,
@@ -129,6 +133,10 @@ describe('Cables', () => {
     expect(screen.getByText('sw-a-01 Gi1/0/2 is cabled to A-2, but 192.0.2.13 is the IP of A-3')).toBeInTheDocument()
     expect(screen.getByText('1 machine on a port no cable explains')).toBeInTheDocument()
     expect(screen.getByText('No MAC table from: sw-c-03')).toBeInTheDocument()
+    // More than one machine on a seat port: how many, and a router or switch at the seat marked.
+    expect(screen.getByText('2 seat ports with more than one machine')).toBeInTheDocument()
+    expect(screen.getByText('6 machines')).toBeInTheDocument()
+    expect(screen.getAllByText('Switch or router at the seat')).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: 'Patch to a seat' }))
     // The new cable starts with the port, and the seat whose IP the machine has.
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Switch port' })).toHaveValue('Gi1/0/30'))
