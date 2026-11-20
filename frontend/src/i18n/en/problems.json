@@ -1,6 +1,6 @@
 {
   "title": "Problems",
-  "intro": "Everything wrong right now: switches offline, services down, Wi-Fi access points down or busy, security findings and power circuits close to tripping. Mute what you are working on so it stops paging.",
+  "intro": "Everything wrong right now: switches offline, services down, Wi-Fi access points down or busy, security findings, power circuits close to tripping, and seats with trouble (port problems, syslog alerts, open incidents). Mute what you are working on so it stops paging.",
   "none": "Nothing is wrong right now.",
   "count": {
     "down_one": "{{count}} down",
@@ -25,14 +25,11 @@
     "forecast": "Forecast",
     "log": "Log",
     "plugin": "Plugin",
+    "wifi": "Wi-Fi",
+    "incident": "Incident",
     "portconfig": "Port config",
     "range": "IP range",
-    "shared": "Shared port",
-    "wifi": "Wi-Fi"
-  },
-  "attention": {
-    "title": "Needs attention",
-    "text": "Ports to look at, newest first: flapping links, errors rising, half duplex, seats online without a check-in, syslog lines like err-disable or DHCP snooping, seats with an address outside their switch's range, seat ports whose config breaks a rule, and seat ports with more than one machine. They clear on their own once the port behaves."
+    "shared": "Shared port"
   },
   "since": "started {{ago}}",
   "open": "Open",
@@ -60,22 +57,26 @@
   "card": {
     "down": "Down",
     "warn": "To look at",
-    "muted": "Muted"
+    "muted": "Muted",
+    "seats": "Seats with trouble"
   },
   "muteTextService": "No Discord messages about this service going down or coming back until the mute ends. It stays on this list and on the health wall.",
   "muteTextAp": "Keeps this access point out of the problem counts until the mute ends. It stays on this list and in the Wi-Fi view.",
   "show": "Show",
   "all": "All",
-  "swap": "Swap",
   "report": "Make an incident",
   "incidentOpen": "Incident open",
   "copy": "Copy list",
   "copied": "Copied",
+  "seats": "Seats",
+  "range": "{{from}}–{{to}} of {{count}}",
+  "pages": "Pages",
   "seatsAffected_one": "1 seat affected",
   "seatsAffected_other": "{{count}} seats affected",
   "switchesBehind_one": "1 switch behind it",
   "switchesBehind_other": "{{count}} switches behind it",
   "behindCause": "Behind {{name}}, which is down: start there",
   "showSeats": "Show the seats",
-  "hideSeats": "Hide the seats"
+  "hideSeats": "Hide the seats",
+  "swap": "Swap"
 }

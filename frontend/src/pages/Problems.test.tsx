@@ -58,23 +58,46 @@ describe('Problems', () => {
     expect(within(second).getByText('Behind sw-a-01, which is down: start there')).toBeInTheDocument()
   })
 
-  it('lists ports that need attention, linked to the floor plan', async () => {
+  it('lists seat and port trouble with the rest, after it, with a Seats filter (issue #1204)', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({
+      counts: { down: 1, warn: 1, muted: 1, seats: 2 },
       attention: [
+        { id: 'incident:i1', kind: 'incident', level: 'warn', title: 'No internet at the seat',
+          where: 'Seat B-4, on the incident board', since: now, link: '/incidents?q=seat%3AB-4', seat: 'B-4' },
         { id: 'attention:checkin:s1:Gi1/0/12', kind: 'checkin', level: 'warn', title: 'Seat A-12 is online without a check-in',
-          where: 'sw-a-01 Gi1/0/12 (seat A-12)', since: now, link: '/plan?seat=A-12', switch_id: 's1' },
+          where: 'sw-a-01 Gi1/0/12 (seat A-12)', since: now, link: '/plan?seat=A-12', switch_id: 's1', seat: 'A-12' },
         { id: 'attention:flapping:s1:Gi1/0/9', kind: 'flapping', level: 'warn', title: 'Port flapping: 4 link changes in 10 minutes',
           where: 'sw-a-01 Gi1/0/9', since: now - 120, link: '/plan?switch=sw-a-01', switch_id: 's1' },
       ],
     }) }).fn)
     renderWithApp(<Problems />)
-    const section = await screen.findByRole('region', { name: 'Needs attention' })
-    const items = within(section).getAllByRole('article')
-    expect(items.map((a) => a.getAttribute('aria-label'))).toEqual([
-      'Seat A-12 is online without a check-in', 'Port flapping: 4 link changes in 10 minutes'])
-    expect(within(items[0]).getByText('Check-in')).toBeInTheDocument()
-    expect(within(items[1]).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/plan?switch=sw-a-01')
-    expect(within(section).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
+    await screen.findByRole('article', { name: 'No internet at the seat' })
+    const names = () => screen.getAllByRole('article').map((a) => a.getAttribute('aria-label'))
+    expect(names()).toEqual(['sw-c-02 is offline', 'Circuit B row 2 getting close (86.9 %)', 'sw-d-01 is offline',
+      'No internet at the seat', 'Seat A-12 is online without a check-in', 'Port flapping: 4 link changes in 10 minutes'])
+    const card = (label: string) => screen.getByText(label, { selector: 'dt' }).closest('dl')
+    expect(card('Seats with trouble')).toHaveTextContent('Seats with trouble2')
+    const incident = screen.getByRole('article', { name: 'No internet at the seat' })
+    expect(within(incident).getByText('Incident')).toBeInTheDocument()
+    expect(within(incident).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/incidents?q=seat%3AB-4')
+    expect(within(incident).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', { name: /Seats/ }))
+    await vi.waitFor(() => expect(names()).toEqual(['No internet at the seat', 'Seat A-12 is online without a check-in']))
+  })
+
+  it('pages a long list, the page in the address (issue #1204)', async () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({
+      id: `attention:errors:s1:Gi1/0/${i + 1}`, kind: 'errors' as const, level: 'warn' as const, title: `Errors rising on Gi1/0/${i + 1}`,
+      where: `sw-a-01 Gi1/0/${i + 1}`, since: now - i, link: '/plan?switch=sw-a-01', switch_id: 's1' }))
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ attention: many }) }).fn)
+    renderWithApp(<Problems />)
+    await screen.findByRole('article', { name: 'sw-c-02 is offline' })
+    expect(screen.getAllByRole('article')).toHaveLength(25)
+    expect(screen.getByText('1–25 of 33')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '2' }))
+    await screen.findByText('26–33 of 33')
+    expect(screen.getAllByRole('article')).toHaveLength(8)
+    expect(screen.getByRole('article', { name: 'Errors rising on Gi1/0/30' })).toBeInTheDocument()
   })
 
   it('mutes a switch for the chosen time', async () => {
