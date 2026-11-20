@@ -80,3 +80,19 @@ def test_viewers_see_the_counts(app_module, demo):
     viewer = sign_in_as(app_module, 'vi1', 'viewer')
     assert viewer.get('/api/wifi').status_code == 200
 
+
+
+def test_turning_a_plugin_off_shows_at_once(demo):
+    """#1056: the crew turns a plugin on or off and looks at the page right after."""
+    assert len(demo.get('/api/wifi').get_json()['aps']) == 10
+    demo.put('/api/settings/plugins/demo', json={'enabled': False})
+    assert demo.get('/api/wifi').get_json()['aps'] == []
+    demo.put('/api/settings/plugins/demo', json={'enabled': True})
+    assert len(demo.get('/api/wifi').get_json()['aps']) == 10
+
+
+def test_saving_settings_drops_the_cached_view(demo):
+    demo.get('/api/wifi')
+    assert wifi._cache['value'] is not None
+    assert demo.put('/api/settings', json={'cache.ttl_arp': 61}).status_code == 200
+    assert wifi._cache['value'] is None

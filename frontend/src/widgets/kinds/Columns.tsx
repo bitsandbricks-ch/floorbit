@@ -6,7 +6,7 @@ import type { State, Widget } from '@/api/types'
 import { clock, dayClock } from '@/lib/time'
 import type { Level } from '../level'
 import { useNumberStyle } from './display'
-import { bucketsOf, formatValue, linesOf, type Look, PALETTE, type Part, partsOf, partTip, type Stack, tipAt, trendOf } from './shape'
+import { bucketsOf, formatValue, lineColour, linesOf, type Look, type Part, partsOf, partTip, type Stack, tipAt, trendOf } from './shape'
 import { StatKind } from './Stat'
 
 const COL_MIN = 28    // px per column: narrower can't be read or hovered
@@ -103,7 +103,7 @@ function TimeColumns({ widget, level, box, look = {} }: { widget: Widget; level:
   if (!buckets.length) return <div className="fb-w-empty">{t('widgets.kind.noData')}</div>
   const fmt = (v: number) => { const f = formatValue(v, unit, i18n.language, style); return `${f.value}${f.unit ? ` ${f.unit}` : ''}` }
   const span = buckets[buckets.length - 1].to - buckets[0].from
-  const when = (ts: number) => (timed ? (span >= 86400 ? dayClock(ts * 1000) : clock(ts * 1000)) : '')
+  const when = (ts: number) => (timed ? (span >= 86400 ? dayClock(ts) : clock(ts)) : '')
   const stack = lines.length > 1 ? look.stack ?? 'none' : 'none'
   const sums = buckets.map((b) => b.values.reduce<number>((a, v) => a + Math.max(0, v ?? 0), 0))
   const top = stack === 'percent' ? 100 : stack === 'stacked' ? Math.max(1, ...sums) : Math.max(1, ...buckets.flatMap((b) => b.values.map((v) => v ?? 0)))
@@ -134,7 +134,7 @@ function TimeColumns({ widget, level, box, look = {} }: { widget: Widget; level:
   return (
     <div className="fb-w-graph">
       <div className="fb-w-legend">
-        {lines.map((l, i) => <span key={i}><i style={{ background: PALETTE[i % PALETTE.length] }} />{l.label}</span>)}
+        {lines.map((l, i) => <span key={i}><i style={{ background: lineColour(l, i) }} />{l.label}</span>)}
       </div>
       <div className="fb-w-plot" onPointerLeave={() => setHot(null)}
         onPointerMove={(e) => setHot(Math.min(buckets.length - 1, Math.max(0, Math.floor((e.clientX - e.currentTarget.getBoundingClientRect().left) / slot))))}>
@@ -142,10 +142,10 @@ function TimeColumns({ widget, level, box, look = {} }: { widget: Widget; level:
           <line className="fb-w-base" x1={0} x2={W} y1={H - 0.5} y2={H - 0.5} />
           {hot != null && <rect className="fb-w-col-hot" x={hot * slot} y={0} width={slot} height={H} />}
           {rects.map(([li, rx, ry, rh], k) => (
-            <rect key={k} x={rx} width={barW} y={ry} height={rh} rx={stack === 'none' ? 1.5 : 0} fill={PALETTE[li % PALETTE.length]} />
+            <rect key={k} x={rx} width={barW} y={ry} height={rh} rx={stack === 'none' ? 1.5 : 0} fill={lineColour(lines[li], li)} />
           ))}
           {trends.map((tr, li) => tr.length > 1 && (
-            <polyline key={`t${li}`} className="fb-w-trend" style={{ color: stack === 'stacked' ? 'var(--color-fg)' : PALETTE[li % PALETTE.length] }}
+            <polyline key={`t${li}`} className="fb-w-trend" style={{ color: stack === 'stacked' ? 'var(--color-fg)' : lineColour(lines[li], li) }}
               points={tr.map((p) => `${tx(p[0]).toFixed(1)},${(H - yOf(p[1])).toFixed(1)}`).join(' ')} />
           ))}
         </svg>
@@ -153,7 +153,7 @@ function TimeColumns({ widget, level, box, look = {} }: { widget: Widget; level:
           <div className="fb-w-tip" role="tooltip" style={tipAt(hot! * slot, (hot! + 1) * slot, W)}>
             {timed && <div className="fb-w-tip-when">{`${when(focus.from)} – ${when(focus.to)}`}</div>}
             {lines.map((l, i) => (
-              <div key={i}><i style={{ background: PALETTE[i % PALETTE.length] }} />{l.label}<b>{focus.values[i] == null ? '–' : fmt(focus.values[i]!)}{stack === 'percent' && focus.values[i] != null ? ` · ${Math.round((Math.max(0, focus.values[i]!) / (focus.values.reduce<number>((a, v) => a + Math.max(0, v ?? 0), 0) || 1)) * 100)} %` : ''}</b></div>
+              <div key={i}><i style={{ background: lineColour(lines[i], i) }} />{l.label}<b>{focus.values[i] == null ? '–' : fmt(focus.values[i]!)}{stack === 'percent' && focus.values[i] != null ? ` · ${Math.round((Math.max(0, focus.values[i]!) / (focus.values.reduce<number>((a, v) => a + Math.max(0, v ?? 0), 0) || 1)) * 100)} %` : ''}</b></div>
             ))}
           </div>
         )}

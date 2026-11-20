@@ -1,5 +1,5 @@
 import {
-  Alert, Anchor, Badge, Button, Group, Paper, Stack, Table, Text, TextInput,
+  Alert, Anchor, Badge, Button, Group, Stack, Text, TextInput,
 } from '@mantine/core'
 import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -11,6 +11,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { BlockPlan, CableImport, CableList } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
@@ -88,39 +89,23 @@ export default function Cables() {
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}
               value={search} onChange={(e) => setSearch(e.currentTarget.value)} />
-            <Paper withBorder radius="lg" p="md">
-              {rows.length === 0 ? <Text c="dimmed">{d.cables.length ? t('cables.noMatch') : t('cables.empty')}</Text> : (
-                <Table.ScrollContainer minWidth={640}>
-                  <Table striped highlightOnHover>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>{t('cables.label')}</Table.Th><Table.Th>{t('cables.switchPort')}</Table.Th>
-                        <Table.Th>{t('cables.panel')}</Table.Th><Table.Th>{t('cables.seat')}</Table.Th>
-                        <Table.Th>{t('cables.cable')}</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {rows.map((c) => (
-                        <Table.Tr key={c.id}>
-                          <Table.Td fw={600}><Anchor component={Link} to={`/cables/${c.id}`}>{c.label}</Anchor></Table.Td>
-                          <Table.Td ff="monospace">{c.switch} {c.port}</Table.Td>
-                          <Table.Td>{c.panel ? `${c.panel} ${c.panel_port}`.trim() : <Text span c="dimmed">{t('cables.direct')}</Text>}</Table.Td>
-                          <Table.Td>{c.seat || '–'}</Table.Td>
-                          <Table.Td>
-                            <Group gap={6} wrap="nowrap">
-                              <Text size="sm">{[c.color, c.length_m ? `${c.length_m} m` : '', c.type ? t(`topology.types.${c.type}`) : '',
-                                c.speed ? `${c.speed}G` : ''].filter(Boolean).join(' · ') || '–'}</Text>
-                              {c.source === 'import' && <Badge variant="light" color="info" tt="none">{c.plugin ?? 'NetBox'}</Badge>}
-                            </Group>
-                          </Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
-                </Table.ScrollContainer>
-              )}
-            </Paper>
-            <Text size="sm" c="dimmed">{t('cables.count', { count: rows.length })}</Text>
+            <DataTable label={t('cables.title')} rows={rows} rowKey={(c) => c.id} defaultSort={{ id: 'label' }} minWidth={640}
+              empty={<Text c="dimmed">{d.cables.length ? t('cables.noMatch') : t('cables.empty')}</Text>}
+              count={(n) => t('cables.count', { count: n })}
+              columns={[
+                { id: 'label', header: t('cables.label'), sort: (c) => c.label, cell: (c) => <Anchor component={Link} to={`/cables/${c.id}`} fw={600}>{c.label}</Anchor> },
+                { id: 'port', header: t('cables.switchPort'), sort: (c) => `${c.switch} ${c.port}`, cell: (c) => `${c.switch} ${c.port}`, mono: true },
+                { id: 'panel', header: t('cables.panel'), sort: (c) => (c.panel ? `${c.panel} ${c.panel_port}` : ''), hideOnPhone: true,
+                  cell: (c) => (c.panel ? `${c.panel} ${c.panel_port}`.trim() : <Text span c="dimmed">{t('cables.direct')}</Text>) },
+                { id: 'seat', header: t('cables.seat'), sort: (c) => c.seat ?? '', cell: (c) => c.seat || '–' },
+                { id: 'cable', header: t('cables.cable'), hideOnPhone: true, cell: (c) => (
+                  <Group gap={6} wrap="nowrap">
+                    <Text size="sm">{[c.color, c.length_m ? `${c.length_m} m` : '', c.type ? t(`topology.types.${c.type}`) : '',
+                      c.speed ? `${c.speed}G` : ''].filter(Boolean).join(' · ') || '–'}</Text>
+                    {c.source === 'import' && <Badge variant="light" color="info" tt="none">{c.plugin ?? 'NetBox'}</Badge>}
+                  </Group>
+                ) },
+              ]} />
           </>
         )}
       </Stack>

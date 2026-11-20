@@ -14,6 +14,8 @@ import type { Display } from '@/widgets/kinds/display'
 export type Area =
   | { kind: 'hall' }
   | { kind: 'block'; id: string }
+  /** One row of a block, by its id ("<block id>:<row from 1, top first>", floorbit/seat_names.py). */
+  | { kind: 'row'; id: string }
   | { kind: 'zone'; id: string }
   | { kind: 'box'; x: number; y: number; w: number; h: number }
 
@@ -41,7 +43,11 @@ export type Pane = Head & (
    *  (issue #959); the ``Display`` fields set units, colour steps, mappings and rows (#960).
    *  All are left out when automatic or the default. */
   | ({ kind: 'tile'; tile: string; type?: KindPick; level?: LevelPin; stack?: Stack; style?: LineStyle; trend?: Trend
-      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[] } & Display)
+      also?: string[]; group_by?: string; reduce?: Calc; legend?: Calc[]; range?: TimeRange; compare?: Compare; events?: boolean
+      refresh?: Refresh; text_size?: 's' | 'l'; spark?: boolean; change?: boolean } & Display)
+  /** A saved widget (Widgets page), followed as it changes. ``saved`` comes with the dashboard
+   *  (null: removed) and is dropped when saving; "Clone" turns the pane into a tile pane of its own. */
+  | { kind: 'widget'; widget: string; saved?: { name: string; pane: Extract<Pane, { kind: 'tile' }> } | null }
   /** ``expanded``: the widget at its big size right on the grid (a pane that fills a screen). */
   | { kind: 'view'; view: string; expanded?: boolean }
   | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }
@@ -50,8 +56,32 @@ export type Pane = Head & (
   | { kind: 'private' }
 )
 
+/** The time a pane shows, for a tile that offers it (``ranges``), and what it is compared with. */
+export type TimeRange = '1h' | '6h' | '24h' | 'event'
+export const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', 'event']
+export type Compare = 'day'
+/** How often a pane asks its tile again, in seconds, instead of the tile's own pace. */
+export type Refresh = 10 | 30 | 60 | 300
+export const REFRESHES: Refresh[] = [10, 30, 60, 300]
+
+/** The pane's own time range, else the dashboard's; comparing with yesterday needs a range that has one. */
+export function paneRange<P extends { range?: TimeRange; compare?: Compare }>(pane: P, board?: TimeRange): P & { range?: TimeRange } {
+  const range = pane.range ?? board
+  return { ...pane, range, ...(range === 'event' ? { compare: undefined } : {}) }
+}
+
+/** A tile's address with the pane's time range and comparison, when the tile takes them. */
+export function rangedUrl(tile: { url: string; ranges?: boolean; marks?: boolean },
+  pane: { range?: TimeRange; compare?: Compare; events?: boolean }): string {
+  const q = new URLSearchParams()
+  if (tile.ranges && pane.range) q.set('range', pane.range)
+  if (tile.ranges && pane.compare) q.set('compare', pane.compare)
+  if (tile.marks && pane.events) q.set('marks', '1')
+  return q.size ? `${tile.url}${tile.url.includes('?') ? '&' : '?'}${q}` : tile.url
+}
+
 export type PaneKind = Exclude<Pane['kind'], 'private'>
-export const PANE_KINDS: PaneKind[] = ['plan', 'view', 'tile', 'text', 'empty']
+export const PANE_KINDS: PaneKind[] = ['plan', 'widget', 'view', 'tile', 'text', 'empty']
 
 export type Split = 'row' | 'column'
 export type Node = { pane: Pane } | { split: Split; sizes: number[]; children: Node[] }
@@ -64,10 +94,16 @@ export interface Board {
   fit: boolean
   /** Seconds per hall on the plan panes that show a whole hall; missing is no rotation. */
   cycle?: number
+  /** The time every graph shows unless its pane picks its own; a viewer can change it for themselves. */
+  range?: TimeRange
+  /** Full screen shows a header (name, event, day, next, clock) and the status line; false hides both. */
+  frame?: false
   updated_at?: number
   by?: string | null
   /** Ready-made (the Kiosk): saving under its id keeps your own version instead. */
   builtin?: boolean
+  /** A ready-made dashboard someone edited: deleting the saved one resets it. */
+  changed?: boolean
   /** Opens without signing in, showing only what anyone may see. */
   public?: boolean
 }
@@ -218,7 +254,41 @@ export function areaView(area: Area, drawing: PlanDrawing): View | null {
     if (!b) return null
     return contentBox({ ...drawing, shapes: [b], marks: [] }, 24)
   }
+  if (area.kind === 'row') {
+    const row = findRow(drawing, area.id)
+    if (!row) return null
+    // Seat middles, plus half a seat and room for the row's letter beside it.
+    const pts = row.cells.map((c) => cellCenter(drawing, row.block, c))
+    const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y), m = drawing.cell * 1.5
+    const x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m
+    return { x: x0, y: y0, w: Math.max(...xs) + m - x0, h: Math.max(...ys) + m - y0 }
+  }
   return contentBox(drawing)
+}
+
+function cellCenter(drawing: PlanDrawing, b: PlanShape, c: PlanShape['cells'][number]): { x: number; y: number } {
+  const rad = (b.rotation * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad)
+  const lx = c.x + drawing.cell / 2, ly = c.y + drawing.cell / 2
+  return { x: b.cx + lx * cos - ly * sin, y: b.cy + lx * sin + ly * cos }
+}
+
+/** Every row of the plan's blocks, top row first, with its seats. Id and name come from the
+ *  server (the same as /api/options/rows), so a change to how rows are kept doesn't reach here. */
+export interface PlanRow { id: string; name: string; block: PlanShape; cells: PlanShape['cells'] }
+
+export function planRows(drawing: PlanDrawing): PlanRow[] {
+  const out: PlanRow[] = []
+  for (const b of drawing.shapes) {
+    (b.row_list ?? []).forEach((row, r) => {
+      const cells = b.cells.filter((c) => c.rc?.[0] === r)
+      if (cells.length) out.push({ ...row, block: b, cells })
+    })
+  }
+  return out
+}
+
+export function findRow(drawing: PlanDrawing, id: string): PlanRow | undefined {
+  return planRows(drawing).find((r) => r.id === id)
 }
 
 const pad = (v: View, m: number): View => ({ x: v.x - m, y: v.y - m, w: v.w + 2 * m, h: v.h + 2 * m })
@@ -227,11 +297,9 @@ const pad = (v: View, m: number): View => ({ x: v.x - m, y: v.y - m, w: v.w + 2 
 export function seatsIn(drawing: PlanDrawing, view: View): string[] {
   const out: string[] = []
   for (const b of drawing.shapes) {
-    const rad = (b.rotation * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad)
     for (const c of b.cells) {
       // Like plan/model.ts seatCenter, for every seat at once.
-      const lx = c.x + drawing.cell / 2, ly = c.y + drawing.cell / 2
-      const x = b.cx + lx * cos - ly * sin, y = b.cy + lx * sin + ly * cos
+      const { x, y } = cellCenter(drawing, b, c)
       if (x >= view.x && x <= view.x + view.w && y >= view.y && y <= view.y + view.h) out.push(c.seat)
     }
   }
@@ -240,8 +308,8 @@ export function seatsIn(drawing: PlanDrawing, view: View): string[] {
 
 /** The display part of a tile pane, for widgets/kinds/display.ts. */
 export function displayOf(p: Extract<Pane, { kind: 'tile' }>): Display {
-  const { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero } = p
-  return { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero }
+  const { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero, overrides } = p
+  return { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero, overrides }
 }
 
 /** A seat block by its id, or by its name (panes saved before blocks were picked by id). */

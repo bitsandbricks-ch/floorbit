@@ -34,6 +34,7 @@ class Doc(dict):
     _base = None      # (path, the text the caller's copy came from)
     _tenant = None    # the tenant's parts as loaded, in a later event (see load_data)
     _upgraded = False  # load_data moved it to the current shape (floorbit/upgrades.py)
+    _files = None     # (event file, tenant file) load_data read it from: save_data writes it back there
 
 
 def _doc(found, path, text):
@@ -415,8 +416,12 @@ def using(tenant=None, event=None):
 TENANT_KEYS = frozenset({
     'auth_users', 'auth_teams', 'auth_roles', 'auth_oidc', 'auth_secret_key', 'api_tokens',
     'app_settings', 'default_settings', 'setup', 'features', 'credentials', 'agents', 'webhooks',
-    'command_templates', 'dashboards',
+    'command_templates', 'dashboards', 'agent_ca', 'agent_public_cert',
 })
+
+# Tenant parts an older Floorbit kept in each event's document (issue #1095): ``lift_from_live_event``
+# moves the live event's copy up to the tenant's at start.
+LIFTED_KEYS = ('agent_ca',)
 
 
 def _files():
@@ -451,6 +456,29 @@ def load_shared():
     return out
 
 
+def lift_from_live_event():
+    """Move ``LIFTED_KEYS`` from the live event's document to the tenant's. The live event's copy is
+    the one in use (the agents' certificates are signed by its CA, crew devices trust it), so it
+    replaces one the tenant already has. Returns the keys it moved."""
+    path, tenant_path_ = _files()
+    if not tenant_path_:
+        return []
+    event = read_json(path)
+    if not isinstance(event, dict):
+        return []
+    moved = [k for k in LIFTED_KEYS if k in event]
+    if not moved:
+        return []
+    tenant = read_json(tenant_path_, {})
+    tenant = tenant if isinstance(tenant, dict) else {}
+    for key in moved:
+        tenant[key] = event.pop(key)
+    # The tenant's first: stopped in between, both have it, never neither.
+    write_json(tenant_path_, tenant)
+    write_json(path, event)
+    return moved
+
+
 def load_data():
     path, tenant_path_ = _files()
     found = read_json(path)
@@ -472,6 +500,7 @@ def load_data():
     upgraded = upgrades.apply(found)
     if isinstance(found, Doc):
         found._upgraded = upgraded
+        found._files = (path, tenant_path_)
     return found
 
 
@@ -482,7 +511,9 @@ RETIRED_KEYS = ('planner', 'teardown', 'loans')
 def save_data(data):
     for key in RETIRED_KEYS:
         data.pop(key, None)
-    path, tenant_path_ = _files()
+    # Back where it was loaded from: a thread still holding one event's document after another
+    # event (or, in tests, the next test's data file) took over would otherwise store it whole there.
+    path, tenant_path_ = getattr(data, '_files', None) or _files()
     if not tenant_path_:
         write_json(path, data)
         return

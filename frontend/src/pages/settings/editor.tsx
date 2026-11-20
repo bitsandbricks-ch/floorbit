@@ -278,8 +278,10 @@ export function SettingsForm({ ed, children }: { ed: SettingsEditor; children: R
 }
 
 /** One section's fields; ``only`` limits it to some of them (search results). */
-export function SectionPanel({ ed, section, only, title, actions }: {
-  ed: SettingsEditor; section: SettingsAnswer['sections'][number]; only?: Set<string>; title?: ReactNode; actions?: ReactNode
+export function SectionPanel({ ed, section, only, title, desc, actions }: {
+  ed: SettingsEditor; section: SettingsAnswer['sections'][number]; only?: Set<string>; title?: ReactNode
+  /** null leaves the section's description out (a page that already says it, like a plugin's). */
+  desc?: ReactNode | null; actions?: ReactNode
 }) {
   const { t } = useTranslation()
   const d = ed.d
@@ -298,7 +300,7 @@ export function SectionPanel({ ed, section, only, title, actions }: {
   )
   return (
     <Panel id={`sec-${s.id}`} title={title ?? sectionTitle(t, s)}
-      desc={t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
+      desc={desc === null ? undefined : desc ?? t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
       actions={actions ?? (TESTABLE.has(s.id) && (
         <Button variant="default" size="xs" onClick={() => void ed.test.run(s.id)}>{t('settings.test')}</Button>
       ))}>
@@ -307,7 +309,7 @@ export function SectionPanel({ ed, section, only, title, actions }: {
         {basic.map(row)}
       </Stack>
       {advanced.length > 0 && (
-        <Advanced fields={advanced} open={!!only || advanced.some((f) => ed.changes[f.key] !== undefined)} alone={!basic.length}>
+        <Advanced count={advanced.length} open={!!only || advanced.some((f) => ed.changes[f.key] !== undefined)} alone={!basic.length}>
           <Stack gap={0} className="fb-setting-rows">{advanced.map(row)}</Stack>
         </Advanced>
       )}
@@ -315,8 +317,11 @@ export function SectionPanel({ ed, section, only, title, actions }: {
   )
 }
 
-/** A section's server-side values, folded: open when searching or when one of them has an unsaved change. */
-function Advanced({ fields, open, alone, children }: { fields: Field[]; open: boolean; alone: boolean; children: ReactNode }) {
+/** A section's server-side values, folded: open when searching or when one of them has an unsaved change.
+ *  The agent settings fold theirs the same way, with their own hint. */
+export function Advanced({ count, open, alone = false, hint, children }: {
+  count: number; open: boolean; alone?: boolean; hint?: string; children: ReactNode
+}) {
   const { t } = useTranslation()
   const [shown, setShown] = useState(false)
   const opened = shown || open
@@ -324,8 +329,8 @@ function Advanced({ fields, open, alone, children }: { fields: Field[]; open: bo
     <div className={alone ? 'fb-setting-advanced is-alone' : 'fb-setting-advanced'}>
       <UnstyledButton className="fb-setting-advanced-toggle" aria-expanded={opened} onClick={() => setShown(!opened)}>
         <IconChevronRight size={14} className={opened ? 'is-open' : undefined} aria-hidden />
-        <Text size="sm" fw={600} component="span">{t('settings.advanced', { count: fields.length })}</Text>
-        <Text size="xs" c="dimmed" component="span">{t('settings.advancedHint')}</Text>
+        <Text size="sm" fw={600} component="span">{t('settings.advanced', { count })}</Text>
+        <Text size="xs" c="dimmed" component="span">{hint ?? t('settings.advancedHint')}</Text>
       </UnstyledButton>
       <Collapse expanded={opened}>{children}</Collapse>
     </div>

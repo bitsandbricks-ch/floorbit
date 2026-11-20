@@ -2,5 +2,7 @@
   "pin": "In der Seitenleiste anheften",
   "unpin": "Lösen",
   "edit": "Bearbeiten",
-  "bigScreen": "Grosser Bildschirm"
+  "bigScreen": "Grosser Bildschirm",
+  "range": "Gezeigte Zeit",
+  "rangeAuto": "Zeit: wie eingestellt"
 }

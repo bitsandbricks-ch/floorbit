@@ -11,7 +11,7 @@ export function PieKind({ widget, level, box }: { widget: Widget; level: Level; 
   const { t, i18n } = useTranslation()
   const [hot, setHot] = useState<number | null>(null)
   const style = useNumberStyle()
-  const parts = slices(partsOf(widget, (s: State) => t(`widgets.state.${s}`), i18n.language), t('widgets.kind.other'), i18n.language)
+  const parts = slices(partsOf(widget, (s: State) => t(`widgets.state.${s}`), i18n.language, true), t('widgets.kind.other'), i18n.language)
   const total = parts.reduce((a, p) => a + p.value, 0)
   if (!total) return <div className="fb-w-empty">{t('widgets.kind.noData')}</div>
   const legend = level !== 's'
@@ -58,5 +58,6 @@ export function PieKind({ widget, level, box }: { widget: Widget; level: Level; 
 
 /** The whole in the middle of the ring: short (1.1T, not 1,105,774,540,503), so it fits. */
 function centre(total: number, lang: string, style: { decimals?: number; short?: boolean }) {
-  return formatValue(total, '', lang, { short: true, ...style }).value
+  // Spread would let an unset ``short`` (undefined) switch it back off.
+  return formatValue(total, '', lang, { short: true, decimals: style.decimals }).value
 }

@@ -16,7 +16,7 @@ The **Inventory** page is one list with a tab per type (Devices, then any other 
 entries) and a **Groups and tags** tab. The device list shows each device's live state (the status
 monitor's dot), its role, group, model, management IP, how many of its ports are up (from the last
 read of the placed switches) and which plugin feeds it. Every column sorts; search, group, tag,
-state and role filter it, 50 rows to a page. A small chip next to the filters says when the
+state and role filter it, 50 rows to a page, and the sort and page stay in the address (`?sort=-ports&page=2`). A small chip next to the filters says when the
 plugins last synced (red when a sync failed; hover for each plugin and the schedule). Picking a
 group or tag on the Groups and tags tab goes back to the list, filtered.
 
@@ -163,6 +163,8 @@ page, or the sync button on the floor plan). Floorbit merges them with these rul
 - Every device remembers which plugins feed it and the last values each one sent.
 - Every sync is logged: added, updated, joined, gone, and how many hand-edited fields it kept.
   The Inventory page shows the last sync per plugin; `GET /api/inventory/log` has the history.
+  It lists only the sources that are set up or have synced: NetBox once its URL and token are
+  set, the local agent once it has fed devices or a sync through it failed.
 
 Bad entries from a plugin (no ID, no name, an IP that isn't one) are skipped and counted, never
 stored.
