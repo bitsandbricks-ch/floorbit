@@ -1,12 +1,13 @@
-import { Alert, Button, Checkbox, Group, Loader, Modal, Select, SimpleGrid, Stack, Table, Text, TextInput } from '@mantine/core'
+import { Alert, Button, Checkbox, Group, Loader, Modal, Select, SimpleGrid, Stack, Table, Text } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { get, post } from '@/api/client'
+import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { EntitySelect } from '@/components/EntitySelect'
-import type { BlockPlan, CableClash, SeatBlock } from '@/api/types'
+import { RowsSelect } from '@/components/RowsSelect'
+import type { BlockPlan, CableClash } from '@/api/types'
 
 const SHOWN = 12   // preview rows before "…"
 
@@ -19,17 +20,17 @@ function Clash({ c }: { c: CableClash }) {
   return <Text size="sm">{text}{c.imported && <> {t('cables.clashImported')}</>}</Text>
 }
 
-/** "Switch X from Gi1/0/1, along the rows": a cable for every seat of a block (issue #473). */
+/** "Switch X from Gi1/0/1, along rows C and D": a cable for every seat of the rows picked, in the
+ *  order picked, whichever block they are in (issue #473, #1057). */
 export function PatchBlockModal({ onClose, onDone }: {
   onClose: () => void; onDone: (made: BlockPlan) => void
 }) {
   const { t } = useTranslation()
-  const blocks = useQuery({ queryKey: qk.seatBlocks, queryFn: () => get<SeatBlock[]>('/api/seat-blocks') })
-  const [form, setForm] = useState({ block: '', switch: '', first_port: 'Gi1/0/1', order: 'rows', reverse: false, rows: '' })
+  const [form, setForm] = useState({ rows: [] as string[], switch: '', first_port: 'Gi1/0/1', order: 'rows', reverse: false })
   const [replace, setReplace] = useState(false)
   const set = <K extends keyof typeof form>(k: K) => (v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }))
   const [typed] = useDebouncedValue(form, 300)
-  const ready = Boolean(typed.block && typed.switch.trim() && typed.first_port.trim())
+  const ready = Boolean(typed.rows.length && typed.switch.trim() && typed.first_port.trim())
   const preview = useQuery({
     queryKey: qk.blockPlan(typed),
     queryFn: () => post<BlockPlan>('/api/cables/block', { ...typed, dry_run: true }),
@@ -49,14 +50,10 @@ export function PatchBlockModal({ onClose, onDone }: {
       <Stack gap="sm">
         <Text size="sm" c="dimmed">{t('cables.patchIntro')}</Text>
         <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-          <Select label={t('cables.block')} required searchable placeholder={t('ui.pickBlock')} value={form.block || null}
-            data={(blocks.data ?? []).map((b) => ({ value: b.id, label: `${b.name || '–'} (${b.cols * b.rows})` }))}
-            onChange={(v) => set('block')(v ?? '')} />
+          <RowsSelect label={t('cables.rows')} required value={form.rows} onChange={set('rows')} />
           <EntitySelect kind="switches" label={t('cables.switch')} required value={form.switch} onChange={set('switch')} />
           <EntitySelect kind="ports" switchName={form.switch} showUsed label={t('cables.firstPort')} required
             value={form.first_port} onChange={set('first_port')} />
-          <TextInput label={t('cables.rows')} placeholder={t('cables.rowsPlaceholder')} value={form.rows}
-            onChange={(e) => set('rows')(e.currentTarget.value)} />
           <Select label={t('cables.order')} allowDeselect={false} value={form.order} onChange={(v) => set('order')(v ?? 'rows')}
             data={[{ value: 'rows', label: t('cables.orderRows') }, { value: 'snake', label: t('cables.orderSnake') }]} />
           <Checkbox mt={{ sm: 30 }} label={t('cables.fromLast')} checked={form.reverse}

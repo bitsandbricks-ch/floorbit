@@ -36,6 +36,14 @@ def _setting_or_empty(settings_store, key):
         return ''
 
 
+def _settings_changed(app, settings_store):
+    runtime.apply(settings_store)
+    # A plugin's settings (its address, its token) change what it answers: no stale cached view.
+    registry = app.extensions.get('floorbit_plugins')
+    if registry is not None:
+        registry.changed()
+
+
 def create_app(start_background=True):
     load_dotenv()
     if os.environ.get('FLOORBIT_DATA_FILE'):   # may come from .env, read just now
@@ -142,7 +150,7 @@ def create_app(start_background=True):
     # /settings page plus GET/PUT /api/settings and POST /api/settings/test/<service>
     app.register_blueprint(create_settings_blueprint(
         settings_store,
-        on_change=lambda: runtime.apply(settings_store),
+        on_change=lambda: _settings_changed(app, settings_store),
         get_redis=cache.get_redis_client,
         redis_info=cache.redis_info,
     ))

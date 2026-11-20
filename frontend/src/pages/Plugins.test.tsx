@@ -2,7 +2,8 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PluginInfo } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
-import Plugins, { PluginCard } from './Plugins'
+import Plugins from './Plugins'
+import { PluginOverview } from './plugins/PluginOverview'
 
 const plugin: PluginInfo = {
   id: 'http-check',
@@ -53,11 +54,11 @@ describe('Plugins page', () => {
       [{ schema: 1, data_schema: 3 }, /at schema 3, newer than this version knows \(1\)/],
     ]
     for (const [extra, text] of cases) {
-      const { unmount } = renderWithApp(<PluginCard plugin={{ ...plugin, ...extra }} />)
+      const { unmount } = renderWithApp(<PluginOverview plugin={{ ...plugin, ...extra }} />)
       expect(screen.getByText(text)).toBeInTheDocument()
       unmount()
     }
-    renderWithApp(<PluginCard plugin={plugin} />)
+    renderWithApp(<PluginOverview plugin={plugin} />)
     expect(screen.queryByText(/schema/)).toBeNull()
   })
 

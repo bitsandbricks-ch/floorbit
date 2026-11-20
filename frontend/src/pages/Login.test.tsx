@@ -50,7 +50,7 @@ describe('Login', () => {
     expect(screen.getByText(/flask --app app users add/)).toHaveTextContent('flask --app app users add <name>')
   })
 
-  it('says the database is away instead of an empty form, and shows the form once it is back', async () => {
+  it('says the database is away, keeps the form greyed out, and opens it once the database is back', async () => {
     let down = true
     vi.stubGlobal('fetch', fakeFetch({
       [OPTIONS]: () => (down
@@ -60,10 +60,20 @@ describe('Login', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     renderWithApp(<Login />, '/login?next=/inventory')
     expect(await screen.findByRole('alert')).toHaveTextContent('Database unavailable')
-    expect(screen.queryByLabelText(/Password/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/Password/)).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeDisabled()
     down = false
     await vi.advanceTimersByTimeAsync(10_100)
-    expect(await screen.findByLabelText(/Password/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText(/Password/)).toBeEnabled())
     vi.useRealTimers()
+  })
+
+  it('shows the claim beside the form and the crew title only while check-in is open', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ [OPTIONS]: options() }).fn)
+    renderWithApp(<Login />, '/login?next=/inventory')
+    expect(await screen.findByRole('heading', { name: 'Sign in', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText('Which switch, which port, which seat.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Check in to your seat' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Sign in' })).toBeEnabled()
   })
 })
