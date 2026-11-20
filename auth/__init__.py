@@ -180,7 +180,13 @@ def _same_origin():
             return False
         # Behind a reverse proxy that rewrites Host, X-Forwarded-Host holds the public name.
         hosts = {request.host, request.headers.get('X-Forwarded-Host', '').split(',')[0].strip()}
-        return urlsplit(origin).netloc in hosts or origin.rstrip('/') in _auth().trusted_origins
+        # Through an agent's front door the browser's page is on the name it typed (checkin.lan):
+        # the agent, checked by its key, says which, since it can't pass the Host header on.
+        from integrations.checkin import front_door_host
+        door = front_door_host()
+        if door:
+            hosts.add(door.strip().lower())
+        return urlsplit(origin).netloc.lower() in hosts or origin.rstrip('/') in _auth().trusted_origins
     # Browsers that send no Origin still send Sec-Fetch-Site.
     return request.headers.get('Sec-Fetch-Site', 'same-origin') in ('same-origin', 'none')
 

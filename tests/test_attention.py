@@ -181,6 +181,15 @@ def test_seat_changes_go_out_as_a_live_event(hall, monkeypatch):
     assert len([d for k, d in sent if k == "seats.changed"]) == 1
 
 
+def test_a_hand_entry_tells_the_port_watch_its_seat(hall, client):
+    """Issue #953: a seat whose port was only typed in on the Seat mapping page is watched too."""
+    assert client.put("/api/seat-map/A-4", json={"switch": "sw-a-01", "port": "Gi1/0/5"}).status_code == 200
+    hall["mon"].set("sw-a-01", port("Gi1/0/5", duplex="half"))
+    poll(hall, 1000)
+    assert hall["watch"].port_seats[("sw-a-01", "Gi1/0/5")] == "A-4"
+    assert [item["where"] for item in hall["watch"].snapshot()["items"]] == ["sw-a-01 Gi1/0/5 (seat A-4)"]
+
+
 def test_a_cable_to_a_seat_wins_over_the_port_description(hall, client):
     """The block patch plan (issue #473): what the crew patched beats what is typed on the switch."""
     client.post("/api/cables", json={"switch": "sw-a-01", "port": "GigabitEthernet1/0/5", "seat": "A-3"})

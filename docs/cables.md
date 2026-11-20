@@ -19,6 +19,11 @@ Nothing that Floorbit already knows is typed in: the switch, its port, the patch
 the seat are picked from lists. Ports list only the free ones (and keep the cable's own); tick
 **Also list ports that have a cable** to see the rest, with the seat on each.
 
+Each cable has its own page, `/cables/<id>`: the list links to it, its label's QR code opens it, and
+it's where the cable is changed, printed or deleted. **Add cable** opens `/cables/new`, which can
+take `switch`, `port`, `panel`, `panel_port` and `seat` from the address to start filled in. The
+floor plan's Edit mode still edits a cable in a dialog, so the plan stays in view.
+
 ## A whole block at once
 
 **Patch a block** makes a cable for every seat of a seat block, so a hall is a few dozen of these
@@ -64,17 +69,27 @@ and the ARP table for the seats' networks, and lists:
 - **machines on another seat's port**: the port is cabled to A-2, but the machine on it has A-3's IP
   (from the seat mapping). Players swapped seats, or two cables are swapped at the switch;
 - **machines on a port no cable explains**, with their MAC and IP, and the seat that IP belongs to.
-  **Patch to a seat** opens a new cable with the port and that seat filled in; **Infrastructure**
+  **Patch to a seat** opens a new cable's page with the port and that seat filled in; **Infrastructure**
   adds a cable without a seat (a crew laptop, an access point), so the port isn't asked about again;
 - **seat ports with more than one machine**: the seat, the port and how many machines, never which.
   Two or three are usually a console next to the PC. More than 4 is marked **Switch or router at the
   seat**: that is where loops, a home router handing out addresses and a seat the mapping can't place
   start. Both also show under [Needs attention](alerts.md#needs-attention) in Problems, one line per
-  seat, or one line for all of them when there are more than 5.
+  seat, or one line for all of them when there are more than 5;
+- **IPs in the seat networks on no seat port** (issue #949): ARP knows the IP, but no seat switch's
+  edge port carries its MAC: a PC behind a desk switch, or on a switch Floorbit doesn't read. The
+  gateway (the .1) and the inventory's own boxes are left out, and the list only shows after a read
+  where every seat switch answered;
+- **seats cabled to a port with no machine**: only once check-ins have started, so it isn't every
+  seat before the doors open.
+
+**Ignore** takes a MAC off these lists for good (a printer, a crew PC); `GET /api/cables/clients/ignored`
+lists them and `DELETE` puts one back. That needs `floorplan.edit`, like **Infrastructure**.
 
 Other ports with more than 4 MACs are uplinks, and ports cabled without a seat are
-infrastructure: neither is listed. Opening the page starts a read in the background, at most every two
-minutes (LibreNMS itself refreshes MAC tables only when it polls), so 4000 seats don't mean 4000 calls.
+infrastructure: neither is listed. Floorbit reads every five minutes in the background while a
+monitoring source is set up, and opening the page asks for a read too, at most every two minutes
+(LibreNMS itself refreshes MAC tables only when it polls, so this adds no load on the switches).
 A switch that doesn't answer is named. This list names MACs and IPs, so it needs `seats.view`.
 
 ## Walking the row
@@ -126,7 +141,7 @@ end (the seat, or the panel when there is no seat). Each label has:
 - the cable's label, large;
 - the end it goes on (`sw-a-01 Gi1/0/3` or `Seat A-3`), in bold;
 - where the other end goes, small, and the colour, length, type and speed;
-- a QR code that opens the cable on this page (`/cables?cable=<id>`).
+- a QR code that opens the cable's own page (`/cables/<id>`).
 
 The PDF holds the cables the search shows. A cable's own window prints just its two labels. Behind a
 reverse proxy, set `PUBLIC_URL` so the QR codes point at the address phones reach.
@@ -199,9 +214,11 @@ under **cables**, with the cable's label and route.
 - `GET /api/cables/check`: the plan against the last port read: `{"last_poll", "blocks", "missing", "down",
   "unplanned", "conflicts", "unread"}`; each list is `{"count", "rows"}` (at most 200 rows).
 - `GET /api/cables/clients?read=1`: the last MAC table read, `{"as_of", "reading", "started", "error",
-  "switches", "clients", "failed", "unplanned", "moved", "shared"}`; a `shared` row is
-  `{"switch", "port", "seat", "cable", "macs", "desk_switch"}`; `read=1` starts a new read when the last is
-  two minutes old. Needs `seats.view`.
+  "switches", "clients", "failed", "unplanned", "moved", "shared", "no_port", "empty", "ignored"}`; a
+  `shared` row is `{"switch", "port", "seat", "cable", "macs", "desk_switch"}`; `read=1` starts a new
+  read when the last is two minutes old. Needs `seats.view`.
+- `GET /api/cables/clients/ignored`, `POST /api/cables/clients/ignored` `{mac, note}`,
+  `DELETE /api/cables/clients/ignored/<mac>`: the machines left off the lists (`floorplan.edit` to change).
 - `GET /api/cables/walk?switch=&since=`: the ports of a switch that came up since `since`
   (`{"ups": [{"port", "at", "how"}], "syslog", "since"}`); without `since` the walk begins now.
 - `POST /api/cables/assign`: `{"seat", "switch", "port", "swap"}`: the seat is on that port. 409 with

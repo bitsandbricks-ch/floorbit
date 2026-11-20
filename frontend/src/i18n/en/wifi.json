@@ -36,5 +36,12 @@
   "unplacedHint_other": "{{count}} access points aren't on the floor plan, or their names don't match the inventory.",
   "privacy": "From {{sources}}. Client counts only: Floorbit never asks for or keeps who is connected.",
   "noPlugin": "No Wi-Fi plugin is on. Turn on UniFi under Settings > Plugins, or add a plugin with uses: [wifi].",
-  "pluginError": "Couldn't ask a plugin: {{message}}"
+  "pluginError": "Couldn't ask a plugin: {{message}}",
+  "history": "Clients over time",
+  "historyRange": "Time range",
+  "historyHours_one": "{{count}} hour",
+  "historyHours_other": "{{count}} hours",
+  "historyMax": "max {{n}}",
+  "historyNone": "No history yet: the first numbers come within a minute.",
+  "historyFrom": "From the controllers that stream to Telemetry: {{controllers}}."
 }
