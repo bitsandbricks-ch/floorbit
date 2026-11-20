@@ -13,10 +13,9 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PageTabs } from '@/components/PageTabs'
 import { usePageTab } from '@/components/pageTab'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { DeviceStateTable, type DeviceFilter } from '@/components/telemetry/DeviceStateTable'
 import { NEEDS_LOOK, deviceRows } from '@/components/telemetry/state'
-import { Segments } from '@/components/telemetry/Segments'
 import type { DeviceSeen } from '@/components/telemetry/api'
 import { TelemetryAgentNumbersList, type TelemetryAgentNumbers } from '@/components/telemetry/AgentNumbers'
 import { EmptyState, Field, Panel } from '@/components/ui'
@@ -44,7 +43,7 @@ export default function Telemetry() {
   const isAdmin = useCan('settings.manage')
   const data = useQuery({ queryKey: KEY, queryFn: () => get<TelemetryOverview>('/api/telemetry/overview'), refetchInterval: 15_000 })
   const d = data.data
-  const [tab, setTab] = usePageTab(['devices', 'collector', ...(isAdmin ? ['segments', 'senders'] : [])])
+  const [tab, setTab] = usePageTab(['devices', 'collector', ...(isAdmin ? ['senders'] : [])])
   // A device that never reported needs a look as much as one with an error (issue #1014).
   const problems = d ? deviceRows(d).filter((r) => NEEDS_LOOK.includes(r.state)).length : 0
   const silent = d ? d.devices.filter((x) => !d.seen[x.name]?.seen).length : 0
@@ -58,13 +57,13 @@ export default function Telemetry() {
         {data.error && <Alert color="down" role="alert">{data.error.message}</Alert>}
         {d && (
           <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm" aria-label={t('telemetry.summary')}>
-            <StatCard label={t('telemetry.devicesTitle')} value={String(d.devices.length)}
+            <StatTile label={t('telemetry.devicesTitle')} value={String(d.devices.length)}
               sub={t(`telemetry.collectorIs.${d.status.collector}`)} />
-            <StatCard label={t('telemetry.heardCard')} value={`${d.devices.length - silent} / ${d.devices.length}`}
+            <StatTile label={t('telemetry.heardCard')} value={`${d.devices.length - silent} / ${d.devices.length}`}
               tone={!d.devices.length ? undefined : silent ? (silent === d.devices.length ? 'down' : 'warn') : 'up'} />
-            <StatCard label={t('telemetry.problemsCard')} value={String(problems)} tone={problems ? 'warn' : undefined}
+            <StatTile label={t('telemetry.problemsCard')} value={String(problems)} tone={problems ? 'warn' : undefined}
               sub={problems ? undefined : t('telemetry.noProblems')} />
-            <StatCard label={t('telemetry.points')} value={d.status.points !== null ? String(d.status.points) : '–'}
+            <StatTile label={t('telemetry.points')} value={d.status.points !== null ? String(d.status.points) : '–'}
               tone={Object.keys(d.status.storage.errors).length ? 'down' : undefined}
               sub={t(`telemetry.storageIs.${d.status.storage.mode}`, { days: d.status.storage.keep_days })} />
           </SimpleGrid>
@@ -72,11 +71,10 @@ export default function Telemetry() {
         <PageTabs label={t('telemetry.title')} value={tab} onChange={setTab} tabs={[
           { id: 'devices', label: t('telemetry.devicesTitle'), count: d?.devices.length },
           { id: 'collector', label: t('telemetry.collectorTab'), alert: errors ? 'warn' : null },
-          ...(isAdmin ? [{ id: 'segments', label: t('segments.title') }, { id: 'senders', label: t('telemetry.sendersTitle') }] : []),
+          ...(isAdmin ? [{ id: 'senders', label: t('telemetry.sendersTitle') }] : []),
         ]} />
         {tab === 'devices' && <Devices d={d} isAdmin={isAdmin} />}
         {tab === 'collector' && d && <Collector d={d} />}
-        {tab === 'segments' && isAdmin && <Segments />}
         {tab === 'senders' && isAdmin && <Senders collector={d?.status.collector} />}
       </Stack>
     </Layout>

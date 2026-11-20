@@ -40,6 +40,15 @@ def ingest(text, now=None):
     return {'taken': taken, 'points': len(points), 'bad': bad}
 
 
+def _as_polled(target_list):
+    """The targets with who polls their ports (polling.apply), so state knows which wait for a poll."""
+    from .. import sources
+    from . import polling
+    if sources.registry is None:          # not set up yet (scripts): know them as they are
+        return target_list
+    return polling.apply(target_list, polling.plan(sources.registry))
+
+
 def collector_here():
     """Is this Floorbit the collector? Not while a local agent collects for it."""
     from .. import agent_link
@@ -86,6 +95,7 @@ class Runner:
     def __init__(self, log=print):
         self.log = log
         self._stop = threading.Event()
+        self.thread = None
         self.poll_errors = {}
         self.last_poll = None
         self.blocks = None
@@ -98,7 +108,7 @@ class Runner:
         except DatabaseUnavailable:
             every = None
         if every is not None:
-            state_mod.state.know(every)
+            state_mod.state.know(_as_polled(every))
             if collector_here():
                 with_secrets = [t for t in every if set(t['drivers']) & set(pollers.POLLERS)]
                 found, self.poll_errors = pollers.poll_all(with_secrets, now, log=self.log, blocks=self._blocks())
@@ -122,7 +132,7 @@ class Runner:
         if spec is None or not registry.enabled(spec):
             return
         settings = registry.settings_of(spec)
-        endpoints.history().record(clients.sightings(state_mod.state, settings.get('uplink_macs') or 8,
+        endpoints.history().record(clients.sightings(state_mod.state,
                                                      settings.get('exclude') or ()), now)
 
     def _blocks(self):
@@ -152,15 +162,19 @@ class Runner:
             except Exception as exc:  # noqa: BLE001  # a bad round must not end the collector
                 self.log(f'[telemetry] {type(exc).__name__}: {exc}')
 
-    def stop(self):
+    def stop(self, wait=None):
+        """Ends the loop; ``wait``: seconds to let a round in progress finish its writes."""
         self._stop.set()
+        if wait and self.thread is not None and self.thread is not threading.current_thread():
+            self.thread.join(wait)
 
 
 def start(log=print):
     global _runner
     if _runner is None:
         _runner = Runner(log)
-        threading.Thread(target=_runner.loop, name='telemetry', daemon=True).start()
+        _runner.thread = threading.Thread(target=_runner.loop, name='telemetry', daemon=True)
+        _runner.thread.start()
     return _runner
 
 

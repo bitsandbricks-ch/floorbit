@@ -43,7 +43,7 @@
     "networkStatus": "Network status",
     "replay": "Event replay",
     "report": "Event report",
-    "events": "Past events",
+    "events": "Events",
     "templates": "Floor plan templates",
     "settings": "Settings",
     "plugins": "Plugins",
@@ -62,7 +62,14 @@
     "topology": "Topology",
     "telemetry": "Telemetry",
     "endpoints": "IP and MAC history",
-    "widgets": "Widgets"
+    "widgets": "Widgets",
+    "health": "Service health",
+    "wifi": "Wi-Fi",
+    "dns": "DNS",
+    "traffic": "Traffic",
+    "games": "Games",
+    "stats": "Stats",
+    "speedtests": "Speed tests"
   },
   "endpoint": "Seen",
   "also": {

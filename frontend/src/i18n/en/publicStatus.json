@@ -13,7 +13,8 @@
     "degraded": "Some seats have no network. The crew is on it.",
     "outage": "Large parts of the network are down. The crew is on it.",
     "maintenance": "The crew is working on the network.",
-    "unknown": "Floorbit cannot reach its monitoring right now, so it does not know."
+    "unknown": "Floorbit cannot reach its monitoring right now, so it does not know.",
+    "services": "Some things players need are failing. The crew is on it."
   },
   "since": "Since {{time}}",
   "areas": "Affected areas",
@@ -27,5 +28,15 @@
   "recoveredAt": "The network here has been back since {{time}}.",
   "updates": "Updates from the crew",
   "none": "No updates yet.",
-  "updated": "Updated {{time}}. This page updates every minute."
+  "updated": "Updated {{time}}. This page updates every minute.",
+  "reason": {
+    "switches": "Some seats have no network.",
+    "firewall": "Some seats had a short break while their traffic moved to another firewall.",
+    "no_firewall": "Some seats have no internet right now.",
+    "internet_slow": "One internet line is down: the internet may be slower.",
+    "internet_down": "The internet is down for everyone. The local network still works.",
+    "dns": "Some websites may not load (name lookups failing).",
+    "dhcp": "New devices may not get a network address right now."
+  },
+  "why": "What players notice"
 }

@@ -254,7 +254,7 @@
     "range": "Time range",
     "hours_one": "{{count}} h",
     "hours_other": "{{count}} h",
-    "none": "No numbers kept yet. They start with the agent's next reports, every half minute.",
+    "none": "They start with the agent's next reports, every half minute.",
     "max": "max {{n}}",
     "metric": {
       "points": "Telemetry points",
@@ -277,21 +277,20 @@
       "reconnects": "{{n}} per minute now",
       "syslog": "{{n}} per minute now",
       "median_ms": "{{n}} ms now"
-    }
+    },
+    "noneTitle": "No numbers kept yet"
   },
   "cfg": {
     "title": "Agent settings",
     "intro": "Floorbit sends these to the agent. Where the agent's own environment sets a value, that value wins and the field is locked here.",
     "source": {
-      "env": "agent env",
-      "floorbit": "Floorbit",
-      "default": "default"
+      "env": "Set by the agent's environment",
+      "floorbit": "Set here",
+      "default": "Default"
     },
     "secretSet": "Set (type to replace)",
     "atRestart": "at next start",
-    "envWins": "Set on the agent by {{env}}, which wins over Floorbit.",
     "field": {
-      "lan_url": "Address in the hall",
       "metrics": "Metrics listener",
       "metrics_token": "Metrics token",
       "buffer_max_mb": "Buffer size (MB)",
@@ -307,7 +306,6 @@
       "log_summary": "Summary line (seconds)"
     },
     "help": {
-      "lan_url": "Where laptops in the hall reach the agent, for the seat walk-through, such as http://192.0.2.10:8908.",
       "metrics": "host:port for /metrics and /healthz, or off.",
       "metrics_token": "Scrapers then send \"Authorization: Bearer <token>\". Set it when the port is reachable from the LAN.",
       "buffer_max_mb": "How much the agent keeps while Floorbit is out of reach.",
@@ -322,18 +320,8 @@
       "log_level": "How much the agent writes to its log. Takes effect right away.",
       "log_summary": "How often the agent writes a summary line to its log; 0 turns it off."
     },
-    "group": {
-      "general": "General",
-      "metrics": "Metrics",
-      "buffer": "Buffer",
-      "vrrp": "Shared addresses (VRRP)",
-      "logs": "Logs"
-    },
-    "pluginsTitle": "Plugin settings for this agent",
-    "pluginsIntro": "Empty fields use the plugin's setting from Settings › Plugins.",
+    "pluginsIntro": "Some plugin settings can differ per agent. They are set on the plugin's page.",
     "pluginDefault": "Plugin setting: {{value}}",
-    "save_one": "Save 1 change",
-    "save_other": "Save {{count}} changes",
     "hallTitle": "Limits set in the hall",
     "hallIntro": "What the agent may reach and do. Only its own environment sets these, so a Floorbit login can't widen them.",
     "hallDefault": "not set",
@@ -356,6 +344,10 @@
     "certHas": "For {{names}}, valid until {{when}}",
     "certOther": "not from this Floorbit",
     "certNone": "No certificate yet.",
+    "publicHas": "Let's Encrypt: {{name}}, valid until {{when}}. Agents that can take it serve this one; point {{name}} at the agent in the hall's DNS.",
+    "publicWaiting": "Let's Encrypt: waiting for the certificate for {{name}}.",
+    "publicFailed": "Let's Encrypt could not issue {{name}} yet: {{error}}. Floorbit tries again within the hour.",
+    "publicNotReached": "Let's Encrypt: waiting until {{name}} reaches Floorbit from the internet (public DNS and port 80). {{why}} Floorbit checks again every 10 minutes.",
     "certEnv": "The agent uses a certificate set in its environment.",
     "certNew": "New certificate",
     "certWaiting": "Waiting for the agent to ask for it.",
@@ -366,7 +358,40 @@
       "info": "Info",
       "warning": "Warnings",
       "error": "Errors"
-    }
+    },
+    "envTip": "From the environment variable {{env}} on the agent. Change it where the agent is started.",
+    "advancedHint": "rarely changed; shared addresses show once there is a second agent",
+    "saved": "Saved. The agent picks it up on its next pull.",
+    "hall": {
+      "FLOORBIT_AGENT_ALLOW_ACTIONS": {
+        "label": "Actions that change the hall",
+        "help": "Which plugin actions may change something in the hall, such as clearing the LAN cache. Listed by name: plugin.action, plugin.* or *.",
+        "unset": "none allowed"
+      },
+      "FLOORBIT_AGENT_PLUGIN_UPDATES": {
+        "label": "Plugin updates",
+        "help": "Whether the agent installs signed plugin updates itself (auto), waits for an approval in the hall (approve) or takes none (off).",
+        "unset": "auto"
+      },
+      "FLOORBIT_AGENT_SWITCH_NETS": {
+        "label": "Networks for switch logins",
+        "help": "Where port actions, commands, config backups and the terminal may log in.",
+        "unset": "private addresses only"
+      },
+      "FLOORBIT_AGENT_GAME_NETS": {
+        "label": "Networks for game servers",
+        "help": "Where the agent may ask game servers for their status and run console commands.",
+        "unset": "private addresses only"
+      },
+      "FLOORBIT_AGENT_PROBE_NETS": {
+        "label": "Networks for service checks",
+        "help": "Where the services view may send DNS queries and TCP checks.",
+        "unset": "any address but the agent's own"
+      }
+    },
+    "pluginsTitle": "Plugin settings for this agent",
+    "pluginSame": "Uses the plugin's settings.",
+    "pluginEdit": "Set on the plugin page"
   },
   "devices": {
     "error": {
@@ -383,5 +408,6 @@
     "standby": "Standby",
     "standbyHelp": "The other agent of this pair collects. This one only takes the devices given to it by name, and takes over the rest when the other one goes away.",
     "none": "No devices for this agent. Turn on Telemetry for devices in the inventory."
-  }
+  },
+  "runInsecure": "This Floorbit is on plain http, so the agent needs FLOORBIT_AGENT_INSECURE=1 and sends its key unencrypted. Use it only for a test or on a network you trust; put Floorbit behind HTTPS for an event."
 }

@@ -1,16 +1,18 @@
-import { ActionIcon, Loader, Modal, Stack, Text, Tooltip } from '@mantine/core'
+import { ActionIcon, Loader, Stack, Text, Tooltip } from '@mantine/core'
 import { IconArrowsMaximize, IconExternalLink } from '@tabler/icons-react'
-import { Suspense, useState } from 'react'
+import { Suspense, useContext, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDashboard, useFeaturesOff, useWidgets } from '@/api/queries'
-import type { Tile, WidgetTile } from '@/api/types'
+import type { Tile, Widget, WidgetTile } from '@/api/types'
 import { FitWidget } from '@/widgets/FitWidget'
 import { usePaneData } from '@/widgets/usePaneData'
-import type { Pane } from './model'
+import { type Pane, displayOf, paneRange, rangedUrl } from './model'
 import { PlanPane } from './PlanPane'
 import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
 import { Markdown } from '@/components/Markdown'
 import { publicUrl, useScreen } from './screen'
+import { followed } from '../widgets/saved'
+import { LargeContext, useMakeLarge } from './large'
 
 const tileKey = (tile: Tile) => `${tile.plugin}/${tile.kind === 'action' ? 'a' : 'w'}/${tile.id}`
 
@@ -19,12 +21,12 @@ function Note({ children }: { children: React.ReactNode }) {
 }
 
 /** ``fit``: the body never scrolls; what it holds sizes itself to the box (widgets, issue #924). */
-function Framed({ title, hide, className = '', actions, fit, children }: {
-  title?: string; hide?: boolean; className?: string; actions?: React.ReactNode; fit?: boolean; children: React.ReactNode
+function Framed({ title, hide, className = '', actions, fit, alert, children }: {
+  title?: string; hide?: boolean; className?: string; actions?: React.ReactNode; fit?: boolean; alert?: boolean; children: React.ReactNode
 }) {
   return (
-    <div className={`fb-pane ${className}${!title || hide ? ' fb-pane-nohead' : ''}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
-      {title && !hide && <div className="fb-pane-head"><Text fw={800} className="fb-pane-title" truncate>{title}</Text>{actions && <div className="fb-pane-actions">{actions}</div>}</div>}
+    <div className={`fb-pane ${className}${alert ? ' fb-pane-alert' : ''}${!title || hide ? ' fb-pane-nohead' : ''}`} role={title ? 'region' : undefined} aria-label={title || undefined}>
+      {title && !hide && <div className="fb-pane-head"><Text fw={600} className="fb-pane-title" truncate>{title}</Text>{actions && <div className="fb-pane-actions">{actions}</div>}</div>}
       <div className={`fb-pane-body ${fit ? 'fb-pane-fit' : 'fb-pane-scroll'}${hide ? ' fb-pane-headless' : ''}`}>{children}</div>
     </div>
   )
@@ -50,9 +52,12 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   const { t } = useTranslation()
   const { data, isPending } = useDashboard()
   const find = (key: string) => data?.tiles.find((x) => tileKey(x) === key && x.kind !== 'action') as WidgetTile | undefined
-  const tile = find(pane.tile)
+  const { range: boardRange } = useScreen()
+  const timed = paneRange(pane, boardRange)
+  const found = find(pane.tile)
+  const tile = found && { ...found, url: rangedUrl(found, timed) }
   // A gone extra source just drops out; the pane is gone only when its first tile is.
-  const more = (pane.also ?? []).map(find).filter((x): x is WidgetTile => !!x)
+  const more = (pane.also ?? []).map(find).filter((x): x is WidgetTile => !!x).map((x) => ({ ...x, url: rangedUrl(x, timed) }))
   if (tile) return <TileWidgetPane pane={pane} tiles={[tile, ...more]} />
   return (
     <Framed title={pane.title} hide={pane.hide_title}>
@@ -61,17 +66,36 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   )
 }
 
+/** The names a status or list widget shows as down. */
+function listsDown(widget: Widget): string[] {
+  if (widget.type === 'status') return widget.items.filter((x) => x.state === 'down').map((x) => x.label)
+  if (widget.type === 'list') return widget.items.filter((x) => x.tone === 'err').map((x) => x.label)
+  return []
+}
+
 /** A data widget in its pane: it fits the box at the level the box allows. "+N more" and the
- *  button open it large over the dashboard; Esc goes back. */
+ *  button open it large in the dashboard's area (#925); Esc goes back. */
 function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>; tiles: WidgetTile[] }) {
   const { t } = useTranslation()
-  const [big, setBig] = useState(false)
-  const { data, error, isPending, dropped } = usePaneData(useWidgets(tiles), pane, tiles.map((x) => x.label))
+  const large = useContext(LargeContext)
+  const makeLarge = useMakeLarge()
+  const paced = pane.refresh ? tiles.map((x) => ({ ...x, refresh: pane.refresh! })) : tiles
+  const { data, error, isPending, dropped } = usePaneData(useWidgets(paced), pane, tiles.map((x) => x.label), displayOf(pane))
   const title = pane.title ?? tiles.map((x) => x.label).join(' · ')
-  const look = { stack: pane.stack, style: pane.style, trend: pane.trend, legend: pane.legend }
+  const look = { stack: pane.stack, style: pane.style, trend: pane.trend, legend: pane.legend,
+    thresholds: pane.threshold_mode === 'percent' ? undefined : pane.thresholds, number: { decimals: pane.decimals, short: pane.short },
+    axis: { min: pane.y_min, max: pane.y_max, log: pane.y_log }, spark: pane.spark, change: pane.change, text: pane.text_size }
   const link = data?.link && data.link.startsWith('/') ? data.link : ''
+  const { alerts, pulsing } = useScreen()
+  // A wall's eye goes to the pane that lists what just went down and nobody has taken (#1137).
+  const alert = !!alerts?.length && !!data && listsDown(data).some((name) => alerts.includes(name))
+  useEffect(() => {
+    if (!alert || !pulsing) return undefined
+    pulsing(true)
+    return () => pulsing(false)
+  }, [alert, pulsing])
   return (
-    <Framed title={title} hide={pane.hide_title} fit actions={data && (
+    <Framed title={title} hide={pane.hide_title} fit alert={alert} actions={data && (
       <>
         {link && (
           <Tooltip label={t('common.details')}>
@@ -80,54 +104,54 @@ function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>
             </ActionIcon>
           </Tooltip>
         )}
-        <Tooltip label={t('dashboards.pane.openBig')}>
-          <ActionIcon variant="subtle" color="gray" size="sm" aria-label={t('dashboards.pane.openBigNamed', { name: title })} onClick={() => setBig(true)}>
-            <IconArrowsMaximize size={15} />
-          </ActionIcon>
-        </Tooltip>
+        {makeLarge && (
+          <Tooltip label={t('dashboards.pane.openBig')}>
+            <ActionIcon variant="subtle" color="gray" size="sm" aria-label={t('dashboards.pane.openBigNamed', { name: title })} onClick={makeLarge}>
+              <IconArrowsMaximize size={15} />
+            </ActionIcon>
+          </Tooltip>
+        )}
       </>
     )}>
       {isPending ? <Loader size="sm" aria-label={t('common.loading')} />
         : error && !data ? <Text size="sm" className="fb-tone-err fb-pane-note" role="alert">✕ {error.message}</Text>
-          : data ? <FitWidget widget={data} pick={pane.type} pin={pane.level} look={look} onMore={() => setBig(true)} /> : null}
+          : data ? <FitWidget widget={data} pick={pane.type} pin={large ? 'l' : pane.level} look={look} onMore={makeLarge ?? undefined} /> : null}
       {dropped.length > 0 && <Text size="xs" c="dimmed" className="fb-pane-note">{t('dashboards.pane.dropped', { names: dropped.join(', ') })}</Text>}
-      {big && data && (
-        <Modal opened onClose={() => setBig(false)} title={title} size="90%" centered classNames={{ body: 'fb-w-big' }}>
-          <FitWidget widget={data} pick={pane.type} pin="l" look={look} />
-        </Modal>
-      )}
     </Framed>
   )
 }
 
-/** A rich widget. Small on the grid unless the pane is set to show it big; the button opens it big
- *  over the dashboard, with its filters and actions, without leaving the screen. */
+/** A rich widget. Small on the grid unless the pane is set to show it big; the button opens it large
+ *  in the dashboard's area, with its filters and actions, without leaving the screen. */
 function ViewPane({ pane }: { pane: Extract<Pane, { kind: 'view' }> }) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
+  const makeLarge = useMakeLarge()
+  const large = useContext(LargeContext)
   const off = useFeaturesOff()
   const def = VIEWS.find((v) => v.id === pane.view)
   // A feature switched off (Settings > Features) has no data to show: say so instead of an error.
   const View = def && !(def.feature && off.includes(def.feature)) ? VIEW_COMPONENTS[def.id] : null
   const title = pane.title ?? (def ? t(def.label) : undefined)
-  const big = !!pane.expanded
+  const big = !!pane.expanded || large
   const loading = <Loader size="sm" aria-label={t('common.loading')} />
   return (
-    <Framed title={title} hide={pane.hide_title} actions={View && !big && (
+    <Framed title={title} hide={pane.hide_title} actions={View && !big && makeLarge && (
       <Tooltip label={t('dashboards.pane.openBig')}>
         <ActionIcon variant="subtle" color="gray" aria-label={t('dashboards.pane.openBigNamed', { name: title ?? '' })}
-          onClick={() => setOpen(true)}><IconArrowsMaximize size={16} /></ActionIcon>
+          onClick={makeLarge}><IconArrowsMaximize size={16} /></ActionIcon>
       </Tooltip>
     )}>
       {View ? <Suspense fallback={loading}><View expanded={big} /></Suspense>
         : <Note>{def ? t('dashboards.pane.viewOff') : t('dashboards.pane.viewGone')}</Note>}
-      {View && open && (
-        <Modal opened onClose={() => setOpen(false)} title={title} size="90%" centered classNames={{ body: 'fb-view-big' }}>
-          <Suspense fallback={loading}><View expanded /></Suspense>
-        </Modal>
-      )}
     </Framed>
   )
+}
+
+/** A saved widget: drawn as its tile pane, so a change on the Widgets page shows here too. */
+function WidgetPane({ pane }: { pane: Extract<Pane, { kind: 'widget' }> }) {
+  const { t } = useTranslation()
+  if (pane.saved) return <TilePane pane={followed(pane.saved, pane)} />
+  return <Framed title={pane.title} hide={pane.hide_title}><Note>{t('dashboards.pane.widgetGone')}</Note></Framed>
 }
 
 /** Your own words, big enough to read from across the hall. */
@@ -146,6 +170,7 @@ export function PaneView({ pane, cycle }: { pane: Pane; cycle?: number }) {
   switch (pane.kind) {
     case 'plan': return <PlanPane pane={pane} cycle={cycle} />
     case 'tile': return <TilePane pane={pane} />
+    case 'widget': return <WidgetPane pane={pane} />
     case 'view': return <ViewPane pane={pane} />
     case 'text': return <TextPane pane={pane} />
     case 'private': return <Framed title={pane.title} hide={pane.hide_title}><Stack h="100%" justify="center" align="center"><Note>{t('dashboards.pane.private')}</Note></Stack></Framed>

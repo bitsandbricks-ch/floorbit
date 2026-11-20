@@ -47,6 +47,14 @@ describe('Checkins', () => {
     expect(screen.queryByRole('link', { name: 'Check-in settings' })).not.toBeInTheDocument()
   })
 
+  it('says no seat cards are printed instead of "0 of 0 PINs" (#1039)', async () => {
+    const none = { ...data, counts: { ...data.counts, pins: 0, unused_pins: 0 } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/checkins/overview': none }).fn)
+    renderWithApp(<Checkins />, '/checkins')
+    expect(await screen.findByText('No seat cards with PINs yet')).toBeInTheDocument()
+    expect(screen.queryByText(/of 0 seat PINs/)).not.toBeInTheDocument()
+  })
+
   it('counts the states, lists every check-in and filters by state', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/checkins/overview': data }).fn)
     renderWithApp(<Checkins />, '/checkins')

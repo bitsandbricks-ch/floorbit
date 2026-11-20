@@ -18,10 +18,15 @@ from flask import Blueprint, Response, abort, jsonify, request
 
 from integrations import checkin, events
 
-from .. import audit, incidents, speedtest
+from .. import audit, incidents, spa, speedtest
 from ..store import load_data
 
 bp = Blueprint('speedtest', __name__)
+
+
+@bp.route('/speedtests')
+def speedtests_page():
+    return spa.render('Speed tests')
 
 
 def _seat(seat):

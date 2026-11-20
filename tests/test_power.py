@@ -68,7 +68,8 @@ def test_a_circuit_feeds_rows_and_switches(client, floor):
     assert c["fed"]["seats"] == ["A-4", "A-5", "A-6"]
     assert c["fed"]["switches"] == [{"id": floor["switch"], "name": "sw-a-01"}]
     assert c["state"] == "unknown" and c["feeds_label"] == "block A row 2"
-    assert body["can_edit"] and body["blocks"] == [{"id": floor["block"], "name": "A", "rows": 2}]
+    assert body["can_edit"] and body["blocks"] == [{"id": floor["block"], "name": "A", "label": "A",
+                                                 "row_names": ["1", "2"], "rows": 2}]
 
 
 def test_circuits_are_checked(client, floor):
@@ -191,3 +192,9 @@ def test_placed_boards_are_on_the_plan(client, floor):
     client.post("/api/power/boards", json={"name": "DB-nowhere"})
     names = {b["name"]: b for b in client.get("/api/plan").get_json()["boards"]}
     assert "DB-nowhere" not in names and names["DB-9"]["x"] == 800
+
+
+def test_boards_and_circuits_have_their_own_pages(client, built):
+    """The React app draws them; the server only has to answer the address (issue #877)."""
+    for path in ("/power/boards/b1", "/power/circuits/c1", "/power/circuits/new"):
+        assert client.get(path).status_code == 200, path

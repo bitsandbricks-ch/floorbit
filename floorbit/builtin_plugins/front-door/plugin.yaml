@@ -1,15 +1,19 @@
-# The attendees' front door in the hall, through the local agent. See docs/agent.md, "Attendees through the agent".
+# The attendees' one port in the hall, through the local agent. See docs/agent.md, "Attendees through the agent".
 id: front-door
 name: Front door for attendees
 icon: link
-version: "1.0.0"
+version: "2.0.0"
 floorbit: ">=0.1,<2"
-description: "The local agent answers on the event network and hands each request on to Floorbit with the address it saw, so check-in finds the seat PC's switch port, the seat speed test measures the hall and each attendee has their own sign-in lockout. Point the check-in address (CHECKIN_ADDRESS) at the agent."
+description: "The local agent answers attendees on the event network, on one port: check-in, the seat speed test, the check-in note on phones (DHCP option 114, while check-in is on) and the crew's seat walk-through. Each request goes on to Floorbit with the address the agent saw, so check-in finds the seat PC's switch port. Point the check-in name (CHECKIN_ADDRESS) at the agent."
 author: Floorbit
 uses: [agent, settings]
+default_enabled: true
 settings:
-  - {key: address, label: Address on the agent, type: string, placeholder: "0.0.0.0:8443",
-     help: "host:port the agent answers on. HTTPS when the agent has a certificate (FLOORBIT_AGENT_TLS_CERT and _KEY on the agent). Empty: off."}
+  - {key: address, label: Address on the agent, type: string, default: "0.0.0.0:8443", placeholder: "0.0.0.0:8443",
+     help: "host:port inside the agent for HTTPS (publish it as 443). Plain HTTP while the agent has no certificate (FLOORBIT_AGENT_TLS_CERT and _KEY). Empty: off."}
+  - {key: http_address, label: Plain HTTP address on the agent, type: string, default: "0.0.0.0:8080", placeholder: "0.0.0.0:8080",
+     help: "host:port inside the agent for plain HTTP (publish it as 80). With a certificate it sends browsers on to HTTPS; without one it answers like the address above. Empty: off."}
   - {key: proxies, label: Reverse proxy addresses, type: string, placeholder: "192.0.2.5",
-     help: "Comma-separated. From these, the seat PC's address is taken from X-Forwarded-For."}
-agent: {}
+     help: "Comma-separated. From these, the client's address is taken from X-Forwarded-For."}
+agent:
+  fetches: [state]

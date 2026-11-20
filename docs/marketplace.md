@@ -23,7 +23,9 @@ always come from the same signed release.
 
 The index lists every version with its checksum, the Floorbit versions it works with
 (`floorbit: ">=1.4"`) and, for a version that was pulled, why (`withdrawn:`). A withdrawn version is
-never installed; where one runs, the page says so and offers the way out.
+never installed; where one runs, the page says so and offers the way out, and it is a problem on the
+[Problems page](alerts.md#problems-page) too. While plugins are installed, Floorbit reads the index
+every ten minutes, so a withdrawal shows up there without anyone opening the Marketplace.
 
 Each version in the index also says what it may touch, worked out from its `plugin.yaml` when the
 index is built: the [areas](plugin-spec.md#data-floorbit-uses) it uses, the permissions its actions

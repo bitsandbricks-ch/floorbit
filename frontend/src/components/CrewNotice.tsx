@@ -1,11 +1,11 @@
-import { Alert, Button, CloseButton, Group, Modal, SegmentedControl, Select, Stack, Text, Textarea } from '@mantine/core'
+import { Button, Group, Modal, Popover, SegmentedControl, Select, Stack, Text, Textarea } from '@mantine/core'
 import { IconAlertTriangle, IconSpeakerphone } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useNotice } from '@/api/queries'
+import { useCan, useNotice } from '@/api/queries'
 import type { CrewNotice } from '@/api/types'
 import { clock } from '@/lib/time'
 
@@ -24,39 +24,76 @@ function time(ts: number, lang: string) {
   return clock(ts, lang)
 }
 
-/** The banner under the page header. Each person can hide it; a new notice shows again. */
-export function CrewNoticeBanner() {
+function hide(at: number) {
+  try {
+    localStorage.setItem(HIDDEN_KEY, String(at))
+  } catch {
+    /* private mode: hidden for this page only */
+  }
+}
+
+/** The crew notice as a badge in the top bar (issue #1006): coloured by its level while it is
+ *  new, quiet once this person hid it, and a new notice lights it again. The full text, who put
+ *  it up and, for leads, Change and Take down open from it. */
+export function CrewNoticeBadge({ compact }: { compact?: boolean }) {
   const { t, i18n } = useTranslation()
   const notice = useNotice().data?.notice
+  const lead = useCan('incidents.assign')
+  const client = useQueryClient()
   const [hidden, setHidden] = useState(hiddenAt)
-  if (!notice || hidden === notice.at) return null
-  const hide = () => {
-    try {
-      localStorage.setItem(HIDDEN_KEY, String(notice.at))
-    } catch {
-      /* private mode: hidden for this page only */
-    }
-    setHidden(notice.at)
-  }
+  const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const remove = useMutation({
+    mutationFn: () => del<{ notice: null }>('/api/notice'),
+    onSuccess: (data) => { client.setQueryData(qk.notice, data); setOpen(false) },
+  })
+  if (!notice) return null
+  const quiet = hidden === notice.at
   const warn = notice.level === 'warn'
+  const Icon = warn ? IconAlertTriangle : IconSpeakerphone
+  const tone = quiet ? 'is-quiet' : warn ? 'is-warn' : 'is-info'
+  const when = notice.by ? t('notice.by', { name: notice.by, time: time(notice.at, i18n.language) }) : time(notice.at, i18n.language)
   return (
-    <Alert
-      role="status" className="fb-notice" radius={0} color={warn ? 'warn' : 'trace'}
-      icon={warn ? <IconAlertTriangle size={18} aria-hidden="true" /> : <IconSpeakerphone size={18} aria-hidden="true" />}
-      title={t('notice.title')}
-      withCloseButton={false}
-    >
-      <Group justify="space-between" wrap="nowrap" align="flex-start">
-        <div>
-          <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{notice.text}</Text>
-          <Text size="xs" c="dimmed">
-            {notice.by ? t('notice.by', { name: notice.by, time: time(notice.at, i18n.language) }) : time(notice.at, i18n.language)}
-            {notice.until ? ` · ${t('notice.until', { time: time(notice.until, i18n.language) })}` : ''}
-          </Text>
-        </div>
-        <CloseButton aria-label={t('notice.hide')} onClick={hide} size="sm" />
-      </Group>
-    </Alert>
+    <>
+      <Popover opened={open} onChange={setOpen} position="bottom-end" width={340} shadow="md" withArrow>
+        <Popover.Target>
+          <button type="button" className={`fb-notice-badge ${tone}${compact ? ' is-compact' : ''}`} onClick={() => setOpen((o) => !o)}
+            aria-label={`${t('notice.title')}: ${notice.text}`} aria-expanded={open} title={compact ? notice.text : undefined}>
+            <Icon size={15} aria-hidden="true" />
+            {!compact && <span className="fb-notice-badge-text" aria-hidden="true">{notice.text}</span>}
+          </button>
+        </Popover.Target>
+        <Popover.Dropdown>
+          <Stack gap="xs">
+            <Group gap={6} c={warn ? 'warn' : 'trace'}>
+              <Icon size={16} aria-hidden="true" />
+              <Text size="sm" fw={600}>{t('notice.title')}</Text>
+            </Group>
+            <Text size="sm" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{notice.text}</Text>
+            <Text size="xs" c="dimmed">
+              {when}{notice.until ? ` · ${t('notice.until', { time: time(notice.until, i18n.language) })}` : ''}
+            </Text>
+            <Group gap="xs" justify="flex-end">
+              {!quiet && (
+                <Button size="compact-sm" variant="default" onClick={() => { hide(notice.at); setHidden(notice.at); setOpen(false) }}>
+                  {t('notice.markRead')}
+                </Button>
+              )}
+              {lead && (
+                <>
+                  <Button size="compact-sm" variant="default" onClick={() => { setOpen(false); setEditing(true) }}>{t('notice.change')}</Button>
+                  <Button size="compact-sm" variant="subtle" color="down" loading={remove.isPending} onClick={() => remove.mutate()}>
+                    {t('notice.takeDown')}
+                  </Button>
+                </>
+              )}
+            </Group>
+            {remove.error && <Text c="down" size="xs" role="alert">{remove.error.message}</Text>}
+          </Stack>
+        </Popover.Dropdown>
+      </Popover>
+      {editing && <CrewNoticeEditor onClose={() => setEditing(false)} />}
+    </>
   )
 }
 

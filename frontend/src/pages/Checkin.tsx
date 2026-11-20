@@ -1,13 +1,14 @@
 import { Alert, Anchor, Button, Loader, Paper, Stack, Text, TextInput, ThemeIcon, Title } from '@mantine/core'
-import { IconCalendarTime, IconCircleCheck, IconPlugConnectedX } from '@tabler/icons-react'
+import { IconArrowRight, IconCalendarTime, IconCircleCheck, IconPlugConnectedX } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { CheckinInfo } from '@/api/types'
 import { PublicPage } from '@/components/PublicPage'
 import { formatWhen } from '@/lib/time'
+import { LoadingState } from '@/components/ui'
 
 type Wired = 'pending' | 'verified' | 'not_wired' | 'unverified'
 type Done = { seat: string; username: string; wired?: Wired | null }
@@ -29,6 +30,22 @@ function deviceClass(): 'pc' | 'mobile' | 'unknown' {
 /** The PIN as printed: upper case, no spaces or dashes ("k7m-2x" is "K7M2X"). */
 function cleanPin(pin: string) {
   return pin.replace(/[\s-]/g, '').toUpperCase()
+}
+
+const TRIED_KEY = 'fb-checkin-hall-trip'
+const TRIED_FOR = 5 * 60 * 1000
+
+/** Went to the hall a moment ago and is back here: that address didn't open (off the event network),
+ *  so don't send the browser there again by itself. */
+function triedRecently() {
+  try { return Date.now() - Number(sessionStorage.getItem(TRIED_KEY) || 0) < TRIED_FOR } catch { return false }
+}
+
+/** On to the agent's front door, with the PIN from the seat card's QR code if there is one. */
+function goToHall(url: string) {
+  try { sessionStorage.setItem(TRIED_KEY, String(Date.now())) } catch { /* private mode: no loop guard needed to go */ }
+  const pin = new URLSearchParams(window.location.search).get('pin')
+  window.location.assign(pin ? `${url}&pin=${encodeURIComponent(pin)}` : url)
 }
 
 function opensAt(ts: number, lang: string) {
@@ -62,10 +79,24 @@ export default function Checkin() {
   const submit = (e: FormEvent) => { e.preventDefault(); send.mutate() }
   const done: Done | null = mine ?? send.data ?? null
   const notPc = device === 'mobile' || info.data?.on_pc === false
+  // A PC on Floorbit's own address: only the hall's front door learns its seat's port (issue #1177).
+  const hall = !notPc && info.data?.open && info.data.outside ? info.data.hall ?? null : null
+  const [backAgain] = useState(triedRecently)
+  const going = Boolean(hall?.sure && !backAgain && !mine)
+  useEffect(() => { if (going && hall) goToHall(hall.url) }, [going, hall])
 
   let body
-  if (info.isPending) {
-    body = <Paper withBorder radius="lg" p="lg"><Loader aria-label={t('common.loading')} /></Paper>
+  if (going) {
+    body = (
+      <Paper withBorder radius="lg" p="lg">
+        <Stack gap="sm" align="center" ta="center">
+          <Loader aria-label={t('common.loading')} />
+          <Text size="sm">{t('checkin.hall.going')}</Text>
+        </Stack>
+      </Paper>
+    )
+  } else if (info.isPending) {
+    body = <Paper withBorder radius="lg" p="lg"><LoadingState lines /></Paper>
   } else if (info.error) {
     body = (
       <Paper withBorder radius="lg" p="lg">
@@ -101,6 +132,11 @@ export default function Checkin() {
           <Text fz={40} fw={700} lh={1.1} ff="var(--font-mono)" className="fb-public-done">{done.seat}</Text>
           <Text c="dimmed" size="sm">{t('checkin.doneText')}</Text>
           {done.wired && <Text size="sm" c={done.wired === 'verified' ? 'up' : 'dimmed'}>{t(`checkin.wired.${done.wired}`)}</Text>}
+          {hall && (
+            <Button variant="light" rightSection={<IconArrowRight size={16} />} onClick={() => goToHall(hall.url)}>
+              {t('checkin.hall.portButton')}
+            </Button>
+          )}
           <Anchor component="button" type="button" size="sm" onClick={() => { setForm({ pin: '', seat: '', username: done.username }); setChanging(true); send.reset() }}>
             {t('checkin.change')}
           </Anchor>
@@ -118,7 +154,16 @@ export default function Checkin() {
             </div>
             {send.error && <Alert color="down" role="alert">{send.error.message}</Alert>}
             {notPc && <Alert color="warn">{t('checkin.onPc')}</Alert>}
-            {!notPc && info.data?.outside && (
+            {hall ? (
+              <Alert color="warn" title={backAgain ? t('checkin.hall.backTitle') : t('checkin.hall.title')}>
+                <Stack gap="xs" align="flex-start">
+                  <Text size="sm">{backAgain ? t('checkin.hall.backText') : t('checkin.hall.text')}</Text>
+                  <Button size="sm" rightSection={<IconArrowRight size={16} />} onClick={() => goToHall(hall.url)}>
+                    {t('checkin.hall.button')}
+                  </Button>
+                </Stack>
+              </Alert>
+            ) : !notPc && info.data?.outside && (
               <Alert color="warn">{info.data.address ? t('checkin.outsideAt', { address: info.data.address }) : t('checkin.outside')}</Alert>
             )}
             {info.data?.suggested_seat && <Text size="sm">{t('checkin.knownSeat', { seat: info.data.suggested_seat })}</Text>}
