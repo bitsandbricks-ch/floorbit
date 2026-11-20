@@ -1,5 +1,5 @@
 import {
-  Alert, Anchor, Badge, Group, Paper, SegmentedControl, Select, Stack, Table, Text, Title,
+  Alert, Anchor, Badge, Group, Paper, SegmentedControl, Select, Stack, Text, Title,
 } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -8,7 +8,8 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { WifiAp, WifiBand, WifiData, WifiRadio } from '@/api/types'
 import type { ViewProps } from '@/widgets/views'
-import { StatCard } from '@/components/StatCard'
+import { DataTable, type DataColumn } from '@/components/DataTable'
+import { StatTile } from '@/components/StatTile'
 import { channelColor, loadColor } from './colors'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { blockTop } from '@/pages/plan/blockTop'
@@ -112,13 +113,13 @@ export default function WifiView({ expanded }: ViewProps) {
         ) : (
           <>
             <div className="fb-stat-row">
-              <StatCard label={t('wifi.clients')} value={num(d.clients)}
+              <StatTile label={t('wifi.clients')} value={num(d.clients)}
                 sub={bands.map((b) => t('wifi.bandClients', { band: b, count: d.bands[b]!.clients })).join(' · ')} />
-              <StatCard label={t('wifi.aps')} value={`${d.up} / ${d.aps.length}`} tone={d.down.length ? 'down' : 'up'}
+              <StatTile label={t('wifi.aps')} value={`${d.up} / ${d.aps.length}`} tone={d.down.length ? 'down' : 'up'}
                 sub={d.down.length ? t('wifi.down', { names: d.down.join(', ') }) : t('wifi.allUp')} />
-              <StatCard label={t('wifi.busy')} value={num(d.busy.length)} tone={d.busy.length ? 'warn' : undefined}
+              <StatTile label={t('wifi.busy')} value={num(d.busy.length)} tone={d.busy.length ? 'warn' : undefined}
                 sub={d.busy.join(', ') || t('wifi.busyNone', { pct: d.thresholds.busy })} />
-              <StatCard label={t('wifi.overlaps')} value={num(d.overlaps.length)} tone={d.overlaps.length ? 'warn' : undefined} sub={t('wifi.overlapsSub')} />
+              <StatTile label={t('wifi.overlaps')} value={num(d.overlaps.length)} tone={d.overlaps.length ? 'warn' : undefined} sub={t('wifi.overlapsSub')} />
             </div>
             {!expanded ? null : d.drawing && d.aps.some((a) => a.on_plan) ? (
               <Paper withBorder radius="lg" p="md">
@@ -151,43 +152,33 @@ export default function WifiView({ expanded }: ViewProps) {
             )}
             {expanded && <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('wifi.list')}</Title>
-              <Table striped className="fb-table-stack">
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>{t('wifi.ap')}</Table.Th><Table.Th>{t('wifi.clients')}</Table.Th>
-                      {bands.map((b) => <Table.Th key={b}>{b} GHz</Table.Th>)}
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {d.aps.map((ap) => (
-                      <Table.Tr key={ap.name}>
-                        <Table.Td>
-                          <Group gap={6} wrap="wrap">
-                            <Text fw={600} size="sm">{ap.name}</Text>
-                            {ap.status === 'down' && <Badge color="down" variant="light" tt="none">{t('wifi.offline')}</Badge>}
-                            {ap.busy && <Badge color="warn" variant="light" tt="none">{t('wifi.busyBadge')}</Badge>}
-                            {!ap.placed && <Badge color="gray" variant="light" tt="none">{t('wifi.unplaced')}</Badge>}
-                          </Group>
-                          {ap.model && <Text size="xs" c="dimmed">{ap.model}</Text>}
-                        </Table.Td>
-                        <Table.Td data-label={t('wifi.clients')}>{ap.status === 'up' ? num(ap.clients) : '–'}</Table.Td>
-                        {bands.map((b) => {
-                          const r = radioOn(ap, b)
-                          return (
-                            <Table.Td key={b} data-label={`${b} GHz`}>
-                              {r ? (
-                                <Text size="sm">
-                                  {t('wifi.radio', { channel: r.channel ?? '?', width: r.width ?? '?', count: r.clients })}{' '}
-                                  {r.utilization != null && <Text span fw={600} style={{ color: loadColor(r.utilization, d.thresholds.busy) }}>{r.utilization}%</Text>}
-                                </Text>
-                              ) : '–'}
-                            </Table.Td>
-                          )
-                        })}
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-              </Table>
+              <DataTable rows={d.aps} rowKey={(ap) => ap.name} label={t('wifi.list')} urlState={false} pageSize={0} bare striped cards
+                defaultSort={{ id: 'ap' }}
+                columns={[
+                  { id: 'ap', header: t('wifi.ap'), card: 'inline', sort: (ap) => ap.name, cell: (ap) => (
+                    <>
+                      <Group gap={6} wrap="wrap">
+                        <Text fw={600} size="sm">{ap.name}</Text>
+                        {ap.status === 'down' && <Badge color="down" variant="light" tt="none">{t('wifi.offline')}</Badge>}
+                        {ap.busy && <Badge color="warn" variant="light" tt="none">{t('wifi.busyBadge')}</Badge>}
+                        {!ap.placed && <Badge color="gray" variant="light" tt="none">{t('wifi.unplaced')}</Badge>}
+                      </Group>
+                      {ap.model && <Text size="xs" c="dimmed">{ap.model}</Text>}
+                    </>
+                  ) },
+                  { id: 'clients', header: t('wifi.clients'), card: 'label', numeric: true, descFirst: true,
+                    sort: (ap) => (ap.status === 'up' ? ap.clients : -1), cell: (ap) => (ap.status === 'up' ? num(ap.clients) : '–') },
+                  ...bands.map((b): DataColumn<WifiAp> => ({ id: `band-${b}`, header: `${b} GHz`, card: 'label', descFirst: true,
+                    sort: (ap) => radioOn(ap, b)?.utilization ?? -1, cell: (ap) => {
+                      const r = radioOn(ap, b)
+                      return r ? (
+                        <Text size="sm">
+                          {t('wifi.radio', { channel: r.channel ?? '?', width: r.width ?? '?', count: r.clients })}{' '}
+                          {r.utilization != null && <Text span fw={600} style={{ color: loadColor(r.utilization, d.thresholds.busy) }}>{r.utilization}%</Text>}
+                        </Text>
+                      ) : '–'
+                    } })),
+                ]} />
               {unplaced > 0 && <Text size="xs" c="dimmed" mt="xs">{t('wifi.unplacedHint', { count: unplaced })}</Text>}
             </Paper>}
             {expanded && <Text size="xs" c="dimmed">{t('wifi.privacy', { sources: d.sources.join(', ') })}</Text>}

@@ -8,11 +8,16 @@ Client counts only, never who: reading needs ``floorplan.view``, like the floor 
 """
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import halls, wifi
+from .. import halls, spa, wifi
 from ..store import load_data
 from .screen import PLAN_H, PLAN_W, plan
 
 bp = Blueprint('wifi', __name__)
+
+
+@bp.route('/wifi')
+def wifi_page():
+    return spa.render('Wi-Fi')
 REACH = 140   # room around an AP on the drawing, in plan units: most of its circle
 
 

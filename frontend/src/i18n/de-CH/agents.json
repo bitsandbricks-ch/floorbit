@@ -220,6 +220,7 @@
     "failover": "Ausfallsicherheit pro Halle",
     "server": "Dieses Floorbit",
     "overview": "Übersicht",
+    "devices": "Geräte",
     "graphs": "Verlauf",
     "plugins": "Plugins ({{count}})",
     "updates": "Updates",
@@ -253,7 +254,7 @@
     "range": "Zeitraum",
     "hours_one": "{{count}} h",
     "hours_other": "{{count}} h",
-    "none": "Noch keine Zahlen gespeichert. Sie beginnen mit den nächsten Meldungen des Agents, alle halbe Minute.",
+    "none": "Sie beginnen mit den nächsten Meldungen des Agents, alle halbe Minute.",
     "max": "max. {{n}}",
     "metric": {
       "points": "Telemetrie-Punkte",
@@ -276,7 +277,8 @@
       "reconnects": "{{n}} pro Minute jetzt",
       "syslog": "{{n}} pro Minute jetzt",
       "median_ms": "{{n}} ms jetzt"
-    }
+    },
+    "noneTitle": "Noch keine Zahlen gespeichert"
   },
   "cfg": {
     "title": "Agent-Einstellungen",
@@ -342,6 +344,10 @@
     "certHas": "Für {{names}}, gültig bis {{when}}",
     "certOther": "nicht von diesem Floorbit",
     "certNone": "Noch kein Zertifikat.",
+    "publicHas": "Let's Encrypt: {{name}}, gültig bis {{when}}. Agents, die es übernehmen können, nutzen dieses; lass {{name}} im DNS der Halle auf den Agent zeigen.",
+    "publicWaiting": "Let's Encrypt: Das Zertifikat für {{name}} wird geholt.",
+    "publicFailed": "Let's Encrypt konnte {{name}} noch nicht ausstellen: {{error}}. Floorbit versucht es innert einer Stunde wieder.",
+    "publicNotReached": "Let's Encrypt: Wartet, bis {{name}} Floorbit aus dem Internet erreicht (öffentliches DNS und Port 80). {{why}} Floorbit prüft alle 10 Minuten wieder.",
     "certEnv": "Der Agent nutzt ein Zertifikat aus seiner Umgebung.",
     "certNew": "Neues Zertifikat",
     "certWaiting": "Wartet, bis der Agent es anfordert.",
@@ -386,5 +392,22 @@
     "pluginsTitle": "Plugin-Einstellungen für diesen Agent",
     "pluginSame": "Nimmt die Einstellungen des Plugins.",
     "pluginEdit": "Auf der Plugin-Seite setzen"
-  }
+  },
+  "devices": {
+    "error": {
+      "offline": "Der Agent ist nicht verbunden",
+      "no_telemetry": "Telemetrie ist aus",
+      "no_answer": "Der Agent hat nicht gesagt, was er sammelt"
+    },
+    "errorHelp": {
+      "offline": "Das sind die Geräte, die Floorbit ihm gibt. Ihr Zustand erscheint, sobald er zurück ist.",
+      "no_telemetry": "Schalte das Telemetrie-Plugin ein, um über die Agents von Geräten zu sammeln.",
+      "no_answer": "Ein Agent, der älter ist als dieses Floorbit, kennt diese Frage noch nicht: aktualisiere ihn. Das sind die Geräte, die Floorbit ihm gibt."
+    },
+    "turnOn": "Plugins",
+    "standby": "Bereitschaft",
+    "standbyHelp": "Der andere Agent dieses Paars sammelt. Dieser nimmt nur die Geräte, die ihm mit Namen gegeben sind, und übernimmt den Rest, wenn der andere wegfällt.",
+    "none": "Keine Geräte für diesen Agent. Schalte im Inventar Telemetrie für Geräte ein."
+  },
+  "runInsecure": "Dieses Floorbit läuft über einfaches http. Der Agent braucht darum FLOORBIT_AGENT_INSECURE=1 und schickt seinen Schlüssel unverschlüsselt. Nur für einen Test oder in einem Netz, dem du vertraust; für einen Event Floorbit hinter HTTPS stellen."
 }

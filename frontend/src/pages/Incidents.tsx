@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Kbd, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Button, Group, Kbd, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { IconDownload, IconFilter, IconHandGrab, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -17,6 +17,7 @@ import { matchesFilter } from './incidents/filter'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
 import { nextToTake, openOrder } from './incidents/waiting'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 
 const COLUMNS: IncidentStatus[] = ['open', 'assigned', 'fixed']
 const FIXED_SHOWN = 20
@@ -165,13 +166,9 @@ export default function Incidents() {
             onChange={(e) => auto.mutate(e.currentTarget.checked)} />
         </Group>
       )}
-      {board.error && (
-        <Alert color="down" role="alert" mb="md">
-          {t('common.error', { message: board.error.message })}
-        </Alert>
-      )}
+      <ErrorBanner error={board.error} mb="md" onRetry={() => void board.refetch()} />
       {board.isPending ? (
-        <Loader size="sm" />
+        <LoadingState />
       ) : (
         board.data && (
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">

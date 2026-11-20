@@ -38,5 +38,7 @@
     "other": "Weiteres"
   },
   "mutedUntil": "Alarme stumm bis {{time}}",
-  "allFine": "Alle Dienste laufen."
+  "allFine": "Alle Dienste laufen.",
+  "fullIn_one": "In etwa {{count}} Minute voll, bei {{rate}} pro Minute",
+  "fullIn_other": "In etwa {{count}} Minuten voll, bei {{rate}} pro Minute"
 }

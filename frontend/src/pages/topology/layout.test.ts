@@ -17,10 +17,37 @@ describe('topology layout', () => {
     expect(loose.map((n) => n.name)).toEqual(['sw-z-99'])
   })
 
-  it('wraps a wide layer into rows', () => {
+  it('hangs firewalls under the router, and puts switches with more below them in the first row', () => {
+    // Issue #1050: ten firewalls beside the core read as a chain.
+    const fws = Array.from({ length: 12 }, (_, i) => node(`fw-${String(i + 1).padStart(2, '0')}`, 'firewall'))
+    const nodes = [node('core-01', 'router'), node('dist-01'), node('sw-a-01'), ...fws]
+    const { placed } = layout(nodes, [link('core-01', 'dist-01'), link('dist-01', 'sw-a-01'), ...fws.map((f) => link('core-01', f.name))])
+    expect(placed.get('fw-01')!.level).toBe(1)
+    expect(placed.get('core-01')!.y).toBeLessThan(placed.get('fw-01')!.y)
+    const firstRow = placed.get('dist-01')!.y
+    expect(Math.max(...fws.map((f) => placed.get(f.name)!.y))).toBeGreaterThan(firstRow)  // 13 in the layer: it wraps
+    expect(fws.every((f) => placed.get(f.name)!.y >= firstRow)).toBe(true)
+  })
+
+  it('starts from the firewalls when there is no router', () => {
+    const { placed } = layout([node('fw-1', 'firewall'), node('sw-1')], [link('fw-1', 'sw-1')])
+    expect(placed.get('fw-1')!.level).toBe(0)
+  })
+
+  it('wraps the end boxes under one parent into a small grid', () => {
     const access = Array.from({ length: 25 }, (_, i) => node(`sw-${i}`))
     const { placed } = layout([node('dist-01'), ...access], access.map((n) => link('dist-01', n.name)))
-    expect(new Set(access.map((n) => placed.get(n.name)!.y)).size).toBe(3)
+    expect(new Set(access.map((n) => placed.get(n.name)!.y)).size).toBe(9)
+    expect(new Set(access.map((n) => placed.get(n.name)!.x)).size).toBe(3)
+  })
+
+  it('puts each access switch under its own distribution switch', () => {
+    const nodes = [node('core-01', 'router'), node('dist-01'), node('dist-02'), node('sw-a'), node('sw-b')]
+    const { placed } = layout(nodes, [link('core-01', 'dist-01'), link('core-01', 'dist-02'), link('dist-01', 'sw-a'), link('dist-02', 'sw-b')])
+    const x = (n: string) => placed.get(n)!.x
+    expect(x('dist-01')).toBe(x('sw-a'))
+    expect(x('dist-02')).toBe(x('sw-b'))
+    expect(x('core-01')).toBe((x('dist-01') + x('dist-02')) / 2)
   })
 
   it('says speeds short', () => {

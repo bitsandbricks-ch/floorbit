@@ -1,7 +1,7 @@
 # Device telemetry
 
 Floorbit can hear from the hall's switches, routers and firewalls directly, without LibreNMS:
-port state, traffic and errors, MAC tables, ARP, LLDP and CDP neighbours, CPU and memory, a
+port state, traffic and errors, MAC tables, ARP, LLDP and CDP neighbours, CPU, memory and temperature, a
 firewall's gateways and states. [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/)
 does the collecting; Floorbit tells it what to ask and keeps what comes back.
 
@@ -25,6 +25,12 @@ setting **Who polls the switches** decides:
 Traps stay with Telemetry either way: they turn a port down or up within a second, while LibreNMS
 sees it on its next 5-minute poll. The device facts (model, software, interfaces) keep filling the
 inventory ([discovery](inventory.md)).
+
+With the ports Telemetry also reads the temperatures: CISCO-ENVMON-MIB on Catalyst and IOS-XE,
+ENTITY-SENSOR-MIB (the celsius sensors) on Nexus and others. A switch's status gives the hottest
+sensor heard in the last 3 minutes as `temperature`, in degrees C, where LibreNMS gives its sensors'
+average. Until a switch's first port poll is in, its status says `unknown` with `waiting: true`
+instead of counting only the ports a trap or a stream has named so far.
 
 When Telemetry polls, it walks the ARP and MAC tables every **ARP and MAC tables every (minutes)**
 (0: never). **Auto** (the default) walks them every 15 minutes while a [network segment](segments.md)
@@ -179,13 +185,19 @@ without the namespace (`telemetry_vlans`, `telemetry_port_snmp`, ...) are moved 
 | `telemetry.mdt.node` | the node name a device sends model-driven telemetry as (default: its name) |
 | `telemetry.verify_tls` | `false` for an API with a self-signed certificate |
 
-Every five minutes SNMP polling also asks what the device is (sysDescr, sysLocation, the chassis
+SNMP polling also asks what the device is (sysDescr, sysLocation, the chassis
 model and serial and the optics from ENTITY-MIB, memory and disks from HOST-RESOURCES-MIB, the Cisco memory pool,
 which also gives the memory use), and per port its MAC, IPv4 addresses, VLAN and access or trunk
 mode, with the device's VLAN names. [Discovery](inventory.md#discovery) fills the inventory device
-from it.
+from it, and each part is read as often as the discovery action that uses it runs, for that kind of
+device: model, serial and software with **Model, serial and software** (hourly by default), the
+optics with **Transceivers** (hourly), addresses and VLANs with **VLANs and networks**, port MACs
+with **Interfaces** and routes with **Routes** (every `DISCOVERY_MINUTES`, 15). A table two actions
+share takes the shorter clock; an action that is off isn't read at all. Changing an action's schedule
+updates the agents' Telegraf config. (Without discovery's schedule, as on an older Floorbit, it all
+comes every five minutes.)
 
-Firewalls also say their **routes** every five minutes (IP-FORWARD-MIB ipCidrRouteTable: network,
+Firewalls also say their **routes** (on the **Routes** action's clock) (IP-FORWARD-MIB ipCidrRouteTable: network,
 next hop, interface and where it came from: connected, static, OSPF, BGP, ...), up to 2,000 per
 firewall. Routers aren't asked: an internet router's full table is far too big to walk.
 
@@ -375,3 +387,25 @@ each device's last report.
 The **Telemetry devices** widget (a dashboard tile, from the plugin) lists each device as up when
 it reported in the last minutes, with a link to the Telemetry page. On a hosted Floorbit it asks
 the local agent.
+
+### In the agent's log
+
+Every telemetry line in the agent's log carries a topic after the plugin's tag, so you can keep one
+kind with `grep '\[telemetry\] \[traps\]'` (or `docker compose logs agent | grep ...`):
+
+| Topic | What it says |
+| --- | --- |
+| `[settings]` | the devices Floorbit sent (names only, never logins) and who polls the switches |
+| `[telegraf]` | Telegraf starting, stopping, reloading its config, and its own warnings |
+| `[devices]` | a device first heard, gone silent, and the summary every few minutes |
+| `[snmp]` | the poll line every minute: points per device, and the devices that sent nothing |
+| `[traps]` | each trap as it comes in: the device, the trap and its port |
+| `[stream]` | gNMI and Cisco MDT: one line a minute with the points per device |
+| `[api]` | the API pollers (firewalls, controllers) |
+| `[push]` | each send to Floorbit: the series and the IP and MAC sightings, with how many parts |
+| `[test]` | **Test now** runs |
+| `[role]` | the agent becoming the collector or standing by (VRRP) |
+| `[lookup]` | a check-in asking the switches for one PC, and what it found |
+
+These lines are at info level. `FLOORBIT_AGENT_LOG_LEVEL=debug` adds Telegraf's chatter and the
+details behind each line.

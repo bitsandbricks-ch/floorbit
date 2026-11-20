@@ -7,6 +7,7 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { PortDialog, type PortRequest } from '../security/PortDialog'
+import { toastDone } from '@/components/toast'
 
 interface PortInfo { available: boolean; needs_login: boolean; plugin: string | null }
 
@@ -20,7 +21,6 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
   const info = useQuery({ queryKey: qk.ports, queryFn: () => get<PortInfo>('/api/ports'), enabled: canAct })
   const [request, setRequest] = useState<PortRequest | null>(null)
   const [dialogError, setDialogError] = useState<string | null>(null)
-  const [done, setDone] = useState<string | null>(null)
   const [flagging, setFlagging] = useState(false)
   const [note, setNote] = useState('')
 
@@ -28,7 +28,7 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
     mutationFn: (extra: Record<string, string | boolean | undefined>) => post<{ message: string }>('/api/ports/bounce', { seat, ...extra }),
     onSuccess: (r) => {
       setRequest(null)
-      setDone(r.message)
+      toastDone(r.message)
     },
     onError: (e) => setDialogError(e.message),
   })
@@ -38,7 +38,7 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
     onSuccess: () => {
       setFlagging(false)
       setNote('')
-      setDone(t('plan.flagged', { seat }))
+      toastDone(t('plan.flagged', { seat }))
       void qc.invalidateQueries({ queryKey: qk.planAll })
     },
   })
@@ -47,7 +47,6 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
   if (!mayBounce && !canFlag) return null
   return (
     <Stack gap="xs">
-      {done && <Alert color="up" withCloseButton onClose={() => setDone(null)}>{done}</Alert>}
       {flag.error && <Alert color="down" role="alert">{flag.error.message}</Alert>}
       {flagging ? (
         <Stack gap="xs">

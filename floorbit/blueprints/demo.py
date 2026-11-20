@@ -329,6 +329,8 @@ def _seed_checkins(_words, now):
 
     from ..builtin_plugins.demo.plugin import SIDE_BLOCK, _ip, _mac, _seats, _switch_for, _taken
     from ..store import write_json
+    # The seat cards are printed: every demo seat has a PIN, so the PIN check-ins below add up.
+    checkin.ensure_pins([s[0] for s in _seats()])
     if checkin.load_all():
         return
     rows, learned, events = {}, {}, []

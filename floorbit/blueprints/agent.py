@@ -4,6 +4,7 @@ For admins (``settings.manage``):
 
 - ``GET /settings/agents``: the page (React); ``/settings/agents/<id>``: one agent's page.
 - ``GET /api/agents``: the enrolled agents, whether each is connected, and the tunnel's state.
+- ``GET /api/agents/<id>/devices``: the devices it collects, their state and why one sends nothing.
 - ``POST /api/agents`` ``{"name"}``: enrol one; the answer holds its key, this once.
 - ``PATCH /api/agents/<id>`` ``{"halls": [ids]}``: the halls it answers for (empty: every hall).
 - ``DELETE /api/agents/<id>``: revoke it.
@@ -105,6 +106,16 @@ def history(agent_id):
     return jsonify({'hours': hours, 'series': series})
 
 
+@bp.route('/api/agents/<agent_id>/devices', methods=['GET'])
+def agent_devices(agent_id):
+    """The devices this agent collects, with their state and problems: its Devices tab (issue #1013)."""
+    from .. import agent_devices as found
+    result = found.devices_of(agent_id, current_app.extensions.get('floorbit_plugins'))
+    if result is None:
+        return jsonify({'error': 'No such agent.'}), 404
+    return jsonify(result)
+
+
 @bp.route('/api/agents', methods=['POST'])
 def enrol():
     try:
@@ -113,7 +124,7 @@ def enrol():
         return jsonify({'error': str(exc)}), exc.status
     audit.record('settings', 'Enrolled a local agent', g.get('audit_user'), record['name'])
     events.publish('agents.changed', {})
-    return jsonify({**record, 'key': key}), 201
+    return jsonify({**record, 'key': key, 'image': agent_link.agent_image()}), 201
 
 
 @bp.route('/api/agents/<agent_id>', methods=['PATCH'])
@@ -153,7 +164,7 @@ def rotate(agent_id):
         return jsonify({'error': str(exc)}), exc.status
     audit.record('agents', 'Made a new key for a local agent', g.get('audit_user'), name)
     events.publish('agents.changed', {})
-    return jsonify({'id': agent_id, 'name': name, 'key': key})
+    return jsonify({'id': agent_id, 'name': name, 'key': key, 'image': agent_link.agent_image()})
 
 
 @bp.route('/api/agents/ca.pem', methods=['GET'])
@@ -238,11 +249,16 @@ def new_cert(agent_id):
 
 @bp.route('/api/agents/<agent_id>', methods=['DELETE'])
 def revoke(agent_id):
+    from .. import public_cert
+    record = next((a for a in agent_link.load_data().get(agent_link.KEY) or [] if a.get('id') == agent_id), None)
     try:
         name = agent_link.revoke(agent_id)
     except agent_link.AgentError as exc:
         return jsonify({'error': str(exc)}), exc.status
     audit.record('settings', 'Revoked a local agent', g.get('audit_user'), name)
+    if public_cert.agent_revoked(record):
+        audit.record('agents', "The agents' Let's Encrypt certificate is replaced: a revoked agent had its key",
+                     g.get('audit_user'), name)
     events.publish('agents.changed', {})
     return jsonify({'ok': True})
 
@@ -469,9 +485,21 @@ def sign_cert():
     agent = _agent(reachable=False)
     if agent is None:
         return _refused()
-    from .. import agent_ca, agent_settings
+    from .. import agent_ca, agent_settings, public_cert
+    body = _agent_body()
+    if body.get('public') is True:
+        # The tenant's Let's Encrypt certificate, its key sealed to this agent's own (public_cert.py).
+        try:
+            found = public_cert.bundle(agent['id'], body.get('csr'))
+        except public_cert.PublicCertError as exc:
+            return jsonify({'error': str(exc)}), 409
+        audit.record('agents', "Gave a local agent the agents' Let's Encrypt certificate", 'agent', agent['name'])
+        events.publish('agents.changed', {})
+        resp = jsonify(found)
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp
     try:
-        pem = agent_settings.issue_cert(agent['id'], _agent_body().get('csr'))
+        pem = agent_settings.issue_cert(agent['id'], body.get('csr'))
     except agent_ca.CAError as exc:
         return jsonify({'error': str(exc)}), 400
     audit.record('agents', 'Signed a certificate for a local agent', 'agent', agent['name'])

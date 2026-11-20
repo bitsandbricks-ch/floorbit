@@ -39,5 +39,21 @@
   "nightly_one": "Every night at {{hour}}:00 Floorbit backs up {{count}} switch with the stored login.",
   "nightly_other": "Every night at {{hour}}:00 Floorbit backs up {{count}} switches with the stored logins.",
   "nightlyLast": "Last nightly run {{when}}: {{ok}} of {{total}} backed up, {{changed}} changed.",
-  "nightlyFailed": "Not backed up: {{list}}"
+  "nightlyFailed": "Not backed up: {{list}}",
+  "portCheck": {
+    "title": "Seat port check",
+    "intro": "Read from each switch's last config copy, no login needed: every seat port should come up at once (PortFast), shut itself when a player plugs in a switch (BPDU guard), stop a broadcast flood (storm control), be an access port, and sit in the same VLAN as its neighbours. Checked again after every backup.",
+    "rules": "Rules this event uses",
+    "summary_one": "{{count}} switch with seat ports checked, {{fine}} fine.",
+    "summary_other": "{{count}} switches with seat ports checked, {{fine}} fine.",
+    "noCopy_one": "No config copy yet: {{list}}.",
+    "noCopy_other": "No config copy yet for {{count}} switches: {{list}}.",
+    "from": "Copy from {{when}}, {{checked}} seat ports in it",
+    "without_one": "{{count}} port without {{rule}}",
+    "without_other": "{{count}} ports without {{rule}}",
+    "vlan_one": "{{count}} port not in VLAN {{vlan}}",
+    "vlan_other": "{{count}} ports not in VLAN {{vlan}}",
+    "copy": "Copy fix",
+    "copied": "Copied"
+  }
 }

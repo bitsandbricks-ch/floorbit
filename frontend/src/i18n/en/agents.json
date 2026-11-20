@@ -220,6 +220,7 @@
     "failover": "Failover per hall",
     "server": "This Floorbit",
     "overview": "Overview",
+    "devices": "Devices",
     "graphs": "Graphs",
     "plugins": "Plugins ({{count}})",
     "updates": "Updates",
@@ -253,7 +254,7 @@
     "range": "Time range",
     "hours_one": "{{count}} h",
     "hours_other": "{{count}} h",
-    "none": "No numbers kept yet. They start with the agent's next reports, every half minute.",
+    "none": "They start with the agent's next reports, every half minute.",
     "max": "max {{n}}",
     "metric": {
       "points": "Telemetry points",
@@ -276,7 +277,8 @@
       "reconnects": "{{n}} per minute now",
       "syslog": "{{n}} per minute now",
       "median_ms": "{{n}} ms now"
-    }
+    },
+    "noneTitle": "No numbers kept yet"
   },
   "cfg": {
     "title": "Agent settings",
@@ -342,6 +344,10 @@
     "certHas": "For {{names}}, valid until {{when}}",
     "certOther": "not from this Floorbit",
     "certNone": "No certificate yet.",
+    "publicHas": "Let's Encrypt: {{name}}, valid until {{when}}. Agents that can take it serve this one; point {{name}} at the agent in the hall's DNS.",
+    "publicWaiting": "Let's Encrypt: waiting for the certificate for {{name}}.",
+    "publicFailed": "Let's Encrypt could not issue {{name}} yet: {{error}}. Floorbit tries again within the hour.",
+    "publicNotReached": "Let's Encrypt: waiting until {{name}} reaches Floorbit from the internet (public DNS and port 80). {{why}} Floorbit checks again every 10 minutes.",
     "certEnv": "The agent uses a certificate set in its environment.",
     "certNew": "New certificate",
     "certWaiting": "Waiting for the agent to ask for it.",
@@ -386,5 +392,22 @@
     "pluginsTitle": "Plugin settings for this agent",
     "pluginSame": "Uses the plugin's settings.",
     "pluginEdit": "Set on the plugin page"
-  }
+  },
+  "devices": {
+    "error": {
+      "offline": "The agent is not connected",
+      "no_telemetry": "Telemetry is off",
+      "no_answer": "The agent did not say what it collects"
+    },
+    "errorHelp": {
+      "offline": "These are the devices Floorbit gives it. Their state shows once it is back.",
+      "no_telemetry": "Turn on the Telemetry plugin to collect from devices through the agents.",
+      "no_answer": "An agent older than this Floorbit does not know this question yet: update it. These are the devices Floorbit gives it."
+    },
+    "turnOn": "Plugins",
+    "standby": "Standby",
+    "standbyHelp": "The other agent of this pair collects. This one only takes the devices given to it by name, and takes over the rest when the other one goes away.",
+    "none": "No devices for this agent. Turn on Telemetry for devices in the inventory."
+  },
+  "runInsecure": "This Floorbit is on plain http, so the agent needs FLOORBIT_AGENT_INSECURE=1 and sends its key unencrypted. Use it only for a test or on a network you trust; put Floorbit behind HTTPS for an event."
 }

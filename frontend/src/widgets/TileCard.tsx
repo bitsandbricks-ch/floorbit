@@ -1,4 +1,4 @@
-import { Anchor, Loader, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core'
+import { Anchor, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core'
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,7 @@ import type { ActionResult, ActionTile, Tile, WidgetTile } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { pluginName } from '@/lib/pluginName'
 import { WidgetBody } from './WidgetBody'
+import { LoadingState } from '@/components/ui'
 
 /** Plugin tiles (issue #11): a data widget or an action button from a plugin. A dashboard pane
  *  shows one; a plugin's own page shows its tiles in a grid. */
@@ -36,7 +37,7 @@ export function WidgetCard({ tile }: { tile: WidgetTile }) {
   return (
     <TileFrame title={tile.label} from={pluginName(t, tile.plugin, tile.plugin_name)} wide={tile.size === 'wide'}>
       {isPending ? (
-        <Loader size="sm" aria-label={t('common.loading')} />
+        <LoadingState lines />
       ) : error && !data ? (
         <Text size="sm" className="fb-tone-err" role="alert">
           ✕ {error.message}

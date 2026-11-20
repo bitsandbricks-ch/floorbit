@@ -123,6 +123,9 @@ def clean_properties(value):
         k = str(k).strip().lower()
         if not PROP_KEY_RE.match(k):
             raise ScopeError(f'{k or "(empty)"} is not a property name (a-z, 0-9, dot, dash, underscore).')
+        if k.startswith(('system.', 'auto.')):
+            # Floorbit's own levels (inventory_properties.py): a custom one would hide the real value.
+            raise ScopeError(f'{k}: names starting with system. or auto. are Floorbit\'s own. Pick another name.')
         v = '' if v is None else str(v).strip()
         if '\n' in v or len(v) > 200:
             raise ScopeError(f'The value of {k} must be one line, up to 200 characters.')

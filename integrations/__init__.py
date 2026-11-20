@@ -32,10 +32,11 @@ settings page later).
 import hmac
 import threading
 import time
+from urllib.parse import urlencode
 
 from flask import Blueprint, Response, current_app, jsonify, redirect, request, stream_with_context
 
-from . import checkin, config, events, history, seat_sources, settings_bridge
+from . import checkin, config, events, hall_trip, history, seat_sources, settings_bridge
 from .crew import CrewBridge
 from .discord import DiscordNotifier
 from .monitor import StatusMonitor
@@ -84,6 +85,17 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
                 return redirect('/checkin', code=302)
         return None
     app.before_request_funcs.setdefault(None, []).insert(0, short_checkin_address)
+
+    def hall_trip_arrived():
+        """A check-in page sent on from Floorbit's own address reached an agent's front door: the
+        address it left from is the hall's (hall_trip). The code leaves the address bar after."""
+        if request.path != '/checkin' or request.method != 'GET' or 'via' not in request.args:
+            return None
+        if checkin.attendee_ip():
+            hall_trip.arrived(request.args.get('via'))
+        rest = urlencode([(k, v) for k, v in request.args.items(multi=True) if k != 'via'])
+        return redirect('/checkin' + (f'?{rest}' if rest else ''), code=302)
+    app.before_request_funcs.setdefault(None, []).insert(0, hall_trip_arrived)
     auth = app.extensions.get('auth')
     crew = CrewBridge(users=auth.users if auth else None, app=app)
     crew.attach()
@@ -205,12 +217,21 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         suggested = checkin.suggest_seat(ip, load_data, current_app) if ip and checkin.ip_allowed(ip) else None
         # A hint for the page; the page also looks at the device itself (OS, touch, screen).
         on_pc = not checkin.looks_mobile(request.headers.get('User-Agent'))
+        # A PC opened this on Floorbit's own address: send it on to an agent's front door, where the
+        # PC's own address is known. By itself only where Floorbit is sure it's in the hall.
+        hall = None
+        if ip is None and on_pc:
+            from floorbit import seat_walk
+            door = seat_walk.agent_url()
+            if door:
+                client = checkin.client_ip()
+                hall = {'url': f'{door}/checkin?via={hall_trip.start(client)}', 'sure': hall_trip.sure(client)}
         return jsonify({'open': True, 'opens_at': None, 'ip': ip, 'checkin': (
             {'seat': row['seat'], 'username': row['username'], 'wired': row.get('wired')} if row else None),
             'suggested_seat': suggested, 'pin_required': config.get_bool('CHECKIN_REQUIRE_PIN', False),
             'address': checkin.short_address() or None, 'on_pc': on_pc,
             # Not through the local agent's front door: the seat is kept, its port isn't learned.
-            'outside': ip is None})
+            'outside': ip is None, 'hall': hall})
 
     @bp.route('/api/checkin', methods=['POST'])
     def checkin_submit():

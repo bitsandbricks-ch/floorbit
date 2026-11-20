@@ -185,8 +185,16 @@ docker compose -f docker-compose.agent.yml logs -f    # "[agent] connected to â€
 docker run -d --restart on-failure:3 --name floorbit-agent \
   -e FLOORBIT_URL=https://floor.example.com \
   -e FLOORBIT_AGENT_KEY=fba_â€¦ \
-  ghcr.io/bitsandbricks-ch/floorbit-agent
+  -v floorbit-agent:/app/state \
+  -p 443:8443 -p 80:8080 -p 162:1162/udp -p 57000:57000 \
+  ghcr.io/bitsandbricks-ch/floorbit-agent:<version>
 ```
+
+The page fills in the image tag: the agent commit this Floorbit is built and tested with
+(`AGENT_REF`), so the two don't drift apart. The volume keeps the agent's state (its certificate
+and settings) over an update. The ports are those of what is on by default: attendees on 443 and
+80, SNMP traps and Cisco model-driven telemetry. For a Floorbit on plain `http://` (a test), the line
+also sets `FLOORBIT_AGENT_INSECURE=1`, and the page warns that the key then travels unencrypted.
 
 **Check the setup first.** `check` tries each part once (the hosted Floorbit and the key, the
 monitoring plugin, the inventory and health plugins, and the plugins that run on the agent), says which works and which doesn't, and exits with 0 when
@@ -281,6 +289,37 @@ when someone presses **New certificate**. It keeps it in `tls/` in its state fol
 Crew devices install the CA once (**Download CA** on the agent's page, `GET /api/agents/ca.pem`)
 and then trust every agent of this Floorbit. The CA's key is sealed with the vault. A certificate set
 in the agent's environment (`FLOORBIT_AGENT_TLS_CERT`, `_TLS_KEY`) wins, for a hall that uses its own.
+
+#### A Let's Encrypt certificate for the tenant
+
+Laptops in the hall don't trust Floorbit's CA, so each tenant gets one certificate from Let's
+Encrypt for `<tenant>.agent.<domain>`, and every agent of the tenant serves it on the front door and
+the other HTTPS listeners. There is nothing to switch on:
+
+- **The domain** comes from the platform's own address: Floorbit at `floor.example.com` makes
+  agents `<tenant>.agent.example.com` (a two-part address like `example.com` is used as it is). An IP
+  address or `localhost` gives none. A platform admin can set another one, or `off`, with
+  `flask tenants agent-domain example.net` or `PUT /api/platform/agent-domain`
+  `{"domain": "example.net"}`; `-` (CLI) or `""` (API) goes back to the one from the address.
+- **Public DNS:** `agent.<domain>` and `*.agent.<domain>` as A (and AAAA) records pointing at the
+  platform, and port 80 routed to Floorbit, which answers `/.well-known/acme-challenge/<token>`
+  (Let's Encrypt's HTTP-01 check). Any tenant's process can answer for every tenant.
+- **Self-check:** every ten minutes Floorbit asks `http://<tenant>.agent.<domain>/` for a token of
+  its own. Until that comes back, nothing is ordered (so Let's Encrypt's limits aren't spent) and each
+  agent's page says what is missing. Once it answers, the certificate follows within ten minutes.
+- **The hall's DNS** points `<tenant>.agent.<domain>` at the agent (or the agents' VRRP address).
+
+Floorbit asks Let's Encrypt within ten minutes and renews 30 days before the end, or earlier when
+Let's Encrypt's renewal window (ARI) says so. A failed try is shown on each agent's page and tried
+again after an hour. `FLOORBIT_ACME_DIRECTORY` points at another ACME server (Let's Encrypt's
+staging, a test CA).
+
+One certificate means one key for all the tenant's agents, so this key is made by Floorbit, not the
+agent: a new one on every issue, sealed with the vault. An agent gets it only encrypted to its own
+key (the one in its signing request, which still never leaves the agent; ECDH P-256, HKDF-SHA256,
+AES-256-GCM), and every hand-over is in the audit log. When an agent that had the key is revoked,
+Floorbit revokes the certificate and gets a new one with a new key, which the remaining agents fetch
+at their next pull. An agent too old to take the key keeps the CA's certificate.
 
 The agent only makes outgoing requests; nothing listens on it unless a plugin that listens is on (syslog, flows, the check-in note, the front door). It runs up to 4 calls side by side,
 so one slow port lookup doesn't hold up the floor plan. When the hosted Floorbit can't be reached,
@@ -577,6 +616,16 @@ answer. They are stored with the telemetry series (Floorbit's database, a point 
 hours and every 15 minutes for `FLOORBIT_TELEMETRY_DAYS`; or VictoriaMetrics as `fb_agent_<name>`
 with an `agent` label when it is set up) and age out with them. A gap in a graph is a time the
 agent didn't report.
+
+The **Devices** tab on the agent's page lists the devices it collects, worst first: sends
+nothing, never heard, partly (a VLAN or a table fails), waits for traps, another agent collects
+(the standby of a pair), sends. Each row shows its drivers, when it was last heard, what came in
+(ports, MACs, ARP, neighbours) and, for a device that sends nothing, why, with **Test now** and
+**Raw data**. A device given to this agent by name says so; one that sends by itself (a firewall's
+own Telegraf) does too. **Needs a look** keeps only the devices with a problem, and the agent's
+"some devices send nothing" warning and a failed call about one device link there. While the
+agent is away the tab still lists what Floorbit gives it. `GET /api/agents/<id>/devices` (admins)
+has the same, asked from the agent's memory through its link; no logins.
 
 ## When the agent is away
 
