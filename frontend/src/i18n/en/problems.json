@@ -67,6 +67,7 @@
   "muteTextAp": "Keeps this access point out of the problem counts until the mute ends. It stays on this list and in the Wi-Fi view.",
   "show": "Show",
   "all": "All",
+  "swap": "Swap",
   "report": "Make an incident",
   "incidentOpen": "Incident open",
   "copy": "Copy list",

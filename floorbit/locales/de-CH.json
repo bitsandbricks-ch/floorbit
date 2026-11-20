@@ -160,7 +160,6 @@
  "A provider needs an id and a kind of \"password\" or \"redirect\".": "Ein Anbieter braucht eine ID und die Art «password» oder «redirect».",
  "A role ID is 2 to 32 lowercase letters, digits or dashes, starting with a letter.": "Eine Rollen-ID hat 2 bis 32 Kleinbuchstaben, Ziffern oder Bindestriche und beginnt mit einem Buchstaben.",
  "A seat block is not an object": "Ein Sitzblock ist kein Objekt",
- "A step is done or skipped.": "Ein Schritt ist erledigt oder übersprungen.",
  "A switch has no name": "Ein Switch hat keinen Namen",
  "A switch is not an object": "Ein Switch ist kein Objekt",
  "A team cannot be inside itself.": "Ein Team kann nicht in sich selbst liegen.",
@@ -1310,5 +1309,13 @@
  "{} looks like a desk switch or router": "{} sieht nach einem Switch oder Router am Platz aus",
  "Check them under Cables": "Unter Kabel prüfen",
  "Seat {}: a switch or router on the seat port ({} machines)": "Platz {}: ein Switch oder Router am Platz-Port ({} Geräte)",
- "Seat {}: {} machines on one seat port": "Platz {}: {} Geräte an einem Platz-Port"
+ "Seat {}: {} machines on one seat port": "Platz {}: {} Geräte an einem Platz-Port",
+ "{}: full in about {} min": "{}: in etwa {} Min. voll",
+ "{}, full in about {} min": "{}, in etwa {} Min. voll",
+ "Full in about {} min": "In etwa {} Min. voll",
+ "{}: names starting with system. or auto. are Floorbit's own. Pick another name.": "{}: Namen, die mit system. oder auto. beginnen, gehören Floorbit. Wähle einen anderen Namen.",
+ "A step is done, skipped or open.": "Ein Schritt ist erledigt, übersprungen oder offen.",
+ "Pick a spare or type the new switch's serial number.": "Wähle einen Ersatz-Switch oder tippe die Seriennummer des neuen Switches ein.",
+ "That is the serial number the switch already has.": "Diese Seriennummer hat der Switch schon.",
+ "That spare is not on the shelf any more.": "Dieser Ersatz-Switch ist nicht mehr im Lager."
 }

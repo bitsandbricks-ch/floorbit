@@ -103,9 +103,12 @@ def _health(muted):
     for c in (wall.snapshot()['checks'] if wall else []):
         if c['status'] in ('down', 'warn'):
             key = alerting.service_key(c['id'])
+            full_in = (c.get('forecast') or {}).get('full_in_min')
+            title = (f"{c['name']}: full in about {full_in} min" if full_in and c['status'] == 'warn'
+                     else f"{c['name']}: {'down' if c['status'] == 'down' else 'needs a look'}")
             out.append({'id': key, 'kind': 'health', 'level': c['status'],
-                        'title': f"{c['name']}: {'down' if c['status'] == 'down' else 'needs a look'}",
-                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/health',
+                        'title': title,
+                        'where': c.get('summary') or '', 'since': c.get('since'), 'link': '/services',
                         'mute_id': key, 'name': c['name'], 'muted': _muted(muted.get(key))})
     return out
 

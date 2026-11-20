@@ -1,0 +1,9 @@
+{
+  "of": "of {{count}}",
+  "trend": "{{name}} over time",
+  "change": {
+    "up": "up by {{value}} since before",
+    "down": "down by {{value}} since before",
+    "flat": "no change since before"
+  }
+}
