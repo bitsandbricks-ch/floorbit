@@ -183,6 +183,7 @@ def _forget_cache():
     _active = _routes = None
     _pins[0] = None
     _doors.clear()
+    _set_up.update(at=None, value=True)
 
 
 _routes = None   # ((data file, mtime), routing)
@@ -1063,6 +1064,7 @@ def _clean_feeds(feeds):
 # ── The monitoring source it feeds ─────────────────────────────────────────────────────────────
 
 SET_UP_EVERY = 30         # seconds an agent's "is monitoring set up?" answer is kept
+SET_UP_RETRY = 5          # seconds before asking again when the agent didn't answer
 _set_up = {'at': None, 'value': True}
 
 
@@ -1074,14 +1076,17 @@ def monitoring_set_up(now=None):
     now = time.monotonic() if now is None else now
     if _set_up['at'] is not None and 0 <= now - _set_up['at'] < SET_UP_EVERY:
         return _set_up['value']
-    _set_up['at'] = now
     if tunnel.connected_agents():
+        # Kept only once an agent answered: right after it connects the first ask can miss, and the
+        # pages' calls in the meantime would all go to an agent with nothing to answer them.
         try:
             _set_up['value'] = bool(ask('configured'))
+            _set_up['at'] = now
         except AgentUnavailable:
-            pass
+            _set_up['at'] = now - SET_UP_EVERY + SET_UP_RETRY    # a hung link must not slow every page
         except AgentError:
             _set_up['value'] = False      # the agent answered: no monitoring plugin there
+            _set_up['at'] = now
     return _set_up['value']
 
 def monitoring_source():
