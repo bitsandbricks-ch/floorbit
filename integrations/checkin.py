@@ -318,6 +318,13 @@ def short_address():
     return raw.split('/')[0].split(':')[0]
 
 
+def hall_url():
+    """``http://`` + CHECKIN_ADDRESS with its port, if it has one: where a browser in the hall reaches
+    an agent's front door (check-in with the PC's own address, the seat walk's hello). '' when unset."""
+    raw = re.sub(r'^[a-z]+://', '', str(config.get('CHECKIN_ADDRESS', '') or '').strip().lower()).split('/')[0]
+    return f'http://{raw}' if re.fullmatch(r'[a-z0-9.-]{1,120}(:[0-9]{1,5})?', raw) else ''
+
+
 def is_short_address(host):
     want = short_address()
     return bool(want) and str(host or '').lower().split(':')[0] == want
@@ -635,6 +642,11 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
     seat_sources.invalidate()
     events.publish('checkin', {'seat': seat, 'username': username, 'ip': ip,
                                'mac': row['mac'], 'moved_from': moved_from})
+    from floorbit import checkin_lookup
+    try:
+        checkin_lookup.touch(now)
+    except Exception as exc:  # noqa: BLE001  # the window is a convenience: the check-in stands
+        print(f'[check-in] could not note the activity: {exc}')
     if row['wired'] == 'pending':
         _wake.set()
     return row
@@ -679,12 +691,19 @@ def verify_pending(now=None):
     for seat, row in queue[:_budget(now, len(queue))]:
         port = port_of(row.get('ip'))
         mac = row.get('mac') or (port or {}).get('mac') or lookup_mac(row.get('ip'))
+        asked = None
+        if not (port and port.get('edge')) and row.get('ip'):
+            # The tables don't know it yet: ask the switches for this one PC (docs/segments.md).
+            asked = _ask_switches(row['ip'], seat, mac, now)
+            if asked.get('state') == 'found':
+                port = {'switch': asked['switch'], 'port': asked['port'], 'edge': True}
+                mac = mac or asked.get('mac')
         if port and port.get('edge'):
-            found[seat] = ('verified', {'switch': port['switch'], 'port': port['port']}, mac)
+            found[seat] = ('verified', {'switch': port['switch'], 'port': port['port']}, mac, asked)
         elif now - (row.get('checked_in_at') or now) > VERIFY_GIVE_UP:
-            found[seat] = ('unverified', None, mac)
-        elif mac and not row.get('mac'):
-            found[seat] = ('pending', None, mac)
+            found[seat] = ('unverified', None, mac, asked)
+        elif (mac and not row.get('mac')) or _lookup_news(row, asked):
+            found[seat] = ('pending', None, mac, asked)
     # What's left of the budget warms the cache for the check-in page's seat hint. A PC that has
     # checked in meanwhile needs no hint.
     with _warm_lock:
@@ -698,7 +717,7 @@ def verify_pending(now=None):
     changed = []
     with _lock:
         rows = load_all()
-        for seat, (state, port, mac) in found.items():
+        for seat, (state, port, mac, asked) in found.items():
             row = rows.get(seat)
             if not row or row.get('wired') != 'pending' or row.get('ip') != pending[seat].get('ip'):
                 continue    # checked in again meanwhile: that one has its own turn
@@ -706,6 +725,8 @@ def verify_pending(now=None):
                 row['mac'] = mac
                 history.record('mac_found', row, ts=now)
             row['wired'] = state
+            if asked:
+                row['lookup'] = {k: asked[k] for k in ('state', 'todo', 'vlan') if asked.get(k) is not None}
             if port:
                 row.update(port_seen=port, verified_at=now)
             changed.append(seat)
@@ -719,6 +740,24 @@ def verify_pending(now=None):
         seat_sources.invalidate()
         events.publish('checkin.verified', {'seats': changed})
     return changed
+
+
+def _ask_switches(ip, seat, mac, now):
+    """floorbit/checkin_lookup.py, never failing the round: {state, ...}."""
+    from floorbit import checkin_lookup
+    try:
+        return checkin_lookup.lookup(ip, seat=seat, mac=mac, now=now)
+    except Exception as exc:  # noqa: BLE001  # one broken lookup must not stop the others
+        print(f'[check-in] switch lookup for {seat} failed: {exc}')
+        return {'state': 'error'}
+
+
+def _lookup_news(row, asked):
+    """The lookup says something new for the crew (a to-do, closed, an error)."""
+    if not asked:
+        return False
+    said = {k: asked[k] for k in ('state', 'todo', 'vlan') if asked.get(k) is not None}
+    return said != (row.get('lookup') or {})
 
 
 def retry(seat):
@@ -759,8 +798,12 @@ def overview(load_data):
                     'seat': r['seat'], 'username': r.get('username'), 'ip': r.get('ip'), 'mac': r.get('mac'),
                     'device': r.get('device') or 'unknown', 'wired': r.get('wired') or 'pending',
                     'port': r.get('port_seen'), 'learned': learned.get(r['seat']), 'pin': bool(r.get('pin_ok')),
-                    'checked_in_at': r.get('checked_in_at'), 'verified_at': r.get('verified_at')})
-    return {'counts': counts, 'rows': out, 'conflicts': conflicts}
+                    'checked_in_at': r.get('checked_in_at'), 'verified_at': r.get('verified_at'),
+                    'lookup': r.get('lookup')})
+    from floorbit import checkin_lookup, segments
+    lookups = {**checkin_lookup.window(data=data),
+               'segments_on': sum(1 for s in segments.all_segments() if s.get('lookups'))}
+    return {'counts': counts, 'rows': out, 'conflicts': conflicts, 'lookups': lookups}
 
 
 class CheckinVerifier:

@@ -104,7 +104,7 @@ def main(argv=None):
     reads = {(c['switch'].lower(), canonical_port(c['port'])): {'state': 'up'} for c in cables}
     switches = {c['switch'].lower() for c in cables}
     checked = timed('Patch plan check', lambda: patch_check.check(reads, switches, data), results)
-    assert sum(b['up'] for b in checked['blocks']) == args.seats
+    assert sum(b['up'] for b in checked['rows']) == args.seats
 
     def check_everyone():
         for n, cable in enumerate(cables):
