@@ -800,7 +800,7 @@ class Plugin(Plugin):
         hit = round(62 + 28 * _wave(1, now, period=600))
         saved = round(40 + (now % 86400) / 86400 * 900 * _wave(2, now, period=3600), 1)
         return [
-            {'id': 'dhcp-players', 'name': 'DHCP players', 'kind': 'dhcp', 'link': '/services',
+            {'id': 'dhcp-players', 'name': 'DHCP players', 'kind': 'dhcp', 'link': '/health',
              'status': _level(left / DHCP_POOL, warn=0.25, down=0.05, higher_is_better=True),
              'summary': f'{left} of {DHCP_POOL} leases left',
              'metrics': [{'label': 'Leases left', 'value': left}, {'label': 'In use', 'value': players}]},

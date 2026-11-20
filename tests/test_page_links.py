@@ -28,6 +28,8 @@ def test_every_link_from_the_server_opens_a_page():
             for path in LINK.findall(file.read_text()):
                 if path.startswith('/api/') or path == '/':
                     continue
-                if not any(r.match(path.rstrip('/') or '/') for r in routes):
+                # An f-string link stops at its first {...}: stand in an id for it.
+                path = path + 'x' if path.endswith('/') and len(path) > 1 else path
+                if not any(r.match(path) for r in routes):
                     dead.append(f'{file.relative_to(ROOT)}: {path}')
     assert not dead, 'links to pages the app does not have:\n' + '\n'.join(dead)

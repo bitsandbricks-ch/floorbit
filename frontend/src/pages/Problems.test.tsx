@@ -138,7 +138,7 @@ describe('Problems', () => {
 
   it('mutes a service on the health wall, and lists it with the muted switches', async () => {
     const service = { id: 'health:demo:game-1', kind: 'health' as const, level: 'down' as const, title: 'Game server 1: down', where: 'Not answering',
-      since: now, link: '/services', mute_id: 'health:demo:game-1', name: 'Game server 1', muted: null }
+      since: now, link: '/health', mute_id: 'health:demo:game-1', name: 'Game server 1', muted: null }
     const fake = fakeFetch({
       'GET /api/auth/me': me,
       'GET /api/problems': list({ problems: [service], mutes: [{ switch_id: 'health:demo:dns', kind: 'health', name: 'DNS', until: now + 600, at: now, by: 'kim', reason: '' }] }),
@@ -147,7 +147,7 @@ describe('Problems', () => {
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Problems />)
     const row = await screen.findByRole('article', { name: 'Game server 1: down' })
-    expect(screen.getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/services')
+    expect(screen.getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/health')
     fireEvent.click(within(row).getByRole('button', { name: 'Mute' }))
     const dialog = await screen.findByRole('dialog', { name: 'Mute alerts for Game server 1' })
     expect(within(dialog).getByText(/this service going down/)).toBeInTheDocument()
