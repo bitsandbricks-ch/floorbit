@@ -3,7 +3,7 @@
   "intro": "Save the floor plan as it is (halls, background images, where the switches are, seat blocks) and start from it later, or share it with another LAN as a file. Templates never hold check-ins, nicks, IPs, MACs, secrets or accounts.",
   "saveCurrent": "Save floor plan as template",
   "import": "Import file",
-  "empty": "No templates yet. Save the floor plan as one to start from it next time.",
+  "empty": "Save the floor plan as one to start from it next time.",
   "halls_one": "{{count}} hall",
   "halls_other": "{{count}} halls",
   "switches_one": "{{count}} switch",
@@ -49,5 +49,6 @@
   "duplicated": "Made \"{{name}}\".",
   "deleted": "Deleted \"{{name}}\".",
   "imported": "Imported \"{{name}}\".",
-  "importedDropped": "Imported \"{{name}}\". Taken out because templates don't hold them: {{fields}}."
+  "importedDropped": "Imported \"{{name}}\". Taken out because templates don't hold them: {{fields}}.",
+  "emptyTitle": "No templates yet"
 }

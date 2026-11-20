@@ -254,7 +254,7 @@
     "range": "Time range",
     "hours_one": "{{count}} h",
     "hours_other": "{{count}} h",
-    "none": "No numbers kept yet. They start with the agent's next reports, every half minute.",
+    "none": "They start with the agent's next reports, every half minute.",
     "max": "max {{n}}",
     "metric": {
       "points": "Telemetry points",
@@ -277,7 +277,8 @@
       "reconnects": "{{n}} per minute now",
       "syslog": "{{n}} per minute now",
       "median_ms": "{{n}} ms now"
-    }
+    },
+    "noneTitle": "No numbers kept yet"
   },
   "cfg": {
     "title": "Agent settings",
