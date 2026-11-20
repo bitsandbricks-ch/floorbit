@@ -6,7 +6,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { SpeedSeat, SpeedtestSummary } from '@/api/types'
 import type { ViewProps } from '@/widgets/views'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 
 function SeatList({ seats }: { seats: SpeedSeat[] }) {
@@ -47,10 +47,10 @@ export default function SpeedtestsView({ expanded }: ViewProps) {
         ) : (
           <>
             <div className="fb-stat-row">
-              <StatCard label={t('speedtests.tests')} value={num(d.hall.tests)} sub={t('speedtests.since', { hours: d.hours })} />
-              <StatCard label={t('speedtests.down')} value={mbps(d.hall.down_mbps)} />
-              <StatCard label={t('speedtests.up')} value={mbps(d.hall.up_mbps)} />
-              <StatCard label={t('speedtests.ping')} value={ms(d.hall.ping_ms)} />
+              <StatTile label={t('speedtests.tests')} value={num(d.hall.tests)} sub={t('speedtests.since', { hours: d.hours })} />
+              <StatTile label={t('speedtests.down')} value={mbps(d.hall.down_mbps)} />
+              <StatTile label={t('speedtests.up')} value={mbps(d.hall.up_mbps)} />
+              <StatTile label={t('speedtests.ping')} value={ms(d.hall.ping_ms)} />
             </div>
             <Paper withBorder radius="lg" p="md">
               {d.switches.length === 0 ? <Text size="sm" c="dimmed">{t('speedtests.noSwitches')}</Text> : (

@@ -6,6 +6,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useFeature, usePageList, usePageListSettled } from '@/api/queries'
 import { Layout, PageSkeleton } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { SetupNudge } from './setup/Checklist'
 import { PageTabs } from '@/components/PageTabs'
 import { InPanel } from '@/components/panel'
 import { ErrorBanner, LoadingState } from '@/components/ui'
@@ -182,6 +183,7 @@ export default function Settings() {
     <Layout title={title}>
       <PageHead title={t('settings.title')} kicker={t('settings.kicker')} actions={search} />
       <ErrorBanner error={mayEdit ? ed.query.error : null} onRetry={() => void ed.query.refetch()} mb="md" />
+      {!results && <SetupNudge enabled={mayEdit} />}
       {!list.settled || (mayEdit && ed.query.isPending) ? <LoadingState rows={4} /> : !active ? null : results ? (
         <SettingsForm ed={ed}>
           <Text size="sm" c="dimmed" role="status">{t('settings.nav.results', { count: results.reduce((n, r) => n + r.only.size, 0) })}</Text>
