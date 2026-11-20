@@ -59,6 +59,17 @@ body {
 }
 .fb-topbar-search:hover { border-color: color-mix(in srgb, var(--color-fg) 22%, var(--color-line)); color: var(--color-muted); }
 .fb-topbar-bell { position: relative; }
+/* The crew notice (components/CrewNotice.tsx): coloured while new, quiet once read. */
+.fb-notice-badge {
+  display: flex; align-items: center; gap: 6px; height: 28px; max-width: 260px; padding: 0 10px; flex: none;
+  border: 1px solid transparent; border-radius: var(--radius-pill); font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
+}
+.fb-notice-badge.is-compact { width: 36px; height: 36px; padding: 0; justify-content: center; }
+.fb-notice-badge-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-notice-badge.is-info { background: color-mix(in srgb, var(--color-trace) 18%, transparent); color: var(--color-trace); }
+.fb-notice-badge.is-warn { background: color-mix(in srgb, var(--color-warn) 22%, transparent); color: var(--color-warn); }
+.fb-notice-badge.is-quiet { background: transparent; border-color: var(--color-line); color: var(--color-muted); }
+.fb-notice-badge:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; }
 .fb-topbar-count {
   position: absolute; top: 2px; right: 0; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-pill);
   background: var(--color-warn); color: #111; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
@@ -162,11 +173,12 @@ a.fb-status-item:hover { color: var(--color-fg); }
 
 .fb-header { justify-content: space-between; }
 .fb-header-brand { display: flex; align-items: center; height: 36px; color: inherit; }
+.fb-header-end { display: flex; align-items: center; gap: 6px; }
 .fb-header-brand .fb-brand { --fb-brand-h: 26px; }
 @media (min-width: 768px) {
   /* Keyboard focus must never land on something hidden: the sidebar has both. */
   /* Doubled class: nav.css loads later and would show the button again. */
-  .fb-header .fb-header-brand, .fb-header .fb-header-search { display: none; }
+  .fb-header .fb-header-brand, .fb-header .fb-header-search, .fb-header .fb-notice-badge { display: none; }
   .fb-header {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap; border: 0;
