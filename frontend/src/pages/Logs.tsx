@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, SegmentedControl, Select, Switch, Table, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Loader, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -8,6 +8,7 @@ import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { LogSeverity, LogSource, LogStatus, LogsData, SyslogLine } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { onPlan } from './plan/links'
@@ -75,32 +76,37 @@ function StatusLine({ status }: { status: LogStatus }) {
   )
 }
 
-function Row({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) => void }) {
+/** The log as the shared table: newest first as the server sends it, so no column sorts. */
+function LogTable({ lines, store, source, onDevice }: { lines: SyslogLine[]; store: boolean; source: string; onDevice?: (d: string) => void }) {
   const { t, i18n } = useTranslation()
-  const time = formatWhen(line.ts, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }, i18n.language)
   return (
-    <Table.Tr>
-      <Table.Td style={{ whiteSpace: 'nowrap' }}><Text size="xs" ff="monospace">{time}</Text></Table.Td>
-      <Table.Td style={{ whiteSpace: 'nowrap' }}><Badge size="sm" variant="light" color={COLOR[line.severity]} tt="none" miw="max-content">{t(`logs.sev.${line.severity}`)}</Badge></Table.Td>
-      <Table.Td style={{ whiteSpace: 'nowrap' }}>
-        {onDevice ? (
-          <Anchor component="button" type="button" size="sm" onClick={() => onDevice(line.device)}
-            title={t('logs.onlyDevice', { device: line.device })}>{line.device}</Anchor>
-        ) : <Text size="sm">{line.device}</Text>}
-        {(line.port || line.seat) && (
-          <Text size="xs" c="dimmed">
-            {line.port}
-            {line.seat && <> · <Anchor href={onPlan({ seat: line.seat })} size="xs" underline="always">{t('logs.seat', { seat: line.seat })}</Anchor></>}
+    <DataTable label={t('logs.title')} rows={lines} rowKey={(l, i) => (store ? `${l.id}-${i}` : String(l.id))} pageSize={0} striped density="compact" minWidth={640}
+      columns={[
+        { id: 'time', header: t('logs.time'), mono: true, cell: (line) =>
+          formatWhen(line.ts, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }, i18n.language) },
+        { id: 'level', header: t('logs.level'), cell: (line) =>
+          <Badge size="sm" variant="light" color={COLOR[line.severity]} tt="none" miw="max-content">{t(`logs.sev.${line.severity}`)}</Badge> },
+        { id: 'device', header: t(source === 'audit' ? 'logs.who' : 'logs.device'), cell: (line) => (
+          <>
+            {onDevice ? (
+              <Anchor component="button" type="button" size="sm" onClick={() => onDevice(line.device)}
+                title={t('logs.onlyDevice', { device: line.device })}>{line.device}</Anchor>
+            ) : <Text size="sm">{line.device}</Text>}
+            {(line.port || line.seat) && (
+              <Text size="xs" c="dimmed">
+                {line.port}
+                {line.seat && <> · <Anchor href={onPlan({ seat: line.seat })} size="xs" underline="always">{t('logs.seat', { seat: line.seat })}</Anchor></>}
+              </Text>
+            )}
+          </>
+        ) },
+        { id: 'message', header: t('logs.message'), wrap: true, cell: (line) => (
+          <Text size="sm" ff="monospace">
+            {line.program && <Text span c="dimmed" inherit>{line.program}: </Text>}
+            {line.message}
           </Text>
-        )}
-      </Table.Td>
-      <Table.Td>
-        <Text size="sm" ff="monospace" style={{ overflowWrap: 'anywhere' }}>
-          {line.program && <Text span c="dimmed" inherit>{line.program}: </Text>}
-          {line.message}
-        </Text>
-      </Table.Td>
-    </Table.Tr>
+        ) },
+      ]} />
   )
 }
 
@@ -247,21 +253,7 @@ export default function Logs() {
                   {lines.map((l, i) => <Compact key={store ? `${l.id}-${i}` : l.id} line={l} onDevice={onDevice} />)}
                 </ul>
               ) : (
-                <Table.ScrollContainer minWidth={640}>
-                  <Table verticalSpacing={4} striped highlightOnHover aria-label={t('logs.title')}>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>{t('logs.time')}</Table.Th>
-                        <Table.Th>{t('logs.level')}</Table.Th>
-                        <Table.Th>{t(source === 'audit' ? 'logs.who' : 'logs.device')}</Table.Th>
-                        <Table.Th>{t('logs.message')}</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {lines.map((l, i) => <Row key={store ? `${l.id}-${i}` : l.id} line={l} onDevice={onDevice} />)}
-                    </Table.Tbody>
-                  </Table>
-                </Table.ScrollContainer>
+                <LogTable lines={lines} store={!!store} source={source} onDevice={onDevice} />
               )}
               {more && lines.length >= PAGE && (
                 <Group justify="center" mt="sm">

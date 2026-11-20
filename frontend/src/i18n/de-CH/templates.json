@@ -3,7 +3,7 @@
   "intro": "Speichere den Hallenplan, wie er ist (Hallen, Hintergrundbilder, wo die Switches stehen, Sitzblöcke), und starte später davon, oder teile ihn als Datei mit einer anderen LAN. Vorlagen enthalten nie Check-ins, Nicks, IPs, MACs, Geheimnisse oder Konten.",
   "saveCurrent": "Hallenplan als Vorlage speichern",
   "import": "Datei importieren",
-  "empty": "Noch keine Vorlagen. Speichere den Hallenplan als Vorlage, um nächstes Mal davon zu starten.",
+  "empty": "Speichere den Hallenplan als Vorlage, um nächstes Mal davon zu starten.",
   "halls_one": "{{count}} Halle",
   "halls_other": "{{count}} Hallen",
   "switches_one": "{{count}} Switch",
@@ -49,5 +49,6 @@
   "duplicated": "«{{name}}» erstellt.",
   "deleted": "«{{name}}» gelöscht.",
   "imported": "«{{name}}» importiert.",
-  "importedDropped": "«{{name}}» importiert. Entfernt, weil Vorlagen das nicht enthalten: {{fields}}."
+  "importedDropped": "«{{name}}» importiert. Entfernt, weil Vorlagen das nicht enthalten: {{fields}}.",
+  "emptyTitle": "Noch keine Vorlagen"
 }

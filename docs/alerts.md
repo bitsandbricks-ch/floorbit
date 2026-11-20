@@ -18,10 +18,14 @@ that are down or need a look, muted ones (switches and services) left out, e.g. 
   the switch port only, since titles and seats can point at a person;
 - [power circuits](power.md) that tripped, are about to, or are getting close;
 - the [bandwidth forecast](forecast.md) reaching the warning share of the line within the next hours;
-- [links between switches](topology.md) that are down (red) or came up slower than planned (amber).
+- [links between switches](topology.md) that are down (red) or came up slower than planned (amber);
+- [Wi-Fi](wifi.md) access points that are down (red) or busy for 5 minutes (amber), and two placed
+  access points near each other on one channel (amber);
+- plugins turned on that don't load (red), whose calls have all failed for 5 minutes (amber), and
+  installed versions the [Marketplace](marketplace.md) withdrew (amber).
 
 It asks nothing new: it reads what the status monitor, the health wall, the security watch, the
-power layer and the link reader already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,
+power layer, the link reader and the Wi-Fi view already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,
 and its name in the list of muted switches, open that switch on the floor plan (`/plan`), in its hall.
 
 When the list holds more than one kind, a row above it shows one kind at a time (switches,
@@ -34,6 +38,25 @@ switch is open, the button becomes **Incident open**, which opens the board filt
 
 **Copy list** in the page header copies the problems shown (after the kind filter) as plain text,
 with the time, the counts and the mutes, for pasting into the crew chat or a ticket.
+
+## Seats behind a failure
+
+A down switch or a down link between switches (issue #950) says what it cuts off: "24 seats
+affected · 2 switches behind it", with the seat names one click away. Seat names only, never who
+sits there.
+
+- **Behind** comes from the links on the [topology](topology.md): a switch is cut off when no path
+  of up links through online boxes reaches the core. The core is the routers and firewalls the links
+  reach; where the links name none, each group of linked switches takes its busiest switch (the most
+  links). Without links only the down switch's own seats count.
+- **A switch's seats** come from every place that knows them: the last port read, what was
+  remembered while the switch went down, the seat mapping, ports learned at check-in or on the seat
+  walk, and the patch plan's cables.
+- When the switch before it dies, monitoring loses the ones behind too. Those say **"Behind
+  sw-a-01, which is down: start there"**, so the crew goes to the cause first.
+- On the floor plan every seat cut off turns red (offline), for attendees too; the crew's plan also
+  knows which switch or link is to blame.
+- A single seat port that goes down takes only that seat, which the plan already shows as offline.
 
 ## Needs attention
 
@@ -58,11 +81,11 @@ switch, port and seat, never who sits there, so everyone who may see the floor p
 They don't go to Discord: there can be dozens during an event. Live updates send `attention.changed`.
 Code: [`floorbit/attention.py`](../floorbit/attention.py).
 
-## Muting a switch or a service
+## Muting a switch, a service or an access point
 
 A switch someone is working on, or that is off on purpose, can be muted for 30 minutes up to a day
 (**Mute** on its problem). While muted, it sends no "offline" or "back online" message; it stays on
-the Problems page, marked muted, and under **Muted switches and services** until the mute ends or someone presses
+the Problems page, marked muted, and under **Muted alerts** until the mute ends or someone presses
 **Unmute**. Still at it when the time is nearly up? **+30 min** next to it makes the mute last half an
 hour longer and keeps who set it and why (at most 7 days from now). In its last 10 minutes a mute
 shows "ends in N minutes", so nobody is surprised when the alerts come back.
@@ -70,6 +93,9 @@ On the floor plan a muted switch has a small bell-off badge on its pin, and its 
 when, so a red pin someone is already on doesn't send a second tech. Right-click a switch to
 **Mute alerts…**, or on a muted one **Mute 30 minutes longer** and **Unmute**, without leaving the
 floor plan (crew with `incidents.work`).
+
+A Wi-Fi access point that is down or busy has a **Mute** too: muted, it stays on the list and in the
+Wi-Fi view but out of the counts. Its mute key is `wifi:<name>`.
 
 A service on the [health wall](health.md) that is red or amber has the same **Mute**: while muted, Discord
 gets no "is down" or "is back" message for it, and it stays out of the counts in the browser tab.

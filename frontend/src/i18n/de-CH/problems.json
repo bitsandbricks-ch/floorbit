@@ -1,6 +1,6 @@
 {
   "title": "Probleme",
-  "intro": "Alles, was gerade nicht stimmt: Switches offline, Dienste down, Sicherheitsfunde und Stromkreise kurz vor dem Auslösen. Schalte einen Switch oder Dienst stumm, an dem du arbeitest, damit er nicht mehr alarmiert.",
+  "intro": "Alles, was gerade nicht stimmt: Switches offline, Dienste down, WLAN-Access-Points ausgefallen oder ausgelastet, Sicherheitsfunde und Stromkreise kurz vor dem Auslösen. Schalte stumm, woran du arbeitest, damit es nicht mehr alarmiert.",
   "none": "Gerade ist alles in Ordnung.",
   "count": {
     "down_one": "{{count}} down",
@@ -23,7 +23,9 @@
     "checkin": "Check-in",
     "mapping": "Platz-Port",
     "forecast": "Prognose",
-    "log": "Log"
+    "log": "Log",
+    "plugin": "Plugin",
+    "wifi": "WLAN"
   },
   "attention": {
     "title": "Braucht Aufmerksamkeit",
@@ -39,7 +41,7 @@
   "endsIn_other": "endet in {{count}} Minuten",
   "mutedUntil": "Stumm bis {{time}}, von {{who}}",
   "quiet": "Ruhezeit: Discord-Nachrichten gehen still raus, ohne Erwähnung.",
-  "mutes": "Stumme Switches und Dienste",
+  "mutes": "Stumme Alarme",
   "muteTitle": "Alarme für {{name}} stummschalten",
   "muteText": "Keine Discord-Nachrichten, wenn dieser Switch offline geht oder zurückkommt, bis die Stummschaltung endet. Er bleibt auf dieser Liste.",
   "for": "Für",
@@ -58,11 +60,19 @@
     "muted": "Stumm"
   },
   "muteTextService": "Keine Discord-Nachrichten, wenn dieser Dienst ausfällt oder zurückkommt, bis die Stummschaltung endet. Er bleibt auf dieser Liste und auf der Health-Wand.",
+  "muteTextAp": "Zählt diesen Access Point nicht mehr zu den Problemen, bis die Stummschaltung endet. Er bleibt auf dieser Liste und in der WLAN-Ansicht.",
   "show": "Anzeigen",
   "all": "Alle",
   "swap": "Tauschen",
   "report": "Störung erfassen",
   "incidentOpen": "Störung offen",
   "copy": "Liste kopieren",
-  "copied": "Kopiert"
+  "copied": "Kopiert",
+  "seatsAffected_one": "1 Platz betroffen",
+  "seatsAffected_other": "{{count}} Plätze betroffen",
+  "switchesBehind_one": "1 Switch dahinter",
+  "switchesBehind_other": "{{count}} Switches dahinter",
+  "behindCause": "Hinter {{name}}, der down ist: dort anfangen",
+  "showSeats": "Plätze zeigen",
+  "hideSeats": "Plätze ausblenden"
 }

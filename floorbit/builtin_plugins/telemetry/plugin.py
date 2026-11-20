@@ -87,6 +87,14 @@ class Plugin(Base):
                  'problems': rows} for name, rows in sorted(problems.items()) if name]
         return out
 
+    def wifi_aps(self):
+        """The access points of the wireless controllers that stream (a Catalyst 9800's MDT), for
+        the Wi-Fi view: floorbit/wifi.py takes these before a controller plugin's."""
+        if not state.collecting:
+            return []
+        with state._lock:
+            return [ap for d in sorted(state.devices.values(), key=lambda d: d.name) for ap in d.wifi_aps()]
+
     def device_ports(self, hostname):
         if not state.collecting:
             return []
@@ -100,6 +108,16 @@ class Plugin(Base):
             return [{'name': i.name, 'last_change': i.last_change, **summarize_port(i.librenms_row()),
                      **dev.port_facts(i, poe)}
                     for i in sorted(rows, key=lambda i: _natural(i.name))]
+
+    def device_facts(self, hostname):
+        """What the device said it is (Device.summary()), for discovery."""
+        if not state.collecting:
+            return {}
+        dev = self._device(hostname)
+        if dev is None:
+            return {}
+        with state._lock:
+            return dev.summary()
 
     def port_stats(self, hostname, interface):
         if not state.collecting:
@@ -116,12 +134,19 @@ class Plugin(Base):
         dev = self._device(hostname)
         if dev is None:
             return {'status': 'unknown', 'hostname': hostname, 'problems': _problems().get(hostname, [])}
+        if dev.waiting():
+            return {'status': 'unknown', 'hostname': hostname, 'ip': dev.address, 'source': 'telemetry',
+                    'driver': dev.driver, 'waiting': True,
+                    'problems': _problems().get(dev.name, [])}
         result = {'status': 'online' if dev.online() else 'offline', 'hostname': hostname, 'ip': dev.address,
                   'source': 'telemetry', 'driver': dev.driver, 'problems': _problems().get(dev.name, [])}
         for key, value in (('cpu_load', dev.cpu), ('mem_percent', dev.mem), ('uptime', dev.uptime),
                            ('states', dev.states)):
             if value is not None:
                 result[key] = round(value) if key in ('cpu_load', 'mem_percent') else value
+        temperature = dev.temperature()
+        if temperature is not None:
+            result['temperature'] = round(temperature, 1)    # degrees C, the hottest sensor, as LibreNMS's
         if dev.gateways:
             result['gateways'] = [{'name': n, **{k: v for k, v in g.items() if k != 'seen'}}
                                   for n, g in sorted(dev.gateways.items())]
@@ -181,8 +206,9 @@ class Plugin(Base):
 
     def _uplinks(self, dev):
         """Port keys that lead to other switches, and the MAC count per port."""
+        from floorbit.edge_ports import EDGE_PORT_MACS
         from floorbit.telemetry.clients import uplinks
-        return uplinks(dev, int(self.settings.get('uplink_macs') or 8))
+        return uplinks(dev, EDGE_PORT_MACS)
 
     def find_mac(self, mac):
         """(device, port name, vlan, MACs on that port) of the access port a MAC is on, or None."""

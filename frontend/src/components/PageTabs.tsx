@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { StateBit } from './State'
 
 export interface PageTab {
   id: string
@@ -36,7 +37,7 @@ export function PageTabs({ tabs, value, onChange, label }: {
           {tab.icon}
           <span>{tab.label}</span>
           {tab.count != null && <small className="fb-ptab-count">{tab.count}</small>}
-          {tab.alert && <span className={`fb-bit is-${tab.alert}`} aria-hidden="true" />}
+          {tab.alert && <StateBit state={tab.alert} />}
         </button>
       ))}
     </div>

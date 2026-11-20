@@ -25,6 +25,9 @@ many pages are open.
 
 An access point is busy at 70 % channel use or 40 clients.
 
+An access point that is down, one busy for 5 minutes, and an overlap are also on the
+[Problems page](alerts.md#problems-page), where an access point can be muted.
+
 ## Putting access points on the plan
 
 Access points are inventory devices with the role **access-point**, from NetBox or added by hand.
@@ -35,11 +38,17 @@ top of the page.
 ## Privacy
 
 Client counts only. Floorbit never asks a controller for its client list for this page, and drops
-anything but the counts a plugin sends (client names, MACs). Nothing is stored: the counts are kept
-in memory for 20 seconds.
+anything but the counts a plugin sends (client names, MACs). A plugin's counts are not stored: they
+are kept in memory for 20 seconds. A controller that streams to Telemetry (9800, AireOS) keeps its
+counts as [telemetry series](telemetry.md#storage), like the switch ports: clients per controller
+and per AP, and each AP's busiest channel use. The expanded view draws **Clients over time** from
+them (1, 6 or 24 hours).
 
 ## Sources
 
+- **Cisco Catalyst 9800 and AireOS controllers** (the Telemetry plugin): a 9800 streams its APs over
+  MDT, an AireOS controller answers them over SNMP; see [telemetry.md](telemetry.md#wireless-controllers).
+  Their APs come before any plugin's.
 - **UniFi** (from the Marketplace): reads the controller's access points (`stat/device`): each radio's channel,
   width, channel utilization (`cu_total`) and client count. Turn it on under Settings > Plugins with
   a View Only account.
@@ -56,4 +65,7 @@ Everyone who can see the floor plan can see this page. Settings > Features has a
 
 `GET /api/wifi?hall=`: `aps` (each with `radios`, `busy`, `on_plan` and plan coordinates `px` and
 `py`), `clients`, `up`, `down`, `busy`, `overlaps`, `bands`, `sources`, `errors`, `thresholds`, and
-the hall's `drawing`.
+the hall's `drawing`, and `history` (true when a controller streams to Telemetry).
+
+`GET /api/wifi/history?hours=`: `points` (`[unix time, clients]`, summed over the streaming
+controllers), `controllers`, `hours`.

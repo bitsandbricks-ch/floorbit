@@ -6,7 +6,7 @@ import { useLiveEvent } from '@/api/live'
 import { usePower } from '@/api/queries'
 import { ErrorBanner } from '@/components/ui'
 import type { ViewProps } from '@/widgets/views'
-import { Load } from '../Power'
+import { Load } from './parts'
 import { ORDER, TONE } from './state'
 
 /** How loaded the circuits are. Small, the counts and the circuits that need a look; opened up,

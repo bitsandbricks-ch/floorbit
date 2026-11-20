@@ -25,6 +25,10 @@ export function PortClients({ canEdit, onPatch }: { canEdit: boolean; onPatch: (
     mutationFn: (c: PortClient) => post('/api/cables', { switch: c.switch, port: c.port, note: t('cables.clientsInfraNote') }),
     onSuccess: () => { refresh(); void qc.invalidateQueries({ queryKey: qk.cables }) },
   })
+  const ignore = useMutation({
+    mutationFn: (mac: string) => post('/api/cables/clients/ignored', { mac, note: t('cables.clientsIgnoreNote') }),
+    onSuccess: refresh,
+  })
   const c = query.data
   if (!c) return null
   if (!c.as_of && !c.reading && !c.error) return null
@@ -49,7 +53,9 @@ export function PortClients({ canEdit, onPatch }: { canEdit: boolean; onPatch: (
           <Text size="sm" c="warn">{t('cables.clientsFailed', { switches: c.failed.map((f) => f.switch).join(', ') })}</Text>
         )}
         {infra.error && <Alert color="down" role="alert">{infra.error.message}</Alert>}
-        {c.as_of && !c.moved.count && !c.unplanned.count && <Text size="sm" c="dimmed">{t('cables.clientsNone')}</Text>}
+        {ignore.error && <Alert color="down" role="alert">{ignore.error.message}</Alert>}
+        {c.as_of && !c.moved.count && !c.unplanned.count && !c.no_port?.count && !c.empty?.count
+          && <Text size="sm" c="dimmed">{t('cables.clientsNone')}</Text>}
         {c.moved.count > 0 && (
           <Stack gap={4}>
             <Text size="sm" fw={600}>{t('cables.clientsMoved', { count: c.moved.count })}</Text>
@@ -78,6 +84,8 @@ export function PortClients({ canEdit, onPatch }: { canEdit: boolean; onPatch: (
                             <Button size="compact-sm" variant="default" onClick={() => onPatch(r)}>{t('cables.clientsPatch')}</Button>
                             <Button size="compact-sm" variant="subtle" loading={infra.isPending && infra.variables === r}
                               onClick={() => infra.mutate(r)}>{t('cables.clientsInfra')}</Button>
+                            <Button size="compact-sm" variant="subtle" loading={ignore.isPending && ignore.variables === r.mac}
+                              onClick={() => ignore.mutate(r.mac)}>{t('cables.clientsIgnore')}</Button>
                           </Group>
                         </Table.Td>
                       )}
@@ -89,6 +97,43 @@ export function PortClients({ canEdit, onPatch }: { canEdit: boolean; onPatch: (
             {c.unplanned.count > SHOWN && <Text size="sm" c="dimmed">{t('cables.checkMore', { count: c.unplanned.count - SHOWN })}</Text>}
           </Stack>
         )}
+        {!!c.no_port?.count && (
+          <Stack gap={4}>
+            <Text size="sm" fw={600}>{t('cables.clientsNoPort', { count: c.no_port.count })}</Text>
+            <Text size="xs" c="dimmed">{t('cables.clientsNoPortHint')}</Text>
+            <Table.ScrollContainer minWidth={420}>
+              <Table>
+                <Table.Tbody>
+                  {c.no_port.rows.slice(0, SHOWN).map((r) => (
+                    <Table.Tr key={r.mac}>
+                      <Table.Td ff="monospace">{[r.ip, r.mac].join(' · ')}</Table.Td>
+                      <Table.Td>{r.ip_seat ? t('cables.clientsIpOf', { seat: r.ip_seat }) : ''}</Table.Td>
+                      {canEdit && (
+                        <Table.Td>
+                          <Group justify="flex-end">
+                            <Button size="compact-sm" variant="subtle" loading={ignore.isPending && ignore.variables === r.mac}
+                              onClick={() => ignore.mutate(r.mac)}>{t('cables.clientsIgnore')}</Button>
+                          </Group>
+                        </Table.Td>
+                      )}
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
+            {c.no_port.count > SHOWN && <Text size="sm" c="dimmed">{t('cables.checkMore', { count: c.no_port.count - SHOWN })}</Text>}
+          </Stack>
+        )}
+        {!!c.empty?.count && (
+          <Stack gap={4}>
+            <Text size="sm" fw={600}>{t('cables.clientsEmpty', { count: c.empty.count })}</Text>
+            <Text size="sm" ff="monospace" style={{ overflowWrap: 'anywhere' }}>
+              {c.empty.rows.slice(0, 100).map((r) => `${r.seat} (${r.switch} ${r.port})`).join(', ')}
+            </Text>
+            {c.empty.count > 100 && <Text size="sm" c="dimmed">{t('cables.checkMore', { count: c.empty.count - 100 })}</Text>}
+          </Stack>
+        )}
+        {!!c.ignored && <Text size="xs" c="dimmed">{t('cables.clientsIgnored', { count: c.ignored })}</Text>}
       </Stack>
     </Paper>
   )
