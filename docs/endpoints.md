@@ -16,7 +16,9 @@ Every minute, from the [Telemetry](telemetry.md) plugin's picture: each MAC on t
 learned it (not an uplink or an LLDP/CDP neighbour, the port with the fewest MACs when several are
 left), with the IPs the core's ARP gives it. With a local agent, the agent sends it to the hosted
 Floorbit. A MAC that is only in ARP (a firewall, a server behind a router) is kept with the device
-that has the ARP entry and no port.
+that has the ARP entry and no port. ARP and the MAC tables are read in separate rounds, so a
+machine can be in ARP a round before its port is known, or stay in ARP a little after the access
+switch forgot it: those port-less sightings belong to the port's row and don't get one of their own.
 
 A row stays open while the machine keeps being seen there, and a new one starts when it moves to
 another port, gets another IP, or was gone for 15 minutes. The seat is the one on that port when

@@ -6,6 +6,7 @@ import { useProblems } from '@/api/queries'
 import { openGoTo } from '@/nav/goto'
 import { crumbsFor } from '@/nav/crumbs'
 import { inApp, isPluginPage, type NavPage } from '@/nav/sections'
+import { CrewNoticeBadge } from './CrewNotice'
 import { Notifications } from './Notifications'
 import { usePageTitle } from './pageTitle'
 
@@ -47,6 +48,7 @@ export function TopBar({ pages, onSlot }: { pages: NavPage[]; onSlot?: (el: HTML
       </nav>
       {/* The page's own buttons (PageHead puts them here). */}
       <div ref={onSlot} className="fb-topbar-actions" />
+      <CrewNoticeBadge />
       <button type="button" className="fb-topbar-search" onClick={openGoTo} aria-keyshortcuts="Control+K Meta+K"
         aria-label={t('nav.search')} title={t('nav.search')}>
         <IconSearch size={15} aria-hidden="true" />

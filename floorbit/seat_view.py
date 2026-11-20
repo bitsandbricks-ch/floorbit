@@ -179,6 +179,18 @@ def _boards(data):
             for b in boards if b.get('x') is not None and b.get('y') is not None]
 
 
+def _cut_off(data):
+    """{seat: the down switch or link to blame} for the seats a failure cuts off (floorbit/impact.py)."""
+    from . import impact
+    statuses = monitor_statuses() or {}
+    offline = [d['name'] for d in inventory.devices(data)
+               if d.get('name') and (statuses.get(d['id']) or {}).get('status') == 'offline']
+    down_links = links.down_ids(data)
+    if not offline and not down_links:
+        return {}
+    return impact.failures(data, offline, down_links)['seats']
+
+
 def _state(seat, online, ports):
     if online is None:
         return 'unknown'
@@ -253,6 +265,7 @@ def view(hall_id=None, now=None, seat=None, switch=None, public=False):
     stats = _ext('floorbit_stats')
     changed = stats.changed_since(now - RECENT) if stats else {}
     notes = seat_notes.all_notes(data)
+    cut_off = _cut_off(data)
     seats, blocks = {}, []
     for shape in (drawing or {}).get('shapes', []):
         counts = {'seats': 0, 'online': 0, 'problems': 0}
@@ -260,6 +273,11 @@ def view(hall_id=None, now=None, seat=None, switch=None, public=False):
             s = cell['seat']
             state = _state(s, online, ports)
             row = {'state': state}
+            if s in cut_off:
+                # Behind a down switch or uplink (issue #950): its port can't be read, but it is down.
+                row['state'] = state = 'offline'
+                if not public:   # attendees see the seat down, not which box
+                    row['behind'] = cut_off[s]
             if checked is not None and s in checked:
                 row['checked_in'] = True
             if s in taken:
