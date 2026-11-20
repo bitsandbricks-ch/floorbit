@@ -952,6 +952,7 @@ Source: [`floorbit/blueprints/setup.py`](https://github.com/bitsandbricks-ch/flo
 | --- | --- | --- | --- |
 | GET | `/api/setup` | anyone |  |
 | POST | `/api/setup/account` | anyone |  |
+| GET | `/api/setup/checklist` | `settings.manage` |  |
 | POST | `/api/setup/finish` | `settings.manage` |  |
 | POST | `/api/setup/steps/<step>` | `settings.manage` |  |
 

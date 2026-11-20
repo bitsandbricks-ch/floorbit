@@ -1101,6 +1101,10 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   .fb-setting-row { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* Settings' line while the event setup has open steps (#988). */
+.fb-setup-nudge { padding: 8px 12px; border: 1px solid var(--mantine-color-default-border); border-radius: var(--mantine-radius-md); }
+.fb-check-row .fb-setting-control { justify-content: flex-end; }
+
 /* Settings' folded Advanced part (#991): a quiet line under the section's own rows. */
 .fb-setting-advanced { border-top: 1px solid var(--mantine-color-default-border); margin-top: 4px; padding-top: 10px; }
 .fb-agent-fold:first-child { border-top: 0; margin-top: 0; padding-top: 0; }

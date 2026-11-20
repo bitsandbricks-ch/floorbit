@@ -231,6 +231,8 @@ RULES = (
     ('/timeline', READ, 'audit.read'),
     ('/settings/audit', READ, 'audit.read'),
     ('/api/settings', None, 'settings.manage'),
+    # What an event still needs (floorbit/setup.py checklist): names which parts are missing.
+    ('/api/setup/checklist', None, 'settings.manage'),
     # Telemetry's admin parts (floorbit/blueprints/telemetry.py): the crew reads the rest.
     ('/api/telemetry/test', None, 'settings.manage'),
     ('/api/telemetry/raw', None, 'settings.manage'),

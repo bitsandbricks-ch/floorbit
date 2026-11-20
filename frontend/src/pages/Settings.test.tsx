@@ -141,6 +141,17 @@ describe('Settings', () => {
     expect(await screen.findByRole('tab', { name: /Tenants/ })).toBeInTheDocument()
   })
 
+  it('points at the event setup while it has open steps', async () => {
+    const checklist = { done: true, steps: [
+      { id: 'event', state: 'done', href: '/schedule', facts: {} },
+      { id: 'alerts', state: 'todo', href: '/settings/discord', facts: {} },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer, 'GET /api/setup/checklist': checklist }).fn)
+    page()
+    expect(await screen.findByText('Event setup: 1 of 2 steps done. Next: Alerts: Discord or webhooks.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Continue setup' })).toHaveAttribute('href', '/setup')
+  })
+
   it('works out the contrast like the server', () => {
     expect(contrast('#ffffff', '#000000')).toBeCloseTo(21, 0)
   })
