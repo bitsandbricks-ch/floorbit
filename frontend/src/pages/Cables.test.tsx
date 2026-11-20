@@ -2,8 +2,17 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BlockPlan, Cable, CableList } from '@/api/types'
 import { OPTIONS, pick } from '@/test/options'
+import { Route, Routes } from 'react-router-dom'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Cables from './Cables'
+import CablePage from './cables/CablePage'
+
+// The list and a cable's own page, so a click from one lands on the other.
+const app = (route = '/cables') => renderWithApp(
+  <Routes>
+    <Route path="/cables" element={<Cables />} />
+    <Route path="/cables/:id" element={<CablePage />} />
+  </Routes>, route)
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -15,21 +24,28 @@ const nb: Cable = { ...base, id: 'c2', label: 'NB-7', switch: 'sw-b-02', port: '
 const data: CableList = { cables: [mine, nb], sources: ['NetBox'] }
 
 describe('Cables', () => {
-  it('lists cables, searches, and adds one', async () => {
-    const api = fakeFetch({
-      ...OPTIONS, 'GET /api/auth/me': lead, 'GET /api/cables': data,
-      'POST /api/cables': () => ({ status: 201, body: { ...mine, id: 'c3', label: 'C-0002' } }),
-    })
-    vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Cables />)
-    expect(await screen.findByText('C-0001')).toBeInTheDocument()
+  it('lists cables that each open their own page, and searches', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ ...OPTIONS, 'GET /api/auth/me': lead, 'GET /api/cables': data }).fn)
+    app()
+    expect(await screen.findByRole('link', { name: 'C-0001' })).toHaveAttribute('href', '/cables/c1')
     expect(screen.getByText('PP-A 3')).toBeInTheDocument()
     expect(screen.getByText('Direct')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Add cable' })).toHaveAttribute('href', '/cables/new')
     fireEvent.change(screen.getByRole('textbox', { name: 'Search label, switch, port, panel or seat' }), { target: { value: 'b-14' } })
     expect(screen.queryByText('C-0001')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Print labels' })).toHaveAttribute('href', '/api/cables/labels.pdf?q=b-14')
+  })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add cable' }))
+  it('adds a cable on its own page, then shows the saved cable there', async () => {
+    const saved = { ...mine, id: 'c3', label: 'C-0002', port: 'Gi1/0/9', seat: 'A-9' }
+    let made = false
+    const api = fakeFetch({
+      ...OPTIONS, 'GET /api/auth/me': lead,
+      'GET /api/cables': () => ({ body: { ...data, cables: made ? [mine, nb, saved] : data.cables } }),
+      'POST /api/cables': () => { made = true; return { status: 201, body: saved } },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    app('/cables/new')
     await pick('Switch', 'sw-a-01')
     // Only free ports: Gi1/0/3 has a cable to A-3, so it isn't offered.
     fireEvent.click(await screen.findByRole('combobox', { name: 'Switch port' }))
@@ -40,6 +56,8 @@ describe('Cables', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/cables'
       && (c.body as { port: string; seat: string }).port === 'Gi1/0/9' && (c.body as { seat: string }).seat === 'A-9')).toBe(true))
+    expect((await screen.findAllByRole('heading', { name: 'C-0002' })).length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: 'Print its labels' })).toHaveAttribute('href', '/api/cables/labels.pdf?ids=c3')
   })
 
   it('imports from NetBox and shows what came back', async () => {
@@ -54,10 +72,17 @@ describe('Cables', () => {
 
   it('opens the cable a label links to, read-only for viewers', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/cables': data }).fn)
-    renderWithApp(<Cables />, '/cables?cable=c2')
+    app('/cables/c2')
     expect(await screen.findByText('This cable comes from NetBox. Change it there and import again.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Add cable' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+  })
+
+  it('says so when a cable is gone', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/cables': data }).fn)
+    app('/cables/c9')
+    expect(await screen.findByText('This cable is gone.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'All cables' })).toHaveAttribute('href', '/cables')
   })
 
   it('patches rows after a preview, and asks before replacing cables in the way', async () => {
@@ -123,7 +148,7 @@ describe('Cables', () => {
       'POST /api/cables': () => ({ status: 201, body: { ...mine, id: 'c4' } }),
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Cables />)
+    app()
     expect(await screen.findByText('1 machine on another seat\'s port')).toBeInTheDocument()
     expect(screen.getByText('sw-a-01 Gi1/0/2 is cabled to A-2, but 192.0.2.13 is the IP of A-3')).toBeInTheDocument()
     expect(screen.getByText('1 machine on a port no cable explains')).toBeInTheDocument()

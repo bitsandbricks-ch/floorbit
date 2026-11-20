@@ -1,11 +1,11 @@
 import {
-  Alert, Badge, Button, Group, Paper, Stack, Table, Text, TextInput,
+  Alert, Anchor, Badge, Button, Group, Paper, Stack, Table, Text, TextInput,
 } from '@mantine/core'
 import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -13,7 +13,6 @@ import { useCan } from '@/api/queries'
 import type { BlockPlan, CableImport, CableList } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { CableModal, type CableDraft } from '@/components/CableModal'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
 import { PatchCheck } from '@/components/PatchCheck'
 import { PortAreas } from '@/components/PortAreas'
@@ -24,7 +23,8 @@ import { LoadingState, ErrorBanner } from '@/components/ui'
 export default function Cables() {
   const { t } = useTranslation()
   const qc = useQueryClient()
-  const [params, setParams] = useSearchParams()
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
   const canEdit = useCan('floorplan.edit')
   const canSeeSeats = useCan('seats.view')
   const query = useQuery({ queryKey: qk.cables, queryFn: () => get<CableList>('/api/cables') })
@@ -34,12 +34,8 @@ export default function Cables() {
     enabled: canEdit })
   useLiveEvent('cables.changed', refresh)
   const [search, setSearch] = useState(params.get('q') ?? '')
-  // A new cable, maybe started from a machine on an unexplained port (its switch and port filled in).
-  const [adding, setAdding] = useState<Partial<CableDraft> | null>(null)
   const [patching, setPatching] = useState(false)
   const [patched, setPatched] = useState<BlockPlan | null>(null)
-  const openId = params.get('cable')
-  const close = () => { setAdding(null); if (openId) setParams({}, { replace: true }) }
   const doImport = useMutation({ mutationFn: () => post<CableImport>('/api/cables/import'), onSuccess: refresh })
 
   const d = query.data
@@ -48,7 +44,6 @@ export default function Cables() {
     const hay = [c.label, c.switch, c.port, c.panel, c.panel_port, c.seat, c.color, c.note].join(' ').toLowerCase()
     return words.every((w) => hay.includes(w))
   })
-  const current = d?.cables.find((c) => c.id === openId)
   const q = search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ''
 
   return (
@@ -56,7 +51,7 @@ export default function Cables() {
       <PageHead title={t('cables.title')} desc={t('cables.intro')}
         actions={
           <Group gap="xs">
-            {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => setAdding({})}>{t('cables.add')}</Button>}
+            {canEdit && <Button leftSection={<IconPlus size={16} />} component={Link} to="/cables/new">{t('cables.add')}</Button>}
             {canEdit && <Button variant="default" leftSection={<IconLayoutRows size={16} />} onClick={() => setPatching(true)}>
               {t('cables.patchBlock')}</Button>}
             {canEdit && <Button variant="default" component="a" href="/cables/walk" leftSection={<IconPlugConnected size={16} />}>
@@ -88,7 +83,7 @@ export default function Cables() {
         <PatchCheck />
         <PortAreas canEdit={canEdit}
           switches={[...new Set([...(switches.data ?? []).map((s) => s.name), ...(d?.cables ?? []).map((c) => c.switch)])].sort()} />
-        {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => setAdding({ switch: c.switch, port: c.port, seat: c.ip_seat })} />}
+        {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => navigate(`/cables/new?${new URLSearchParams({ switch: c.switch, port: c.port, seat: c.ip_seat })}`)} />}
         {query.isPending ? <LoadingState /> : d && (
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}
@@ -101,13 +96,13 @@ export default function Cables() {
                       <Table.Tr>
                         <Table.Th>{t('cables.label')}</Table.Th><Table.Th>{t('cables.switchPort')}</Table.Th>
                         <Table.Th>{t('cables.panel')}</Table.Th><Table.Th>{t('cables.seat')}</Table.Th>
-                        <Table.Th>{t('cables.cable')}</Table.Th><Table.Th />
+                        <Table.Th>{t('cables.cable')}</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
                       {rows.map((c) => (
                         <Table.Tr key={c.id}>
-                          <Table.Td fw={600}>{c.label}</Table.Td>
+                          <Table.Td fw={600}><Anchor component={Link} to={`/cables/${c.id}`}>{c.label}</Anchor></Table.Td>
                           <Table.Td ff="monospace">{c.switch} {c.port}</Table.Td>
                           <Table.Td>{c.panel ? `${c.panel} ${c.panel_port}`.trim() : <Text span c="dimmed">{t('cables.direct')}</Text>}</Table.Td>
                           <Table.Td>{c.seat || '–'}</Table.Td>
@@ -117,11 +112,6 @@ export default function Cables() {
                                 c.speed ? `${c.speed}G` : ''].filter(Boolean).join(' · ') || '–'}</Text>
                               {c.source === 'import' && <Badge variant="light" color="info" tt="none">{c.plugin ?? 'NetBox'}</Badge>}
                             </Group>
-                          </Table.Td>
-                          <Table.Td>
-                            <Button size="compact-sm" variant="default" onClick={() => setParams({ cable: c.id })}>
-                              {canEdit && c.source !== 'import' ? t('cables.edit') : t('cables.open')}
-                            </Button>
                           </Table.Td>
                         </Table.Tr>
                       ))}
@@ -137,10 +127,6 @@ export default function Cables() {
       {patching && d && (
         <PatchBlockModal
           onClose={() => setPatching(false)} onDone={(made) => { setPatching(false); setPatched(made); refresh() }} />
-      )}
-      {(adding || current) && d && (
-        <CableModal key={current?.id ?? 'new'} cable={adding ? null : current ?? null} canEdit={canEdit} initial={adding ?? undefined}
-          onClose={close} onDone={() => { close(); refresh() }} />
       )}
     </Layout>
   )

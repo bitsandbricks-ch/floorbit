@@ -33,8 +33,9 @@ interface WidgetBase {
 
 export type Widget = WidgetBase &
   (
-    /** ``min`` and ``max`` let a stat show as a gauge. */
-    | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number }
+    /** ``min`` and ``max`` let a stat show as a gauge. ``text`` never comes from the server: a
+     *  pane's value mapping sets it to show instead of the number (widgets/kinds/display.ts). */
+    | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number; text?: string }
     | { type: 'status'; items: { label: string; state: State; detail: string }[] }
     /** ``number`` (and ``max``) on items let a list show as bars or a pie. */
     | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number }[] }
@@ -173,6 +174,10 @@ export interface Device extends Record<InventoryField, string> {
   fields?: Record<string, string>
   interface_count?: number
   blocked?: number
+  /** Live, in the list only: the status monitor's state (null before it polled) and ports up of all. */
+  state?: 'online' | 'offline' | 'unknown' | null
+  ports?: { up: number; total: number } | null
+  drift?: number
 }
 
 /** Icon, colour, tags, properties and feature switches: what devices, groups and tags all carry. */
@@ -692,12 +697,12 @@ export interface PowerOverview {
 }
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
-export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'librenms'
+export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin' | 'librenms'
   | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
-  /** The switch id, or ``health:<service id>`` for a service (issue #256). */
+  /** The switch id, ``health:<service id>`` for a service (issue #256) or ``wifi:<ap>`` for an access point. */
   switch_id: string
-  kind?: 'switch' | 'health'
+  kind?: 'switch' | 'health' | 'wifi'
   name: string
   until: number
   at: number
@@ -713,7 +718,7 @@ export interface Problem {
   since: number | null
   link: string
   switch_id?: string
-  /** What /api/alerts/mutes takes to mute it: switches and services only. */
+  /** The mute key: switches, services and Wi-Fi access points. */
   mute_id?: string
   name?: string
   muted?: { until: number; by: string | null; reason: string } | null
@@ -1413,6 +1418,8 @@ export interface WifiData {
   bands: Partial<Record<WifiBand, { clients: number; radios: number; utilization: number | null }>>
   sources: string[]; errors: string[]; thresholds: { busy: number; crowded: number }
   drawing: PlanDrawing | null; hall: string; halls: { id: string; name: string }[]
+  /** A controller streams to Telemetry, so clients over time are kept (GET /api/wifi/history). */
+  history?: boolean
 }
 
 /** Open incidents per seat and per switch id (GET /api/incidents/markers), for the crew layer. */
