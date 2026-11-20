@@ -10,7 +10,7 @@ import { PRESETS, type LayerState } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
 import { useCablePlan } from '../plan/cablePlan'
-import { areaView, PUBLIC_MARK_LAYERS, seatsIn, type Pane } from './model'
+import { areaView, blockText, findBlock, PUBLIC_MARK_LAYERS, seatsIn, type Pane } from './model'
 import { publicUrl, useScreen } from './screen'
 
 type PlanPaneDef = Extract<Pane, { kind: 'plan' }>
@@ -109,7 +109,8 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
   const inArea = useMemo(() => (drawing && home ? new Set(seatsIn(drawing, home)) : null), [drawing, home])
 
   const hallName = data?.halls.find((h) => h.id === data.hall)?.name ?? ''
-  const areaName = pane.area.kind === 'block' ? t('dashboards.area.blockName', { name: pane.area.id })
+  const block = pane.area.kind === 'block' && drawing ? findBlock(drawing, pane.area.id) : undefined
+  const areaName = pane.area.kind === 'block' ? t('dashboards.area.blockName', { name: block ? blockText(t, block) : pane.area.id })
     : pane.area.kind === 'zone' ? drawing?.marks?.find((m) => m.id === (pane.area as { id: string }).id)?.label || t('dashboards.area.zone')
     : pane.area.kind === 'box' ? t('dashboards.area.box') : ''
   const title = pane.title || [hallName, areaName].filter(Boolean).join(' · ')
@@ -133,7 +134,7 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
   return (
     <div className={`fb-pane fb-pane-plan${pane.hide_title ? ' fb-pane-nohead' : ''}`} role="region" aria-label={title}>
       {!pane.hide_title && <div className="fb-pane-head">
-        <Text fw={800} className="fb-pane-title" truncate>{title}</Text>
+        <Text fw={600} className="fb-pane-title" truncate>{title}</Text>
         {data && inArea && (
           <Text className="fb-pane-count">
             <b>{online}</b> / {seats.length} {t('plan.online')}

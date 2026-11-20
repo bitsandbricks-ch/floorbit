@@ -619,7 +619,7 @@ Source: [`floorbit/blueprints/notice.py`](https://github.com/bitsandbricks-ch/fl
 
 ## floorbit.blueprints.options
 
-The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, halls, firewalls, agents, users, teams, patch panels and their ports.
+The choices for every field that names something Floorbit already knows: switches, their ports, seats, blocks, rows, halls, firewalls, agents, users, teams, patch panels and their ports.
 
 Source: [`floorbit/blueprints/options.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/options.py)
 
@@ -865,6 +865,7 @@ Source: [`floorbit/blueprints/seat_blocks.py`](https://github.com/bitsandbricks-
 | PUT | `/api/seat-blocks/<block_id>` | `floorplan.edit` |  |
 | POST | `/api/seat-blocks/many` | `floorplan.edit` |  |
 | POST | `/api/seat-blocks/merge` | `floorplan.edit` |  |
+| GET | `/api/seat-rows` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.seat_map
@@ -896,6 +897,9 @@ Source: [`floorbit/blueprints/seat_walk.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/seat-walk/hello` | `seats.edit` |  |
 | GET | `/api/seat-walk/hello/<token>` | `seats.view` |  |
 | POST | `/api/seat-walk/locate` | `seats.edit` |  |
+| POST | `/api/seat-walk/walkers` | `seats.edit` |  |
+| DELETE | `/api/seat-walk/walkers/<walker_id>` | `seats.edit` |  |
+| PUT | `/api/seat-walk/walkers/<walker_id>` | `seats.edit` |  |
 
 ## floorbit.blueprints.security
 
@@ -1120,6 +1124,7 @@ Source: [`floorbit/blueprints/wifi.py`](https://github.com/bitsandbricks-ch/floo
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/wifi` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `wifi` |
+| GET | `/api/wifi/history` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `wifi` |
 
 ## floorbit.settings
 

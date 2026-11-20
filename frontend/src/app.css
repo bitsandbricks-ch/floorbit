@@ -1021,3 +1021,9 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-setting-advanced-toggle { display: inline-flex; align-items: baseline; gap: 8px; padding: 4px 0; }
 .fb-setting-advanced-toggle svg { transition: transform 120ms ease; align-self: center; }
 .fb-setting-advanced-toggle svg.is-open { transform: rotate(90deg); }
+
+/* Inventory list: sortable column heads and quiet row hints */
+.fb-sort { display: inline-flex; align-items: center; gap: 4px; font: inherit; color: inherit; white-space: nowrap; }
+.fb-sort:hover { color: var(--mantine-color-text); }
+.fb-dim { color: var(--mantine-color-dimmed); flex: none; }
+.fb-inventory-table td { white-space: nowrap; }
