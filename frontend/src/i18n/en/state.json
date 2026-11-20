@@ -1,0 +1,22 @@
+{
+  "up": "Up",
+  "down": "Down",
+  "warn": "Needs a look",
+  "unknown": "Unknown",
+  "stale": "Stale",
+  "online": "Online",
+  "offline": "Offline",
+  "degraded": "Degraded",
+  "ok": "OK",
+  "failed": "Failed",
+  "live": "Live",
+  "planning": "Planning",
+  "closed": "Closed",
+  "active": "Active",
+  "idle": "Idle",
+  "ended": "Ended",
+  "connected": "Connected",
+  "disconnected": "Not connected",
+  "crit": "Critical",
+  "tripped": "Tripped"
+}

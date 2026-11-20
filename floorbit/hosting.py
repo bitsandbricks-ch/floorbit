@@ -12,6 +12,7 @@ at the same OIDC issuer. Password accounts are never matched, because a username
 who is behind it. Such a person sees their other tenants in the account menu and opens them there.
 """
 import os
+import re
 import threading
 import time
 from urllib.parse import urlsplit
@@ -53,8 +54,18 @@ def _clean_url(url):
     return url
 
 
+def _doc():
+    doc = store.read_json(path(), {}) or {}
+    return doc if isinstance(doc, dict) else {}
+
+
 def _listed():
-    return (store.read_json(path(), {}) or {}).get('tenants') or []
+    return _doc().get('tenants') or []
+
+
+def _save(**changes):
+    # platform.json holds more than the list (the agents' domain): keep what this write doesn't change.
+    store.write_json(path(), {**_doc(), **changes})
 
 
 def tenants():
@@ -95,7 +106,7 @@ def add(tenant_id, name='', url=''):
         listed = tenants()
         if any(t['id'] == tenant_id for t in listed):
             raise HostingError(f'There already is a tenant called {tenant_id}.')
-        store.write_json(path(), {'tenants': [*listed, entry]})
+        _save(tenants=[*listed, entry])
     return entry
 
 
@@ -117,7 +128,7 @@ def update(tenant_id, name=None, url=None, status=None):
             if tenant_id == store.DEFAULT_TENANT and status != 'active':
                 raise HostingError("The default tenant runs the platform and can't be suspended.")
             entry['status'] = status
-        store.write_json(path(), {'tenants': listed})
+        _save(tenants=listed)
     _status_cache.clear()
     return entry
 
@@ -145,6 +156,61 @@ def suspended(now=None):
         found = hit[1] if hit else False     # the database being away is not a suspension
     _status_cache[tenant] = (now, found)
     return found
+
+
+DOMAIN_RE = re.compile(r'^(?=.{4,200}\Z)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\Z')
+
+
+OFF = 'off'
+
+
+def _platform_url():
+    """Where the platform answers: the default tenant's address, else its Public URL setting."""
+    listed = next((t['url'] for t in tenants() if t['id'] == store.DEFAULT_TENANT and t['url']), '')
+    if listed:
+        return listed
+    data = tenant_data(store.DEFAULT_TENANT)
+    found = (data.get('app_settings') or {}).get('integrations.public_url')
+    return str(found or os.environ.get('PUBLIC_URL') or '')
+
+
+def derived_domain():
+    """The agents' domain worked out from the platform's address: floor.example.com gives
+    example.com (so agents are <tenant>.agent.example.com). '' for an IP, localhost or nothing."""
+    host = (urlsplit(_platform_url().strip()).hostname or '').lower().rstrip('.')
+    labels = host.split('.')
+    if len(labels) < 2 or labels[-1].isdigit() or ':' in host:
+        return ''
+    domain = '.'.join(labels[1:] if len(labels) > 2 else labels)
+    return domain if DOMAIN_RE.match(domain) else ''
+
+
+def agent_domain():
+    """The domain the agents' public certificates are made under (``<tenant>.agent.<domain>``,
+    floorbit/public_cert.py): the one a platform admin set, else the one from the platform's address
+    (derived_domain). '' when there is none or it was turned off: agents keep Floorbit's own CA.
+    Nothing is ordered until the name really reaches this Floorbit (public_cert.reachable)."""
+    found = str(_doc().get('agent_domain') or '').strip().lower()
+    if found == OFF:
+        return ''
+    if DOMAIN_RE.match(found):
+        return found
+    return derived_domain()
+
+
+def agent_domain_setting():
+    """What a platform admin set: a domain, 'off', or '' (worked out from the platform's address)."""
+    found = str(_doc().get('agent_domain') or '').strip().lower()
+    return found if found == OFF or DOMAIN_RE.match(found) else ''
+
+
+def set_agent_domain(domain):
+    domain = (domain or '').strip().lower().rstrip('.')
+    if domain and domain != OFF and not DOMAIN_RE.match(domain):
+        raise HostingError('The domain is a name like example.com.')
+    with _lock:
+        _save(agent_domain=domain)
+    return domain
 
 
 def tenant_data(tenant_id):
@@ -217,6 +283,22 @@ def register_cli(app):
             click.echo('No tenants yet.')
         for t in rows:
             click.echo(f"{t['id']:<24} {t['name']:<32} {t['url']}")
+
+    @group.command('agent-domain')
+    @click.argument('domain', required=False)
+    def agent_domain_cmd(domain):
+        """Show or set the domain for the agents' Let's Encrypt certificates: "off" turns them off,
+        "-" goes back to the one worked out from the platform's address."""
+        if domain is None:
+            click.echo(agent_domain() or 'No domain: agents use Floorbit\'s own CA.')
+            return
+        try:
+            set_agent_domain('' if domain == '-' else domain)
+        except HostingError as exc:
+            raise click.ClickException(str(exc)) from None
+        found = agent_domain()
+        click.echo(f'Agents get <tenant>.agent.{found} from Let\'s Encrypt once it reaches Floorbit.' if found
+                   else 'Off: agents use Floorbit\'s own CA.')
 
     app.cli.add_command(group)
 

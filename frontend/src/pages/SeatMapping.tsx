@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Paper, Switch, Table, Text, TextInput, Tooltip } from '@mantine/core'
+import { Alert, Badge, Button, Group, Switch, Text, TextInput, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconDownload, IconPlugConnected, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -9,6 +9,7 @@ import { qk } from '@/api/keys'
 import { useCan, useSeatMap } from '@/api/queries'
 import type { ResolvePortsResult, SeatRow } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ImportDialog } from './seatmap/ImportDialog'
@@ -180,80 +181,31 @@ export default function SeatMapping() {
           <Text size="sm" c="dimmed" mb="xs">
             {t('seatmap.count', { count: rows.length })}
           </Text>
-          {rows.length === 0 ? (
-            <Text>{data.seats.length ? t('seatmap.noMatch') : t('seatmap.empty')}</Text>
-          ) : (
-            <Paper withBorder radius="lg" px={{ base: 'sm', sm: 0 }}>
-                <Table highlightOnHover verticalSpacing="xs" fz="sm" className="fb-table-stack">
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>{t('seatmap.seat')}</Table.Th>
-                      <Table.Th>{t('seatmap.port')}</Table.Th>
-                      <Table.Th>{t('seatmap.nick')}</Table.Th>
-                      <Table.Th>{t('seatmap.ip')}</Table.Th>
-                      <Table.Th>{t('seatmap.mac')}</Table.Th>
-                      <Table.Th>{t('seatmap.from')}</Table.Th>
-                      <Table.Th />
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {rows.map((r) => (
-                      <Table.Tr key={r.seat}>
-                        <Table.Td>
-                          {canEdit ? (
-                            <Button variant="subtle" size="compact-sm" onClick={() => open(r)} ff="monospace">
-                              {r.seat}
-                            </Button>
-                          ) : (
-                            <Text size="sm" ff="monospace" fw={600}>
-                              {r.seat}
-                            </Text>
-                          )}
-                        </Table.Td>
-                        <Table.Td data-label={t('seatmap.port')}>
-                          <PortCell row={r} />
-                        </Table.Td>
-                        <Table.Td data-label={t('seatmap.nick')} style={{ whiteSpace: 'nowrap' }}>
-                          <Cell value={r.nick} source={r.from.nick} label={label} />
-                        </Table.Td>
-                        <Table.Td data-label={t('seatmap.ip')}>
-                          <Cell value={r.ip} source={r.from.ip} label={label} mono />
-                        </Table.Td>
-                        <Table.Td data-label={t('seatmap.mac')}>
-                          <Cell value={r.mac} source={r.from.mac} label={label} mono />
-                        </Table.Td>
-                        <Table.Td data-label={t('seatmap.from')}>
-                          <Group gap={4}>
-                            {r.sources.map((s) => (
-                              <Badge key={s} size="sm" tt="none" variant={s === 'manual' ? 'filled' : 'light'} color={s === 'manual' ? 'bit' : 'trace'}>
-                                {label(s)}
-                              </Badge>
-                            ))}
-                          </Group>
-                          {r.manual?.note && (
-                            <Text size="xs" c="dimmed">
-                              {r.manual.note}
-                            </Text>
-                          )}
-                        </Table.Td>
-                        <Table.Td className="fb-stack-actions">
-                          {canEdit && r.manual && (
-                            <ConfirmButton
-                              size="xs"
-                              variant="subtle"
-                              danger
-                              label={t('seatmap.removeManual')}
-                              question={t('seatmap.removeQuestion', { seat: r.seat })}
-                              onConfirm={() => remove.mutate(r.seat)}
-                            />
-                          )}
-                        </Table.Td>
-                      </Table.Tr>
+          <DataTable label={t('seatmap.title')} rows={rows} rowKey={(r) => r.seat} defaultSort={{ id: 'seat' }} cards
+            empty={<Text>{data.seats.length ? t('seatmap.noMatch') : t('seatmap.empty')}</Text>}
+            columns={[
+              { id: 'seat', header: t('seatmap.seat'), sort: (r) => r.seat, cell: (r) => (canEdit
+                ? <Button variant="subtle" size="compact-sm" onClick={() => open(r)} ff="monospace">{r.seat}</Button>
+                : <Text size="sm" ff="monospace" fw={600}>{r.seat}</Text>) },
+              { id: 'port', header: t('seatmap.port'), card: 'label', sort: (r) => `${r.switch} ${r.port}`, cell: (r) => <PortCell row={r} /> },
+              { id: 'nick', header: t('seatmap.nick'), card: 'label', sort: (r) => r.nick, cell: (r) => <Cell value={r.nick} source={r.from.nick} label={label} /> },
+              { id: 'ip', header: t('seatmap.ip'), card: 'label', sort: (r) => r.ip, cell: (r) => <Cell value={r.ip} source={r.from.ip} label={label} mono /> },
+              { id: 'mac', header: t('seatmap.mac'), card: 'label', sort: (r) => r.mac, cell: (r) => <Cell value={r.mac} source={r.from.mac} label={label} mono /> },
+              { id: 'from', header: t('seatmap.from'), card: 'label', cell: (r) => (
+                <>
+                  <Group gap={4}>
+                    {r.sources.map((s) => (
+                      <Badge key={s} size="sm" tt="none" variant={s === 'manual' ? 'filled' : 'light'} color={s === 'manual' ? 'bit' : 'trace'}>{label(s)}</Badge>
                     ))}
-                  </Table.Tbody>
-                </Table>
-            </Paper>
-          )}
+                  </Group>
+                  {r.manual?.note && <Text size="xs" c="dimmed">{r.manual.note}</Text>}
+                </>
+              ) },
+              { id: 'actions', header: null, card: 'actions', cell: (r) => canEdit && r.manual && (
+                <ConfirmButton size="xs" variant="subtle" danger label={t('seatmap.removeManual')}
+                  question={t('seatmap.removeQuestion', { seat: r.seat })} onConfirm={() => remove.mutate(r.seat)} />
+              ) },
+            ]} />
         </>
       )}
       {formOpen && (

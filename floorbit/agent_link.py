@@ -35,6 +35,20 @@ from .store import load_data, load_shared, save_data
 KEY = 'agents'
 PREFIX = 'fba_'
 MAX_AGENTS = 10
+AGENT_IMAGE = 'ghcr.io/bitsandbricks-ch/floorbit-agent'
+_AGENT_REF = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'AGENT_REF')
+
+
+def agent_image():
+    """The agent image to run, tagged with the agent commit this Floorbit is built and tested with
+    (AGENT_REF; the agent's image workflow tags every main commit with its short sha). ``latest``
+    only when the file is missing, as in an old image."""
+    try:
+        with open(_AGENT_REF) as f:
+            ref = f.read().strip()
+    except OSError:
+        ref = ''
+    return f"{AGENT_IMAGE}:{ref[:12]}" if re.fullmatch(r'[0-9a-f]{40}', ref) else f'{AGENT_IMAGE}:latest'
 NAME_RE = re.compile(r'^[^\x00-\x1f<>]{1,60}\Z')
 KEY_RE = re.compile(r'^fba_([0-9a-f]{8})_([A-Za-z0-9_-]{20,80})\Z')
 CONNECTED_FOR = 60       # an agent that asked for work this recently counts as connected
@@ -169,6 +183,7 @@ def _forget_cache():
     _active = _routes = None
     _pins[0] = None
     _doors.clear()
+    _set_up.update(at=None, value=True)
 
 
 _routes = None   # ((data file, mtime), routing)
@@ -663,6 +678,7 @@ class Tunnel:
         self._reports = {}        # agent id -> the agent's own numbers, as it last sent them
         self._links = {}          # agent id -> WebSocket links open to this pod
         self._asking = {}         # agent id -> None while in take(), else when it last left it
+        self._era = 0             # bumped by reset(): a take() from before it gives up
         self.last_seen = None
 
     def reset(self):
@@ -676,6 +692,9 @@ class Tunnel:
             self._relayed.clear()
             self._reports.clear()
             self.last_seen = None
+            # A long poll still waiting from before must not take calls made after the reset.
+            self._era += 1
+            self._cond.notify_all()
 
     def relayed(self, agent, kind, count=0, now=None):
         """An agent sent syslog or a flow summary: the Local agents page shows what each one relays."""
@@ -872,13 +891,16 @@ class Tunnel:
             return call.targets is None or agent in call.targets
 
         with self._cond:
+            era = self._era
             self._asking[agent] = None
             try:
-                while not any(mine(c) for c in self._pending):
+                while self._era == era and not any(mine(c) for c in self._pending):
                     left = deadline - time.monotonic()
                     if left <= 0:
                         return []
                     self._cond.wait(left)
+                if self._era != era:
+                    return []
                 out = []
                 for call in list(self._pending):
                     if len(out) >= limit:
@@ -889,7 +911,8 @@ class Tunnel:
                         out.append({'id': call.id, 'method': call.method, 'args': call.args})
                 return out
             finally:
-                self._asking[agent] = time.monotonic()
+                if self._era == era:
+                    self._asking[agent] = time.monotonic()
 
     def _nobody_asking(self, targets, now):
         """The agents (of ``targets``) that should have taken a call but didn't ask lately; empty
@@ -1051,6 +1074,7 @@ def _clean_feeds(feeds):
 # ── The monitoring source it feeds ─────────────────────────────────────────────────────────────
 
 SET_UP_EVERY = 30         # seconds an agent's "is monitoring set up?" answer is kept
+SET_UP_RETRY = 5          # seconds before asking again when the agent didn't answer
 _set_up = {'at': None, 'value': True}
 
 
@@ -1062,14 +1086,17 @@ def monitoring_set_up(now=None):
     now = time.monotonic() if now is None else now
     if _set_up['at'] is not None and 0 <= now - _set_up['at'] < SET_UP_EVERY:
         return _set_up['value']
-    _set_up['at'] = now
     if tunnel.connected_agents():
+        # Kept only once an agent answered: right after it connects the first ask can miss, and the
+        # pages' calls in the meantime would all go to an agent with nothing to answer them.
         try:
             _set_up['value'] = bool(ask('configured'))
+            _set_up['at'] = now
         except AgentUnavailable:
-            pass
+            _set_up['at'] = now - SET_UP_EVERY + SET_UP_RETRY    # a hung link must not slow every page
         except AgentError:
             _set_up['value'] = False      # the agent answered: no monitoring plugin there
+            _set_up['at'] = now
     return _set_up['value']
 
 def monitoring_source():

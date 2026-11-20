@@ -27,8 +27,6 @@ settings:
   - {key: tables_minutes, label: ARP and MAC tables every (minutes), type: select, default: auto,
      options: [auto, "1", "5", "15", "30", "60", "0"],
      help: "How often Telemetry walks the ARP and MAC tables when it polls. 0: never. Auto: every 15 minutes while a network segment has lookups on (check-ins then ask the switches for their PC), else every minute. Not used while LibreNMS polls."}
-  - {key: uplink_macs, label: Uplink above, type: int, default: 8, min: 2, max: 1000,
-     help: "A port that has learned more MACs than this is an uplink or a desk switch: a seat's machine is looked for on another port first."}
   - {key: exclude, label: Ports to ignore, type: list, placeholder: "port-channel, vlan",
      help: "Comma-separated parts of port names that are never a seat's port (trunks, port channels, SVIs)."}
 widgets:

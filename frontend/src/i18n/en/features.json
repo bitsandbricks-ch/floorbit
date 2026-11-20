@@ -65,5 +65,54 @@
     "public_hall": "The hall map players see without signing in.",
     "stats_wall": "Fun facts about the event for a big screen and attendees: data downloaded, the bandwidth peak, top games, seats online. Hall-wide only.",
     "schedule": "The event programme (talks, tournaments, meals, quiet hours) with a public countdown page for big screens and phones; imports iCal."
+  },
+  "others": "Other features",
+  "othersIntro": "Off means gone: no link, no page, no API, no background work.",
+  "cap": {
+    "title": "Capabilities",
+    "intro": "One switch for each thing the crew wants. It turns on everything that belongs to it, then says what it still needs.",
+    "state": {
+      "on": "On",
+      "off": "Off",
+      "partly": "Partly on"
+    },
+    "partly": "Some parts are off: {{parts}}. Switch it on to turn them all on.",
+    "forced": "Turned off on the server's environment.",
+    "needsTitle": "What it needs",
+    "stillNeeds": "What {{name}} still needs",
+    "outside": "Set outside Floorbit, so it can't be checked here.",
+    "name": {
+      "front_door": "Front door for attendees",
+      "checkin": "Seat check-in",
+      "logs": "Logs from the hall",
+      "traffic": "Traffic from the hall",
+      "electrics": "Electrics"
+    },
+    "desc": {
+      "front_door": "The local agent answers attendees on the event network, so Floorbit sees which switch port a seat PC is on.",
+      "checkin": "Attendees confirm their seat with the PIN on the seat card; Floorbit links the seat to its switch port.",
+      "logs": "Switches and firewalls send syslog to the local agent; the lines show on the Logs page and feed the alerts.",
+      "traffic": "Switches and firewalls send NetFlow or IPFIX to the local agent; the Traffic page shows the totals.",
+      "electrics": "Power meters on the distribution boxes, on the floor plan and in the alerts."
+    },
+    "part": {
+      "integrations.checkin_enabled": "the check-in page",
+      "front-door": "its plugin",
+      "syslog-relay": "its plugin",
+      "netflow-relay": "its plugin",
+      "syslog": "the Logs page",
+      "traffic": "the Traffic page",
+      "power": "the Electrics page"
+    },
+    "need": {
+      "agent": "A local agent: enrol one",
+      "agentConnected": "A local agent connected",
+      "cap.front_door": "The front door for attendees switched on",
+      "cap.checkin": "Seat check-in switched on",
+      "dhcp114": "Option 114 in the event's DHCP, pointing at the agent",
+      "port.syslog-relay": "A UDP port for syslog on the agent",
+      "port.netflow-relay": "A UDP port for flows on the agent",
+      "powerSource": "A power meter plugin, such as Shelly or Home Assistant"
+    }
   }
 }
