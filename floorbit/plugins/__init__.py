@@ -103,6 +103,7 @@ AREA_METHODS = {
 # LAN around it. ``configured`` and ``port_login`` only read settings and stay.
 LAN_METHODS = frozenset({
     'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp', 'device_ports', 'port_clients', 'neighbours',
+    'device_facts',
     'inventory', 'entries', 'cables', 'firewall_ranges', 'health_checks', 'security_findings', 'seat_mapping',
     'bounce_port', 'set_port', 'send_commands', 'open_shell', 'power_readings', 'dns_queries', 'wifi_aps'})
 # Methods a plugin of the area may have but doesn't need: without them the feature says the plugin

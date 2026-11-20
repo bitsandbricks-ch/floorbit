@@ -109,6 +109,16 @@ class Plugin(Base):
                      **dev.port_facts(i, poe)}
                     for i in sorted(rows, key=lambda i: _natural(i.name))]
 
+    def device_facts(self, hostname):
+        """What the device said it is (Device.summary()), for discovery."""
+        if not state.collecting:
+            return {}
+        dev = self._device(hostname)
+        if dev is None:
+            return {}
+        with state._lock:
+            return dev.summary()
+
     def port_stats(self, hostname, interface):
         if not state.collecting:
             return {}
