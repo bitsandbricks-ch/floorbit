@@ -172,13 +172,30 @@ spec:
   ports:
     - {name: valkey, port: 6379, targetPort: valkey}
 ---
-# k3s ships Traefik: this routes floor.example.com to Floorbit. It passes WebSockets (the local
-# agent's link) and Server-Sent Events (live updates) as they are.
+# k3s ships Traefik: this routes floor.example.com to Floorbit over HTTPS, and plain HTTP to HTTPS
+# (the agents' keys and every sign-in go over it). It passes WebSockets (the local agent's link)
+# and Server-Sent Events (live updates) as they are. The certificate is the Secret floorbit-tls:
+# cert-manager fills it with the annotation below (docs/kubernetes.md, "HTTPS"); until it exists,
+# Traefik answers with its own self-signed one, still encrypted.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: floorbit-https
+spec:
+  redirectScheme: {scheme: https, permanent: true}
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: floorbit
+  annotations:
+    # <namespace>-<middleware>: change "floorbit-" if you install into another namespace.
+    traefik.ingress.kubernetes.io/router.middlewares: floorbit-floorbit-https@kubernetescrd
+    # cert-manager.io/cluster-issuer: letsencrypt     # with cert-manager and a ClusterIssuer of that name
 spec:
+  tls:
+    - hosts: [floor.example.com]
+      secretName: floorbit-tls
   rules:
     - host: floor.example.com
       http:
@@ -187,6 +204,3 @@ spec:
             pathType: Prefix
             backend:
               service: {name: floorbit, port: {name: http}}
-  # tls:
-  #   - hosts: [floor.example.com]
-  #     secretName: floorbit-tls     # cert-manager, or a certificate you add yourself

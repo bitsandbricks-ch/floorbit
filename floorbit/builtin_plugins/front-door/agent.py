@@ -19,7 +19,9 @@ class AgentPlugin(Base):
         from floorbit_agent import front_door  # this part only ever runs in the agent
         agent = self.ctx.host.agent
         proxies = [p for p in str(self.settings.get('proxies') or '').split(',') if p.strip()]
-        self.door = front_door.FrontDoor(agent.url, agent.key, proxies=proxies, log=self.ctx.log)
+        # Signed with the agent's own key (identity.py): Floorbit trusts the attendee's address only then.
+        self.door = front_door.FrontDoor(agent.url, agent.key, proxies=proxies, log=self.ctx.log,
+                                         auth=getattr(agent, 'signer', None))
         try:
             # The agent machine's certificate (FLOORBIT_AGENT_TLS_CERT/KEY), as for telemetry.
             context = front_door.tls_context(os.environ)

@@ -160,7 +160,11 @@ def rotate(agent_id):
 def ca_certificate():
     """The CA that signs the agents' certificates (agent_ca.py), to install on crew devices."""
     from .. import agent_ca
-    resp = current_app.response_class(agent_ca.ca_pem(), mimetype='application/x-pem-file')
+    try:
+        pem = agent_ca.ca_pem()
+    except agent_ca.CAError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    resp = current_app.response_class(pem, mimetype='application/x-pem-file')
     resp.headers['Content-Disposition'] = 'attachment; filename="floorbit-agents-ca.pem"'
     return resp
 
@@ -236,6 +240,20 @@ def new_cert(agent_id):
     return jsonify(agent_settings.state(agent_id))
 
 
+@bp.route('/api/agents/<agent_id>/identity/reset', methods=['POST'])
+def reset_identity(agent_id):
+    """Forget the agent's pinned key (agent_identity.py): its next hello enrols a new one. For a
+    machine whose state was lost; a key that may have leaked calls for revoking the agent instead."""
+    from .. import agent_identity, agent_settings
+    try:
+        name = agent_identity.reset(agent_id)
+    except agent_link.AgentError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    audit.record('agents', "Reset a local agent's identity", g.get('audit_user'), name)
+    events.publish('agents.changed', {})
+    return jsonify(agent_settings.state(agent_id))
+
+
 @bp.route('/api/agents/<agent_id>', methods=['DELETE'])
 def revoke(agent_id):
     try:
@@ -266,14 +284,53 @@ def _same_protocol():
     return None
 
 
+def _target():
+    """The path and query as the agent signed them."""
+    query = request.query_string.decode('latin-1')
+    return request.path + (f'?{query}' if query else '')
+
+
+def _identity_refusal(key):
+    """Why this request's signature doesn't hold for the key's agent (agent_identity.py), or None.
+    Checked before the key, so a refused request doesn't count as the agent being seen."""
+    from .. import agent_identity
+    m = agent_link.KEY_RE.match(str(key or '').strip())
+    if not m:
+        return None                      # the key check refuses it
+    agent_id = m.group(1)
+    identity = agent_identity.pinned(agent_id)
+    header = request.headers.get(agent_identity.SIGNATURE_HEADER)
+    g.agent_signed = False
+    if identity is None:
+        if request.path in agent_identity.OPEN_PATHS:
+            return None
+        return agent_identity.IdentityError(
+            'The agent has no pinned key yet: it enrols one at hello. Update the agent if it does not.', 'enrol')
+    try:
+        agent_identity.verify(agent_id, identity, request.method, _target(), header, request.get_data())
+    except agent_identity.IdentityError as exc:
+        if request.path == agent_identity.OPEN_PATHS[0] and exc.code in ('clock', 'unsigned'):
+            return None                  # hello still answers, with the time and what it needs
+        return exc
+    g.agent_signed = True
+    return None
+
+
 def _agent(reachable=True):
     """``reachable``: this request shows calls can reach the agent (its link, or the long poll).
     Its answers, syslog, flows and reports don't: a stopping agent posts its last answers and its
     backlog after its link closed, and counting that kept it "connected" for a minute while calls
-    to it waited and failed. A long-polling agent shows it by asking for calls."""
+    to it waited and failed. A long-polling agent shows it by asking for calls.
+
+    Both factors: the request's signature by the agent's pinned key, then its bearer key."""
+    refusal = _identity_refusal(request.headers.get(HEADER))
+    if refusal is not None:
+        g.agent_refusal = refusal
+        return None
     return agent_link.check(request.headers.get(HEADER), request.headers.get('Floorbit-Agent-Version'),
                             request.remote_addr, protocol=(request.headers.get(PROTOCOL_HEADER) or '1').strip(),
-                            reachable=reachable)
+                            # An unsigned hello (enrolling, or a clock to put right) can't take calls.
+                            reachable=reachable and bool(g.get('agent_signed')))
 
 
 MAX_UNZIPPED = 32 * 1024 * 1024    # as MAX_CONTENT_LENGTH: a small gzip body can't unpack into more
@@ -315,6 +372,10 @@ def _body_refused(exc):
 
 
 def _refused():
+    refusal = g.get('agent_refusal')
+    if refusal is not None:
+        print(f'[agent] refused {request.method} {request.path}: {refusal}')
+        return jsonify({'error': str(refusal), 'code': refusal.code}), 401
     return jsonify({'error': 'The agent key is wrong or was revoked. Enrol the agent again.'}), 401
 
 
@@ -324,9 +385,37 @@ def hello():
     if agent is None:
         return _refused()
     events.publish('agents.changed', {})
+    from .. import agent_identity
+    identity = agent_identity.pinned(agent['id'])
     return jsonify({'name': agent['name'], 'server_version': current_app.config.get('FLOORBIT_VERSION') or '0',
                     'encodings': ['gzip'], 'protocol': agent_link.PROTOCOL,
-                    'protocols': list(agent_link.PROTOCOLS), 'link': LINK_PATH})
+                    'protocols': list(agent_link.PROTOCOLS), 'link': LINK_PATH,
+                    # What the agent needs to sign its next requests: enrol (no pin yet), or renew.
+                    'identity': {'pinned': identity is not None, 'signed': bool(g.get('agent_signed')),
+                                 'not_after': (identity or {}).get('not_after'),
+                                 'renew_days': agent_identity.RENEW_DAYS,
+                                 'path': agent_identity.OPEN_PATHS[1]}})
+
+
+@bp.route('/api/agent/v1/identity', methods=['POST'])
+def identity():
+    """``{"csr"}``: the agent's own key, signed by the agents CA as its client certificate and
+    pinned (agent_identity.py). The first one wins; a later one must be signed by the pinned key."""
+    agent = _agent(reachable=False)
+    if agent is None:
+        return _refused()
+    from .. import agent_ca, agent_identity
+    try:
+        pem, record, first = agent_identity.enrol(agent['id'], _agent_body().get('csr'), bool(g.get('agent_signed')))
+    except agent_identity.IdentityError as exc:
+        return jsonify({'error': str(exc), 'code': exc.code}), 409
+    except agent_ca.CAError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    if first:
+        audit.record('agents', "Pinned a local agent's own key", 'agent', agent['name'],
+                     fields=[record['spki'][:32]])
+    events.publish('agents.changed', {})
+    return jsonify({'cert': pem, 'not_after': record['not_after'], 'fingerprint': record['spki'][:32]})
 
 
 @bp.route('/api/agent/v1/calls', methods=['GET'])
@@ -475,7 +564,7 @@ def sign_cert():
     try:
         pem = agent_settings.issue_cert(agent['id'], _agent_body().get('csr'))
     except agent_ca.CAError as exc:
-        return jsonify({'error': str(exc)}), 400
+        return jsonify({'error': str(exc)}), exc.status
     audit.record('agents', 'Signed a certificate for a local agent', 'agent', agent['name'])
     events.publish('agents.changed', {})
     return jsonify({'cert': pem})
@@ -566,6 +655,11 @@ def take_flow_summary(agent, snap):
     return True
 
 
+def _pin_of(agent_id):
+    from .. import agent_identity
+    return (agent_identity.pinned(agent_id) or {}).get('spki')
+
+
 def _link_answers(agent, message):
     items = message.get('answers') if isinstance(message.get('answers'), list) else []
     for a in items[:100]:
@@ -578,6 +672,7 @@ def link(ws):
     answers come back as ``{"type": "answers", "answers": [...]}``, the same items as the long poll.
     ``{"type": "ping"}`` both ways keeps it alive. Syslog and flows stay on their HTTPS posts."""
     agent = g.link_agent
+    pin = _pin_of(agent['id'])
     gone = threading.Event()
     released = []
     heard = [time.monotonic()]       # when the agent last said anything
@@ -622,9 +717,9 @@ def link(ws):
     probed = None
     try:
         while not gone.is_set():
-            if not agent_link.enrolled(agent['id']):
-                # Revoked while connected: the key is no good any more, so neither is this link.
-                ws.close(reason=1008, message='The agent key was revoked.')
+            if not agent_link.enrolled(agent['id']) or _pin_of(agent['id']) != pin:
+                # Revoked, or its identity reset, while connected: neither key holds, so neither does this link.
+                ws.close(reason=1008, message='The agent was revoked, or its identity reset.')
                 break
             now = time.monotonic()
             if probed is not None and heard[0] >= probed:
@@ -660,7 +755,7 @@ def link(ws):
 
 # The agent has no session: its key is checked in each view (auth's guard leaves these paths alone).
 for _view in (hello, calls, answers, syslog, flow_seats, captive, seat_walk_hello, flows, link, report,
-              env_settings, fetch_key, sign_cert):
+              env_settings, fetch_key, sign_cert, identity):
     _view._auth_public = True
 # After _auth_public is set: the route's wrapper copies the attribute.
 sock.route(LINK_PATH, bp=bp)(link)

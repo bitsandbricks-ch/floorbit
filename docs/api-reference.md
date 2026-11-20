@@ -62,6 +62,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agent/v1/env-settings` | anyone |  |
 | POST | `/api/agent/v1/flows` | anyone |  |
 | GET | `/api/agent/v1/hello` | anyone |  |
+| POST | `/api/agent/v1/identity` | anyone |  |
 | POST | `/api/agent/v1/key` | anyone |  |
 | POST | `/api/agent/v1/report` | anyone |  |
 | POST | `/api/agent/v1/seat-walk` | anyone |  |
@@ -74,6 +75,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/cert` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/history` | `settings.manage` |  |
+| POST | `/api/agents/<agent_id>/identity/reset` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/roll` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/settings` | `settings.manage` |  |

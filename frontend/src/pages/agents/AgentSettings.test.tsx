@@ -96,4 +96,23 @@ describe('KeyPanel and CertPanel', () => {
     await vi.waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body)
       .toEqual({ settings: { cert_names: ['agent.example.com', '192.0.2.10'] } }))
   })
+
+  it('shows the pinned key and resets it', async () => {
+    const a = agent()
+    const now = Date.now() / 1000
+    const p = page({ identity: { fingerprint: 'ab12cd34ef56ab12cd34ef56ab12cd34', pinned_at: now - 86400, issued_at: now - 86400, not_after: now + 89 * 86400 } })
+    const api = fakeFetch({ 'GET /api/auth/me': admin, [`POST /api/agents/${a.id}/identity/reset`]: page() })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<KeyPanel agent={a} page={p}><span /></KeyPanel>)
+    expect(screen.getByText(/Signs every request with its own key ab12cd34ef56ab12/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reset identity' }))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Reset identity' })).getByRole('button', { name: 'Yes, go ahead' }))
+    await vi.waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path.endsWith('/identity/reset'))).toBe(true))
+  })
+
+  it('says when no key is pinned yet', () => {
+    renderWithApp(<KeyPanel agent={agent()} page={page({ identity: null })}><span /></KeyPanel>)
+    expect(screen.getByText(/No own key pinned yet/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reset identity' })).not.toBeInTheDocument()
+  })
 })

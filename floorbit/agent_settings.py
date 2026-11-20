@@ -337,9 +337,11 @@ def issue_cert(agent_id, csr_pem, now=None):
 
 def state(agent_id):
     """Key and certificate state for the page."""
+    from . import agent_identity
     record = _record(agent_id)
     return {'roll_asked': record.get('roll_asked'), 'renewed_at': record.get('renewed_at') or record.get('created_at'),
-            'cert': record.get('cert'), 'cert_asked': record.get('cert_asked')}
+            'cert': record.get('cert'), 'cert_asked': record.get('cert_asked'),
+            'identity': agent_identity.public(record.get('identity'))}
 
 
 # ── what the agent reports about them ──────────────────────────────────────────────────────────
