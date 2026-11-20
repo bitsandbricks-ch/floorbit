@@ -6,7 +6,14 @@
 """
 from flask import Blueprint, current_app, jsonify, request
 
+from .. import spa
+
 bp = Blueprint('dns', __name__)
+
+
+@bp.route('/dns')
+def dns_page():
+    return spa.render('DNS')
 
 
 @bp.route('/api/dns', methods=['GET'])

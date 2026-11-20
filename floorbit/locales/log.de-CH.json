@@ -353,5 +353,11 @@
   "A local agent fetched its new key": "Ein lokaler Agent hat seinen neuen Schlüssel abgeholt",
   "Signed a certificate for a local agent": "Zertifikat für einen lokalen Agent signiert",
   "Ignored a machine": "Gerät ignoriert",
-  "Stopped ignoring a machine": "Gerät nicht mehr ignoriert"
+  "Stopped ignoring a machine": "Gerät nicht mehr ignoriert",
+  "Gave a local agent the agents' Let's Encrypt certificate": "Einem lokalen Agent das Let's-Encrypt-Zertifikat der Agents gegeben",
+  "Got the agents' certificate from Let's Encrypt": "Zertifikat der Agents von Let's Encrypt geholt",
+  "Revoked the agents' Let's Encrypt certificate": "Let's-Encrypt-Zertifikat der Agents widerrufen",
+  "Set the domain for the agents' certificates": "Domain für die Zertifikate der Agents gesetzt",
+  "The agents' Let's Encrypt certificate is replaced: a revoked agent had its key": "Das Let's-Encrypt-Zertifikat der Agents wird ersetzt: ein widerrufener Agent hatte seinen Schlüssel",
+  "Changed the seat port check rules": "Regeln der Platz-Port-Prüfung geändert"
 }

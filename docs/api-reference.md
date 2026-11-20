@@ -222,6 +222,8 @@ Source: [`floorbit/blueprints/configs.py`](https://github.com/bitsandbricks-ch/f
 | POST | `/api/configs/<switch>/baseline` | `configs.read` | `configs` |
 | GET | `/api/configs/<switch>/diff` | `configs.read` | `configs` |
 | POST | `/api/configs/backup` | `configs.read` | `configs` |
+| GET | `/api/configs/port-check` | `configs.read` | `configs` |
+| PUT | `/api/configs/port-check` | `configs.read` | `configs` |
 
 ## floorbit.blueprints.crew
 
@@ -723,6 +725,8 @@ Source: [`floorbit/blueprints/platform.py`](https://github.com/bitsandbricks-ch/
 
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
+| GET | `/api/platform/agent-domain` | `settings.manage` |  |
+| PUT | `/api/platform/agent-domain` | `settings.manage` |  |
 | GET | `/api/platform/tenants` | `settings.manage` |  |
 | POST | `/api/platform/tenants` | `settings.manage` |  |
 | PATCH | `/api/platform/tenants/<tenant_id>` | `settings.manage` |  |

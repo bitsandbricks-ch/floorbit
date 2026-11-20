@@ -12,7 +12,8 @@ A node is a tree: a node is either a split (``split`` "row" puts its children si
 "column" stacks them; ``sizes`` are their shares in percent) or one pane. A pane is
 
 - ``plan``: a hall (``hall``, empty for the first one), the part of it to show (``area``: the whole
-  hall, a seat block by name, a zone mark by id, or a box in drawing units), a layer ``preset``
+  hall, a seat block by id, one row of a block (``<block id>:<row>``), a zone mark by id, or a box
+  in drawing units), a layer ``preset``
   (frontend/src/pages/plan/layers.ts PRESETS), a seat filter (``show``), how seats are numbered
   (``labels``, frontend/src/pages/plan/labels.ts) and which plan marks it draws (``marks``: ``all``
   the preset shows, ``public`` only the Overview and Safety ones, like the attendee pages, or ``none``);
@@ -68,7 +69,7 @@ MAX_OVERRIDES = 10
 COLOURS = ('green', 'cyan', 'violet', 'pink', 'orange', 'blue', 'grey')
 KEY_RE = re.compile(r'^[\w.-]{1,64}\Z')
 SPLITS = ('row', 'column')
-AREAS = ('hall', 'block', 'zone', 'box')
+AREAS = ('hall', 'block', 'row', 'zone', 'box')
 PRESETS = ('overview', 'network', 'electrical', 'ops')
 FILTERS = ('all', 'problems', 'offline', 'recent', 'note', 'checked_in')
 LABELS = ('auto', 'all', 'none')
@@ -306,14 +307,15 @@ def _number(value, low, high, message):
 
 def _area(raw):
     if not isinstance(raw, dict) or raw.get('kind', 'hall') not in AREAS:
-        raise LayoutError('An area is the whole hall, a seat block, a zone or a box.')
+        raise LayoutError('An area is the whole hall, a seat block, a row, a zone or a box.')
     kind = raw.get('kind', 'hall')
     if kind == 'hall':
         return {'kind': 'hall'}
-    if kind in ('block', 'zone'):
+    if kind in ('block', 'row', 'zone'):
         ref = str(raw.get('id') or '').strip()
         if not REF_RE.match(ref):
-            raise LayoutError('Pick the seat block to show.' if kind == 'block' else 'Pick the zone to show.')
+            raise LayoutError({'block': 'Pick the seat block to show.', 'row': 'Pick the row to show.',
+                               'zone': 'Pick the zone to show.'}[kind])
         return {'kind': kind, 'id': ref}
     off = 'The part of the plan to show is not on the plan.'
     box = {k: _number(raw.get(k), -100_000, 100_000, off) for k in ('x', 'y')}

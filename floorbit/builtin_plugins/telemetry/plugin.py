@@ -134,12 +134,19 @@ class Plugin(Base):
         dev = self._device(hostname)
         if dev is None:
             return {'status': 'unknown', 'hostname': hostname, 'problems': _problems().get(hostname, [])}
+        if dev.waiting():
+            return {'status': 'unknown', 'hostname': hostname, 'ip': dev.address, 'source': 'telemetry',
+                    'driver': dev.driver, 'waiting': True,
+                    'problems': _problems().get(dev.name, [])}
         result = {'status': 'online' if dev.online() else 'offline', 'hostname': hostname, 'ip': dev.address,
                   'source': 'telemetry', 'driver': dev.driver, 'problems': _problems().get(dev.name, [])}
         for key, value in (('cpu_load', dev.cpu), ('mem_percent', dev.mem), ('uptime', dev.uptime),
                            ('states', dev.states)):
             if value is not None:
                 result[key] = round(value) if key in ('cpu_load', 'mem_percent') else value
+        temperature = dev.temperature()
+        if temperature is not None:
+            result['temperature'] = round(temperature, 1)    # degrees C, the hottest sensor, as LibreNMS's
         if dev.gateways:
             result['gateways'] = [{'name': n, **{k: v for k, v in g.items() if k != 'seen'}}
                                   for n, g in sorted(dev.gateways.items())]
@@ -199,8 +206,9 @@ class Plugin(Base):
 
     def _uplinks(self, dev):
         """Port keys that lead to other switches, and the MAC count per port."""
+        from floorbit.edge_ports import EDGE_PORT_MACS
         from floorbit.telemetry.clients import uplinks
-        return uplinks(dev, int(self.settings.get('uplink_macs') or 8))
+        return uplinks(dev, EDGE_PORT_MACS)
 
     def find_mac(self, mac):
         """(device, port name, vlan, MACs on that port) of the access port a MAC is on, or None."""

@@ -181,6 +181,12 @@ def app_module(tmp_path, monkeypatch):
     # want a poll call one themselves.
     monitor = app.app.extensions["floorbit_integrations"]["monitor"]
     monkeypatch.setattr(monitor, "poll_once", lambda *a, **k: None)
+    # The power watch files an incident when a circuit turns red; under the demo's readings a round
+    # landing mid-test added one to a test that counts the incidents. Tests that want readings
+    # call the watch themselves.
+    power = app.app.extensions["floorbit_power"]
+    power.stop()
+    monkeypatch.setattr(power, "start", lambda: None)
     from integrations.monitor import StatusMonitor
     StatusMonitor.latest.update(polled=None, at=None, devices=None)   # one that ran between tests
     app.app.config["TESTING"] = True

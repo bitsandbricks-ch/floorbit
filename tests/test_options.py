@@ -50,3 +50,15 @@ def test_every_list_answers(client):
     for kind in ("halls", "firewalls", "agents", "users", "teams"):
         r = client.get(f"/api/options/{kind}")
         assert r.status_code == 200 and isinstance(r.get_json()["options"], list), kind
+
+
+def test_the_plan_names_each_row_as_the_row_picker_does(client):
+    """#1078: a dashboard pane picks a row from the plan; ids and names match /api/options/rows."""
+    client.post("/api/seat-blocks", json={"name": "", "x": 10, "y": 10, "cols": 3, "rows": 2, "naming": "rows",
+                                          "row_start": "C"})
+    client.post("/api/seat-blocks", json={"name": "A", "x": 50, "y": 10, "cols": 2, "rows": 2})
+    shapes = client.get("/api/plan").get_json()["drawing"]["shapes"]
+    from_plan = sorted((r["id"], r["label"]) for s in shapes for r in
+                       [{"id": x["id"], "label": x["name"]} for x in s["row_list"]])
+    options = sorted((o["value"], o["label"]) for o in client.get("/api/options/rows").get_json()["options"])
+    assert from_plan == options and len(options) == 4

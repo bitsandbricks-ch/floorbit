@@ -20,7 +20,7 @@
   "eventEnd": "Event ends",
   "saveEvent": "Save times",
   "saved": "Saved.",
-  "empty": "Nothing planned yet. Add an item or import an iCal file.",
+  "empty": "Add an item or import an iCal file.",
   "editNamed": "Change {{title}}",
   "deleteNamed": "Remove {{title}}",
   "kind": {
@@ -29,5 +29,6 @@
     "meal": "Food",
     "quiet": "Quiet hours",
     "other": "Other"
-  }
+  },
+  "emptyTitle": "Nothing planned yet"
 }

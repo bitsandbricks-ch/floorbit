@@ -17,6 +17,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { when } from './handover/format'
 import { LoadingState, ErrorBanner } from '@/components/ui'
+import { PortCheckPanel } from './configs/PortCheck'
 
 /** Switch config backups and what changed during the event (issue #96). A typed switch login lives
  *  only in this page's state for one run; the nightly run uses the stored logins. */
@@ -95,6 +96,7 @@ export default function Configs() {
               </Paper>
             )}
             {selected ? <Detail sw={selected} onBack={() => open(null)} /> : <Overview rows={info.switches} onOpen={open} />}
+            {!selected && <PortCheckPanel />}
           </>
         )}
       </Stack>

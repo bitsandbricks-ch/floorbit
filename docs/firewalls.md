@@ -23,6 +23,7 @@ the crew sees at a glance which ranges have failed over and which firewall a sea
 | Range | A network, like `192.0.2.0/27`. A host address is turned into its network. IPv4 and IPv6. |
 | Name | Optional, like `Block A`. |
 | Firewalls in order | The first is the one the range should take, the others the failover order (at most 10). |
+| Seat blocks | Optional: the blocks this range is for. See [Seats in the wrong range](#seats-in-the-wrong-range). |
 
 The firewalls are the inventory's devices with the role **Firewall** (from NetBox, or added by
 hand). A seat's range is the most specific one its IP is in, the way the core's routing table picks
@@ -54,6 +55,27 @@ Each import replaces the last one, so a prefix taken out of NetBox goes here too
 read, the last import stays. Ranges planned in Floorbit stay as they are, and a prefix for a network
 planned here already is skipped. Imported ranges say **From NetBox** and are changed there. On a hosted
 Floorbit the local agent asks the event's NetBox (an agent with `firewall_feeds`; older agents say they can't). Every import is in the audit log.
+
+### Seats in the wrong range
+
+Each switch stack usually has its own seat ranges, and stacks come in sets (a colour, a switch type)
+that are [inventory groups](inventory.md#groups-and-tags). A seat patched to the wrong port, a port
+in the wrong VLAN, or a player's own router puts a PC in another stack's range: it works, but on the
+wrong firewall. Floorbit compares every seat's address with its switch's ranges, and a seat outside
+them shows under **Problems › Needs attention** with the range it is in instead (or "outside every
+planned range", usually a router of its own) and its switch port. Three or more such seats behind
+one switch are one item for the switch: check its VLAN.
+
+Nothing needs setting up: a switch's range is the one most of its PCs are in right now, once at
+least 3 of them are and they make 60 % of its PCs in a range ("most of sw-g1 is in …"). Where DHCP
+hands out addresses regardless of the switch, no range is that clear and nothing is flagged; a seat
+in no range at all isn't judged on a guess.
+
+A range can also name the **switches and switch groups** it is for; that wins over the guess. Name
+the group (Green) and every switch in it, and in its subgroups, uses that range. When most seats of
+a named switch are outside its ranges, the range is set for the wrong switch: that is one item
+linking here. An imported range takes its switches here too (**Switches**); they are kept across
+imports. The items name ranges, never a seat's IP.
 
 ## On the floor plan
 
