@@ -282,13 +282,12 @@
     "title": "Agent settings",
     "intro": "Floorbit sends these to the agent. Where the agent's own environment sets a value, that value wins and the field is locked here.",
     "source": {
-      "env": "agent env",
-      "floorbit": "Floorbit",
-      "default": "default"
+      "env": "Set by the agent's environment",
+      "floorbit": "Set here",
+      "default": "Default"
     },
     "secretSet": "Set (type to replace)",
     "atRestart": "at next start",
-    "envWins": "Set on the agent by {{env}}, which wins over Floorbit.",
     "field": {
       "metrics": "Metrics listener",
       "metrics_token": "Metrics token",
@@ -319,18 +318,8 @@
       "log_level": "How much the agent writes to its log. Takes effect right away.",
       "log_summary": "How often the agent writes a summary line to its log; 0 turns it off."
     },
-    "group": {
-      "general": "General",
-      "metrics": "Metrics",
-      "buffer": "Buffer",
-      "vrrp": "Shared addresses (VRRP)",
-      "logs": "Logs"
-    },
-    "pluginsTitle": "Plugin settings for this agent",
-    "pluginsIntro": "Empty fields use the plugin's setting from Settings › Plugins.",
+    "pluginsIntro": "Some plugin settings can differ per agent. They are set on the plugin's page.",
     "pluginDefault": "Plugin setting: {{value}}",
-    "save_one": "Save 1 change",
-    "save_other": "Save {{count}} changes",
     "hallTitle": "Limits set in the hall",
     "hallIntro": "What the agent may reach and do. Only its own environment sets these, so a Floorbit login can't widen them.",
     "hallDefault": "not set",
@@ -363,6 +352,39 @@
       "info": "Info",
       "warning": "Warnings",
       "error": "Errors"
-    }
+    },
+    "envTip": "From the environment variable {{env}} on the agent. Change it where the agent is started.",
+    "advancedHint": "rarely changed; shared addresses show once there is a second agent",
+    "saved": "Saved. The agent picks it up on its next pull.",
+    "hall": {
+      "FLOORBIT_AGENT_ALLOW_ACTIONS": {
+        "label": "Actions that change the hall",
+        "help": "Which plugin actions may change something in the hall, such as clearing the LAN cache. Listed by name: plugin.action, plugin.* or *.",
+        "unset": "none allowed"
+      },
+      "FLOORBIT_AGENT_PLUGIN_UPDATES": {
+        "label": "Plugin updates",
+        "help": "Whether the agent installs signed plugin updates itself (auto), waits for an approval in the hall (approve) or takes none (off).",
+        "unset": "auto"
+      },
+      "FLOORBIT_AGENT_SWITCH_NETS": {
+        "label": "Networks for switch logins",
+        "help": "Where port actions, commands, config backups and the terminal may log in.",
+        "unset": "private addresses only"
+      },
+      "FLOORBIT_AGENT_GAME_NETS": {
+        "label": "Networks for game servers",
+        "help": "Where the agent may ask game servers for their status and run console commands.",
+        "unset": "private addresses only"
+      },
+      "FLOORBIT_AGENT_PROBE_NETS": {
+        "label": "Networks for service checks",
+        "help": "Where the services view may send DNS queries and TCP checks.",
+        "unset": "any address but the agent's own"
+      }
+    },
+    "pluginsTitle": "Plugin settings for this agent",
+    "pluginSame": "Uses the plugin's settings.",
+    "pluginEdit": "Set on the plugin page"
   }
 }

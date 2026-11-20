@@ -1066,6 +1066,27 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   .fb-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 }
 
+/* A settings row (#994): what it is and its help on the left, the control on the right, every
+   control the same width, so a wide screen doesn't leave half the panel empty. One column on phones. */
+.fb-setting-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 8px 32px; align-items: start;
+  padding: 14px 0; border-top: 1px solid var(--mantine-color-default-border);
+}
+.fb-setting-rows > :first-child .fb-setting-row, .fb-setting-rows > .fb-setting-row:first-child { border-top: 0; padding-top: 4px; }
+.fb-setting-about { display: flex; flex-direction: column; gap: 2px; min-width: 0; max-width: 640px; }
+.fb-setting-control { min-width: 0; display: flex; justify-content: flex-start; }
+@media (max-width: 48em) {
+  .fb-setting-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Settings' folded Advanced part (#991): a quiet line under the section's own rows. */
+.fb-setting-advanced { border-top: 1px solid var(--mantine-color-default-border); margin-top: 4px; padding-top: 10px; }
+.fb-agent-fold:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+.fb-setting-advanced.is-alone { border-top: 0; margin-top: 0; padding-top: 0; }
+.fb-setting-advanced-toggle { display: inline-flex; align-items: baseline; gap: 8px; padding: 4px 0; }
+.fb-setting-advanced-toggle svg { transition: transform 120ms ease; align-self: center; }
+.fb-setting-advanced-toggle svg.is-open { transform: rotate(90deg); }
+
 /* Inventory list: sortable column heads and quiet row hints */
 .fb-sort { display: inline-flex; align-items: center; gap: 4px; font: inherit; color: inherit; white-space: nowrap; }
 .fb-sort:hover { color: var(--mantine-color-text); }
