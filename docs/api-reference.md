@@ -222,6 +222,8 @@ Source: [`floorbit/blueprints/configs.py`](https://github.com/bitsandbricks-ch/f
 | POST | `/api/configs/<switch>/baseline` | `configs.read` | `configs` |
 | GET | `/api/configs/<switch>/diff` | `configs.read` | `configs` |
 | POST | `/api/configs/backup` | `configs.read` | `configs` |
+| GET | `/api/configs/port-check` | `configs.read` | `configs` |
+| PUT | `/api/configs/port-check` | `configs.read` | `configs` |
 
 ## floorbit.blueprints.crew
 
