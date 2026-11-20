@@ -113,7 +113,7 @@ def _firewalls(data):
 
 def _agents(_data):
     from .. import agent_link
-    # By id: a renamed agent keeps the devices given to it (telemetry_agent).
+    # By id: a renamed agent keeps the devices given to it (telemetry.agent).
     return [{'value': a['id'], 'label': a.get('name') or a['id'], 'hint': a['id']}
             for a in agent_link.all_agents(_data)]
 

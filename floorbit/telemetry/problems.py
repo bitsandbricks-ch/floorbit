@@ -167,7 +167,7 @@ def hint(problem, port=None):
     if problem['kind'] == 'timeout' and driver == 'snmp' and problem.get('vlan'):
         vlan = problem['vlan']
         return (f'no answer from {where} for VLAN {vlan} (community@{vlan}, or context vlan-{vlan} with SNMPv3): '
-                f'if its other data comes in, the switch doesn\'t have that VLAN (fix telemetry_vlans), or the '
+                f'if its other data comes in, the switch doesn\'t have that VLAN (fix telemetry.snmp.vlans), or the '
                 f'SNMPv3 user may not read vlan- contexts')
     if problem['kind'] == 'timeout' and driver == 'snmp' and problem.get('table'):
         return (f'no answer from {where} while reading {problem["table"]}: if its other data comes in, the walk '

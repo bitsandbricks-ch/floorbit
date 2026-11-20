@@ -243,7 +243,7 @@ LibreNMS call (an agent older than this asks nothing, and those areas stay as th
 **Drift.** What discovery keeps instead of overwriting, it lists as drift: per device, each field
 where the inventory and the device disagree (the serial typed by hand against the one it reports;
 memory and disk only when more than 10% apart), a different hostname (sysName), a different
-management address (not when the device has a `telemetry_address`), and interfaces: in the
+management address (not when the device has a `telemetry.address`), and interfaces: in the
 inventory but not on the device, on the device but hidden here, or with a locked value the device
 reports differently. Each row says what is configured, what is actual and since when.
 `GET /api/inventory/<id>` has the device's `drift`, `GET /api/inventory` a count per device, and

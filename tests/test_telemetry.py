@@ -446,7 +446,7 @@ def _inventory_switch(client, tmp_path, monkeypatch, **cred):
     from test_inventory_scope import add, put_cred
     monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
     dev = add(client, name="sw-a-01", mgmt_ip="192.0.2.21", platform="IOS 15.2", features={"telemetry": True},
-              properties={"telemetry_vlans": "10, 20"})
+              properties={"telemetry.snmp.vlans": "10, 20"})
     login = cred or {"kind": "snmp_v2c", "secret": "s3cret-community"}
     put_cred(client, owner_type="device", owner_id=dev["id"], **login)
     return dev
@@ -496,7 +496,7 @@ def test_a_device_that_sends_by_itself_needs_no_login(client, tmp_path, monkeypa
     from floorbit.telemetry import targets
     monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
     add(client, name="fw-01", mgmt_ip="192.0.2.41", role="firewall", platform="OPNsense", features={"telemetry": True},
-        properties={"telemetry_drivers": "push, snmp"})
+        properties={"telemetry.drivers": "push, snmp"})
     add(client, name="sw-quiet", mgmt_ip="192.0.2.42", features={"telemetry": True})     # nothing to ask with
     found = {t["name"]: t for t in targets.from_inventory()}
     assert list(found) == ["fw-01"] and found["fw-01"]["drivers"] == ["push"] and found["fw-01"]["kind"] == "firewall"
@@ -514,10 +514,10 @@ def test_what_a_device_leaves_open_comes_from_its_software_and_interfaces(client
         added = client.post(f"/api/inventory/{sw['id']}/interfaces", json={"name": name, "vlan": vlan})
         assert added.status_code == 201, added.get_json()
     core = add(client, name="core-01", mgmt_ip="192.0.2.11", platform="NX-OS", features={"telemetry": True},
-               properties={"telemetry_drivers": "snmp mdt"})
+               properties={"telemetry.drivers": "snmp mdt"})
     put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="s3cret-community")
     found = {t["name"]: t for t in targets.from_inventory()}
-    # A Catalyst keeps a MAC table per VLAN: the VLANs on its interfaces, unless telemetry_vlans says.
+    # A Catalyst keeps a MAC table per VLAN: the VLANs on its interfaces, unless telemetry.snmp.vlans says.
     assert found["sw-b-01"]["fdb"] == "cisco_vlans" and found["sw-b-01"]["vlans"] == [101, 102]
     # Cisco names an MDT stream after the switch.
     assert found["core-01"]["mdt_node"] == "core-01" and found["core-01"]["fdb"] == "qbridge"
@@ -703,7 +703,7 @@ def test_devices_from_the_inventory_are_collected_with_their_stored_logins(clien
     inventory_scope._handed.clear()
     core = tag(client, name="core", features={"telemetry": True})
     nx = add(client, name="core-1", mgmt_ip="192.0.2.1", platform="NX-OS 10.3", tags=[core["id"]],
-             properties={"telemetry_vlans": "10, 20"})
+             properties={"telemetry.snmp.vlans": "10, 20"})
     add(client, name="sw-a-01", mgmt_ip="192.0.2.21", platform="IOS 15.2", tags=[core["id"]])
     add(client, name="sw-off", mgmt_ip="192.0.2.99")                        # feature off
     put_cred(client, owner_type="tag", owner_id=core["id"], kind="snmp_v3", username="mon",
@@ -734,10 +734,10 @@ def test_a_port_per_way_of_asking_and_an_agent_from_the_group(client, tmp_path, 
     from floorbit.telemetry import pollers, targets
     monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
     hall = group(client, name="Hall B", features={"telemetry": True},
-                 properties={"telemetry_port_snmp": "1161", "telemetry_agent": "rack-b"})
+                 properties={"telemetry.snmp.port": "1161", "telemetry.agent": "rack-b"})
     add(client, name="sw-b-01", mgmt_ip="192.0.2.31", platform="IOS-XE 17", group_id=hall["id"],
-        properties={"telemetry_port_gnmi": "50052", "telemetry_drivers": "snmp, gnmi, restconf",
-                    "telemetry_port_api": "8443", "telemetry_address": "192.0.2.131"})
+        properties={"telemetry.gnmi.port": "50052", "telemetry.drivers": "snmp, gnmi, restconf",
+                    "telemetry.api.port": "8443", "telemetry.address": "192.0.2.131"})
     put_cred(client, owner_type="group", owner_id=hall["id"], kind="snmp_v2c", secret="example-community")
     found = {t["name"]: t for t in targets.from_inventory()}["sw-b-01"]
     assert found["ports"] == {"snmp": 1161, "gnmi": 50052, "api": 8443} and found["agent"] == "rack-b"
@@ -773,7 +773,7 @@ def test_each_agent_gets_its_share_of_the_devices(client, anon_client, tmp_path,
     a, b = enrol(client, "Rack A"), enrol(client, "Rack B")
     client.put("/api/settings/plugins/telemetry", json={"enabled": True})
     add(client, name="sw-a-01", mgmt_ip="192.0.2.21", features={"telemetry": True},
-        properties={"telemetry_agent": a["id"]})
+        properties={"telemetry.agent": a["id"]})
     add(client, name="sw-c-01", mgmt_ip="192.0.2.23", features={"telemetry": True})
     put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="example-community")
 
@@ -876,3 +876,18 @@ def test_victoriametrics_names_agent_numbers_by_agent(monkeypatch):
     assert sent[0] == "fb_agent_points,agent=ab12 value=3.0 1000000000000"
     assert store.series("agent:ab12", None, "points", hours=1, now=2000) == [[1000, 3.0]]
     assert asked == ['fb_agent_points_value{agent="ab12"}']
+
+
+def test_old_telemetry_property_names_move_to_their_namespace():
+    from floorbit import upgrades
+    data = {'inventory': [{'id': 'd1', 'properties': {'telemetry_vlans': '10 20', 'rack': 'B3'}}],
+            'inventory_groups': [{'id': 'g1', 'properties': {'telemetry_agent': 'a1', 'telemetry.agent': 'a2'}}],
+            'inventory_tags': [{'id': 't1', 'properties': {'telemetry_port_snmp': '1161'}}],
+            'inventory_defaults': {'properties': {'telemetry_drivers': 'snmp traps'}}}
+    upgrades._telemetry_properties(data)
+    assert data['inventory'][0]['properties'] == {'telemetry.snmp.vlans': '10 20', 'rack': 'B3'}
+    assert data['inventory_groups'][0]['properties'] == {'telemetry.agent': 'a2'}       # the new name wins
+    assert data['inventory_tags'][0]['properties'] == {'telemetry.snmp.port': '1161'}
+    assert data['inventory_defaults']['properties'] == {'telemetry.drivers': 'snmp traps'}
+    upgrades._telemetry_properties(data)                                                 # safe to run twice
+    assert data['inventory'][0]['properties'] == {'telemetry.snmp.vlans': '10 20', 'rack': 'B3'}
