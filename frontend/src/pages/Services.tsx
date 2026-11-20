@@ -9,14 +9,14 @@ import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type {
-  DnsResolver, GameServer, GameServerList, InternetSite, IspUplink, Services as ServicesData,
+  DnsResolver, GameServer, GameServerList, InternetSite, IspUplink, Services as ServicesData, ServiceSummary,
 } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ServiceGroup } from '@/widgets/ServiceList'
 import { STATES, TYPES, serviceRows } from '@/widgets/serviceRows'
-import type { ServiceType } from '@/widgets/serviceRows'
+import type { ServiceRowData, ServiceType } from '@/widgets/serviceRows'
 import { EntitySelect } from '@/components/EntitySelect'
 import { RconConsole, ServerModal } from './services/GameServerParts'
 import { ErrorBanner } from '@/components/ui'
@@ -27,6 +27,9 @@ type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'
 
 /** Internet lines, DNS resolvers, the sites players need, the LAN cache and the game servers
  *  (issues #471, #472, #889): one list, grouped by type or state, with one "Add service". */
+/** Health wall kinds the Services page lists without setting them up (issue #1037). */
+const ELSEWHERE = ['dhcp', 'firewall', 'other']
+
 export default function Services() {
   const { t } = useTranslation()
   const canEdit = useCan('floorplan.edit')
@@ -34,6 +37,7 @@ export default function Services() {
   const canRcon = useCan('games.rcon')
   const q = useQuery({ queryKey: qk.services, queryFn: () => get<ServicesData>('/api/services'), refetchInterval: 15_000 })
   const games = useQuery({ queryKey: qk.gameServers, queryFn: () => get<GameServerList>('/api/game-servers'), refetchInterval: 15_000 })
+  const summary = useQuery({ queryKey: qk.serviceSummary, queryFn: () => get<ServiceSummary>('/api/services/summary'), refetchInterval: 15_000 })
   const [editing, setEditing] = useState<Editing>(null)
   const [console_, setConsole] = useState<GameServer | null>(null)
   const [search, setSearch] = useState('')
@@ -49,17 +53,23 @@ export default function Services() {
     mutationFn: () => post<ServicesData>('/api/services/sites/common', {}),
     onSuccess: (fresh) => qc.setQueryData(qk.services, fresh),
   })
-  const rows = serviceRows(t, data, games.data, {
+  // DHCP, firewalls and plugin checks are set up elsewhere but are services too (issue #1037): listed
+  // here from the shared summary, so this page counts what the health panes and dashboards count.
+  const elsewhere: ServiceRowData[] = (summary.data?.rows ?? []).filter((r) => ELSEWHERE.includes(r.kind)).map((r) => ({
+    key: `h-${r.id}`, type: r.kind as ServiceType, name: r.name, status: r.status, target: r.summary,
+    value: null, unit: null, note: t(`services.setUpElsewhere.${r.kind}`), points: [],
+  }))
+  const rows = [...serviceRows(t, data, games.data, {
     uplink: canEdit ? (u) => setEditing({ kind: 'uplinks', item: u }) : undefined,
     dns: canEdit ? (r) => setEditing({ kind: 'resolvers', item: r }) : undefined,
     site: canEdit ? (s) => setEditing({ kind: 'sites', item: s }) : undefined,
     game: canSetUp ? (g) => setEditing({ kind: 'game', item: g }) : undefined,
-  })
+  }), ...elsewhere]
   const needle = search.trim().toLowerCase()
   const matching = rows.filter((r) => (shown === 'all' || (shown === 'up') === (r.status === 'up'))
     && (!needle || `${r.name} ${r.target} ${t(`services.types.${r.type}`)}`.toLowerCase().includes(needle)))
   const groups = by === 'type'
-    ? TYPES.map((k) => ({ id: k, title: t(`services.groups.${k}`), rows: matching.filter((r) => r.type === k) }))
+    ? [...TYPES, ...ELSEWHERE].map((k) => ({ id: k, title: t(`services.groups.${k}`), rows: matching.filter((r) => r.type === k) }))
     : STATES.map((k) => ({ id: k, title: t(`services.status.${k}`), rows: matching.filter((r) => r.status === k) }))
   const notUp = rows.filter((r) => r.status !== 'up').length
   const adds = [

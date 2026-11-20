@@ -66,14 +66,20 @@
     "dns": "DNS resolver",
     "site": "Internet site",
     "lancache": "LAN cache",
-    "game": "Game server"
+    "game": "Game server",
+    "dhcp": "DHCP",
+    "firewall": "Firewall",
+    "other": "Check"
   },
   "groups": {
     "uplink": "Internet lines",
     "dns": "DNS resolvers",
     "site": "Internet sites",
     "lancache": "LAN cache",
-    "game": "Game servers"
+    "game": "Game servers",
+    "dhcp": "DHCP",
+    "firewall": "Firewalls",
+    "other": "Other checks"
   },
   "search": "Search services",
   "show": "Show",
@@ -87,5 +93,10 @@
   "byState": "Group by state",
   "noMatch": "No service matches.",
   "empty": "Nothing is watched yet.",
-  "emptyAdmin": "Nothing is watched yet. Add the internet lines, the resolvers players use, the sites they need and the game servers, or start with the usual sites."
+  "emptyAdmin": "Nothing is watched yet. Add the internet lines, the resolvers players use, the sites they need and the game servers, or start with the usual sites.",
+  "setUpElsewhere": {
+    "dhcp": "From the DHCP server: set up in its plugin",
+    "firewall": "Set up under Network > Firewalls",
+    "other": "From a plugin"
+  }
 }

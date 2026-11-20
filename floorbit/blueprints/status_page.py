@@ -16,7 +16,7 @@ from flask import Blueprint, current_app, g, jsonify, redirect, request
 
 from integrations import events
 
-from .. import audit, spa, status_page
+from .. import audit, firewalls, spa, status_page
 from ..store import load_data
 
 bp = Blueprint('status_page', __name__)
@@ -39,7 +39,14 @@ def _now(show_names=False):
     statuses = dict(getattr(monitor, 'statuses', None) or {})
     # No poll yet, or the source not answering: say "unknown" rather than "all fine".
     up = bool(monitor and monitor.last_poll) and not sources.offline()
-    return status_page.current(load_data(), statuses, up, show_names)
+    wall = current_app.extensions.get('floorbit_health')
+    # The wall's last poll, not a fresh one: this page is public and must stay cheap.
+    checks = wall.snapshot()['checks'] if wall is not None else []
+    try:
+        routed = firewalls.seat_routes()['seats'] if firewalls.configured() else {}
+    except Exception:  # noqa: BLE001 - a firewall plan that can't be read must not take the page down
+        routed = {}
+    return status_page.current(load_data(), statuses, up, show_names, checks=checks, routed=routed)
 
 
 def _who():
