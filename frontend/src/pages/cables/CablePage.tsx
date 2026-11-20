@@ -36,7 +36,7 @@ export default function CablePage() {
   const back = <Button component={Link} to="/cables" variant="default" leftSection={<IconArrowLeft size={16} />}>{t('cables.back')}</Button>
 
   return (
-    <Layout title={title}>
+    <Layout title={title} back={{ href: '/cables', label: t('cables.title') }}>
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
       {query.isPending ? <LoadingState rows={6} /> : isNew && !canEdit ? (
         <EmptyState title={t('cables.noRights')} action={back} />
