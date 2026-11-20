@@ -18,7 +18,7 @@
     "cache_saved_bytes": "Cache-Einsparung"
   },
   "past": "Vergangene Events",
-  "none": "Noch kein Event abgeschlossen. Wenn dieses vorbei ist, schliesse es unten ab, dann erscheint es hier.",
+  "none": "Wenn dieses vorbei ist, schliesse es unten ab, dann erscheint es hier.",
   "closedBy": "abgeschlossen von {{who}}",
   "report": "Bericht",
   "floorPlan": "Hallenplan",
@@ -33,5 +33,6 @@
   "nextNameHelp": "Freiwillig. Wird zum Event-Namen in den Theme-Einstellungen.",
   "typeToConfirm": "Zum Bestätigen «{{word}}» eintippen",
   "close": "Event abschliessen",
-  "closed": "{{name}} ist abgeschlossen und gespeichert. Das nächste Event hat begonnen."
+  "closed": "{{name}} ist abgeschlossen und gespeichert. Das nächste Event hat begonnen.",
+  "noneTitle": "Noch kein Event abgeschlossen"
 }

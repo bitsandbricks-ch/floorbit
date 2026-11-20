@@ -12,6 +12,7 @@ import {
   type CopyChanges, type CopyPart, type TenantEvent, type TenantEvents as Data,
 } from '@/api/tenantEvents'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { StateBadge } from '@/components/State'
 
 const KEY = ['tenant-events'] as const
 const NEW = '__new__'
@@ -22,8 +23,7 @@ function label(e: TenantEvent | undefined, t: (k: string) => string): string {
 
 function StatusBadge({ status }: { status: TenantEvent['status'] }) {
   const { t } = useTranslation()
-  const color = status === 'live' ? 'up' : status === 'planning' ? 'warn' : 'gray'
-  return <Badge size="sm" variant="light" color={color} tt="none">{t(`tenantEvents.status.${status}`)}</Badge>
+  return <StateBadge state={status} label={t(`tenantEvents.status.${status}`)} />
 }
 
 function NameModal({ title, initial, onClose, onSave, pending, error, children, saveLabel }: {

@@ -103,8 +103,13 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   See [dashboards.md](dashboards.md).
 - **Shared components, no look-alikes.** Before building a card, table, form field or dialog, use
   what exists: `EntitySelect`, `ConfirmButton`/`ConfirmIcon`, `DateTimeInput`, `PageTabs`,
-  `SidePanel`, `StatCard`, the telemetry components. New visual blocks become shared components or
+  `SidePanel`, `StatCard`, `StateBadge`/`StateBit` (one tone and word per state word, from
+  `components/stateTone.ts`), the telemetry components. New visual blocks become shared components or
   widgets.
+- **One table.** Every table is `DataTable` (`frontend/src/components/DataTable.tsx`): sorting,
+  paging, the empty state and the count, with the view kept in the address. The dashboard's table
+  widget wraps the same component; pages never embed widgets. Fix it once and every table follows
+  (#1015).
 - **Where code goes:** a new API area is a blueprint, a new page is a React page with English and
   German texts, a new editor feature is a file in `frontend/src/pages/plan/edit/`, new on-plan data is
   a layer. Prefer a new file per feature over growing a shared one.
@@ -131,7 +136,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   notifications on the right; no second title row on a computer), a status line. Pinned favourites per person, including
   dashboards. The tenant switcher shows only with two or more tenants.
 - **Sidebar, about a dozen rows:** Overview and Floor plan · **Work:** Helpdesk · **Monitoring:**
-  Services, Network, Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
+  Health, Network (Topology, Firewalls, Wi-Fi, Telemetry, Security), Services (DNS, LAN cache),
+  Traffic (Games, Stats, Speed tests), Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
   Pre-flight, Logs · **Screens:** Dashboards. Settings is the gear at the foot; the event's own
   pages (schedule, changelog, replay, report) are in the event menu at the top. A row holds its
   pages as tabs (Helpdesk: Problems, Incidents, My jobs, Handover, Status updates); a new page
@@ -166,6 +172,14 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   (the sidebar is 15px).
 - **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
   for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
+- **One switch per capability:** what the crew wants is turned on in one place; the switch turns its
+  settings, features and plugins on together and lists what it still needs.
+- **Settings rows:** name and help on the left, the control on the right at one width; changes
+  collect in the save bar until Save.
+  Values only whoever runs the server needs are marked `advanced` and fold under Advanced. An agent's
+  settings use the same rows and save bar. Pages name a value in words; an env var's name only
+  shows in a tooltip. A plugin's settings have one home, its plugin page, including the values that
+  differ per agent (its Per agent tab); Settings search and the agent's page link there.
 - **Deletes ask first** (`ConfirmButton`), never `window.confirm`, `alert` or `prompt`.
 - **Languages:** English and Swiss German everywhere (pages, server errors, Discord, logs); standard
   German is derived. No "ß". Terms: Sitzblock, Störung, Hallenplan, Mandant.

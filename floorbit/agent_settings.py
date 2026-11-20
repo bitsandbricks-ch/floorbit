@@ -23,7 +23,6 @@ PLUGIN_KEY = 'plugin_settings'
 
 # key, env var, type, default, limits; "restart": the agent takes it at its next start.
 FIELDS = [
-    {'key': 'lan_url', 'env': 'FLOORBIT_AGENT_LAN_URL', 'type': 'url', 'default': '', 'restart': False},
     {'key': 'metrics', 'env': 'FLOORBIT_AGENT_METRICS', 'type': 'listen', 'default': '0.0.0.0:9520', 'restart': True},
     {'key': 'metrics_token', 'env': 'FLOORBIT_AGENT_METRICS_TOKEN', 'type': 'secret', 'default': '', 'restart': True},
     {'key': 'buffer_max_mb', 'env': 'FLOORBIT_AGENT_BUFFER_MAX_MB', 'type': 'int', 'default': 2048,

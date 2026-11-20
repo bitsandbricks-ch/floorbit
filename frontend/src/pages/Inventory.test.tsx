@@ -123,7 +123,9 @@ describe('Inventory page', () => {
   it('says when the inventory syncs on its own', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': { ...list, every: 15 }, 'GET /api/inventory/groups': overview }).fn)
     app()
-    expect(await screen.findByText('Syncs on its own every 15 minutes.')).toBeInTheDocument()
+    // The chip says the short version; its tooltip has the schedule.
+    fireEvent.mouseEnter((await screen.findByText(/^NetBox (synced|not synced)/)).closest('[role=status]')!)
+    expect(await screen.findByText(/Syncs on its own every 15 minutes\./)).toBeInTheDocument()
   })
 
   it('shows what NetBox says for a locked field and can take it back', async () => {
@@ -169,7 +171,8 @@ describe('Inventory page', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     app()
-    fireEvent.click(await screen.findByRole('button', { name: 'Icons' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'More' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Icons' }))
     const dialog = await screen.findByRole('dialog', { name: 'Icon library' })
     expect(await within(dialog).findByText('No icons uploaded yet.')).toBeInTheDocument()
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>'
@@ -233,10 +236,13 @@ describe('Inventory page', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview }).fn)
     app()
     await screen.findByRole('link', { name: 'sw-hand' })
+    // Picking a group or a tag on the Groups and tags tab goes back to the list, filtered.
+    fireEvent.click(screen.getByRole('tab', { name: 'Groups and tags' }))
     fireEvent.click(await screen.findByRole('button', { name: /^Hall A/ }))
     await waitFor(() => expect(screen.queryByRole('link', { name: 'sw-hand' })).toBeNull())
     expect(screen.getByRole('link', { name: 'Stage switch' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /No group/ }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Groups and tags' }))
+    fireEvent.click(await screen.findByRole('button', { name: /No group/ }))
     expect(await screen.findByRole('link', { name: 'sw-hand' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Stage switch' })).toBeNull()
   })
@@ -367,6 +373,7 @@ describe('Inventory page', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     app()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Groups and tags' }))
     fireEvent.click(await screen.findByRole('button', { name: 'New group' }))
     // A new group opens on its own page.
     fireEvent.change((await screen.findAllByRole('textbox', { name: 'Name' }))[0], { target: { value: 'Core' } })

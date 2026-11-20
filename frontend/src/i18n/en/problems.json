@@ -1,6 +1,6 @@
 {
   "title": "Problems",
-  "intro": "Everything wrong right now: switches offline, services down, security findings and power circuits close to tripping. Mute a switch or service you are working on so it stops paging.",
+  "intro": "Everything wrong right now: switches offline, services down, Wi-Fi access points down or busy, security findings and power circuits close to tripping. Mute what you are working on so it stops paging.",
   "none": "Nothing is wrong right now.",
   "count": {
     "down_one": "{{count}} down",
@@ -23,7 +23,9 @@
     "checkin": "Check-in",
     "mapping": "Seat port",
     "forecast": "Forecast",
-    "log": "Log"
+    "log": "Log",
+    "plugin": "Plugin",
+    "wifi": "Wi-Fi"
   },
   "attention": {
     "title": "Needs attention",
@@ -39,7 +41,7 @@
   "endsIn_other": "ends in {{count}} minutes",
   "mutedUntil": "Muted until {{time}} by {{who}}",
   "quiet": "Quiet hours: Discord messages go out silently, without the mention.",
-  "mutes": "Muted switches and services",
+  "mutes": "Muted alerts",
   "muteTitle": "Mute alerts for {{name}}",
   "muteText": "No Discord messages about this switch going offline or coming back until the mute ends. It stays on this list.",
   "for": "For",
@@ -58,10 +60,18 @@
     "muted": "Muted"
   },
   "muteTextService": "No Discord messages about this service going down or coming back until the mute ends. It stays on this list and on the health wall.",
+  "muteTextAp": "Keeps this access point out of the problem counts until the mute ends. It stays on this list and in the Wi-Fi view.",
   "show": "Show",
   "all": "All",
   "report": "Make an incident",
   "incidentOpen": "Incident open",
   "copy": "Copy list",
-  "copied": "Copied"
+  "copied": "Copied",
+  "seatsAffected_one": "1 seat affected",
+  "seatsAffected_other": "{{count}} seats affected",
+  "switchesBehind_one": "1 switch behind it",
+  "switchesBehind_other": "{{count}} switches behind it",
+  "behindCause": "Behind {{name}}, which is down: start there",
+  "showSeats": "Show the seats",
+  "hideSeats": "Hide the seats"
 }

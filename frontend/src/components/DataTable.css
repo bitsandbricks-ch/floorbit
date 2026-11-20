@@ -1,0 +1,16 @@
+/* The shared table (#1015). */
+.fb-dt-scroll { overflow-x: auto; }
+.fb-dt-scroll > .fb-dt { min-width: var(--fb-dt-min, 0); }
+.fb-dt td { white-space: nowrap; }
+.fb-dt .fb-dt-num { text-align: right; font-variant-numeric: tabular-nums; }
+.fb-dt .fb-dt-num .fb-sort { flex-direction: row-reverse; }
+.fb-dt td.fb-dt-wrap { white-space: normal; overflow-wrap: anywhere; min-width: 16rem; }
+.fb-dt td.fb-dt-mono { font-family: var(--mantine-font-family-monospace); }
+.fb-dt.is-compact { font-size: var(--mantine-font-size-xs); }
+.fb-dt-sortable { opacity: 0; transition: opacity 120ms; }
+.fb-dt th:hover .fb-dt-sortable, .fb-dt .fb-sort:focus-visible .fb-dt-sortable { opacity: 0.6; }
+@media (max-width: 48em) {
+  .fb-dt .fb-dt-phone-hide { display: none; }
+  .fb-dt-scroll > .fb-dt { min-width: 0; }
+  .fb-dt.fb-table-stack td { white-space: normal; }
+}

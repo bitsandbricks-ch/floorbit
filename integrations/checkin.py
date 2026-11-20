@@ -318,6 +318,13 @@ def short_address():
     return raw.split('/')[0].split(':')[0]
 
 
+def hall_url():
+    """``http://`` + CHECKIN_ADDRESS with its port, if it has one: where a browser in the hall reaches
+    an agent's front door (check-in with the PC's own address, the seat walk's hello). '' when unset."""
+    raw = re.sub(r'^[a-z]+://', '', str(config.get('CHECKIN_ADDRESS', '') or '').strip().lower()).split('/')[0]
+    return f'http://{raw}' if re.fullmatch(r'[a-z0-9.-]{1,120}(:[0-9]{1,5})?', raw) else ''
+
+
 def is_short_address(host):
     want = short_address()
     return bool(want) and str(host or '').lower().split(':')[0] == want
@@ -326,7 +333,6 @@ def is_short_address(host):
 # ── which port a PC is on ──────────────────────────────────────────────────────
 _port_cache = {}      # ip -> (time, {"switch", "port", "mac", "edge"} or None)
 PORT_CACHE_SECONDS = 60
-EDGE_PORT_MACS = 4
 
 
 def cached_port(ip):
@@ -350,6 +356,7 @@ def port_of(ip):
     hit = _port_cache.get(ip)
     if hit and time.time() - hit[0] < PORT_CACHE_SECONDS:
         return hit[1]
+    from floorbit import edge_ports
     found, sure = None, True
     try:
         monitor = _monitoring()
@@ -357,8 +364,7 @@ def port_of(ip):
         if port and port.get('port'):
             found = {'switch': port.get('device_name') or port.get('hostname'), 'port': port.get('port'),
                      'mac': normalise_mac(port.get('mac')),
-                     # More MACs than a PC (and its VMs) on the port: an AP, a desk switch, an uplink.
-                     'edge': (port.get('macs_on_port') or 0) <= EDGE_PORT_MACS}
+                     'edge': edge_ports.is_edge(port.get('macs_on_port'))}
     except Exception:  # noqa: BLE001  # a slow or broken monitoring source must not stop a check-in
         found, sure = None, False
     from floorbit import sources

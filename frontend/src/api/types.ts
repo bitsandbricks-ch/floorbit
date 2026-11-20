@@ -33,11 +33,12 @@ interface WidgetBase {
 
 export type Widget = WidgetBase &
   (
-    /** ``min`` and ``max`` let a stat show as a gauge. */
-    | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number }
-    | { type: 'status'; items: { label: string; state: State; detail: string }[] }
+    /** ``min`` and ``max`` let a stat show as a gauge. ``text`` never comes from the server: a
+     *  pane's value mapping sets it to show instead of the number (widgets/kinds/display.ts). */
+    | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number; text?: string }
+    | { type: 'status'; items: { label: string; state: State; detail: string; device?: string }[] }
     /** ``number`` (and ``max``) on items let a list show as bars or a pie. */
-    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number }[] }
+    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number; colour?: string; device?: string }[] }
     | {
         type: 'table'
         columns: { key: string; label: string }[]
@@ -45,7 +46,9 @@ export type Widget = WidgetBase &
       }
     | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
     /** Up to four lines of [unix seconds, value], oldest first. */
-    | { type: 'series'; series: { label: string; points: [number, number][] }[]; unit: string }
+    | { type: 'series'; series: { label: string; points: [number, number][]; colour?: string; ghost?: boolean }[]; unit: string
+      /** What happened when, drawn as lines across the graph. */
+      marks?: { t: number; label: string; tone: Tone }[] }
   )
 
 /** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */
@@ -98,6 +101,10 @@ export interface WidgetTile {
   size: 'small' | 'wide'
   refresh: number
   url: string
+  /** A pane may pick the time it shows (``?range=``) and compare it (``?compare=``), issue #960. */
+  ranges?: boolean
+  /** It can mark what happened on its graph (``?marks=1``): switches down, incidents. */
+  marks?: boolean
 }
 
 export interface ActionTile {
@@ -173,6 +180,10 @@ export interface Device extends Record<InventoryField, string> {
   fields?: Record<string, string>
   interface_count?: number
   blocked?: number
+  /** Live, in the list only: the status monitor's state (null before it polled) and ports up of all. */
+  state?: 'online' | 'offline' | 'unknown' | null
+  ports?: { up: number; total: number } | null
+  drift?: number
 }
 
 /** Icon, colour, tags, properties and feature switches: what devices, groups and tags all carry. */
@@ -685,18 +696,19 @@ export interface PowerOverview {
   crit: number
   last_poll: number | null
   plugins: number
-  blocks: { id: string; name: string; rows: number }[]
+  /** label: the name, or the row letters of a block named by its rows; row_names: each row, top first. */
+  blocks: { id: string; name: string; label: string; rows: number; row_names: string[] }[]
   can_edit: boolean
   can_read: boolean
 }
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
-export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link'
+export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin'
   | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
-  /** The switch id, or ``health:<service id>`` for a service (issue #256). */
+  /** The switch id, ``health:<service id>`` for a service (issue #256) or ``wifi:<ap>`` for an access point. */
   switch_id: string
-  kind?: 'switch' | 'health'
+  kind?: 'switch' | 'health' | 'wifi'
   name: string
   until: number
   at: number
@@ -712,12 +724,17 @@ export interface Problem {
   since: number | null
   link: string
   switch_id?: string
-  /** What /api/alerts/mutes takes to mute it: switches and services only. */
+  /** The mute key: switches, services and Wi-Fi access points. */
   mute_id?: string
   name?: string
   muted?: { until: number; by: string | null; reason: string } | null
   /** An offline switch's open incident, for people who see the board (issue #278). */
   incident?: string | null
+  /** What a down switch or link cuts off (issue #950): seat names only, and the switches behind it. */
+  seats?: string[]
+  behind?: string[]
+  /** The down switch this one is behind: the place to start. */
+  cause?: string
 }
 export interface ProblemList {
   problems: Problem[]
@@ -1336,11 +1353,12 @@ export interface CableClash {
   seat: string; port: string; kind: 'port' | 'seat'; cable: string; imported: boolean
   other_seat?: string; other_port?: string
 }
-export interface BlockPlan { block: string; cables: PlannedCable[]; clashes: CableClash[]; created?: number; removed?: number }
+export interface BlockPlan { rows: string[]; cables: PlannedCable[]; clashes: CableClash[]; created?: number; removed?: number }
 export interface PatchRow { switch: string; port: string; seat?: string; cable?: string; state?: string; described_seat?: string }
 export interface PatchList { count: number; rows: PatchRow[] }
 export interface PatchCheck {
-  last_poll: number | null; blocks: { block: string; name: string; seats: number; up: number }[]
+  /** Each hall row's cabled seats and how many are up (#1057). */
+  last_poll: number | null; rows: { row: string; name: string; block_label: string; naming: string; seats: number; up: number }[]
   missing: PatchList; down: PatchList; unplanned: PatchList; conflicts: PatchList; unread: string[]
 }
 /** Clients on seat ports the patch plan doesn't explain (issue #473), from MAC tables and ARP. */
@@ -1352,6 +1370,10 @@ export interface PortClients {
   as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+  /** Issue #949: IPs ARP knows on no seat port, and cabled seats with no machine (once check-ins started). */
+  no_port?: { count: number; rows: { mac: string; ip: string; ip_seat: string }[] }
+  empty?: { count: number; rows: { seat: string; switch: string; port: string }[] }
+  ignored?: number
 }
 /** Walking the row (issue #473): ports that came up since the walk began. */
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }
@@ -1360,11 +1382,19 @@ export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
 export interface WalkPort { switch: string; port: string; learned_at?: number; source?: 'walk' | 'checkin' }
 export interface SeatWalkInfo {
   /** Where laptops in the hall reach the local agent, which identifies them (null: not known). */
-  agent_url: string | null; switch_lookup: boolean; monitoring: boolean; keep_hours: number
+  agent_url: string | null; through_agent?: boolean; switch_lookup: boolean; monitoring: boolean; keep_hours: number
   event: { id: string; name: string; status: string }
-  block?: string; seats?: { seat: string; port: WalkPort | null }[]
+  rows?: string[]; row_names?: string[]; seats?: { seat: string; port: WalkPort | null }[]
+  /** Every hall row: how far the walk got and who walks it now (#1000). */
+  hall?: WalkHallRow[]
 }
-export interface SeatWalkHello { hello: string; url: string }
+export interface WalkHallRow {
+  id: string; name: string; block_label: string; naming: string; seats: number; found: number
+  walker: { id: string; who: string; seat: string | null } | null
+}
+export interface SeatWalker { id: string; who: string; rows: string[]; seat: string | null }
+/** ip: the page came through an agent, the laptop is known at once; else url: the agent to open once. */
+export interface SeatWalkHello { hello: string; url?: string; ip?: string }
 export interface SeatLocated {
   ok: boolean; retry: boolean; seat: string; ip: string | null; mac: string | null; how: 'switch' | 'snmp' | 'monitoring' | null
   ms: number; tries: number; stale: boolean; found: WalkPort | null
@@ -1373,7 +1403,8 @@ export interface SeatLocated {
 }
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 /** A switch login Floorbit keeps (issue #474): never the password. */
-export interface SeatBlock { id: string; name: string; cols: number; rows: number; hall_id: string }
+/** label: what pickers show: the name, or the row letters (C–D) of a block named by its rows. */
+export interface SeatBlock { id: string; name: string; label: string; row_names: string[]; cols: number; rows: number; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */
 export type WifiBand = '2.4' | '5' | '6'
@@ -1388,6 +1419,8 @@ export interface WifiData {
   bands: Partial<Record<WifiBand, { clients: number; radios: number; utilization: number | null }>>
   sources: string[]; errors: string[]; thresholds: { busy: number; crowded: number }
   drawing: PlanDrawing | null; hall: string; halls: { id: string; name: string }[]
+  /** A controller streams to Telemetry, so clients over time are kept (GET /api/wifi/history). */
+  history?: boolean
 }
 
 /** Open incidents per seat and per switch id (GET /api/incidents/markers), for the crew layer. */
@@ -1496,6 +1529,8 @@ export interface PlanSeat {
   changed?: number
   /** The crew left a note on the seat (issue #180); its text is in SeatDetails. */
   note?: boolean
+  /** The down switch or link that cuts the seat off (issue #950); crew only. */
+  behind?: string
 }
 
 export interface PlanBlock {
@@ -2001,6 +2036,9 @@ export interface CheckinInfo {
   address?: string | null
   /** True: not through the local agent's front door, so the seat's port can't be learned from here. */
   outside?: boolean
+  /** Outside on a PC: the agent's front door that knows this PC (url), and whether Floorbit is sure
+   *  this browser is in the hall, so the page goes there by itself (sure). */
+  hall?: { url: string; sure: boolean } | null
 }
 
 export type WiredState = 'pending' | 'verified' | 'not_wired' | 'unverified'

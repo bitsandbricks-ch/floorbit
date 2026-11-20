@@ -36,6 +36,14 @@ def _setting_or_empty(settings_store, key):
         return ''
 
 
+def _settings_changed(app, settings_store):
+    runtime.apply(settings_store)
+    # A plugin's settings (its address, its token) change what it answers: no stale cached view.
+    registry = app.extensions.get('floorbit_plugins')
+    if registry is not None:
+        registry.changed()
+
+
 def create_app(start_background=True):
     load_dotenv()
     if os.environ.get('FLOORBIT_DATA_FILE'):   # may come from .env, read just now
@@ -142,7 +150,7 @@ def create_app(start_background=True):
     # /settings page plus GET/PUT /api/settings and POST /api/settings/test/<service>
     app.register_blueprint(create_settings_blueprint(
         settings_store,
-        on_change=lambda: runtime.apply(settings_store),
+        on_change=lambda: _settings_changed(app, settings_store),
         get_redis=cache.get_redis_client,
         redis_info=cache.redis_info,
     ))
@@ -227,7 +235,7 @@ def create_app(start_background=True):
     init_stats(app)   # fed by the attention watch's port reads (docs/stats.md)
     init_attention(app, start_background=start_background)
     from . import port_clients
-    port_clients.init_app(app)   # reads only when the cables page asks (docs/cables.md)
+    port_clients.init_app(app, start_background=start_background)   # every 5 min, and when the cables page asks
 
     # Syslog from switches, firewalls and DHCP servers, off until SYSLOG_ENABLED (docs/syslog.md).
     from .syslog import init_syslog

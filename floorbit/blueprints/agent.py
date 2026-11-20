@@ -19,7 +19,7 @@ For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
   collector; 409 while the traffic feature is off here.
 - ``POST /api/agent/v1/flows`` ``{"snapshot"}``: its flow collector's summary (aggregates only).
 - ``GET /api/agent/v1/captive``: ``{"done": [ip], "portal_url"}`` for its Captive Portal API
-  (floorbit/captive.py); 409 while check-in or the captive portal (``CAPTIVE_ENABLED``) is off here.
+  (floorbit/captive.py); 409 while check-in is off here.
 - ``POST /api/agent/v1/env-settings`` ``{"settings": {key: value}, "plugins": [id]}``: what the
   agent's environment set for plugins, taken over once where nothing is set up here (agent_plugins.py).
 - ``GET /api/agent/v2/link`` (WebSocket, protocol 2): the same calls and answers as the long poll,
@@ -113,7 +113,7 @@ def enrol():
         return jsonify({'error': str(exc)}), exc.status
     audit.record('settings', 'Enrolled a local agent', g.get('audit_user'), record['name'])
     events.publish('agents.changed', {})
-    return jsonify({**record, 'key': key}), 201
+    return jsonify({**record, 'key': key, 'image': agent_link.agent_image()}), 201
 
 
 @bp.route('/api/agents/<agent_id>', methods=['PATCH'])
@@ -153,7 +153,7 @@ def rotate(agent_id):
         return jsonify({'error': str(exc)}), exc.status
     audit.record('agents', 'Made a new key for a local agent', g.get('audit_user'), name)
     events.publish('agents.changed', {})
-    return jsonify({'id': agent_id, 'name': name, 'key': key})
+    return jsonify({'id': agent_id, 'name': name, 'key': key, 'image': agent_link.agent_image()})
 
 
 @bp.route('/api/agents/ca.pem', methods=['GET'])
@@ -420,8 +420,6 @@ def captive():
     from integrations import config
     if not config.get_bool('CHECKIN_ENABLED', False):
         return jsonify({'error': 'Check-in is turned off on this Floorbit.'}), 409
-    if not config.get_bool('CAPTIVE_ENABLED', False):
-        return jsonify({'error': 'The captive portal is turned off on this Floorbit.'}), 409
     from .. import captive as captive_mod
     name = agent.get('name') if isinstance(agent, dict) else getattr(agent, 'name', None)
     return jsonify(captive_mod.answer(current_app, agent=name))

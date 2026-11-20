@@ -1,8 +1,9 @@
-import { Alert, Anchor, Badge, Button, Group, Paper, SegmentedControl, Select, SimpleGrid, Table, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Paper, SegmentedControl, Select, SimpleGrid, Text, TextInput } from '@mantine/core'
 import { IconDownload } from '@tabler/icons-react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DataTable } from '@/components/DataTable'
 import { DateTimeInput } from '@/components/DateTimeInput'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -88,58 +89,40 @@ export function History() {
             : t('crewCheckin.history.showing', { shown: rows.length, total: d.total })}
         </Text>
       )}
-      {d && rows.length === 0 ? <Text>{t('crewCheckin.history.none')}</Text> : d && (
-        <Paper withBorder radius="lg">
-          <Table.ScrollContainer minWidth={820}>
-            <Table highlightOnHover verticalSpacing="xs">
-              {view === 'sessions' ? (
-                <>
-                  <Table.Thead><Table.Tr>
-                    {(['seat', 'user', 'mac', 'ips', 'in', 'left', 'duration'] as const).map((c) => <Table.Th key={c}>{t(`crewCheckin.history.col.${c}`)}</Table.Th>)}
-                  </Table.Tr></Table.Thead>
-                  <Table.Tbody>
-                    {(rows as SessionRow[]).map((r) => (
-                      <Table.Tr key={`${r.seat}-${r.start}`}>
-                        <Table.Td>{pick('seat', r.seat)}</Table.Td>
-                        <Table.Td>{pick('user', r.username)}</Table.Td>
-                        <Table.Td>{pick('mac', r.mac)}</Table.Td>
-                        <Table.Td>{r.ips.length ? r.ips.map((ip, i) => <span key={ip}>{i > 0 && ', '}{pick('ip', ip)}</span>) : '–'}</Table.Td>
-                        <Table.Td>{r.start_local}</Table.Td>
-                        <Table.Td>
-                          {r.end ? <>{r.end_local} {r.end_reason && <Badge size="sm" variant="light" tt="none">{label(r.end_reason)}</Badge>}</>
-                            : <Badge size="sm" variant="light" color="up" tt="none">{t('crewCheckin.history.here')}</Badge>}
-                        </Table.Td>
-                        <Table.Td>{duration(r.start, r.end)}</Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </>
-              ) : (
-                <>
-                  <Table.Thead><Table.Tr>
-                    {(['time', 'event', 'seat', 'user', 'ip', 'mac', 'details'] as const).map((c) => <Table.Th key={c}>{t(`crewCheckin.history.col.${c}`)}</Table.Th>)}
-                  </Table.Tr></Table.Thead>
-                  <Table.Tbody>
-                    {(rows as EventRow[]).map((r, n) => (
-                      <Table.Tr key={`${r.ts}-${n}`}>
-                        <Table.Td>{r.time_local}</Table.Td>
-                        <Table.Td><Badge size="sm" variant="light" tt="none">{label(r.event)}</Badge></Table.Td>
-                        <Table.Td>{pick('seat', r.seat)}</Table.Td>
-                        <Table.Td>{pick('user', r.username)}</Table.Td>
-                        <Table.Td>{pick('ip', r.ip)}</Table.Td>
-                        <Table.Td>{pick('mac', r.mac)}</Table.Td>
-                        <Table.Td c="dimmed">
-                          {r.to_seat ? t('crewCheckin.history.toSeat', { seat: r.to_seat }) : r.previous_ip ? t('crewCheckin.history.wasIp', { ip: r.previous_ip }) : ''}
-                        </Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </>
-              )}
-            </Table>
-          </Table.ScrollContainer>
-        </Paper>
-      )}
+      {d && (view === 'sessions' ? (
+        <DataTable key="sessions" label={t('crewCheckin.history.sessions')} rows={rows as SessionRow[]} rowKey={(r) => `${r.seat}-${r.start}`}
+          defaultSort={{ id: 'in', desc: true }} minWidth={820} empty={<Text>{t('crewCheckin.history.none')}</Text>}
+          columns={[
+            { id: 'seat', header: t('crewCheckin.history.col.seat'), sort: (r) => r.seat ?? '', cell: (r) => pick('seat', r.seat) },
+            { id: 'user', header: t('crewCheckin.history.col.user'), sort: (r) => r.username ?? '', cell: (r) => pick('user', r.username) },
+            { id: 'mac', header: t('crewCheckin.history.col.mac'), sort: (r) => r.mac ?? '', hideOnPhone: true, cell: (r) => pick('mac', r.mac) },
+            { id: 'ips', header: t('crewCheckin.history.col.ips'), hideOnPhone: true, cell: (r) =>
+              (r.ips.length ? r.ips.map((ip, i) => <span key={ip}>{i > 0 && ', '}{pick('ip', ip)}</span>) : '–') },
+            { id: 'in', header: t('crewCheckin.history.col.in'), sort: (r) => r.start, cell: (r) => r.start_local },
+            { id: 'left', header: t('crewCheckin.history.col.left'), sort: (r) => r.end ?? Number.MAX_SAFE_INTEGER, cell: (r) => (r.end
+              ? <>{r.end_local} {r.end_reason && <Badge size="sm" variant="light" tt="none">{label(r.end_reason)}</Badge>}</>
+              : <Badge size="sm" variant="light" color="up" tt="none">{t('crewCheckin.history.here')}</Badge>) },
+            { id: 'duration', header: t('crewCheckin.history.col.duration'), numeric: true,
+              sort: (r) => (r.end ?? Date.now() / 1000) - r.start, cell: (r) => duration(r.start, r.end) },
+          ]} />
+      ) : (
+        <DataTable key="events" label={t('crewCheckin.history.events')} rows={rows as EventRow[]} rowKey={(r, n) => `${r.ts}-${n}`}
+          defaultSort={{ id: 'time', desc: true }} minWidth={820} empty={<Text>{t('crewCheckin.history.none')}</Text>}
+          columns={[
+            { id: 'time', header: t('crewCheckin.history.col.time'), sort: (r) => r.ts, cell: (r) => r.time_local },
+            { id: 'event', header: t('crewCheckin.history.col.event'), sort: (r) => label(r.event),
+              cell: (r) => <Badge size="sm" variant="light" tt="none">{label(r.event)}</Badge> },
+            { id: 'seat', header: t('crewCheckin.history.col.seat'), sort: (r) => r.seat ?? '', cell: (r) => pick('seat', r.seat) },
+            { id: 'user', header: t('crewCheckin.history.col.user'), sort: (r) => r.username ?? '', cell: (r) => pick('user', r.username) },
+            { id: 'ip', header: t('crewCheckin.history.col.ip'), sort: (r) => r.ip ?? '', cell: (r) => pick('ip', r.ip) },
+            { id: 'mac', header: t('crewCheckin.history.col.mac'), sort: (r) => r.mac ?? '', hideOnPhone: true, cell: (r) => pick('mac', r.mac) },
+            { id: 'details', header: t('crewCheckin.history.col.details'), hideOnPhone: true, cell: (r) => (
+              <Text span size="sm" c="dimmed">
+                {r.to_seat ? t('crewCheckin.history.toSeat', { seat: r.to_seat }) : r.previous_ip ? t('crewCheckin.history.wasIp', { ip: r.previous_ip }) : ''}
+              </Text>
+            ) },
+          ]} />
+      ))}
     </>
   )
 }

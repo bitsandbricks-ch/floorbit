@@ -1,3 +1,3 @@
 ### Added
 
-- Network segments under Telemetry: each VLAN and its IP range, found by discovery or added by hand, with a switch per segment that allows check-ins to look PCs up there. Every segment starts with lookups off.
+- Check-in lookups per VLAN or IP range: a switch on each range in the inventory, right in the list, allows check-ins to look PCs up in that range. Every range starts with lookups off. Discovery adds the networks on the switches' VLAN interfaces with their VLAN.
