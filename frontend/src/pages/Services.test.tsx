@@ -55,15 +55,16 @@ describe('Services', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/services': data, 'GET /api/game-servers': games }).fn)
     renderWithApp(<Services />)
     await screen.findByRole('group', { name: 'Provider A' })
-    fireEvent.click(screen.getByText('Not up 4'))
+    fireEvent.click(screen.getByRole('button', { name: 'Show: All' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Not up/ }))
     expect(screen.queryByRole('group', { name: 'CS Hall A' })).not.toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Minecraft' })).toBeInTheDocument()
     fireEvent.change(screen.getByRole('textbox', { name: 'Search services' }), { target: { value: 'steam' } })
     expect(screen.getByRole('group', { name: 'Steam' })).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Minecraft' })).not.toBeInTheDocument()
     fireEvent.change(screen.getByRole('textbox', { name: 'Search services' }), { target: { value: '' } })
-    fireEvent.click(screen.getByDisplayValue('Group by type'))
-    fireEvent.click((await screen.findAllByRole('option', { name: 'Group by state', hidden: true }))[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Group by: Type' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'State' }))
     const down = await screen.findByRole('region', { name: 'Down' })
     expect(within(down).getByRole('group', { name: 'Minecraft' })).toBeInTheDocument()
     expect(within(down).getByText(/^Game server · /)).toBeInTheDocument()
@@ -151,5 +152,28 @@ describe('Services', () => {
     await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toMatchObject({
       name: 'CS Hall A', host: '192.0.2.50', port: 27015, query: 'a2s', rcon_port: 27015, rcon_password: 'example-rcon',
     }))
+  })
+})
+
+describe('Services counts what the health panes count (#1037)', () => {
+  it('lists DHCP and firewalls from the shared summary and counts them', async () => {
+    const summary = {
+      rows: [
+        { id: 'firewall:1', name: 'fw-03', kind: 'firewall', status: 'down', summary: '1 range failed over', link: '/firewalls' },
+        { id: 'dhcp-players', name: 'DHCP players', kind: 'dhcp', status: 'warn', summary: '24 of 120 leases left', link: '' },
+        { id: 'uplink:u1', name: 'Provider A', kind: 'uplink', status: 'warn', summary: '', link: '/services' },
+      ],
+      total: 3, counts: { up: 0, warn: 2, down: 1, unknown: 0 }, by_kind: {},
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/services': data, 'GET /api/game-servers': noGames,
+      'GET /api/services/summary': summary }).fn)
+    renderWithApp(<Services />)
+    const fw = await screen.findByRole('group', { name: 'fw-03' })
+    expect(within(fw).getByText('1 range failed over')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Firewalls' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'DHCP' })).toBeInTheDocument()
+    // Uplinks come from the page's own list, not twice: 4 own rows + fw-03 + DHCP players.
+    expect(screen.getByText('All 6')).toBeInTheDocument()
+    expect(screen.getAllByRole('group', { name: 'Provider A' })).toHaveLength(1)
   })
 })

@@ -1,11 +1,11 @@
-import { Badge, Button, Group, Loader, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core'
+import { Badge, Button, Group, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { SwitchDetails } from '@/api/types'
 import { SeatGlyph } from './SeatMap'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { dayClock } from '@/lib/time'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
 
@@ -22,7 +22,7 @@ export function SwitchPanel({ name, onSeat, onClose }: { name: string; onSeat: (
         <Title order={2} size="h3">{w?.name ?? name}</Title>
         <Button variant="subtle" size="compact-sm" onClick={onClose}>{t('plan.close')}</Button>
       </Group>
-      {q.isPending && <Loader size="sm" aria-label={t('common.loading')} />}
+      {q.isPending && <LoadingState lines />}
       <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
       {w && (
         <>

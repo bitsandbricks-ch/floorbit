@@ -7,6 +7,7 @@ import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { BouncePort } from '@/components/BouncePort'
+import { toastDone } from '@/components/toast'
 
 /** What a tech can do from the seat inspector (issue #151): bounce the seat's port with their own
  *  switch login, and flag the seat for a tech. The same calls as the floor plan editor. */
@@ -15,7 +16,6 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
   const qc = useQueryClient()
   const canAct = useCan('ports.act')
   const canFlag = useCan('incidents.work')
-  const [done, setDone] = useState<string | null>(null)
   const [flagging, setFlagging] = useState(false)
   const [note, setNote] = useState('')
 
@@ -25,7 +25,7 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
     onSuccess: () => {
       setFlagging(false)
       setNote('')
-      setDone(t('plan.flagged', { seat }))
+      toastDone(t('plan.flagged', { seat }))
       void qc.invalidateQueries({ queryKey: qk.planAll })
     },
   })
@@ -33,7 +33,6 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
   if (!(canAct && hasPort) && !canFlag) return null
   return (
     <Stack gap="xs">
-      {done && <Alert color="up" withCloseButton onClose={() => setDone(null)}>{done}</Alert>}
       {flag.error && <Alert color="down" role="alert">{flag.error.message}</Alert>}
       {flagging ? (
         <Stack gap="xs">
@@ -45,7 +44,7 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
         </Stack>
       ) : (
         <Group gap="xs">
-          {hasPort && <BouncePort seat={seat} onBounced={setDone} />}
+          {hasPort && <BouncePort seat={seat} onBounced={toastDone} />}
           {canFlag && (
             <Button size="xs" variant="light" leftSection={<IconFlag size={14} />} onClick={() => setFlagging(true)}>{t('plan.flag')}</Button>
           )}
