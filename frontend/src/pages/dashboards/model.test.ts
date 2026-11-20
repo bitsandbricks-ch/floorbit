@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanDrawing } from '@/api/types'
-import { type Node, areaView, at, depth, panes, remove, resize, seatsIn, split, starter } from './model'
+import { type Node, areaView, at, depth, panes, planRows, remove, resize, seatsIn, split, starter } from './model'
 
 const empty: Node = { pane: { kind: 'empty' } }
 
@@ -60,5 +60,31 @@ describe('areas', () => {
   it('counts the seats inside an area', () => {
     expect(seatsIn(drawing, { x: 350, y: 250, w: 100, h: 100 })).toEqual(['A-1', 'A-2'])
     expect(seatsIn(drawing, { x: 900, y: 500, w: 400, h: 300 })).toEqual([])
+  })
+})
+
+describe('rows (#1078)', () => {
+  const two: PlanDrawing = {
+    box: '0 0 1600 1000', cell: 32, marks: [],
+    shapes: [
+      { id: 'b1', cx: 400, cy: 300, rotation: 0, w: 64, h: 64, name: '', row_list: [{ id: 'r-c', name: 'C' }, { id: 'r-d', name: 'D' }],
+        cells: [{ seat: 'C-1', x: -32, y: -32, rc: [0, 0] }, { seat: 'C-2', x: 0, y: -32, rc: [0, 1] },
+          { seat: 'D-1', x: -32, y: 0, rc: [1, 0] }, { seat: 'D-2', x: 0, y: 0, rc: [1, 1] }] as never },
+      { id: 'b2', cx: 800, cy: 300, rotation: 0, w: 32, h: 64, name: 'A', row_list: [{ id: 'r-a1', name: 'A 1' }, { id: 'r-a2', name: 'A 2' }],
+        cells: [{ seat: 'A-1', x: -16, y: -32, rc: [0, 0] }, { seat: 'A-2', x: -16, y: 0, rc: [1, 0] }] as never },
+    ],
+  }
+
+  it('lists each row of each block with its seats, by the server id and name', () => {
+    const rows = planRows(two)
+    expect(rows.map((r) => [r.id, r.name, r.cells.map((c) => c.seat)])).toEqual([
+      ['r-c', 'C', ['C-1', 'C-2']], ['r-d', 'D', ['D-1', 'D-2']], ['r-a1', 'A 1', ['A-1']], ['r-a2', 'A 2', ['A-2']]])
+  })
+
+  it('zooms to one row, centred on its seats', () => {
+    const view = areaView({ kind: 'row', id: 'r-c' }, two)!
+    expect(seatsIn(two, view)).toEqual(expect.arrayContaining(['C-1', 'C-2']))
+    expect(view.y + view.h / 2).toBe(300 - 32 + 16)   // the middle of row C, not of the block
+    expect(areaView({ kind: 'row', id: 'gone' }, two)).toBeNull()
   })
 })

@@ -39,11 +39,13 @@
   "area": {
     "hall": "Ganze Halle",
     "block": "Sitzblock",
+    "row": "Reihe",
     "zone": "Zone",
     "box": "Meine Ansicht",
     "blockName": "Block {{name}}",
     "rows": "Reihen {{rows}}",
-    "fromSeat": "Block ab Platz {{seat}}"
+    "fromSeat": "Block ab Platz {{seat}}",
+    "rowName": "Reihe {{name}}"
   },
   "labels": {
     "auto": "Nach Zoom",
@@ -63,6 +65,8 @@
     "show": "Plätze",
     "labels": "Platznummern",
     "noBlocks": "Diese Halle hat keine Sitzblöcke.",
+    "pickRow": "Reihe wählen",
+    "noRows": "Diese Halle hat keine Reihen.",
     "noZones": "Diese Halle hat noch keine Zonen. Zeichne eine auf dem Plan (Werkzeug Zone) und gib ihr eine Beschriftung, zum Beispiel VIP.",
     "unnamedZone": "Zone ohne Beschriftung",
     "boxHint": "Verschiebe und zoome den Plan auf den Teil, den dieser Bereich zeigen soll, und übernimm ihn.",

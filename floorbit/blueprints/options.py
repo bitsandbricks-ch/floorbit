@@ -93,9 +93,12 @@ def _seats(data):
 
 
 def _blocks(data):
+    """Every seat block by id: a block named by its rows has no name, so it goes by its row letters
+    (C to D), like everywhere else (#1078)."""
+    from ..seat_names import label
     size = lambda b: int(b.get('cols') or 0) * int(b.get('rows') or 0)   # noqa: E731
-    return sorted(({'value': b['name'], 'label': b['name'], 'hint': str(size(b))}
-                   for b in data.get('seat_blocks') or [] if b.get('name')), key=lambda o: _natural(o['value']))
+    return sorted(({'value': b['id'], 'label': label(b) or b['id'], 'hint': str(size(b))}
+                   for b in data.get('seat_blocks') or [] if b.get('id')), key=lambda o: _natural(o['label']))
 
 
 def _halls(data):
@@ -155,11 +158,8 @@ def _pages(_data):
 def _rows(data):
     """Rows by name, grouped by their block (C and D under the block C to D); the hint is the seat
     count. A row of a block numbered as a whole is the block and the row: "A 2"."""
-    from ..seat_names import hall_rows
-
-    def name(r):
-        return r['name'] if r['naming'] == 'rows' else f"{r['block_label']} {r['name']}".strip()
-    return [{'value': r['id'], 'label': name(r), 'group': r['block_label'], 'hint': str(len(r['seats']))}
+    from ..seat_names import hall_rows, row_label
+    return [{'value': r['id'], 'label': row_label(r), 'group': r['block_label'], 'hint': str(len(r['seats']))}
             for r in hall_rows(data)]
 
 

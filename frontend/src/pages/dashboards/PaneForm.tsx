@@ -15,7 +15,7 @@ import { usePaneData } from '@/widgets/usePaneData'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
-import { type Area, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane } from './model'
+import { type Area, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane, planRows } from './model'
 import { pluginName } from '@/lib/pluginName'
 import { DisplayFields } from './DisplayFields'
 
@@ -96,26 +96,35 @@ function PlanFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'plan' }>;
   // Blocks named by row have no name of their own: list every block, by id, named by its rows.
   const blocks = (drawing?.shapes ?? []).filter((b) => b.id || b.name)
     .map((b) => ({ value: b.id ?? b.name, label: blockText(t, b) }))
+  // A block holds rows: a pane can show one of them too (#1078).
+  const rows = drawing ? planRows(drawing).map((r) => ({ value: r.id, label: r.name, group: blockText(t, r.block) })) : []
+  // Mantine reads an item with a ``group`` as a group: hand it plain value and label.
+  const rowData = [...new Set(rows.map((r) => r.group))].map((g) => ({
+    group: g, items: rows.filter((r) => r.group === g).map(({ value, label }) => ({ value, label })) }))
   const setArea = (area: Area) => onChange({ ...pane, area })
   return (
     <>
       <EntitySelect kind="halls" label={t('dashboards.form.hall')} description={t('dashboards.form.hallHint')} clearable
         value={pane.hall || null} onChange={(v) => onChange({ ...pane, hall: v ?? '', area: { kind: 'hall' } })} />
-      <div>
-        <Text size="sm" fw={500} mb={4}>{t('dashboards.form.area')}</Text>
-        <SegmentedControl fullWidth size="xs" value={pane.area.kind} aria-label={t('dashboards.form.area')}
-          data={(['hall', 'block', 'zone', 'box'] as const).map((k) => ({ value: k, label: t(`dashboards.area.${k}`) }))}
-          onChange={(v) => {
-            if (v === 'hall') setArea({ kind: 'hall' })
-            else if (v === 'block') setArea({ kind: 'block', id: blocks[0]?.value ?? '' })
-            else if (v === 'zone') setArea({ kind: 'zone', id: zones[0]?.id ?? '' })
-            else if (drawing) setArea({ kind: 'box', ...(areaView({ kind: 'hall' }, drawing) ?? { x: 0, y: 0, w: 1600, h: 1000 }) })
-          }} />
-      </div>
+      {/* Five parts: a list, not a segmented row that wraps in the side panel. */}
+      <Select label={t('dashboards.form.area')} allowDeselect={false} value={pane.area.kind}
+        data={(['hall', 'block', 'row', 'zone', 'box'] as const).map((k) => ({ value: k, label: t(`dashboards.area.${k}`) }))}
+        onChange={(v) => {
+          if (v === 'hall') setArea({ kind: 'hall' })
+          else if (v === 'block') setArea({ kind: 'block', id: blocks[0]?.value ?? '' })
+          else if (v === 'row') setArea({ kind: 'row', id: rows[0]?.value ?? '' })
+          else if (v === 'zone') setArea({ kind: 'zone', id: zones[0]?.id ?? '' })
+          else if (v === 'box' && drawing) setArea({ kind: 'box', ...(areaView({ kind: 'hall' }, drawing) ?? { x: 0, y: 0, w: 1600, h: 1000 }) })
+        }} />
       {pane.area.kind === 'block' && (
         <Select label={t('dashboards.area.block')} allowDeselect={false} searchable placeholder={t('ui.pickBlock')} value={(drawing && findBlock(drawing, pane.area.id)?.id) || pane.area.id || null}
           data={blocks} nothingFoundMessage={t('dashboards.form.noBlocks')}
           onChange={(v) => v && setArea({ kind: 'block', id: v })} />
+      )}
+      {pane.area.kind === 'row' && (
+        <Select label={t('dashboards.area.row')} allowDeselect={false} searchable placeholder={t('dashboards.form.pickRow')}
+          value={pane.area.id || null} data={rowData} nothingFoundMessage={t('dashboards.form.noRows')}
+          onChange={(v) => v && setArea({ kind: 'row', id: v })} />
       )}
       {pane.area.kind === 'zone' && (zones.length
         ? <Select label={t('dashboards.area.zone')} allowDeselect={false} value={pane.area.id || null}

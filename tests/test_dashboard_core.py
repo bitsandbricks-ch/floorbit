@@ -50,7 +50,8 @@ def test_only_people_who_see_the_board_get_the_incident_tile(app_module, client)
     viewer = _login(app_module, "vic", "viewer")
     tiles = viewer.get("/api/dashboard").get_json()["tiles"]
     assert [t["id"] for t in tiles if t["plugin"] == "floorbit"] == [
-        "problems", "switches", "seats", "down", "switch_states", "traffic", "seats_by_block", *STATS_TILES]
+        "problems", "switches", "seats", "down", "switch_states", "traffic", "seats_by_block", "seats_by_row",
+        *STATS_TILES]
     assert viewer.get("/api/dashboard/floorbit/incidents").status_code == 404
     assert viewer.get("/api/dashboard/floorbit/open_incidents").status_code == 404
     assert viewer.get("/api/dashboard/floorbit/problems").status_code == 200
@@ -63,7 +64,7 @@ def test_no_plugin_may_take_the_id():
 def test_switch_and_seat_tiles(client):
     ids = [t["id"] for t in client.get("/api/dashboard").get_json()["tiles"] if t["plugin"] == "floorbit"]
     assert ids == ["problems", "incidents", "switches", "seats", "down", "switch_states", "open_incidents", "traffic",
-                   "seats_by_block", *STATS_TILES]
+                   "seats_by_block", "seats_by_row", *STATS_TILES]
     assert dashboard_core.switches_widget("en", {"online": 40, "offline": 2, "unknown": 1}) == {
         "type": "stat", "value": 40, "unit": "of 43 up", "tone": "err", "sub": "2 offline · 1 not known",
         "link": "/problems", "min": 0, "max": 43}
@@ -219,6 +220,27 @@ def test_traffic_tiles_go_with_the_traffic_feature(client, monkeypatch):
 def test_the_seats_by_block_tile_answers(client):
     body = client.get("/api/dashboard/floorbit/seats_by_block").get_json()
     assert body["type"] == "list"
+
+
+def test_a_block_named_by_its_rows_counts_and_its_rows_have_a_tile(client):
+    """#1078: a block without a name shows as its row letters, and each row has its own bar."""
+    client.post("/api/seat-blocks", json={"name": "", "x": 10, "y": 10, "cols": 3, "rows": 2, "naming": "rows",
+                                          "row_start": "C"})
+    client.post("/api/seat-blocks", json={"name": "A", "x": 40, "y": 10, "cols": 2, "rows": 2})
+    blocks = client.get("/api/dashboard/floorbit/seats_by_block").get_json()["items"]
+    assert sorted(i["label"] for i in blocks) == ["A", "C\u2013D"]
+    rows = client.get("/api/dashboard/floorbit/seats_by_row").get_json()
+    # "? / 3" or "0 / 3": whether a port read happened yet doesn't matter here.
+    assert rows["type"] == "list" and [(i["label"], i["value"][-3:]) for i in rows["items"]] == [
+        ("C", "/ 3"), ("D", "/ 3"), ("A 1", "/ 2"), ("A 2", "/ 2")]
+
+
+def test_seats_by_row_count_each_row_out_of_its_seats():
+    rows = [{"name": "C", "naming": "rows", "block_label": "C\u2013D", "seats": ["C-1", "C-2"]},
+            {"name": "2", "naming": "block", "block_label": "A", "seats": ["A-3", "A-4"]}]
+    body = dashboard_core.seats_by_row_widget("en", rows, {"C-2", "A-3", "A-4"})
+    assert body["items"] == [{"label": "C", "value": "1 / 2", "number": 1, "max": 2},
+                             {"label": "A 2", "value": "2 / 2", "number": 2, "max": 2}]
 
 
 def test_switch_and_seat_stats_carry_their_scale_for_a_gauge():

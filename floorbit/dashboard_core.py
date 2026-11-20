@@ -22,7 +22,7 @@ TEXTS = {
            'switch_states': 'Switch states', 'down_for': 'down {t}', 'open_incidents': 'Open incidents',
            'col_what': 'What', 'col_where': 'Where', 'col_open': 'Open for', 'switch_at': 'Switch {name}',
            'seat_at': 'Seat {seat}', 'traffic': 'Traffic', 'download': 'Download', 'upload': 'Upload',
-           'seats_by_block': 'Seats online by block',
+           'seats_by_block': 'Seats online by block', 'seats_by_row': 'Seats online by row',
            'bandwidth': 'Bandwidth', 'down_up': '↓ {down} · ↑ {up}', 'no_reads': 'No traffic read yet',
            'peak': 'Peak of the event', 'peak_sub': '{ago} ago · 24 h peak {day}', 'ports': 'Ports',
            'ports_unit': 'up', 'ports_sub': '{down} down · {errors} with errors', 'uplinks': 'Uplinks',
@@ -45,7 +45,7 @@ TEXTS = {
            'switch_states': 'Switch-Status', 'down_for': 'aus seit {t}', 'open_incidents': 'Offene Störungen',
            'col_what': 'Was', 'col_where': 'Wo', 'col_open': 'Offen seit', 'switch_at': 'Switch {name}',
            'seat_at': 'Platz {seat}', 'traffic': 'Verkehr', 'download': 'Download', 'upload': 'Upload',
-           'seats_by_block': 'Plätze online nach Block',
+           'seats_by_block': 'Plätze online nach Block', 'seats_by_row': 'Plätze online nach Reihe',
            'bandwidth': 'Bandbreite', 'down_up': '↓ {down} · ↑ {up}', 'no_reads': 'Noch keine Verkehrsdaten',
            'peak': 'Spitze des Events', 'peak_sub': 'vor {ago} · 24-Std.-Spitze {day}', 'ports': 'Ports',
            'ports_unit': 'online', 'ports_sub': '{down} offline · {errors} mit Fehlern', 'uplinks': 'Uplinks',
@@ -69,6 +69,7 @@ TILES = {
     'open_incidents': {'label': 'open_incidents', 'size': 'small', 'refresh': 30},
     'traffic': {'label': 'traffic', 'size': 'wide', 'refresh': 30},
     'seats_by_block': {'label': 'seats_by_block', 'size': 'small', 'refresh': 30},
+    'seats_by_row': {'label': 'seats_by_row', 'size': 'small', 'refresh': 30},   # #1078: a block holds rows
     # What the Stats and Traffic views showed in one big pane, as tiles of their own.
     'bandwidth': {'label': 'bandwidth', 'size': 'small', 'refresh': 30},
     'peak': {'label': 'peak', 'size': 'small', 'refresh': 30},
@@ -142,10 +143,21 @@ def seats_widget(lang, online, total):
 def seats_by_block_widget(lang, blocks, online):
     """Seats online per seat block, as numbers out of the block's seats, so it draws as bars.
     ``blocks`` is block name -> its seat numbers; ``online`` the seats online now, or None."""
+    names = sorted(blocks, key=lambda n: (len(n), n))
+    return _seats_online(lang, [(n, blocks[n]) for n in names], online)
+
+
+def seats_by_row_widget(lang, rows, online):
+    """Seats online per row (``seat_names.hall_rows``), in the order people read the hall, named as
+    in the row pickers."""
+    from .seat_names import row_label
+    return _seats_online(lang, [(row_label(r), set(r['seats'])) for r in rows], online)
+
+
+def _seats_online(lang, groups, online):
     text = TEXTS.get(lang, TEXTS['en'])
     items = []
-    for name in sorted(blocks, key=lambda n: (len(n), n)):
-        seats = blocks[name]
+    for name, seats in groups:
         if online is None:
             items.append({'label': name, 'value': f'? / {len(seats)}'})
             continue

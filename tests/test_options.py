@@ -9,7 +9,8 @@ def test_switches_seats_and_blocks_come_from_the_plan(client):
     seats = [o["value"] for o in client.get("/api/options/seats").get_json()["options"]]
     assert seats[:3] == ["A-1", "A-2", "A-3"] and seats[-1] == "A-11"          # natural order
     assert "sw-a-01" in [o["value"] for o in client.get("/api/options/switches").get_json()["options"]]
-    assert client.get("/api/options/blocks").get_json()["options"] == [{"value": "A", "label": "A", "hint": "11"}]
+    blocks = client.get("/api/options/blocks").get_json()["options"]
+    assert [(o["label"], o["hint"]) for o in blocks] == [("A", "11")] and blocks[0]["value"]
     assert client.get("/api/options/nope").status_code == 404
 
 
@@ -38,3 +39,24 @@ def test_every_list_answers(client):
     for kind in ("halls", "firewalls", "agents", "users", "teams"):
         r = client.get(f"/api/options/{kind}")
         assert r.status_code == 200 and isinstance(r.get_json()["options"], list), kind
+
+
+def test_blocks_named_by_their_rows_are_offered_too(client):
+    """#1078: a block without a name goes by its row letters, and every block by its id."""
+    client.post("/api/seat-blocks", json={"name": "", "x": 10, "y": 10, "cols": 3, "rows": 2, "naming": "rows",
+                                          "row_start": "C"})
+    ids = {b["id"] for b in client.get("/api/seat-blocks").get_json()}
+    blocks = client.get("/api/options/blocks").get_json()["options"]
+    assert [o["label"] for o in blocks] == ["C\u2013D"] and {o["value"] for o in blocks} == ids
+
+
+def test_the_plan_names_each_row_as_the_row_picker_does(client):
+    """#1078: a dashboard pane picks a row from the plan; ids and names match /api/options/rows."""
+    client.post("/api/seat-blocks", json={"name": "", "x": 10, "y": 10, "cols": 3, "rows": 2, "naming": "rows",
+                                          "row_start": "C"})
+    client.post("/api/seat-blocks", json={"name": "A", "x": 50, "y": 10, "cols": 2, "rows": 2})
+    shapes = client.get("/api/plan").get_json()["drawing"]["shapes"]
+    from_plan = sorted((r["id"], r["label"]) for s in shapes for r in
+                       [{"id": x["id"], "label": x["name"]} for x in s["row_list"]])
+    options = sorted((o["value"], o["label"]) for o in client.get("/api/options/rows").get_json()["options"])
+    assert from_plan == options and len(options) == 4

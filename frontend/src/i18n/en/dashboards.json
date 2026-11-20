@@ -39,11 +39,13 @@
   "area": {
     "hall": "Whole hall",
     "block": "Seat block",
+    "row": "Row",
     "zone": "Zone",
     "box": "My view",
     "blockName": "Block {{name}}",
     "rows": "Rows {{rows}}",
-    "fromSeat": "Block at seat {{seat}}"
+    "fromSeat": "Block at seat {{seat}}",
+    "rowName": "Row {{name}}"
   },
   "labels": {
     "auto": "By zoom",
@@ -63,6 +65,8 @@
     "show": "Seats",
     "labels": "Seat numbers",
     "noBlocks": "This hall has no seat blocks.",
+    "pickRow": "Pick a row",
+    "noRows": "This hall has no rows.",
     "noZones": "This hall has no zones yet. Draw one on the plan (Zone tool) and give it a label, for example VIP.",
     "unnamedZone": "Zone without a label",
     "boxHint": "Move and zoom the plan to the part this pane should show, then keep it.",

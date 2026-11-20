@@ -488,9 +488,19 @@ def _seats_by_block_tile(user):
     online, _last = online_seats()
     blocks = {}
     for block in load_data().get('seat_blocks') or []:
-        if block.get('name'):
-            blocks.setdefault(str(block['name']), set()).update(s.upper() for s in seat_names.seats(block))
+        # A block named by its rows has no name: it shows as its row letters (#1078).
+        name = seat_names.label(block)
+        if name:
+            blocks.setdefault(name, set()).update(s.upper() for s in seat_names.seats(block))
     return core.seats_by_block_widget(_lang(), blocks, online)
+
+
+def _seats_by_row_tile(user):
+    from .. import seat_names
+    from ..store import load_data
+    from .stats_wall import online_seats
+    online, _last = online_seats()
+    return core.seats_by_row_widget(_lang(), seat_names.hall_rows(load_data()), online)
 
 
 def _down_tile(user):
@@ -534,6 +544,7 @@ CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switche
               'seats': _seats_tile, 'down': _down_tile, 'switch_states': _switch_states_tile,
               'open_incidents': _open_incidents_tile, 'traffic': _traffic_tile,
               'seats_by_block': _seats_by_block_tile,
+              'seats_by_row': _seats_by_row_tile,
               'bandwidth': lambda user: core.bandwidth_widget(_lang(), _snapshot()),
               'peak': lambda user: core.peak_widget(_lang(), _snapshot()),
               'ports': lambda user: core.ports_widget(_lang(), _snapshot()),
