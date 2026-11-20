@@ -393,6 +393,8 @@ export interface SeatRow {
   from: Partial<Record<'switch' | 'port' | 'ip' | 'mac' | 'nick' | 'note', string>>
   manual: ManualSeat | null
   sources: string[]
+  /** On a seat block of any hall; off-plan rows come only from a source (seats.json, a CSV feed). */
+  on_plan: boolean
 }
 
 export interface SeatMapList {
@@ -600,6 +602,11 @@ export interface HealthCheck {
   since: number
   /** Until when its alerts are muted (issue #260), or null. */
   muted_until?: number | null
+  /** How much of a pool is used, when the check counts one (a DHCP scope). */
+  capacity?: { used: number; total: number }
+  /** When that pool runs full at the rate of the last 15 minutes (issue #1061). `raised`: the wall
+   *  made an "up" check "warn" for it. */
+  forecast?: { used: number; total: number; pct: number; rate_per_min: number | null; full_in_min: number | null; level: State | null; raised?: boolean }
 }
 export interface HealthWall {
   checks: HealthCheck[]
@@ -1465,11 +1472,24 @@ export interface StatusUpdate {
   area: string
 }
 
+/** One count of every service (issue #1037): the health wall's checks, each internet site a row. */
+export interface ServiceSummaryRow {
+  id: string; name: string; kind: string; status: ServiceStatus; summary: string; link: string
+}
+export interface ServiceSummary {
+  rows: ServiceSummaryRow[]
+  total: number
+  counts: Record<ServiceStatus, number>
+  by_kind: Record<string, Record<ServiceStatus | 'total', number>>
+}
+
 export interface StatusPageData {
   state: StatusState
   auto_state: StatusState
   override: { state: StatusState; note: string; by: string | null; at: number } | null
   since: number | null
+  /** What players notice (issue #1038): switches, firewall, no_firewall, internet_slow, internet_down, dns, dhcp. */
+  reasons?: string[]
   areas: StatusArea[]
   crew_areas: StatusArea[]
   /** Areas whose switch came back in the last half hour, with switch names (issue #396). */

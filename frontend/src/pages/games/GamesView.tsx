@@ -8,7 +8,7 @@ import type { CacheRow, GamesData, LancacheData } from '@/api/types'
 import type { ViewProps } from '@/widgets/views'
 import { bytes } from '../traffic/format'
 import { ErrorBanner } from '@/components/ui'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { dayClock } from '@/lib/time'
 
 const W = 1000
@@ -137,9 +137,9 @@ function Board({ data, compact }: { data: GamesData; compact: boolean }) {
     <>
       {data.sources.cache && (
         <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md">
-          <StatCard label={t('games.servedLocally')} value={bytes(c.hit_bytes)} sub={t('games.servedLocallySub')} />
-          <StatCard label={t('games.fromInternet')} value={bytes(c.miss_bytes)} sub={t('games.fromInternetSub')} />
-          <StatCard label={t('games.hitRatio')} value={pct(c.hit_ratio)} sub={t('games.hitRatioSub')} />
+          <StatTile label={t('games.servedLocally')} value={bytes(c.hit_bytes)} sub={t('games.servedLocallySub')} />
+          <StatTile label={t('games.fromInternet')} value={bytes(c.miss_bytes)} sub={t('games.fromInternetSub')} />
+          <StatTile label={t('games.hitRatio')} value={pct(c.hit_ratio)} sub={t('games.hitRatioSub')} />
         </SimpleGrid>
       )}
       <div className="fb-stats">

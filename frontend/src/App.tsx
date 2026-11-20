@@ -44,6 +44,7 @@ const WalkRow = lazy(() => import('@/pages/WalkRow'))
 const CablePage = lazy(() => import('@/pages/cables/CablePage'))
 const SeatWalk = lazy(() => import('@/pages/SeatWalk'))
 const SwitchAreas = lazy(() => import('@/pages/SwitchAreas'))
+const SwitchSwap = lazy(() => import('@/pages/SwitchSwap'))
 const Telemetry = lazy(() => import('@/pages/Telemetry'))
 const Endpoints = lazy(() => import('@/pages/Endpoints'))
 const ViewPage = lazy(() => import('@/pages/monitoring/ViewPage'))
@@ -134,6 +135,7 @@ export default function App() {
             <Route path="/cables/:id" element={<CablePage />} />
             <Route path="/seat-walk" element={<SeatWalk />} />
             <Route path="/switch-areas" element={<SwitchAreas />} />
+            <Route path="/switch-swap/:id" element={<SwitchSwap />} />
             <Route path="/timeline" element={<Timeline />} />
             <Route path="/network-status" element={<NetworkStatus />} />
             <Route path="/schedule" element={<Schedule />} />

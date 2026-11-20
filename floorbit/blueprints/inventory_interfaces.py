@@ -39,6 +39,8 @@ def detail(data, dev):
     from .. import inventory_discovery
     out['drift'] = inventory_discovery.drift_of(data, dev['id'])
     out['discovered'] = inventory_discovery.discovered_of(data, dev['id'])
+    from .. import inventory_properties
+    out['property_view'] = inventory_properties.view(data, dev, resolved)
     return out
 
 
