@@ -33,6 +33,7 @@ export const qk = {
   handover: ['handover'] as const,
   cables: ['cables'] as const,
   wifi: (hall: string) => ['wifi', hall] as const,
+  wifiHistory: (hours: string) => ['wifi', 'history', hours] as const,
   checkinOverview: ['checkins', 'overview'] as const,
   checkinHistory: (query: string) => ['checkins', 'history', query] as const,
   incidentMarkers: ['incidents', 'markers'] as const,

@@ -303,7 +303,7 @@ def _cable(c):
              f"{c['length_m']} m" if c.get('length_m') else '']
     return {'id': c['id'], 'name': c.get('label') or ends[0],
             'summary': ' → '.join(x for x in ends if x), 'detail': ' · '.join(x for x in extra if x),
-            'link': f"/cables?q={c.get('label') or ''}"}
+            'link': f"/cables/{c['id']}"}
 
 
 def _records(data, type_id):

@@ -8,7 +8,7 @@ import WalkRow from './WalkRow'
 afterEach(() => vi.unstubAllGlobals())
 
 const lead = { enabled: true, user: { username: 'ana', display_name: 'Ana', role: 'lead', permissions: ['floorplan.view', 'floorplan.edit'] } }
-const order: BlockPlan = { block: 'A', clashes: [], cables: ['A-1', 'A-2'].map((seat, n) => ({ seat, switch: 'sw-a-01', port: `Gi1/0/${n + 1}`, block: 'b1' })) }
+const order: BlockPlan = { rows: ['A 1'], clashes: [], cables: ['A-1', 'A-2'].map((seat, n) => ({ seat, switch: 'sw-a-01', port: `Gi1/0/${n + 1}`, block: 'b1' })) }
 const cables: CableList = { sources: [], cables: [] }
 
 describe('WalkRow', () => {
@@ -16,7 +16,6 @@ describe('WalkRow', () => {
     let assigns = 0
     const api = fakeFetch({
       ...OPTIONS, 'GET /api/auth/me': lead, 'GET /api/cables': cables,
-      'GET /api/seat-blocks': [{ id: 'b1', name: 'A', cols: 2, rows: 1, hall_id: 'h' }],
       'POST /api/cables/block': order,
       'GET /api/cables/walk?switch=sw-a-01': { ups: [], syslog: true, since: 500 },
       'GET /api/cables/walk?switch=sw-a-01&since=500': {
@@ -27,8 +26,7 @@ describe('WalkRow', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<WalkRow />)
-    fireEvent.click(await screen.findByRole('combobox', { name: 'Seat block' }))
-    fireEvent.click(await screen.findByRole('option', { name: 'A (2)', hidden: true }))
+    await pick('Rows', 'A 1 (8 seats)')
     await pick('Switch', 'sw-a-01')
     fireEvent.click(await screen.findByRole('button', { name: 'Start with 2 seats' }))
 
