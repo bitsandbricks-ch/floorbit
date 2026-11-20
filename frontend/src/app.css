@@ -997,3 +997,8 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 @media (min-width: 62em) {
   .fb-detail-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 }
+
+/* Inventory list: sortable column heads and quiet row hints */
+.fb-sort { display: inline-flex; align-items: center; gap: 4px; font: inherit; color: inherit; white-space: nowrap; }
+.fb-sort:hover { color: var(--mantine-color-text); }
+.fb-dim { color: var(--mantine-color-dimmed); flex: none; }

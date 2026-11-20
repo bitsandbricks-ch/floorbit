@@ -78,6 +78,14 @@ describe('FitWidget', () => {
     expect(screen.getByText('30')).toBeInTheDocument()
   })
 
+  it('writes a big pie total short, so it fits the ring', () => {
+    size = { w: 500, h: 220 }
+    const mix: Widget = { ...base, type: 'list', items: [{ label: 'Web', value: '360 GB', tone: '', number: 3.6e11 },
+      { label: 'Gaming', value: '183 GB', tone: '', number: 1.83e11 }] }
+    renderWithApp(<FitWidget widget={mix} pick="pie" />)
+    expect(screen.getByText('543G')).toBeInTheDocument()
+  })
+
   it('draws numbers as vertical bars and time data as columns', () => {
     size = { w: 400, h: 220 }
     const blocks: Widget = { ...base, type: 'list', items: [{ label: 'A', value: '10 / 40', tone: '', number: 10, max: 40 }] }
@@ -121,5 +129,29 @@ describe('FitWidget', () => {
     renderWithApp(<FitWidget widget={series} look={{ legend: ['min', 'avg'] }} />)
     expect(screen.getByText('Min')).toBeInTheDocument()
     expect(screen.getByText('4')).toBeInTheDocument()
+  })
+
+  it('draws colour steps as lines on a graph and shows a mapped value as text', () => {
+    size = { w: 600, h: 300 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 2], [1800000060, 10]] }] }
+    const { container, unmount } = renderWithApp(<FitWidget widget={series} look={{ thresholds: [{ at: 5, tone: 'warn' }] }} />)
+    expect(container.querySelector('.fb-w-step.fb-tone-warn')).not.toBeNull()
+    unmount()
+    size = { w: 200, h: 100 }
+    renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 0, unit: '', tone: 'err', text: 'Down' }} />)
+    expect(screen.getByText('Down')).toBeInTheDocument()
+  })
+
+  it('picks its level from the whole widget, so a sub line can not make it flap (#1010)', () => {
+    // The drawing area is 20px shorter than the widget when the sub line shows: a level taken from
+    // the area would drop to small, hide the sub line, and grow back.
+    const spy = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('fb-w-area') ? 140 : 160
+    })
+    size = { w: 300, h: 160 }
+    const { container } = renderWithApp(<FitWidget widget={{ ...base, sub: 'From the last port read', type: 'stat', value: 9, unit: '', tone: '' }} />)
+    expect(container.querySelector('.fb-w')?.getAttribute('data-level')).toBe('m')
+    expect(screen.getByText('From the last port read')).toBeInTheDocument()
+    spy.mockImplementation(() => size.h)
   })
 })
