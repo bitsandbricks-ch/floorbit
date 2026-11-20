@@ -42,7 +42,7 @@ def test_a_plugin_whose_calls_keep_failing(client, registry, monkeypatch):
         registry.call(spec, 'wifi_aps')
     assert plugin_problems(client) == {}      # one failure isn't a problem yet
     since, message = registry.failing()['demo']
-    registry._failing['demo'] = (since - 301, message)
+    registry._failing[('demo', 'wifi_aps')] = (since - 301, message)
     found = plugin_problems(client)['plugin:failing:demo']
     assert found['level'] == 'warn' and found['where'] == 'the controller refused the login'
     monkeypatch.undo()
@@ -65,3 +65,25 @@ def test_a_withdrawn_version_that_still_runs(client, market):  # noqa: F811
     found = plugin_problems(client)['plugin:withdrawn:hallthing:1.0.0']
     assert found['title'] == 'Hall thing 1.0.0 was withdrawn' and found['where'] == 'Clears the cache on start'
     assert found['link'] == '/settings/plugins?tab=updates'
+
+
+def test_a_working_method_does_not_hide_another_that_keeps_failing(client, registry, monkeypatch):
+    """#1225: the seat sources ask the seat mapping every 30 s; it working must not clear the Wi-Fi
+    access points failing."""
+    registry._failing.clear()     # the app's registry: other tests' failures stay in it
+    assert client.put('/api/settings/plugins/demo', json={'enabled': True}).status_code == 200
+    spec = registry.specs['demo']
+
+    def broken(self):
+        raise PluginError('the controller refused the login')
+    monkeypatch.setattr(spec.plugin_class(), 'wifi_aps', broken)
+    with pytest.raises(PluginError):
+        registry.call(spec, 'wifi_aps')
+    registry.call(spec, 'seat_mapping')        # another job of the same plugin works
+    since, message = registry.failing()['demo']
+    assert message == 'the controller refused the login'
+    registry._failing[('demo', 'wifi_aps')] = (since - 301, message)
+    assert plugin_problems(client)['plugin:failing:demo']['where'] == 'the controller refused the login'
+    monkeypatch.undo()
+    registry.call(spec, 'wifi_aps')
+    assert 'demo' not in registry.failing()
