@@ -24,12 +24,12 @@ def setup():
     an SNMP v3 login (made up on the spot) and the properties each kind of device needs."""
     login = {'kind': 'snmp_v3', 'username': 'floorbit', 'auth_protocol': 'SHA', 'priv_protocol': 'AES',
              'secret': secrets.token_urlsafe(16), 'priv_secret': secrets.token_urlsafe(16)}
-    switches = {name: ({'telemetry_drivers': 'snmp traps gnmi'} if _role_of(name) == 'core'
-                       else {'telemetry_vlans': str(VLAN)}) for name, _role, _i in _switches()}
+    switches = {name: ({'telemetry.drivers': 'snmp traps gnmi'} if _role_of(name) == 'core'
+                       else {'telemetry.snmp.vlans': str(VLAN)}) for name, _role, _i in _switches()}
     return [
         # The firewalls run Telegraf themselves and push: no login.
         {'name': 'Network', 'properties': {}, 'login': login, 'devices': switches},
-        {'name': 'Firewalls', 'properties': {'telemetry_drivers': 'push'}, 'login': None,
+        {'name': 'Firewalls', 'properties': {'telemetry.drivers': 'push'}, 'login': None,
          'devices': {name: {} for name in FIREWALLS}},
     ]
 
