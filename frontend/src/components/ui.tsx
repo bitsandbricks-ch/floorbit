@@ -31,12 +31,16 @@ export function Panel({ title, desc, actions, children, padding = 'md', style, c
   )
 }
 
-/** While a page's data loads: the shape of a page, not a spinner in a corner. */
-export function LoadingState({ rows = 3 }: { rows?: number }) {
+/** While a page's data loads: the shape of a page, not a spinner in a corner. ``lines`` is the
+ *  small version for a side panel or a dashboard pane: a few text-high bars that fit any size.
+ *  Spinners stay inside buttons only (#1017). */
+export function LoadingState({ rows = 3, lines = false }: { rows?: number; lines?: boolean }) {
   const { t } = useTranslation()
   return (
-    <Stack gap="sm" aria-busy="true" aria-label={t('common.loading')} role="status">
-      {Array.from({ length: rows }, (_, i) => <Skeleton key={i} h={i === 0 ? 120 : 64} radius="lg" />)}
+    <Stack gap={lines ? 8 : 'sm'} aria-busy="true" aria-label={t('common.loading')} role="status">
+      {Array.from({ length: rows }, (_, i) => lines
+        ? <Skeleton key={i} h={12} w={`${[90, 70, 80][i % 3]}%`} radius="sm" />
+        : <Skeleton key={i} h={i === 0 ? 120 : 64} radius="lg" />)}
     </Stack>
   )
 }
