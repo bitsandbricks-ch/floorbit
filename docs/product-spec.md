@@ -108,6 +108,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   telemetry components. New visual blocks become shared components or widgets.
 - **Feedback is a toast:** after an action, `toastDone`/`toastFailed`, never an inline green box;
   inline alerts only for states that stay.
+- **Loading, failing, empty:** `LoadingState` (skeletons, `lines` in panels and panes; spinners only
+  in buttons), `ErrorBanner` with Try again for anything that failed to load, `EmptyState`.
 - **One table.** Every table is `DataTable` (`frontend/src/components/DataTable.tsx`): sorting,
   paging, the empty state and the count, with the view kept in the address. The dashboard's table
   widget wraps the same component; pages never embed widgets. Fix it once and every table follows

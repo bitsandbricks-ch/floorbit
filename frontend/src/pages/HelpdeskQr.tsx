@@ -1,4 +1,4 @@
-import { Alert, Anchor, Button, Group, Loader, Select, Text, TextInput } from '@mantine/core'
+import { Anchor, Button, Group, Select, Text, TextInput } from '@mantine/core'
 import { IconPrinter } from '@tabler/icons-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,7 @@ import { useHelpdeskQr } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { parseSeats, seatBlock } from './incidents/qrFilter'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 
 /** A printable sheet: one QR code per seat, each opening that seat's signed help page. */
 export default function HelpdeskQr() {
@@ -51,13 +52,9 @@ export default function HelpdeskQr() {
           </Text>
         )}
       </div>
-      {qr.error && (
-        <Alert color="down" role="alert" mb="md">
-          {t('common.error', { message: qr.error.message })}
-        </Alert>
-      )}
+      <ErrorBanner error={qr.error} mb="md" onRetry={() => void qr.refetch()} />
       {qr.isPending ? (
-        <Loader size="sm" />
+        <LoadingState lines />
       ) : !seats.length ? (
         <Text c="dimmed">{t('incidents.qrNone')}</Text>
       ) : !shown.length ? (

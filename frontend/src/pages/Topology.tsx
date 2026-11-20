@@ -17,6 +17,7 @@ import { PageHead } from '@/components/PageHead'
 import { download, standaloneSvg, svgToPng } from './plan/exportImage'
 import { type Box as ViewBox, bounds, toDiagram, zoomAt } from './topology/camera'
 import { NODE_H, NODE_W, type Placed, arranged, gbit, layout, placeUplinks } from './topology/layout'
+import { ErrorBanner } from '@/components/ui'
 import { StateBadge } from '@/components/State'
 
 const COLOR: Record<string, string> = {
@@ -156,7 +157,7 @@ export default function Topology() {
       <PageHead title={t('topology.title')} desc={t('topology.intro')}
         actions={canEdit && <Button onClick={() => setDraft({})}>{t('topology.add')}</Button>} />
       <Stack gap="md">
-        {q.error && <Alert color="down" role="alert">{q.error.message}</Alert>}
+        <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
         {problems.length > 0 && (
           <Alert color={problems.some((l) => l.issue === 'down') ? 'down' : 'warn'} title={t('topology.problems', { count: problems.length })}>
             <Stack gap={2}>
