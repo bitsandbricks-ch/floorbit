@@ -8,7 +8,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { WifiAp, WifiBand, WifiData, WifiRadio } from '@/api/types'
 import type { ViewProps } from '@/widgets/views'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { channelColor, loadColor } from './colors'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { blockTop } from '@/pages/plan/blockTop'
@@ -112,13 +112,13 @@ export default function WifiView({ expanded }: ViewProps) {
         ) : (
           <>
             <div className="fb-stat-row">
-              <StatCard label={t('wifi.clients')} value={num(d.clients)}
+              <StatTile label={t('wifi.clients')} value={num(d.clients)}
                 sub={bands.map((b) => t('wifi.bandClients', { band: b, count: d.bands[b]!.clients })).join(' · ')} />
-              <StatCard label={t('wifi.aps')} value={`${d.up} / ${d.aps.length}`} tone={d.down.length ? 'down' : 'up'}
+              <StatTile label={t('wifi.aps')} value={`${d.up} / ${d.aps.length}`} tone={d.down.length ? 'down' : 'up'}
                 sub={d.down.length ? t('wifi.down', { names: d.down.join(', ') }) : t('wifi.allUp')} />
-              <StatCard label={t('wifi.busy')} value={num(d.busy.length)} tone={d.busy.length ? 'warn' : undefined}
+              <StatTile label={t('wifi.busy')} value={num(d.busy.length)} tone={d.busy.length ? 'warn' : undefined}
                 sub={d.busy.join(', ') || t('wifi.busyNone', { pct: d.thresholds.busy })} />
-              <StatCard label={t('wifi.overlaps')} value={num(d.overlaps.length)} tone={d.overlaps.length ? 'warn' : undefined} sub={t('wifi.overlapsSub')} />
+              <StatTile label={t('wifi.overlaps')} value={num(d.overlaps.length)} tone={d.overlaps.length ? 'warn' : undefined} sub={t('wifi.overlapsSub')} />
             </div>
             {!expanded ? null : d.drawing && d.aps.some((a) => a.on_plan) ? (
               <Paper withBorder radius="lg" p="md">

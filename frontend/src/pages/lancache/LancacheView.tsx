@@ -7,7 +7,7 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { ActionResult, LancacheAgent, LancacheOverview } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { ErrorBanner } from '@/components/ui'
 import { ago, dayClock } from '@/lib/time'
 import type { ViewProps } from '@/widgets/views'
@@ -279,11 +279,11 @@ export default function LancacheView({ expanded }: ViewProps) {
           )}
           {data.error && <Alert color="warn" mb="md">{t('lancache.readError', { message: data.error })}</Alert>}
           <SimpleGrid cols={{ base: 2, sm: 4 }} mb="md">
-            <StatCard label={t('lancache.saved')} value={bytes(data.saved_bytes)} sub={t('lancache.savedSub')} />
-            <StatCard label={t('lancache.hitRatio')} value={pct(data.hit_ratio)} sub={t('lancache.hitRatioSub')}
+            <StatTile label={t('lancache.saved')} value={bytes(data.saved_bytes)} sub={t('lancache.savedSub')} />
+            <StatTile label={t('lancache.hitRatio')} value={pct(data.hit_ratio)} sub={t('lancache.hitRatioSub')}
               tone={data.hit_ratio != null && data.hit_ratio < 0.5 ? 'warn' : undefined} />
-            <StatCard label={t('lancache.fromInternet')} value={bytes(data.miss_bytes)} sub={t('lancache.fromInternetSub')} />
-            <StatCard label={t('lancache.clients')} value={String(peak)} sub={t('lancache.clientsSub')} />
+            <StatTile label={t('lancache.fromInternet')} value={bytes(data.miss_bytes)} sub={t('lancache.fromInternetSub')} />
+            <StatTile label={t('lancache.clients')} value={String(peak)} sub={t('lancache.clientsSub')} />
           </SimpleGrid>
           <div className="fb-stats">
             <Machines data={data} expanded={expanded} />
