@@ -181,6 +181,12 @@ def app_module(tmp_path, monkeypatch):
     # want a poll call one themselves.
     monitor = app.app.extensions["floorbit_integrations"]["monitor"]
     monkeypatch.setattr(monitor, "poll_once", lambda *a, **k: None)
+    # The power watch files an incident when a circuit turns red; under the demo's readings a round
+    # landing mid-test added one to a test that counts the incidents. Tests that want readings
+    # call the watch themselves.
+    power = app.app.extensions["floorbit_power"]
+    power.stop()
+    monkeypatch.setattr(power, "start", lambda: None)
     from integrations.monitor import StatusMonitor
     StatusMonitor.latest.update(polled=None, at=None, devices=None)   # one that ran between tests
     app.app.config["TESTING"] = True
@@ -188,6 +194,13 @@ def app_module(tmp_path, monkeypatch):
     # Its thread outlives the test and polls for real once the patch above is undone; an agent
     # coming back in a later test wakes every monitor (sources.status_wake), so stop this one.
     monitor.stop()
+    # The collector reads data.json and writes it back (its ingest token). Under Postgres every
+    # test's data.json is one row, so a round that read this test's accounts and wrote after the
+    # next test emptied the table brought them back ("User tester already exists", #1141).
+    from floorbit import telemetry
+    if telemetry._runner is not None:
+        telemetry._runner.stop(wait=10)
+        telemetry._runner = None
 
 
 @pytest.fixture

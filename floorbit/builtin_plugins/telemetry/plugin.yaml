@@ -6,10 +6,10 @@ name: Telemetry
 icon: cpu
 version: "1.0.0"
 floorbit: ">=0.1,<2"
-description: "Live switch status, ports, traffic and errors, MAC tables, ARP and LLDP/CDP neighbours from the devices themselves (SNMP, traps, gNMI, Cisco MDT, NX-API, OPNsense), collected by Telegraf on the local agent or next to Floorbit. Feeds the floor plan, the status monitor, the seat inspector, the topology and the check-in page, without LibreNMS."
+description: "Live switch status, ports, traffic and errors, MAC tables, ARP and LLDP/CDP neighbours from the devices themselves (SNMP, traps, gNMI, Cisco MDT, NX-API, OPNsense), collected by Telegraf on the local agent or next to Floorbit. A Catalyst 9800 wireless controller's access points (channel, load, clients) for the Wi-Fi view. Feeds the floor plan, the status monitor, the seat inspector, the topology and the check-in page, without LibreNMS."
 author: Floorbit
 homepage: https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/telemetry.md
-uses: [agent, settings, monitoring, widgets]
+uses: [agent, settings, monitoring, widgets, wifi]
 # On a local agent this plugin is the collector (agent.py): the devices' picture stays in the hall,
 # the hosted Floorbit gets the per-port numbers for its history.
 agent:
@@ -27,8 +27,6 @@ settings:
   - {key: tables_minutes, label: ARP and MAC tables every (minutes), type: select, default: auto,
      options: [auto, "1", "5", "15", "30", "60", "0"],
      help: "How often Telemetry walks the ARP and MAC tables when it polls. 0: never. Auto: every 15 minutes while a network segment has lookups on (check-ins then ask the switches for their PC), else every minute. Not used while LibreNMS polls."}
-  - {key: uplink_macs, label: Uplink above, type: int, default: 8, min: 2, max: 1000,
-     help: "A port that has learned more MACs than this is an uplink or a desk switch: a seat's machine is looked for on another port first."}
   - {key: exclude, label: Ports to ignore, type: list, placeholder: "port-channel, vlan",
      help: "Comma-separated parts of port names that are never a seat's port (trunks, port channels, SVIs)."}
 widgets:

@@ -65,5 +65,9 @@
   "relayed": "Through the local agent {{agent}}",
   "relayDropped": "{{n}} dropped on the agent",
   "leases_one": "{{n}} DHCP lease read for IP to MAC",
-  "leases_other": "{{n}} DHCP leases read for IP to MAC"
+  "leases_other": "{{n}} DHCP leases read for IP to MAC",
+  "loaded_one": "{{n}} line loaded",
+  "loaded_other": "{{n}} lines loaded",
+  "livePaused": "Live, paused",
+  "livePausedWhy": "New lines wait while you look at older pages or another order."
 }

@@ -31,5 +31,14 @@
     "verified": "Your PC is linked to your seat's network port.",
     "not_wired": "Checked in from a phone: open this page on your PC too, so the crew knows your seat's port.",
     "unverified": "Your network port could not be found. No problem: the crew can still find you."
+  },
+  "hall": {
+    "going": "Taking you to the check-in on the event network…",
+    "title": "Check in on the event network",
+    "text": "At your seat, check in through the event network: that is how the crew learns your seat's network port. Not in the hall? Check in here, your seat and nick still count.",
+    "button": "Continue on the event network",
+    "backTitle": "The event network didn't open",
+    "backText": "This PC doesn't seem to be on the event network. Plug it in at your seat and try again, or check in here: your seat and nick still count.",
+    "portButton": "Let the crew find your seat's port"
   }
 }

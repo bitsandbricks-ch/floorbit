@@ -98,3 +98,6 @@ telegraf/
 # pytest-cov data
 .coverage
 .coverage.*
+
+# Written by a local demo server run from the repository.
+/syslog/
