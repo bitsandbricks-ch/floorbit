@@ -20,9 +20,15 @@ and [`floorbit/blueprints/power.py`](../floorbit/blueprints/power.py).
 Boards and circuits are stored in `data.json` under `power`. A board keeps its circuits: remove or
 move them first.
 
+Every board and circuit has its own page: `/power/boards/<id>` lists the board's circuits and is
+where it is changed or removed; `/power/circuits/<id>` shows the load, takes a reading, has
+**Tripped** / **Back on**, lists what the circuit feeds and is where it is changed or removed. The
+list only links to them. **Add board** and **Add circuit** open `/power/boards/new` and
+`/power/circuits/new` (`?board=<id>` starts it on that board).
+
 ## Load
 
-The load is the newest reading: typed in on the page (**Reading**, in amps or watts) or sent by a
+The load is the newest reading: typed in on the circuit's page (in amps or watts) or sent by a
 power plugin. Watts become amps at `POWER_VOLTAGE` (230 V). For a 3P circuit, enter the busiest phase.
 
 | Colour | When | What happens |

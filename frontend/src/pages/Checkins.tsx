@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Anchor, Badge, Button, Group, Stack, Table, Tabs, Text, TextInput, Tooltip } from '@mantine/core'
+import { ActionIcon, Alert, Anchor, Badge, Button, Group, Stack, Table, Tabs, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconPlugConnectedX, IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -9,6 +9,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { CheckinConflict, CheckinOverview, CrewCheckin, WiredState } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { Link } from 'react-router-dom'
 import { PageHead } from '@/components/PageHead'
@@ -130,53 +131,45 @@ export default function Checkins() {
                 {d.rows.length === 0 ? (
                   <EmptyState title={t('crewCheckin.empty')} desc={t('crewCheckin.emptyDesc')} />
                 ) : (
-                    <Table striped highlightOnHover className="fb-table-stack">
-                      <Table.Thead>
-                        <Table.Tr>
-                          <Table.Th>{t('crewCheckin.col.seat')}</Table.Th>
-                          <Table.Th>{t('crewCheckin.col.nick')}</Table.Th>
-                          <Table.Th>{t('crewCheckin.col.state')}</Table.Th>
-                          <Table.Th>{t('crewCheckin.col.port')}</Table.Th>
-                          <Table.Th>{t('crewCheckin.col.ip')}</Table.Th>
-                          <Table.Th>{t('crewCheckin.col.device')}</Table.Th>
-                          <Table.Th>{t('crewCheckin.col.when')}</Table.Th>
-                          {canEdit && <Table.Th aria-label={t('crewCheckin.col.actions')} />}
-                        </Table.Tr>
-                      </Table.Thead>
-                      <Table.Tbody>
-                        {rows.map((r) => (
-                          <Table.Tr key={r.seat} data-seat={r.seat}>
-                            <Table.Td className="fb-stack-inline"><Anchor href={`/plan?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor></Table.Td>
-                            <Table.Td className="fb-stack-inline">{r.username}{r.pin && <Badge size="xs" variant="light" ml={6}>{t('crewCheckin.pin')}</Badge>}</Table.Td>
-                            <Table.Td className="fb-stack-inline"><Badge color={STATE_COLOR[r.wired]} variant="light">{t(`crewCheckin.state.${r.wired}`)}</Badge>
-                              {r.wired !== 'verified' && <LookupNote lookup={r.lookup} />}</Table.Td>
-                            <Table.Td data-label={t('crewCheckin.col.port')}>
-                              <Text size="sm" ff="monospace">{portText(r.port ?? r.learned)}</Text>
-                              {r.learned && <Text size="xs" c="dimmed">{t('crewCheckin.learned')}</Text>}
-                              {r.area && <Text size="xs" c="dimmed">{t('cables.areaHint', { label: r.area.label })}</Text>}
-                            </Table.Td>
-                            <Table.Td data-label={t('crewCheckin.col.ip')}><Text size="sm" ff="monospace">{r.ip ?? '–'}</Text>
-                              {r.mac && <Text size="xs" c="dimmed" ff="monospace">{r.mac}</Text>}</Table.Td>
-                            <Table.Td data-label={t('crewCheckin.col.device')}>{t(`crewCheckin.device.${r.device}`)}</Table.Td>
-                            <Table.Td data-label={t('crewCheckin.col.when')}><Text size="sm">{ago(r.checked_in_at, lang)}</Text></Table.Td>
-                            {canEdit && (
-                              <Table.Td className="fb-stack-actions">
-                                <Group gap={4} wrap="nowrap" justify="flex-end">
-                                  {(r.wired === 'unverified' || r.wired === 'pending') && (
-                                    <Tooltip label={t('crewCheckin.retry')}>
-                                      <ActionIcon variant="subtle" aria-label={t('crewCheckin.retryFor', { seat: r.seat })}
-                                        onClick={() => act.mutate({ kind: 'retry', seat: r.seat })}><IconRefresh size={16} /></ActionIcon>
-                                    </Tooltip>
-                                  )}
-                                  <ConfirmIcon tooltip={t('crewCheckin.remove')} label={t('crewCheckin.removeFor', { seat: r.seat })}
-                                    onConfirm={() => act.mutate({ kind: 'remove', seat: r.seat })}><IconTrash size={16} /></ConfirmIcon>
-                                </Group>
-                              </Table.Td>
+                  <DataTable label={t('crewCheckin.title')} rows={rows} rowKey={(r) => r.seat} defaultSort={{ id: 'seat' }} striped cards
+                    empty={<Text c="dimmed">{t('crewCheckin.noMatch')}</Text>}
+                    columns={[
+                      { id: 'seat', header: t('crewCheckin.col.seat'), card: 'inline', sort: (r) => r.seat,
+                        cell: (r) => <Anchor href={`/plan?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor> },
+                      { id: 'nick', header: t('crewCheckin.col.nick'), card: 'inline', sort: (r) => r.username ?? '',
+                        cell: (r) => <>{r.username}{r.pin && <Badge size="xs" variant="light" ml={6}>{t('crewCheckin.pin')}</Badge>}</> },
+                      { id: 'state', header: t('crewCheckin.col.state'), card: 'inline', sort: (r) => r.wired,
+                        cell: (r) => <><Badge color={STATE_COLOR[r.wired]} variant="light">{t(`crewCheckin.state.${r.wired}`)}</Badge>
+                          {r.wired !== 'verified' && <LookupNote lookup={r.lookup} />}</> },
+                      { id: 'port', header: t('crewCheckin.col.port'), card: 'label', sort: (r) => portText(r.port ?? r.learned), cell: (r) => (
+                        <>
+                          <Text size="sm" ff="monospace">{portText(r.port ?? r.learned)}</Text>
+                          {r.learned && <Text size="xs" c="dimmed">{t('crewCheckin.learned')}</Text>}
+                          {r.area && <Text size="xs" c="dimmed">{t('cables.areaHint', { label: r.area.label })}</Text>}
+                        </>
+                      ) },
+                      { id: 'ip', header: t('crewCheckin.col.ip'), card: 'label', sort: (r) => r.ip ?? '', cell: (r) => (
+                        <>
+                          <Text size="sm" ff="monospace">{r.ip ?? '–'}</Text>
+                          {r.mac && <Text size="xs" c="dimmed" ff="monospace">{r.mac}</Text>}
+                        </>
+                      ) },
+                      { id: 'device', header: t('crewCheckin.col.device'), card: 'label', sort: (r) => r.device, cell: (r) => t(`crewCheckin.device.${r.device}`) },
+                      { id: 'when', header: t('crewCheckin.col.when'), card: 'label', sort: (r) => r.checked_in_at ?? 0, cell: (r) => ago(r.checked_in_at, lang) },
+                      ...(canEdit ? [{ id: 'actions', header: <VisuallyHidden>{t('crewCheckin.col.actions')}</VisuallyHidden>, card: 'actions' as const,
+                        cell: (r: CrewCheckin) => (
+                          <Group gap={4} wrap="nowrap" justify="flex-end">
+                            {(r.wired === 'unverified' || r.wired === 'pending') && (
+                              <Tooltip label={t('crewCheckin.retry')}>
+                                <ActionIcon variant="subtle" aria-label={t('crewCheckin.retryFor', { seat: r.seat })}
+                                  onClick={() => act.mutate({ kind: 'retry', seat: r.seat })}><IconRefresh size={16} /></ActionIcon>
+                              </Tooltip>
                             )}
-                          </Table.Tr>
-                        ))}
-                      </Table.Tbody>
-                    </Table>
+                            <ConfirmIcon tooltip={t('crewCheckin.remove')} label={t('crewCheckin.removeFor', { seat: r.seat })}
+                              onConfirm={() => act.mutate({ kind: 'remove', seat: r.seat })}><IconTrash size={16} /></ConfirmIcon>
+                          </Group>
+                        ) }] : []),
+                    ]} />
                 )}
               </Tabs.Panel>
               <Tabs.Panel value="review" pt="md">

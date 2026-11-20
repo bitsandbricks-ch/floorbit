@@ -103,6 +103,7 @@ AREA_METHODS = {
 # LAN around it. ``configured`` and ``port_login`` only read settings and stay.
 LAN_METHODS = frozenset({
     'devices', 'device_details', 'resolve_ip', 'port_stats', 'arp', 'device_ports', 'port_clients', 'neighbours',
+    'device_facts',
     'inventory', 'entries', 'cables', 'firewall_ranges', 'health_checks', 'security_findings', 'seat_mapping',
     'bounce_port', 'set_port', 'send_commands', 'open_shell', 'power_readings', 'dns_queries', 'wifi_aps'})
 # Methods a plugin of the area may have but doesn't need: without them the feature says the plugin
@@ -641,6 +642,7 @@ class Registry:
         self.specs = {}
         self.logs = LogBuffer()
         self._lock = threading.Lock()
+        self.listeners = []            # called after a plugin is turned on or off or settings change
         self._cache = None             # (read at, path, data) of plugins.json
         self._writes = 0               # bumped by every change: a read that overlapped one isn't kept
         self._hooks = deque()
@@ -651,6 +653,7 @@ class Registry:
         self._busy_lock = threading.Lock()
         self._migrating = {}           # plugin id -> lock, one migration at a time
         self._migrate_failed = {}      # (plugins.json path, id, schema) -> (when, message)
+        self._failing = {}             # id -> (since, message) while every call of it fails (failing())
         if dirs is None:
             dirs = [(BUILTIN_DIR, 'builtin')]
             dev = os.environ.get(DEV_ENV, '').strip()
@@ -806,6 +809,11 @@ class Registry:
     def enabled(self, spec):
         if spec.error:
             return False
+        return self.wanted(spec)
+
+    def wanted(self, spec):
+        """Is it meant to be on, whether or not it loads? A plugin turned on that then fails to
+        load (after an update, say) is wanted but not enabled: a problem (floorbit/problems.py)."""
         env = spec.manifest.get('enable_env') if spec.trust == 'builtin' else None
         if env and os.environ.get(str(env), '').strip().lower() in TRUE_WORDS:
             return True
@@ -821,6 +829,15 @@ class Registry:
         if on and spec.error:
             raise PluginError(f'{spec.name} has an error and can\'t be turned on: {spec.error}')
         self._update(plugin_id, enabled=bool(on))
+        self.changed()
+
+    def changed(self):
+        """Tell the caches built from the plugins' answers that the set of sources changed."""
+        for listener in list(self.listeners):
+            try:
+                listener()
+            except Exception as exc:  # noqa: BLE001  # a cache that can't clear must not undo the change
+                print(f'[plugins] change listener failed: {exc}')
 
     def state_of(self, plugin_id):
         return self._record(plugin_id).get('state') or {}
@@ -903,15 +920,29 @@ class Registry:
         if method != 'migrate':
             self.ensure_schema(spec)
         try:
-            return getattr(cls(Context(spec, self)), method)(*args)
-        except PluginError:
+            result = getattr(cls(Context(spec, self)), method)(*args)
+        except PluginError as exc:
+            self._failed(spec, str(exc))
             raise
         # BaseException too: a plugin's sys.exit() would otherwise end the worker serving the request.
         except BaseException as exc:
             if isinstance(exc, GeneratorExit):
                 raise
             self.log(spec.id, f'{method} failed: ' + ''.join(traceback.format_exception_only(exc)).strip())
-            raise PluginError(f'{spec.name} failed ({type(exc).__name__}); details are in its log') from None
+            message = f'{spec.name} failed ({type(exc).__name__}); details are in its log'
+            self._failed(spec, message)
+            raise PluginError(message) from None
+        self._failing.pop(spec.id, None)
+        return result
+
+    def _failed(self, spec, message):
+        since = self._failing.get(spec.id, (time.time(), ''))[0]
+        self._failing[spec.id] = (since, message[:300])
+
+    def failing(self):
+        """``{id: (since, last message)}``: the plugins whose calls have all failed since then, until
+        one works again. Kept in this process only: each pod sees what it asked."""
+        return dict(self._failing)
 
     def schema_of(self, plugin_id):
         """The schema this tenant's data of the plugin is at (0: never migrated)."""
@@ -1161,6 +1192,8 @@ def init_plugins(app, settings_store, current_version):
     app.extensions['floorbit_plugins'] = registry
     from .. import audit, sources
     sources.registry = registry
+    from .. import wifi
+    registry.listeners.append(wifi.forget)
     audit.listeners.append(lambda entry: registry.emit('change', {
         k: entry.get(k) for k in ('area', 'action', 'target', 'fields', 'user')}))
     try:

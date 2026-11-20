@@ -12,6 +12,7 @@ import { StatTile } from '@/components/StatTile'
 import { channelColor, loadColor } from './colors'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { blockTop } from '@/pages/plan/blockTop'
+import { WifiHistory } from './WifiHistory'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/wifi.md'
 const RADIUS = 80   // an AP's circle on the plan, in plan units
@@ -138,6 +139,7 @@ export default function WifiView({ expanded }: ViewProps) {
             ) : (
               <Alert color="gray" variant="light">{t('wifi.notPlaced')}</Alert>
             )}
+            {expanded && d.history && <WifiHistory />}
             {expanded && d.overlaps.length > 0 && (
               <Alert color="warn" title={t('wifi.overlapTitle')}>
                 {d.overlaps.map((o) => (

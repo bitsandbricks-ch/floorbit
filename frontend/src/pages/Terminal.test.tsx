@@ -56,7 +56,33 @@ describe('Terminal', () => {
       switch: 'sw-a-01', cols: 120, rows: 32, username: 'kim', password: 'pw-1' })
     fireEvent.click(screen.getByRole('button', { name: 'type' }))
     await waitFor(() => expect(fake.calls.find((c) => c.path === '/api/terminal/t1/input')?.body).toEqual({ data: 'show version\r' }))
-    expect(await screen.findByText('The switch closed the connection.')).toBeInTheDocument()
+    expect(await screen.findByText(/The switch closed the connection\./)).toBeInTheDocument()
+  })
+
+  it('keeps one tab per device, brings back open ones and closes a tab (issue #1207)', async () => {
+    const fake = fakeFetch({
+      'GET /api/auth/me': me,
+      'GET /api/terminal': info({ needs_login: false, sessions: [{ id: 't1', switch: 'sw-a-01', opened: 1 }, { id: 't2', switch: 'sw-a-02', opened: 2 }] }),
+      'GET /api/terminal/t1/output?after=0': { data: 'a1#', next: 3, skipped: 0, closed: null },
+      'GET /api/terminal/t2/output?after=0': { data: 'a2#', next: 3, skipped: 0, closed: null },
+      'GET /api/terminal/t1/output?after=3': { data: '', next: 3, skipped: 0, closed: null },
+      'GET /api/terminal/t2/output?after=3': { data: '', next: 3, skipped: 0, closed: null },
+      'POST /api/terminal/t1/resize': { ok: true },
+      'POST /api/terminal/t2/resize': { ok: true },
+      'DELETE /api/terminal/t1': { ok: true },
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<TerminalPage />)
+    const first = await screen.findByRole('tab', { name: /sw-a-01/ })
+    expect(first).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: /sw-a-02/ })).toHaveAttribute('aria-selected', 'false')
+    fireEvent.click(screen.getByRole('tab', { name: /sw-a-02/ }))
+    expect(screen.getByRole('tab', { name: /sw-a-02/ })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Close the terminal on sw-a-01' }))
+    await waitFor(() => expect(fake.calls.some((c) => c.method === 'DELETE' && c.path === '/api/terminal/t1')).toBe(true))
+    expect(screen.queryByRole('tab', { name: /sw-a-01/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: /New/ }))
+    expect(await screen.findByRole('button', { name: 'Open terminal' })).toBeInTheDocument()
   })
 
   it('says when no plugin can open one', async () => {

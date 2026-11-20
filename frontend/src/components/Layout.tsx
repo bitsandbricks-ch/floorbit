@@ -8,7 +8,7 @@ import { readRail } from '@/nav/boot'
 import { usePageList } from '@/api/queries'
 import { openGoTo } from '@/nav/goto'
 import { AppNav } from './AppNav'
-import { CrewNoticeBanner } from './CrewNotice'
+import { CrewNoticeBadge } from './CrewNotice'
 import { DatabaseBanner } from './DatabaseBanner'
 import { EventBanner } from './EventBanner'
 import { HubTabs } from './HubTabs'
@@ -60,16 +60,18 @@ export function AppShell({ children }: { children?: ReactNode }) {
           <Link to="/" reloadDocument className="fb-header-brand" aria-label={t('nav.homeBrand')}>
             <span className="fb-brand"><span className="fb-brand-lockup" aria-hidden="true" /></span>
           </Link>
-          <button type="button" className="fb-nav-icon-btn fb-header-search" onClick={openGoTo} aria-label={t('nav.search')}>
-            <IconSearch size={20} aria-hidden="true" />
-          </button>
+          <div className="fb-header-end">
+            <CrewNoticeBadge compact />
+            <button type="button" className="fb-nav-icon-btn fb-header-search" onClick={openGoTo} aria-label={t('nav.search')}>
+              <IconSearch size={20} aria-hidden="true" />
+            </button>
+          </div>
         </header>
         {/* Desktops: where you are, "Go to" and the notifications. */}
         <TopBar pages={pages} onSlot={setSlot} />
         <HubTabs pages={pages} />
         <DatabaseBanner />
         <EventBanner />
-        <CrewNoticeBanner />
         <PageError resetKey={pathname}>
           <TopbarSlot.Provider value={slot}>
             <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>

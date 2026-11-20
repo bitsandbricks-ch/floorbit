@@ -43,7 +43,7 @@ live and kept in the tenant's folder.
   agent and live monitoring serve it. With none or several, the first live one (or the first event)
   wins.
 
-Data in `data.json` that belongs to the tenant (accounts, settings, agents, dashboards;
+Data in `data.json` that belongs to the tenant (accounts, settings, agents and their CA, dashboards;
 `store.TENANT_KEYS`) stays in the tenant's `data.json`. A later event's `data.json` holds only the
 event's parts, and Floorbit reads and saves the two together.
 
@@ -154,6 +154,9 @@ request. The default tenant is the platform's own and has no such setting.
 
 - `GET`/`PUT /api/tenant/platform-access` `{"visits": bool}` (`accounts.manage`).
 - `POST /api/platform/tenants/<id>/admin` `{"username"}`: `{admin, password, made}`.
+- `GET`/`PUT /api/platform/agent-domain` `{"domain"}`: the domain the agents' Let's Encrypt certificates
+  are made under, `<tenant>.agent.<domain>` (docs/agent.md). Empty means the one from the platform's
+  address (`GET` returns it as `derived`), `off` keeps Floorbit's own CA.
 
 ### Adding and suspending tenants
 
@@ -218,7 +221,9 @@ Never build a path from `store.DATA_FILE`. Use:
 - `store.tenant_file(configured)` and `store.event_file(configured)` for a file someone can
   configure (`CHECKIN_FILE`, `PLUGINS_FILE`): on the first event it stays exactly as configured,
   on a later one the same name goes into that event's folder;
-- `store.load_data()` and `store.save_data()` for the current event's `data.json`.
+- `store.load_data()` and `store.save_data()` for the current event's `data.json`. A document from
+  `load_data()` is saved back to the event it was loaded from, even when another event is current by
+  then; a dict the caller built goes to the current event.
 
 Code runs for the live event unless it picks another one with `tenancy.using_event(event)`.
 

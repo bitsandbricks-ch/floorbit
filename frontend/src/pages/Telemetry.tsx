@@ -15,7 +15,6 @@ import { PageTabs } from '@/components/PageTabs'
 import { usePageTab } from '@/components/pageTab'
 import { StatTile } from '@/components/StatTile'
 import { DeviceProblems, DeviceTelemetryActions } from '@/components/telemetry/DeviceTelemetry'
-import { Segments } from '@/components/telemetry/Segments'
 import type { DeviceSeen } from '@/components/telemetry/api'
 import { TelemetryAgentNumbersList, type TelemetryAgentNumbers } from '@/components/telemetry/AgentNumbers'
 import { EmptyState, Field, Panel } from '@/components/ui'
@@ -45,7 +44,7 @@ export default function Telemetry() {
   const isAdmin = useCan('settings.manage')
   const data = useQuery({ queryKey: KEY, queryFn: () => get<TelemetryOverview>('/api/telemetry/overview'), refetchInterval: 15_000 })
   const d = data.data
-  const [tab, setTab] = usePageTab(['devices', 'collector', ...(isAdmin ? ['segments', 'senders'] : [])])
+  const [tab, setTab] = usePageTab(['devices', 'collector', ...(isAdmin ? ['senders'] : [])])
   const problems = d ? d.devices.filter((x) => d.seen[x.name]?.problems?.length).length : 0
   const silent = d ? d.devices.filter((x) => !d.seen[x.name]?.seen).length : 0
   const errors = d ? Object.keys({ ...d.status.poll_errors, ...d.status.storage.errors }).length : 0
@@ -72,11 +71,10 @@ export default function Telemetry() {
         <PageTabs label={t('telemetry.title')} value={tab} onChange={setTab} tabs={[
           { id: 'devices', label: t('telemetry.devicesTitle'), count: d?.devices.length },
           { id: 'collector', label: t('telemetry.collectorTab'), alert: errors ? 'warn' : null },
-          ...(isAdmin ? [{ id: 'segments', label: t('segments.title') }, { id: 'senders', label: t('telemetry.sendersTitle') }] : []),
+          ...(isAdmin ? [{ id: 'senders', label: t('telemetry.sendersTitle') }] : []),
         ]} />
         {tab === 'devices' && <Devices d={d} isAdmin={isAdmin} />}
         {tab === 'collector' && d && <Collector d={d} />}
-        {tab === 'segments' && isAdmin && <Segments />}
         {tab === 'senders' && isAdmin && <Senders collector={d?.status.collector} />}
       </Stack>
     </Layout>
