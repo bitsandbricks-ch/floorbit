@@ -1,8 +1,11 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { act, fireEvent, screen } from '@testing-library/react'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { Widget } from '@/api/types'
 import { renderWithApp } from '@/test/render'
+import { clock } from '@/lib/time'
 import { FitWidget } from './FitWidget'
+import { LevelReport } from './levelReport'
+import { AutoPage } from './autoPage'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
 const items = Array.from({ length: 30 }, (_, i) => ({ label: `sw-${String(i).padStart(2, '0')}`, state: i < 2 ? 'down' : 'up', detail: '' }) as const)
@@ -22,6 +25,22 @@ describe('FitWidget', () => {
     renderWithApp(<FitWidget widget={status} />)
     expect(document.querySelector('[data-level]')).toHaveAttribute('data-level', 's')
     expect(screen.getByText('28')).toBeInTheDocument()
+  })
+
+  it('tells the dashboard editor the level it drew at', () => {
+    size = { w: 300, h: 140 }
+    const report = { level: vi.fn(), rows: vi.fn() }
+    renderWithApp(<LevelReport.Provider value={report}><FitWidget widget={status} /></LevelReport.Provider>)
+    expect(report.level).toHaveBeenLastCalledWith('m', false)
+    // 4 of the 30 rows fit; the editor says so before the screen shows "+26 more".
+    expect(report.rows).toHaveBeenLastCalledWith(4, 30)
+  })
+
+  it('tells the editor when the box is too small even for small', () => {
+    size = { w: 90, h: 40 }
+    const report = { level: vi.fn(), rows: vi.fn() }
+    renderWithApp(<LevelReport.Provider value={report}><FitWidget widget={status} /></LevelReport.Provider>)
+    expect(report.level).toHaveBeenLastCalledWith('s', true)
   })
 
   it('shows the rows that fit and how many more, worst first', () => {
@@ -47,6 +66,25 @@ describe('FitWidget', () => {
     expect(document.querySelectorAll('tbody tr')).toHaveLength(1)
   })
 
+  it('turns the pages of a large list by itself on a wall, unless someone points at it', () => {
+    vi.useFakeTimers()
+    try {
+      size = { w: 700, h: 300 }
+      const table: Widget = { ...base, type: 'table', columns: [{ key: 'n', label: 'N' }],
+        rows: Array.from({ length: 40 }, (_, i) => ({ n: `row ${i + 1}` })) }
+      const { container } = renderWithApp(<AutoPage.Provider value={10}><FitWidget widget={table} /></AutoPage.Provider>)
+      expect(screen.getByText('row 1')).toBeInTheDocument()
+      act(() => { vi.advanceTimersByTime(10_000) })
+      expect(screen.queryByText('row 1')).not.toBeInTheDocument()
+      fireEvent.pointerEnter(container.querySelector('.fb-w-rows')!)
+      const page = screen.getByText(/ of 40/).textContent
+      act(() => { vi.advanceTimersByTime(30_000) })
+      expect(screen.getByText(/ of 40/).textContent).toBe(page)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('draws a series as a graph with a legend', () => {
     size = { w: 600, h: 300 }
     const series: Widget = { ...base, type: 'series', unit: 'bit/s', series: [
@@ -54,6 +92,65 @@ describe('FitWidget', () => {
     renderWithApp(<FitWidget widget={series} />)
     expect(screen.getByRole('img', { name: 'Graph: W' })).toBeInTheDocument()
     expect(screen.getByText('2 Gbit/s')).toBeInTheDocument()
+  })
+
+  it('writes the time axis in the samples own times', () => {
+    size = { w: 900, h: 500 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 1], [1800003600, 2]] }] }
+    const { container, unmount } = renderWithApp(<FitWidget widget={series} />)
+    const axis = [...container.querySelectorAll('.fb-w-axis span')].map((s) => s.textContent)
+    expect(axis[0]).toBe(clock(1800000000))
+    expect(axis[2]).toBe(clock(1800003600))
+    unmount()
+    const cols = renderWithApp(<FitWidget widget={series} pick="column" />)
+    expect(cols.container.querySelector('.fb-w-axis span')?.textContent).toBe(clock(1800000000))
+  })
+
+  it('keeps a fixed axis top a pane sets', () => {
+    size = { w: 900, h: 500 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 1], [1800003600, 2]] }] }
+    const { container } = renderWithApp(<FitWidget widget={series} look={{ axis: { min: 1, max: 1000, log: true } }} />)
+    expect(container.querySelectorAll('.fb-w-axis span')[1].textContent).toContain('1,000')
+  })
+
+  it('draws a comparison line dotted, over the time the real lines cover', () => {
+    size = { w: 900, h: 500 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 1], [1800003600, 2]] },
+      { label: 'Yesterday', ghost: true, points: [[1799990000, 9], [1800000000, 3], [1800003600, 4]] }] }
+    const { container } = renderWithApp(<FitWidget widget={series} />)
+    expect(container.querySelectorAll('.fb-w-ghost')).toHaveLength(1)
+    expect(container.querySelector('.fb-w-ghost')!.getAttribute('points')!.split(' ')).toHaveLength(2)
+    expect(screen.getByText('Yesterday')).toBeInTheDocument()
+  })
+
+  it('marks what happened with a line, named under the pointer', () => {
+    size = { w: 900, h: 500 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 1], [1800003600, 2]] }],
+      marks: [{ t: 1800003600, label: 'sw-a1 down', tone: 'err' }, { t: 1700000000, label: 'Too early', tone: '' }] }
+    const { container } = renderWithApp(<FitWidget widget={series} />)
+    expect(container.querySelectorAll('.fb-w-mark')).toHaveLength(1)
+    expect(container.querySelector('.fb-w-mark')!.getAttribute('class')).toContain('fb-tone-err')
+    const plot = container.querySelector('.fb-w-plot')!
+    plot.getBoundingClientRect = () => ({ left: 0, top: 0, right: 900, bottom: 400, width: 900, height: 400, x: 0, y: 0, toJSON: () => ({}) })
+    fireEvent.pointerMove(plot, { clientX: 899 })
+    expect(screen.getByText('sw-a1 down')).toBeInTheDocument()
+    expect(screen.queryByText('Too early')).toBeNull()
+  })
+
+  it('puts a stat\'s history under it, with how it moved, when the pane asks', () => {
+    size = { w: 300, h: 220 }
+    const t0 = 1800000000
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Clients', points: [[t0, 40], [t0 + 1800, 50], [t0 + 5400, 60]] }] }
+    const { container } = renderWithApp(<FitWidget widget={series} pick="stat" pin="m" look={{ spark: true, change: true, text: 'l' }} />)
+    expect(container.querySelector('.fb-w-spark polyline')).not.toBeNull()
+    expect(container.querySelector('.fb-w-change')!.textContent).toBe('▲ 20 % vs an hour ago')
+    expect(container.querySelector('.fb-w-text-l')).not.toBeNull()
+  })
+
+  it('says why a small stat has nothing to show', () => {
+    size = { w: 160, h: 90 }
+    renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: '–', unit: '', tone: '', sub: 'No LAN cache set up' }} pin="s" />)
+    expect(screen.getByText('No LAN cache set up')).toBeInTheDocument()
   })
 
   it('draws a stat with a scale as a gauge', () => {
@@ -76,6 +173,14 @@ describe('FitWidget', () => {
     renderWithApp(<FitWidget widget={status} pick="pie" />)
     expect(screen.getByRole('img', { name: 'Pie: Up 28, Down 2' })).toBeInTheDocument()
     expect(screen.getByText('30')).toBeInTheDocument()
+  })
+
+  it('writes a big pie total short, so it fits the ring', () => {
+    size = { w: 500, h: 220 }
+    const mix: Widget = { ...base, type: 'list', items: [{ label: 'Web', value: '360 GB', tone: '', number: 3.6e11 },
+      { label: 'Gaming', value: '183 GB', tone: '', number: 1.83e11 }] }
+    renderWithApp(<FitWidget widget={mix} pick="pie" look={{ number: { decimals: undefined, short: undefined } }} />)
+    expect(screen.getByText('543G')).toBeInTheDocument()
   })
 
   it('draws numbers as vertical bars and time data as columns', () => {
@@ -121,5 +226,29 @@ describe('FitWidget', () => {
     renderWithApp(<FitWidget widget={series} look={{ legend: ['min', 'avg'] }} />)
     expect(screen.getByText('Min')).toBeInTheDocument()
     expect(screen.getByText('4')).toBeInTheDocument()
+  })
+
+  it('draws colour steps as lines on a graph and shows a mapped value as text', () => {
+    size = { w: 600, h: 300 }
+    const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Down', points: [[1800000000, 2], [1800000060, 10]] }] }
+    const { container, unmount } = renderWithApp(<FitWidget widget={series} look={{ thresholds: [{ at: 5, tone: 'warn' }] }} />)
+    expect(container.querySelector('.fb-w-step.fb-tone-warn')).not.toBeNull()
+    unmount()
+    size = { w: 200, h: 100 }
+    renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 0, unit: '', tone: 'err', text: 'Down' }} />)
+    expect(screen.getByText('Down')).toBeInTheDocument()
+  })
+
+  it('picks its level from the whole widget, so a sub line can not make it flap (#1010)', () => {
+    // The drawing area is 20px shorter than the widget when the sub line shows: a level taken from
+    // the area would drop to small, hide the sub line, and grow back.
+    const spy = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('fb-w-area') ? 140 : 160
+    })
+    size = { w: 300, h: 160 }
+    const { container } = renderWithApp(<FitWidget widget={{ ...base, sub: 'From the last port read', type: 'stat', value: 9, unit: '', tone: '' }} />)
+    expect(container.querySelector('.fb-w')?.getAttribute('data-level')).toBe('m')
+    expect(screen.getByText('From the last port read')).toBeInTheDocument()
+    spy.mockImplementation(() => size.h)
   })
 })

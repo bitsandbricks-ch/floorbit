@@ -1,6 +1,6 @@
 {
   "title": "Switch terminal",
-  "intro": "A terminal on one switch, with your own switch login. It closes after {{idle}} minutes without typing, or after {{max}} minutes in all.",
+  "intro": "A terminal on one switch, with your own switch login. Each switch gets a tab; up to three stay open side by side.",
   "noPlugin": "No plugin that can open a switch terminal is on. An admin turns on SSH port actions under Settings > Plugins.",
   "switch": "Switch",
   "pick": "Pick a switch",
@@ -11,9 +11,14 @@
   "audited": "Every line you type is in the audit log with your name. Lines typed at a password prompt are logged as hidden.",
   "connected": "Connected",
   "closed": "Closed",
-  "close": "Close",
-  "back": "Back",
   "gone": "This terminal is closed.",
-  "yours": "Your open terminals",
-  "reattach": "Back to it"
+  "tabs": "Open terminals",
+  "closeTab": "Close the terminal on {{name}}",
+  "closeTabShort": "Close tab",
+  "full_one": "You can have {{count}} terminal open at a time. Close one first.",
+  "full_other": "You can have {{count}} terminals open at a time. Close one first.",
+  "new": "New",
+  "newTitle": "Open a terminal",
+  "limits": "Closes after {{idle}} minutes without typing, {{max}} minutes at most.",
+  "endedOn": "The terminal on {{name}} is closed:"
 }

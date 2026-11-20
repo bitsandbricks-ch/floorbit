@@ -17,8 +17,11 @@ import time
 
 from .store import load_data, save_data
 
-STEPS = ('netbox', 'librenms', 'switches', 'theme')
-STATES = ('done', 'skipped')
+# The first-run wizard's steps, then the checklist's (#988), which can be skipped too.
+STEPS = ('netbox', 'librenms', 'switches', 'theme',
+         'event', 'inventory', 'monitoring', 'floor', 'seats', 'alerts', 'crew')
+CHECKLIST = ('event', 'inventory', 'monitoring', 'floor', 'seats', 'alerts', 'crew')
+STATES = ('done', 'skipped', 'open')   # open: forget a skip
 MAX_CODE_TRIES = 10       # wrong codes before the code is replaced (and printed again)
 
 _lock = threading.Lock()
@@ -70,11 +73,14 @@ def set_step(step, value):
     if step not in STEPS:
         raise SetupError(f'Unknown step: {step}')
     if value not in STATES:
-        raise SetupError('A step is done or skipped.')
+        raise SetupError('A step is done, skipped or open.')
     with _lock:
         data = load_data()
         rec = data.setdefault('setup', {'done': False, 'steps': {}})
-        rec.setdefault('steps', {})[step] = value
+        if value == 'open':
+            rec.setdefault('steps', {}).pop(step, None)
+        else:
+            rec.setdefault('steps', {})[step] = value
         save_data(data)
         return state(data)
 
@@ -86,6 +92,49 @@ def finish(user):
         rec.update(done=True, finished_at=time.time(), by=user)
         save_data(data)
         return state(data)
+
+
+def _step(step_id, done, started, href, skipped, **facts):
+    """One checklist step: done, needs a look (started but not done), skipped or not started."""
+    status = 'done' if done else 'skipped' if skipped.get(step_id) == 'skipped' else 'look' if started else 'todo'
+    return {'id': step_id, 'state': status, 'href': href, 'facts': facts}
+
+
+def checklist(data, settings, agents=(), users=0, teams=0, hooks=0, monitoring=False, event_dates=None, mapped=0):
+    """What an event needs, in the order it is done (#988): each step's state from what is really
+    there, with the one place it is set. The caller gathers what lives outside ``data``.
+
+    ``settings`` is the settings store (``get``); ``agents`` the enrolled agents; ``mapped`` the
+    seats that have a switch port; ``monitoring`` whether a monitoring plugin is on and set up."""
+    skipped = state(data).get('steps', {})
+    devices = [d for d in data.get('inventory') or [] if not d.get('hidden')]
+    placed = sum(d.get('x') is not None for d in devices)
+    blocks = len(data.get('seat_blocks') or [])
+    netbox = bool(settings.get('netbox.url') and settings.get('netbox.token'))
+    librenms = bool(settings.get('librenms.url') and settings.get('librenms.token'))
+    connected = sum(1 for a in agents if a.get('connected'))
+    checkin = bool(settings.get('integrations.checkin_enabled'))
+    discord = bool(settings.get('integrations.discord_webhook_url') or settings.get('integrations.discord_bot_token'))
+    name = bool((settings.get('theme.name') or '').strip())
+    dates = bool(event_dates and event_dates.get('start'))
+    logo = bool(settings.get('theme.logo'))
+    source = librenms or monitoring
+    return [
+        _step('event', name and dates, name or dates or logo, '/settings/appearance' if not name else '/schedule',
+              skipped, name=name, dates=dates, logo=logo),
+        _step('inventory', bool(devices), netbox, '/inventory' if netbox or devices else '/settings/plugins/netbox',
+              skipped, devices=len(devices), netbox=netbox),
+        _step('monitoring', connected > 0 and source, bool(agents) or source,
+              '/settings/agents' if not agents or source else '/settings/plugins/librenms',
+              skipped, agents=len(agents), connected=connected, source=source),
+        _step('floor', blocks > 0 and placed > 0, blocks > 0 or placed > 0, '/plan', skipped,
+              blocks=blocks, placed=placed, devices=len(devices)),
+        _step('seats', mapped > 0, checkin, '/seat-mapping' if mapped or not checkin else '/settings/checkin', skipped,
+              mapped=mapped, checkin=checkin),
+        _step('alerts', discord or hooks > 0, False,
+              '/settings/discord', skipped, discord=discord, webhooks=hooks),
+        _step('crew', users > 1, teams > 0, '/settings/users', skipped, users=users, teams=teams),
+    ]
 
 
 class SetupCode:

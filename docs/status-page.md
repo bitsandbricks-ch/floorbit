@@ -10,19 +10,25 @@ It is **off** until an admin turns on **Network status page** under **Settings >
 
 ## What the page shows
 
-- **The state**, worked out from the status monitor every time the page loads:
+- **The state**, worked out every time the page loads from what players notice: the status monitor's
+  switches and the network checks of the [service health wall](health.md) (firewalls, internet lines,
+  DNS, DHCP). Game servers, websites and the LAN cache don't count: they aren't "the network".
 
   | State | When |
   | --- | --- |
-  | All systems running | every switch on the floor plan is up |
-  | Part of the network is down | one or more switches are down |
-  | Network outage | a router or firewall is down, or half of the placed switches or more |
+  | All systems running | every switch on the floor plan is up, and no firewall, internet line, DNS or DHCP check is down |
+  | Part of the network is down | one or more switches are down, a firewall is down (its ranges failed over), one internet line is down, or DNS or DHCP is down |
+  | Network outage | a router or firewall in the inventory is down, half of the placed switches or more, every internet line, or a seat range left without a firewall |
   | Status not available | the monitoring source isn't answering, or hasn't been asked yet |
+
+  Under the state, one plain line per cause says what players notice ("One internet line is down:
+  the internet may be slower."), never a device name.
 
   The crew can set the state by hand (for example **Maintenance** during planned work, with an
   update saying what and until when); it stays until they set it back to automatic.
 
-- **Affected areas**: the halls, seat blocks and rows the down switches serve. Floorbit learns which
+- **Affected areas**: the halls, seat blocks and rows the down switches serve, and the seats whose
+  range moved to another firewall (or has none left). Floorbit learns which
   seats a switch serves from the port descriptions it reads (the port watch, see [alerts.md](alerts.md)) and
   keeps that while the switch is down. A switch whose seats it doesn't know counts for the seat
   block nearest to it on the floor plan.

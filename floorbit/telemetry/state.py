@@ -19,6 +19,11 @@ Points come in several shapes, one per driver (docs/telemetry.md):
   ``fb_if`` rows keyed by name (``ip``, ``mac``, ``port`` tags) instead of an SNMP index.
 - A firewall's own Telegraf (OPNsense ``os-telegraf``, the pfSense Telegraf package): ``cpu``,
   ``mem``, ``net``, ``pf``, ``system``, with the firewall in the ``host`` tag.
+- A wireless controller's access points: ``fb_wlc_ap`` (each joined access point), ``fb_wlc_radio``
+  (its radios' channel and width) and ``fb_wlc_rrm`` (each radio's load and clients), keyed by the
+  AP's MAC and the radio slot (Device.wifi_aps): a Catalyst 9800 over MDT (tags), an AireOS
+  controller over SNMP (AIRESPACE-WIRELESS-MIB, MAC and slot in the index). Counts only: the
+  controller's client list is never asked for, and storage.py drops it if a device sends it anyway.
 """
 import ipaddress
 import re
@@ -35,6 +40,8 @@ MAX_OPTICS = 500       # transceivers reported per device
 # An optic by its model, description or name: SFP-10G-SR, GLC-LH-SMD, "1000BaseSX SFP", QSFP-40G-SR4, ...
 OPTIC = re.compile(r'SFP|GBIC|XFP|CFP|TRANSCEIVER|GLC-|BASE-?[A-Z]{1,3}\d?\b|TWINAX', re.I)
 STALE = 180            # a device that sent nothing for this long reads as offline
+AP_TTL = 86400         # an AP the controller stopped naming stays listed (down) this long
+MAX_APS = 4000         # access points kept per wireless controller
 OPER = {1: 'up', 2: 'down', 3: 'testing', 4: 'unknown', 5: 'dormant', 6: 'notPresent', 7: 'lowerLayerDown'}
 DUPLEX = {1: 'unknown', 2: 'halfDuplex', 3: 'fullDuplex'}
 LINK_DOWN = '1.3.6.1.6.3.1.1.5.3'
@@ -181,6 +188,9 @@ class Device:
         self.mem = None
         self.states = None                # a firewall's pf states
         self.seen = 0
+        self.polled = None                # the first full SNMP port poll: before it, ports are partial
+        self.snmp = False                 # set up to be polled by SNMP (know())
+        self.temps = {}                   # sensor -> (degrees C, seen)
         self.interfaces = {}              # index or name -> Interface
         self.bridge_ports = {}            # bridge port -> ifIndex
         self.lldp_local = {}              # LLDP local port number -> port name
@@ -199,6 +209,7 @@ class Device:
         self.routes = {}                  # 'dest/len via next hop' -> {network, next_hop, ifindex, proto}
         self.poe = {}                     # 'group.port' -> POWER-ETHERNET-MIB (+ Cisco) fields
         self.pse = {}                     # PoE group (a stack member) -> {budget_w, used_w, on}
+        self.aps = {}                     # a wireless controller's APs: AP MAC -> {name, model, radios, ...}
 
     # ports -----------------------------------------------------------------------------------
     def port(self, index=None, name=None):
@@ -244,6 +255,17 @@ class Device:
 
     def online(self, now=None):
         return (time.time() if now is None else now) - self.seen < STALE
+
+    def temperature(self, now=None):
+        """The hottest sensor heard lately (degrees C), or None: the one that trips first matters."""
+        now = time.time() if now is None else now
+        fresh = [v for v, seen in self.temps.values() if now - seen < STALE]
+        return max(fresh) if fresh else None
+
+    def waiting(self):
+        """Polled by SNMP but its port table isn't in yet: a trap or a stream may have named a few
+        ports, which would read as the switch's port count."""
+        return self.snmp and self.polled is None
 
     def poe_ports(self):
         """PoE per ifIndex: {ifIndex: {state, class, draw_w, allocated_w}}. Cisco names each row's
@@ -316,6 +338,27 @@ class Device:
             index = str(int(parent)) if parent else None
         wanted = str(name or '').lower()
         return next((i.name for i in self.interfaces.values() if wanted and (i.name or '').lower() == wanted), '')
+
+    def wifi_aps(self, now=None):
+        """A wireless controller's access points as the Wi-Fi view takes them (floorbit/wifi.py
+        clean_ap): name, model, up or down, and per radio its band, channel, width, load and clients.
+        An AP the controller hasn't named for STALE seconds has left it: down."""
+        now = time.time() if now is None else now
+        out = []
+        for ap in self.aps.values():
+            if not ap.get('name'):
+                continue
+            joined = now - ap['seen'] < STALE and ap.get('up', True)
+            radios = []
+            for slot, r in sorted(ap['radios'].items()):
+                band = r.get('band') or _band_of(None, r.get('channel'), slot)
+                if not band or now - r['seen'] > STALE or r.get('up') is False:
+                    continue
+                radios.append({'band': band, 'channel': r.get('channel'), 'width': r.get('width'),
+                               'utilization': r.get('utilization'), 'clients': r.get('clients') or 0})
+            out.append({'name': ap['name'], 'model': ap.get('model') or '', 'status': 'up' if joined else 'down',
+                        'radios': radios if joined else [], 'controller': self.name})
+        return out
 
     def summary(self):
         """What the device said it is (``fb_facts`` and its tables), as discovery takes it: model,
@@ -457,6 +500,8 @@ class State:
                 dev.mdt_node = t.get('mdt_node') or dev.mdt_node
                 dev.kind = t.get('kind') or dev.kind
                 dev.driver = dev.driver or ','.join(t.get('drivers') or [])
+                # poll_ports is False while LibreNMS polls the ports (polling.apply): no poll to wait for.
+                dev.snmp = 'snmp' in (t.get('drivers') or []) and t.get('poll_ports', True) is not False
 
     def apply(self, points, now=None):
         """Take a batch of points. Returns how many were understood."""
@@ -492,6 +537,8 @@ class State:
             for table in (dev.fdb, dev.arp, dev.lldp, dev.cdp):
                 for key in [k for k, row in table.items() if now - row[-1] > TABLE_TTL]:
                     del table[key]
+            for key in [k for k, ap in dev.aps.items() if now - ap['seen'] > AP_TTL]:
+                del dev.aps[key]
 
 
 # ── one handler per shape ─────────────────────────────────────────────────────────────────────
@@ -738,6 +785,8 @@ def _mem(dev, point, at):
 
 def _interface(dev, point, at):
     f, t = point.fields, point.tags
+    if dev.polled is None:
+        dev.polled = at               # fb_if comes from a full SNMP walk of the port table
     iface = dev.port(_index(point), t.get('ifName') or f.get('ifName') or t.get('name') or t.get('interface'))
     _fill(iface, {_key(k): v for k, v in f.items()}, at)
     if f.get('ifAlias') is not None or t.get('ifAlias') is not None:
@@ -799,6 +848,31 @@ def _cpu(dev, point, at):
         rows = dev._cpu_rows = {}
     rows[str(_index(point))] = (value, at)
     dev.cpu = max(v for v, seen in rows.values() if at - seen < STALE)
+    return True
+
+
+def _envtemp(dev, point, at):
+    """CISCO-ENVMON-MIB (Catalyst, IOS-XE): one row per sensor, already in degrees C."""
+    value = _num(point.fields.get('tempValue'))
+    if value is None:
+        return False
+    # Some sensors read 0 when absent (an empty slot); a switch room is never at 0 °C.
+    if 0 < value < 150:
+        dev.temps[f'envmon:{_index(point)}'] = (value, at)
+    return True
+
+
+def _sensor(dev, point, at):
+    """ENTITY-SENSOR-MIB (NX-OS and others): only the celsius sensors (type 8), in units (scale 9),
+    with their precision as decimals."""
+    f = point.fields
+    kind, scale, value = _num(f.get('sensorType')), _num(f.get('sensorScale')), _num(f.get('sensorValue'))
+    if value is None:
+        return False
+    if kind == 8 and scale in (None, 9):
+        value = value / 10 ** int(_num(f.get('sensorPrecision')) or 0)
+        if 0 < value < 150:
+            dev.temps[f'sensor:{_index(point)}'] = (value, at)
     return True
 
 
@@ -980,6 +1054,136 @@ def _generic(dev, point, at):
     return True
 
 
+# A Catalyst 9800's wireless MDT (Cisco-IOS-XE-wireless-access-point-oper, -rrm-oper). The field
+# names below are the YANG leaves' last parts; Telegraf keeps the path before them.
+
+def _tag(tags, *names):
+    """A tag by what it means, whatever spelling Telegraf gave its key (wtp-mac, wtp_mac, .../wtp-mac)."""
+    by = {_key(k): v for k, v in tags.items()}
+    return next((by[n] for n in names if by.get(n) not in (None, '')), None)
+
+
+# What a controller calls a band: the GHz first (dot11ax runs on every band), then the old letters.
+_BAND_PATTERNS = (('2.4', r'2(?:-dot-|[.-])?4-?ghz|band-?24\b'), ('6', r'(?<![\d.])6-?ghz|band-?6\b'),
+                  ('5', r'(?<![\d.])5-?ghz|band-?5\b'), ('2.4', r'type-bg?\b|dot11-?[bg]\b'),
+                  ('5', r'type-a\b|dot11-?a\b'))
+
+
+def _band_of(text, channel=None, slot=None):
+    """A radio's band from what the controller calls it, else from its channel (1-14 is 2.4 GHz),
+    else from its slot (0 is 2.4 GHz and 1 is 5 GHz on Cisco APs)."""
+    t = str(text or '').lower().replace('_', '-').replace(' ', '-')
+    for band, pattern in _BAND_PATTERNS:
+        if re.search(pattern, t):
+            return band
+    if channel:
+        return '2.4' if channel <= 14 else '5'
+    return {'0': '2.4', '1': '5'}.get(str(slot)) if slot is not None else None
+
+
+def _width_of(value):
+    """``chan-width-80-mhz``, ``80`` or ``CHAN_WIDTH_80MHZ`` -> 80."""
+    m = re.search(r'(20|40|80|160|320)', str(value or ''))
+    return int(m.group(1)) if m else None
+
+
+def _ap_index(point):
+    """(AP MAC, radio slot) of a row: MDT names them in tags, AireOS SNMP in the index (MAC as six
+    numbers, then the slot)."""
+    mac = _mac(_tag(point.tags, 'wtp_mac', 'ap_mac'))
+    slot = _tag(point.tags, 'radio_slot_id', 'slot_id', 'slot')
+    if mac is None and point.tags.get('index'):
+        parts = str(point.tags['index']).split('.')
+        mac = _mac_from_index(parts[:6])
+        slot = parts[6] if len(parts) == 7 else None
+    return mac, slot
+
+
+def _ap_row(dev, point):
+    mac = _ap_index(point)[0]
+    if not mac:
+        return None
+    ap = dev.aps.get(mac)
+    if ap is None:
+        if len(dev.aps) >= MAX_APS:
+            return None
+        ap = dev.aps[mac] = {'name': None, 'model': None, 'radios': {}, 'seen': 0.0}
+    dev.kind = 'wlc'
+    return ap
+
+
+def _wlc_ap(dev, point, at):
+    """capwap-data: one row per joined AP, with its name and model."""
+    ap = _ap_row(dev, point)
+    if ap is None:
+        return False
+    f = {_key(k): v for k, v in point.fields.items()}
+    name = ' '.join(str(f.get('name') or f.get('bsnapname') or _tag(point.tags, 'name') or '').split())[:80]
+    if name:
+        ap['name'] = name
+    model = f.get('model') or f.get('bsnapmodel')
+    if model:
+        ap['model'] = ' '.join(str(model).split())[:60]
+    if f.get('bsnapoperationstatus') is not None:
+        ap['up'] = _num(f['bsnapoperationstatus']) == 1         # associated
+    else:
+        oper = str(f.get('ap_operation_state') or '').lower()
+        admin = str(f.get('ap_admin_state') or '').lower()
+        ap['up'] = not ('disabled' in admin or (oper and 'registered' not in oper))
+    ap['seen'] = max(ap['seen'], at)
+    return True
+
+
+def _radio_row(dev, point, at):
+    ap = _ap_row(dev, point)
+    slot = _ap_index(point)[1]
+    if ap is None or slot is None or not str(slot).isdigit() or int(slot) > 7:
+        return None
+    radio = ap['radios'].setdefault(str(slot), {'seen': 0.0})
+    radio['seen'] = max(radio['seen'], at)
+    # A radio row keeps the AP listed between capwap-data samples.
+    ap['seen'] = max(ap['seen'], at)
+    return radio
+
+
+def _wlc_radio(dev, point, at):
+    """radio-oper-data: a radio's band, channel and width, and whether it is on."""
+    radio = _radio_row(dev, point, at)
+    if radio is None:
+        return False
+    f = {_key(k): v for k, v in point.fields.items()}
+    channel = next((_num(f[k]) for k in ('curr_freq', 'channel', 'bsnapifphychannelnumber')
+                    if f.get(k) is not None), None)
+    radio['channel'] = int(channel) if channel and 1 <= channel <= 233 else None
+    radio['width'] = _width_of(f.get('chan_width')) or radio.get('width')
+    slot = _ap_index(point)[1]
+    if f.get('bsnapiftype') is not None:      # AireOS: dot11b(1) is 2.4 GHz, dot11a(2) 5 GHz
+        radio['band'] = {1: '2.4', 2: '5'}.get(_num(f['bsnapiftype'])) or _band_of(None, radio['channel'], slot)
+        radio['up'] = _num(f.get('bsnapifoperstatus')) != 1
+        return True
+    words = ' '.join(str(f.get(k) or '') for k in ('current_active_band', 'current_band_id', 'radio_type', 'band'))
+    radio['band'] = _band_of(words, radio['channel'], slot)
+    oper, admin = str(f.get('oper_state') or '').lower(), str(f.get('admin_state') or '').lower()
+    radio['up'] = not ('down' in oper or 'disabled' in admin)
+    return True
+
+
+def _wlc_rrm(dev, point, at):
+    """rrm-measurement: a radio's channel utilization and how many clients it has."""
+    radio = _radio_row(dev, point, at)
+    if radio is None:
+        return False
+    f = {_key(k): v for k, v in point.fields.items()}
+    util = _num(f.get('cca_util_percentage') if f.get('cca_util_percentage') is not None
+                else f.get('bsnapifloadchannelutilization'))
+    if util is not None and 0 <= util <= 100:
+        radio['utilization'] = round(util)
+    clients = _num(f.get('stations') if f.get('stations') is not None else f.get('bsnapifloadnumofclients'))
+    if clients is not None and 0 <= clients <= 10000:
+        radio['clients'] = int(clients)
+    return True
+
+
 _HANDLERS = {
     'fb_system': _system, 'fb_tables': _system, 'fb_vlan': _system, 'fb_if': _interface, 'fb_cpu': _cpu,
     'fb_bridge': _bridge, 'fb_fdb': _fdb, 'fb_qfdb': _qfdb, 'fb_arp': _arp, 'fb_lldp': _lldp,
@@ -987,8 +1191,9 @@ _HANDLERS = {
     'cpu': _fw_cpu, 'mem': _fw_mem, 'net': _fw_net, 'pf': _fw_pf, 'system': _fw_system,
     'fb_poe': _poe, 'fb_pse': _pse, 'fb_route': _route,
     'fb_facts': _facts, 'fb_entity': _entity, 'fb_entalias': _entalias, 'fb_storage': _storage,
-    'fb_hrdevice': _hrdevice, 'fb_mem': _mem,
+    'fb_hrdevice': _hrdevice, 'fb_mem': _mem, 'fb_envtemp': _envtemp, 'fb_sensor': _sensor,
     'fb_ifmac': _ifmac, 'fb_ip': _ip, 'fb_vtp': _vtp, 'fb_qvlan': _qvlan, 'fb_ifvlan': _ifvlan, 'fb_pvid': _pvid,
+    'fb_wlc_ap': _wlc_ap, 'fb_wlc_radio': _wlc_radio, 'fb_wlc_rrm': _wlc_rrm,
 }
 
 
@@ -1009,5 +1214,13 @@ def register(measurement, handler, private=False):
 PRIVATE = frozenset({'fb_fdb', 'fb_qfdb', 'fb_arp', 'fb_bridge', 'fb_lldp', 'fb_lldp_loc', 'fb_cdp',
                      'fb_facts', 'fb_entity', 'fb_entalias', 'fb_route', 'fb_storage', 'fb_hrdevice', 'fb_ifmac',
                      'fb_ip', 'fb_vtp', 'fb_qvlan', 'fb_ifvlan', 'fb_pvid'})
+# A wireless controller's client list (who is on which AP), should one stream it anyway: its
+# Cisco path or an alias someone gave it. Never stored, never understood.
+CLIENT_LISTS = re.compile(r'client-oper|client_oper|wireless-client|dot11-client', re.I)
+
+
+def private(measurement):
+    """Is this measurement kept out of storage (MACs, IPs, people)?"""
+    return measurement in PRIVATE or bool(CLIENT_LISTS.search(str(measurement)))
 
 state = State()

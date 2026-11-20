@@ -1,16 +1,14 @@
 import { Anchor, Button, Group, Select, Stack, Text, Textarea, TextInput } from '@mantine/core'
-import { IconArrowLeft, IconExternalLink } from '@tabler/icons-react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { IconExternalLink } from '@tabler/icons-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, patch } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { EntryDetail, InventoryOverview, InventoryType } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
-import { EmptyState, Field, LoadingState, Panel } from '@/components/ui'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { DangerZone, ItemPage } from '@/components/ItemPage'
+import { Field, Panel } from '@/components/ui'
 import { useCan } from '@/api/queries'
 import { FieldInputs } from './FieldInputs'
 import { DeviceIcon } from './icons'
@@ -33,19 +31,16 @@ export default function EntryPage() {
   const icon = entry ? entry.resolved.look.icon.value || type?.default_icon || 'other' : type?.default_icon ?? 'other'
   const color = entry?.resolved.look.color.value ?? ''
   return (
-    <Layout title={entry?.name ?? t('inventory.title')}>
-      {error ? (
-        <EmptyState title={t('inventory.page.notFound')} desc={error.message}
-          action={<Button component={Link} to="/inventory" variant="default" leftSection={<IconArrowLeft size={16} />}>{t('inventory.page.back')}</Button>} />
-      ) : !entry || !type || !overview ? <LoadingState rows={6} /> : (
-        <>
-          <PageHead icon={<DeviceIcon icon={icon} color={color} size={28} />} title={entry.name}
-            kicker={[typeName(t, type), ...entry.resolved.group_path.map((g) => g.name)].join(' · ')} />
-          <EntryForm key={JSON.stringify(entry)} type={type} entry={entry} overview={overview} canEdit={canEdit}
-            onClose={() => navigate(`/inventory?type=${encodeURIComponent(type.id)}`)} />
-        </>
+    <ItemPage title={entry && type && overview ? entry.name : undefined} fallbackTitle={t('inventory.title')}
+      back={{ href: type ? `/inventory?type=${encodeURIComponent(type.id)}` : '/inventory', label: t('inventory.page.back') }}
+      loading={!entry || !type || !overview} missing={error ? { title: t('inventory.page.notFound'), desc: error.message } : null}
+      icon={<DeviceIcon icon={icon} color={color} size={28} />}
+      kicker={entry && type ? [typeName(t, type), ...entry.resolved.group_path.map((g) => g.name)].join(' · ') : undefined}>
+      {entry && type && overview && (
+        <EntryForm key={JSON.stringify(entry)} type={type} entry={entry} overview={overview} canEdit={canEdit}
+          onClose={() => navigate(`/inventory?type=${encodeURIComponent(type.id)}`)} />
       )}
-    </Layout>
+    </ItemPage>
   )
 }
 
@@ -108,11 +103,7 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
           <Textarea label={t('inventory.field.notes')} value={notes} onChange={(e) => setNotes(e.currentTarget.value)} autosize minRows={2} maxLength={1000} disabled={!canEdit} />
           {message && <Text size="sm" role="status" className={message.ok ? 'fb-tone-ok' : 'fb-tone-err'}>{message.ok ? '✓' : '✕'} {message.text}</Text>}
           {canEdit && (
-            <Group justify="space-between">
-              {stored ? (
-                <ConfirmButton variant="subtle" danger label={t('inventory.delete')} question={t('inventory.deleteManual', { name: entry.name })}
-                  onConfirm={() => remove.mutate()} />
-              ) : <span />}
+            <Group justify="flex-end">
               <Button loading={save.isPending} disabled={!Object.keys(changes).length} onClick={() => save.mutate(changes)}>{t('inventory.save')}</Button>
             </Group>
           )}
@@ -122,6 +113,10 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
         <PropertiesEditor value={entry.properties} inherited={entry.resolved.properties} canEdit={canEdit} busy={save.isPending}
           onSave={(properties) => save.mutate({ properties })} />
       </Panel>
+      {canEdit && stored && (
+        <DangerZone label={t('inventory.delete')} question={t('inventory.deleteManual', { name: entry.name })}
+          loading={remove.isPending} onConfirm={() => remove.mutate()} />
+      )}
     </Stack>
   )
 }

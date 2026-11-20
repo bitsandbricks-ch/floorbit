@@ -39,5 +39,21 @@
   "nightly_one": "Jede Nacht um {{hour}}:00 sichert Floorbit {{count}} Switch mit dem gespeicherten Login.",
   "nightly_other": "Jede Nacht um {{hour}}:00 sichert Floorbit {{count}} Switches mit den gespeicherten Logins.",
   "nightlyLast": "Letzter Nachtlauf {{when}}: {{ok}} von {{total}} gesichert, {{changed}} geändert.",
-  "nightlyFailed": "Nicht gesichert: {{list}}"
+  "nightlyFailed": "Nicht gesichert: {{list}}",
+  "portCheck": {
+    "title": "Platz-Port-Prüfung",
+    "intro": "Aus der letzten Konfig-Kopie jedes Switches gelesen, ohne Login: jeder Platz-Port soll sofort hochkommen (PortFast), sich abschalten, wenn jemand einen Switch einsteckt (BPDU Guard), eine Broadcast-Flut stoppen (Storm Control), ein Access-Port sein und im selben VLAN wie seine Nachbarn liegen. Nach jedem Backup neu geprüft.",
+    "rules": "Regeln, die dieser Event nutzt",
+    "summary_one": "{{count}} Switch mit Platz-Ports geprüft, {{fine}} in Ordnung.",
+    "summary_other": "{{count}} Switches mit Platz-Ports geprüft, {{fine}} in Ordnung.",
+    "noCopy_one": "Noch keine Konfig-Kopie: {{list}}.",
+    "noCopy_other": "Noch keine Konfig-Kopie für {{count}} Switches: {{list}}.",
+    "from": "Kopie vom {{when}}, {{checked}} Platz-Ports darin",
+    "without_one": "{{count}} Port ohne {{rule}}",
+    "without_other": "{{count}} Ports ohne {{rule}}",
+    "vlan_one": "{{count}} Port nicht im VLAN {{vlan}}",
+    "vlan_other": "{{count}} Ports nicht im VLAN {{vlan}}",
+    "copy": "Fix kopieren",
+    "copied": "Kopiert"
+  }
 }

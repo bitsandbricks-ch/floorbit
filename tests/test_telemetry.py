@@ -124,6 +124,43 @@ def test_ports_rates_and_state_from_snmp(plugin):
     assert [d["hostname"] for d in plugin.devices()] == ["sw-a-01"]
 
 
+def test_the_temperature_like_librenms(plugin):
+    """Issue #1085: the hottest fresh sensor, from CISCO-ENVMON (degrees) or ENTITY-SENSOR (scaled)."""
+    now = time.time()
+    state.state.apply_text(snmp_poll(now, 1000), now)
+    assert "temperature" not in plugin.device_details("sw-a-01")
+    ns = int(now * 1e9)
+    state.state.apply_text("\n".join([
+        f"fb_envtemp,{SW},index=1 tempValue=34i {ns}",
+        f"fb_envtemp,{SW},index=2 tempValue=0i {ns}",                       # an empty slot
+        # NX-OS: 41.5 °C as 415 with one decimal; a fan (type 10) and millidegrees (scale 8) are left out.
+        f"fb_sensor,{CORE},index=21590 sensorType=8i,sensorScale=9i,sensorPrecision=1i,sensorValue=415i {ns}",
+        f"fb_sensor,{CORE},index=22000 sensorType=10i,sensorScale=9i,sensorPrecision=0i,sensorValue=5400i {ns}",
+        f"fb_sensor,{CORE},index=22001 sensorType=8i,sensorScale=8i,sensorPrecision=0i,sensorValue=90000i {ns}",
+    ]), now)
+    assert plugin.device_details("sw-a-01")["temperature"] == 34
+    assert state.state.devices["core-01"].temperature() == 41.5
+    # A sensor that stopped answering doesn't stay as the reading.
+    assert state.state.devices["sw-a-01"].temperature(now + state.STALE + 1) is None
+
+
+def test_before_the_first_poll_it_says_waiting(plugin):
+    """Issue #1085: a trap names one port before the port table is in; that isn't the port count."""
+    state.state.know([{"name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp", "traps"]}])
+    now = time.time()
+    state.state.apply_text('snmp_trap,source=192.0.2.21,oid=.1.3.6.1.6.3.1.1.5.3,driver=traps '
+                           '.1.3.6.1.2.1.2.2.1.1.10101=10101i', now)
+    details = plugin.device_details("sw-a-01")
+    assert details["status"] == "unknown" and details["waiting"] is True and "up_ports" not in details
+    state.state.apply_text(snmp_poll(now, 1000), now)
+    assert plugin.device_details("sw-a-01")["status"] == "online"
+    # While LibreNMS polls the ports there is no poll to wait for.
+    state.state.reset()
+    state.state.know([{"name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp"], "poll_ports": False}])
+    state.state.apply_text(f"fb_system,{SW} sysUpTime=1i {int(now * 1e9)}", now)
+    assert plugin.device_details("sw-a-01")["status"] == "online"
+
+
 def test_the_devices_widget_for_dashboards(plugin, client):
     import time
     assert client.get("/api/plugins/telemetry/widgets/devices").get_json()["sub"] == "No devices set up yet."

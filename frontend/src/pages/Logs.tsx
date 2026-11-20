@@ -1,4 +1,5 @@
-import { Alert, Anchor, Badge, Button, Group, Loader, SegmentedControl, Select, Switch, Table, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Loader, Pagination, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
+import { IconSearch } from '@tabler/icons-react'
 import { useMediaQuery } from '@mantine/hooks'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -8,6 +9,7 @@ import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { LogSeverity, LogSource, LogStatus, LogsData, SyslogLine } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { onPlan } from './plan/links'
@@ -19,7 +21,8 @@ const SEVERITIES: LogSeverity[] = ['emerg', 'alert', 'crit', 'err', 'warning', '
 const COLOR: Record<LogSeverity, string> = {
   emerg: 'down', alert: 'down', crit: 'down', err: 'down', warning: 'warn', notice: 'blue', info: 'gray', debug: 'gray',
 }
-const PAGE = 200
+const PAGE = 200          // lines per request to the server
+const PAGE_SIZE = 50      // lines per page on screen (issue #1206)
 const TAIL_MS = 3000
 const STORE_MS = 15_000   // asking Loki every 3 seconds would be rude
 
@@ -75,32 +78,40 @@ function StatusLine({ status }: { status: LogStatus }) {
   )
 }
 
-function Row({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) => void }) {
+/** The log as the shared table: newest first as the server sends it, in pages; time, level and
+ *  device sort the lines loaded so far (issue #1206). */
+function LogTable({ lines, store, source, onDevice }: { lines: SyslogLine[]; store: boolean; source: string; onDevice?: (d: string) => void }) {
   const { t, i18n } = useTranslation()
-  const time = formatWhen(line.ts, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }, i18n.language)
   return (
-    <Table.Tr>
-      <Table.Td style={{ whiteSpace: 'nowrap' }}><Text size="xs" ff="monospace">{time}</Text></Table.Td>
-      <Table.Td style={{ whiteSpace: 'nowrap' }}><Badge size="sm" variant="light" color={COLOR[line.severity]} tt="none" miw="max-content">{t(`logs.sev.${line.severity}`)}</Badge></Table.Td>
-      <Table.Td style={{ whiteSpace: 'nowrap' }}>
-        {onDevice ? (
-          <Anchor component="button" type="button" size="sm" onClick={() => onDevice(line.device)}
-            title={t('logs.onlyDevice', { device: line.device })}>{line.device}</Anchor>
-        ) : <Text size="sm">{line.device}</Text>}
-        {(line.port || line.seat) && (
-          <Text size="xs" c="dimmed">
-            {line.port}
-            {line.seat && <> · <Anchor href={onPlan({ seat: line.seat })} size="xs" underline="always">{t('logs.seat', { seat: line.seat })}</Anchor></>}
+    <DataTable label={t('logs.title')} rows={lines} rowKey={(l, i) => (store ? `${l.id}-${i}` : String(l.id))} pageSize={PAGE_SIZE}
+      striped density="compact" minWidth={640} defaultSort={{ id: 'time', desc: true }}
+      count={(n) => t('logs.loaded', { count: n, n: n.toLocaleString(i18n.language) })}
+      columns={[
+        { id: 'time', header: t('logs.time'), mono: true, sort: (line) => line.ts, cell: (line) =>
+          formatWhen(line.ts, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }, i18n.language) },
+        { id: 'level', header: t('logs.level'), sort: (line) => SEVERITIES.indexOf(line.severity), cell: (line) =>
+          <Badge size="sm" variant="light" color={COLOR[line.severity]} tt="none" miw="max-content">{t(`logs.sev.${line.severity}`)}</Badge> },
+        { id: 'device', header: t(source === 'audit' ? 'logs.who' : 'logs.device'), sort: (line) => line.device, cell: (line) => (
+          <>
+            {onDevice ? (
+              <Anchor component="button" type="button" size="sm" onClick={() => onDevice(line.device)}
+                title={t('logs.onlyDevice', { device: line.device })}>{line.device}</Anchor>
+            ) : <Text size="sm">{line.device}</Text>}
+            {(line.port || line.seat) && (
+              <Text size="xs" c="dimmed">
+                {line.port}
+                {line.seat && <> · <Anchor href={onPlan({ seat: line.seat })} size="xs" underline="always">{t('logs.seat', { seat: line.seat })}</Anchor></>}
+              </Text>
+            )}
+          </>
+        ) },
+        { id: 'message', header: t('logs.message'), wrap: true, cell: (line) => (
+          <Text size="sm" ff="monospace">
+            {line.program && <Text span c="dimmed" inherit>{line.program}: </Text>}
+            {line.message}
           </Text>
-        )}
-      </Table.Td>
-      <Table.Td>
-        <Text size="sm" ff="monospace" style={{ overflowWrap: 'anywhere' }}>
-          {line.program && <Text span c="dimmed" inherit>{line.program}: </Text>}
-          {line.message}
-        </Text>
-      </Table.Td>
-    </Table.Tr>
+        ) },
+      ]} />
   )
 }
 
@@ -139,7 +150,7 @@ const QUERY: Record<string, { language: string; example: string }> = {
 export default function Logs() {
   const { t } = useTranslation()
   // Links from Problems and elsewhere open the page filtered: /logs?seat=A-4.
-  const [search] = useSearchParams()
+  const [search, setSearch] = useSearchParams()
   const [filters, setFilters] = useState<Filters>(() => ({
     q: search.get('q') ?? '', device: search.get('device') ?? '', seat: search.get('seat') ?? '',
     port: search.get('port') ?? '', severity: SEVERITIES.includes(search.get('severity') as LogSeverity) ? search.get('severity')! : '',
@@ -158,6 +169,20 @@ export default function Logs() {
   // Older pages belong to the filters they were read with; new filters start from the newest again.
   const [older, setOlder] = useState<{ key: string; lines: SyslogLine[]; more: boolean }>({ key: '', lines: [], more: true })
   const settled = useSettled(filters)
+  // The filters and the log live in the address too, so a reload or a pasted link shows the same
+  // lines (issue #1206). A new filter starts again at the first page.
+  useEffect(() => {
+    setSearch((prev) => {
+      const next = new URLSearchParams(prev)
+      for (const [k, v] of Object.entries(settled)) if (v) next.set(k, v); else next.delete(k)
+      if (source === 'syslog') next.delete('source'); else next.set('source', source)
+      if (next.toString() !== prev.toString()) next.delete('page')
+      return next.toString() === prev.toString() ? prev : next
+    }, { replace: true })
+  }, [settled, source, setSearch])
+  // Past the first page or sorted another way, new lines would move what you are reading: hold the tail.
+  const browsing = (Number(search.get('page')) || 1) > 1 || !!search.get('sort')
+  const following = live && !browsing
   // Seat, port and device only mean something in the syslog.
   const key = store
     ? params({ ...EMPTY, q: logql }, { source, hours })
@@ -165,7 +190,7 @@ export default function Logs() {
   const query = useQuery({
     queryKey: qk.logs(key),
     queryFn: () => get<LogsData>(`/api/logs${key}`),
-    refetchInterval: live ? (store ? STORE_MS : TAIL_MS) : false,
+    refetchInterval: following ? (store ? STORE_MS : TAIL_MS) : false,
     placeholderData: keepPreviousData,
   })
   const set = (k: keyof Filters) => (v: string | null) => setFilters((f) => ({ ...f, [k]: v ?? '' }))
@@ -181,6 +206,11 @@ export default function Logs() {
     try {
       const page = await get<LogsData>(`/api/logs${key}${key ? '&' : '?'}before=${oldest.id}`)
       setOlder((o) => ({ key, lines: [...(o.key === key ? o.lines : []), ...page.lines], more: page.lines.length >= PAGE }))
+      // Straight to the first of the lines just read (the button only shows on the last page), instead of leaving them pages away.
+      if (page.lines.length) {
+        const first = Math.floor(lines.length / PAGE_SIZE) + 1
+        setSearch((prev) => { const next = new URLSearchParams(prev); next.set('page', String(first)); return next }, { replace: true })
+      }
     } finally {
       setLoadingOlder(false)
     }
@@ -191,11 +221,19 @@ export default function Logs() {
   // A logs plugin's line id is its time in microseconds: lines sent in one go share it, so it can't be the key alone.
   const storeName = (s: string) => data?.status.stores?.find((x) => `plugin:${x.id}` === s)?.name ?? s.slice('plugin:'.length)
   const phone = useMediaQuery('(max-width: 48em)')
+  const pageCount = Math.max(1, Math.ceil(lines.length / PAGE_SIZE))
+  const shownPage = Math.min(pageCount, Math.max(1, Number(search.get('page')) || 1))
+  const setShownPage = (n: number) => setSearch((prev) => {
+    const next = new URLSearchParams(prev)
+    if (n > 1) next.set('page', String(n)); else next.delete('page')
+    return next
+  }, { replace: true })
 
   return (
     <Layout title={t('logs.title')} back={{ href: '/', label: t('logs.floorplan') }}>
       <PageHead title={t('logs.title')} desc={t(syslog ? 'logs.intro' : store ? 'logs.intros.store' : `logs.intros.${source}`)}
-        actions={<Switch label={t('logs.live')} checked={live} onChange={(e) => setLive(e.currentTarget.checked)} />} />
+        actions={<Switch label={live && browsing ? t('logs.livePaused') : t('logs.live')} checked={live}
+          title={live && browsing ? t('logs.livePausedWhy') : undefined} onChange={(e) => setLive(e.currentTarget.checked)} />} />
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {syslog && data?.status.error && <Alert color="warn" mb="md">{data.status.error}</Alert>}
       {sources.length > 1 && (
@@ -215,6 +253,7 @@ export default function Logs() {
       ) : (
         <Group gap="sm" mb="sm" align="flex-end" wrap="wrap">
           <TextInput label={t('logs.search')} placeholder={t('logs.searchHint')} value={filters.q} style={{ flex: '2 1 220px' }}
+            leftSection={<IconSearch size={16} />} type="search"
             onChange={(e) => set('q')(e.currentTarget.value)} />
           {syslog && (
             <>
@@ -243,27 +282,22 @@ export default function Logs() {
           ) : (
             <>
               {phone ? (
-                <ul className="fb-log-lines" aria-label={t('logs.title')}>
-                  {lines.map((l, i) => <Compact key={store ? `${l.id}-${i}` : l.id} line={l} onDevice={onDevice} />)}
-                </ul>
+                <>
+                  <ul className="fb-log-lines" aria-label={t('logs.title')}>
+                    {lines.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE)
+                      .map((l, i) => <Compact key={store ? `${l.id}-${i}` : l.id} line={l} onDevice={onDevice} />)}
+                  </ul>
+                  {pageCount > 1 && (
+                    <Group justify="center" mt="sm">
+                      <Pagination size="sm" total={pageCount} value={shownPage} onChange={setShownPage}
+                        getControlProps={(control) => ({ 'aria-label': t(`table.${control}`) })} />
+                    </Group>
+                  )}
+                </>
               ) : (
-                <Table.ScrollContainer minWidth={640}>
-                  <Table verticalSpacing={4} striped highlightOnHover aria-label={t('logs.title')}>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>{t('logs.time')}</Table.Th>
-                        <Table.Th>{t('logs.level')}</Table.Th>
-                        <Table.Th>{t(source === 'audit' ? 'logs.who' : 'logs.device')}</Table.Th>
-                        <Table.Th>{t('logs.message')}</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {lines.map((l, i) => <Row key={store ? `${l.id}-${i}` : l.id} line={l} onDevice={onDevice} />)}
-                    </Table.Tbody>
-                  </Table>
-                </Table.ScrollContainer>
+                <LogTable lines={lines} store={!!store} source={source} onDevice={onDevice} />
               )}
-              {more && lines.length >= PAGE && (
+              {more && lines.length >= PAGE && shownPage === pageCount && (
                 <Group justify="center" mt="sm">
                   <Button variant="default" loading={loadingOlder} onClick={() => void loadOlder()}>{t('logs.older')}</Button>
                 </Group>

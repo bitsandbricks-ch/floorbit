@@ -1,4 +1,4 @@
-import { Button, Group, Loader, SegmentedControl, Text } from '@mantine/core'
+import { Button, Group, SegmentedControl, Text } from '@mantine/core'
 import { IconFileText, IconPlayerPlay } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -10,12 +10,12 @@ import { useCan, useFeature, useStats } from '@/api/queries'
 import type { StatsData, StatsSample } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import type { ViewProps } from '@/widgets/views'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { Compare } from './Compare'
 import { Forecast } from './Forecast'
 import { bps } from './format'
 import { onPlan } from '../plan/links'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
 
 const HOUR = 3600
@@ -66,14 +66,14 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
   return (
     <div className="fb-stats">
       <div className="fb-stats-row" role="group" aria-label={t('stats.bandwidth')}>
-        <StatCard label={t('stats.now')} value={bps(now.down + now.up)} trend={lastHour.map((s) => s.down + s.up)}
+        <StatTile label={t('stats.now')} value={bps(now.down + now.up)} trend={lastHour.map((s) => s.down + s.up)}
           trendLabel={t('stats.trendTraffic')} sub={t('stats.downUp', { down: bps(now.down), up: bps(now.up) })} />
-        {data.hour && <StatCard label={t('stats.hour')} value={bps(data.hour.peak_bps)} sub={t('stats.avg', { value: bps(data.hour.avg_bps) })} />}
-        {data.day && <StatCard label={t('stats.day')} value={bps(data.day.peak_bps)} sub={t('stats.avg', { value: bps(data.day.avg_bps) })} />}
-        {data.peak && <StatCard label={t('stats.peak')} value={bps(data.peak.bps)} sub={t('stats.at', { time: clock(data.peak.at) })} />}
-        <StatCard label={t('stats.online')} value={String(now.online)} trend={lastHour.map((s) => s.online)} trendLabel={t('stats.trendOnline')}
+        {data.hour && <StatTile label={t('stats.hour')} value={bps(data.hour.peak_bps)} sub={t('stats.avg', { value: bps(data.hour.avg_bps) })} />}
+        {data.day && <StatTile label={t('stats.day')} value={bps(data.day.peak_bps)} sub={t('stats.avg', { value: bps(data.day.avg_bps) })} />}
+        {data.peak && <StatTile label={t('stats.peak')} value={bps(data.peak.bps)} sub={t('stats.at', { time: clock(data.peak.at) })} />}
+        <StatTile label={t('stats.online')} value={String(now.online)} trend={lastHour.map((s) => s.online)} trendLabel={t('stats.trendOnline')}
           sub={data.day ? t('stats.onlineMax', { count: data.day.online_max }) : undefined} />
-        <StatCard label={t('stats.ports')} value={t('stats.portsUp', { count: now.ports_up })}
+        <StatTile label={t('stats.ports')} value={t('stats.portsUp', { count: now.ports_up })}
           tone={now.ports_errors ? 'warn' : undefined} href={screen ? undefined : '/problems'}
           sub={t('stats.portsRest', { down: now.ports_down, errors: now.ports_errors })} />
       </div>
@@ -185,7 +185,7 @@ export default function StatsView({ expanded }: ViewProps) {
         </Group>
       )}
       <ErrorBanner error={error} mb="md" />
-      {stats.isPending ? <Loader size="sm" aria-label={t('common.loading')} /> : stats.data && <Board data={stats.data} screen={!expanded} />}
+      {stats.isPending ? <LoadingState lines={!expanded} /> : stats.data && <Board data={stats.data} screen={!expanded} />}
     </>
   )
 }

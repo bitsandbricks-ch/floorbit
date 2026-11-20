@@ -1,7 +1,7 @@
 import {
-  Alert, Button, Group, Menu, Modal, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput,
+  Alert, Button, Group, Menu, Modal, NumberInput, Paper, Select, SimpleGrid, Stack, Text, TextInput,
 } from '@mantine/core'
-import { IconPlus, IconSearch } from '@tabler/icons-react'
+import { IconPlus } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,16 +9,19 @@ import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type {
-  DnsResolver, GameServer, GameServerList, InternetSite, IspUplink, Services as ServicesData,
+  DnsResolver, GameServer, GameServerList, InternetSite, IspUplink, Services as ServicesData, ServiceSummary,
 } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ServiceGroup } from '@/widgets/ServiceList'
 import { STATES, TYPES, serviceRows } from '@/widgets/serviceRows'
-import type { ServiceType } from '@/widgets/serviceRows'
+import type { ServiceRowData, ServiceType } from '@/widgets/serviceRows'
 import { EntitySelect } from '@/components/EntitySelect'
 import { RconConsole, ServerModal } from './services/GameServerParts'
+import { FilterBar } from '@/components/FilterBar'
+import { useFilters } from '@/components/useFilters'
+import { ErrorBanner } from '@/components/ui'
 
 
 type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'; item: DnsResolver | null }
@@ -26,6 +29,9 @@ type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'
 
 /** Internet lines, DNS resolvers, the sites players need, the LAN cache and the game servers
  *  (issues #471, #472, #889): one list, grouped by type or state, with one "Add service". */
+/** Health wall kinds the Services page lists without setting them up (issue #1037). */
+const ELSEWHERE = ['dhcp', 'firewall', 'other']
+
 export default function Services() {
   const { t } = useTranslation()
   const canEdit = useCan('floorplan.edit')
@@ -33,11 +39,13 @@ export default function Services() {
   const canRcon = useCan('games.rcon')
   const q = useQuery({ queryKey: qk.services, queryFn: () => get<ServicesData>('/api/services'), refetchInterval: 15_000 })
   const games = useQuery({ queryKey: qk.gameServers, queryFn: () => get<GameServerList>('/api/game-servers'), refetchInterval: 15_000 })
+  const summary = useQuery({ queryKey: qk.serviceSummary, queryFn: () => get<ServiceSummary>('/api/services/summary'), refetchInterval: 15_000 })
   const [editing, setEditing] = useState<Editing>(null)
   const [console_, setConsole] = useState<GameServer | null>(null)
-  const [search, setSearch] = useState('')
-  const [shown, setShown] = useState<'all' | 'notUp' | 'up'>('all')
-  const [by, setBy] = useState<'type' | 'state'>('type')
+  const filters = useFilters({ shown: 'all', by: 'type' })
+  const { search } = filters
+  const shown = filters.values.shown as 'all' | 'notUp' | 'up'
+  const by = filters.values.by as 'type' | 'state'
   const data = q.data
   const qc = useQueryClient()
   const check = useMutation({
@@ -48,17 +56,23 @@ export default function Services() {
     mutationFn: () => post<ServicesData>('/api/services/sites/common', {}),
     onSuccess: (fresh) => qc.setQueryData(qk.services, fresh),
   })
-  const rows = serviceRows(t, data, games.data, {
+  // DHCP, firewalls and plugin checks are set up elsewhere but are services too (issue #1037): listed
+  // here from the shared summary, so this page counts what the health panes and dashboards count.
+  const elsewhere: ServiceRowData[] = (summary.data?.rows ?? []).filter((r) => ELSEWHERE.includes(r.kind)).map((r) => ({
+    key: `h-${r.id}`, type: r.kind as ServiceType, name: r.name, status: r.status, target: r.summary,
+    value: null, unit: null, note: t(`services.setUpElsewhere.${r.kind}`), points: [],
+  }))
+  const rows = [...serviceRows(t, data, games.data, {
     uplink: canEdit ? (u) => setEditing({ kind: 'uplinks', item: u }) : undefined,
     dns: canEdit ? (r) => setEditing({ kind: 'resolvers', item: r }) : undefined,
     site: canEdit ? (s) => setEditing({ kind: 'sites', item: s }) : undefined,
     game: canSetUp ? (g) => setEditing({ kind: 'game', item: g }) : undefined,
-  })
+  }), ...elsewhere]
   const needle = search.trim().toLowerCase()
   const matching = rows.filter((r) => (shown === 'all' || (shown === 'up') === (r.status === 'up'))
     && (!needle || `${r.name} ${r.target} ${t(`services.types.${r.type}`)}`.toLowerCase().includes(needle)))
   const groups = by === 'type'
-    ? TYPES.map((k) => ({ id: k, title: t(`services.groups.${k}`), rows: matching.filter((r) => r.type === k) }))
+    ? [...TYPES, ...ELSEWHERE].map((k) => ({ id: k, title: t(`services.groups.${k}`), rows: matching.filter((r) => r.type === k) }))
     : STATES.map((k) => ({ id: k, title: t(`services.status.${k}`), rows: matching.filter((r) => r.status === k) }))
   const notUp = rows.filter((r) => r.status !== 'up').length
   const adds = [
@@ -86,7 +100,7 @@ export default function Services() {
           </>
         )} />
       <Stack gap="lg">
-        {(q.error || games.error) && <Alert color="down" role="alert">{(q.error || games.error)!.message}</Alert>}
+        <ErrorBanner error={q.error ?? games.error} onRetry={() => { void q.refetch(); void games.refetch() }} />
         {loaded && rows.length === 0 && (
           <Paper withBorder p="md">
             <Stack gap="xs" align="flex-start">
@@ -99,17 +113,16 @@ export default function Services() {
         )}
         {common.error && <Alert color="down" role="alert">{common.error.message}</Alert>}
         {rows.length > 0 && (
-          <Group gap="sm" wrap="wrap">
-            <TextInput leftSection={<IconSearch size={16} />} placeholder={t('services.search')} aria-label={t('services.search')}
-              value={search} onChange={(e) => setSearch(e.currentTarget.value)} style={{ flex: '1 1 220px', maxWidth: 360 }} />
-            <SegmentedControl value={shown} onChange={(v) => setShown(v as typeof shown)} aria-label={t('services.show')} data={[
-              { value: 'all', label: t('services.filter.all', { count: rows.length }) },
-              { value: 'notUp', label: t('services.filter.notUp', { count: notUp }) },
-              { value: 'up', label: t('services.filter.up', { count: rows.length - notUp }) },
-            ]} />
-            <Select aria-label={t('services.groupBy')} w={170} allowDeselect={false} value={by} onChange={(v) => setBy((v ?? 'type') as typeof by)}
-              data={[{ value: 'type', label: t('services.byType') }, { value: 'state', label: t('services.byState') }]} />
-          </Group>
+          <FilterBar state={filters} searchLabel={t('services.search')} filters={[
+            { id: 'shown', label: t('services.show'), options: [
+              { value: 'all', label: t('services.filter.all'), count: rows.length },
+              { value: 'notUp', label: t('services.filter.notUp'), count: notUp },
+              { value: 'up', label: t('services.filter.up'), count: rows.length - notUp },
+            ] },
+            { id: 'by', label: t('services.groupBy'), options: [
+              { value: 'type', label: t('services.byType') }, { value: 'state', label: t('services.byState') },
+            ] },
+          ]} />
         )}
         {rows.length > 0 && matching.length === 0 && <Text c="dimmed">{t('services.noMatch')}</Text>}
         {groups.filter((g) => g.rows.length).map((g) => (

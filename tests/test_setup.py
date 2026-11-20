@@ -105,3 +105,39 @@ def test_a_started_setup_stays_open(client):
     client.post("/api/switches", json={"name": "sw-a-01", "x": 10, "y": 10})
     setup.mark_existing()
     assert setup.state()["done"] is False
+
+
+def test_the_checklist_says_what_the_event_still_needs(client):
+    # #988: each step from what is really there, with the one place it is set.
+    steps = {s['id']: s for s in client.get('/api/setup/checklist').get_json()['steps']}
+    assert list(steps) == list(setup.CHECKLIST)
+    assert steps['inventory']['state'] == 'todo'
+    assert steps['inventory']['href'] == '/settings/plugins/netbox'
+    assert steps['monitoring']['facts']['agents'] == 0
+
+    data = store.read_json(store.DATA_FILE, {})     # the accounts live in it too
+    store.write_json(store.DATA_FILE, {**data,
+        'inventory': [{'id': 'sw1', 'name': 'sw1', 'x': 10, 'y': 10}, {'id': 'sw2', 'name': 'sw2'}],
+        'seat_blocks': [{'id': 'b1'}],
+        'seat_map': {'A1': {'switch': 'sw1', 'port': 'Gi1/0/1'}},
+    })
+    client.put('/api/settings', json={'theme.name': 'Example LAN'})
+    steps = {s['id']: s for s in client.get('/api/setup/checklist').get_json()['steps']}
+    assert steps['inventory']['state'] == 'done' and steps['inventory']['facts']['devices'] == 2
+    assert steps['floor']['state'] == 'done' and steps['floor']['facts']['placed'] == 1
+    assert steps['seats']['state'] == 'done'
+    assert steps['event']['state'] == 'look'       # a name, no dates yet
+    assert steps['event']['href'] == '/schedule'
+
+
+def test_a_checklist_step_can_be_skipped_and_opened_again(client):
+    assert client.post('/api/setup/steps/alerts', json={'state': 'skipped'}).status_code == 200
+    steps = {s['id']: s for s in client.get('/api/setup/checklist').get_json()['steps']}
+    assert steps['alerts']['state'] == 'skipped'
+    client.post('/api/setup/steps/alerts', json={'state': 'open'})
+    steps = {s['id']: s for s in client.get('/api/setup/checklist').get_json()['steps']}
+    assert steps['alerts']['state'] == 'todo'
+
+
+def test_only_admins_read_the_checklist(app_module):
+    assert app_module.app.test_client().get('/api/setup/checklist').status_code in (302, 401, 403)

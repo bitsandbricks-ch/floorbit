@@ -50,6 +50,18 @@ describe('Events', () => {
     expect(screen.queryByRole('link', { name: 'Floor plan' })).not.toBeInTheDocument()
   })
 
+  it('keeps the events when the past-events archive is turned off (#1201)', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': admin, 'GET /api/features': { off: ['past_events'] },
+      'GET /api/tenant/events': { live: 'e1', current: 'e1', events: [{ id: 'e1', name: 'Example LAN 2026', status: 'live' }] },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Events />)
+    expect(await screen.findByText('Example LAN 2026')).toBeInTheDocument()
+    expect(screen.queryByText('Past events')).not.toBeInTheDocument()
+    expect(api.calls.some((c) => c.path === '/api/past-events')).toBe(false)
+  })
+
   it('scales the bars to the largest value in the row', () => {
     expect(share(50, [50, 100, null])).toBe(50)
     expect(share(null, [null, null])).toBe(0)
