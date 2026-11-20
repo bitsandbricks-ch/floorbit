@@ -42,7 +42,7 @@ def test_walk_a_row_with_the_laptop(hall, monkeypatch):
     monkeypatch.setattr(seat_walk, "_from_monitoring", lambda ip: None)
     a1, a2 = demo_seat("A-1"), demo_seat("A-2")
     block = hall.get("/api/seat-blocks").get_json()[0]["id"]
-    first = hall.get(f"/api/seat-walk?block={block}").get_json()
+    first = hall.get(f"/api/seat-walk?rows={block}:1").get_json()
     assert first["switch_lookup"] and [s["seat"] for s in first["seats"][:3]] == ["A-1", "A-2", "A-3"]
     assert first["seats"][0]["port"] is None and first["keep_hours"] == 24 and "ip" not in first
 
@@ -56,7 +56,7 @@ def test_walk_a_row_with_the_laptop(hall, monkeypatch):
     r2 = locate(hall, "A-2", a2[0], previous=r["found"], mac=a2[1], mac_ip=a2[0]).get_json()
     assert r2["ok"] and r2["found"]["port"] == a2[3] and [s["step"] for s in r2["steps"]] == ["monitoring", "switch"]
 
-    rows = {s["seat"]: s["port"] for s in hall.get(f"/api/seat-walk?block={block}").get_json()["seats"]}
+    rows = {s["seat"]: s["port"] for s in hall.get(f"/api/seat-walk?rows={block}:1").get_json()["seats"]}
     assert rows["A-1"]["port"] == a1[3] and rows["A-2"]["source"] == "walk"
     entries = hall.get("/api/settings/audit?area=check-in").get_json()["entries"]
     assert any(e["action"] == "Walk-through: seat A-1 found on its port" for e in entries)
@@ -89,11 +89,12 @@ def test_the_laptop_is_always_identified_through_the_agent(hall, client, monkeyp
     r = hall.post("/api/seat-walk/locate", json={"seat": "A-1"}, environ_base={"REMOTE_ADDR": ip})
     assert r.status_code == 409 and "Identify it again" in r.get_json()["error"]
 
-    assert hall.post("/api/seat-walk/hello").status_code == 409     # no agent address yet
-    monkeypatch.setenv("SEAT_WALK_AGENT_URL", "http://192.0.2.10:8908/")
+    assert hall.post("/api/seat-walk/hello").status_code == 409     # no agent reached yet
+    # Nothing typed for the walk: the check-in name on the seat cards is where every agent answers.
+    monkeypatch.setenv("CHECKIN_ADDRESS", "http://Checkin.LAN.example/")
     made = hall.post("/api/seat-walk/hello").get_json()
     token = made["hello"]
-    assert made["url"] == f"http://192.0.2.10:8908/floorbit/hello/{token}"
+    assert made["url"] == f"http://checkin.lan.example/floorbit/hello/{token}"
     assert hall.get(f"/api/seat-walk/hello/{token}").get_json() == {}             # waiting for the laptop
     assert hall.post("/api/seat-walk/locate", json={"seat": "A-1", "hello": token}).status_code == 409
 
@@ -153,7 +154,8 @@ class Monitor:
 
     def resolve_ip(self, ip, search_device=None):
         port = self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]
-        return port and {"device_name": port[0], "port": port[1], "mac": "02:00:00:00:00:99"}
+        return port and {"device_name": port[0], "port": port[1], "mac": "02:00:00:00:00:99",
+                         **({"macs_on_port": port[2]} if len(port) > 2 else {})}
 
 
 def test_an_old_mac_table_naming_the_last_seat_is_waited_out(app_module, monkeypatch):
@@ -174,6 +176,30 @@ def test_an_old_mac_table_naming_the_last_seat_is_waited_out(app_module, monkeyp
                              sleep=lambda s: None, clock=lambda: next(ticks))
     # Never the last seat's port: after the try budget the page is told to try again.
     assert r["found"] is None and r["stale"] and r["tries"] > 1
+
+
+def test_an_uplink_from_monitoring_is_never_the_seats_port(app_module, monkeypatch):
+    """Issue #954: the access switch hasn't seen the laptop, only the distribution trunk still has
+    its MAC. That port isn't saved; the next answer from the access port is."""
+    from floorbit import sources
+    monitor = Monitor([("dist-01", "Te1/1/1", 40), ("dist-01", "Te1/1/1", 40), ("sw-a-01", "Gi1/0/2", 1)])
+    monkeypatch.setattr(sources, "monitoring", lambda: monitor)
+    ticks = iter(range(0, 1000, 3))
+    with app_module.app.app_context():
+        first = seat_walk.locate_once("192.0.2.50", mac="02:00:00:00:00:99")
+        assert first["found"] is None
+        assert {"step": "monitoring", "ok": False, "how": "uplink"} in first["steps"]
+        r = seat_walk.locate("192.0.2.50", None, sleep=lambda s: None, clock=lambda: next(ticks))
+    assert r["found"] == {"switch": "sw-a-01", "port": "Gi1/0/2"} and r["how"] == "monitoring"
+
+
+def test_one_rule_for_a_seats_port():
+    """Issue #954: check-in, the walk, the history and the lookups share one limit."""
+    from floorbit import edge_ports, port_clients
+    from floorbit.builtin_plugins.librenms import client
+    from floorbit.telemetry import lookup
+    assert edge_ports.is_edge(4) and not edge_ports.is_edge(5) and edge_ports.is_edge(None)
+    assert client.EDGE_PORT_MACS == port_clients.UPLINK_MACS == lookup.UPLINK_MACS == edge_ports.EDGE_PORT_MACS
 
 
 def test_mac_tables_skip_uplinks_and_other_macs():
@@ -228,3 +254,18 @@ def test_a_closed_event_without_a_schedule_counts_from_closing(hall):
     with tenancy.using_event(tenancy.find(later["id"])):
         # The live event has no end yet: its mappings stay.
         assert "A-1" in checkin.learned_ports()
+
+
+def test_without_a_check_in_name_the_walk_goes_where_an_agent_was_reached(client, monkeypatch):
+    from floorbit import agent_link, seat_walk
+    monkeypatch.delenv("CHECKIN_ADDRESS", raising=False)
+    monkeypatch.setattr(agent_link, "all_agents", lambda: [
+        {"connected": False, "report": {"lan_url": "http://10.9.9.9"}},
+        {"connected": True, "report": {"lan_url": "http://10.20.0.5"}}])
+    assert seat_walk.agent_url() == "http://10.20.0.5"
+
+
+def test_through_the_front_door_the_laptop_is_known_at_once(client, front_door):
+    made = client.post("/api/seat-walk/hello", environ_base={"REMOTE_ADDR": "10.20.1.31"}).get_json()
+    assert made["ip"] == "10.20.1.31" and "url" not in made
+    assert client.get(f"/api/seat-walk/hello/{made['hello']}").get_json()["ip"] == "10.20.1.31"

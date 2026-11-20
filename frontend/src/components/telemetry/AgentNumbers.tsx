@@ -1,5 +1,6 @@
 import { Badge, Group, Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
+import { StateBadge } from '@/components/State'
 
 /** One agent's telemetry numbers, as its last report said (GET /api/telemetry/overview, status.agents). */
 export interface TelemetryAgentNumbers {
@@ -21,9 +22,8 @@ export function TelemetryAgentNumbersList({ agents }: { agents: TelemetryAgentNu
           <Group key={a.id} gap="xs" wrap="wrap" aria-label={a.name}>
             <Text size="sm" fw={600}>{a.name}</Text>
             {!a.primary && <Badge size="sm" variant="light" color="gray">{t('telemetry.agentNumbers.standby')}</Badge>}
-            <Badge size="sm" variant="light" color={!a.connected ? 'gray' : posting ? 'up' : 'warn'}>
-              {!a.connected ? t('telemetry.agentNumbers.offline') : posting ? t('telemetry.agentNumbers.posting', { s: a.quiet }) : t('telemetry.agentNumbers.quiet')}
-            </Badge>
+            <StateBadge state={!a.connected ? 'disconnected' : posting ? 'up' : 'warn'}
+              label={!a.connected ? t('telemetry.agentNumbers.offline') : posting ? t('telemetry.agentNumbers.posting', { s: a.quiet }) : t('telemetry.agentNumbers.quiet')} />
             <Text size="sm" c="dimmed">
               {[t('telemetry.agentNumbers.points', { n: n(a.points) }), t('telemetry.agentNumbers.heard', { n: n(a.heard) }),
                 t('telemetry.agentNumbers.series', { n: n(a.series) }), t('telemetry.agentNumbers.sent', { n: n(a.sent) })].join(' · ')}

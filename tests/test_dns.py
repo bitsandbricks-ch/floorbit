@@ -123,18 +123,20 @@ def test_api(client, app_module):
     assert len(body["hours"]) == 6 and body["min_clients"] == 5
     assert client.get("/api/dns?hours=0").status_code == 400
     assert client.get("/api/dns?hours=lots").status_code == 400
-    assert client.get("/dns").status_code == 404   # a widget now, no page of its own
+    assert client.get("/dns").status_code != 404   # its Monitoring page, Services > DNS
 
 
-def test_the_demo_hall_looks_things_up():
-    import time
-
-    from floorbit.builtin_plugins.demo.plugin import Plugin
-    demo = Plugin.__new__(Plugin)
-    got = demo.dns_queries(time.time() - 120)
+def test_the_demo_hall_looks_things_up(monkeypatch):
+    from floorbit.builtin_plugins.demo import plugin as demo_plugin
+    # Mid-hour: two minutes just after the hour turned would split the lookups over two hours,
+    # too few seats in the new one for any site to be named.
+    now = 1800001800.0
+    monkeypatch.setattr(demo_plugin.time, "time", lambda: now)
+    demo = demo_plugin.Plugin.__new__(demo_plugin.Plugin)
+    got = demo.dns_queries(now - 120)
     assert got and all(e["client"].startswith("192.0.2.") for e in got)
     stats = dns.DnsStats(path="/dev/null/never")
     stats._save = lambda: None
-    stats.add(got)
-    names = {s["site"] for s in stats.snapshot(hours=1)["sites"]}
+    stats.add(got, now=now)
+    names = {s["site"] for s in stats.snapshot(hours=1, now=now)["sites"]}
     assert "steamcontent.com" in names and not any("hobby" in n for n in names)

@@ -176,10 +176,8 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 | `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, speed test, sign-in lockout); only behind a proxy you control |
 | `CHECKIN_PROXY_HOPS` | `1` | how many proxies you control append to `X-Forwarded-For`; the client is that many entries from the right, so an address the client sends itself is ignored |
 | `CHECKIN_VALIDATE_SEATS` | `true` | only accept seats that exist in seat blocks |
-| `SEAT_WALK_AGENT_URL` | | where laptops in the hall reach the local agent's captive port, for the [seat walk-through](seat-walk.md); empty takes what the agent reports (`FLOORBIT_AGENT_LAN_URL`) |
 | `CHECKIN_REFRESH_INTERVAL` | `300` | seconds between MAC → IP refreshes |
 | `CHECKIN_VERIFY_RATE` | `10` | port lookups a second for new check-ins; a burst waits its turn ([sizing](sizing.md#doors-open)) |
-| `CAPTIVE_ENABLED` | `false` | answer the agents' captive portal (DHCP option 114), see below |
 | `CHECKIN_ADMIN_TOKEN` | | if set, `GET/DELETE /api/checkins` need `X-Admin-Token` |
 | `CHECKIN_FILE` | `checkins.json` | |
 
@@ -191,14 +189,32 @@ Endpoints: `POST /api/checkin`, `GET /api/checkin/info` (open or not, when it op
 device's check-in), `GET /api/checkin/me`, `GET /api/checkins` (the
 user/IP/seat/MAC table), `DELETE /api/checkins/<seat>`, `POST /api/checkins/refresh`.
 
+### Check-in on Floorbit's own address
+
+Only a local agent's front door sees a seat PC's own address, so a PC that opens `/checkin` on
+Floorbit's own address (hosted, or the crew's URL) is sent on to an agent's front door: the check-in
+name (`CHECKIN_ADDRESS`), else where browsers in the hall last reached an agent. There, the same page
+learns the seat's port. Nothing to set up (#1177).
+
+A browser off the event network can't open that address, and an HTTPS page can't test an HTTP one
+first, so the page only goes on by itself where Floorbit is sure the browser is in the hall:
+
+- it comes from the public address a connected agent comes from (the hall's NAT), or
+- a trip to a front door already worked from that address during the event (the trip carries a
+  one-time code, so Floorbit learns which address it left from; kept a week).
+
+Otherwise the page shows a *Continue on the event network* button, and checking in from where you
+are still keeps the seat and nick. Back from a trip that didn't open, the page doesn't go again by
+itself. Phones and tablets stay where they are. Private addresses never count as sure: behind a
+proxy Floorbit doesn't trust (`CHECKIN_TRUST_PROXY` off), every browser has the proxy's address.
+
 ### The "sign in to network" note (Captive Portal API)
 
 With a [local agent](agent.md), phones and laptops can be reminded to check in without blocking
-anything. It is off until you turn on **Captive portal (DHCP option 114)** in the check-in
-settings (`CAPTIVE_ENABLED`); until then agents asking get a 409 and say nothing. Turn on the
-**Check-in note on phones** plugin under Settings > Plugins with the address the agent answers on
-(`0.0.0.0:8908`), and let your DHCP server hand out
-option 114 (RFC 8910) with the URL of the agent's `/.well-known/captive-portal`. Clients that
+anything. Every agent's front door answers it while check-in is on; nothing else to turn on. Let
+your DHCP server hand out option 114 (RFC 8910) with the URL of the agent's
+`/.well-known/captive-portal`, for example `https://checkin.lan/.well-known/captive-portal`. Without
+option 114 no client asks, so the note stays out of sight. Clients that
 support it ask that URL, and until their seat has checked in they show a quiet "sign in to
 network" note that opens the check-in page. Gaming PCs that ignore it lose nothing, because
 traffic is never held back.
@@ -211,10 +227,10 @@ traffic is never held back.
 - **When in doubt, say nothing.** Until the agent has heard from the hosted Floorbit, while
   check-in is off, or with no `PUBLIC_URL` set, every answer is `"captive": false`. When the hosted
   side is away, the agent keeps answering from what it heard last.
-- **HTTPS.** RFC 8908 wants HTTPS for this URL, so serve it through the event's reverse proxy with a
-  certificate. Put that proxy's address in the plugin's *Reverse proxy addresses* so the client's
-  IP comes from `X-Forwarded-For`.
-- The note opens `PUBLIC_URL/checkin`, or the plugin's *Sign-in page* when it is set.
+- **HTTPS.** RFC 8908 wants HTTPS for this URL: give the agent a certificate, or serve it through
+  the event's reverse proxy and put that proxy's address in the plugin's *Reverse proxy addresses*
+  so the client's IP comes from `X-Forwarded-For`.
+- The note opens `http://<check-in name>/checkin` (`CHECKIN_ADDRESS`), so check-in goes through the agent and finds the seat's port; without a check-in name, `PUBLIC_URL/checkin`.
 - How well clients follow it varies: phones and Macs do, Windows only partly. Check it on your own
   devices before the event.
 

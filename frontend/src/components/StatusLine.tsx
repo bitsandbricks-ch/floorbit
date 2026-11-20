@@ -33,7 +33,7 @@ export function StatusLine() {
           {t('nav.status.agents', { online: agents.filter((a) => a.connected).length, total: agents.length })}
         </Link>
       )}
-      {problems && <span className="fb-status-item">{t('nav.status.checked', { ago: ago(problems.checked_at) })}</span>}
+      {problems && <span className="fb-status-item fb-status-when">{t('nav.status.checked', { ago: ago(problems.checked_at) })}</span>}
       <span className="fb-status-grow" />
       <Attribution compact version />
     </footer>

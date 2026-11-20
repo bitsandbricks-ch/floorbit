@@ -3,6 +3,25 @@
 Issue #114. Not every event uses everything. An admin turns whole features off under
 **Settings > Features** (`/settings/features`).
 
+## Capabilities
+
+Issue #989. Some things the crew wants take several parts: a setting, a feature, a plugin. The top
+of the page has **one switch per capability**, which turns all its parts on or off together, and then
+lists what it still needs, each with a link to where it is done:
+
+| Capability | Switches | Still needs |
+| --- | --- | --- |
+| Front door for attendees | the `front-door` plugin | a local agent connected |
+| Seat check-in | the check-in page | the front door on, option 114 in the event's DHCP so phones show the check-in note (outside Floorbit, not checked) |
+| Logs from the hall | the `syslog` feature, the `syslog-relay` plugin | an agent connected, a UDP port on the agent |
+| Traffic from the hall | the `traffic` feature, the `netflow-relay` plugin | an agent connected, a UDP port on the agent |
+| Electrics | the `power` feature | a power meter plugin |
+
+A capability with some parts off shows as **partly on**; switching it on turns the rest on. Nothing
+extra is stored: a capability is on when all its parts are. The features it switches are not listed
+again below it. API: `GET /api/settings/capabilities`, `PUT /api/settings/capabilities/<id>`
+`{"on": true}` (`floorbit/capabilities.py`).
+
 ## What "off" means
 
 - **Menus:** the feature's links leave the floor plan's toolbar, the Settings page and the buttons on

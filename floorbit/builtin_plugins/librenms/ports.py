@@ -8,6 +8,12 @@ traffic from the player's side, errors and load.
 import requests
 
 from . import breaker
+from .memo import Memo
+
+# Column sets a LibreNMS refused: not asked again for an hour, so an older LibreNMS doesn't cost a
+# refused request on every needs-attention poll.
+_refused = Memo(200)
+REFUSED_TTL = 3600
 
 # Columns the app has always asked for; every LibreNMS version has them.
 BASE_COLUMNS = ['port_id', 'device_id', 'ifName', 'ifOperStatus', 'ifInOctets_rate', 'ifOutOctets_rate', 'ifSpeed']
@@ -20,14 +26,20 @@ DETAIL_COLUMNS = [
 
 # For the needs-attention watch: when a port last went up or down. Older LibreNMS may refuse it.
 WATCH_COLUMNS = [*DETAIL_COLUMNS, 'ifLastChange']
+# And what discovery takes as the interface's (mac, vlan, mode): facts.port_facts().
+FACT_COLUMNS = [*WATCH_COLUMNS, 'ifIndex', 'ifPhysAddress', 'ifVlan', 'ifTrunk']
 
 DUPLEX = {'fullDuplex': 'full', 'halfDuplex': 'half'}
 
 
 def fetch_ports(base_url, headers, device_id, verify=True, timeout=10, tiers=None):
     """Every port row of device_id, asking for the most columns LibreNMS accepts, or None."""
-    resp = None
-    for columns in tiers or (DETAIL_COLUMNS, BASE_COLUMNS):
+    resp, refused = None, []
+    tiers = tiers or (DETAIL_COLUMNS, BASE_COLUMNS)
+    for n, columns in enumerate(tiers):
+        key = (base_url, ','.join(columns))
+        if n < len(tiers) - 1 and _refused.get(key)[0]:
+            continue
         try:
             resp = breaker.get(
                 f'{base_url}/api/v0/devices/{device_id}/ports',
@@ -37,7 +49,11 @@ def fetch_ports(base_url, headers, device_id, verify=True, timeout=10, tiers=Non
         except requests.RequestException:
             return None
         if resp.ok:
+            # Only now is a refusal the columns' fault, not a LibreNMS having a bad moment.
+            for k in refused:
+                _refused.put(k, True, REFUSED_TTL)
             break
+        refused.append(key)
     if resp is None or not resp.ok:
         return None
     return resp.json().get('ports', [])

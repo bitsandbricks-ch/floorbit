@@ -11,7 +11,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ApplyDialog, EditDialog, ImportDialog, SaveDialog } from './templates/Dialogs'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 
 type Open =
   | { kind: 'save'; template?: LayoutTemplate }
@@ -111,7 +111,7 @@ export default function Templates() {
         {list.isPending ? (
           <LoadingState />
         ) : !list.data?.templates.length ? (
-          <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('templates.empty')}</Text></Paper>
+          <Paper withBorder radius="lg"><EmptyState icon={<IconTemplate size={24} />} title={t('templates.emptyTitle')} desc={t('templates.empty')} /></Paper>
         ) : (
           list.data.templates.map((tpl) => (
             <TemplateCard key={tpl.id} tpl={tpl} canEdit={canEdit} onOpen={setOpen}
