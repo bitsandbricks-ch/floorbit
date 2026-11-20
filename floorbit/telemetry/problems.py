@@ -30,7 +30,8 @@ KINDS = (
     ('tls', re.compile(r'x509|certificate|tls: |handshake fail|sslerror', re.I)),
     ('refused', re.compile(r'connection refused|econnrefused', re.I)),
     ('unreachable', re.compile(r'no route to host|network is unreachable|host is down|'
-                               r'no such host|name resolution|server misbehaving', re.I)),
+                               r'no such host|name resolution|server misbehaving|name or service not known|'
+                               r'failed to resolve|temporary failure in name', re.I)),
     ('timeout', re.compile(r'timeout|timed out|deadline exceeded|no response', re.I)),
     ('listen', re.compile(r'address already in use|bind: permission denied|listen (udp|tcp)', re.I)),
 )
@@ -38,6 +39,9 @@ KINDS = (
 LINE_RE = re.compile(r'\b([EW])! \[inputs\.([a-z0-9_]+)(?:::([^\]]+))?\] (?:Error in plugin: )?(.*)$')
 ADDRESS_RE = re.compile(r'agent (?:udp|tcp)://(\S+?):\s|dial tcp ([^\s"]+?):\s|(\d{1,3}(?:\.\d{1,3}){3}:\d+)')
 MAX_DETAIL = 300
+# A per-VLAN MAC table poll (telegraf.VLAN_ALIAS): "<device>@vlan<id>".
+VLAN_ALIAS_RE = re.compile(r'^(.+)@vlan(\d{1,4})$')
+TABLE_RE = re.compile(r'gathering table (\w+)')
 
 
 def kind_of(text):
@@ -66,8 +70,15 @@ def parse_line(line):
     driver = DRIVER_OF.get(plugin, plugin)
     # The listeners (traps, MDT) serve every device: their alias is the driver, not a device.
     device = alias if alias and alias != driver else ''
-    return {'device': device, 'driver': driver, 'kind': kind_of(text), 'address': address_of(text),
-            'detail': text.strip()[:MAX_DETAIL]}
+    vlan = VLAN_ALIAS_RE.match(device)
+    table = TABLE_RE.search(text)
+    found = {'device': vlan.group(1) if vlan else device, 'driver': driver, 'kind': kind_of(text),
+             'address': address_of(text), 'detail': text.strip()[:MAX_DETAIL]}
+    if vlan:
+        found['vlan'] = int(vlan.group(2))
+    if table:
+        found['table'] = table.group(1)
+    return found
 
 
 class Problems:
@@ -82,7 +93,9 @@ class Problems:
     def note(self, problem, now=None):
         """Remember one. True when it is new or changed kind (worth a line in the agent's log)."""
         now = time.time() if now is None else now
-        key = (problem.get('device') or '', problem['driver'])
+        # One table's or VLAN's problem is kept apart from the device's own, so a device that goes
+        # silent altogether is still said (and logged), not hidden behind "no answer for VLAN 1".
+        key = (problem.get('device') or '', problem['driver'], scope(problem))
         with self._lock:
             old = self._found.get(key)
             first = old['since'] if old and old['kind'] == problem['kind'] else now
@@ -96,9 +109,12 @@ class Problems:
                 del self._found[key]
 
     def heard(self, devices, at):
-        """Devices that sent points at ``at``: a problem older than that is over."""
+        """Devices that sent points at ``at``: a problem older than that is over. Not one table's
+        or one VLAN's: the device's other polls answer while that one keeps failing, so it ends
+        only by not coming back (``forget_after``), not flapping (and logging) every minute."""
         with self._lock:
-            for key in [k for k, p in self._found.items() if k[0] in devices and p['at'] < at - 1]:
+            for key in [k for k, p in self._found.items()
+                        if k[0] in devices and p['at'] < at - 1 and not _partial(p)]:
                 del self._found[key]
 
     def sync(self, driver_errors, now=None):
@@ -126,6 +142,21 @@ class Problems:
         return [p for p in self.current(now) if p['device'] == device]
 
 
+def _partial(problem):
+    return bool(problem.get('vlan') or problem.get('table'))
+
+
+def partial(problem):
+    """Is it one VLAN's or one table's problem, while the device may well send the rest?"""
+    return _partial(problem)
+
+
+def scope(problem):
+    if problem.get('vlan'):
+        return 'vlan'
+    return problem.get('table') or ''
+
+
 def hint(problem, port=None):
     """One plain sentence on what to look at. English: the hosted side translates by ``kind``."""
     where = problem.get('address') or 'the device'
@@ -133,6 +164,15 @@ def hint(problem, port=None):
     if problem['kind'] == 'refused':
         what = driver.upper() if driver else 'it'
         return f'nothing listens for {what} on {where}: is it turned on there, and the port right?'
+    if problem['kind'] == 'timeout' and driver == 'snmp' and problem.get('vlan'):
+        vlan = problem['vlan']
+        return (f'no answer from {where} for VLAN {vlan} (community@{vlan}, or context vlan-{vlan} with SNMPv3): '
+                f'if its other data comes in, the switch doesn\'t have that VLAN (fix telemetry_vlans), or the '
+                f'SNMPv3 user may not read vlan- contexts')
+    if problem['kind'] == 'timeout' and driver == 'snmp' and problem.get('table'):
+        return (f'no answer from {where} while reading {problem["table"]}: if its other data comes in, the walk '
+                f'is too slow (a big table, or SNMP rate limited on the device); if nothing comes in, check '
+                f'the community or SNMPv3 login, and that an ACL lets the agent in')
     if problem['kind'] == 'timeout':
         if driver == 'snmp':
             return f'no answer from {where}: check the community or SNMPv3 login, and that an ACL lets the agent in'
