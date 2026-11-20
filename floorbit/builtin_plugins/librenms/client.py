@@ -12,6 +12,7 @@ from urllib.parse import quote
 import redis
 import requests
 
+from floorbit import edge_ports
 from floorbit.cache import get_cached_mac, get_redis_client, set_cached_mac
 from floorbit.runtime import rt
 
@@ -125,8 +126,7 @@ def fetch_librenms_mac_table(hostname):
     return mac_data
 
 
-# More MACs than this on one port means a switch sits behind it: an uplink, not a seat.
-EDGE_PORT_MACS = 4
+EDGE_PORT_MACS = edge_ports.EDGE_PORT_MACS     # one rule for a seat's port (floorbit/edge_ports.py)
 
 
 def pick_edge_port(entries, macs_on_port, excludes=(), uplink=None):

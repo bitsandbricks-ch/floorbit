@@ -58,5 +58,11 @@
   "importHelp": "Reads the NetBox prefixes that have the custom field floorbit_firewalls (their firewalls, in order). Each import replaces the last; ranges planned here stay.",
   "fromPlugin": "From {{plugin}}",
   "fromPluginHelp": "Change it in {{plugin}} and import again.",
-  "noMonitoring": "No monitoring source is set up, so the ranges show their planned firewall. An admin adds LibreNMS (or another monitoring plugin) under Settings."
+  "noMonitoring": "No monitoring source is set up, so the ranges show their planned firewall. An admin adds LibreNMS (or another monitoring plugin) under Settings.",
+  "forSwitches": "For: {{switches}}",
+  "editSwitches": "Switches",
+  "switches": "Switches and switch groups",
+  "switchesHelp": "Optional. Seats behind these switches with an address outside their ranges show under Problems: a wrong port, a wrong VLAN or a router of their own. Left empty, each switch's range is the one most of its seats are in.",
+  "switchGroups": "Switch groups",
+  "switchList": "Switches"
 }

@@ -25,12 +25,15 @@
     "forecast": "Prognose",
     "log": "Log",
     "plugin": "Plugin",
+    "portconfig": "Port-Konfig",
+    "range": "IP-Bereich",
+    "shared": "Geteilter Port",
     "wifi": "WLAN",
     "librenms": "LibreNMS"
   },
   "attention": {
     "title": "Braucht Aufmerksamkeit",
-    "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex, Plätze online ohne Check-in und Syslog-Zeilen wie err-disable oder DHCP-Snooping. Sie verschwinden von selbst, sobald der Port sich normal verhält."
+    "text": "Ports zum Anschauen, neueste zuerst: flatternde Links, steigende Fehler, Halbduplex, Plätze online ohne Check-in, Syslog-Zeilen wie err-disable oder DHCP-Snooping, Plätze mit einer Adresse ausserhalb des Bereichs ihres Switches, Platz-Ports, deren Konfiguration eine Regel verletzt, und Platz-Ports mit mehr als einem Gerät. Sie verschwinden von selbst, sobald der Port sich normal verhält."
   },
   "since": "begonnen {{ago}}",
   "open": "Öffnen",
@@ -68,5 +71,12 @@
   "incidentOpen": "Störung offen",
   "copy": "Liste kopieren",
   "copied": "Kopiert",
-  "clear": "Schliessen"
+  "clear": "Schliessen",
+  "seatsAffected_one": "1 Platz betroffen",
+  "seatsAffected_other": "{{count}} Plätze betroffen",
+  "switchesBehind_one": "1 Switch dahinter",
+  "switchesBehind_other": "{{count}} Switches dahinter",
+  "behindCause": "Hinter {{name}}, der down ist: dort anfangen",
+  "showSeats": "Plätze zeigen",
+  "hideSeats": "Plätze ausblenden"
 }
