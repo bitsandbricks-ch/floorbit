@@ -83,7 +83,8 @@ def test_csv_import_is_all_or_nothing(client, two_halls):
                        content_type="text/csv")
     assert resp.status_code == 201 and resp.get_json()["added"] == 2
     blocks = client.get(f"/api/seat-blocks?hall={h2}").get_json()
-    assert [(b["name"], b["x"], b["cols"]) for b in blocks] == [("E", 20.0, 6), ("G", 60.5, 4)]
+    got = [(b["name"], b["x"], [r["seats"] for r in b["rows"]]) for b in blocks]
+    assert got == [("E", 20.0, [6, 6]), ("G", 60.5, [4])]
     # Block names make seat numbers, so they stay unique across halls.
     again = client.post("/api/halls/main/seat-blocks.csv", json={"csv": "name,x,y,cols,rows\nE,1,1,1,1\n"})
     assert again.status_code == 400 and "already" in again.get_json()["errors"][0]["error"]

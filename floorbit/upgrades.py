@@ -246,9 +246,19 @@ def _platform_admins(data):
             user['platform_admin'] = True
 
 
+def _block_rows(data):
+    """Seat blocks in the grid shape (``cols`` by ``rows``, gaps for the whole block) become a list
+    of rows (floorbit/seat_rows.py). The rows get ids 1, 2, 3 in their order, so circuits, walks
+    and dashboards that named a row by its place in the block (``<block>:<n>``) name the same row."""
+    from . import seat_rows
+    for block in data.get('seat_blocks') or []:
+        if isinstance(block, dict):
+            seat_rows.from_grid(block)
+
+
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
          _no_runbooks, _no_seat_finder, _small_status_page, _no_attendee_programme,
-         _platform_admins, _no_match_seats)
+         _platform_admins, _no_match_seats, _block_rows)
 CURRENT = len(STEPS)
 
 
@@ -275,6 +285,7 @@ def upgrade_layout(layout):
     names no ``data_version``, so the steps that touch those parts run; they're safe to run twice."""
     _inventory(layout)
     _block_groups(layout)
+    _block_rows(layout)
 
 
 def run_at_start(log=print):

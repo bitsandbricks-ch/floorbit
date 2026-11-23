@@ -65,7 +65,7 @@ C,20,60,12,2,90
 | --- | --- | --- |
 | `name` | yes | The block's name; seat numbers are `<name>-<n>`. Unique across every hall. |
 | `x`, `y` | yes | The block's centre, in percent of the plan box (0 to 100 is the box the background image fills; the plan has no edge, so values outside it work too). A decimal comma works. |
-| `cols`, `rows` | yes | Seats per row and rows. |
+| `cols`, `rows` | yes | Seats per row and rows: a rectangle. Rows of their own (lengths, shapes) are set in the editor afterwards. |
 | `rotation` | no | Degrees, 0 by default. |
 | `seat_width`, `seat_height`, `spacing_x`, `spacing_y` | no | Kept for older files; every block draws its seats at the same size. |
 | `reverse_numbers` | no | `true` to number right to left. |
@@ -102,21 +102,42 @@ of 2 rows from `E` are rows E to L. A seat name is never given twice, in any hal
 one is refused with the seat it clashes on. `POST /api/seat-blocks/many` does the same for scripts
 (`count`, `dx`, `dy` in percent of the plan, plus the block's fields).
 
-## Gaps in a seat block
+## Rows in a seat block
 
-A row can have room in it, for example where the fiber rolls stand, and two rows can have a lane between
-them for a switch. Both are set per block:
+A seat block is a group of rows: one row or many. Select a block and its rows are listed in the panel,
+top first, with the space above each:
 
-- **In the rows:** an empty space after a column, in every row of the block. Right-click a seat and pick
-  **Gap after this seat (every row)**, or use **+ Gap** in the block's **Gaps** section in the inspector.
-- **Between rows:** an empty lane after a row. Right-click a seat and pick **Lane after this row**, or use
-  **+ Lane**. Drop a switch into the lane like anywhere else on the plan.
+- **Add row** puts a row under the others, as long as the last one. The arrows move a row up or down and
+  **×** takes it out. With a letter per row the letters follow the order, so moving row D above row C
+  makes it C.
+- **Space above** a row is the aisle between it and the row above, in seats (0 to 20): room for a switch
+  between two rows. Drop a switch into it like anywhere else on the plan.
+- Pick a row to change it on its own:
+  - **Seats per row**: rows in a block can differ, for a block that narrows towards a pillar or the stage.
+  - **Shape**: **Straight**; **Arc** (how far the row turns from its first seat to its last, in degrees,
+    negative for the other way); **U** round a table (seats on the first side, the middle and the last
+    side); **L** (two arms); **Path** (seats follow points; it starts as an L until the path can be drawn
+    on the plan). Seats stand one seat apart along the shape and turn with it.
+  - **Line up with the other rows**: at the start, the middle or the end of the widest row, plus a
+    **Shift** in seats.
+  - **People sit** left or right of the way the row runs, drawn as a bar on that side of each seat. "As
+    the shape says" draws nothing on a straight row and the inside of an arc, U or L.
+  - **Number this row the other way**, and **gaps in this row**: an empty space after a seat, for a
+    fiber roll or a post (0.25 to 20 seats). Seat names and numbers carry on across a gap.
 
-Each gap has a size in seats (0.25 to 20; a new gap is 1 seat wide, a new lane 2 seats high). Columns and
-rows are counted from the top left of the block as drawn before it is turned. Gaps only move seats apart:
-seat names and numbers carry on across them, and the Seats view, the kiosk and the port dispatch use the
-same spacing. Undo works as usual. In the API a block has `col_gaps` and `row_gaps`, each a list of
-`{"after": n, "size": s}`; gaps after the last column or row are dropped when a block gets smaller.
+Every change is one step to undo. The Seats view, the kiosk, dashboards and the port dispatch draw what the
+server lays out, so they show the rows' shapes too.
+
+Each row has an id inside its block that stays when rows are reordered: circuits, seat walks and
+dashboards that pick a row keep the same row. Blocks saved before rows existed (a number of columns and
+rows, gaps for the whole block) are moved to rows once when Floorbit starts, with ids 1, 2, 3 in their old
+order, so what named a row by its place still names the same row. Old templates and backups are read the
+same way.
+
+**In the API** a block has `rows`, top first, each
+`{"id", "seats", "shape", "gap", "align", "shift", "side", "reverse", "col_gaps"}` plus `bend` (arc), `sides`
+(U and L) or `path` (`[[x, y], ...]` in seats). A new block can still be given as `cols` and `rows` numbers
+(a rectangle, as the Block tool and the CSV import make it). Rules: `floorbit/seat_rows.py`.
 
 ## Alignment guides, groups and merging
 
@@ -134,14 +155,15 @@ or **Ungroup** splits it again; <kbd>Shift</kbd>+click still picks a single bloc
 
 **Merge** makes one block of blocks next to each other, as if it had been made that size:
 
-- Blocks **stacked** with the same columns become one block with more rows. With a letter per row, the rows
-  keep their letters (E, F, then G).
-- Blocks **side by side** with the same rows become one wider block, and the seat numbers carry on
-  (A-1 to A-12, then A-13 to A-18).
+- Blocks **stacked** become one block with more rows, whatever the rows are like; the space between them
+  becomes the space above the first joined row. With a letter per row, the rows keep their letters (E, F,
+  then G).
+- Blocks **side by side** with as many straight rows and the same space between them become one wider
+  block, and the seat numbers carry on (A-1 to A-12, then A-13 to A-18). The space between them becomes a
+  gap in each row.
 
 The blocks have to be turned the same way, use the same kind of seat names and stand in line. The top or
-left block keeps its name and settings, so the other blocks' seats get new names. Space between them
-becomes a gap. Undo brings the separate blocks back. For scripts: `POST /api/seat-blocks/merge` with
+left block keeps its name and settings, so the other blocks' seats get new names. Undo brings the separate blocks back. For scripts: `POST /api/seat-blocks/merge` with
 `{"ids": [...]}`; a block's `group` is a free text id.
 
 ## What is drawn on top
