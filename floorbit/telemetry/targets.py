@@ -60,12 +60,21 @@ def _agent(value):
 # A device in the inventory with the Telemetry feature on (on itself, a tag, its group or type) is
 # collected from like one set up here, with the logins stored in the inventory: SNMP v3 or v2c for
 # polling and traps, an API login for NX-API, RESTCONF or OPNsense. Its properties can say more:
-# telemetry_drivers, telemetry_fdb, telemetry_vlans, telemetry_port_snmp, telemetry_port_gnmi,
-# telemetry_port_api, telemetry_agent (the agent that collects), telemetry_address, telemetry_url, telemetry_mdt_node,
-# telemetry_verify_tls. Like every property they come from the device, its tags, group or type.
-# A device that sends by itself (push, mdt, traps in telemetry_drivers) needs no login.
+# telemetry.drivers, telemetry.agent (the agent that collects), telemetry.address, telemetry.verify_tls,
+# telemetry.snmp.{fdb,vlans,port}, telemetry.gnmi.port, telemetry.api.{port,url}, telemetry.mdt.node.
+# Like every property they come from the device, its tags, group or type.
+# A device that sends by itself (push, mdt, traps in telemetry.drivers) needs no login.
 
 FEATURE = 'telemetry'
+# What the properties were called before they got their namespace (floorbit/upgrades.py moves them).
+RENAMED = {
+    'telemetry_drivers': 'telemetry.drivers', 'telemetry_agent': 'telemetry.agent',
+    'telemetry_address': 'telemetry.address', 'telemetry_fdb': 'telemetry.snmp.fdb',
+    'telemetry_vlans': 'telemetry.snmp.vlans', 'telemetry_port_snmp': 'telemetry.snmp.port',
+    'telemetry_port_gnmi': 'telemetry.gnmi.port', 'telemetry_port_api': 'telemetry.api.port',
+    'telemetry_url': 'telemetry.api.url', 'telemetry_mdt_node': 'telemetry.mdt.node',
+    'telemetry_verify_tls': 'telemetry.verify_tls',
+}
 API_DRIVER = {'nxos': 'nxapi', 'iosxe': 'restconf', 'opnsense': 'opnsense'}
 # What a device does on its own: these need no stored login.
 SENDING = ('push', 'mdt', 'traps')
@@ -124,23 +133,23 @@ def _from_device(dev, snmp, api):
     platform = _platform(dev.get('platform'))
     kind = dev.get('role') if dev.get('role') in KINDS else 'switch'
     given = auto(platform, bool(snmp), bool(api))
-    drivers = [d for d in _words(props.get('telemetry_drivers')) if d in DRIVERS]
+    drivers = [d for d in _words(props.get('telemetry.drivers')) if d in DRIVERS]
     if not snmp and not api:
         drivers = [d for d in drivers if d in SENDING]
     drivers = drivers or given['drivers']
-    # telemetry_address: where the agent reaches it, when not its management address (a NAT, a lab).
-    address = str(props.get('telemetry_address') or '').strip()[:253] or dev['address']
-    vlans = {int(v) for v in _words(props.get('telemetry_vlans')) if v.isdigit() and 1 <= int(v) <= 4094}
+    # telemetry.address: where the agent reaches it, when not its management address (a NAT, a lab).
+    address = str(props.get('telemetry.address') or '').strip()[:253] or dev['address']
+    vlans = {int(v) for v in _words(props.get('telemetry.snmp.vlans')) if v.isdigit() and 1 <= int(v) <= 4094}
     t = {'id': f"inv-{dev['id']}", 'name': dev['name'], 'address': address, 'kind': kind,
          'platform': platform, 'drivers': drivers, 'source': 'inventory', 'inventory_id': dev['id'],
-         'fdb': props.get('telemetry_fdb') if props.get('telemetry_fdb') in FDB_MODES else given['fdb'],
+         'fdb': props.get('telemetry.snmp.fdb') if props.get('telemetry.snmp.fdb') in FDB_MODES else given['fdb'],
          'vlans': sorted(vlans) or list(dev.get('iface_vlans') or []),
-         'ports': _ports({k: props.get(f'telemetry_port_{k}') for k in PORT_KINDS}),
-         'agent': _agent(props.get('telemetry_agent')),
-         'url': str(props.get('telemetry_url') or '').strip() or None,
+         'ports': _ports({k: props.get(f'telemetry.{k}.port') for k in PORT_KINDS}),
+         'agent': _agent(props.get('telemetry.agent')),
+         'url': str(props.get('telemetry.api.url') or '').strip() or None,
          # Cisco names the stream after the switch unless it is set up otherwise.
-         'mdt_node': str(props.get('telemetry_mdt_node') or '').strip() or (dev['name'] if 'mdt' in drivers else None),
-         'verify_tls': str(props.get('telemetry_verify_tls', 'true')).lower() not in ('false', '0', 'no', 'off'),
+         'mdt_node': str(props.get('telemetry.mdt.node') or '').strip() or (dev['name'] if 'mdt' in drivers else None),
+         'verify_tls': str(props.get('telemetry.verify_tls', 'true')).lower() not in ('false', '0', 'no', 'off'),
          'wireless': bool(WLC_MODEL.search(str(dev.get('model') or ''))),
          'tables': True, 'snmp_version': '2c', 'logins': {}}
     if t['url'] and not t['url'].startswith('https://'):
@@ -287,7 +296,7 @@ def token_ok(given):
 
 
 # ── which agent collects ──────────────────────────────────────────────────────────────────────
-# A device with an agent (telemetry_agent) is collected by that agent alone, even when it stands by
+# A device with an agent (telemetry.agent) is collected by that agent alone, even when it stands by
 # for another (VRRP): "mine" tells it to. While that agent is away, the device goes back to the
 # rest like one without an agent, so it isn't left unheard. Without an agent, every agent gets it
 # and the primary one polls (the agent's own rule).
@@ -319,8 +328,8 @@ def pinned(data=None):
         if not name or name in out:
             continue
         stack = inventory_scope.layers(data, dev)
-        agent = _agent(next((h['properties']['telemetry_agent'] for _k, h in stack
-                             if (h.get('properties') or {}).get('telemetry_agent')), ''))
+        agent = _agent(next((h['properties']['telemetry.agent'] for _k, h in stack
+                             if (h.get('properties') or {}).get('telemetry.agent')), ''))
         if agent:
             out[name] = agent
     return out
