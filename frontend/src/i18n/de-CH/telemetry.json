@@ -61,7 +61,16 @@
     "listen": "{{driver}}: Telegraf kann seinen Port nicht öffnen. Benutzt ihn ein anderes Programm?",
     "trap_user": "Traps: Jeder Trap-Listener auf dem Agent gehört schon einem anderen SNMPv3-Trap-Benutzer ({{detail}}). Gib diesem Gerät einen Trap-Benutzer, der schon einen hat.",
     "other": "{{driver}}: {{detail}}",
-    "docs": "Was prüfen"
+    "docs": "Was prüfen",
+    "scopeDevice": "ganzes Gerät",
+    "scopeVlan": "VLAN {{vlan}}",
+    "scopeTable": "Tabelle {{table}}",
+    "since": "begann {{ago}}",
+    "count_one": "{{count}} Mal",
+    "count_other": "{{count}} Mal",
+    "showLine": "Zeile des Collectors",
+    "hideLine": "Zeile des Collectors ausblenden",
+    "lastAt": "zuletzt {{at}}"
   },
   "test": {
     "button": "Jetzt testen",
@@ -101,7 +110,7 @@
   "anyAgent": "Jeder Agent",
   "summary": "Telemetrie auf einen Blick",
   "heardCard": "Gehört von",
-  "problemsCard": "Mit Problemen",
+  "problemsCard": "Brauchen einen Blick",
   "noProblems": "alles ruhig",
   "collectorTab": "Sammler",
   "agentsTitle": "Pro Agent",
@@ -109,9 +118,6 @@
   "turnOn": "Für alle Geräte einschalten",
   "search": "Gerät suchen",
   "show": "Anzeigen",
-  "showAll": "Alle",
-  "showProblems": "Mit Problemen",
-  "showSilent": "Nie gehört",
   "edit": "Einrichten und testen",
   "open": "Öffnen",
   "tableLabel": "Telemetrie-Geräte",
@@ -131,5 +137,16 @@
     "up": "Sendet",
     "pinned": "Diesem Agent gegeben",
     "pushed": "Sendet selbst"
-  }
+  },
+  "problemKind": {
+    "auth": "Login abgelehnt",
+    "tls": "TLS fehlgeschlagen",
+    "refused": "Nichts hört",
+    "unreachable": "Keine Route",
+    "timeout": "Keine Antwort",
+    "listen": "Kann nicht lauschen",
+    "other": "Anderes"
+  },
+  "allAgents": "Alle Agents",
+  "allDrivers": "Alle Collectors"
 }

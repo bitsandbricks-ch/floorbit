@@ -960,8 +960,6 @@ def test_more_trap_users_than_listeners_is_a_problem(client, tmp_path, monkeypat
     assert conf.count("[[inputs.snmp_trap]]") == telegraf.TRAP_EXTRA + 1
     seen = client.get("/api/telemetry/devices").get_json()["devices"]
     assert seen[left[0]]["problems"][0]["kind"] == "trap_user"
-
-
 def test_what_a_device_is_is_read_as_often_as_discovery_uses_it():
     """Issue #967: the fact tables follow the discovery actions' clocks, not a fixed five minutes."""
     import tomllib

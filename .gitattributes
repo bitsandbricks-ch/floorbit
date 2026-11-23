@@ -5,3 +5,7 @@
 # Not part of a source archive (git archive, GitLab's release archives)
 .gitlab export-ignore
 .gitattributes export-ignore
+# Translation files merge by key, so two pull requests adding texts don't conflict
+# (scripts/git-merge-json.py; run scripts/setup-git.sh once per clone, GitHub falls back to lines).
+floorbit/locales/**/*.json merge=json-texts
+frontend/src/i18n/**/*.json merge=json-texts

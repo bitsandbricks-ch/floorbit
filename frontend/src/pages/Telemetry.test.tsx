@@ -30,9 +30,10 @@ describe('Telemetry', () => {
     expect(await screen.findByRole('link', { name: 'core-01' })).toHaveAttribute('href', '/inventory/devices/d1?tab=telemetry')
     expect(screen.getByRole('link', { name: /: fw-01$/ })).toHaveAttribute('href', '/inventory/devices/d2?tab=telemetry')
     expect(screen.getByText('52 ports, 0 MACs, 812 ARP, 4 neighbours')).toBeInTheDocument()
-    expect(await screen.findByText('Hall A agent')).toBeInTheDocument()
-    expect(screen.getByText('Any agent')).toBeInTheDocument()
+    expect(await screen.findByRole('cell', { name: 'Hall A agent' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'Any agent' })).toBeInTheDocument()
     expect(screen.getByText('1 / 2')).toBeInTheDocument()       // heard from
+    expect(screen.getByText('Need a look')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open the inventory' })).toHaveAttribute('href', '/inventory')
     // Devices are set up in the inventory: nothing here adds or changes one.
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
@@ -41,8 +42,16 @@ describe('Telemetry', () => {
     expect(screen.queryByRole('link', { name: 'core-01' })).toBeNull()
     expect(screen.getByRole('link', { name: 'fw-01' })).toBeInTheDocument()
     fireEvent.change(screen.getByRole('textbox', { name: 'Find a device' }), { target: { value: '' } })
-    fireEvent.click(screen.getByRole('radio', { name: 'Never heard' }))
+    // fw-01 never reported: it needs a look, and counts as one on the summary card.
+    expect(screen.getAllByText('Never heard').length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByText('Needs a look (1)'))
     expect(screen.queryByRole('link', { name: 'core-01' })).toBeNull()
+    fireEvent.click(screen.getByText('All (2)'))
+    // By agent: the devices any agent may collect.
+    fireEvent.click(screen.getByRole('combobox', { name: 'Agent' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Any agent', hidden: true }))
+    expect(screen.queryByRole('link', { name: 'core-01' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'fw-01' })).toBeInTheDocument()
     // The collector's own state and its errors have their tab; the token its own.
     fireEvent.click(screen.getByRole('tab', { name: /Collector/ }))
     expect(screen.getByText('NX-API on core-01 refused the login.')).toBeInTheDocument()
@@ -74,7 +83,25 @@ describe('Telemetry', () => {
       'GET /api/telemetry/overview': { ...overview, seen: { 'core-01': { seen: null, online: false, problems: [problem] } } },
     }).fn)
     renderWithApp(<Telemetry />)
-    expect(await screen.findByText(/SNMP polling: nothing listens on 192.0.2.1:161/)).toBeInTheDocument()
+    // Kind, where and since when on one line, then the hint; the collector's own line on demand.
+    expect(await screen.findByText('Nothing listens')).toBeInTheDocument()
+    expect(screen.getByText('SNMP polling · whole device')).toBeInTheDocument()
+    expect(screen.getByText('3 times')).toBeInTheDocument()
+    expect(screen.getByText(/^Nothing listens on 192.0.2.1:161/)).toBeInTheDocument()
+    expect(screen.getAllByText('Sends nothing').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/recvfrom: connection refused/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: "Collector's line" }))
+    expect(screen.getByText(/recvfrom: connection refused/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'What to check' })).toHaveAttribute('href', expect.stringContaining('#when-a-device-sends-nothing'))
+  })
+
+  it('lists a device that sends by itself without being in the inventory', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin, 'GET /api/options/agents': agents,
+      'GET /api/telemetry/overview': { ...overview, seen: { ...overview.seen, 'fw-09': { seen: 1_763_100_000, online: true } } },
+    }).fn)
+    renderWithApp(<Telemetry />)
+    expect(await screen.findByText('fw-09')).toBeInTheDocument()
+    expect(screen.getByText('Sends by itself')).toBeInTheDocument()
   })
 })
