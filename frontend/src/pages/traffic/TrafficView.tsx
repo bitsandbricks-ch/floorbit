@@ -1,9 +1,10 @@
-import { Alert, Anchor, Badge, Group, Loader, Table, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Badge, Group, Loader, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFlows } from '@/api/queries'
 import type { FlowMix, FlowsData } from '@/api/types'
 import type { ViewProps } from '@/widgets/views'
+import { DataTable } from '@/components/DataTable'
 import { bytes, CATEGORIES, mostly, total } from './format'
 import { onPlan } from '../plan/links'
 import { ErrorBanner } from '@/components/ui'
@@ -39,7 +40,7 @@ function Legend({ mix }: { mix: FlowMix | undefined }) {
 function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
   const { t } = useTranslation()
   const [filter, setFilter] = useState('')
-  const shown = seats.filter((s) => !filter || s.seat.toLowerCase().includes(filter.toLowerCase())).slice(0, 25)
+  const shown = seats.filter((s) => !filter || s.seat.toLowerCase().includes(filter.toLowerCase()))
   return (
     <section className="fb-stats-panel wide" aria-labelledby="traffic-seats">
       <Group justify="space-between" mb={6}>
@@ -48,21 +49,16 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
           onChange={(e) => setFilter(e.currentTarget.value)} />
       </Group>
       <Text size="sm" c="dimmed" mb="xs">{t('traffic.seatsText')}</Text>
-      <Table striped withRowBorders={false} verticalSpacing={4}>
-        <Table.Thead><Table.Tr><Table.Th>{t('traffic.seat')}</Table.Th><Table.Th>{t('traffic.volume')}</Table.Th><Table.Th>{t('traffic.mix')}</Table.Th></Table.Tr></Table.Thead>
-        <Table.Tbody>
-          {shown.map((s) => {
+      <DataTable rows={shown} rowKey={(s) => s.seat} label={t('traffic.seats')} urlState={false} pageSize={25} bare striped density="compact"
+        defaultSort={{ id: 'volume', desc: true }}
+        columns={[
+          { id: 'seat', header: t('traffic.seat'), sort: (s) => s.seat, cell: (s) => <Anchor href={onPlan({ seat: s.seat })}>{s.seat}</Anchor> },
+          { id: 'volume', header: t('traffic.volume'), descFirst: true, sort: (s) => s.bytes, cell: (s) => {
             const main = mostly(s.mix)
-            return (
-              <Table.Tr key={s.seat}>
-                <Table.Td><Anchor href={onPlan({ seat: s.seat })}>{s.seat}</Anchor></Table.Td>
-                <Table.Td style={{ whiteSpace: 'nowrap' }}>{bytes(s.bytes)}{main && <Text size="xs" c="dimmed">{t('traffic.mostly', { cat: t(`traffic.cat.${main}`) })}</Text>}</Table.Td>
-                <Table.Td style={{ width: '45%' }}><MixBar mix={s.mix} label={s.seat} /></Table.Td>
-              </Table.Tr>
-            )
-          })}
-        </Table.Tbody>
-      </Table>
+            return <>{bytes(s.bytes)}{main && <Text size="xs" c="dimmed">{t('traffic.mostly', { cat: t(`traffic.cat.${main}`) })}</Text>}</>
+          } },
+          { id: 'mix', header: t('traffic.mix'), width: '45%', cell: (s) => <MixBar mix={s.mix} label={s.seat} /> },
+        ]} />
     </section>
   )
 }

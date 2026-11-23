@@ -134,8 +134,8 @@ def create_app(start_background=True):
 
     # Imported here, not at the top: blueprints import auth, and auth imports floorbit.env, so a
     # top-level import made `import auth` (or any test importing it first) fail half-initialised.
-    from .blueprints import ALL as BLUEPRINTS
-    for bp in BLUEPRINTS:
+    from .blueprints._discover import blueprints
+    for bp in blueprints():
         app.register_blueprint(bp)
 
     # A stopping gunicorn worker ends the live-update streams first, so it exits at once.

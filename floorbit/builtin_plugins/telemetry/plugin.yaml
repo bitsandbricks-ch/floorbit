@@ -18,9 +18,10 @@ agent:
     series: {privacy: device}
     # Where each machine was seen (MAC, IP, port), for the history and search (docs/endpoints.md).
     endpoints: {privacy: device}
-  # "Test now" and "Raw data" on a device: asked by an admin, answered from the agent's memory.
+  # "Test now" and "Raw data" on a device, and the agent page's Devices tab: asked by an admin,
+  # answered from the agent's memory.
   # "lookup": a check-in's PC, a few SNMP GETs on the switches (docs/segments.md).
-  calls: [test, raw, lookup]
+  calls: [test, raw, lookup, devices]
 settings:
   - {key: polling, label: Who polls the switches, type: select, default: auto, options: [auto, librenms, telemetry],
      help: "Auto: LibreNMS when it is on, else Telemetry. When LibreNMS polls, Telemetry stops polling ports and walking ARP and MAC tables, and keeps traps, device facts and streams. Telemetry: it polls everything and answers before LibreNMS."}

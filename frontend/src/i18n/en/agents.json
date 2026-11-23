@@ -32,7 +32,6 @@
   "copy": "Copy",
   "copied": "Copied",
   "runTitle": "Start the agent on the event network",
-  "runInsecure": "This Floorbit is on plain http, so the agent needs FLOORBIT_AGENT_INSECURE=1 and sends its key unencrypted. Use it only for a test or on a network you trust; put Floorbit behind HTTPS for an event.",
   "docs": "How the agent works and what it is asked: docs/agent.md.",
   "relaySyslog": "Syslog",
   "relayFlows": "NetFlow",
@@ -221,6 +220,7 @@
     "failover": "Failover per hall",
     "server": "This Floorbit",
     "overview": "Overview",
+    "devices": "Devices",
     "graphs": "Graphs",
     "plugins": "Plugins ({{count}})",
     "updates": "Updates",
@@ -392,5 +392,22 @@
     "pluginsTitle": "Plugin settings for this agent",
     "pluginSame": "Uses the plugin's settings.",
     "pluginEdit": "Set on the plugin page"
-  }
+  },
+  "devices": {
+    "error": {
+      "offline": "The agent is not connected",
+      "no_telemetry": "Telemetry is off",
+      "no_answer": "The agent did not say what it collects"
+    },
+    "errorHelp": {
+      "offline": "These are the devices Floorbit gives it. Their state shows once it is back.",
+      "no_telemetry": "Turn on the Telemetry plugin to collect from devices through the agents.",
+      "no_answer": "An agent older than this Floorbit does not know this question yet: update it. These are the devices Floorbit gives it."
+    },
+    "turnOn": "Plugins",
+    "standby": "Standby",
+    "standbyHelp": "The other agent of this pair collects. This one only takes the devices given to it by name, and takes over the rest when the other one goes away.",
+    "none": "No devices for this agent. Turn on Telemetry for devices in the inventory."
+  },
+  "runInsecure": "This Floorbit is on plain http, so the agent needs FLOORBIT_AGENT_INSECURE=1 and sends its key unencrypted. Use it only for a test or on a network you trust; put Floorbit behind HTTPS for an event."
 }
