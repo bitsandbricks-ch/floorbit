@@ -9,8 +9,14 @@
 .fb-dt.is-compact { font-size: var(--mantine-font-size-xs); }
 .fb-dt-sortable { opacity: 0; transition: opacity 120ms; }
 .fb-dt th:hover .fb-dt-sortable, .fb-dt .fb-sort:focus-visible .fb-dt-sortable { opacity: 0.6; }
+.fb-dt-pager { flex: none; height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 12px; color: var(--color-muted); }
+.fb-dt-pager span { margin-right: 6px; font-variant-numeric: tabular-nums; }
 @media (max-width: 48em) {
   .fb-dt .fb-dt-phone-hide { display: none; }
   .fb-dt-scroll > .fb-dt { min-width: 0; }
   .fb-dt.fb-table-stack td { white-space: normal; }
+  /* Cards inside the bordered box keep off its edge. */
+  .fb-dt-box .fb-table-stack tbody tr { padding-left: var(--mantine-spacing-sm); padding-right: var(--mantine-spacing-sm); }
+  .fb-dt-box .fb-table-stack tbody tr:has(> td.fb-stack-actions:not(:empty)) { padding-right: 5em; }
+  .fb-dt-box .fb-table-stack tbody td.fb-stack-actions { right: var(--mantine-spacing-sm); }
 }
