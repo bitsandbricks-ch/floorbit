@@ -56,13 +56,18 @@ class Plugin(Base):
     # the dashboard -----------------------------------------------------------------------------
     def widget_devices(self):
         """Which devices report: up when heard within the last minutes."""
-        from floorbit import agent_link, sources
-        # On a hosted Floorbit the picture lives on the agent, asked through its link.
-        found = sources.monitoring().devices() if agent_link.active() else self.devices()
-        if not found:
+        from floorbit import telemetry
+        from floorbit.telemetry import agent_devices
+        if telemetry.collector_here():
+            items = [{'label': d.get('display') or d.get('hostname'), 'state': 'up' if d.get('status') else 'down',
+                      'detail': d.get('driver') or ''} for d in self.devices()]
+        else:
+            # The picture lives on the agents: asked of their telemetry part, not of whichever
+            # plugin answers monitoring (LibreNMS's devices aren't telemetry's, issue #1223).
+            items = [{'label': name, 'state': 'up' if row['online'] else 'down', 'detail': row['driver']}
+                     for name, row in agent_devices.rows().items()]
+        if not items:
             return {'type': 'status', 'items': [], 'sub': 'No devices set up yet.', 'link': '/telemetry'}
-        items = [{'label': d.get('display') or d.get('hostname'), 'state': 'up' if d.get('status') else 'down',
-                  'detail': d.get('driver') or ''} for d in found]
         up = sum(i['state'] == 'up' for i in items)
         return {'type': 'status', 'items': items, 'link': '/telemetry',
                 'sub': f'{up} of {len(items)} up' if up == len(items)
