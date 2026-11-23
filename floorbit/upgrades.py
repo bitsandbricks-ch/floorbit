@@ -246,6 +246,28 @@ def _platform_admins(data):
             user['platform_admin'] = True
 
 
+def _telemetry_properties(data):
+    """Telemetry's settings became namespaced properties (issue #965): ``telemetry_vlans`` is
+    ``telemetry.snmp.vlans`` and so on (``targets.RENAMED``), on devices, entries, groups, tags,
+    types and the defaults. A value already under the new name wins."""
+    from .telemetry.targets import RENAMED
+
+    def move(holder):
+        props = holder.get('properties') if isinstance(holder, dict) else None
+        if not isinstance(props, dict):
+            return
+        for old, new in RENAMED.items():
+            if old in props:
+                value = props.pop(old)
+                props.setdefault(new, value)
+
+    for key in ('inventory', 'inventory_entries', 'inventory_groups', 'inventory_tags', 'inventory_types'):
+        found = data.get(key)
+        for holder in (found.values() if isinstance(found, dict) else found if isinstance(found, list) else []):
+            move(holder)
+    move(data.get('inventory_defaults'))
+
+
 def _block_rows(data):
     """Seat blocks in the grid shape (``cols`` by ``rows``, gaps for the whole block) become a list
     of rows (floorbit/seat_rows.py). The rows get ids 1, 2, 3 in their order, so circuits, walks
@@ -258,7 +280,7 @@ def _block_rows(data):
 
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
          _no_runbooks, _no_seat_finder, _small_status_page, _no_attendee_programme,
-         _platform_admins, _no_match_seats, _block_rows)
+         _platform_admins, _no_match_seats, _telemetry_properties, _block_rows)
 CURRENT = len(STEPS)
 
 
