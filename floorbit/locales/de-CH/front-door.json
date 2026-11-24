@@ -1,0 +1,3 @@
+{
+ "cannot answer on {} (host:port, and the TLS certificate if set): {}": "kann nicht auf {} antworten (host:port, und das TLS-Zertifikat, falls gesetzt): {}"
+}

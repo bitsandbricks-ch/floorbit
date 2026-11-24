@@ -1,0 +1,7 @@
+{
+ "A stored secret does not open with its key. Set it again.": "Ein gespeichertes Geheimnis lässt sich mit seinem Schlüssel nicht öffnen. Setze es neu.",
+ "A stored secret is damaged.": "Ein gespeichertes Geheimnis ist beschädigt.",
+ "A stored secret was made with a key Floorbit no longer has. Set it again.": "Ein gespeichertes Geheimnis wurde mit einem Schlüssel gemacht, den Floorbit nicht mehr hat. Setze es neu.",
+ "Cannot read the secret key in {}: {}": "Der geheime Schlüssel in {} ist nicht lesbar: {}",
+ "The secret key in {} must be 32 bytes, base64 encoded.": "Der geheime Schlüssel in {} muss 32 Bytes lang und Base64-kodiert sein."
+}

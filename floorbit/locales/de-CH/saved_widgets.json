@@ -1,0 +1,8 @@
+{
+ "Floorbit keeps at most {} widgets.": "Floorbit speichert höchstens {} Widgets.",
+ "Give the widget a name.": "Gib dem Widget einen Namen.",
+ "No such widget.": "Kein solches Widget.",
+ "Pick what the widget shows.": "Wähle, was das Widget zeigt.",
+ "Send the widget as a JSON object.": "Schicke das Widget als JSON-Objekt.",
+ "{} still show this widget. Clone it there or take it off first.": "{} zeigen dieses Widget noch. Klone es dort oder entferne es zuerst."
+}

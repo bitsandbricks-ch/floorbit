@@ -1,0 +1,3 @@
+{
+ "FLOORBIT_CLUSTER must be \"redis\", \"valkey\" or empty, not \"{}\".": "FLOORBIT_CLUSTER muss \"redis\", \"valkey\" oder leer sein, nicht \"{}\"."
+}

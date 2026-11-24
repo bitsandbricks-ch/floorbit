@@ -1,0 +1,7 @@
+{
+ "Check them under Cables": "Unter Kabel prüfen",
+ "No monitoring source is set up": "Es ist keine Monitoring-Quelle eingerichtet",
+ "Seat {}: a switch or router on the seat port ({} machines)": "Platz {}: ein Switch oder Router am Platz-Port ({} Geräte)",
+ "Seat {}: {} machines on one seat port": "Platz {}: {} Geräte an einem Platz-Port",
+ "{} seat ports have more than one machine": "{} Platz-Ports haben mehr als ein Gerät"
+}

@@ -1,0 +1,7 @@
+{
+ "Cleared a blocked login": "Gesperrtes Login freigegeben",
+ "Handed stored logins for {} devices to the {} plugin": "Gespeicherte Logins für {} Geräte an das Plugin {} übergeben",
+ "Stored {} login failed; blocked until a tech clears it": "Gespeichertes {}-Login fehlgeschlagen; gesperrt, bis ein Tech es freigibt",
+ "Stored {} login for {} did not open": "Gespeichertes {}-Login für {} liess sich nicht öffnen",
+ "Used the stored {} login set on {} {}": "Gespeichertes {}-Login von {} {} verwendet"
+}

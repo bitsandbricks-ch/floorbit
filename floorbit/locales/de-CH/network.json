@@ -1,0 +1,6 @@
+{
+ "Could not resolve IP address": "IP-Adresse nicht gefunden",
+ "LibreNMS is not configured": "LibreNMS ist nicht eingerichtet",
+ "No seat mapping available": "Keine Platzzuordnung vorhanden",
+ "The monitoring source is not answering; try again shortly.": "Die Monitoring-Quelle antwortet nicht; bitte gleich nochmals versuchen."
+}

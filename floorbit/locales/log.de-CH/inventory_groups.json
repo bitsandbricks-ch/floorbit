@@ -1,0 +1,12 @@
+{
+ "Added an inventory group": "Inventargruppe hinzugefügt",
+ "Added an inventory tag": "Inventar-Tag hinzugefügt",
+ "All devices": "Alle Geräte",
+ "Changed an inventory group": "Inventargruppe geändert",
+ "Changed an inventory tag": "Inventar-Tag geändert",
+ "Changed the inventory defaults": "Inventar-Standards geändert",
+ "Removed an inventory group": "Inventargruppe entfernt",
+ "Removed an inventory tag": "Inventar-Tag entfernt",
+ "Removed the {} credential on {}": "{}-Zugangsdaten bei {} entfernt",
+ "Set the {} credential on {}": "{}-Zugangsdaten bei {} gesetzt"
+}

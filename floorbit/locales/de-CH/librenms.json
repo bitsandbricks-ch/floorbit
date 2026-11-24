@@ -1,0 +1,8 @@
+{
+ "LibreNMS answered {}": "LibreNMS hat mit {} geantwortet",
+ "LibreNMS did not answer a moment ago ({})": "LibreNMS hat vor einem Moment nicht geantwortet ({})",
+ "LibreNMS did not list the ports of {}": "LibreNMS hat die Ports von {} nicht aufgelistet",
+ "LibreNMS does not know {}": "LibreNMS kennt {} nicht",
+ "LibreNMS redirects to {}: put that address in Settings > LibreNMS.": "LibreNMS leitet weiter nach {}: Trag diese Adresse unter Einstellungen > LibreNMS ein.",
+ "Set the LibreNMS URL and API token under Settings > LibreNMS first.": "Setze zuerst die LibreNMS-URL und das API-Token unter Einstellungen > LibreNMS."
+}

@@ -1,0 +1,9 @@
+{
+ "Bad signature.": "Ungültige Signatur.",
+ "Bad timestamp.": "Ungültiger Zeitstempel.",
+ "Discord buttons are not set up.": "Discord-Knöpfe sind nicht eingerichtet.",
+ "Discord could not be reached: {}": "Discord war nicht erreichbar: {}",
+ "Discord kept asking to slow down": "Discord bat immer wieder ums Bremsen",
+ "DISCORD_BOT_TOKEN is not set": "DISCORD_BOT_TOKEN ist nicht gesetzt",
+ "Too old.": "Zu alt."
+}

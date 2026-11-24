@@ -1,0 +1,14 @@
+{
+ "Could not save settings: {}": "Einstellungen nicht gespeichert: {}",
+ "Enter the API token again for the new URL: a saved token is only sent to the URL it was saved for.": "Gib das API-Token für die neue URL nochmals ein: Ein gespeichertes Token geht nur an die URL, mit der es gespeichert wurde.",
+ "Unknown service: {}": "Unbekannter Dienst: {}",
+ "Unknown setting(s): {}": "Unbekannte Einstellung(en): {}",
+ "Unknown setting: {}": "Unbekannte Einstellung: {}",
+ "{} is not a valid image": "{} ist kein gültiges Bild",
+ "{} is unreadable or not valid JSON": "{} ist nicht lesbar oder kein gültiges JSON",
+ "{} must be a colour like #2ee59d": "{} muss eine Farbe wie #2ee59d sein",
+ "{} must be an SVG, PNG, JPEG or WebP image": "{} muss ein SVG-, PNG-, JPEG- oder WebP-Bild sein",
+ "{} must be one of: {}": "{} muss eines von diesen sein: {}",
+ "{} must be {} KB or smaller": "{} darf höchstens {} KB gross sein",
+ "{} must start with http:// or https://": "{} muss mit http:// oder https:// beginnen"
+}

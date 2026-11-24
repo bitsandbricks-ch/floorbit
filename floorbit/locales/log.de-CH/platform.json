@@ -1,0 +1,9 @@
+{
+ "Added a tenant": "Mandant hinzugefügt",
+ "Changed a tenant": "Mandant geändert",
+ "Set a tenant's admin": "Admin eines Mandanten gesetzt",
+ "Set the domain for the agents' certificates": "Domain für die Zertifikate der Agents gesetzt",
+ "Suspended a tenant": "Mandant gesperrt",
+ "The platform set an admin": "Die Plattform hat einen Admin gesetzt",
+ "Took a tenant back": "Mandant zurückgeholt"
+}

@@ -1,0 +1,8 @@
+{
+ "That LibreNMS alert is not open.": "Dieser LibreNMS-Alarm ist nicht offen.",
+ "The alert has no id: check the body template (alert_id).": "Der Alarm hat keine ID: prüfe die Body-Vorlage (alert_id).",
+ "The alert has no state: check the body template (state).": "Der Alarm hat keinen Status: prüfe die Body-Vorlage (state).",
+ "The alert is not a JSON object.": "Der Alarm ist kein JSON-Objekt.",
+ "The alert names no device: check the body template (hostname).": "Der Alarm nennt kein Gerät: prüfe die Body-Vorlage (hostname).",
+ "{} (acknowledged in LibreNMS)": "{} (in LibreNMS quittiert)"
+}

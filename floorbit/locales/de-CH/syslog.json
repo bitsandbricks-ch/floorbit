@@ -1,0 +1,3 @@
+{
+ "Syslog comes in through the local agent (the plugin \"Syslog from the hall\"); this server does not listen itself.": "Syslog kommt über den lokalen Agenten (das Plugin «Syslog aus der Halle»); dieser Server hört nicht selbst zu."
+}

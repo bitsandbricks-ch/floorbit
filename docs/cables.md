@@ -74,7 +74,7 @@ and the ARP table for the seats' networks, and lists:
 - **seat ports with more than one machine**: the seat, the port and how many machines, never which.
   Two or three are usually a console next to the PC. More than 4 is marked **Switch or router at the
   seat**: that is where loops, a home router handing out addresses and a seat the mapping can't place
-  start. Both also show under [Needs attention](alerts.md#needs-attention) in Problems, one line per
+  start. Both also show under [Seats with trouble](alerts.md#seats-with-trouble) in Problems, one line per
   seat, or one line for all of them when there are more than 5;
 - **IPs in the seat networks on no seat port** (issue #949): ARP knows the IP, but no seat switch's
   edge port carries its MAC: a PC behind a desk switch, or on a switch Floorbit doesn't read. The

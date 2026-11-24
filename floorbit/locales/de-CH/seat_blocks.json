@@ -1,3 +1,13 @@
 {
- "A block has 1 to {} rows of 1 to {} seats": "Ein Block hat 1 bis {} Reihen mit 1 bis {} Plätzen"
+ "A block has 1 to {} rows of 1 to {} seats": "Ein Block hat 1 bis {} Reihen mit 1 bis {} Plätzen",
+ "Add 1 to {} blocks at once": "Füge 1 bis {} Blöcke auf einmal hinzu",
+ "rotation is a whole number of degrees": "rotation ist eine ganze Zahl in Grad",
+ "Row letters go at the start, the end, both or none": "Reihenbuchstaben stehen am Anfang, am Ende, an beiden Enden oder gar nicht",
+ "Seat block not found": "Sitzblock nicht gefunden",
+ "Seat names are \"block\" or \"rows\"": "Sitznamen sind \"block\" oder \"rows\"",
+ "Seat {} is in another block already. Pick other row letters or another block name.": "Sitz {} ist schon in einem anderen Block. Wähle andere Reihenbuchstaben oder einen anderen Blocknamen.",
+ "Send the block as a JSON object.": "Sende den Block als JSON-Objekt.",
+ "The first row is one or two letters, like A or AA": "Die erste Reihe ist ein oder zwei Buchstaben, etwa A oder AA",
+ "Valid coordinates and dimensions are required": "Gültige Koordinaten und Grössen sind nötig",
+ "{} is a number from {} to 50": "{} ist eine Zahl von {} bis 50"
 }

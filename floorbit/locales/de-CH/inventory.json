@@ -1,0 +1,19 @@
+{
+ "A colour is written #rrggbb": "Eine Farbe wird als #rrggbb geschrieben",
+ "A device needs a name": "Ein Gerät braucht einen Namen",
+ "icon must be one of {}": "Das Symbol muss eines von {} sein",
+ "No inventory source is set up. Set one up under Settings > Plugins.": "Keine Inventarquelle ist eingerichtet. Richte eine unter Einstellungen > Plugins ein.",
+ "No monitoring source is set up, so there is nothing to discover.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es nichts zu entdecken.",
+ "no name": "kein Name",
+ "No such device": "Dieses Gerät gibt es nicht",
+ "No such discovery action.": "Diese Discovery-Aktion gibt es nicht.",
+ "role must be one of {}": "role muss eines von diesen sein: {}",
+ "Send an object.": "Schicke ein Objekt.",
+ "Send the minutes between runs (0 for off, null for the default).": "Schicke die Minuten zwischen den Läufen (0 für aus, null für den Standard).",
+ "the plugin must return a list of devices": "das Plugin muss eine Liste von Geräten zurückgeben",
+ "Unknown field: {}": "Unbekanntes Feld: {}",
+ "unlock must be a list of field names": "unlock muss eine Liste von Feldnamen sein",
+ "{} is a whole number": "{} ist eine ganze Zahl",
+ "{} is not an IP address": "{} ist keine IP-Adresse",
+ "{} must be one line": "{} muss eine Zeile sein"
+}

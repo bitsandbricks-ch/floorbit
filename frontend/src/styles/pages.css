@@ -1,0 +1,217 @@
+/* Helpdesk QR sheet: a grid of cut-out cards that also prints cleanly. */
+.fb-qr-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.fb-qr { margin: 0; padding: 10px; border: 1px dashed var(--color-line); border-radius: 8px; text-align: center; break-inside: avoid; }
+.fb-qr-code { display: block; width: 100%; height: auto; background: #fff; border-radius: 4px; }
+.fb-qr figcaption { display: grid; gap: 2px; margin-top: 6px; font-size: 12px; color: var(--color-muted); }
+.fb-qr figcaption strong { font-size: 18px; color: var(--color-fg); }
+.fb-qr-pin { display: grid; gap: 2px; margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--color-line); overflow-wrap: anywhere; }
+.fb-qr-pin b { font-family: var(--font-mono); font-size: 16px; letter-spacing: 0.15em; color: var(--color-fg); }
+@media print {
+  .fb-header, .fb-topbar, .fb-status, .fb-no-print, .fb-attribution, .fb-nav-slot, .fb-tabbar { display: none !important; }
+  body { background: #fff !important; }
+  .fb-qr-sheet { grid-template-columns: repeat(4, 1fr); }
+  .fb-qr { border-color: #999; }
+  .fb-qr figcaption, .fb-qr figcaption strong, .fb-qr-pin b { color: #000; }
+}
+
+/* The service health wall (pages/Health.tsx). Colour is never the only sign: each tile says its state. */
+.fb-health-counts { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 16px; font-weight: 600; }
+.fb-health-count { display: inline-flex; align-items: center; gap: 6px; }
+.fb-health-groups { display: flex; flex-wrap: wrap; gap: 20px 28px; align-items: flex-start; }
+.fb-health-group { min-width: 0; }
+.fb-health-group h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); }
+.fb-health-grid { display: grid; grid-template-columns: repeat(var(--n, 1), 250px); gap: 12px; }
+.fb-health-tile {
+  display: grid; gap: 6px; align-content: start; padding: 12px 14px; border-radius: var(--radius-card);
+  background: var(--color-surface); border: 1px solid var(--color-line); border-left: 6px solid var(--color-unknown);
+}
+.fb-health-tile.up { border-left-color: var(--color-up); }
+.fb-health-tile.warn { border-left-color: var(--color-warn); background: color-mix(in srgb, var(--color-warn) 7%, var(--color-surface)); }
+.fb-health-tile.down { border-left-color: var(--color-down); background: color-mix(in srgb, var(--color-down) 12%, var(--color-surface)); }
+.fb-health-tile header { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fb-health-tile header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-health-state { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--color-muted); white-space: nowrap; }
+.fb-health-tile.down .fb-health-state { color: var(--color-down); }
+.fb-health-tile.warn .fb-health-state { color: var(--color-warn); }
+.fb-health-summary { margin: 0; font-size: 14px; }
+.fb-health-metrics { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; }
+.fb-health-metrics dt { font-size: 11px; color: var(--color-muted); }
+.fb-health-metrics dd { margin: 0; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fb-health-metrics small { font-size: 12px; font-weight: 400; color: var(--color-muted); }
+.fb-health-tile footer { font-size: 11px; color: var(--color-muted); }
+
+@media (max-width: 700px) {
+  .fb-health-grid { grid-template-columns: 1fr; }
+  .fb-health-group { width: 100%; }
+}
+
+/* Security findings (pages/Security.tsx) */
+.fb-finding { border-left: 6px solid var(--color-unknown); }
+.fb-finding.high { border-left-color: var(--color-down); }
+.fb-finding.medium { border-left-color: var(--color-warn); }
+.fb-evidence { margin: 2px 0; padding-left: 18px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.fb-problem { border-left: 6px solid var(--color-unknown); }
+.fb-problem.down { border-left-color: var(--color-down); }
+.fb-problem.warn { border-left-color: var(--color-warn); }
+/* Muted: the grey edge says it, not faded text, which fell under WCAG contrast. */
+.fb-problem.muted { border-left-style: dashed; }
+
+/* Stats dashboard (pages/Stats.tsx) */
+.fb-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.fb-stats-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 0; }
+.fb-stat { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 12px 14px; }
+.fb-stat dt { color: var(--color-muted); font-size: 13px; }
+.fb-stat dd { margin: 2px 0 0; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.fb-stat span { color: var(--color-muted); font-size: 13px; }
+.fb-stat { margin: 0; min-width: 0; }
+.fb-stat span { display: block; }
+.fb-stat dd.fb-stat-more { margin: 0; font-size: 13px; font-weight: 400; }
+.fb-stat-spark { display: block; width: 100%; height: 28px; margin-top: 6px; color: var(--color-bit); }
+.fb-stat-spark .fb-spark { width: 100%; height: 100%; color: inherit; }
+/* Sizes (#1019): the dashboard's Stat widget picks one by its box; pages use m. */
+.fb-stat-s dd:not(.fb-stat-more) { font-size: 20px; }
+.fb-stat-l dd:not(.fb-stat-more) { font-size: 36px; }
+.fb-stat-unit { font-size: 0.5em; font-weight: 500; color: var(--color-muted); }
+.fb-stat-change { display: inline-flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
+.fb-stat .fb-stat-change { display: inline-flex; }
+.fb-stat-up { border-left: 4px solid var(--color-up); }
+.fb-stat-warn { border-left: 4px solid var(--color-warn); }
+.fb-stat-down { border-left: 4px solid var(--color-down); }
+.fb-stat-link { color: inherit; text-decoration: none; display: block; border-radius: var(--radius-card); }
+.fb-stat-link .fb-stat { height: 100%; }
+.fb-stat-link:hover .fb-stat, .fb-stat-link:focus-visible .fb-stat { border-color: var(--color-bit); }
+.fb-stat-row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.fb-stats-panel { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 14px 16px; min-width: 0; }
+.fb-stats-panel.wide { grid-column: 1 / -1; }
+.fb-stats-panel h2 { margin: 0 0 8px; font-size: 16px; }
+.fb-stats-chart { margin: 0; }
+.fb-stats-chart svg { width: 100%; height: 160px; display: block; }
+.fb-stats-chart .total { fill: var(--color-bit-soft); stroke: none; }
+.fb-stats-chart .total-line { fill: none; stroke: var(--color-bit); stroke-width: 2; }
+.fb-stats-chart .up { fill: none; stroke: var(--color-muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.fb-stats-chart figcaption { display: flex; justify-content: space-between; gap: 8px; color: var(--color-muted); font-size: 12px; margin-top: 4px; }
+.fb-stats-chart .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-left: 6px; }
+.fb-stats-chart .legend i.total { background: var(--color-bit); }
+.fb-stats-chart .legend i.up { background: var(--color-muted); }
+.fb-stats-bars, .fb-stats-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.fb-stats-bars li { display: grid; grid-template-columns: minmax(140px, auto) 1fr auto; align-items: center; gap: 10px; font-size: 14px; }
+.fb-stats-bars .bar { height: 10px; border-radius: 5px; background: var(--color-raised); overflow: hidden; }
+.fb-stats-bars .bar i { display: block; height: 100%; background: var(--color-up); }
+.fb-stats-bars li.warn .bar i { background: var(--color-warn); }
+.fb-stats-bars li.down .bar i { background: var(--color-down); }
+.fb-stats-bars small, .fb-stats-top small { color: var(--color-muted); }
+.fb-stats-bars .value, .fb-stats-top .value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fb-stats-top { counter-reset: top; }
+.fb-stats-top li { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.fb-stats-top li::before { counter-increment: top; content: counter(top) "."; color: var(--color-muted); width: 1.6em; }
+.fb-stats-top .name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 700px) { .fb-stats { grid-template-columns: 1fr; } }
+
+/* Traffic insights (pages/Traffic.tsx): fixed category colours, readable in light and dark. */
+.cat-gaming { background: #16a34a; }
+.cat-streaming { background: #9333ea; }
+.cat-downloads { background: #2563eb; }
+.cat-updates { background: #d97706; }
+.cat-web { background: #0891b2; }
+.cat-other { background: #94a3b8; }
+.fb-mix { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--color-raised); }
+.fb-mix.big { height: 22px; border-radius: 8px; }
+.fb-mix i { display: block; height: 100%; }
+.fb-mix-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; }
+.fb-mix-legend i, .fb-dotcat { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.fb-mix-legend span { color: var(--color-muted); margin-left: 4px; }
+.fb-flow-areas { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.fb-flow-areas li { display: grid; grid-template-columns: minmax(60px, auto) 1fr auto; align-items: center; gap: 10px; font-size: 14px; }
+.fb-flow-areas .value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fb-flow-anomalies { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.fb-flow-anomalies li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.fb-flow-anomalies .when { color: var(--color-muted); margin-left: auto; font-size: 13px; }
+
+/* Event replay (pages/Replay.tsx): the hall plan drawn like the attendee view. */
+.fb-replay-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: var(--radius-card); }
+.fb-replay-plan .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
+.fb-replay-plan .cell { fill: var(--color-surface); stroke: var(--color-line); transition: fill .25s; }
+.fb-replay-plan .cell.on { fill: var(--color-up); stroke: var(--color-up); }
+.fb-replay-plan .ring { fill: none; stroke: var(--color-down); stroke-width: 4; }
+.fb-replay-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-replay-chart { width: 100%; height: 120px; display: block; cursor: pointer; }
+.fb-replay-chart .area { fill: color-mix(in srgb, var(--color-bit) 18%, transparent); }
+.fb-replay-chart .line { fill: none; stroke: var(--color-bit); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-replay-chart .peak { stroke: var(--color-warn); stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
+.fb-replay-chart .cursor { stroke: var(--color-fg); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-replay-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.fb-replay-key.on { background: var(--color-up); }
+.fb-replay-key.ring { border: 2px solid var(--color-down); border-radius: 50%; }
+.fb-report-chart { width: 100%; height: 140px; display: block; }
+.fb-report-chart .grid { stroke: var(--color-line); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.fb-report-chart .online, .fb-report-chart .avg { fill: none; stroke: var(--color-bit); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-report-chart .checked { fill: none; stroke: var(--color-trace); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-report-chart .bar { fill: color-mix(in srgb, var(--color-bit) 30%, transparent); }
+.fb-report-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: var(--color-bit); }
+.fb-report-key.checked { background: var(--color-trace); }
+.fb-report-chart .incidents { fill: var(--color-warn); }
+.fb-report-key.incidents { background: var(--color-warn); }
+.fb-report-key.bar { background: color-mix(in srgb, var(--color-bit) 30%, transparent); }
+.fb-job-plan { width: 100%; height: auto; max-height: 55vh; background: var(--color-raised); border-radius: var(--radius-card); }
+.fb-job-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
+.fb-job-plan .cell.hit { fill: var(--color-down); stroke: var(--color-down); }
+.fb-job-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-job-plan .target { fill: none; stroke: var(--color-down); stroke-width: 5; }
+.fb-job-plan .route { stroke: var(--color-trace); stroke-width: 5; stroke-dasharray: 14 10; stroke-linecap: round; }
+.fb-job-plan .you { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 4; }
+.fb-job-plan .you-label { fill: var(--color-trace); font: 700 30px var(--font-sans); text-anchor: middle; }
+
+/* Pre-flight verdict (issue #35): the whole banner says go or no-go. */
+.fb-preflight-verdict.ready { border-color: var(--color-up); background: color-mix(in srgb, var(--color-up) 10%, transparent); }
+.fb-preflight-verdict.notReady { border-color: var(--color-down); background: color-mix(in srgb, var(--color-down) 10%, transparent); }
+/* A light badge is see-through: on the tinted verdict box amber text fell just under 4.5:1 (issue #354).
+   Lay its tint over the plain surface instead. */
+.fb-preflight-verdict .fb-on-tint { background: linear-gradient(var(--badge-bg), var(--badge-bg)), var(--color-surface); }
+/* DNS analytics: lookups per hour, the blocked part on top. */
+.fb-dns-chart { width: 100%; height: 140px; display: block; }
+.fb-dns-chart .grid { stroke: var(--color-line); stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.fb-dns-chart .ok { fill: color-mix(in srgb, var(--color-bit) 55%, transparent); }
+.fb-dns-chart .blocked { fill: var(--color-down); }
+.fb-dns-key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; background: color-mix(in srgb, var(--color-bit) 55%, transparent); }
+.fb-dns-key.blocked { background: var(--color-down); }
+/* Games: what the LAN cache served per hour, from disk below and from the internet on top. */
+.fb-dns-chart .hit { fill: var(--color-up); }
+.fb-dns-chart .miss { fill: color-mix(in srgb, var(--color-trace) 55%, transparent); }
+.fb-dns-key.hit { background: var(--color-up); }
+.fb-dns-key.miss { background: color-mix(in srgb, var(--color-trace) 55%, transparent); }
+.fb-dns-chart .capacity { stroke: var(--color-down); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+/* Compare views: now as a line, then dashed. */
+.fb-compare-chart polyline { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-compare-chart .now { stroke: var(--color-bit); }
+.fb-compare-chart .then { stroke: var(--color-muted); stroke-dasharray: 6 4; }
+.fb-compare-key { display: inline-block; width: 14px; height: 0; border-top: 2px solid var(--color-bit); vertical-align: 3px; }
+.fb-compare-key.then { border-top: 2px dashed var(--color-muted); }
+
+/* Logs page on phones (pages/Logs.tsx) */
+.fb-log-lines { list-style: none; margin: 0; padding: 0; }
+.fb-log-line { padding: 8px 0; border-bottom: 1px solid var(--mantine-color-default-border); }
+.fb-wifi-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: var(--radius-card); display: block; }
+.fb-wifi-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
+.fb-wifi-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-wifi-plan .heat { pointer-events: none; }
+.fb-wifi-plan .ap { stroke: var(--color-surface); stroke-width: 4; }
+.fb-wifi-plan .ap.down { stroke-dasharray: 6 4; stroke: var(--color-down); }
+.fb-wifi-plan .clash { fill: none; stroke: var(--color-down); stroke-width: 5; stroke-dasharray: 10 6; }
+.fb-wifi-plan .val { fill: #fff; font: 700 20px var(--font-sans); text-anchor: middle; paint-order: stroke; stroke: rgb(0 0 0 / .35); stroke-width: 3px; }
+.fb-wifi-plan .ap-name { fill: var(--color-fg); font: 600 22px var(--font-sans); text-anchor: middle; }
+.fb-timeline-row + .fb-timeline-row { border-top: 1px solid var(--color-line); }
+.fb-timeline-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+
+/* The dashboard on a kiosk or ops screen (pages/Dashboard.tsx, ?screen=1): no header, edge to edge. */
+.fb-stats-panel .name a { color: inherit; text-decoration: none; }
+.fb-stats-panel .name a:hover, .fb-stats-panel .name a:focus-visible { color: var(--color-bit); text-decoration: underline; }
+.fb-heatmap-scroll { overflow-x: auto; }
+.fb-heatmap { width: 100%; min-width: 640px; height: auto; display: block; }
+.fb-heatmap rect { fill: var(--color-up); cursor: pointer; }
+.fb-heatmap.traffic rect { fill: var(--color-bit); }
+.fb-heatmap.incidents rect { fill: var(--color-down); }
+.fb-heatmap .label { fill: var(--color-muted); font: 600 12px var(--font-sans); text-anchor: end; }
+.fb-heatmap rect.cursor { fill: none; stroke: var(--color-fg); stroke-width: 2; pointer-events: none; }
+
+/* Tables that scroll sideways on a phone take keyboard focus (theme.ts, issue #286). */
+.mantine-TableScrollContainer-scrollContainer .mantine-ScrollArea-viewport:focus-visible { outline: 2px solid var(--color-bit); outline-offset: -2px; }

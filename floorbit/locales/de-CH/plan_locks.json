@@ -1,0 +1,7 @@
+{
+ "A locked item is a seat block, mark, switch, patch panel or distribution board": "Ein gesperrtes Element ist ein Sitzblock, eine Markierung, ein Switch, ein Patchpanel oder ein Verteiler",
+ "A locked item needs an id": "Ein gesperrtes Element braucht eine id",
+ "At most {} locked items on the plan": "Höchstens {} gesperrte Elemente auf dem Plan",
+ "items is a list of items with a kind and an id": "items ist eine Liste von Elementen mit kind und id",
+ "locked is true or false": "locked ist true oder false"
+}

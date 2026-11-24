@@ -1,0 +1,20 @@
+{
+ "A device has at most {} interfaces": "Ein Gerät hat höchstens {} Interfaces",
+ "A plugin feeds this interface by its name; rename it there": "Ein Plugin liefert dieses Interface unter seinem Namen; benenne es dort um",
+ "At most {} addresses per interface": "Höchstens {} Adressen pro Interface",
+ "description must be one line": "Die Beschreibung muss eine Zeile sein",
+ "mode must be one of {}": "Der Modus muss einer von {} sein",
+ "Name at least one interface": "Nenne mindestens ein Interface",
+ "No monitoring source is set up, so there are no ports to take.": "Es ist keine Monitoring-Quelle eingerichtet, also gibt es keine Ports zu übernehmen.",
+ "No such interface": "Dieses Interface gibt es nicht",
+ "type must be one of {}": "Der Typ muss einer von {} sein",
+ "Unknown interface field: {}": "Unbekanntes Interface-Feld: {}",
+ "unlock is a list of field names": "unlock ist eine Liste von Feldnamen",
+ "{} already has {}": "{} hat schon {}",
+ "{} is not a MAC address": "{} ist keine MAC-Adresse",
+ "{} is not an interface name (letters, digits and / . _ : - only)": "{} ist kein Interface-Name (nur Buchstaben, Ziffern und / . _ : -)",
+ "{} is true or false": "{} ist true oder false",
+ "{} must be between {} and {}": "{} muss zwischen {} und {} liegen",
+ "{}: at most {} interfaces at a time": "{}: höchstens {} Interfaces aufs Mal",
+ "{}: the range runs backwards": "{}: der Bereich läuft rückwärts"
+}

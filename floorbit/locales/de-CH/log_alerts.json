@@ -1,0 +1,10 @@
+{
+ "DHCP server out of addresses": "DHCP-Server hat keine freien Adressen mehr",
+ "DHCP snooping dropped packets": "DHCP-Snooping hat Pakete verworfen",
+ "Loop detected": "Schleife erkannt",
+ "MAC address moving between ports": "MAC-Adresse wechselt zwischen Ports",
+ "Port security violation": "Port-Security-Verletzung",
+ "Port shut down by the switch (err-disable)": "Port vom Switch abgeschaltet (err-disable)",
+ "Spanning tree topology change": "Spanning-Tree-Topologiewechsel",
+ "Storm control": "Storm-Control"
+}

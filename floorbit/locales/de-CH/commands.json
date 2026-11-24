@@ -1,0 +1,20 @@
+{
+ "\"{}\" changes something on the switch. Confirm again to run it.": "«{}» ändert etwas auf dem Switch. Bestätige nochmals, um es auszuführen.",
+ "\"{}\" doesn't only read (it must start with {}, not write its output to a file and not chain commands with ;): make it a change template.": "«{}» liest nicht nur (es muss mit {} beginnen, darf die Ausgabe nicht in eine Datei schreiben und keine Befehle mit ; verketten): mach daraus eine Änderungs-Vorlage.",
+ "A command is empty or longer than 200 characters.": "Ein Befehl ist leer oder länger als 200 Zeichen.",
+ "A template has 1 to {} commands.": "Eine Vorlage hat 1 bis {} Befehle.",
+ "Another action on {} is still running.": "Eine andere Aktion auf {} läuft noch.",
+ "At most {} switches at a time.": "Höchstens {} Switches auf einmal.",
+ "Give the template a name.": "Gib der Vorlage einen Namen.",
+ "Kind is show or change.": "Die Art ist «show» oder «change».",
+ "No plugin that can run switch commands is on. An admin turns on SSH port actions under Settings > Plugins.": "Kein Plugin, das Switch-Befehle ausführen kann, ist eingeschaltet. Ein Admin schaltet SSH-Port-Aktionen unter Einstellungen > Plugins ein.",
+ "No such template of yours.": "Diese Vorlage gibt es bei dir nicht.",
+ "No such template.": "Diese Vorlage gibt es nicht.",
+ "Only an admin changes templates.": "Nur ein Admin ändert Vorlagen.",
+ "Pick at least one switch.": "Wähle mindestens einen Switch.",
+ "Switch commands": "Switch-Befehle",
+ "The id is 2 to 32 lower-case letters, digits, - or _, and not a built-in one.": "Die ID hat 2 bis 32 Kleinbuchstaben, Ziffern, - oder _ und ist keine eingebaute.",
+ "Type the port, for example Gi1/0/3.": "Gib den Port ein, zum Beispiel Gi1/0/3.",
+ "Your role can run show commands only.": "Deine Rolle darf nur Show-Befehle ausführen.",
+ "{port} is the only placeholder a command can have.": "{port} ist der einzige Platzhalter, den ein Befehl haben darf."
+}

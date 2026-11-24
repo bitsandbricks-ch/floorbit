@@ -2,16 +2,15 @@
 
 The API answers errors in English (``{"error": "No such hall"}``). When the request asks for German
 (the React app sends ``Accept-Language`` with the language picked in the sidebar), ``translate``
-swaps the text for the one in ``locales/de-CH.json`` or a file in ``locales/de-CH/`` (one per area:
-new texts go there, see ``catalog_paths``). Messages built with values (``f"No such
-block {name}"``) are written there with ``{}`` where the value goes; the German may put the
-values in another order with ``{1}``, ``{2}``.
+swaps the text for the one in ``locales/de-CH/<area>.json`` (one file per area, see
+``catalog_paths``). Messages built with values (``f"No such block {name}"``) are written there with
+``{}`` where the value goes; the German may put the values in another order with ``{1}``, ``{2}``.
 
 Standard German (``de``: Germany, Austria) is made from the Swiss texts, like in the React app
 (frontend/src/i18n/germany.ts): only "ss" becomes "ß" in the words that need it.
 
 The audit log, event changelog and handover show their entries through ``log_text``, from
-``locales/log.de-CH.json`` (``tests/test_i18n_log.py`` checks every audit action has German).
+``locales/log.de-CH/`` (``tests/test_i18n_log.py`` checks every audit action has German).
 
 ``tests/test_i18n_server.py`` checks that every message in the code has a German text, so a new
 message without one fails CI. ``locales/untranslated.txt`` lists the ones still waiting.
@@ -178,7 +177,7 @@ _FIELDS = re.compile(r'^(.+) \(([^()]*)\)$', re.S)
 
 
 def log_text(text, lang):
-    """An audit action or changelog title in ``lang``, from ``locales/log.de-CH.json``. Unlike
+    """An audit action or changelog title in ``lang``, from ``locales/log.de-CH/``. Unlike
     ``translate``, the values go through too ("Incident opened: No internet at the seat"), and a
     title with the changed fields after it ("Changed cable (label, route)") keeps them as they are."""
     if not isinstance(text, str) or not lang or not lang.lower().startswith('de'):
@@ -295,16 +294,6 @@ def init_app(app):
             data = response.get_json(silent=True)
             if isinstance(data, (dict, list)) and german_nested(data, lang):
                 response.set_data(json.dumps(data, ensure_ascii=False))
-            return response
-        data = response.get_json(silent=True)
-        if isinstance(data, dict) and isinstance(data.get('error'), str):
-            german = translate(data['error'], lang)
-            if german != data['error']:
-                data['error'] = german
-                response.set_data(json.dumps(data, ensure_ascii=False))
-        return response
-        lang = language(request.headers.get('Accept-Language'))
-        if lang == 'en':
             return response
         data = response.get_json(silent=True)
         if isinstance(data, dict) and isinstance(data.get('error'), str):
