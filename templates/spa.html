@@ -14,6 +14,8 @@
   <script src="/static/js/notify.js"></script>
   {% for src in assets.js %}<script type="module" src="{{ src }}"></script>
   {% endfor %}
+  {% for src in assets.preload %}<link rel="modulepreload" href="{{ src }}" />
+  {% endfor %}
   {% endif %}
 </head>
 <body class="fb-has-nav">

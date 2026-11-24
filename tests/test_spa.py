@@ -24,6 +24,21 @@ def test_page_loads_the_built_assets(client, app_module, tmp_path, monkeypatch):
     assert html.index('brand/tokens.css') < html.index('/static/app/assets/index-abc.css')
 
 
+def test_the_chunks_the_entry_imports_are_asked_for_at_once(client, app_module, tmp_path, monkeypatch):
+    _manifest(tmp_path, monkeypatch, {
+        'index.html': {'file': 'assets/index-abc.js', 'imports': ['_a.js'], 'dynamicImports': ['src/Login.tsx']},
+        '_a.js': {'file': 'assets/a.js', 'imports': ['_b.js']},
+        '_b.js': {'file': 'assets/b.js'},
+        'src/Login.tsx': {'file': 'assets/Login.js', 'isDynamicEntry': True},
+    })
+    html = client.get('/widgets').get_data(as_text=True)
+    assert '<link rel="modulepreload" href="/static/app/assets/a.js" />' in html
+    assert '<link rel="modulepreload" href="/static/app/assets/b.js" />' in html
+    # Pages load when opened, not with every page.
+    assert 'Login.js' not in html
+    assert 'modulepreload" href="/static/app/assets/index-abc.js' not in html
+
+
 def test_without_a_build_the_page_says_how_to_make_one(client, app_module, monkeypatch):
     monkeypatch.setattr(spa, '_manifest_path', lambda: '/nonexistent/manifest.json')
     resp = client.get('/settings/plugins')
