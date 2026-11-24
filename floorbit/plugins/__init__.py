@@ -509,7 +509,8 @@ def _check_methods(spec):
             for method in methods:
                 if area in spec.uses:
                     (allowed if table is AREA_METHODS else optional).add(method)
-                elif callable(getattr(cls, method, None)):
+                # Any plugin may say whether it is set up (configured); a monitoring one must.
+                elif method != 'configured' and callable(getattr(cls, method, None)):
                     return f'plugin.py: {method}() needs "{area}" under uses:'
     has_migrate = callable(getattr(cls, 'migrate', None))
     if spec.manifest.get('schema') and not has_migrate:
@@ -1047,6 +1048,18 @@ class Registry:
     def feeders(self, area):
         """The plugins that are on and feed this area (``inventory``), in id order."""
         return [s for s in self.specs.values() if area in s.uses and self.enabled(s)]
+
+    def set_up(self, spec):
+        """Whether the plugin has what it needs to work: its ``configured()``, when it has one.
+        A plugin that is on but not set up yet (NetBox without a URL) is left out of syncs, so it
+        doesn't read as a failing source."""
+        cls = spec.plugin_class()
+        if cls is None or not hasattr(cls, 'configured'):
+            return True
+        try:
+            return bool(self.call(spec, 'configured'))
+        except PluginError:
+            return False
 
     def monitoring_source(self):
         """The monitoring plugin in use: the first one that is on and set up, in id order (or None).
