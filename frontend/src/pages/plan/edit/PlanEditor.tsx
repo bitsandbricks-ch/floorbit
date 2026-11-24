@@ -108,6 +108,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const { t } = useTranslation()
   const [selection, setSelection] = useState<ItemRef[]>([])
   const [drag, setDrag] = useState<{ d: Point } | null>(null)
+  const [frozenPanel, setFrozenPanel] = useState<React.ReactNode>(null)
   // A move the server has saved but the plan hasn't fetched again yet: keep drawing it moved.
   const [pending, setPending] = useState<{ moves: [ItemRef, Point][]; data: SeatViewData } | null>(null)
   // A mark being resized with its handles: drawn as it is now, and after the drop until the plan comes back.
@@ -810,7 +811,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     const on = (axis: 'x' | 'y') => g.guides.some((x) => x.axis === axis)
     return { d: { x: on('x') ? g.d.x : grid.x, y: on('y') ? g.d.y : grid.y }, guides: g.guides }
   }
-  const pick = (next: ItemRef[]) => setSelection(withGroups(next, groups))
+  // ``alone``: Ctrl-click took one item out of its group's selection, so only it moves.
+  const pick = (next: ItemRef[], alone = false) => setSelection(alone ? next : withGroups(next, groups))
   /** Moves the view so ``ref`` is on screen (keyboard users can't see what they picked otherwise). */
   /** F: the view closes in on the selection. */
   const frame = (refs: ItemRef[]) => { const v = frameOf(data, refs, view); if (v) setView(v) }
@@ -859,10 +861,123 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const boards = selected.filter((r) => r.kind === 'board')
   const boardSel = boards.length === 1 ? boards[0].id : null
   const feedable = selected.filter((r) => r.kind === 'block' || r.kind === 'switch')
+  // A drag redraws the editor on every pointer move; the panel shows nothing that changes until
+  // the drop, so it (and the closed dialogs) shows the copy taken when the drag starts instead of being drawn again (Mike: moving
+  // a row dragged behind a lot).
+  const rail = useMemo(() => <ToolRail tool={tool} onTool={setTool} onView={onDone} />, [tool, onDone])
+  const panel = (<>
+    <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
+    <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
+    <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
+    <PlanDialogs open={dialog} data={data} onClose={() => onDialog(null)} onHall={onHall} onChanged={refresh}
+      onReplaced={() => { history.clear(); return refresh() }} onPlace={(p) => void placePreset(p)} />
+    <SavePresetDialog items={presetDraft} onClose={() => setPresetDraft(null)} />
+    <PlaceSwitchDialog opened={placing?.kind === 'switch'} onClose={() => setPlacing(null)} onPlace={placeSwitches} />
+    <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
+    {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}
+      onClose={() => setCableForm(null)} onDone={(c) => void cableDone(c)} />}
+    <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
+      <Stack gap="sm">
+        <Group justify="space-between" wrap="nowrap">
+          <Text fw={600}>{one ? itemTitle(t, data, one) : selected.length ? t('plan.edit.selected', { count: selected.length }) : t('plan.edit.title')}</Text>
+          <Group gap={4} wrap="nowrap">
+            <Tooltip label={history.nextUndo ? t('plan.edit.undoWhat', { what: history.nextUndo }) : t('plan.edit.undo')}>
+              <ActionIcon variant="default" aria-label={t('plan.edit.undo')} disabled={!history.canUndo} onClick={() => void step('undo')}><IconArrowBackUp size={16} /></ActionIcon>
+            </Tooltip>
+            <Tooltip label={history.nextRedo ? t('plan.edit.redoWhat', { what: history.nextRedo }) : t('plan.edit.redo')}>
+              <ActionIcon variant="default" aria-label={t('plan.edit.redo')} disabled={!history.canRedo} onClick={() => void step('redo')}><IconArrowForwardUp size={16} /></ActionIcon>
+            </Tooltip>
+            <Menu position="bottom-end" withinPortal shadow="md" width={260}>
+              <Menu.Target>
+                <Tooltip label={t('plan.edit.history.title')}>
+                  <ActionIcon variant="default" aria-label={t('plan.edit.history.title')} disabled={!history.canUndo && !history.canRedo}><IconHistory size={16} /></ActionIcon>
+                </Tooltip>
+              </Menu.Target>
+              <Menu.Dropdown mah={360} style={{ overflowY: 'auto' }}>
+                <Text size="xs" c="dimmed" px="sm" py={6}>{t('plan.edit.history.help')}</Text>
+                {history.future.map((label, i) => (
+                  <Menu.Item key={`f${i}`} c="dimmed" onClick={() => void jump('redo', history.future.length - i)}>{upFirst(label)}</Menu.Item>
+                ))}
+                {history.past.map((label, i) => (
+                  <Menu.Item key={`p${i}`} fw={i === 0 ? 600 : undefined} rightSection={i === 0 ? <Text size="xs" c="dimmed">{t('plan.edit.history.latest')}</Text> : undefined}
+                    onClick={() => void jump('undo', i + 1)}>{upFirst(label)}</Menu.Item>
+                ))}
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
+        </Group>
+        {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} arranging={arranging === one.id} onArrange={(on) => setArranging(on ? one.id : null)}
+          picked={pickedRow?.block === one.id ? pickedRow.row : null} onPick={(id) => setPickedRow(id ? { block: one.id, row: id } : null)} />}
+        {one?.kind === 'switch' && (
+          <Text size="sm" c="dimmed">{t(data.switches.find((w) => w.id === one.id)?.manual ? 'plan.edit.switch.manualNote' : 'plan.edit.switch.inventoryNote')}</Text>
+        )}
+        {one?.kind === 'panel' && data.panels?.find((p) => p.name === one.id) && (
+          <PanelFields key={`p-${one.id}`} panel={data.panels.find((p) => p.name === one.id)!} onPorts={(a, b) => change(one, { ports: a }, { ports: b })} />
+        )}
+        {one && oneCable && (
+          <CableFields cable={oneCable} onEdit={() => void editCable(one.id)}
+            onCorners={(corners) => void setRoute(oneCable, { points: oneCable.manual ? bendsOf(oneCable) : null, corners }, t('plan.edit.step.corners'))}
+            onReset={() => void setRoute(oneCable, { points: null, corners: 'square' }, t('plan.edit.step.autoRoute'))}
+            onEnds={(change) => void changeEnds(one.id, change)} />
+        )}
+        {boardSel && (
+          <BoardFields key={`b-${boardSel}`} board={boardSel} feedable={feedable.length}
+            onAddCircuit={(name) => addCircuit(boardSel, name)} onFeed={(c) => feed(c, feedable)} />
+        )}
+        {selected.length > 1 && <SharedFields fields={sharedFields(data, selected)} onChange={(f, v) => void changeAll(selected, f, v)} />}
+        {lockedSel.length > 0 && <Text size="xs" c="dimmed">{t('plan.edit.lockedN', { count: lockedSel.length })}</Text>}
+        {movable.length > 1 && (
+          <Arrange count={movable.length} grouped={grouped} canGroup={canGroup}
+            onAlign={(how) => void moveEach(alignMoves(data, movable, how), t('plan.edit.step.align'))}
+            onDistribute={(axis) => void moveEach(distributeMoves(data, movable, axis), t('plan.edit.step.distribute'))}
+            onGroup={(join) => void regroup(selected, join)} />
+        )}
+        {selected.length > 0 && (
+          <QuickActions canTurn={canTurn} locked={movable.length ? allLocked : null} onLock={() => void setLocked(selected, !allLocked)} onDuplicate={() => void duplicate(selected)} onRotate={() => void rotate(selected, false)}
+            onFront={() => void restack(selected, true)} onBack={() => void restack(selected, false)} onFrame={() => frame(selected)} />
+        )}
+        {selected.length > 0 && (
+          <Button variant="light" color="down" leftSection={<IconTrash size={16} />} disabled={allLocked} onClick={() => void remove(selected)}>
+            {t(onlyUnplace ? 'plan.edit.unplace' : 'plan.edit.delete', { count: selected.length })}
+          </Button>
+        )}
+        {!selected.length && tool === 'select' && data.background && (
+          <BackgroundFields opacity={data.background_opacity ?? 1} placing={bgPlacing} seatM={data.seat_m} onPlacing={setBgPlacing}
+            onOpacity={(v) => void changeHall('background', { opacity: data.background_opacity ?? 1 }, { opacity: v }, t('plan.edit.step.background'))}
+            onFit={() => placeBackground(null)} />
+        )}
+        {tool === 'measure' && measured && (() => {
+          const seats = Math.hypot(measured.b.x - measured.a.x, measured.b.y - measured.a.y) / (data.drawing?.cell ?? 32)
+          return (
+            <CalibrateFields seats={seats} seatM={data.seat_m} hasBackground={!!data.background}
+              onScale={(m) => void changeHall('scale', { seat_m: data.seat_m ?? null }, { seat_m: seatMetres(seats, m) }, t('plan.edit.step.scale'))}
+              onFit={(m) => placeBackground(scaleFrame(bgFrame, measured.a, fitFactor(seats, m, data.seat_m!)))} />
+          )
+        })()}
+        {!selected.length && (
+          <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
+        )}
+        {!selected.length && hallIsEmpty(data) && <EmptyHall onStart={() => onDialog('start')} />}
+        {small && !selected.length && <Text size="xs" c="dimmed">{t('plan.edit.smallScreen')}</Text>}
+        <ItemList data={data} groups={groups} selected={selected}
+          onSelect={(refs, add) => pick(add ? [...selected, ...refs.filter((r) => !selected.some((x) => sameRef(x, r)))] : refs)}
+          onRename={(g, name) => void renameGroup(g, name)}
+          onUngroup={(g) => void regroup(g.members, false)} onFrame={frame} />
+        <Text size="xs" c="dimmed">
+          <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
+        </Text>
+        <Text size="xs" c="dimmed">
+          {t('plan.edit.keys.more')}{' · '}
+          <Anchor component="button" type="button" size="xs" onClick={onShortcuts}>{t('plan.shortcuts.allKeys')}</Anchor> <Kbd size="xs">?</Kbd>
+        </Text>
+        <Attribution compact />
+      </Stack>
+    </Paper>
+  </>)
   return (
     <div className="fb-plan-layout with-inspector fb-plan-editor" onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}>
       <div className="fb-edit-stage">
-      <ToolRail tool={tool} onTool={setTool} onView={onDone} />
+      {rail}
       <SeatMap data={shown} view={view} setView={setView} filter={filter} selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power} {...live}
         overlay={(ctx) => (<>
           <EditOverlay ctx={ctx} data={shown} selection={selected} onSelect={pick} together={(r) => withGroups([r], groups)} space={space} tool={tool} snapping={snapping}
@@ -876,8 +991,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             onMenu={(item, x, y) => setMenu({ item, x, y, at: pointer.current })}
             onDouble={pickRowAt}
             guides={guides}
-            onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
-            onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
+            onDrag={(raw, snap, lead, px) => { if (!drag) setFrozenPanel(panel); const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
+            onDrop={(raw, snap, lead, px) => { setDrag(null); setFrozenPanel(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
           {bgPlacing && data.background && tool === 'select' && (
             <BackgroundHandles ctx={ctx} frame={bgFrame} onDraft={(f) => setBgDraft(f ? { frame: f, data } : null)} onDone={placeBackground} />
           )}
@@ -971,116 +1086,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           </Menu.Dropdown>
         </Menu>
       )}
-      <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
-      <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
-      <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
-      <PlanDialogs open={dialog} data={data} onClose={() => onDialog(null)} onHall={onHall} onChanged={refresh}
-        onReplaced={() => { history.clear(); return refresh() }} onPlace={(p) => void placePreset(p)} />
-      <SavePresetDialog items={presetDraft} onClose={() => setPresetDraft(null)} />
-      <PlaceSwitchDialog opened={placing?.kind === 'switch'} onClose={() => setPlacing(null)} onPlace={placeSwitches} />
-      <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
-      {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}
-        onClose={() => setCableForm(null)} onDone={(c) => void cableDone(c)} />}
       <VisuallyHidden role="status" aria-live="polite">
         {one ? itemTitle(t, data, one) : selected.length ? t('plan.edit.selected', { count: selected.length }) : ''}
       </VisuallyHidden>
-      <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
-        <Stack gap="sm">
-          <Group justify="space-between" wrap="nowrap">
-            <Text fw={600}>{one ? itemTitle(t, data, one) : selected.length ? t('plan.edit.selected', { count: selected.length }) : t('plan.edit.title')}</Text>
-            <Group gap={4} wrap="nowrap">
-              <Tooltip label={history.nextUndo ? t('plan.edit.undoWhat', { what: history.nextUndo }) : t('plan.edit.undo')}>
-                <ActionIcon variant="default" aria-label={t('plan.edit.undo')} disabled={!history.canUndo} onClick={() => void step('undo')}><IconArrowBackUp size={16} /></ActionIcon>
-              </Tooltip>
-              <Tooltip label={history.nextRedo ? t('plan.edit.redoWhat', { what: history.nextRedo }) : t('plan.edit.redo')}>
-                <ActionIcon variant="default" aria-label={t('plan.edit.redo')} disabled={!history.canRedo} onClick={() => void step('redo')}><IconArrowForwardUp size={16} /></ActionIcon>
-              </Tooltip>
-              <Menu position="bottom-end" withinPortal shadow="md" width={260}>
-                <Menu.Target>
-                  <Tooltip label={t('plan.edit.history.title')}>
-                    <ActionIcon variant="default" aria-label={t('plan.edit.history.title')} disabled={!history.canUndo && !history.canRedo}><IconHistory size={16} /></ActionIcon>
-                  </Tooltip>
-                </Menu.Target>
-                <Menu.Dropdown mah={360} style={{ overflowY: 'auto' }}>
-                  <Text size="xs" c="dimmed" px="sm" py={6}>{t('plan.edit.history.help')}</Text>
-                  {history.future.map((label, i) => (
-                    <Menu.Item key={`f${i}`} c="dimmed" onClick={() => void jump('redo', history.future.length - i)}>{upFirst(label)}</Menu.Item>
-                  ))}
-                  {history.past.map((label, i) => (
-                    <Menu.Item key={`p${i}`} fw={i === 0 ? 600 : undefined} rightSection={i === 0 ? <Text size="xs" c="dimmed">{t('plan.edit.history.latest')}</Text> : undefined}
-                      onClick={() => void jump('undo', i + 1)}>{upFirst(label)}</Menu.Item>
-                  ))}
-                </Menu.Dropdown>
-              </Menu>
-            </Group>
-          </Group>
-          {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} arranging={arranging === one.id} onArrange={(on) => setArranging(on ? one.id : null)}
-            picked={pickedRow?.block === one.id ? pickedRow.row : null} onPick={(id) => setPickedRow(id ? { block: one.id, row: id } : null)} />}
-          {one?.kind === 'switch' && (
-            <Text size="sm" c="dimmed">{t(data.switches.find((w) => w.id === one.id)?.manual ? 'plan.edit.switch.manualNote' : 'plan.edit.switch.inventoryNote')}</Text>
-          )}
-          {one?.kind === 'panel' && data.panels?.find((p) => p.name === one.id) && (
-            <PanelFields key={`p-${one.id}`} panel={data.panels.find((p) => p.name === one.id)!} onPorts={(a, b) => change(one, { ports: a }, { ports: b })} />
-          )}
-          {one && oneCable && (
-            <CableFields cable={oneCable} onEdit={() => void editCable(one.id)}
-              onCorners={(corners) => void setRoute(oneCable, { points: oneCable.manual ? bendsOf(oneCable) : null, corners }, t('plan.edit.step.corners'))}
-              onReset={() => void setRoute(oneCable, { points: null, corners: 'square' }, t('plan.edit.step.autoRoute'))}
-              onEnds={(change) => void changeEnds(one.id, change)} />
-          )}
-          {boardSel && (
-            <BoardFields key={`b-${boardSel}`} board={boardSel} feedable={feedable.length}
-              onAddCircuit={(name) => addCircuit(boardSel, name)} onFeed={(c) => feed(c, feedable)} />
-          )}
-          {selected.length > 1 && <SharedFields fields={sharedFields(data, selected)} onChange={(f, v) => void changeAll(selected, f, v)} />}
-          {lockedSel.length > 0 && <Text size="xs" c="dimmed">{t('plan.edit.lockedN', { count: lockedSel.length })}</Text>}
-          {movable.length > 1 && (
-            <Arrange count={movable.length} grouped={grouped} canGroup={canGroup}
-              onAlign={(how) => void moveEach(alignMoves(data, movable, how), t('plan.edit.step.align'))}
-              onDistribute={(axis) => void moveEach(distributeMoves(data, movable, axis), t('plan.edit.step.distribute'))}
-              onGroup={(join) => void regroup(selected, join)} />
-          )}
-          {selected.length > 0 && (
-            <QuickActions canTurn={canTurn} locked={movable.length ? allLocked : null} onLock={() => void setLocked(selected, !allLocked)} onDuplicate={() => void duplicate(selected)} onRotate={() => void rotate(selected, false)}
-              onFront={() => void restack(selected, true)} onBack={() => void restack(selected, false)} onFrame={() => frame(selected)} />
-          )}
-          {selected.length > 0 && (
-            <Button variant="light" color="down" leftSection={<IconTrash size={16} />} disabled={allLocked} onClick={() => void remove(selected)}>
-              {t(onlyUnplace ? 'plan.edit.unplace' : 'plan.edit.delete', { count: selected.length })}
-            </Button>
-          )}
-          {!selected.length && tool === 'select' && data.background && (
-            <BackgroundFields opacity={data.background_opacity ?? 1} placing={bgPlacing} seatM={data.seat_m} onPlacing={setBgPlacing}
-              onOpacity={(v) => void changeHall('background', { opacity: data.background_opacity ?? 1 }, { opacity: v }, t('plan.edit.step.background'))}
-              onFit={() => placeBackground(null)} />
-          )}
-          {tool === 'measure' && measured && (() => {
-            const seats = Math.hypot(measured.b.x - measured.a.x, measured.b.y - measured.a.y) / (data.drawing?.cell ?? 32)
-            return (
-              <CalibrateFields seats={seats} seatM={data.seat_m} hasBackground={!!data.background}
-                onScale={(m) => void changeHall('scale', { seat_m: data.seat_m ?? null }, { seat_m: seatMetres(seats, m) }, t('plan.edit.step.scale'))}
-                onFit={(m) => placeBackground(scaleFrame(bgFrame, measured.a, fitFactor(seats, m, data.seat_m!)))} />
-            )
-          })()}
-          {!selected.length && (
-            <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
-          )}
-          {!selected.length && hallIsEmpty(data) && <EmptyHall onStart={() => onDialog('start')} />}
-          {small && !selected.length && <Text size="xs" c="dimmed">{t('plan.edit.smallScreen')}</Text>}
-          <ItemList data={data} groups={groups} selected={selected}
-            onSelect={(refs, add) => pick(add ? [...selected, ...refs.filter((r) => !selected.some((x) => sameRef(x, r)))] : refs)}
-            onRename={(g, name) => void renameGroup(g, name)}
-            onUngroup={(g) => void regroup(g.members, false)} onFrame={frame} />
-          <Text size="xs" c="dimmed">
-            <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {t('plan.edit.keys.more')}{' · '}
-            <Anchor component="button" type="button" size="xs" onClick={onShortcuts}>{t('plan.shortcuts.allKeys')}</Anchor> <Kbd size="xs">?</Kbd>
-          </Text>
-          <Attribution compact />
-        </Stack>
-      </Paper>
+      {drag && frozenPanel ? frozenPanel : panel}
     </div>
   )
 }
