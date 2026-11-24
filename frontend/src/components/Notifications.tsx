@@ -8,8 +8,7 @@ import type { Problem } from '@/api/types'
 import { ago } from '@/lib/time'
 import { inApp } from '@/nav/sections'
 import { NotifySettings } from './NotifySettings'
-import { SidePanel } from './SidePanel'
-import { StatusBit } from '@bitsandbricks/ui'
+import { SidePanel, StatusBit } from '@bitsandbricks/ui'
 
 /** The bell's drawer: what needs a look right now, newest first, each leading to its page. */
 export function Notifications({ opened, onClose }: { opened: boolean; onClose: () => void }) {
@@ -23,8 +22,8 @@ export function Notifications({ opened, onClose }: { opened: boolean; onClose: (
   return (
     <>
       <SidePanel
-        opened={opened} onClose={onClose} title={t('nav.notifications')} size={400}
-        kicker={q.data ? t('nav.notify.checked', { ago: ago(q.data.checked_at) }) : undefined}
+        opened={opened} onClose={onClose} title={t('nav.notifications')} width={400}
+        eyebrow={q.data ? t('nav.notify.checked', { ago: ago(q.data.checked_at) }) : undefined}
         href="/problems" openLabel={t('nav.notify.all')}
         actions={me?.user && (
           <Button size="xs" variant="default" leftSection={<IconBellCog size={14} aria-hidden="true" />} onClick={() => setSettings(true)}>

@@ -9,18 +9,14 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { EntityOption } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { PageTabs } from '@bitsandbricks/ui'
+import { ConfirmButton, EmptyState, PageHead, PageTabs, PanelField, StatTile } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
-import { StatTile } from '@bitsandbricks/ui'
 import { DeviceStateTable, type DeviceFilter } from '@/components/telemetry/DeviceStateTable'
 import { NEEDS_LOOK, deviceRows } from '@/components/telemetry/state'
 import type { DeviceSeen } from '@/components/telemetry/api'
 import { TelemetryAgentNumbersList, type TelemetryAgentNumbers } from '@/components/telemetry/AgentNumbers'
-import { Field, Panel } from '@/components/ui'
-import { EmptyState } from '@bitsandbricks/ui'
+import { Panel } from '@/components/ui'
 import { telemetryPath } from './inventory/model'
-import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** A device telemetry collects from: an inventory device with the Telemetry feature on. No logins. */
 export interface TelemetryDevice {
@@ -144,10 +140,10 @@ function Collector({ d }: { d: TelemetryOverview }) {
       {errors.map(([what, msg]) => <Alert key={what} color="warn" title={what}>{msg}</Alert>)}
       <Panel title={t('telemetry.collector')}>
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
-          <Field label={t('telemetry.collector')}>{t(`telemetry.collectorIs.${d.status.collector}`)}</Field>
-          <Field label={t('telemetry.storage')}>{t(`telemetry.storageIs.${d.status.storage.mode}`, { days: d.status.storage.keep_days })}</Field>
-          <Field label={t('telemetry.devices')}>{d.status.devices}</Field>
-          {d.status.points !== null && <Field label={t('telemetry.points')}>{d.status.points}</Field>}
+          <PanelField label={t('telemetry.collector')}>{t(`telemetry.collectorIs.${d.status.collector}`)}</PanelField>
+          <PanelField label={t('telemetry.storage')}>{t(`telemetry.storageIs.${d.status.storage.mode}`, { days: d.status.storage.keep_days })}</PanelField>
+          <PanelField label={t('telemetry.devices')}>{d.status.devices}</PanelField>
+          {d.status.points !== null && <PanelField label={t('telemetry.points')}>{d.status.points}</PanelField>}
         </SimpleGrid>
       </Panel>
       {d.status.agents && d.status.agents.length > 0 && (

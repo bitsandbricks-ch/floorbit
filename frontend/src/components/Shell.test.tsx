@@ -4,9 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { crumbsFor } from '@/nav/crumbs'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import { Layout } from './Layout'
-import { PageTabs } from '@bitsandbricks/ui'
+import { PageTabs, SidePanel } from '@bitsandbricks/ui'
 import { usePageTab } from './pageTab'
-import { SidePanel } from './SidePanel'
 import { TopBar } from './TopBar'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -91,7 +90,7 @@ describe('page tabs', () => {
 
 function Peek() {
   const [open, setOpen] = useState(true)
-  return <SidePanel opened={open} onClose={() => setOpen(false)} title="sw-c-02" kicker="Switch" href="/inventory?device=sw-c-02"><p>ports</p></SidePanel>
+  return <SidePanel opened={open} onClose={() => setOpen(false)} title="sw-c-02" eyebrow="Switch" href="/inventory?device=sw-c-02"><p>ports</p></SidePanel>
 }
 
 describe('side panel', () => {

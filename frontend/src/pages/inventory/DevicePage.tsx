@@ -10,12 +10,10 @@ import { useCan, useInventory } from '@/api/queries'
 import { SPEC_FIELDS, type CredentialInfo, type DeviceDetail, type InventoryField, type InventoryOverview } from '@/api/types'
 import type { EntityOption } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { PageTabs } from '@bitsandbricks/ui'
+import { ConfirmButton, EmptyState, LoadingState, PageHead, PageTabs, PanelField, StatusBadge } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { DeviceRawData, DeviceTelemetryActions, DeviceTelemetryStatus } from '@/components/telemetry/DeviceTelemetry'
-import { Field, Panel } from '@/components/ui'
-import { EmptyState, LoadingState } from '@bitsandbricks/ui'
+import { Panel } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
 import { DeviceForm } from './DeviceForm'
@@ -29,7 +27,6 @@ import { useCustomIcons, useDeviceDetail, useInventoryGroups, useInventoryTypes 
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
 import { useDeviceTelemetry } from './telemetry'
 import { TelemetrySettings } from './TelemetrySettings'
-import { ConfirmButton, StatusBadge } from '@bitsandbricks/ui'
 
 /** One device's own page (/inventory/devices/<id>): what it is, its ports, telemetry, settings and
  *  logins, each a tab. The inventory list links here; nothing opens a side panel. */
@@ -209,16 +206,16 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
               <Panel title={t('inventory.page.details')}>
                 <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }} spacing="sm">
                   {(['model', 'serial', 'mgmt_ip', 'hall', 'location', 'status'] as const).filter((f) => dev[f]).map((f) => (
-                    <Field key={f} label={t(`inventory.field.${f}`)}>{f === 'status' ? statusLabel(t, dev[f]) : dev[f]}</Field>
+                    <PanelField key={f} label={t(`inventory.field.${f}`)}>{f === 'status' ? statusLabel(t, dev[f]) : dev[f]}</PanelField>
                   ))}
-                  <Field label={t('inventory.placedLabel')}>{dev.placed ? t('inventory.placed') : t('inventory.notPlaced')}</Field>
+                  <PanelField label={t('inventory.placedLabel')}>{dev.placed ? t('inventory.placed') : t('inventory.notPlaced')}</PanelField>
                   {SPEC_FIELDS.filter((f) => dev[f]).map((f) => (
-                    <Field key={f} label={t(`inventory.field.${f}`)}>{dev[f]}</Field>
+                    <PanelField key={f} label={t(`inventory.field.${f}`)}>{dev[f]}</PanelField>
                   ))}
                   {deviceFields.map((f) => (
-                    <Field key={f.key} label={t(`inventory.types.fieldLabel.${f.key}`, { defaultValue: f.label })}>
+                    <PanelField key={f.key} label={t(`inventory.types.fieldLabel.${f.key}`, { defaultValue: f.label })}>
                       {(() => { const v = dev.fields?.[f.key] || f.default; return f.kind === 'bool' && v ? t(`inventory.types.${v}`) : v || '–' })()}
-                    </Field>
+                    </PanelField>
                   ))}
                 </SimpleGrid>
               </Panel>
@@ -276,7 +273,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
             <Stack gap="md" style={{ minWidth: 0 }}>
               <Panel title={t('inventory.page.belongs')}>
                 <Stack gap="sm">
-                  <Field label={t('inventory.groups.one')}>
+                  <PanelField label={t('inventory.groups.one')}>
                     {dev.resolved.group_path.length ? (
                       <Group gap={4}>
                         {dev.resolved.group_path.map((g, i) => (
@@ -284,8 +281,8 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                         ))}
                       </Group>
                     ) : t('inventory.groups.none')}
-                  </Field>
-                  <Field label={t('inventory.tags.label')}>
+                  </PanelField>
+                  <PanelField label={t('inventory.tags.label')}>
                     {dev.resolved.tags.length ? (
                       <Group gap={6}>
                         {dev.resolved.tags.map((tag) => (
@@ -297,14 +294,14 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                       </Group>
                     ) : <Text size="sm" c="dimmed">{t('inventory.tags.noneOnDevice')}</Text>}
                     {dev.resolved.tags.some((x) => !x.own) && <Text size="xs" c="dimmed" mt={4}>{t('inventory.tags.outlineHint')}</Text>}
-                  </Field>
-                  <Field label={t('inventory.look.title')}>
+                  </PanelField>
+                  <PanelField label={t('inventory.look.title')}>
                     <Group gap="sm">
                       <DeviceIcon icon={icon} color={color} />
                       <Text size="sm">{uploaded?.name ?? t(`inventory.icon.${icon}`, { defaultValue: icon })}{color && ` · ${color}`}</Text>
                       <FromLabel from={dev.resolved.look.icon.from} />
                     </Group>
-                  </Field>
+                  </PanelField>
                 </Stack>
               </Panel>
               {telemetryOn && canSetCreds && (
