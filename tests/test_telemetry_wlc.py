@@ -123,7 +123,7 @@ def test_telegraf_and_the_controllers_setup():
                                              ("AIR-CT5520-K9", True), ("C9300-48P", False), ("", False)])
 def test_a_9800_is_known_by_its_model(model, wireless):
     t = targets._from_device({"id": "d1", "name": "wlc-01", "address": "192.0.2.40", "platform": "IOS-XE",
-                              "model": model, "properties": {"telemetry_drivers": "mdt"}}, None, None)
+                              "model": model, "properties": {"telemetry.drivers": "mdt"}}, None, None)
     assert t["wireless"] is wireless and t["drivers"] == ["mdt"]
 
 

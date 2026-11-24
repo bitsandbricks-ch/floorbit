@@ -1,3 +1,4 @@
+import { type BlockRow, rowCount } from './rows'
 /** The Edit mode's tools. Each keeps going after placing something (sticky, like the older editor);
  *  Esc or V goes back to Select. Hand only moves the view, like Space + drag;
  *  Measure draws a line that only shows its length and angle. */
@@ -31,11 +32,11 @@ export function letterIndex(letters: string): number {
 
 /** The first row letter after every letter in use (all halls), for a new block: the rows of blocks
  *  named by row, and the names of blocks named by block (their seats are A-1, A-2 …). */
-export function nextFreeRow(blocks: { naming?: string; row_start?: string; rows?: number; name?: string }[]): string {
+export function nextFreeRow(blocks: { naming?: string; row_start?: string; rows?: number | BlockRow[]; name?: string }[]): string {
   const letters = /^[A-Z]{1,2}$/i
   let next = 0
   for (const b of blocks) {
-    if (b.naming === 'rows' && b.row_start && letters.test(b.row_start)) next = Math.max(next, letterIndex(b.row_start) + Math.max(1, b.rows ?? 1))
+    if (b.naming === 'rows' && b.row_start && letters.test(b.row_start)) next = Math.max(next, letterIndex(b.row_start) + rowCount(b.rows))
     else if (b.naming !== 'rows' && b.name && letters.test(b.name)) next = Math.max(next, letterIndex(b.name) + 1)
   }
   return rowLetter(next)

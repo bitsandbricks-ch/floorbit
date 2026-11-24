@@ -28,7 +28,8 @@
     "portconfig": "Port-Konfig",
     "range": "IP-Bereich",
     "shared": "Geteilter Port",
-    "wifi": "WLAN"
+    "wifi": "WLAN",
+    "librenms": "LibreNMS"
   },
   "attention": {
     "title": "Braucht Aufmerksamkeit",
@@ -71,6 +72,7 @@
   "incidentOpen": "Störung offen",
   "copy": "Liste kopieren",
   "copied": "Kopiert",
+  "clear": "Schliessen",
   "seatsAffected_one": "1 Platz betroffen",
   "seatsAffected_other": "{{count}} Plätze betroffen",
   "switchesBehind_one": "1 Switch dahinter",

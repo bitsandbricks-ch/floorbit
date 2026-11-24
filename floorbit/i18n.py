@@ -2,7 +2,8 @@
 
 The API answers errors in English (``{"error": "No such hall"}``). When the request asks for German
 (the React app sends ``Accept-Language`` with the language picked in the sidebar), ``translate``
-swaps the text for the one in ``locales/de-CH.json``. Messages built with values (``f"No such
+swaps the text for the one in ``locales/de-CH.json`` or a file in ``locales/de-CH/`` (one per area:
+new texts go there, see ``catalog_paths``). Messages built with values (``f"No such
 block {name}"``) are written there with ``{}`` where the value goes; the German may put the
 values in another order with ``{1}``, ``{2}``.
 
@@ -50,13 +51,35 @@ def to_germany(text):
     return text
 
 
+def catalog_paths(name):
+    """The files that make up the catalog ``name``: ``locales/<name>`` and every ``*.json`` in the
+    folder next to it (``de-CH.json`` -> ``de-CH/``), sorted. A pull request puts its texts in a file
+    of its own area there, so parallel pull requests don't all add lines to the one big file."""
+    paths = []
+    single = os.path.join(HERE, name)
+    if os.path.exists(single):
+        paths.append(single)
+    folder = os.path.join(HERE, name[:-len('.json')] if name.endswith('.json') else name)
+    if os.path.isdir(folder):
+        paths += sorted(os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.json'))
+    return paths
+
+
+def load_texts(name):
+    """``{English: German}`` of the catalog ``name`` (all its files, see ``catalog_paths``)."""
+    texts = {}
+    for path in catalog_paths(name):
+        with open(path, encoding='utf-8') as f:
+            texts.update(json.load(f))
+    return texts
+
+
 @lru_cache(maxsize=4)
 def catalog(files=('de-CH.json',)):
     """(exact texts, [(pattern, German)] for texts with values), from ``files`` (later ones win)."""
     texts = {}
     for name in files:
-        with open(os.path.join(HERE, name), encoding='utf-8') as f:
-            texts.update(json.load(f))
+        texts.update(load_texts(name))
     return compile_texts(texts)
 
 

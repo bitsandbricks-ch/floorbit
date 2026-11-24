@@ -45,7 +45,7 @@ def points(data):
             continue
         hall = halls.hall_of(block, data, ids)
         cx, cy = float(block['x']) / 100 * PLAN_W, float(block['y']) / 100 * PLAN_H
-        at, width, height = seat_layout.places(block, len(rows[0]), len(rows))
+        at, width, height = seat_layout.places(block)
         w, h = width * CELL, height * CELL
         turn = math.radians(int(block.get('rotation') or 0) % 360)
         cos, sin = math.cos(turn), math.sin(turn)

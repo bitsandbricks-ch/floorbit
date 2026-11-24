@@ -620,12 +620,12 @@
       "handle": "Seat {{seat}}: drag to move"
     },
     "gaps": {
-      "col": "Gaps in the rows",
+      "col": "Gaps in this row",
       "row": "Lanes between rows",
       "add": "Add",
-      "none_col": "None. Room after a column, for a fiber roll or a post.",
+      "none_col": "None. Room after a seat, for a fiber roll or a post.",
       "none_row": "None. A lane after a row, for a switch between two rows.",
-      "after_col": "After column",
+      "after_col": "After seat",
       "after_row": "After row",
       "size_col": "Width (seats)",
       "size_row": "Height (seats)",

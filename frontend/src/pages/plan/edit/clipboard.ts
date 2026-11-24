@@ -1,12 +1,13 @@
 import type { ItemRef, Point } from './geometry'
+import { type BlockRow, rowCount } from './rows'
 import { nextFreeRow, nextName } from './tools'
 
 /** An item as the server keeps it (positions in % of the plan), ready to be posted again. */
 export interface Raw { kind: ItemRef['kind']; body: Record<string, unknown> }
 
 // What a block needs to come back as it was.
-export const BLOCK_FIELDS = ['name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y', 'rotation',
-  'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'z']
+export const BLOCK_FIELDS = ['name', 'x', 'y', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y', 'rotation',
+  'reverse_numbers', 'naming', 'row_start', 'row_labels', 'seat_at', 'z']
 // What a cable needs to be made again (floorbit/cables.py FIELDS).
 export const CABLE_FIELDS = ['label', 'switch', 'port', 'panel', 'panel_port', 'seat', 'color', 'length_m', 'type', 'speed', 'note']
 const MARK_SKIP = new Set(['id', 'hall_id'])
@@ -37,7 +38,7 @@ function shifted(r: Raw, d: Point): Raw {
 /** Copies of ``items`` moved by ``d`` (in %). Seat blocks get the next free row letters (or block
  *  names) so their seats don't clash with the originals: the server refuses a seat twice. Patch
  *  panels and boards get the next free name. Cables aren't copied: a switch port has one cable. */
-export function copies(items: Raw[], d: Point, blocksInUse: { naming?: string; row_start?: string; rows?: number; name?: string }[],
+export function copies(items: Raw[], d: Point, blocksInUse: { naming?: string; row_start?: string; rows?: number | BlockRow[]; name?: string }[],
   panelsInUse: string[] = []): Raw[] {
   const used = [...blocksInUse]
   const names = [...panelsInUse]
@@ -54,7 +55,7 @@ export function copies(items: Raw[], d: Point, blocksInUse: { naming?: string; r
     if (b.naming === 'rows') b.row_start = letter
     else if (typeof b.name === 'string' && /^[A-Z]{1,2}$/i.test(b.name)) b.name = letter
     else if (typeof b.name === 'string' && b.name) b.name = `${b.name} 2`.slice(0, 40)
-    used.push({ naming: b.naming as string, row_start: b.row_start as string, rows: num(b.rows), name: b.name as string })
+    used.push({ naming: b.naming as string, row_start: b.row_start as string, rows: rowCount(b.rows as number | BlockRow[]), name: b.name as string })
     return out
   })
 }

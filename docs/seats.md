@@ -124,10 +124,10 @@ The tools down the left (each stays on after placing something; Esc or V goes ba
 
 Everything lands on the grid unless you hold Alt.
 
-A selected seat block shows its name, rotation, seats per row and rows, how its seats are named
-(a letter per row or the block's name), the first row letter and where the row letters go, whether
-seat 1 is on the right, and its gaps: room in every row after a column, or a lane after a row.
-Seat numbers carry on across a gap.
+A selected seat block shows its name, rotation, how its seats are named (a letter per row or the
+block's name), the first row letter and where the row letters go, whether seat 1 is on the right, and
+its rows with the space above each. Pick a row to change its seats, shape (straight, arc, U, L, path),
+where it lines up, where people sit and its gaps; see [Rows in a seat block](halls.md#rows-in-a-seat-block).
 
 **Place seats freely** (in the same panel) puts a handle on every seat of the block: drag a seat
 anywhere, for a U round a table or any other shape. The seat keeps its name and number, the other

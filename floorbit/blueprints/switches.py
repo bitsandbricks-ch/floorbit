@@ -39,7 +39,7 @@ def sync_switches():
     """Pull devices from every inventory plugin that's on (NetBox), then list them."""
     reports = run_sync()
     if not reports:
-        return jsonify({'error': 'No inventory source is on. Turn on NetBox under Settings > Plugins.'}), 400
+        return jsonify({'error': 'No inventory source is set up. Set one up under Settings > Plugins.'}), 400
     errors = [r for r in reports if r.get('error')]
     if len(errors) == len(reports):
         return jsonify({'error': '; '.join(r['error'] for r in errors), 'reports': reports}), 502

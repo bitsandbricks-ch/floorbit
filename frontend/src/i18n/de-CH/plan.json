@@ -620,12 +620,12 @@
       "handle": "Platz {{seat}}: zum Verschieben ziehen"
     },
     "gaps": {
-      "col": "Lücken in den Reihen",
+      "col": "Lücken in dieser Reihe",
       "row": "Gassen zwischen Reihen",
       "add": "Hinzufügen",
-      "none_col": "Keine. Platz nach einer Spalte, für eine Glasfaserrolle oder einen Pfosten.",
+      "none_col": "Keine. Platz nach einem Platz, für eine Glasfaserrolle oder einen Pfosten.",
       "none_row": "Keine. Eine Gasse nach einer Reihe, für einen Switch zwischen zwei Reihen.",
-      "after_col": "Nach Spalte",
+      "after_col": "Nach Platz",
       "after_row": "Nach Reihe",
       "size_col": "Breite (Plätze)",
       "size_row": "Höhe (Plätze)",

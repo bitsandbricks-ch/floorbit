@@ -18,6 +18,7 @@ import { OnOff, PluginLog } from './plugins/parts'
 import { PerAgentSettings } from './plugins/PerAgentSettings'
 import { PerAgent, PluginOverview } from './plugins/PluginOverview'
 import { describe, useToggle } from './plugins/toggle'
+import { LibreNMSAlertsSetup } from './plugins/LibreNMSAlertsSetup'
 import { SectionPanel, SettingsForm } from './settings/editor'
 import { useSettingsEditor } from './settings/model'
 
@@ -53,6 +54,8 @@ export default function PluginSettings() {
       {plugin && ed.d && (
         <>
           <PluginOverview plugin={plugin} agents={onAgent ? agents.data?.agents : undefined} />
+          {/* The one plugin with something to paste elsewhere: its token stays behind a button. */}
+          {plugin.id === 'librenms-alerts' && plugin.enabled && <LibreNMSAlertsSetup />}
           <PageTabs label={name} value={tab} onChange={setTab} tabs={tabs} />
           <div role="tabpanel" aria-labelledby={`fb-tab-${tab}`}>
             {tab === 'settings' && section && (

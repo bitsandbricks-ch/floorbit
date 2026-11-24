@@ -1,5 +1,5 @@
-import { Group, Pagination, Paper, Table, Text, UnstyledButton } from '@mantine/core'
-import { IconChevronDown, IconChevronUp, IconSelector } from '@tabler/icons-react'
+import { ActionIcon, Group, Pagination, Paper, Table, Text, UnstyledButton } from '@mantine/core'
+import { IconChevronDown, IconChevronLeft, IconChevronRight, IconChevronUp, IconSelector } from '@tabler/icons-react'
 import {
   flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, useReactTable,
   type ColumnDef, type PaginationState, type SortingState,
@@ -33,6 +33,8 @@ export type DataColumn<T> = {
   /** With `cards` on a phone: 'inline' shares the card's first line (seat, name, state), 'actions'
    *  goes to its top right corner, 'label' gets the column's name in front. */
   card?: 'inline' | 'actions' | 'label'
+  /** Extra class on the column's cells, for a look of the place the table sits in. */
+  className?: string
 }
 
 export type DataTableProps<T> = {
@@ -66,13 +68,20 @@ export type DataTableProps<T> = {
   /** Drawn without the bordered box, for tables that already sit inside one. */
   bare?: boolean
   className?: string
+  /** Without the header row, for a plain list (the dashboard's list widget). */
+  head?: boolean
+  /** 'compact': one short line ("1–8 of 40" and arrows) instead of the page buttons, for a box with no room. */
+  pager?: 'full' | 'compact'
+  /** The page shown, counted from 0, when the caller turns pages itself (a wall widget, #925). */
+  page?: number
+  onPage?: (index: number) => void
 }
 
 /** The one table every page uses (#1015): sorting on the columns that can, paging, the empty state
  *  and the count. Search and filters sit above it on the page, and narrow `rows`. */
 export function DataTable<T>(props: DataTableProps<T>) {
   const { rows, columns, rowKey, label, defaultSort, pageSize = 50, empty, count, rowStyle, rowProps, urlState = true,
-    density = 'default', minWidth, bare, className, striped, cards } = props
+    density = 'default', minWidth, bare, className, striped, cards, head = true, pager = 'full', page, onPage } = props
   const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const initialSort: SortingState = defaultSort ? [{ id: defaultSort.id, desc: !!defaultSort.desc }] : []
@@ -88,11 +97,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
     // A ?sort= left by another table on the same address (a different tab) names no column here.
     return columns.some((c) => c.id === id && c.sort) ? [{ id, desc }] : initialSort
   })()
-  const pageIndex = urlState ? Math.max(0, (Number(params.get('page')) || 1) - 1) : localPage
+  const pageIndex = page ?? (urlState ? Math.max(0, (Number(params.get('page')) || 1) - 1) : localPage)
 
   const setUrl = (change: (p: URLSearchParams) => void) => setParams((p) => { const next = new URLSearchParams(p); change(next); return next }, { replace: true })
   const setSorting = (next: SortingState) => {
-    if (!urlState) { setLocalSort(next); setLocalPage(0); return }
+    if (!urlState) { setLocalSort(next); setLocalPage(0); onPage?.(0); return }
     setUrl((p) => {
       const s = next[0]
       const same = s && defaultSort && s.id === defaultSort.id && s.desc === !!defaultSort.desc
@@ -101,6 +110,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     })
   }
   const setPage = (index: number) => {
+    if (onPage) { onPage(index); return }
     if (!urlState) { setLocalPage(index); return }
     setUrl((p) => { if (index > 0) p.set('page', String(index + 1)); else p.delete('page') })
   }
@@ -139,14 +149,14 @@ export function DataTable<T>(props: DataTableProps<T>) {
   if (!rows.length) return <>{empty ?? <Text c="dimmed">{t('table.empty')}</Text>}</>
 
   const byId = new Map(columns.map((c) => [c.id, c]))
-  const cellClass = (c?: DataColumn<T>) => [c?.hideOnPhone && 'fb-dt-phone-hide', c?.mono && 'fb-dt-mono', c?.wrap && 'fb-dt-wrap', c?.numeric && 'fb-dt-num',
+  const cellClass = (c?: DataColumn<T>) => [c?.className, c?.hideOnPhone && 'fb-dt-phone-hide', c?.mono && 'fb-dt-mono', c?.wrap && 'fb-dt-wrap', c?.numeric && 'fb-dt-num',
     cards && c?.card === 'inline' && 'fb-stack-inline', cards && c?.card === 'actions' && 'fb-stack-actions'].filter(Boolean).join(' ') || undefined
   const body = (
     // On a phone the columns marked hideOnPhone go, so the rest fit without the wide minimum.
     <div className="fb-dt-scroll" style={minWidth ? ({ '--fb-dt-min': `${minWidth}px` } as CSSProperties) : undefined}>
       <Table highlightOnHover striped={striped} verticalSpacing={density === 'compact' ? 4 : 8} fz="sm" aria-label={label}
         className={['fb-dt', density === 'compact' && 'is-compact', cards && 'fb-table-stack', className].filter(Boolean).join(' ')}>
-        <Table.Thead>
+        {head && <Table.Thead>
           {table.getHeaderGroups().map((hg) => (
             <Table.Tr key={hg.id}>
               {hg.headers.map((h) => {
@@ -167,7 +177,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
               })}
             </Table.Tr>
           ))}
-        </Table.Thead>
+        </Table.Thead>}
         <Table.Tbody>
           {table.getRowModel().rows.map((row) => (
             <Table.Tr key={row.id} {...rowProps?.(row.original)} style={rowStyle?.(row.original)}>
@@ -184,10 +194,19 @@ export function DataTable<T>(props: DataTableProps<T>) {
       </Table>
     </div>
   )
+  const first = pagination.pageIndex * pagination.pageSize
   return (
     <>
       {bare ? body : <Paper withBorder className="fb-dt-box">{body}</Paper>}
-      {(count || pages > 1) && (
+      {pager === 'compact' ? pages > 1 && (
+        <div className="fb-dt-pager">
+          <span>{t('table.rowsOf', { from: first + 1, to: Math.min(rows.length, first + pagination.pageSize), count: rows.length })}</span>
+          <ActionIcon size="sm" variant="subtle" color="gray" disabled={pagination.pageIndex === 0} aria-label={t('table.previous')}
+            onClick={() => setPage(pagination.pageIndex - 1)}><IconChevronLeft size={14} /></ActionIcon>
+          <ActionIcon size="sm" variant="subtle" color="gray" disabled={pagination.pageIndex >= pages - 1} aria-label={t('table.next')}
+            onClick={() => setPage(pagination.pageIndex + 1)}><IconChevronRight size={14} /></ActionIcon>
+        </div>
+      ) : (count || pages > 1) && (
         <Group justify="space-between" mt="sm">
           <Text size="sm" c="dimmed">{count?.(rows.length)}</Text>
           {pages > 1 && (

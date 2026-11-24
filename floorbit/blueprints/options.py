@@ -96,8 +96,8 @@ def _blocks(data):
     """Every seat block by its id, under what people call it: a block named by its rows has no
     name of its own, so it goes by its row letters ("C to D")."""
     from ..seat_names import label
-    size = lambda b: int(b.get('cols') or 0) * int(b.get('rows') or 0)   # noqa: E731
-    out = [{'value': b['id'], 'label': label(b) or b['id'], 'hint': str(size(b))}
+    from ..seat_rows import seat_count
+    out = [{'value': b['id'], 'label': label(b) or b['id'], 'hint': str(seat_count(b))}
            for b in data.get('seat_blocks') or [] if b.get('id')]
     return sorted(out, key=lambda o: _natural(o['label']))
 
@@ -113,7 +113,7 @@ def _firewalls(data):
 
 def _agents(_data):
     from .. import agent_link
-    # By id: a renamed agent keeps the devices given to it (telemetry_agent).
+    # By id: a renamed agent keeps the devices given to it (telemetry.agent).
     return [{'value': a['id'], 'label': a.get('name') or a['id'], 'hint': a['id']}
             for a in agent_link.all_agents(_data)]
 

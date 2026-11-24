@@ -1,9 +1,9 @@
 """German for the server's messages (floorbit/i18n.py, issue #467).
 
 Every message the code can send to a person (``{'error': ...}`` and ``raise SomethingError(...)``)
-needs a German text in floorbit/locales/de-CH.json. The ones still waiting are listed in
-floorbit/locales/untranslated.txt: that list may only get shorter, so a new message without German
-fails here.
+needs a German text in floorbit/locales/de-CH/<area>.json (or the older floorbit/locales/de-CH.json).
+The ones still waiting are listed in floorbit/locales/untranslated.txt: that list may only get
+shorter, so a new message without German fails here.
 """
 import ast
 import glob
@@ -59,14 +59,13 @@ def waiting():
 
 
 def german():
-    with open(os.path.join(LOCALES, 'de-CH.json'), encoding='utf-8') as f:
-        return {k: v for k, v in json.load(f).items() if not k.startswith('//')}
+    return {k: v for k, v in i18n.load_texts('de-CH.json').items() if not k.startswith('//')}
 
 
 def test_every_message_has_german_or_is_listed_as_waiting():
     have, todo = german(), waiting()
     missing = {text: where for text, where in messages_in_code().items() if text not in have and text not in todo}
-    assert not missing, ('These messages need a German text in floorbit/locales/de-CH.json:\n'
+    assert not missing, ('These messages need a German text in floorbit/locales/de-CH/<area>.json:\n'
                          + '\n'.join(f'  {where}: {text!r}' for text, where in sorted(missing.items())))
 
 
@@ -153,3 +152,34 @@ def test_errors_inside_a_working_answer_are_german_too(client):
         assert body['status']['error'].startswith('Syslog kommt über den lokalen Agenten')
         assert body['note'] == english   # only error fields
         assert i18n.german_nested({'error': 'not a known text'}, 'de-CH') is False
+
+
+@pytest.mark.parametrize('name', ['de-CH.json', 'log.de-CH.json', 'discord.de-CH.json'])
+def test_a_text_is_in_one_file_only(name):
+    # A text twice (in one file or two) would make the German depend on which one loads last.
+    seen, twice = {}, []
+    for path in i18n.catalog_paths(name):
+        with open(path, encoding='utf-8') as f:
+            pairs = json.load(f, object_pairs_hook=lambda p: p)
+        assert isinstance(pairs, list), f'{path} must be one JSON object {{"English": "German"}}'
+        for english, _german in pairs:
+            if english.startswith('//'):
+                continue
+            if english in seen:
+                twice.append(f'  {english!r}: {seen[english]} and {os.path.relpath(path, LOCALES)}')
+            seen[english] = os.path.relpath(path, LOCALES)
+    assert not twice, 'These texts are there twice, keep one:\n' + '\n'.join(twice)
+
+
+def test_the_area_files_are_loaded(tmp_path, monkeypatch):
+    (tmp_path / 'de-CH.json').write_text('{"Old text": "Alter Text"}', encoding='utf-8')
+    (tmp_path / 'de-CH').mkdir()
+    (tmp_path / 'de-CH' / 'cables.json').write_text('{"No such rack {}": "Kein Rack {}"}', encoding='utf-8')
+    (tmp_path / 'de-CH' / 'README.md').write_text('not a catalog', encoding='utf-8')
+    monkeypatch.setattr(i18n, 'HERE', str(tmp_path))
+    i18n.catalog.cache_clear()
+    try:
+        assert i18n.translate('Old text', 'de-CH', ('de-CH.json',)) == 'Alter Text'
+        assert i18n.translate('No such rack r1', 'de-CH', ('de-CH.json',)) == 'Kein Rack r1'
+    finally:
+        i18n.catalog.cache_clear()

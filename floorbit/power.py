@@ -25,7 +25,7 @@ import uuid
 
 from integrations import config, events
 
-from . import features, seat_names
+from . import features, seat_names, seat_rows
 from .plugins import PluginError
 from .seat_names import block_rows
 from .store import load_data, save_data
@@ -81,10 +81,11 @@ def fed_by(circuit, data):
         if not block:
             continue
         rows = block_rows(block)
-        wanted = feed.get('rows') or range(1, len(rows) + 1)
-        for r in wanted:
-            if 1 <= r <= len(rows):
-                seats += rows[r - 1]
+        # A feed names rows by their id (floorbit/seat_rows.py), which stays when rows are reordered.
+        index = {str(r['id']): i for i, r in enumerate(seat_rows.rows_of(block))}
+        wanted = [index[str(r)] for r in feed.get('rows') or [] if str(r) in index] or range(len(rows))
+        for i in wanted:
+            seats += rows[i]
     from . import inventory
     devices = {d['id']: d for d in inventory.devices(data, include_hidden=True)}
     switches = [{'id': sid, 'name': devices[sid]['name']} for sid in circuit.get('switches') or []
@@ -97,8 +98,8 @@ def _feed_label(feed, blocks):
     if block is None:
         return 'a removed block'
     rows = feed.get('rows') or []
-    names = seat_names.row_names(block)
-    picked = [names[r - 1] if isinstance(r, int) and 0 < r <= len(names) else str(r) for r in rows]
+    names = dict(zip((str(r['id']) for r in seat_rows.rows_of(block)), seat_names.row_names(block), strict=False))
+    picked = [names.get(str(r), str(r)) for r in rows]
     if block.get('naming') == 'rows' and not block.get('name'):
         # The rows are the hall's rows: "rows C, D" says it; "block ?" said nothing.
         return f"row{'s' if len(picked) != 1 else ''} {', '.join(picked) if picked else seat_names.label(block)}"
@@ -152,8 +153,9 @@ def _clean_circuit(body, data, boards, old=None):
     for feed in (get('blocks') or [])[:100]:
         if not isinstance(feed, dict) or feed.get('block') not in blocks:
             raise PowerError('One of the seat blocks is not on the floor plan any more.')
-        total = int(blocks[feed['block']].get('rows') or 0)
-        rows = sorted({int(r) for r in feed.get('rows') or [] if str(r).isdigit() and 1 <= int(r) <= total})
+        ids = [int(r['id']) for r in seat_rows.rows_of(blocks[feed['block']])]
+        rows = sorted({int(r) for r in feed.get('rows') or [] if str(r).isdigit() and int(r) in ids},
+                      key=ids.index)
         feeds.append({'block': feed['block'], 'rows': rows})
     from . import inventory
     known = {d['id'] for d in inventory.devices(data, include_hidden=True)}
@@ -436,7 +438,9 @@ class PowerWatch:
                 'circuits': out, 'counts': counts, 'warn': warn, 'crit': crit, 'last_poll': self.last_poll,
                 'plugins': len(self.registry.feeders('power')),
                 'blocks': [{'id': b.get('id'), 'name': b.get('name') or '', 'label': seat_names.label(b),
-                            'rows': int(b.get('rows') or 0), 'row_names': seat_names.row_names(b)}
+                            'rows': seat_rows.count(b), 'row_names': seat_names.row_names(b),
+                            # A feed names a row by its id: the n-th row's id is row_ids[n].
+                            'row_ids': [int(r['id']) for r in seat_rows.rows_of(b)]}
                            for b in data.get('seat_blocks') or []]}
 
     def markers(self):

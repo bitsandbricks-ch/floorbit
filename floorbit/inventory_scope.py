@@ -61,6 +61,10 @@ KINDS = {
     'snmp_v2c': {'fields': (), 'secrets': ('secret',), 'needs_user': False},
     'snmp_v3': {'fields': ('username', 'auth_protocol', 'priv_protocol'), 'secrets': ('secret', 'priv_secret'),
                 'needs_user': True},
+    # The SNMPv3 user devices send traps as (telemetry): both passphrases optional, for authNoPriv
+    # and noAuthNoPriv users. Each distinct one gets its own trap listener (telemetry/targets.py).
+    'snmp_trap': {'fields': ('username', 'auth_protocol', 'priv_protocol'), 'secrets': ('secret', 'priv_secret'),
+                  'needs_user': True, 'optional': ('secret', 'priv_secret')},
     'api': {'fields': ('username',), 'secrets': ('secret',), 'needs_user': False},
     'http': {'fields': ('username',), 'secrets': ('secret',), 'needs_user': True},
 }
@@ -551,7 +555,7 @@ def set_credential(data, body, by=None):
                 raise ScopeError('Type the username (one word, up to 64 characters).')
             else:
                 fresh['username'] = user
-        if kind == 'snmp_v3':
+        if kind in ('snmp_v3', 'snmp_trap'):
             auth, priv = body.get('auth_protocol') or 'SHA', body.get('priv_protocol') or 'AES'
             if auth not in AUTH_PROTOCOLS or priv not in PRIV_PROTOCOLS:
                 raise ScopeError('Pick the SNMP v3 authentication and privacy protocols.')
@@ -560,13 +564,15 @@ def set_credential(data, body, by=None):
         for name in spec['secrets']:
             value = body.get(name)
             if value in (None, ''):
-                if name not in secrets:
+                if name not in secrets and name not in spec.get('optional', ()):
                     raise ScopeError('Type the password, community or token.' if name == 'secret'
                                      else 'Type the SNMP v3 privacy passphrase.')
                 continue
             if not isinstance(value, str) or len(value) > 512 or '\n' in value:
                 raise ScopeError('A secret is one line, up to 512 characters.')
             secrets[name] = vault.seal(_slot(fresh, name), value)
+        if secrets.get('priv_secret') and not secrets.get('secret'):
+            raise ScopeError('A privacy passphrase needs an authentication passphrase too.')
         fresh['secrets'] = secrets
         fresh.update(rev=uuid.uuid4().hex[:10], set_at=_now(), set_by=by)
         if cred is None:

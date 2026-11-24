@@ -10,7 +10,8 @@ Gathered from what is already watched, without asking anything new:
 - the bandwidth forecast reaching the line's capacity within the next hours (floorbit/forecast.py);
 - links between switches that are down or slower than planned (floorbit/links.py);
 - Wi-Fi access points that are down or busy, and two near each other on one channel (floorbit/wifi.py);
-- plugins turned on that don't load or keep failing, and installed versions the Marketplace withdrew.
+- plugins turned on that don't load or keep failing, and installed versions the Marketplace withdrew;
+- alerts LibreNMS pushed through the agent (floorbit/librenms_alerts.py).
 
 Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
 seats outside their switch's range (floorbit/seat_ranges.py), seat ports whose config breaks a
@@ -292,9 +293,9 @@ def _wifi(muted):
 
 def current(may_see_people):
     muted = alerting.mutes()
-    from . import links
+    from . import librenms_alerts, links
     items = (_monitoring() + _switches(muted) + _health(muted) + _security(may_see_people) + _power() + _forecast()
-             + links.problems() + _wifi(muted) + _plugins())
+             + links.problems() + _wifi(muted) + _plugins() + librenms_alerts.problems())
     _reach(items)
     now = time.time()
     items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))

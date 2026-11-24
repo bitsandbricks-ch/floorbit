@@ -32,6 +32,7 @@ import { LockBadges } from './LockBadges'
 import { Rulers } from './Rulers'
 import { useSnapPrefs } from './snap'
 import { MarkHandles } from './MarkHandles'
+import { type BlockRow } from './rows'
 import { SeatHandles } from './SeatHandles'
 import { moveSeat, placedNow } from './seatPlace'
 import { RotateHandle } from './RotateHandle'
@@ -337,7 +338,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     }
   }, [data.hall, history, idOf, refresh, fail, qc])
 
-  const blocksInUse = useCallback(() => get<{ naming?: string; row_start?: string; rows?: number; name?: string }[]>('/api/seat-blocks'), [])
+  const blocksInUse = useCallback(() => get<{ naming?: string; row_start?: string; rows?: number | BlockRow[]; name?: string }[]>('/api/seat-blocks'), [])
   // Names copies of panels and boards must not take (both kinds go through one list).
   const panelsInUse = useCallback(() => get<{ options: { value: string }[] }>('/api/options/panels')
     .then((o) => [...o.options.map((x) => x.value), ...(markers.data?.boards ?? []).map((b) => b.name)]), [markers.data])
