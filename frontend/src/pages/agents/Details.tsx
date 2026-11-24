@@ -93,7 +93,8 @@ export function Blocked({ agentId, plugins, lang, size = 'xs' }: { agentId: stri
 export function PluginTable({ plugins, lang, agentId }: { plugins?: Record<string, AgentPluginHealth>; lang: string; agentId?: string }) {
   const { t } = useTranslation()
   const ids = Object.keys(plugins ?? {}).sort()
-  if (!plugins || !ids.length) return <Text size="sm" c="dimmed">{t('agents.noPluginReport')}</Text>
+  // Callers put the table in a Panel without padding; the empty note needs its own.
+  if (!plugins || !ids.length) return <Text size="sm" c="dimmed" p="md">{t('agents.noPluginReport')}</Text>
   return (
     <DataTable rows={ids} rowKey={(id) => id} label={t('agents.plugins')} urlState={false} pageSize={0} bare cards
       columns={[

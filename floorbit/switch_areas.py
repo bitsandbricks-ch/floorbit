@@ -203,3 +203,33 @@ def switches_for(seats, data):
         if mine & wanted:
             out.append(sw['name'])
     return out
+
+
+def drift_for(seat, switch, data):
+    """Whether a port just found for ``seat`` on ``switch`` disagrees with the switch's area (issue
+    #1094): ``{kind: 'pin' | 'plan' | 'excluded', switch, area: [row or block names], row}`` or None.
+    Shown right where it is found (seat walk), so the crew fixes the pin or the patch on the spot."""
+    seat = str(seat or '').upper()
+    rows = seat_names.hall_rows(data)
+    row = next((r for r in rows if seat in r['seats']), None)
+    if not row:
+        return None
+    view = overview(data)
+    sw = next((s for s in view['switches'] if s['name'].lower() == str(switch or '').lower()), None)
+    if not sw:
+        return None
+    labels = {b['id']: b['label'] for b in view['blocks']}
+    names = {r['id']: f"{r['block_label']} {r['name']}".strip() for r in rows}
+    here = f"{row['block_label']} {row['name']}".strip()
+    if sw['how'] == 'excluded':
+        return {'kind': 'excluded', 'switch': sw['name'], 'area': [], 'row': here}
+    if sw['how'] == 'manual':
+        pin = sw['manual']
+        if seat in pin['seats'] or row['id'] in pin['rows'] or row['block'] in pin['blocks']:
+            return None
+        area = [labels.get(b, b) for b in pin['blocks']] + [names.get(r, r) for r in pin['rows']] + pin['seats']
+        return {'kind': 'pin', 'switch': sw['name'], 'area': area, 'row': here}
+    if sw['plan_blocks'] and row['block'] not in sw['plan_blocks']:
+        return {'kind': 'plan', 'switch': sw['name'], 'area': [labels.get(b, b) for b in sw['plan_blocks']],
+                'row': here}
+    return None

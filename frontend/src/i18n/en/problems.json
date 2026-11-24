@@ -28,7 +28,8 @@
     "portconfig": "Port config",
     "range": "IP range",
     "shared": "Shared port",
-    "wifi": "Wi-Fi"
+    "wifi": "Wi-Fi",
+    "librenms": "LibreNMS"
   },
   "attention": {
     "title": "Needs attention",
@@ -71,6 +72,7 @@
   "incidentOpen": "Incident open",
   "copy": "Copy list",
   "copied": "Copied",
+  "clear": "Clear",
   "seatsAffected_one": "1 seat affected",
   "seatsAffected_other": "{{count}} seats affected",
   "switchesBehind_one": "1 switch behind it",

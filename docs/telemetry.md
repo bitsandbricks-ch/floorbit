@@ -133,6 +133,28 @@ error; **Raw data** shows the last lines Telegraf sent for it. On the agent mach
 `docker compose exec agent telegraf --config /app/state/plugins/telemetry/own-telegraf/telegraf.conf --test`
 does the same for every device.
 
+## SNMPv3 trap users
+
+Traps come as v2c (the community isn't checked) or as an SNMPv3 user. The trap user is a credential
+like the others: **SNMP v3 trap user** in the inventory, set on the defaults, a group, a tag or a
+device, and inherited down. Its authentication and privacy passphrases are both optional, for
+`authNoPriv` and `noAuthNoPriv` users; a privacy passphrase needs an authentication one. A device with
+no trap user but an SNMP v3 polling login sends its traps as that user, as before.
+
+One Telegraf trap listener knows one v3 user, so each agent runs a listener for each distinct trap
+user among its devices:
+
+- The first user keeps the usual port, 162 (1162 in the container); v1 and v2c traps come in there
+  too, whatever user it has.
+- Each further user gets the next of 1163 to 1170. A user keeps its port while others come and go;
+  removing the credential frees it.
+- The device's Telemetry tab says where it sends, and **Device setup** puts the port and the user in
+  the lines to paste (`snmp-server host <agent> traps version 3 priv <user> udp-port 1163`).
+- More than nine different trap users: the devices left over get the problem "every trap listener
+  belongs to another trap user". Give them a user that already has a port.
+
+On Kubernetes, publish 1163–1170/udp next to 1162 when you use more than one trap user.
+
 ## Devices from the inventory
 
 Turn the **Telemetry** feature on for a device, a tag, a group or a type, and store its logins

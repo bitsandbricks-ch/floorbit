@@ -204,7 +204,7 @@ class Plugin(Base):
 | `documents` | keep its own JSON documents: `self.ctx.docs('notes').put('a', {...})`, up to 5 MB; with `schema:` and `migrate(from_schema, store)` when their shape changes ([plugin-spec.md](plugin-spec.md#storage)) |
 | `layers` | a layer on the floor plan: `layer_<id>()` gives seats a tone (`ok`, `warn`, `err`, `info`) and a legend; picked under Layers on the plan ([plugin-spec.md](plugin-spec.md#screens)) |
 | `pages` | pages of its own in the sidebar's Plugins group, laid out from its widgets and actions (`pages:`); see [plugin-spec.md](plugin-spec.md#screens) |
-| `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device. Optional: `cables()` returns `[{"switch", "port", "panel", "panel_port", "seat", "label", "color", "length_m", "note"}]` for the [cables page](cables.md) |
+| `inventory` | send devices into the [inventory](inventory.md): define `inventory()` returning `[{"id": ..., "name": ..., "role", "model", "serial", "mgmt_ip", "hall", "status"}]`. Floorbit checks each entry, merges them, and never lets a sync overwrite a hand edit or delete a device. Optional: `cables()` returns `[{"switch", "port", "panel", "panel_port", "seat", "label", "color", "length_m", "note"}]` for the [cables page](cables.md), and `configured()` says whether its settings are filled in: one that isn't set up yet isn't synced and isn't listed as a source |
 | `mapping` | feed the [seat mapping](seat-mapping.md): define `seat_mapping()` returning `{"A-1": {"ip": ..., "mac": ..., "nick": ...}}`. Hand entries always win; bad entries are dropped |
 | `monitoring` | be the live data source (one at a time): define `configured()`, `devices()`, `device_details(hostname)`, `resolve_ip(ip, device=None)`, `port_stats(hostname, port)` and `arp(ip_or_mac)`; optionally `device_ports(hostname)` (every port, for the needs-attention list) `port_clients(hostname)` (the MAC table as `[{port, mac, vlan}]`, for the clients the patch plan does not explain) and `neighbours(hostname)` (LLDP or CDP as `[{port, remote, remote_port, protocol}]`, for the [topology](topology.md)) and `device_facts(hostname)` (what the device is, shaped like telemetry's: `vlans`, `networks`, `transceivers`, `poe`, `routes`, for [discovery](inventory.md#discovery)). See the built-in LibreNMS plugin |
 | `ports` | act on switch ports (one plugin at a time): define `port_login()`, `bounce_port(target)` and `set_port(target)` (`target["enabled"]` says shut or on). Optional: `send_commands(target)` runs `target["commands"]` and answers `{"output", "refused"}`, and `command_platform()` names the switch software, for [switch commands](commands.md); `open_shell(target)` returns an object with `recv()` (`""` while quiet, `None` once closed), `send(text)`, `resize(cols, rows)` and `close()`, for the [terminal](terminal.md). See [ports.md](ports.md) and the built-in SSH port actions plugin |
@@ -236,7 +236,10 @@ plugin shows its error on Settings > Plugins and can't be turned on; it never st
   `FLOORBIT_PLUGIN_<ID>_<KEY>` (for example `FLOORBIT_PLUGIN_MY_PLUGIN_TOKEN`). A plugin can't pick
   another variable name, so it can't read `SECRET_KEY` or another integration's token that way.
 - **Errors:** raise `PluginError("...")` for a message the person should see. Anything else is
-  logged on Settings > Plugins > Log, and the person sees that the plugin failed.
+  logged on Settings > Plugins > Log, and the person sees that the plugin failed. When one of your
+  methods has failed on every call for a few minutes, Problems says the plugin keeps failing, with
+  the last message. Each method counts on its own: your seat mapping working doesn't hide your Wi-Fi
+  access points failing.
 - **HTTP:** `self.ctx.http()` sets a timeout (at most 60 s), verifies TLS unless the plugin's
   `verify_ssl` setting is off, and doesn't follow redirects.
 - **Hooks** run in the background, so a slow plugin never slows a request.
