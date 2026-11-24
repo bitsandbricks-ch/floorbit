@@ -3,6 +3,10 @@
 `/cables` (Settings > Cables) records which switch port goes to which patch panel port and seat,
 and prints a label for both ends of each cable. Issue #97.
 
+The page has three tabs (issue #880), kept in the address: **Cables**, the list, where each cable
+opens its own page; **Check** (`?tab=check`), the cables against the network and the machines on
+the seat ports; and **Port areas** (`?tab=areas`).
+
 A cable is **switch port → patch panel port → seat**. The panel and the seat are optional: a seat
 patched straight into the switch has no panel, and an uplink has no seat.
 
@@ -49,7 +53,7 @@ switch (`Seat A-12`) still does. A cable wins over the description: it is what t
 
 ## Against the network
 
-Once switches are up, the Cables page checks the plan against what LibreNMS says about the ports
+Once switches are up, the **Check** tab checks the plan against what LibreNMS says about the ports
 (the port watch's last read, so it asks LibreNMS nothing extra):
 
 - per block, how many seat ports are **up**;
@@ -115,7 +119,7 @@ the ports that were up when the walk began, which only changes when LibreNMS pol
 
 Often nobody knows each seat's port before the event, but the crew knows the layout in batches: a
 40-port access switch serves its row, ports 1-10 to A-1..A-10, 11-20 to A-11..A-20, and so on.
-**Cables › Rough port areas** takes exactly that: a switch, ports per batch (10), the first port
+The **Port areas** tab takes exactly that: a switch, ports per batch (10), the first port
 number, and the first seat of each batch. Each batch goes to as many seats from there as it has
 ports; leave a batch empty for uplinks or access points. Saving replaces that switch's areas.
 
@@ -148,7 +152,7 @@ reverse proxy, set `PUBLIC_URL` so the QR codes point at the address phones reac
 
 ## From NetBox
 
-When the NetBox plugin is set up, **Import from NetBox** reads `/api/dcim/cables/` and adds every
+When the NetBox plugin is set up, **More › Import cables** (it names the sources below it) reads `/api/dcim/cables/` and adds every
 cable with a switch interface on one end:
 
 - the interface's device and name become the switch and switch port;
