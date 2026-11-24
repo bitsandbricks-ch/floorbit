@@ -19,7 +19,7 @@ from flask import current_app
 
 from integrations import checkin, config, seat_sources
 
-from . import firewalls, halls, incidents, inventory, links, seat_notes, seat_search, speedtest
+from . import firewalls, halls, incidents, inventory, links, seat_names, seat_notes, seat_search, speedtest
 from .blueprints.screen import CELL, PLAN_H, PLAN_W, plan
 from .store import load_data
 
@@ -267,6 +267,7 @@ def view(hall_id=None, now=None, seat=None, switch=None, public=False):
     notes = seat_notes.all_notes(data)
     cut_off = _cut_off(data)
     seats, blocks = {}, []
+    by_id = {b.get('id'): b for b in data.get('seat_blocks') or [] if isinstance(b, dict)}
     for shape in (drawing or {}).get('shapes', []):
         counts = {'seats': 0, 'online': 0, 'problems': 0}
         for cell in shape['cells']:
@@ -294,7 +295,10 @@ def view(hall_id=None, now=None, seat=None, switch=None, public=False):
             counts['seats'] += 1
             counts['online'] += state == 'online'
             counts['problems'] += bool(problems.get(s))
-        blocks.append({'id': shape.get('id'), 'name': shape['name'], **counts})
+        # Matched and opened by id: blocks named by their rows have no name, so two would share one
+        # (issue #1030). ``label`` is what people call it: its name, else its row letters.
+        blocks.append({'id': shape.get('id'), 'name': shape['name'],
+                       'label': seat_names.label(by_id.get(shape.get('id')) or shape) or shape['name'], **counts})
     bg = hall.get('background')
     plan_switches = _switches(data, hall['id'], drawing and drawing['box'])
     here = {k: sum(b[k] for b in blocks) for k in ('seats', 'online', 'problems')}
@@ -380,12 +384,15 @@ def details(seat, people, crew=False):
 
 def block(name, now=None):
     """One seat block for the block panel (issue #174): its seats by state, the ones with problems,
-    and the switches that serve it. States only, never who sits there."""
+    and the switches that serve it. States only, never who sits there. ``name`` is the block's id,
+    or its name (a block named by its rows has none, issue #1030)."""
     now = time.time() if now is None else now
     data = load_data()
     for hall in halls.halls(data):
         drawing, _ = plan(data, hall_id=hall['id'])
-        shape = next((s for s in (drawing or {}).get('shapes', []) if s['name'] == name), None)
+        shapes = (drawing or {}).get('shapes', [])
+        shape = next((s for s in shapes if s.get('id') == name), None) or next(
+            (s for s in shapes if name and s['name'] == name), None)
         if shape:
             break
     else:
@@ -409,8 +416,12 @@ def block(name, now=None):
         sw['seats'] += 1
         sw['online'] += rows[s]['state'] == 'online'
     checked = [s for s, r in rows.items() if r.get('checked_in')]
+    stored = next((b for b in data.get('seat_blocks') or []
+                   if isinstance(b, dict) and b.get('id') == shape.get('id')), None)
     return {
-        'name': name,
+        'id': shape.get('id'),
+        'name': shape['name'],
+        'label': seat_names.label(stored or shape) or shape['name'],
         'hall': hall['id'],
         'seats': len(cells),
         **counts,
