@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { PlanShape } from '@/api/types'
 import type { OverlayContext } from '../SeatMap'
 import type { BlockRow } from './rows'
-import { type Pt, addPoint, armEnds, bendThrough, drawnSeats, dropPoint, movePoint, reshaped, rowOffset, withArm } from './rowShapes'
+import { type Pt, addPoint, armEnds, bendThrough, drawnSeats, dropPoint, movePoint, reshaped, rowOffset, turnOver, turnedOnce, withArm } from './rowShapes'
 import { toBlock } from './seatPlace'
 import './RowGapHandles.css'
 
@@ -41,9 +41,10 @@ export function RowShapeHandles({ ctx, shape, cell, size, rows, r, snapGrid = tr
   const firstMoves = (g: Grab) => g.kind === 'point' && g.i === 0
   const shaped = (g: Grab, e: React.PointerEvent): BlockRow => {
     const p = pointer(e), free = e.altKey || !snapGrid
-    if (g.kind === 'bend') return { ...row, bend: bendThrough(drawn[0], drawn[drawn.length - 1], p, free) }
+    // Turned over once, the row bows the other way from how its seats now read.
+    if (g.kind === 'bend') return { ...row, bend: (turnedOnce(row) ? -1 : 1) * bendThrough(drawn[0], drawn[drawn.length - 1], p, free) || 0 }
     if (g.kind === 'arm') return withArm(row, g.arm, (p[0] - g.from[0]) * g.grow[0] + (p[1] - g.from[1]) * g.grow[1])
-    return { ...row, path: movePoint(row.path ?? [], g.i, toRow(p), free) }
+    return { ...row, path: movePoint(row.path ?? [], g.i, turnOver(row, toRow(p)), free) }
   }
   const start = (e: React.PointerEvent, grab: Grab) => {
     if (e.button !== 0) return
@@ -101,7 +102,7 @@ export function RowShapeHandles({ ctx, shape, cell, size, rows, r, snapGrid = tr
   if (row.shape === 'path' && row.path?.length) {
     // While dragging, the path where the new layout puts it.
     const o = draft && preview ? rowOffset(draft.row, preview) : off
-    const path = (draft?.row.path ?? row.path).map((q): Pt => [q[0] + o[0], q[1] + o[1]])
+    const path = (draft?.row.path ?? row.path).map((q): Pt => { const u = turnOver(row, q); return [u[0] + o[0], u[1] + o[1]] })
     handles.push(<polyline key="path" className="fb-row-path" points={path.map((q) => { const p = at(q); return `${p.x},${p.y}` }).join(' ')} />)
     if (!draft) {
       path.slice(1).forEach((q, i) => {

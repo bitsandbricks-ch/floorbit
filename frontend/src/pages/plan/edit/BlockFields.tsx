@@ -1,5 +1,5 @@
 import { ActionIcon, Badge, Button, Checkbox, Group, Input, NumberInput, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput, UnstyledButton } from '@mantine/core'
-import { IconArrowsMove, IconChevronDown, IconChevronUp, IconLayoutRows, IconPlus, IconX } from '@tabler/icons-react'
+import { IconArrowsMove, IconChevronDown, IconChevronUp, IconFlipHorizontal, IconFlipVertical, IconLayoutRows, IconPlus, IconX } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,7 @@ import { qk } from '@/api/keys'
 import type { SeatViewData } from '@/api/types'
 import { type Gap, GAP_MAX, GAP_MIN, cleanGaps, freeGapSpot } from './gaps'
 import type { ItemRef } from './geometry'
+import { mirrorBlock } from './rowShapes'
 import { type BlockRow, MAX_ROWS, MAX_SEATS, type RowShape, SHAPES, moveRow, newRow, withSeats, withShape } from './rows'
 import './BlockFields.css'
 
@@ -49,6 +50,12 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
   const saveStart = () => { if (rowStart) save({ row_start: start }, { row_start: rowStart.toUpperCase() }) }
   const rowName = (i: number) => block.row_names?.[i] ?? String(i + 1)
   const open = block.rows.findIndex((r) => r.id === picked)
+  const rotation = data.drawing?.shapes.find((b) => b.id === item.id)?.rotation ?? 0
+  // Upside down is mirrored and turned half round, so the rows keep their order and names.
+  const turnBlock = (flip: boolean) => save(
+    { rows: block.rows, seat_at: block.seat_at ?? null, ...(flip ? { rotation } : {}) },
+    { ...mirrorBlock(block), ...(flip ? { rotation: (rotation + 180) % 360 } : {}) },
+  )
   return (
     <>
       <Select label={t('plan.edit.block.naming')} allowDeselect={false} value={naming} onChange={(v) => v && save({ naming }, { naming: v })}
@@ -63,6 +70,10 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
             data={['start', 'end', 'both', 'none'].map((x) => ({ value: x, label: t(`plan.edit.block.labels.${x}`) }))} />
         </SimpleGrid>
       )}
+      <Group gap="xs" wrap="nowrap">
+        <Button size="xs" variant="default" leftSection={<IconFlipVertical size={14} />} onClick={() => turnBlock(false)}>{t('blockRows.mirrorBlock')}</Button>
+        <Button size="xs" variant="default" leftSection={<IconFlipHorizontal size={14} />} onClick={() => turnBlock(true)}>{t('blockRows.flipBlock')}</Button>
+      </Group>
       <RowList rows={block.rows} name={rowName} picked={picked} onPick={setPicked} onSave={saveRows} />
       {block.rows.length > 1 && !block.seat_at && <Text size="xs" c="dimmed">{t('blockRows.planHint')}</Text>}
       {open >= 0 && (
@@ -175,6 +186,12 @@ function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; 
         </div>
       )}
       {row.shape === 'path' && <Text size="xs" c="dimmed">{t('blockRows.pathHint')}</Text>}
+      <Group gap="xs" wrap="nowrap">
+        <Button size="xs" variant={row.mirror ? 'light' : 'default'} aria-pressed={!!row.mirror} leftSection={<IconFlipVertical size={14} />}
+          onClick={() => onSave({ ...row, mirror: !row.mirror })}>{t('blockRows.mirror')}</Button>
+        <Button size="xs" variant={row.flip ? 'light' : 'default'} aria-pressed={!!row.flip} leftSection={<IconFlipHorizontal size={14} />}
+          onClick={() => onSave({ ...row, flip: !row.flip })}>{t('blockRows.flip')}</Button>
+      </Group>
       {row.shape !== 'line' && <Text size="xs" c="dimmed">{t('blockRows.shapeHint')}</Text>}
       <Input.Wrapper label={t('blockRows.align')}>
         <SegmentedControl fullWidth size="xs" value={row.align} onChange={(v) => onSave({ ...row, align: v as BlockRow['align'] })}
