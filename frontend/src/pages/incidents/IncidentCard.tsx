@@ -8,7 +8,8 @@ import { incidentTitle } from '@/lib/incidentTitle'
 import { IncidentBadges, OwnerLine } from './IncidentFacts'
 import { incidentPath } from './where'
 
-export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string }>
+export type IncidentChange = Partial<{ status: string; assignee: string | null; team: string | null; note: string
+  dismiss: 'not_a_problem'; snooze: number }>
 
 /** One incident on the board: title, where, age, who has it and one main action (issue #887).
  *  Notes, reassigning, the port restart and the history are on the incident's own page. */

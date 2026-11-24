@@ -1,5 +1,5 @@
-import { Anchor, Button, Group, Select, SimpleGrid, Stack, Text, Textarea } from '@mantine/core'
-import { IconArrowLeft } from '@tabler/icons-react'
+import { Anchor, Button, Group, Menu, Select, SimpleGrid, Stack, Text, Textarea } from '@mantine/core'
+import { IconArrowLeft, IconChevronDown } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -18,7 +18,11 @@ import { incidentTitle, powerNote } from '@/lib/incidentTitle'
 import { ago, dateTime } from '@/lib/time'
 import type { IncidentChange } from './IncidentCard'
 import { IncidentBadges, IncidentDetails, OwnerLine } from './IncidentFacts'
+import { isSnoozed } from './waiting'
 import { whereOf } from './where'
+
+/** Snooze lengths in minutes: a quick check, an hour, an afternoon. */
+const SNOOZES = [15, 60, 240]
 
 /** One incident on its own page (issue #887): everything the board's card leaves out. What was
  *  known when it came in, who has it, every note, and every action this account may take. */
@@ -91,6 +95,23 @@ export default function IncidentPage() {
             )}
             {i.status === 'fixed' && (
               <Button variant="default" loading={busy} onClick={() => change.mutate({ status: 'open' })}>{t('incidents.reopen')}</Button>
+            )}
+            {/* Dismiss (issue #887): close it as not a problem, or put it aside for a while. */}
+            {i.status !== 'fixed' && (
+              <Menu position="bottom-end" withinPortal>
+                <Menu.Target>
+                  <Button variant="default" rightSection={<IconChevronDown size={14} />} disabled={busy}>{t('incident.dismiss')}</Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item onClick={() => change.mutate({ dismiss: 'not_a_problem' })}>{t('incident.notAProblem')}</Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Label>{t('incident.snooze')}</Menu.Label>
+                  {SNOOZES.map((m) => (
+                    <Menu.Item key={m} onClick={() => change.mutate({ snooze: m })}>{t('incident.snoozeFor', { count: m >= 60 ? m / 60 : m, context: m >= 60 ? 'hours' : 'minutes' })}</Menu.Item>
+                  ))}
+                  {isSnoozed(i, now) && <Menu.Item onClick={() => change.mutate({ snooze: 0 })}>{t('incident.unsnooze')}</Menu.Item>}
+                </Menu.Dropdown>
+              </Menu>
             )}
           </Group>
         )} />
