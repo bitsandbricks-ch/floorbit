@@ -18,6 +18,9 @@ def agent(client, monkeypatch):
 
     def call(method, args=(), timeout=None, targets=None):
         calls.append((method, list(args)))
+        if method not in answers:
+            # Other pollers (health feeds) may ask too once earlier tests left them warm.
+            raise agent_link.AgentUnavailable("not part of this test")
         return answers[method](*args)
     monkeypatch.setattr(agent_link.tunnel, "call", call)
     yield answers, calls
