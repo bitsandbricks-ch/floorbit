@@ -90,7 +90,15 @@
     "help": "The last lines {{agent}} received from it, as Telegraf sent them. Refreshes every 10 seconds.",
     "show_one": "Show the raw line",
     "show_other": "Show the {{count}} raw lines",
-    "hide": "Hide the raw lines"
+    "hide": "Hide the raw lines",
+    "pausedHelp": "The last lines {{agent}} received from it, as Telegraf sent them. Paused: turn the switch off to refresh again.",
+    "filter": "Filter lines",
+    "pause": "Pause",
+    "copy": "Copy lines",
+    "copied": "Copied",
+    "shown": "{{shown}} of {{count}} lines",
+    "measurements": "Measurements",
+    "noMatch": "No line matches the filter."
   },
   "agentNumbers": {
     "standby": "standby",

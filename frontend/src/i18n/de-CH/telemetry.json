@@ -90,7 +90,15 @@
     "help": "Die letzten Zeilen, die {{agent}} von ihm bekommen hat, so wie Telegraf sie geschickt hat. Lädt alle 10 Sekunden neu.",
     "show_one": "Die Rohzeile zeigen",
     "show_other": "Die {{count}} Rohzeilen zeigen",
-    "hide": "Rohzeilen verbergen"
+    "hide": "Rohzeilen verbergen",
+    "pausedHelp": "Die letzten Zeilen, die {{agent}} von ihm bekommen hat, so wie Telegraf sie geschickt hat. Pausiert: Schalter aus, damit es wieder neu lädt.",
+    "filter": "Zeilen filtern",
+    "pause": "Pause",
+    "copy": "Zeilen kopieren",
+    "copied": "Kopiert",
+    "shown": "{{shown}} von {{count}} Zeilen",
+    "measurements": "Messungen",
+    "noMatch": "Keine Zeile passt zum Filter."
   },
   "agentNumbers": {
     "standby": "Standby",
