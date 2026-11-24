@@ -62,6 +62,21 @@ the bottom and the settings open as a sheet from below.
 - **Plan marks** on a plan pane: **All** draws the marks of its layers, **Public** only the Overview
   and Safety marks (as the attendee pages do), for a screen people walk
   past, and **None** none.
+- **Shows** on a plan pane:
+  - **Its area**: the whole hall, a block, a row, a zone or a box, as picked below.
+  - **One saved view**: a view saved on the floor plan (see [Saved views](halls.md#saved-views)), with
+    where it looks and its seat filter. The pane's layer preset still decides the layers.
+  - **Tour**: goes through its stops, 8 to 60 seconds each: the pane's whole area, each block in turn
+    (top to bottom, left to right), and saved views of the hall. The stop's name shows in the corner,
+    a bar along the bottom shows how many are left, and the mini-map shows where a zoomed stop is.
+    With **When a seat gets a problem: Show it next**, a seat that just got a problem makes the rows
+    around it the next stop. Touching the screen pauses the tour for a minute.
+  - **Overview + spotlight**: the whole area on the left, colour only, with the stop outlined, and the
+    stop zoomed in on the right. The spotlight stays on the newest problem while it lasts, and goes
+    through the stops when nothing is wrong. A box narrower than 560 pixels shows the area instead.
+
+  Tours and views list the hall's shared views only: a private one would show to nobody else. A public
+  dashboard gets those shared views with its panes.
 - **Public** lets the dashboard open without signing in (below).
 - **Rotate halls every** makes plan panes without a fixed hall that show a whole hall go through all
   halls in turn.

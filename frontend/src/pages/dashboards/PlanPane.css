@@ -7,3 +7,24 @@
 .fb-plan-list-row .st { font-family: var(--font-mono); font-size: 12px; color: var(--color-down); }
 .fb-plan-list-row .st-online { color: var(--color-warn); }
 .fb-plan-list-more { color: var(--color-muted); font-size: 12px; line-height: 22px; }
+
+/* Tour: the stop's name over the plan, and a mark per stop along the bottom (PlanPane.tsx TourBar). */
+.fb-pane-plan .fb-pane-body, .fb-plan-spot-zoom { position: relative; }
+.fb-tour-stop { position: absolute; top: 8px; left: 8px; padding: 2px 10px; border-radius: 4px; pointer-events: none;
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent); border: 1px solid var(--color-line);
+  font-weight: 600; font-size: 14px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-tour-bar { position: absolute; left: 8px; right: 8px; bottom: 6px; display: flex; gap: 3px; height: 4px; pointer-events: none; }
+.fb-tour-bar > span { flex: 1; border-radius: 2px; background: color-mix(in srgb, var(--color-muted) 30%, transparent); overflow: hidden; }
+.fb-tour-bar > span.done { background: var(--color-muted); }
+.fb-tour-bar > span > i { display: block; height: 100%; background: var(--color-bit); transform-origin: left;
+  animation-name: fb-tour-fill; animation-timing-function: linear; animation-fill-mode: forwards; }
+.fb-tour-count { height: auto; justify-content: flex-end; font-family: var(--font-mono); font-size: 11px; color: var(--color-muted); }
+@keyframes fb-tour-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .fb-tour-bar > span > i { animation: none; transform: none; } }
+
+/* Overview + spotlight: the whole area (colour only) beside the stop zoomed in. */
+.fb-plan-spot { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); height: 100%; min-height: 0; }
+.fb-plan-spot > div { min-width: 0; min-height: 0; }
+.fb-plan-spot-all { border-right: 1px solid var(--color-line); }
+.fb-plan-spot-all .fb-plan-zoom, .fb-plan-spot-all .fb-minimap { display: none; }
+.fb-spot-frame { fill: none; stroke: var(--color-trace); stroke-width: 3; vector-effect: non-scaling-stroke; }
