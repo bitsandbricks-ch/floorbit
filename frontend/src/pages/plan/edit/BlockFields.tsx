@@ -9,7 +9,7 @@ import type { SeatViewData } from '@/api/types'
 import { type Gap, GAP_MAX, GAP_MIN, cleanGaps, freeGapSpot } from './gaps'
 import type { ItemRef } from './geometry'
 import { mirrorBlock } from './rowShapes'
-import { type BlockRow, MAX_ROWS, MAX_SEATS, type RowShape, SHAPES, moveRow, newRow, withSeats, withShape } from './rows'
+import { type BlockRow, MAX_ROWS, MAX_SEATS, type RowShape, SHAPES, moveRow, newRow, withSeats, withShape, withUSide } from './rows'
 import './BlockFields.css'
 
 interface StoredBlock {
@@ -164,7 +164,21 @@ function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; 
         <NumberInput label={t('blockRows.bend')} description={t('blockRows.bendHint')} min={-330} max={330} step={15} defaultValue={row.bend ?? 60} suffix="°"
           onBlur={(e) => { const v = num(e.currentTarget.value, -330, 330); if (v != null && v !== row.bend) onSave({ ...row, bend: v }) }} />
       )}
-      {(row.shape === 'u' || row.shape === 'l') && row.sides && (
+      {row.shape === 'u' && row.sides?.length === 3 && (
+        <div>
+          <SimpleGrid cols={2} spacing="xs">
+            {([0, 2] as const).map((i) => (
+              <NumberInput key={`u-${i}-${row.sides![i]}`} size="xs" label={t(`blockRows.side_u_${i}`)} min={0} max={row.seats} defaultValue={row.sides![i]}
+                onBlur={(e) => {
+                  const v = num(e.currentTarget.value, 0, row.seats)
+                  if (v != null && v !== row.sides![i]) onSave(withUSide(row, i, v))
+                }} />
+            ))}
+          </SimpleGrid>
+          <Text size="xs" c="dimmed" mt={4}>{t('blockRows.uMiddle', { count: row.sides[1], total: row.seats })}</Text>
+        </div>
+      )}
+      {row.shape === 'l' && row.sides && (
         <div>
           <SimpleGrid cols={row.sides.length} spacing="xs">
             {row.sides.map((n, i) => (
@@ -172,9 +186,9 @@ function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; 
                 onBlur={(e) => {
                   const v = num(e.currentTarget.value, 0, row.seats)
                   if (v == null || v === n || !row.sides) return
-                  // The others give or take seats so the row keeps its count: the middle (U) or the other arm (L).
+                  // The other arm gives or takes seats so the row keeps its count.
                   const sides = [...row.sides]
-                  const other = row.shape === 'u' ? (i === 1 ? 0 : 1) : 1 - i
+                  const other = 1 - i
                   const moved = Math.min(v - n, sides[other])
                   sides[i] = n + moved
                   sides[other] -= moved

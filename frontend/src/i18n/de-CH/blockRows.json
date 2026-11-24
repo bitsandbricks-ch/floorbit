@@ -57,5 +57,6 @@
   "mirror": "Spiegeln",
   "flip": "Kippen",
   "mirrorBlock": "Block spiegeln",
-  "flipBlock": "Block kippen"
+  "flipBlock": "Block kippen",
+  "uMiddle": "Mitte: {{count}} Plätze, der Rest der {{total}} Plätze der Reihe"
 }
