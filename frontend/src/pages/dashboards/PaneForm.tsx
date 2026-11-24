@@ -158,6 +158,8 @@ function PlanFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'plan' }>;
           onChange={(v) => onChange({ ...pane, marks: v as MarksMode })} />
         <Text size="xs" c="dimmed" mt={4}>{t('dashboards.form.marksHint')}</Text>
       </div>
+      <Switch label={t('hallPlan.turn')} description={t('hallPlan.turnHint')} checked={!!pane.turn}
+        onChange={(e) => onChange({ ...pane, turn: e.currentTarget.checked || undefined })} />
     </>
   )
 }

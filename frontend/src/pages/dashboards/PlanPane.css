@@ -1,0 +1,9 @@
+/* A wide plan pane with problem seats: the plan, and the list beside it (PlanPane.tsx LIST_W). */
+.fb-pane-body.fb-plan-listed { display: grid; grid-template-columns: minmax(0, 1fr) 220px; }
+.fb-plan-list { border-left: 1px solid var(--color-line); padding: 8px 12px; overflow: hidden; min-height: 0; font-size: 13px; }
+.fb-plan-list-head { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--color-faint); line-height: 22px; }
+.fb-plan-list-row { display: flex; justify-content: space-between; gap: 8px; line-height: 22px; white-space: nowrap; }
+.fb-plan-list-row > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.fb-plan-list-row .st { font-family: var(--font-mono); font-size: 12px; color: var(--color-down); }
+.fb-plan-list-row .st-online { color: var(--color-warn); }
+.fb-plan-list-more { color: var(--color-muted); font-size: 12px; line-height: 22px; }

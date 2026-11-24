@@ -268,3 +268,4 @@
 .fb-filter-scroll::-webkit-scrollbar { display: none; }
 .fb-edit-rulers .mark line { stroke: var(--color-bit); stroke-width: 1.5; }
 .fb-edit-rulers .mark text { fill: var(--color-bit); font-weight: 600; paint-order: stroke; stroke: var(--color-surface); stroke-width: 4px; stroke-linejoin: round; }
+.fb-plan .seat-ring { fill: none; stroke: var(--color-down); stroke-width: 2px; pointer-events: none; }

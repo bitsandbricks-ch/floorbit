@@ -15,6 +15,7 @@ import { PowerLayer } from './PowerLayer'
 import { blockAlarm } from './blockTop'
 import { blockSums, placeLabels, placesAround, shapeLabel, shapeRect, textWidth } from './blockSums'
 import { Minimap } from './Minimap'
+import { useSize } from './useSize'
 import { showMinimap } from './minimap'
 import { WifiLayer } from './WifiLayer'
 import { type LabelMode, type SeatLabels, labelPlan, labelStyle, rowEnds } from './labels'
@@ -60,18 +61,6 @@ export function SeatGlyph({ seat, size, detail, traffic = false, route, checkin 
       ) : null}
     </>
   )
-}
-
-function useSize(ref: React.RefObject<HTMLElement | null>) {
-  const [px, setPx] = useState({ w: 0, h: 0 })
-  useEffect(() => {
-    const el = ref.current
-    if (!el || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(() => setPx({ w: el.clientWidth, h: el.clientHeight }))
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [ref])
-  return px
 }
 
 // The editor's grid steps, in % of the plan, so things sit on the same lines.
@@ -135,7 +124,7 @@ export interface OverlayContext {
 }
 
 export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
-  layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus, labels: labelMode = 'auto', pluginSeats }: {
+  layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus, labels: labelMode = 'auto', pluginSeats, rings = false }: {
   /** An open switch panel: only that switch's seats stay bright, and the switch gets a ring. An
    *  open seat: its switch gets the ring and a line from the seat (``seat``), nothing is dimmed. An
    *  open block: only ``seats``. */
@@ -163,6 +152,9 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   labels?: LabelMode
   /** The plugin layer that is on: a tone per seat. */
   pluginSeats?: PluginLayerData['seats']
+  /** A ring that stays a few pixels wide around every seat with a problem, so one red seat in a
+   *  hall of hundreds still shows on a big screen. */
+  rings?: boolean
 }) {
   const { t } = useTranslation()
   const ids = useId().replace(/:/g, '')
@@ -334,6 +326,8 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
       return k === undefined ? null : { ...items[i].places[k], name: items[i].name, sub: items[i].sub, size }
     })
   }, [drawing.shapes, sums, level, label])
+  const ringed = useMemo(() => (rings ? Object.keys(data.seats).filter((k) => data.seats[k].problems)
+    .map((k) => seatCenter(drawing, k)).filter((c): c is { x: number; y: number } => !!c) : []), [rings, data.seats, drawing])
   const network = layers.on.has('network')
   // Cables drawn from where their switch and seat are now (a block or switch just moved, or being dragged).
   const placed = useMemo(() => (cables ? followPlan(cables, { drawing, switches: data.switches, size: data.size }) : undefined), [cables, drawing, data.switches, data.size])
@@ -418,6 +412,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </g>
           )
         })}
+        {ringed.map((c, i) => <circle key={`ring${i}`} className="seat-ring" cx={c.x} cy={c.y} r={Math.max(drawing.cell * 0.8, 9 / s)} vectorEffect="non-scaling-stroke" />)}
         {network && placed && level !== 'far' && <g opacity={opacity(layers, 'network')}><CablePlugs cables={placed} size={data.size} cell={drawing.cell} seats={data.seats} /></g>}
         {network && trace && <line className="sw-trace" x1={trace.from.x} y1={trace.from.y} x2={trace.to.x} y2={trace.to.y} vectorEffect="non-scaling-stroke" />}
         {/* Switches go over the seat blocks, so one in a lane between rows stays visible. */}
