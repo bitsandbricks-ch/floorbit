@@ -13,7 +13,7 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { CommandInfo, CommandRun, CommandTemplate } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { ConfirmIcon, StatusBadge } from '@bitsandbricks/ui'
 

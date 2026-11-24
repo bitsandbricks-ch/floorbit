@@ -10,7 +10,7 @@ import { useCan } from '@/api/queries'
 import type { BlockPlan, CableList, SeatAssigned, WalkUp, WalkWatch } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { RowsSelect } from '@/components/RowsSelect'
 
 type Setup = { rows: string[]; switch: string; order: string }

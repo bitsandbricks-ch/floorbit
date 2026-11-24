@@ -14,11 +14,10 @@ import { EventBanner } from './EventBanner'
 import { HubTabs } from './HubTabs'
 import { PageError } from './PageError'
 import { rememberPage } from './pages'
-import { useInPanel } from './panel'
 import { setPageTitle } from './pageTitle'
 import { StatusLine } from './StatusLine'
 import { TopBar } from './TopBar'
-import { TopbarSlot } from './topbarSlot'
+import { TitleLevel, TopBarSlot, useInPanel } from '@bitsandbricks/ui'
 
 /** What shows in the page area while a page's code loads: the sidebar and top bar stay. */
 export function PageSkeleton() {
@@ -73,9 +72,9 @@ export function AppShell({ children }: { children?: ReactNode }) {
         <DatabaseBanner />
         <EventBanner />
         <PageError resetKey={pathname}>
-          <TopbarSlot.Provider value={slot}>
+          <TopBarSlot.Provider value={slot}>
             <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>
-          </TopbarSlot.Provider>
+          </TopBarSlot.Provider>
         </PageError>
         <StatusLine />
       </div>
@@ -112,7 +111,8 @@ export function Layout({ title, back, count, full, children }: {
             : <Link to={up.href}><IconChevronLeft size={14} aria-hidden="true" />{up.label}</Link>}
         </nav>
       )}
-      {children}
+      {/* This h1 is the page's, so PageHead titles start at h2. */}
+      <TitleLevel.Provider value={2}>{children}</TitleLevel.Provider>
     </main>
   )
 }

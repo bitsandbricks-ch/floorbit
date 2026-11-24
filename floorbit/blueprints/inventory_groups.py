@@ -30,13 +30,15 @@ def _registry():
 def _feature_catalog():
     registry = _registry()
     specs = getattr(registry, 'specs', {}) or {}
-    out = [{'id': f, 'core': True, 'name': f, 'default': True} for f in inventory_scope.CORE_FEATURES]
+    out = [{'id': f, 'core': True, 'name': f, 'default': True, 'per_device': True,
+            'roles': list(inventory_scope.CORE_FEATURE_ROLES[f])} for f in inventory_scope.CORE_FEATURES]
     for pid in inventory_scope.known_features(registry):
         if pid in inventory_scope.CORE_FEATURES:
             continue
         spec = specs.get(pid)
+        per_device, roles = inventory_scope.feature_scope(spec)
         out.append({'id': pid, 'core': False, 'name': getattr(spec, 'name', pid), 'default': False,
-                    'agent': bool(getattr(spec, 'agent', None))})
+                    'agent': bool(getattr(spec, 'agent', None)), 'per_device': per_device, 'roles': roles})
     return out
 
 

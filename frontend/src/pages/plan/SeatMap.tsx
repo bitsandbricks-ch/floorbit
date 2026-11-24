@@ -12,7 +12,8 @@ import { DEFAULT_LAYERS, type LayerState, layerStyle, opacity } from './layers'
 import { CableLines, CablePlugs, PanelGlyphs } from './NetworkLayer'
 import { followPlan } from './cableRoute'
 import { PowerLayer } from './PowerLayer'
-import { blockAlarm, blockTop } from './blockTop'
+import { blockAlarm } from './blockTop'
+import { blockSums, placeLabels, placesAround, shapeLabel, shapeRect, textWidth } from './blockSums'
 import { Minimap } from './Minimap'
 import { showMinimap } from './minimap'
 import { WifiLayer } from './WifiLayer'
@@ -310,6 +311,29 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   ].filter(Boolean).join(' · '), [t])
 
   const label = 14 / s   // block labels stay about 14 px tall at every zoom
+  const sums = useMemo(() => blockSums(drawing.shapes, data.blocks), [drawing.shapes, data.blocks])
+  // Block labels that fit: far out a name and counts, closer the name only (row letters do the rest).
+  // A label goes above its block, else beside it, else not at all, so none covers another (#1323).
+  const blockLabels = useMemo(() => {
+    const rects = drawing.shapes.map(shapeRect)
+    const far = level === 'far'
+    const size = far ? label : Math.max(18, label)
+    const items = drawing.shapes.map((b, i) => {
+      const sum = sums[i]
+      const name = far ? shapeLabel(b) : b.name
+      if (far ? !sum : !name) return { places: [], rank: 0, name, sub: '' }
+      const sub = far && sum ? `${sum.online}/${sum.seats}${sum.problems ? ` · ! ${sum.problems}` : ''}` : ''
+      const bad = !far && sum?.problems ? `  ! ${sum.problems}` : ''
+      const w = Math.max(textWidth(name + bad, size * 1.08), textWidth(sub, size))
+      const h = far ? size * 2.3 : size * 1.2
+      return { places: placesAround(rects[i], w, h, far ? 4 : 8), rank: (sum?.problems ? 1e6 : 0) + (sum?.seats ?? 0), name, sub }
+    })
+    const at = placeLabels(items, rects)
+    return drawing.shapes.map((_, i) => {
+      const k = at.get(i)
+      return k === undefined ? null : { ...items[i].places[k], name: items[i].name, sub: items[i].sub, size }
+    })
+  }, [drawing.shapes, sums, level, label])
   const network = layers.on.has('network')
   // Cables drawn from where their switch and seat are now (a block or switch just moved, or being dragged).
   const placed = useMemo(() => (cables ? followPlan(cables, { drawing, switches: data.switches, size: data.size }) : undefined), [cables, drawing, data.switches, data.size])
@@ -359,7 +383,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         {network && placed && <g opacity={opacity(layers, 'network')}><CableLines cables={placed} size={data.size} scale={s} seats={data.seats} /></g>}
         {power && <g opacity={opacity(layers, 'electrical')}><PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} /></g>}
         {drawing.shapes.map((b, bi) => {
-          const sum = data.blocks.find((x) => x.name === b.name)
+          const sum = sums[bi]
           return (
           <g key={bi}>
             <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
@@ -372,24 +396,25 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                 cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} firewalls={firewalls} marks={pluginSeats}
                 checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} labels={seatLabels} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
             </g>
-            {b.name && level !== 'far' && (
-              <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={b.cx} y={blockTop(b) - 12} fontSize={Math.max(18, label)}>
-                {b.name}
-                {sum?.problems ? <tspan className="name-bad" dx="0.4em">! {sum.problems}</tspan> : null}
-              </text>
-            )}
+            {level !== 'far' && blockLabels[bi] && (() => {
+              const l = blockLabels[bi]!
+              return (
+                <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={l.x} y={l.y + l.size * 0.9} fontSize={l.size}>
+                  {l.name}
+                  {sum?.problems ? <tspan className="name-bad" dx="0.4em">! {sum.problems}</tspan> : null}
+                </text>
+              )
+            })()}
           </g>
           )
         })}
         {level === 'far' && drawing.shapes.map((b, bi) => {
-          const sum = data.blocks.find((x) => x.name === b.name)
-          if (!sum) return null
+          const l = blockLabels[bi]
+          if (!l) return null
           return (
-            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.name) : undefined} transform={`translate(${b.cx} ${blockTop(b) - 4})`} fontSize={label}>
-              <text y={-label * 1.3}>{b.name}</text>
-              <text y={-label * 0.2} className="sub">
-                {sum.online}/{sum.seats}{sum.problems ? ` · ! ${sum.problems}` : ''}
-              </text>
+            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.name) : undefined} transform={`translate(${l.x} ${l.y})`} fontSize={l.size}>
+              <text y={l.size * 0.95}>{l.name}</text>
+              <text y={l.size * 2.05} className="sub">{l.sub}</text>
             </g>
           )
         })}
@@ -422,8 +447,8 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
       )}
       <VisuallyHidden id={`${ids}-keys`}>{t('plan.keys')}</VisuallyHidden>
       <VisuallyHidden id={`${ids}-blocks`}>
-        {data.blocks.map((b) => [t('plan.blockSummary', { name: b.name, online: b.online, count: b.seats }),
-          b.problems ? t('plan.problemsN', { count: b.problems }) : null].filter(Boolean).join(', ') + '.').join(' ')}
+        {drawing.shapes.map((shape, i) => [sums[i], shapeLabel(shape)] as const).filter(([b]) => b).map(([b, name]) => [t('plan.blockSummary', { name, online: b!.online, count: b!.seats }),
+          b!.problems ? t('plan.problemsN', { count: b!.problems }) : null].filter(Boolean).join(', ') + '.').join(' ')}
       </VisuallyHidden>
       <VisuallyHidden role="status" aria-live="polite">{cursorSeat && `${cursor}: ${stateText(cursorSeat)}`}</VisuallyHidden>
       <Group gap={4} className="fb-plan-zoom fb-no-print">

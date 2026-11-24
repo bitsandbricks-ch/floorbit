@@ -6,7 +6,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { FeatureState } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { LoadingState, ErrorBanner, Panel } from '@/components/ui'
 import { Capabilities } from './features/Capabilities'
 

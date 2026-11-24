@@ -14,7 +14,7 @@ import type {
 } from '@/api/types'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { when } from './handover/format'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { PortCheckPanel } from './configs/PortCheck'

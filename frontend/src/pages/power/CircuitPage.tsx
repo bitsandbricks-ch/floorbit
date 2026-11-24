@@ -9,7 +9,7 @@ import { useLiveEvent } from '@/api/live'
 import { usePower } from '@/api/queries'
 import type { Circuit } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { CircuitForm, ReadingForm } from './Forms'
 import { Feeds, Load, StateBadge } from './parts'
@@ -53,7 +53,7 @@ export default function CircuitPage() {
       ) : (
         <>
           <PageHead title={title}
-            kicker={circuit && board ? <><Anchor component={Link} to={boardPath(board.id)} inherit>{board.name}</Anchor> · {circuit.phase} · {circuit.rating_a} A</> : undefined}
+            eyebrow={circuit && board ? <><Anchor component={Link} to={boardPath(board.id)} inherit>{board.name}</Anchor> · {circuit.phase} · {circuit.rating_a} A</> : undefined}
             actions={circuit && data.can_read && (circuit.tripped
               ? <Button color="up" loading={trip.isPending} onClick={() => trip.mutate(false)}>{t('power.backOn')}</Button>
               : <Button color="down" variant="light" loading={trip.isPending} onClick={() => trip.mutate(true)}>{t('power.tripped')}</Button>)} />

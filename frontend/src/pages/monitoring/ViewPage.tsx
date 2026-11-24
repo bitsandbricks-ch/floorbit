@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { LoadingState } from '@/components/ui'
 import { type MonitoringPage, PAGE_BODY, PAGE_LABEL } from './pages'
 

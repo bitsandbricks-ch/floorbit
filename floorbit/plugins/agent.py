@@ -102,8 +102,15 @@ def check_agent_block(m):
         kinds = targets.setdefault('credentials', None)
         if kinds is not None and (not isinstance(kinds, list) or any(k not in CREDENTIAL_KINDS for k in kinds)):
             return f"agent.targets.credentials: some of {', '.join(CREDENTIAL_KINDS)}"
+        # Which kinds of device it is about, so a device's feature list leaves it out elsewhere (#878).
+        from ..inventory import ROLES as DEVICE_ROLES
+        roles = targets.setdefault('roles', None)
+        if roles is not None and (not isinstance(roles, list) or not roles
+                                  or any(r not in DEVICE_ROLES for r in roles)):
+            return f"agent.targets.roles: some of {', '.join(DEVICE_ROLES)}"
     elif targets is not False:
-        return 'agent.targets: true, or {credentials: [ssh, ...]}, when the plugin works on inventory devices'
+        return ('agent.targets: true, or {credentials: [ssh, ...], roles: [switch, ...]}, '
+                'when the plugin works on inventory devices')
     for key in ('calls', 'actions', 'fetches'):
         names = block.setdefault(key, [])
         if not isinstance(names, list) or any(not isinstance(n, str) or not KIND_RE.match(n) for n in names):

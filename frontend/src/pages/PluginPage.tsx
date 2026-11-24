@@ -6,7 +6,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PluginPageData } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { TileGrid } from '@/widgets/PluginTiles'
 

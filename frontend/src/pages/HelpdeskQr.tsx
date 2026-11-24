@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useHelpdeskQr } from '@/api/queries'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { parseSeats, seatBlock } from './incidents/qrFilter'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 

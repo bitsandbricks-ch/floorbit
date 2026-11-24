@@ -78,6 +78,13 @@
   "removeAsk": "Remove the widget {{name}}? Dashboards that still show it keep it until it is cloned there or taken off.",
   "usedOn": "On {{names}}",
   "unused": "Not on a dashboard yet",
-  "noSaved": "No saved widgets yet. Make one with New widget, or save a type from the Types tab.",
-  "followHint": "Every dashboard that shows this widget changes with it."
+  "noSaved": "No saved widgets yet",
+  "followHint": "Every dashboard that shows this widget changes with it.",
+  "usedFilter": "Dashboards",
+  "used": {
+    "all": "All",
+    "used": "On a dashboard",
+    "unused": "Not on one"
+  },
+  "noSavedHint": "Make one with New widget, or save a type from the Types tab."
 }
