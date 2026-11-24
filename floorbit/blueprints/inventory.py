@@ -220,14 +220,34 @@ def _live():
     return states, ports
 
 
+def _monitored():
+    """The monitoring source's devices from the status monitor's last good poll, or None."""
+    from integrations.monitor import StatusMonitor
+    latest = StatusMonitor.latest
+    if latest.get('at') is None or latest.get('polled') is None or latest['at'] < latest['polled']:
+        return None
+    return latest.get('devices')
+
+
+def _state(dev, states, found):
+    """The status monitor tracks the placed switches only. Firewalls, servers and switches not on the
+    plan are looked up by name in the same poll, as the Firewalls page does (issue #1425)."""
+    state = (states.get(dev['id']) or {}).get('status') if states is not None else None
+    if state is None and found is not None:
+        from integrations.monitor import StatusMonitor
+        state = StatusMonitor.device_status(StatusMonitor.match(dev['name'], found))
+    return state
+
+
 @bp.route('/api/inventory', methods=['GET'])
 def list_devices():
     data = load_data()
     hidden = request.args.get('hidden') in ('1', 'true')
     drift = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
     states, ports = _live()
+    found = _monitored()
     return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or []),
-                                 'state': (states.get(d['id']) or {}).get('status') if states is not None else None,
+                                 'state': _state(d, states, found),
                                  'ports': ports.get(str(d['name']).lower())}
                                 for d in inventory.devices(data, include_hidden=hidden)],
                     'sources': _sources(data), 'every': inventory_schedule.every_minutes(),
