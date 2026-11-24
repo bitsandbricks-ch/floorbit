@@ -1,12 +1,10 @@
 {
   "title": "My jobs",
-  "intro": "Incidents sent to you. Say when you're on duty and where you are, so the nearest job comes to you.",
   "onDuty": "On duty",
   "onDutyHelp": "Only techs on duty get jobs sent to them.",
   "whereAmI": "Where I am",
-  "whereHelp": "The seat you're next to. It moves to each job you finish.",
+  "whereHelp": "The seat you're next to. It moves to each job you finish; the nearest job comes to you.",
   "pickSeat": "Seat number",
-  "none": "No jobs for you right now.",
   "offDuty": "You're off duty: no jobs are sent to you.",
   "sent": "Sent {{when}}",
   "onMyWay": "On my way",
@@ -24,5 +22,7 @@
   "doneLately_one": "You fixed {{count}} job in the last 12 hours.",
   "doneLately_other": "You fixed {{count}} jobs in the last 12 hours.",
   "autoOn": "New incidents come to the nearest free tech by themselves: keep this page open.",
-  "seatOk": "The seat said at {{when}} that it works again. Ask there before you fix anything."
+  "seatOk": "The seat said at {{when}} that it works again. Ask there before you fix anything.",
+  "sentToYou_one": "Sent to you: {{count}} incident",
+  "sentToYou_other": "Sent to you: {{count}} incidents"
 }

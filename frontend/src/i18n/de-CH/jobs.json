@@ -1,12 +1,10 @@
 {
   "title": "Meine Aufträge",
-  "intro": "Störungen, die dir gesendet wurden. Sag, wann du im Dienst bist und wo du bist, damit der nächste Auftrag zu dir kommt.",
   "onDuty": "Im Dienst",
   "onDutyHelp": "Nur Techniker im Dienst bekommen Aufträge.",
   "whereAmI": "Wo ich bin",
-  "whereHelp": "Der Platz, bei dem du bist. Er wandert zu jedem Auftrag, den du erledigst.",
+  "whereHelp": "Der Platz, bei dem du bist. Er wandert zu jedem Auftrag, den du erledigst; der nächste Auftrag kommt zu dir.",
   "pickSeat": "Platznummer",
-  "none": "Gerade keine Aufträge für dich.",
   "offDuty": "Du bist nicht im Dienst: Dir werden keine Aufträge gesendet.",
   "sent": "Gesendet {{when}}",
   "onMyWay": "Bin unterwegs",
@@ -24,5 +22,7 @@
   "doneLately_one": "Du hast in den letzten 12 Stunden {{count}} Auftrag erledigt.",
   "doneLately_other": "Du hast in den letzten 12 Stunden {{count}} Aufträge erledigt.",
   "autoOn": "Neue Störungen gehen automatisch an den nächsten freien Techniker: Lass diese Seite offen.",
-  "seatOk": "Der Platz hat um {{when}} gemeldet, dass es wieder geht. Frag dort nach, bevor du etwas machst."
+  "seatOk": "Der Platz hat um {{when}} gemeldet, dass es wieder geht. Frag dort nach, bevor du etwas machst.",
+  "sentToYou_one": "An dich geschickt: {{count}} Störung",
+  "sentToYou_other": "An dich geschickt: {{count}} Störungen"
 }

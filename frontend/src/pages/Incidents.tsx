@@ -14,6 +14,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { matchesFilter } from './incidents/filter'
+import { MyJobs } from './incidents/MyJobs'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
 import { nextToTake, openOrder } from './incidents/waiting'
@@ -32,10 +33,18 @@ export default function Incidents() {
   const me = useMe()
   const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches') })
   const [mineOnly, setMineOnly] = useState(false)
+  const dispatchOn = useFeature('dispatch')
   const now = useNowSeconds()
   // The filter lives in the address, so a link can open the board filtered (issue #210).
   // The box keeps its own state: the address updates a moment later, and typing fast against it lost letters (issue #226).
   const [params, setParams] = useSearchParams()
+  // "Assigned to me" in the address, so Discord's /jobs can link straight to it (issue #887).
+  const assignedToMe = params.get('mine') === '1'
+  const setAssignedToMe = (on: boolean) => setParams((prev) => {
+    const next = new URLSearchParams(prev)
+    if (on) next.set('mine', '1'); else next.delete('mine')
+    return next
+  }, { replace: true })
   const [filter, setFilterText] = useState(() => params.get('q') ?? '')
   const setFilter = (v: string) => {
     setFilterText(v)
@@ -109,7 +118,8 @@ export default function Incidents() {
   }
   // "n" takes the next one, like "/" jumps to the filter (issue #316); typing in a field doesn't count.
   useHotkeys([['n', takeNext]])
-  const items = (board.data?.incidents ?? []).filter((i) => (!mineOnly || i.can_work) && matchesFilter(i, filter, teamNames))
+  const items = (board.data?.incidents ?? []).filter((i) => (!mineOnly || i.can_work)
+    && (!assignedToMe || (!!username && i.assignee === username)) && matchesFilter(i, filter, teamNames))
   return (
     <Layout title={t('incidents.title')} back={{ href: '/', label: t('common.floorPlan') }}
       count={(board.data?.incidents ?? []).filter((i) => i.status === 'open').length}>
@@ -118,7 +128,7 @@ export default function Incidents() {
         desc={t('incidents.intro')}
         actions={
           <>
-            {/* My jobs and the handover are Helpdesk's tabs now (issue #892). */}
+            {/* The handover is a Helpdesk tab (issue #892); My jobs is part of this board (issue #887). */}
             {board.data?.can_assign_any && helpdeskOn && (
               <Button variant="default" component="a" href="/incidents/qr" leftSection={<IconQrcode size={16} />}>
                 {t('incidents.qrCodes')}
@@ -134,11 +144,13 @@ export default function Incidents() {
           </>
         }
       />
+      {dispatchOn && me.data?.user && <MyJobs />}
       <Group justify="space-between" mb="sm">
         <Group gap="md">
           <TextInput ref={filterBox} aria-label={t('incidents.filter')} aria-keyshortcuts="/" placeholder={t('incidents.filterHint')} w={300} value={filter}
             leftSection={<IconFilter size={14} />} rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined}
             onChange={(e) => setFilter(e.currentTarget.value)} />
+          <Switch label={t('incidents.assignedToMe')} checked={assignedToMe} onChange={(e) => setAssignedToMe(e.currentTarget.checked)} />
           <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
           {me.data?.user && (
             <Button variant="default" leftSection={<IconHandGrab size={16} />} disabled={!next} loading={change.isPending && change.variables?.next}
