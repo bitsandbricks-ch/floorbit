@@ -51,7 +51,9 @@ def test_a_save_here_shows_at_once(db, tmp_path):
 
 
 def test_another_replicas_save_shows_within_the_recheck(db, tmp_path, monkeypatch):
-    path = str(tmp_path / "data.json")
+    # Not data.json: the fixture makes that the app's data file, and a background loop left
+    # running by an earlier test (the inventory status) may save into it during the sleep.
+    path = str(tmp_path / "doc.json")
     store.write_json(path, {"v": 1})
     assert store.read_json(path) == {"v": 1}
     other = database.Sql(db.url, db.root)            # another pod on the same database
