@@ -30,13 +30,15 @@ def _uplinks(dev):
 
 def find(req, targets, state=None, get=snmpget.get, log=None):
     """``req``: {ip, vlan, if_index, core, switches: [names], mac?}. Returns {mac, switch, port,
-    if_index, asked, skipped, errors, took_ms}; ``switch`` is None when no switch knew the MAC."""
+    if_index, asked, skipped, errors, trail, took_ms}; ``switch`` is None when no switch knew the MAC.
+    ``trail`` is every switch asked in order with how long it took and what it said, for the seat
+    walk's live trace (issue #1359)."""
     started = time.monotonic()
     by_name = {str(t.get('name')): t for t in targets or [] if t.get('name')}
     vlan = int(req['vlan'])
     from ..sources import normalise_mac
     out = {'mac': normalise_mac(req.get('mac')) or None, 'switch': None, 'port': None,
-           'if_index': None, 'asked': [], 'skipped': [], 'errors': []}
+           'if_index': None, 'asked': [], 'skipped': [], 'errors': [], 'trail': []}
 
     def ask(fn, name, *args):
         target = by_name.get(name)
@@ -59,14 +61,21 @@ def find(req, targets, state=None, get=snmpget.get, log=None):
         if name not in by_name:
             continue                     # another agent's: it answers for its own
         out['asked'].append(name)
+        asked_at, errors = time.monotonic(), len(out['errors'])
         if_index = ask(snmpget.port_of_mac, name, out['mac'], vlan)
+        step = {'switch': name, 'ms': int((time.monotonic() - asked_at) * 1000)}
+        out['trail'].append(step)
         if if_index is None:
+            step['result'] = 'error' if len(out['errors']) > errors else 'none'
             continue
         dev = state.find(name) if state is not None else None
+        named = (dev.port_name(if_index) or (dev.if_facts.get(str(if_index)) or {}).get('name')) if dev else None
+        step.update(if_index=if_index, port=named or None)
         if str(if_index) in _uplinks(dev):
             out['skipped'].append({'switch': name, 'if_index': if_index})
+            step['result'] = 'uplink'
             continue
-        named = (dev.port_name(if_index) or (dev.if_facts.get(str(if_index)) or {}).get('name')) if dev else None
+        step['result'] = 'found'
         out.update(switch=name, if_index=if_index, port=named or None)
         break
     out['took_ms'] = int((time.monotonic() - started) * 1000)

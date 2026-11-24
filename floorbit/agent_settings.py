@@ -29,6 +29,9 @@ FIELDS = [
      'min': 16, 'max': 1_000_000, 'restart': True},
     {'key': 'buffer_max_hours', 'env': 'FLOORBIT_AGENT_BUFFER_MAX_HOURS', 'type': 'int', 'default': 24,
      'min': 1, 'max': 720, 'restart': True},
+    # Where laptops in the hall reach it, when it can't learn that (a reverse proxy, port forwarding,
+    # issue #1361): the seat walk-through sends the crew there.
+    {'key': 'hall_url', 'env': 'FLOORBIT_AGENT_HALL_URL', 'type': 'url', 'default': '', 'restart': False},
     {'key': 'telemetry_port', 'env': 'FLOORBIT_TELEMETRY_PORT', 'type': 'int', 'default': 8186,
      'min': 1, 'max': 65535, 'restart': True},
     {'key': 'cert_names', 'env': None, 'type': 'names', 'default': [], 'restart': False},

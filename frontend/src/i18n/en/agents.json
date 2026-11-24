@@ -294,6 +294,7 @@
     "secretSet": "Set (type to replace)",
     "atRestart": "at next start",
     "field": {
+      "hall_url": "Reached in the hall at",
       "metrics": "Metrics listener",
       "metrics_token": "Metrics token",
       "buffer_max_mb": "Buffer size (MB)",
@@ -309,6 +310,7 @@
       "log_summary": "Summary line (seconds)"
     },
     "help": {
+      "hall_url": "Where laptops in the hall open this agent, for the seat walk-through. Leave it empty: the agent learns it, with the ports compose publishes it on. Set it for a reverse proxy or port forwarding, such as https://checkin.lan:8443.",
       "metrics": "host:port for /metrics and /healthz, or off.",
       "metrics_token": "Scrapers then send \"Authorization: Bearer <token>\". Set it when the port is reachable from the LAN.",
       "buffer_max_mb": "How much the agent keeps while Floorbit is out of reach.",

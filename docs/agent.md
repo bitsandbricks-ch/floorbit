@@ -526,6 +526,10 @@ HTTPS); check-in works on plain HTTP.
 Then point the check-in name (`CHECKIN_ADDRESS`, for example `checkin.lan`) at the agent in the
 event DNS: typing it on a PC opens the check-in page, through the agent. The compose files and the
 Kubernetes manifest publish it on 443 and 80 (`HTTPS_PUBLISH_PORT`, `HTTP_PUBLISH_PORT` in compose).
+Compose passes those two into the agent, which reports them: the redirect to HTTPS and the seat
+walk-through's address then use the published port when it isn't 443/80. Where the hall reaches the
+agent another way (a reverse proxy, port forwarding), set **Reached in the hall at** on the agent's
+page (or `FLOORBIT_AGENT_HALL_URL` on the agent, which wins).
 
 **Check-in takes the seat PC's address only from the front door**, hosted or self-hosted alike: a
 request's own address or `X-Forwarded-For` never names it. A check-in from anywhere else keeps the

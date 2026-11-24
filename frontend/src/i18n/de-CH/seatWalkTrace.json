@@ -1,0 +1,73 @@
+{
+  "title": "Was Floorbit gerade macht",
+  "steps": "Schritte",
+  "all": "Alles",
+  "copy": "Ablauf kopieren",
+  "copied": "Kopiert",
+  "empty": "Noch nichts. Drücke Finden oder steck den Laptop ein.",
+  "hidden": "(verborgen)",
+  "group": { "row": "Switch der Reihe", "block": "Block", "vlan": "VLAN" },
+  "how": { "monitoring": "der Überwachung", "history": "dem IP/MAC-Verlauf", "switch": "dem ARP des Routers über SSH" },
+  "hello": "{{agent}} hat den Laptop unter {{ip}} gesehen",
+  "macTyped": "Die eingetippte MAC {{mac}}, kein Agent nötig",
+  "macReused": "Gleiche Adresse wie beim letzten Platz: wieder MAC {{mac}}",
+  "mac": { "ok": "MAC {{mac}} aus {{how}}", "no": "Für {{ip}} ist noch keine MAC bekannt" },
+  "monitoringOff": "Keine Überwachung: weiter zu den Switches",
+  "monitoring": {
+    "found": "Die Überwachung kennt ihn auf {{switch}} {{port}}",
+    "none": "Die Überwachung kennt ihn noch auf keinem Port",
+    "uplink": "Die Überwachung kennt ihn nur auf einem Uplink: nicht der Port des Platzes"
+  },
+  "stale": "{{switch}} {{port}} ist noch der Port des letzten Platzes: diese Tabelle ist noch nicht frisch",
+  "snmpTodo": {
+    "no_segment": "{{ip}} liegt in keinem Netzsegment: keine SNMP-Abfrage",
+    "segment_off": "Abfragen sind für VLAN {{vlan}} aus: keine SNMP-Abfrage",
+    "no_core": "Für VLAN {{vlan}} ist kein Core-Switch bekannt: keine SNMP-Abfrage"
+  },
+  "snmpArp": "Frage den Core {{core}} nach der MAC von {{ip}} (VLAN {{vlan}})",
+  "snmpMac": { "ok": "Der Core antwortet: MAC {{mac}}", "no": "Der Core kennt die MAC noch nicht" },
+  "snmpAsk": "SNMP über den Agent, VLAN {{vlan}}: Switches der Reihe {{row}}, dann Block {{block}}, dann {{others}} weitere",
+  "snmpSwitch": {
+    "found": "{{switch}} ({{group}}): auf {{port}}",
+    "none": "{{switch}} ({{group}}): nicht da",
+    "uplink": "{{switch}} ({{group}}): nur auf Uplink {{port}}, übersprungen",
+    "error": "{{switch}} ({{group}}): keine Antwort, {{error}}"
+  },
+  "snmpError": "Der Agent konnte die Switches nicht fragen: {{error}}",
+  "sshAsk": "Als Letztes über SSH: show mac address-table auf {{switches}}",
+  "sshSwitch": {
+    "found": "{{switch}} über SSH: auf {{port}}",
+    "none": "{{switch}} über SSH: nicht da",
+    "uplink": "{{switch}} über SSH: nur auf Uplink {{port}}, übersprungen",
+    "error": "{{switch}} über SSH: keine Antwort, {{error}}"
+  },
+  "wait": "Noch nicht gefunden, frage in {{seconds}} s nochmals (Versuch {{attempt}})",
+  "found": "Gefunden: {{switch}} {{port}}",
+  "notFound": "Nach {{tries}} Versuchen nicht gefunden",
+  "flow": {
+    "title": "Wo die Suche steht",
+    "laptop": "Laptop",
+    "mac": "MAC",
+    "known": "bekannt",
+    "tables": "Tabellen",
+    "ok": "gefunden",
+    "no": "noch nicht",
+    "skip": "nur Uplink",
+    "warn": "alt",
+    "run": "fragt",
+    "off": "aus",
+    "row": "Switch der Reihe",
+    "block": "Block",
+    "vlan": "Alle im VLAN",
+    "ssh": "SSH",
+    "switches_one": "{{count}} Switch",
+    "switches_other": "{{count}} Switches"
+  },
+  "strip": {
+    "open": "Auf dem Laptop öffnen",
+    "noAgent": "Noch keine Agent-Adresse bekannt",
+    "laptop": "Gesuchter Laptop",
+    "unknown": "Noch nicht erkannt",
+    "agent": "Agent"
+  }
+}
