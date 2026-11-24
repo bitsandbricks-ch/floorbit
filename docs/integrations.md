@@ -109,7 +109,7 @@ one message. Muted switches send nothing ([alerts.md](alerts.md)).
 | `DISCORD_COOLDOWN` | `300` | seconds between outage alerts for the same switch |
 | `ALERT_GROUP_AFTER` | `3` | more switch changes than this in one poll become one message, grouped by power circuit ([alerts.md](alerts.md)) |
 | `ALERT_QUIET_HOURS` | | e.g. `02:00-08:00`: messages go out silently and without the mention |
-| `ATTENTION_INTERVAL` | `120` | seconds between reads of every port for the needs-attention list (at least 30; [alerts.md](alerts.md#needs-attention)) |
+| `ATTENTION_INTERVAL` | `120` | seconds between reads of every port for the needs-attention list (at least 30; [alerts.md](alerts.md#seats-with-trouble)) |
 | `ATTENTION_FLAPS` | `3` | link changes within ten minutes that count as flapping |
 | `ATTENTION_ERRORS` | `10` | interface errors gained since the last read that count as rising |
 | `CABLE_AUTO` | `true` | draw a cable to every seat whose switch port is known ([cables.md](cables.md#cables-drawn-on-the-floor-plan)); also under Settings > Cabling |
