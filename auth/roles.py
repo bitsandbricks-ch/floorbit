@@ -272,6 +272,7 @@ RULES = (
     ('/api/halls', WRITE, 'floorplan.edit'),
     ('/api/templates', WRITE, 'floorplan.edit'),
     ('/api/plan-presets', WRITE, 'floorplan.edit'),
+    ('/api/plan-views', WRITE, 'floorplan.edit'),
     ('/api/inventory/log', READ, 'floorplan.edit'),
     # Stored credentials on devices, groups and tags: set by admins, like switch logins (floorbit/inventory_scope.py).
     # The shared icon library: admins upload SVGs, everyone who sees the plan sees them.

@@ -1,0 +1,11 @@
+{
+ "A view needs a name": "Eine Ansicht braucht einen Namen",
+ "A view name is at most {} characters": "Ein Ansichtsname hat höchstens {} Zeichen",
+ "A view needs where the plan looks: x, y, width and height": "Eine Ansicht braucht den Ausschnitt des Plans: x, y, Breite und Höhe",
+ "Layers are written like the plan address: ids separated by commas": "Ebenen werden wie in der Adresse des Plans geschrieben: Kennungen mit Kommas getrennt",
+ "At most {} views: delete one first": "Höchstens {} Ansichten: lösche zuerst eine",
+ "A view with this name exists already in this hall": "Eine Ansicht mit diesem Namen gibt es in dieser Halle schon",
+ "Only the person who saved a private view can change it": "Nur wer eine private Ansicht gespeichert hat, kann sie ändern",
+ "No such view": "Diese Ansicht gibt es nicht",
+ "The view is not valid": "Die Ansicht ist ungültig"
+}
