@@ -34,6 +34,7 @@ import { MarkHandles } from './MarkHandles'
 import { type BlockRow } from './rows'
 import { SeatHandles } from './SeatHandles'
 import { RowGapHandles } from './RowGapHandles'
+import { RowShapeHandles } from './RowShapeHandles'
 import { keepTop, rowAt } from './rowGaps'
 import { moveSeat, placedNow, toBlock } from './seatPlace'
 import { RotateHandle } from './RotateHandle'
@@ -511,6 +512,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       { rows: rows.map((r, k) => (k === i ? { ...r, gap } : r)), ...keepTop(shape, cell, data.size, gap - rows[i].gap) })
   }
 
+  /** Row ``i`` reshaped on the plan, the block moved to ``place`` so the row's anchor seat stays put. */
+  const reshapeRow = (ref: ItemRef, shape: PlanShape, rows: BlockRow[], i: number, row: BlockRow, place: { x: number; y: number }) => change(ref,
+    { rows, ...keepTop(shape, data.drawing?.cell ?? 32, data.size, 0) }, { rows: rows.map((r, k) => (k === i ? row : r)), ...place })
+
   /** A double click on a seat block picks the row under the pointer in its panel. */
   const pickRowAt = (ref: ItemRef, at: Point) => {
     if (ref.kind !== 'block') return
@@ -833,6 +838,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // The bars between rows: a block in rows (not seats placed by hand), not locked, not being arranged.
   const gapShape = one?.kind === 'block' && arranging !== one.id && !isLocked(one) ? data.drawing?.shapes.find((s) => s.id === one.id && !s.free) ?? null : null
   const gapRows = gapShape ? storedBlocks.data?.find((b) => b.id === gapShape.id && !b.seat_at)?.rows ?? null : null
+  // The picked row, when it has a shape to change on the plan (RowShapeHandles.tsx).
+  const shapedRow = gapRows && pickedRow?.block === gapShape?.id ? gapRows.findIndex((r) => r.id === pickedRow?.row && r.shape !== 'line') : -1
   const oneMark = one?.kind === 'mark' ? shown.drawing?.marks?.find((m) => m.id === one.id) ?? null : null
   const markBox = oneMark && one ? outlineOf(shown, one)?.box : null
   // From the saved plan: the handle turns round where the item is, not where a drag drew it.
@@ -902,6 +909,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               picked={pickedRow?.block === one!.id ? gapRows.findIndex((r) => r.id === pickedRow.row) : null}
               onPick={(i) => setPickedRow({ block: one!.id, row: gapRows[i].id })}
               onDone={(i, gap) => void moveGap(one!, gapShape, gapRows, i, gap)} />
+          )}
+          {gapShape && gapRows && shapedRow >= 0 && tool === 'select' && !drag && (
+            <RowShapeHandles key={JSON.stringify(gapRows[shapedRow])} ctx={ctx} shape={gapShape} cell={data.drawing?.cell ?? 32} size={data.size}
+              rows={gapRows} r={shapedRow} snapGrid={snapping.grid} onDone={(row, place) => void reshapeRow(one!, gapShape, gapRows, shapedRow, row, place)} />
           )}
           {oneCable && tool === 'select' && (
             <BendHandles key={JSON.stringify(oneCable.points)} ctx={ctx} route={routeOf(oneCable)} cell={data.drawing?.cell ?? 32} path={pathOf}

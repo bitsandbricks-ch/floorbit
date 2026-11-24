@@ -28,7 +28,7 @@
   "side_l_0": "First arm",
   "side_l_1": "Second arm",
   "sidesHint": "Seats on each side, {{count}} in all. A change takes the seats from the middle or the other arm.",
-  "pathHint": "The seats follow the path's points. It starts as an L; drawing the path on the plan comes next.",
+  "pathHint": "The seats follow the path's points; they start as an L.",
   "align": "Line up with the other rows",
   "aligns": {
     "start": "Start",
@@ -48,5 +48,10 @@
   "gapHandle": "Drag to change the space above {{name}}",
   "gapDraft_one": "{{value}} seat",
   "gapDraft_other": "{{value}} seats",
-  "planHint": "Double-click a row on the plan to pick it; drag the bar between two rows to change the space."
+  "planHint": "Double-click a row on the plan to pick it; drag the bar between two rows to change the space.",
+  "bendHandle": "Drag to bend row {{name}}",
+  "armHandle": "Drag to change side {{arm}} of row {{name}}",
+  "pointHandle": "Point {{n}} of row {{name}}: drag to move, double-click to take out",
+  "addPoint": "Add a point to row {{name}} here",
+  "shapeHint": "On the plan: drag the handles to bend the row, change a side or move the path's points. + adds a point; double-click a point takes it out."
 }
