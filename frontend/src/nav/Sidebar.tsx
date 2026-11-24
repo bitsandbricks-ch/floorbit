@@ -36,6 +36,8 @@ export interface SidebarProps {
   dashboards?: { id: string; name: string }[]
   /** Switches down right now, next to Problems; null while unknown. */
   down?: number | null
+  /** Problems to look at (warn plus seat and port trouble), for the badge's tooltip (#884). */
+  look?: number | null
   actions?: MenuAction[]
 }
 
@@ -182,7 +184,7 @@ function Panel(props: PanelProps) {
               <Icon size={18} className="fb-nav-icon" aria-hidden="true" />
               <span className="fb-nav-text">{label}</span>
               {badge !== null && (
-                <span className="fb-nav-badge" title={t('nav.problemsDown', { count: badge })}>
+                <span className="fb-nav-badge" title={props.look ? t('nav.problemsSplit', { count: badge, look: props.look }) : t('nav.problemsDown', { count: badge })}>
                   <span className="fb-sr-only">{t('nav.problemsDown', { count: badge })}</span>
                   <span aria-hidden="true">{badge}</span>
                 </span>

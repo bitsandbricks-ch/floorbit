@@ -767,7 +767,8 @@ export interface LibreNMSAlertsSetup {
 export interface ProblemList {
   problems: Problem[]
   attention?: Problem[]
-  counts: { down: number; warn: number; muted: number; attention?: number; seats?: number }
+  /** `look` = warn + attention, `total` = down + look: the one count every place shows (#884). */
+  counts: { down: number; warn: number; muted: number; attention?: number; seats?: number; look?: number; total?: number }
   mutes: AlertMute[]
   quiet_hours: boolean
   checked_at: number
