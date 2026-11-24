@@ -15,7 +15,8 @@ const entry = (id: string, type: string, name: string, fields: Record<string, st
   id, type, name, summary: '', detail: '', link: '', group_id: null, tags: [], properties: {}, icon: '', color: '', notes: '',
   fields, sources, gone: [],
 })
-const vlans = [entry('v10', 'vlan', 'Seats A', { vlan_id: '10', purpose: 'Seats' }, ['netbox']),
+const seen = ['sw-a-01', 'sw-a-02', 'sw-a-03', 'sw-a-04', 'sw-a-05'].map((name) => ({ id: `d-${name}`, name }))
+const vlans = [{ ...entry('v10', 'vlan', 'Seats A', { vlan_id: '10', purpose: 'Seats' }, ['netbox']), seen_on: seen },
   entry('v20', 'vlan', 'Crew', { vlan_id: '20', purpose: 'Crew' })]
 const prefixes = [
   entry('p1', 'prefix', 'Seats A', { prefix: '192.0.2.0/24', vlan_id: '10', purpose: 'Seats' }, ['netbox']),
@@ -55,6 +56,15 @@ describe('IpamView (#1346)', () => {
     expect(within(row).getByRole('link', { name: '198.51.100.0/25' })).toHaveAttribute('href', '/inventory/entries/prefix/p2')
     expect(within(row).getByText('By hand')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add VLAN' })).toBeNull()
+  })
+
+  it('says which devices a VLAN was seen on (#1347)', async () => {
+    vi.stubGlobal('fetch', api().fn)
+    renderWithApp(<IpamView types={types} sub="vlans" onSub={() => {}} canEdit={false} sourceName={names} />)
+    const row = (await screen.findByRole('link', { name: 'Seats A' })).closest('tr')!
+    expect(within(row).getByRole('link', { name: 'sw-a-01' })).toHaveAttribute('href', '/inventory/devices/d-sw-a-01')
+    expect(within(row).queryByRole('link', { name: 'sw-a-04' })).toBeNull()
+    expect(within(row).getByText('2 more')).toBeInTheDocument()
   })
 
   it('switches between VLANs and prefixes', async () => {

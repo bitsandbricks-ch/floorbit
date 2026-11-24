@@ -136,12 +136,36 @@ def test_discord_gets_where_not_who(app_module):
     assert discord.build_security_message({"id": "demo:low", "kind": "other", "severity": "low"}) is None
 
 
-def test_acknowledge(client, fake):
-    fake.append(spoof())
+def test_a_finding_is_a_problem_with_its_evidence_on_its_page(app_module, client, fake):
+    """Issue #885: no page of findings; each is a problem, low ones a look, the evidence on its page."""
+    fake += [spoof(evidence=["02:00:00:00:00:1b on Gi1/0/4", "02:00:00:00:00:2c on Gi1/0/9"], detail="Two answers"),
+             {"id": "quiet", "kind": "other", "severity": "low", "title": "Odd DHCP option", "switch": "sw-b-01",
+              "port": "Gi1/0/5"}]
     client.get("/api/security")
-    resp = client.post("/api/security/demo:arp-1/ack", json={"on": True})
-    assert resp.status_code == 200 and resp.get_json()["ack"]["by"] == "tester"
-    assert client.post("/api/security/demo:gone/ack", json={}).status_code == 404
+    body = client.get("/api/problems").get_json()
+    assert [p["id"] for p in body["problems"] if p["kind"] == "security"] == ["security:demo:arp-1"]
+    assert [p["id"] for p in body["attention"] if p["kind"] == "security"] == ["security:demo:quiet"]
+    page = client.get("/api/problems/security:demo:arp-1").get_json()
+    assert page["problem"]["level"] == "down" and page["problem"]["link"] == ""
+    f = page["finding"]
+    assert (f["detail"], f["evidence"], f["seat"], f["uplink"]) == ("Two answers", spoof(evidence=[
+        "02:00:00:00:00:1b on Gi1/0/4", "02:00:00:00:00:2c on Gi1/0/9"])["evidence"], "B-4", None)
+    assert page["can_shut"] is True and "ack" not in f
+    assert client.post("/api/security/demo:arp-1/ack", json={"on": True}).status_code == 404
+    assert client.get("/security").status_code == 404
+    # A viewer sees what and where, never the finding (MACs and IPs).
+    viewer = sign_in(app_module, "watcher", "viewer")
+    seen = viewer.get("/api/problems/security:demo:arp-1").get_json()
+    assert "finding" not in seen and seen["problem"]["title"] == "ARP spoofing"
+
+
+def test_the_discord_alert_links_the_findings_page(app_module, monkeypatch):
+    discord = app_module.app.extensions["floorbit_integrations"]["discord"]
+    discord._last_alert.clear()
+    monkeypatch.setenv("PUBLIC_URL", "https://floor.example.com")
+    msg = discord.build_security_message({"id": "demo:arp-1", "kind": "arp-spoof", "severity": "high",
+                                          "switch": "sw-b-01", "port": "Gi1/0/4"}, now=5000)
+    assert msg["embeds"][0]["url"] == "https://floor.example.com/problems/security:demo:arp-1"
 
 
 def test_one_click_shutdown_uses_the_findings_port(client, fake):

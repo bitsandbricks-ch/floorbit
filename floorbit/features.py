@@ -38,7 +38,7 @@ FEATURES = (
     {'id': 'games', 'paths': ('/games', '/api/games'), 'needs': ()},
     {'id': 'syslog', 'paths': ('/logs', '/api/logs'), 'needs': ()},
     {'id': 'forecast', 'paths': ('/api/forecast',), 'needs': ()},
-    {'id': 'security', 'paths': ('/security', '/api/security'), 'needs': ()},
+    {'id': 'security', 'paths': ('/api/security',), 'needs': ()},
     {'id': 'ports', 'paths': ('/api/ports',), 'needs': ()},
     {'id': 'commands', 'paths': ('/commands', '/api/commands'), 'needs': ('ports',)},
     {'id': 'terminal', 'paths': ('/terminal', '/api/terminal'), 'needs': ('ports',)},

@@ -5,5 +5,37 @@
   "more_one": "+{{count}} more",
   "more_other": "+{{count}} more",
   "problems_one": "{{count}} problem",
-  "problems_other": "{{count}} problems"
+  "problems_other": "{{count}} problems",
+  "shows": "Shows",
+  "view": "Saved view",
+  "pickView": "Pick a view",
+  "noViews": "This hall has no shared saved views yet. Save one on the floor plan with Saved views ▾.",
+  "stops": "Stops",
+  "stopWhole": "The whole area",
+  "stopBlocks": "Each block in turn",
+  "stopViews": "Saved views",
+  "secs": "Seconds per stop",
+  "onProblem": "When a seat gets a problem",
+  "onProblemHint": "Show it next: the rows around the seat are the next stop (the spotlight stays there while the problem lasts).",
+  "tour": "Tour",
+  "stopProblem": "Seat {{seat}} · problem",
+  "stopOf": "{{n}} / {{count}}",
+  "viewGone": "This saved view is gone, or only its owner can see it.",
+  "noStops": "This tour has no stops in this hall.",
+  "showsOpt": {
+    "area": "Its area",
+    "view": "One saved view",
+    "tour": "Tour",
+    "spotlight": "Overview + spotlight"
+  },
+  "showsHint": {
+    "area": "The whole hall, a block, a row, a zone or a box you pick below.",
+    "view": "A view saved on the floor plan (Saved views ▾): where it looks and its seat filter.",
+    "tour": "Goes through the stops below, a few seconds each. Touching the screen pauses it for a minute.",
+    "spotlight": "The whole area on the left, colour only, and the stops below zoomed in on the right. Needs a wide box; a narrow one shows the area."
+  },
+  "onProblemOpt": {
+    "next": "Show it next",
+    "keep": "Keep going"
+  }
 }

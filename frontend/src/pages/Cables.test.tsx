@@ -67,7 +67,10 @@ describe('Cables', () => {
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Cables />)
     fireEvent.click(await screen.findByRole('button', { name: 'More' }))
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'Import from NetBox' }))
+    // One import for every source, which the item names below it (issue #880).
+    const item = await screen.findByRole('menuitem', { name: /^Import cables/ })
+    expect(item).toHaveTextContent('From NetBox')
+    fireEvent.click(item)
     expect(await screen.findByText('Imported 12 cables.')).toBeInTheDocument()
     expect(screen.getByText('1 cable(s) skipped')).toBeInTheDocument()
   })
@@ -128,7 +131,7 @@ describe('Cables', () => {
         down: list([{ seat: 'A-7', switch: 'sw-a-01', port: 'Gi1/0/7' }]), unread: ['sw-z-09'],
       },
     }).fn)
-    renderWithApp(<Cables />)
+    renderWithApp(<Cables />, '/cables?tab=check')   // issue #880: the check is a tab of its own
     expect(await screen.findByText('18 of 24 seat ports up')).toBeInTheDocument()
     expect(screen.getByText("1 cable names a port the switch doesn't have")).toBeInTheDocument()
     expect(screen.getByText('A-4: sw-a-01 Gi1/0/40')).toBeInTheDocument()
@@ -159,7 +162,7 @@ describe('Cables', () => {
       'POST /api/cables/clients/ignored': { ok: true },
     })
     vi.stubGlobal('fetch', api.fn)
-    app()
+    app('/cables?tab=check')
     expect(await screen.findByText('1 machine on another seat\'s port')).toBeInTheDocument()
     expect(screen.getByText('sw-a-01 Gi1/0/2 is cabled to A-2, but 192.0.2.13 is the IP of A-3')).toBeInTheDocument()
     expect(screen.getByText('1 machine on a port no cable explains')).toBeInTheDocument()

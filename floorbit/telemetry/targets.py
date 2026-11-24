@@ -56,11 +56,26 @@ def _agent(value):
     return value if AGENT_RE.match(value) else ''
 
 
+TAG_PREFIX = 'tag:'
+
+
+def collector(value, failover=None):
+    """What telemetry.agent (and telemetry.failover) say about who collects (issue #869):
+    ``{'agent': id, 'tag': tag id, 'failover': bool}``. Empty: any agent. ``tag:<id>``: the agents
+    with that inventory tag, one at a time. An agent id: that agent. ``failover`` off: nobody else
+    takes over while the agent (or every agent with the tag) is away."""
+    value = str(value or '').strip()
+    tag = _agent(value[len(TAG_PREFIX):]) if value.startswith(TAG_PREFIX) else ''
+    return {'agent': '' if tag or value.startswith(TAG_PREFIX) else _agent(value), 'tag': tag,
+            'failover': str(failover if failover is not None else 'true').lower() not in ('false', '0', 'no', 'off')}
+
+
 # ── devices from the inventory ─────────────────────────────────────────────────────────────────
 # A device in the inventory with the Telemetry feature on (on itself, a tag, its group or type) is
 # collected from like one set up here, with the logins stored in the inventory: SNMP v3 or v2c for
 # polling and traps, an API login for NX-API, RESTCONF or OPNsense. Its properties can say more:
-# telemetry.drivers, telemetry.agent (the agent that collects), telemetry.address, telemetry.verify_tls,
+# telemetry.drivers, telemetry.agent and telemetry.failover (who collects, collector()),
+# telemetry.address, telemetry.verify_tls,
 # telemetry.snmp.{fdb,vlans,port}, telemetry.gnmi.port, telemetry.api.{port,url}, telemetry.mdt.node.
 # Like every property they come from the device, its tags, group or type.
 # A device that sends by itself (push, mdt, traps in telemetry.drivers) needs no login.
@@ -145,7 +160,8 @@ def _from_device(dev, snmp, api, trap=None):
          'fdb': props.get('telemetry.snmp.fdb') if props.get('telemetry.snmp.fdb') in FDB_MODES else given['fdb'],
          'vlans': sorted(vlans) or list(dev.get('iface_vlans') or []),
          'ports': _ports({k: props.get(f'telemetry.{k}.port') for k in PORT_KINDS}),
-         'agent': _agent(props.get('telemetry.agent')),
+         **{('agent_tag' if k == 'tag' else k): v
+            for k, v in collector(props.get('telemetry.agent'), props.get('telemetry.failover')).items()},
          'url': str(props.get('telemetry.api.url') or '').strip() or None,
          # Cisco names the stream after the switch unless it is set up otherwise.
          'mdt_node': str(props.get('telemetry.mdt.node') or '').strip() or (dev['name'] if 'mdt' in drivers else None),
@@ -350,30 +366,57 @@ def token_ok(given):
 
 
 # ── which agent collects ──────────────────────────────────────────────────────────────────────
-# A device with an agent (telemetry.agent) is collected by that agent alone, even when it stands by
-# for another (VRRP): "mine" tells it to. While that agent is away, the device goes back to the
-# rest like one without an agent, so it isn't left unheard. Without an agent, every agent gets it
-# and the primary one polls (the agent's own rule).
+# "Collected by" (telemetry.agent, issue #869): any agent, the agents with a tag, or one agent.
+# A device given to one agent is collected by that agent alone, even when it stands by for another
+# (VRRP): "mine" tells it to. One given to a tag goes to the first connected agent with that tag
+# (by id, so the same one keeps it while it is there), and to the next when it goes. While nobody
+# it was given to is there, the device goes back to the rest like one without an agent, so it isn't
+# left unheard, unless telemetry.failover is off. Without an agent, every agent gets it and the
+# primary one polls (the agent's own rule).
 
-def for_agent(every, agent_id, connected):
+def _agent_tags():
+    from .. import agent_link
+    return {a['id']: set(a.get('tags') or []) for a in agent_link.all_agents()}
+
+
+def owner_of(t, connected, agent_tags):
+    """``(agent id or None, given)``: the agent that collects ``t`` alone right now, and whether
+    it was given to someone at all. ``(None, True)``: given, but nobody it was given to is here and
+    failover is off, so nobody collects it."""
+    agent, tag = t.get('agent') or '', t.get('agent_tag') or ''
+    if not agent and not tag:
+        return None, False
+    if agent and agent in connected:
+        return agent, True
+    if tag:
+        members = sorted(a for a in connected if tag in agent_tags.get(a, ()))
+        if members:
+            return members[0], True
+    return None, t.get('failover') is False
+
+
+def for_agent(every, agent_id, connected, agent_tags=None):
     """The targets ``agent_id`` gets, ``mine`` set on those only it collects. ``connected``: the
     agent ids connected now. ``agent_id`` None (an agent that doesn't say who it is): every target,
     as before."""
     if agent_id is None:
         return [dict(t) for t in every]
+    if agent_tags is None and any(t.get('agent_tag') for t in every):
+        agent_tags = _agent_tags()
     out = []
     for t in every:
-        owner = t.get('agent') or ''
-        if owner and owner in connected:
+        owner, given = owner_of(t, connected, agent_tags or {})
+        if owner is not None:
             if owner == agent_id:
                 out.append({**t, 'mine': True})
-        else:
+        elif not given:
             out.append(dict(t))
     return out
 
 
 def pinned(data=None):
-    """{device name, lower case: agent id} for the devices with an agent: where calls about them go."""
+    """{device name, lower case: collector()} for the devices given to an agent or a tag: where
+    calls about them go."""
     from .. import inventory, inventory_scope
     data = load_data() if data is None else data
     out = {}
@@ -382,8 +425,12 @@ def pinned(data=None):
         if not name or name in out:
             continue
         stack = inventory_scope.layers(data, dev)
-        agent = _agent(next((h['properties']['telemetry.agent'] for _k, h in stack
-                             if (h.get('properties') or {}).get('telemetry.agent')), ''))
-        if agent:
-            out[name] = agent
+
+        def first(key, stack=stack):
+            # A bool property may be False, so "set" is "there and not empty".
+            return next((h['properties'][key] for _k, h in stack
+                         if (h.get('properties') or {}).get(key) not in (None, '')), None)
+        who = collector(first('telemetry.agent'), first('telemetry.failover'))
+        if who['agent'] or who['tag']:
+            out[name] = who
     return out

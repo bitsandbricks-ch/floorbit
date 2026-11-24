@@ -760,7 +760,7 @@ def test_a_port_per_way_of_asking_and_an_agent_from_the_group(client, tmp_path, 
     conf = telegraf.render([found], "http://agent:8186/write", "t")
     assert "udp://192.0.2.131:1161" in conf and "192.0.2.131:50052" in conf
     assert pollers._base(found) == "https://192.0.2.131:8443"
-    assert targets.pinned()["sw-b-01"] == "rack-b"
+    assert targets.pinned()["sw-b-01"] == {"agent": "rack-b", "tag": "", "failover": True}
 
 
 def test_a_device_with_an_agent_goes_to_that_agent_only_while_it_is_there():
@@ -777,6 +777,49 @@ def test_a_device_with_an_agent_goes_to_that_agent_only_while_it_is_there():
                             {"name": "sw-b", "address": "192.0.2.2", "drivers": ["snmp"]}],
                            "http://agent:8186/write", "t", poll=False)
     assert "192.0.2.1:161" in conf and "192.0.2.2" not in conf
+
+
+def test_collected_by_the_agents_with_a_tag_one_at_a_time():
+    """Issue #869: a device given to a tag goes to the first connected agent with it; the next one
+    takes over when it goes. Without failover nobody else gets it while they are away."""
+    from floorbit.telemetry import targets
+    every = [{"name": "sw-a", "agent": "", "agent_tag": "hall-a", "failover": True},
+             {"name": "sw-b", "agent": "", "agent_tag": "hall-a", "failover": False},
+             {"name": "sw-c", "agent": "rack-c", "agent_tag": "", "failover": False}]
+    tags = {"rack-a": {"hall-a"}, "rack-a2": {"hall-a"}, "rack-z": set()}
+    names = lambda agent, connected: {t["name"]: bool(t.get("mine"))  # noqa: E731
+                                      for t in targets.for_agent(every, agent, connected, tags)}
+    everyone = {"rack-a", "rack-a2", "rack-z"}
+    assert names("rack-a", everyone) == {"sw-a": True, "sw-b": True}
+    assert names("rack-a2", everyone) == {}
+    assert names("rack-z", everyone) == {}
+    # rack-a goes: rack-a2 has the tag too, so it takes both over.
+    assert names("rack-a2", {"rack-a2", "rack-z"}) == {"sw-a": True, "sw-b": True}
+    # Nobody with the tag: sw-a goes back to everyone, sw-b (no failover) and sw-c wait.
+    assert names("rack-z", {"rack-z"}) == {"sw-a": False}
+    assert targets.collector("tag:hall-a", "false") == {"agent": "", "tag": "hall-a", "failover": False}
+    assert targets.collector("rack-1") == {"agent": "rack-1", "tag": "", "failover": True}
+    assert targets.collector("tag:") == {"agent": "", "tag": "", "failover": True}
+
+
+def test_calls_about_a_device_go_to_its_tags_agent(client, monkeypatch):
+    from test_inventory_scope import add
+
+    from floorbit import agent_link
+    from tests.test_agent import enrol
+    a, b = enrol(client, "Rack A"), enrol(client, "Rack B")
+    tag = client.post("/api/inventory/tags", json={"name": "Hall B"}).get_json()
+    assert client.patch(f"/api/agents/{b['id']}", json={"tags": [tag["id"]]}).status_code == 200
+    add(client, name="sw-b-01", mgmt_ip="192.0.2.41", properties={"telemetry.agent": f"tag:{tag['id']}"})
+    add(client, name="sw-b-02", mgmt_ip="192.0.2.42",
+        properties={"telemetry.agent": f"tag:{tag['id']}", "telemetry.failover": False})
+    agent_link.tunnel.seen(agent=a["id"])
+    agent_link.tunnel.seen(agent=b["id"])
+    assert agent_link.agent_for("sw-b-01") == b["id"]
+    monkeypatch.setattr(agent_link.tunnel, "connected_agents", lambda: {a["id"]})
+    assert agent_link.agent_for("sw-b-01") == a["id"]           # Rack B away: Rack A takes over
+    with pytest.raises(agent_link.AgentUnavailable):
+        agent_link.agent_for("sw-b-02")                          # no failover: nobody
 
 
 def test_each_agent_gets_its_share_of_the_devices(client, anon_client, tmp_path, monkeypatch):

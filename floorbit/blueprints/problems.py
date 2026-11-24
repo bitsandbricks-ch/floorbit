@@ -5,7 +5,9 @@
   see the incident board, a problem carries the id of its open incident (issue #278): one made from
   it (issue #882), or for an offline switch any open one on that switch.
 - ``GET /problems/<id>``, ``GET /api/problems/<id>``: one problem's page (issue #882): the problem,
-  its open incident and where to look next. 404 once it is over.
+  its open incident and where to look next. 404 once it is over. A security finding's page also
+  carries the ``finding`` (evidence, uplink) for ``seats.view``, and whether its port can be shut
+  (issue #885).
 - ``POST /api/alerts/mutes``: ``{"switch_id", "minutes", "reason"}`` mutes a switch's alerts;
   ``{"service_id", ...}`` mutes a service on the health wall instead (issue #256), ``{"ap", ...}``
   a Wi-Fi access point (issue #1064).
@@ -93,8 +95,25 @@ def one_problem(problem_id):
     if found.get('device'):
         device = next(({'id': d['id'], 'name': d['name']} for d in inventory.devices(load_data(), include_hidden=True)
                        if d['name'] == found['device']), None)
-    return jsonify({'problem': found, 'device': device, 'can_mute': _can('incidents.work'),
-                    'can_report': can_report, 'may_see_people': may_see_people})
+    body = {'problem': found, 'device': device, 'can_mute': _can('incidents.work'),
+            'can_report': can_report, 'may_see_people': may_see_people}
+    if found['kind'] == 'security' and may_see_people:
+        body.update(_finding(found['id'][len('security:'):]))
+    return jsonify(body)
+
+
+def _finding(finding_id):
+    """A security finding as its problem page shows it: what the plugin saw, and the port."""
+    from .. import ports, security, uplink_guard
+    f = security.get(finding_id)
+    if not f:
+        return {}
+    uplink = uplink_guard.reason(f['switch'], f['port'], load_data()) if f.get('switch') and f.get('port') else None
+    info = ports.info(current_app.extensions['floorbit_plugins']) if _can('ports.act') else {'available': False}
+    keep = ('id', 'kind', 'severity', 'detail', 'evidence', 'switch', 'port', 'seat', 'mac', 'ip',
+            'plugin', 'plugin_name', 'first_seen', 'last_seen')
+    return {'finding': {**{k: f.get(k) for k in keep}, 'uplink': uplink},
+            'can_shut': bool(info.get('available')), 'needs_login': bool(info.get('needs_login'))}
 
 
 @bp.route('/api/alerts/mutes', methods=['POST'])

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useDashboard, useWidgets } from '@/api/queries'
+import { usePlanViews } from '@/api/planViews'
 import type { SeatViewData, WidgetTile } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { type Calc, CALCS, groupKeys, KIND_PICKS, type KindPick, kindsFor, LEVEL_PINS, type LevelPin, LINE_STYLES, looksFor, MAX_SOURCES, resolveKind, STACKS, TRENDS, type PaneFit } from '@bitsandbricks/widgets'
@@ -12,7 +13,7 @@ import { usePaneData } from '@/widgets/usePaneData'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
-import { type Area, REFRESHES, type Refresh, TIME_RANGES, type TimeRange, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane, planRows } from './model'
+import { type Area, REFRESHES, type Refresh, TIME_RANGES, type TimeRange, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, PLAN_SHOWS, type PlanShows, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane, planRows } from './model'
 import { pluginName } from '@/lib/pluginName'
 import { DisplayFields } from './DisplayFields'
 import { followed, useSavedWidgets } from '../widgets/saved'
@@ -104,12 +105,55 @@ function PlanFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'plan' }>;
   const rowData = [...new Set(rows.map((r) => r.group))].map((g) => ({
     group: g, items: rows.filter((r) => r.group === g).map(({ value, label }) => ({ value, label })) }))
   const setArea = (area: Area) => onChange({ ...pane, area })
+  const shows = pane.shows ?? 'area'
+  // Shared views only: a private one would show to nobody but you on a screen.
+  const hall = pane.hall || q.data?.hall || ''
+  const views = (usePlanViews(shows !== 'area').data ?? []).filter((v) => v.hall === hall && !v.private)
+    .map((v) => ({ value: v.id, label: v.name }))
+  const stops = pane.stops ?? { whole: true, blocks: true, views: [] }
+  const setShows = (v: PlanShows) => {
+    const rest = { ...pane, view: undefined, stops: undefined, secs: undefined, on_problem: undefined }
+    if (v === 'area') onChange({ ...rest, shows: undefined })
+    else if (v === 'view') onChange({ ...rest, shows: v, view: views[0]?.value ?? '' })
+    else onChange({ ...rest, shows: v, stops, secs: pane.secs ?? 15, on_problem: pane.on_problem ?? 'next' })
+  }
   return (
     <>
       <EntitySelect kind="halls" label={t('dashboards.form.hall')} description={t('dashboards.form.hallHint')} clearable
         value={pane.hall || null} onChange={(v) => onChange({ ...pane, hall: v ?? '', area: { kind: 'hall' } })} />
+      <Select label={t('hallPlan.shows')} description={t(`hallPlan.showsHint.${shows}`)} allowDeselect={false} value={shows}
+        data={PLAN_SHOWS.map((k) => ({ value: k, label: t(`hallPlan.showsOpt.${k}`) }))}
+        onChange={(v) => v && setShows(v as PlanShows)} />
+      {shows === 'view' && (views.length
+        ? <Select label={t('hallPlan.view')} allowDeselect={false} searchable placeholder={t('hallPlan.pickView')}
+            value={pane.view || null} data={views} onChange={(v) => v && onChange({ ...pane, view: v })} />
+        : <Text size="sm" c="dimmed">{t('hallPlan.noViews')}</Text>)}
+      {(shows === 'tour' || shows === 'spotlight') && (
+        <Stack gap={6}>
+          <Text size="sm" fw={500}>{t('hallPlan.stops')}</Text>
+          <Switch label={t('hallPlan.stopWhole')} checked={stops.whole}
+            onChange={(e) => onChange({ ...pane, stops: { ...stops, whole: e.currentTarget.checked } })} />
+          <Switch label={t('hallPlan.stopBlocks')} checked={stops.blocks}
+            onChange={(e) => onChange({ ...pane, stops: { ...stops, blocks: e.currentTarget.checked } })} />
+          <MultiSelect label={t('hallPlan.stopViews')} data={views} value={stops.views.filter((id) => views.some((v) => v.value === id))}
+            placeholder={views.length ? t('hallPlan.pickView') : undefined} nothingFoundMessage={t('hallPlan.noViews')} searchable
+            onChange={(v) => onChange({ ...pane, stops: { ...stops, views: v } })} />
+          <div>
+            <Text size="sm" fw={500} mb={4}>{t('hallPlan.secs')}</Text>
+            <SegmentedControl fullWidth size="xs" value={String(pane.secs ?? 15)} aria-label={t('hallPlan.secs')}
+              data={['8', '15', '30', '60']} onChange={(v) => onChange({ ...pane, secs: Number(v) })} />
+          </div>
+          <div>
+            <Text size="sm" fw={500} mb={4}>{t('hallPlan.onProblem')}</Text>
+            <SegmentedControl fullWidth size="xs" value={pane.on_problem ?? 'next'} aria-label={t('hallPlan.onProblem')}
+              data={(['next', 'keep'] as const).map((k) => ({ value: k, label: t(`hallPlan.onProblemOpt.${k}`) }))}
+              onChange={(v) => onChange({ ...pane, on_problem: v as 'next' | 'keep' })} />
+            <Text size="xs" c="dimmed" mt={4}>{t('hallPlan.onProblemHint')}</Text>
+          </div>
+        </Stack>
+      )}
       {/* Five parts: a list, not a segmented row that wraps in the side panel. */}
-      <Select label={t('dashboards.form.area')} allowDeselect={false} value={pane.area.kind}
+      {shows !== 'view' && <Select label={t('dashboards.form.area')} allowDeselect={false} value={pane.area.kind}
         data={(['hall', 'block', 'row', 'zone', 'box'] as const).map((k) => ({ value: k, label: t(`dashboards.area.${k}`) }))}
         onChange={(v) => {
           if (v === 'hall') setArea({ kind: 'hall' })
@@ -117,23 +161,23 @@ function PlanFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'plan' }>;
           else if (v === 'row') setArea({ kind: 'row', id: rows[0]?.value ?? '' })
           else if (v === 'zone') setArea({ kind: 'zone', id: zones[0]?.id ?? '' })
           else if (v === 'box' && drawing) setArea({ kind: 'box', ...(areaView({ kind: 'hall' }, drawing) ?? { x: 0, y: 0, w: 1600, h: 1000 }) })
-        }} />
-      {pane.area.kind === 'block' && (
+        }} />}
+      {shows !== 'view' && pane.area.kind === 'block' && (
         <Select label={t('dashboards.area.block')} allowDeselect={false} searchable placeholder={t('ui.pickBlock')} value={(drawing && findBlock(drawing, pane.area.id)?.id) || pane.area.id || null}
           data={blocks} nothingFoundMessage={t('dashboards.form.noBlocks')}
           onChange={(v) => v && setArea({ kind: 'block', id: v })} />
       )}
-      {pane.area.kind === 'row' && (
+      {shows !== 'view' && pane.area.kind === 'row' && (
         <Select label={t('dashboards.area.row')} allowDeselect={false} searchable placeholder={t('dashboards.form.pickRow')}
           value={pane.area.id || null} data={rowData} nothingFoundMessage={t('dashboards.form.noRows')}
           onChange={(v) => v && setArea({ kind: 'row', id: v })} />
       )}
-      {pane.area.kind === 'zone' && (zones.length
+      {shows !== 'view' && pane.area.kind === 'zone' && (zones.length
         ? <Select label={t('dashboards.area.zone')} allowDeselect={false} value={pane.area.id || null}
             data={zones.map((z) => ({ value: z.id!, label: z.label || t('dashboards.form.unnamedZone') }))}
             onChange={(v) => v && setArea({ kind: 'zone', id: v })} />
         : <Text size="sm" c="dimmed">{t('dashboards.form.noZones')}</Text>)}
-      {pane.area.kind === 'box' && q.data && drawing && (
+      {shows !== 'view' && pane.area.kind === 'box' && q.data && drawing && (
         <BoxPicker data={q.data} box={pane.area} onPick={(v) => setArea({ kind: 'box', ...v })} />
       )}
       <div>

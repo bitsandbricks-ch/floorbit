@@ -5,28 +5,36 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
+import { usePlanViews } from '@/api/planViews'
 import type { FirewallSeats, IncidentMarkers, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
 import { PRESETS, type LayerState } from '../plan/layers'
 import type { View } from '../plan/model'
-import { SeatMap } from '../plan/SeatMap'
+import { SeatMap, type OverlayContext } from '../plan/SeatMap'
 import { useCablePlan } from '../plan/cablePlan'
 import { turnHelps, turnPlan, turnView } from '../plan/turn'
 import { useSize } from '../plan/useSize'
 import { ProblemList } from './ProblemList'
 import { problemSeats } from './problemSeats'
 import './PlanPane.css'
-import { areaView, blockText, findBlock, findRow, PUBLIC_MARK_LAYERS, seatsIn, type Pane } from './model'
+import { areaView, blockText, findBlock, findRow, PUBLIC_MARK_LAYERS, seatsIn, type Pane, type SharedView, type TourStops } from './model'
 import { publicUrl, useScreen } from './screen'
+import { problemView, tourStops, type Stop } from './tour'
+import { useTour } from './useTour'
 
 type PlanPaneDef = Extract<Pane, { kind: 'plan' }>
 
 // From this wide a pane lists its problem seats beside the plan, in a column this wide (PlanPane.css).
 const LIST_FROM = 720
 const LIST_W = 220
+// Below this wide there is no room for the overview beside the spotlight: the pane shows its area.
+const SPOT_FROM = 560
+// The overview's share of a spotlight pane (PlanPane.css .fb-plan-spot).
+const SPOT_SHARE = 0.4
+const WHOLE: TourStops = { whole: true, blocks: true, views: [] }
 
 /** The halls a rotating pane goes through, and which one is up. */
 function useHall(pane: PlanPaneDef, cycle: number | undefined, halls: { id: string }[] | undefined) {
-  const rotate = !!cycle && !pane.hall && pane.area.kind === 'hall' && (halls?.length ?? 0) > 1
+  const rotate = !!cycle && !pane.hall && pane.area.kind === 'hall' && (pane.shows ?? 'area') === 'area' && (halls?.length ?? 0) > 1
   const [i, setI] = useState(0)
   useEffect(() => {
     if (!rotate) return
@@ -76,9 +84,11 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
   const px = useSize(bodyRef)
   const drawing = data?.drawing
   const home = useMemo(() => (drawing ? areaView(pane.area, drawing) : null), [drawing, pane.area])
+  const shows = pane.shows === 'spotlight' && px.w && px.w < SPOT_FROM ? 'area' : pane.shows ?? 'area'
+  const touring = shows === 'tour' || shows === 'spotlight'
   // The side list takes room from the plan: decide on turning for what is left.
-  const wide = px.w >= LIST_FROM
-  const room = { w: wide ? px.w - LIST_W : px.w, h: px.h }
+  const wide = px.w >= LIST_FROM && shows !== 'spotlight'
+  const room = shows === 'spotlight' ? { w: px.w * SPOT_SHARE, h: px.h } : { w: wide ? px.w - LIST_W : px.w, h: px.h }
   const turned = !!pane.turn && !!home && turnHelps(home, room)
   const shown = useMemo(() => (turned && data ? turnPlan(data) : data), [turned, data])
 
@@ -138,25 +148,60 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
     : pane.area.kind === 'zone' ? drawing?.marks?.find((m) => m.id === (pane.area as { id: string }).id)?.label || t('dashboards.area.zone')
     : pane.area.kind === 'row' ? t('dashboards.area.rowName', { name: row ? row.name : pane.area.id })
     : pane.area.kind === 'box' ? t('dashboards.area.box') : ''
-  const title = pane.title || [hallName, areaName].filter(Boolean).join(' · ')
   const seats = data && inArea ? [...inArea].map((s) => data.seats[s]).filter(Boolean) : []
   const online = seats.filter((s) => s.state === 'online').length
   const problems = seats.filter((s) => s.problems).length
   const listed = useMemo(() => (data && inArea ? problemSeats(data.seats, inArea) : []), [data, inArea])
+
+  // Saved views: an account reads them; a public screen gets the shared ones with its pane.
+  const viewsQ = usePlanViews(!open && shows !== 'area')
+  const saved: SharedView[] = useMemo(() => (open ? pane.views ?? [] : viewsQ.data ?? []), [open, pane.views, viewsQ.data])
+  const one = shows === 'view' ? saved.find((v) => v.id === pane.view) : undefined
+  const title = pane.title || [hallName, shows === 'view' ? one?.name : areaName].filter(Boolean).join(' · ')
+  const stops: Stop[] = useMemo(() => (touring && drawing && home ? tourStops(drawing, home, pane.stops ?? WHOLE, saved, data?.hall ?? '', {
+    whole: areaName || hallName || t('dashboards.area.hall'), block: (b) => t('dashboards.area.blockName', { name: blockText(t, b) }),
+  }) : []), [touring, drawing, home, pane.stops, saved, data?.hall, areaName, hallName, t])
+  const problemSet = useMemo(() => new Set(listed.map((l) => l.seat)), [listed])
+  const step = useTour(stops.length, pane.secs ?? 15, !!moved || !touring, data ? problemSet : null,
+    (pane.on_problem ?? 'next') === 'next', shows === 'spotlight')
+  const stop: Stop | undefined = useMemo(() => {
+    if (!touring) return undefined
+    const at = step.seat && drawing ? problemView(drawing, step.seat) : null
+    return at ? { key: `seat:${step.seat}`, label: t('hallPlan.stopProblem', { seat: step.seat }), view: at } : stops[step.i]
+  }, [touring, step.seat, step.i, drawing, stops, t])
+  // Where the pane looks before anyone drags it: its area, the saved view, or the tour's stop.
+  const target = shows === 'view' ? one?.view ?? null : touring ? stop?.view ?? null : home
+  const filter = shows === 'view' ? one?.show ?? pane.show : stop?.show ?? pane.show
 
   let body: React.ReactNode
   if (q.isPending) body = null
   else if (q.error && !data) body = <Text c="down" className="fb-pane-note">{t('dashboards.pane.failed')}</Text>
   else if (!drawing) body = <Text c="dimmed" className="fb-pane-note">{t('dashboards.pane.noPlan')}</Text>
   else if (!home) body = <Text c="dimmed" className="fb-pane-note">{t('dashboards.pane.areaGone')}</Text>
+  else if (shows === 'view' && !one) body = viewsQ.isPending && !open ? null : <Text c="dimmed" className="fb-pane-note">{t('hallPlan.viewGone')}</Text>
+  else if (touring && !stop) body = <Text c="dimmed" className="fb-pane-note">{t('hallPlan.noStops')}</Text>
   else {
-    const view = moved ?? (turned ? turnView(home) : home)
-    body = (
-      <SeatMap data={shown!} view={view} setView={setMoved} rings filter={pane.show} selected={null} onSelect={() => {}}
+    const look = (v: View) => (turned ? turnView(v) : v)
+    const view = moved ?? look(target ?? home)
+    const map = (v: View, labels = pane.labels, overlay?: (ctx: OverlayContext) => React.ReactNode) => (
+      <SeatMap data={shown!} view={v} setView={setMoved} rings filter={filter} selected={null} onSelect={() => {}}
         layers={layers} traffic={on('status')} power={power?.enabled ? power : undefined}
         firewalls={firewalls?.enabled ? firewalls.seats : undefined} wifi={wifi} incidents={incidents}
-        cables={cables?.cables} labels={pane.labels} focus={row && inArea ? { seats: inArea } : undefined} />
+        cables={cables?.cables} labels={labels} focus={row && inArea ? { seats: inArea } : undefined} overlay={overlay} />
     )
+    const label = touring && stop ? <div className="fb-tour-stop" aria-live="polite">{stop.label}</div> : null
+    const bar = touring && stops.length > 1 ? <TourBar count={stops.length} at={step.seat ? -1 : step.i} n={step.n} secs={pane.secs ?? 15} paused={!!moved} /> : null
+    if (shows === 'spotlight') {
+      // The whole area in colour only, the spotlight outlined on it; the spotlight zoomed in beside it.
+      const spot = look(target ?? home)
+      body = (
+        <div className="fb-plan-spot">
+          <div className="fb-plan-spot-all">{map(look(home), 'none', () => (
+            <rect className="fb-spot-frame" x={spot.x} y={spot.y} width={spot.w} height={spot.h} />))}</div>
+          <div className="fb-plan-spot-zoom">{map(view)}{label}{bar}</div>
+        </div>
+      )
+    } else body = <>{map(view)}{label}{bar}</>
   }
   return (
     <div className={`fb-pane fb-pane-plan${pane.hide_title ? ' fb-pane-nohead' : ''}`} role="region" aria-label={title}>
@@ -171,8 +216,24 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
       </div>}
       <div ref={bodyRef} className={`fb-pane-body${wide && listed.length ? ' fb-plan-listed' : ''}`}>
         {body}
-        {wide && listed.length > 0 && drawing && home && <ProblemList seats={listed} />}
+        {wide && listed.length > 0 && drawing && home && (shows !== 'view' || one) && <ProblemList seats={listed} />}
       </div>
+    </div>
+  )
+}
+
+/** How far the tour is: one mark per stop, the current one filling up over its seconds. */
+function TourBar({ count, at, n, secs, paused }: { count: number; at: number; n: number; secs: number; paused: boolean }) {
+  const { t } = useTranslation()
+  // Past a few dozen stops the marks get too thin to read: a count says it instead.
+  if (count > 40) return <div className="fb-tour-bar fb-tour-count">{t('hallPlan.stopOf', { n: at + 1, count })}</div>
+  return (
+    <div className="fb-tour-bar" role="progressbar" aria-label={t('hallPlan.tour')} aria-valuemin={1} aria-valuemax={count} aria-valuenow={at + 1}>
+      {Array.from({ length: count }, (_, i) => (
+        <span key={i} className={i < at ? 'done' : ''}>
+          {i === at && <i key={n} style={{ animationDuration: `${secs}s`, animationPlayState: paused ? 'paused' : 'running' }} />}
+        </span>
+      ))}
     </div>
   )
 }

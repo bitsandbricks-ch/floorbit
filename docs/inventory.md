@@ -192,6 +192,9 @@ sub-tabs (issue #1346):
 - **Prefixes**: the network or range (with its name below when that differs), its VLAN, purpose,
   the firewalls it is routed over with how the route is doing now (as planned, on its fallback,
   none up), and where it comes from.
+- **Seen on** (both lists, issue #1347): the devices whose last discovery read that VLAN, or that
+  network on a VLAN interface, as links (the first three, then how many more). The entries API
+  carries it as `seen_on` on VLAN and prefix entries.
 - Filters: search, purpose, source (by hand, NetBox, discovery) and, for prefixes, **With firewalls**.
   **Add VLAN** and **Add prefix** open the new entry's page.
 

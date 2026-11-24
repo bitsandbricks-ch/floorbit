@@ -38,6 +38,7 @@
   "readBy": "{{who}}, {{ago}}",
   "readFrom": "{{plugin}}, {{ago}}",
   "tripped": "Tripped",
+  "markTripped": "Mark as tripped",
   "backOn": "Back on",
   "remove": "Remove",
   "board": "Board",

@@ -270,8 +270,8 @@ def ask(method, args=()):
     list, an IP, ARP) goes to every connected agent, and their answers are put together."""
     scoped, everyone, by_name = _routing()
     if method in HOST_METHODS and args:
-        # A device collected by one agent by name (telemetry.agent): only that agent knows it.
-        owner = _pinned_agent(args[0], everyone)
+        # A device given to one agent or a tag (telemetry.agent): only its collector knows it.
+        owner = _pinned_agent(args[0], everyone, scoped)
         if owner is not None:
             return tunnel.call(method, args, targets={owner})
     if not scoped:
@@ -288,12 +288,14 @@ def ask(method, args=()):
     return _ask_all(method, args, everyone)
 
 
-_pins = [None, {}]      # (data stamp, {device name: agent id}), like _routes
+_pins = [None, {}]      # (data stamp, {device name: targets.collector()}), like _routes
 
 
-def _pinned_agent(hostname, everyone):
-    """The connected agent a device is given to by name (telemetry.agent), else None: then the
-    usual routing (an agent away hands its devices back to the others, targets.for_agent)."""
+def _pinned_agent(hostname, everyone, scoped):
+    """The connected agent a device is given to by name or by tag (telemetry.agent), else None:
+    then the usual routing (nobody it was given to is here: the others take over,
+    targets.for_agent). Raises AgentUnavailable when nobody it was given to is here and its
+    failover is off."""
     from . import store
     from .telemetry import targets
     path = store.event_file()
@@ -308,8 +310,15 @@ def _pinned_agent(hostname, everyone):
             _pins[1] = {}
         _pins[0] = stamp
     name = str(hostname or '').lower()
-    owner = _pins[1].get(name) or _pins[1].get(name.split('.')[0])
-    return owner if owner in everyone and tunnel.connected(agent=owner) else None
+    who = _pins[1].get(name) or _pins[1].get(name.split('.')[0])
+    if not who:
+        return None
+    given = {'agent': who['agent'] if who['agent'] in everyone else '', 'agent_tag': who['tag'],
+             'failover': who['failover']}
+    owner, kept = targets.owner_of(given, tunnel.connected_agents() & set(everyone), scoped)
+    if owner is None and kept:
+        raise AgentUnavailable(f'The local agent that collects {hostname} is not connected.')
+    return owner
 
 
 def agent_for(hostname):
@@ -319,7 +328,7 @@ def agent_for(hostname):
     For calls that hold something open on the agent (an SSH shell) or must not run twice (a port
     bounce), where ``ask()`` would ask every agent. Raises AgentUnavailable."""
     scoped, everyone, by_name = _routing()
-    owner = _pinned_agent(hostname, everyone)
+    owner = _pinned_agent(hostname, everyone, scoped)
     if owner is not None:
         return owner
     connected = tunnel.connected_agents() & set(everyone)

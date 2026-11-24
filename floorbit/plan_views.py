@@ -156,3 +156,11 @@ def delete(view_id, user):
         if len(left) == len(views):
             raise KeyError(view_id)
         store.write_json(_path(), {'views': left})
+
+
+def shared(ids):
+    """The shared views among ``ids``, as a public screen may see them: where they look and their seat
+    filter, without who saved them or their layers (a public pane draws the public layers only)."""
+    wanted = set(ids)
+    return [{k: v[k] for k in ('id', 'name', 'hall', 'view', 'show') if k in v}
+            for v in _all() if v['id'] in wanted and not v.get('private')]
