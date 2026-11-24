@@ -63,7 +63,11 @@ pull request.
    (`.github/pull_request_template.md`). Link the issue.
 4. **Screenshots:** every pull request has them, UI change or not. Take them from the CI
    `screenshots` job's artifact (or run `scripts/screenshots.py` against a local server) and put them in the
-   description.
+   description. An agent that can't drag files into GitHub commits them to `.pr-screenshots/<topic>/`,
+   removes them again in the next commit, and links each one as
+   `https://raw.githubusercontent.com/bitsandbricks-ch/floorbit/<sha>/.pr-screenshots/<topic>/<file>.png`,
+   with the sha of the commit that added it. Never `github.com/.../blob/...?raw=true`: github.com
+   throttles those and a random few show as broken images (#1400).
 5. **CI:** wait for the checks. Fix failures yourself. Never skip, disable or weaken a check or a
    test to get green.
 6. **Done** means the task is complete, the checklist is ticked and CI is green: then mark
