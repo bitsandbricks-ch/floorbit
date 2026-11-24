@@ -3,11 +3,13 @@
 body::after {
   content: "Demo data";
   position: fixed;
-  /* Bottom right: the attribution sits in the middle and the account at the left. */
-  right: 16px;
-  bottom: 12px;
+  /* Top centre, in the top bar's empty middle (#1041): at the bottom right it covered the status
+     footer's version and the last row or button of every list. */
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
   z-index: 10000;
-  padding: 4px 12px;
+  padding: 2px 10px;
   border-radius: 999px;
   background: var(--color-warn);
   color: var(--color-ink, #111);
@@ -18,7 +20,11 @@ body::after {
   pointer-events: none;
 }
 html[lang^="de"] body::after { content: "Demodaten"; }
-/* Phones with the crew sidebar's bar at the bottom (templates/_nav.html): sit above it. */
+/* Phones: the top bar is shorter, the logo at the left and search at the right. */
 @media (max-width: 767.98px) {
-  body.fb-has-nav::after { bottom: calc(var(--fb-tabbar-h, 60px) + 8px + env(safe-area-inset-bottom)); }
+  body::after { top: calc(14px + env(safe-area-inset-top)); }
+}
+/* With the full sidebar: next to the logo, clear of the top bar's buttons. */
+@media (min-width: 768px) {
+  body:has(.fb-nav[data-state="full"])::after { left: 116px; top: 17px; transform: none; }
 }

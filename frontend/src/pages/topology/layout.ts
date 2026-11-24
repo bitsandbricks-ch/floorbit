@@ -4,20 +4,24 @@ export const NODE_W = 120
 export const NODE_H = 36
 const GAP_X = 18
 const GAP_Y = 84
-const PER_ROW = 10
+const GAP_LEAF = 28 // between rows of end boxes under one parent
+const GAP_TREE = 48 // between the blocks of two parents side by side
+const LEAF_COLS = 3
 
 export interface Placed { node: TopologyNode; x: number; y: number; level: number }
 export interface Layout { placed: Map<string, Placed>; width: number; height: number; loose: TopologyNode[] }
 
-/** Layers from the top of the network down: routers and firewalls first (or the switch with the
- *  most links), then whatever hangs off them, breadth first. A layer wider than PER_ROW wraps, so a
- *  hall of 100 access switches stays readable. Switches without a link are left for a list. */
+/** A tree from the top of the network down (#1050): routers first (firewalls when there is no
+ *  router, else the switch with the most links), then whatever hangs off them, breadth first. Each
+ *  box sits over its own branch, so a distribution switch has its access switches under it, and the
+ *  boxes with nothing below them (access switches, firewalls) wrap into a small grid under their
+ *  parent instead of one long row. Switches without a link are left for a list. */
 export function layout(nodes: TopologyNode[], links: SwitchLink[]): Layout {
   const byName = new Map(nodes.map((n) => [n.name.toLowerCase(), n]))
   const near = new Map<string, Set<string>>()
   for (const l of links) {
     const a = l.a.toLowerCase(), b = l.b.toLowerCase()
-    if (!byName.has(a) || !byName.has(b)) continue
+    if (!byName.has(a) || !byName.has(b) || a === b) continue
     if (!near.has(a)) near.set(a, new Set())
     if (!near.has(b)) near.set(b, new Set())
     near.get(a)!.add(b)
@@ -26,47 +30,79 @@ export function layout(nodes: TopologyNode[], links: SwitchLink[]): Layout {
   const linked = nodes.filter((n) => near.has(n.name.toLowerCase()))
   const loose = nodes.filter((n) => !near.has(n.name.toLowerCase()))
   const level = new Map<string, number>()
+  const parent = new Map<string, string>()
+  const roots: string[] = []
   const degree = (n: TopologyNode) => near.get(n.name.toLowerCase())?.size ?? 0
   const byName2 = (x: TopologyNode, y: TopologyNode) => x.name.localeCompare(y.name, undefined, { numeric: true })
+  const keyOrder = (x: string, y: string) => byName2(byName.get(x)!, byName.get(y)!)
   // Each connected part from its own top, so a second hall without a link to the core still shows.
   while (level.size < linked.length) {
     const rest = linked.filter((n) => !level.has(n.name.toLowerCase()))
-    const tops = rest.filter((n) => n.role === 'router' || n.role === 'firewall')
-    const start = tops.length ? tops : [rest.slice().sort((x, y) => degree(y) - degree(x) || byName2(x, y))[0]]
+    const routers = rest.filter((n) => n.role === 'router')
+    const tops = routers.length ? routers : rest.filter((n) => n.role === 'firewall')
+    const start = tops.length ? tops.slice().sort(byName2) : [rest.slice().sort((x, y) => degree(y) - degree(x) || byName2(x, y))[0]]
     let wave = start.map((n) => n.name.toLowerCase())
-    wave.forEach((k) => level.set(k, 0))
+    wave.forEach((k) => { level.set(k, 0); roots.push(k) })
     for (let depth = 1; wave.length; depth++) {
       const next: string[] = []
-      for (const k of wave) for (const m of near.get(k) ?? []) if (!level.has(m)) { level.set(m, depth); next.push(m) }
+      for (const k of wave) {
+        for (const m of [...(near.get(k) ?? [])].sort(keyOrder)) {
+          if (!level.has(m)) { level.set(m, depth); parent.set(m, k); next.push(m) }
+        }
+      }
       wave = next
     }
   }
-  const layers: TopologyNode[][] = []
-  for (const n of linked) (layers[level.get(n.name.toLowerCase())!] ??= []).push(n)
-  const placed = new Map<string, Placed>()
-  let y = 0, width = 0
-  layers.forEach((layer, depth) => {
-    // Under their parents, roughly: sort by where the nodes they hang off sit.
-    const pull = (n: TopologyNode) => {
-      const xs = [...(near.get(n.name.toLowerCase()) ?? [])].map((k) => placed.get(k)?.x).filter((v): v is number => v != null)
-      return xs.length ? xs.reduce((s, v) => s + v, 0) / xs.length : 0
-    }
-    layer.sort((p, q) => pull(p) - pull(q) || byName2(p, q))
-    for (let i = 0; i < layer.length; i += PER_ROW) {
-      const row = layer.slice(i, i + PER_ROW)
-      row.forEach((node, j) => placed.set(node.name.toLowerCase(), { node, x: j * (NODE_W + GAP_X), y, level: depth }))
-      width = Math.max(width, row.length * (NODE_W + GAP_X) - GAP_X)
-      y += NODE_H + GAP_Y
-    }
-  })
-  // Centre each row under the widest one.
-  const rows = new Map<number, Placed[]>()
-  for (const p of placed.values()) rows.set(p.y, [...(rows.get(p.y) ?? []), p])
-  for (const row of rows.values()) {
-    const used = row.length * (NODE_W + GAP_X) - GAP_X
-    for (const p of row) p.x += (width - used) / 2
+  const kids = new Map<string, string[]>()
+  for (const [k, p] of parent) kids.set(p, [...(kids.get(p) ?? []), k])
+  for (const list of kids.values()) list.sort(keyOrder)
+
+  // Measure each branch bottom-up, then place it top-down at its left edge.
+  const size = new Map<string, { w: number; h: number }>()
+  const leafGrid = (n: number) => {
+    const cols = Math.min(n, LEAF_COLS), rows = Math.ceil(n / LEAF_COLS)
+    return { w: cols * (NODE_W + GAP_X) - GAP_X, h: rows * (NODE_H + GAP_LEAF) - GAP_LEAF }
   }
-  return { placed, width: Math.max(width, NODE_W), height: Math.max(y - GAP_Y, NODE_H), loose: loose.sort(byName2) }
+  const split = (k: string) => {
+    const all = kids.get(k) ?? []
+    return { branches: all.filter((c) => kids.has(c)), leaves: all.filter((c) => !kids.has(c)) }
+  }
+  const measure = (k: string): { w: number; h: number } => {
+    const { branches, leaves } = split(k)
+    const parts = [...branches.map(measure), ...(leaves.length ? [leafGrid(leaves.length)] : [])]
+    const below = parts.length ? parts.reduce((s, p) => s + p.w, 0) + GAP_TREE * (parts.length - 1) : 0
+    const got = { w: Math.max(NODE_W, below), h: NODE_H + (parts.length ? GAP_Y + Math.max(...parts.map((p) => p.h)) : 0) }
+    size.set(k, got)
+    return got
+  }
+  const placed = new Map<string, Placed>()
+  const put = (k: string, x: number, y: number) => {
+    const me = size.get(k)!
+    placed.set(k, { node: byName.get(k)!, x: x + (me.w - NODE_W) / 2, y, level: level.get(k)! })
+    const { branches, leaves } = split(k)
+    const parts = [...branches.map((c) => ({ c, ...size.get(c)! })), ...(leaves.length ? [{ c: '', ...leafGrid(leaves.length) }] : [])]
+    const used = parts.reduce((s, p) => s + p.w, 0) + GAP_TREE * Math.max(0, parts.length - 1)
+    let cx = x + (me.w - used) / 2
+    const cy = y + NODE_H + GAP_Y
+    for (const part of parts) {
+      if (part.c) put(part.c, cx, cy)
+      else {
+        leaves.forEach((c, i) => placed.set(c, {
+          node: byName.get(c)!, level: level.get(c)!,
+          x: cx + (i % LEAF_COLS) * (NODE_W + GAP_X), y: cy + Math.floor(i / LEAF_COLS) * (NODE_H + GAP_LEAF),
+        }))
+      }
+      cx += part.w + GAP_TREE
+    }
+  }
+  let x = 0, height = 0
+  for (const r of roots) {
+    const { w, h } = measure(r)
+    put(r, x, 0)
+    x += w + GAP_TREE
+    height = Math.max(height, h)
+  }
+  return { placed, width: Math.max(x - GAP_TREE, NODE_W), height: Math.max(height, NODE_H), loose: loose.sort(byName2) }
 }
 
 export interface UplinkBox { uplink: TopologyUplink; x: number; y: number; to: Placed }

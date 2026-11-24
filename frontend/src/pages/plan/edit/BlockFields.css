@@ -1,0 +1,7 @@
+/* The rows of a seat block in the editor's panel (BlockFields.tsx). */
+.fb-block-rows { border: 1px solid var(--color-line); border-radius: var(--mantine-radius-sm); overflow: hidden; }
+.fb-block-rows .fb-row { padding: 4px 6px; border-top: 1px solid var(--color-line); }
+.fb-block-rows > div:first-child .fb-row { border-top: 0; }
+.fb-block-rows .fb-row.on { background: color-mix(in srgb, var(--color-bit) 12%, transparent); }
+.fb-block-rows .fb-row-gap { padding: 2px 6px 2px 12px; border-top: 1px solid var(--color-line); background: var(--color-surface); }
+.fb-row-fields { padding: 8px; border: 1px solid var(--color-line); border-radius: var(--mantine-radius-sm); }

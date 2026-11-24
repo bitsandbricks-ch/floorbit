@@ -3,6 +3,7 @@ import { IconNote } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Incident, IncidentBoard, IncidentPeople } from '@/api/types'
+import { BouncePort } from '@/components/BouncePort'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { fixedAfter, isWaiting, unseenFor, waitedFor } from './waiting'
 import { ago } from '@/lib/time'
@@ -144,6 +145,11 @@ export function IncidentCard({
                 <Button size="xs" variant="default" loading={busy} onClick={() => onChange({ status: 'fixed' })}>
                   {t('incidents.fixed')}
                 </Button>
+              )}
+              {/* The usual first try for a seat without internet, right here; what it did goes in the notes.
+                  The server finds the port from the seat, and says so when it doesn't know it. */}
+              {i.seat && i.can_work && i.status !== 'fixed' && (
+                <BouncePort seat={i.seat} onBounced={(message) => onChange({ note: message })} />
               )}
               {i.status === 'fixed' && (
                 <Button size="xs" variant="default" loading={busy} onClick={() => onChange({ status: 'open' })}>

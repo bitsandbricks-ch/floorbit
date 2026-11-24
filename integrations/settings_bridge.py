@@ -98,6 +98,22 @@ INT_LIMITS = {
 }
 
 
+# Values only whoever runs the server needs: files, rates, retention, cooldowns, proxies. Settings
+# folds them under "Advanced" in their section, so a section opens on what crews change (#991).
+ADVANCED_KEYS = {
+    'STATUS_MONITOR_INTERVAL', 'STATUS_MONITOR_CONFIRM', 'HEALTH_INTERVAL', 'HEALTH_CONFIRM', 'SECURITY_INTERVAL',
+    'GAME_INTERVAL', 'SERVICES_INTERVAL', 'POWER_VOLTAGE', 'POWER_INTERVAL',
+    'DISCORD_USERNAME', 'DISCORD_COOLDOWN', 'ALERT_GROUP_AFTER', 'DISCORD_APP_PUBLIC_KEY',
+    'DISCORD_CREW_UNSEEN_MINUTES',
+    'SEAT_SOURCE_JSON_PATH', 'SEAT_SOURCE_CACHE_SECONDS', 'SEAT_SOURCE_HTTP_VERIFY_SSL',
+    'CHECKIN_TRUST_PROXY', 'CHECKIN_PROXY_HOPS', 'CHECKIN_VERIFY_RATE', 'CHECKIN_REFRESH_INTERVAL',
+    'CHECKIN_ADMIN_TOKEN', 'CHECKIN_FILE', 'CHECKIN_HISTORY_FILE', 'CHECKIN_PIN_TRIES', 'SEAT_WALK_AGENT_URL',
+    'SYSLOG_RATE', 'SYSLOG_RETENTION_HOURS', 'SYSLOG_MAX_LINES', 'SYSLOG_MAX_MB',
+    'DNS_INTERVAL', 'DNS_RETENTION_HOURS', 'LANCACHE_INTERVAL', 'LANCACHE_RETENTION_HOURS',
+    'CONFIG_KEEP', 'TERMINAL_MAX_MINUTES', 'S3_BACKUP_REGION', 'S3_BACKUP_PREFIX',
+}
+
+
 def field_key(env_key):
     return 'integrations.' + env_key.lower()
 
@@ -121,6 +137,8 @@ def store_fields():
             default = [p.strip() for p in str(default).split(',') if p.strip()]
         field = dict(key=field_key(key), section=item['group'], label=item['label'],
                      type=ftype, env=key, default=default, help=item.get('help'))
+        if key in ADVANCED_KEYS:
+            field['advanced'] = True
         if ftype == 'int':
             field['min'], field['max'] = INT_LIMITS.get(key, (0, 10 ** 9))
             if 'seconds' in item['label'].lower():

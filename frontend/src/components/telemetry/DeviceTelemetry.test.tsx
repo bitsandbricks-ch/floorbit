@@ -13,7 +13,8 @@ describe('Device telemetry', () => {
   it('says why a device is silent, on its own', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/telemetry/devices': devices }).fn)
     renderWithApp(<DeviceTelemetryStatus name="sw-a-01" />)
-    expect(await screen.findByText(/SNMP polling: nothing listens on 192.0.2.21:161/)).toBeInTheDocument()
+    expect(await screen.findByText(/^Nothing listens on 192.0.2.21:161/)).toBeInTheDocument()
+    expect(screen.getByText('SNMP polling · whole device')).toBeInTheDocument()
   })
 
   it('lists every device with its actions', async () => {

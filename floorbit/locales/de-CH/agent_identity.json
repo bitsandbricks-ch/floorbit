@@ -1,0 +1,11 @@
+{
+ "The agent did not sign the request. Update the agent: Floorbit needs its signature.": "Der Agent hat die Anfrage nicht signiert. Aktualisiere den Agent: Floorbit braucht seine Signatur.",
+ "The agent sent the same signed request twice; refused as a replay.": "Der Agent hat dieselbe signierte Anfrage zweimal geschickt; als Wiederholung abgelehnt.",
+ "The agent signature header is malformed.": "Der Signatur-Header des Agents ist fehlerhaft.",
+ "The agent's clock is more than {} minutes off Floorbit's; it takes Floorbit's time from the answer and tries again.": "Die Uhr des Agents geht mehr als {} Minuten neben der von Floorbit; er übernimmt die Zeit aus der Antwort und versucht es nochmals.",
+ "The agent's identity key must be an EC P-256 key.": "Der Identitätsschlüssel des Agents muss ein EC-P-256-Schlüssel sein.",
+ "The request is not signed by this agent's pinned key.": "Die Anfrage ist nicht mit dem festgelegten Schlüssel dieses Agents signiert.",
+ "This agent already has a pinned key. Sign the request with it, or ask an admin to reset the agent's identity.": "Dieser Agent hat schon einen festgelegten Schlüssel. Signiere die Anfrage damit, oder lass einen Admin die Identität des Agents zurücksetzen.",
+ "The agent has no pinned key yet: it enrols one at hello. Update the agent if it does not.": "Der Agent hat noch keinen festgelegten Schlüssel: Er meldet ihn beim Hallo an. Aktualisiere den Agent, wenn er das nicht tut.",
+ "The agents CA key cannot be sealed. The server log says why.": "Der Schlüssel der Agent-CA lässt sich nicht versiegeln. Das Server-Log sagt, warum."
+}

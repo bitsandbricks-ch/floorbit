@@ -33,7 +33,8 @@ describe('Cables', () => {
     expect(screen.getByRole('link', { name: 'Add cable' })).toHaveAttribute('href', '/cables/new')
     fireEvent.change(screen.getByRole('textbox', { name: 'Search label, switch, port, panel or seat' }), { target: { value: 'b-14' } })
     expect(screen.queryByText('C-0001')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Print labels' })).toHaveAttribute('href', '/api/cables/labels.pdf?q=b-14')
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
+    expect(await screen.findByRole('menuitem', { name: 'Print labels' })).toHaveAttribute('href', '/api/cables/labels.pdf?q=b-14')
   })
 
   it('adds a cable on its own page, then shows the saved cable there', async () => {
@@ -65,7 +66,8 @@ describe('Cables', () => {
       'POST /api/cables/import': { imported: 12, errors: ['1 cable(s) skipped'] } })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Cables />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Import from NetBox' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'More' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Import from NetBox' }))
     expect(await screen.findByText('Imported 12 cables.')).toBeInTheDocument()
     expect(screen.getByText('1 cable(s) skipped')).toBeInTheDocument()
   })
@@ -95,7 +97,8 @@ describe('Cables', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Cables />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Patch rows' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'More' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Patch rows' }))
     await pick('Rows', 'A 1 (8 seats)')
     await pick('Rows', 'A 2 (8 seats)')
     await pick('Switch', 'sw-a-01')
@@ -142,10 +145,18 @@ describe('Cables', () => {
       failed: [{ switch: 'sw-c-03', error: 'timeout' }],
       moved: { count: 1, rows: [{ switch: 'sw-a-01', port: 'Gi1/0/2', mac: '02:00:00:00:00:03', ip: '192.0.2.13', ip_seat: 'A-3', seat: 'A-2', cable: 'C-0002' }] },
       unplanned: { count: 1, rows: [{ switch: 'sw-a-01', port: 'Gi1/0/30', mac: '02:00:00:00:00:30', ip: '192.0.2.40', ip_seat: 'A-9' }] },
+      shared: { count: 2, rows: [
+        { switch: 'sw-a-01', port: 'Gi1/0/5', seat: 'A-5', cable: 'C-0005', macs: 6, desk_switch: true },
+        { switch: 'sw-a-01', port: 'Gi1/0/6', seat: 'A-6', cable: 'C-0006', macs: 2, desk_switch: false },
+      ] },
+      no_port: { count: 1, rows: [{ mac: '02:00:00:00:00:50', ip: '192.0.2.50', ip_seat: '' }] },
+      empty: { count: 2, rows: [{ seat: 'A-4', switch: 'sw-a-01', port: 'Gi1/0/4' }, { seat: 'A-5', switch: 'sw-a-01', port: 'Gi1/0/5' }] },
+      ignored: 1,
     }
     const api = fakeFetch({
       ...OPTIONS, 'GET /api/auth/me': crew, 'GET /api/cables': data, 'GET /api/cables/clients?read=1': clients,
       'POST /api/cables': () => ({ status: 201, body: { ...mine, id: 'c4' } }),
+      'POST /api/cables/clients/ignored': { ok: true },
     })
     vi.stubGlobal('fetch', api.fn)
     app()
@@ -153,6 +164,19 @@ describe('Cables', () => {
     expect(screen.getByText('sw-a-01 Gi1/0/2 is cabled to A-2, but 192.0.2.13 is the IP of A-3')).toBeInTheDocument()
     expect(screen.getByText('1 machine on a port no cable explains')).toBeInTheDocument()
     expect(screen.getByText('No MAC table from: sw-c-03')).toBeInTheDocument()
+    // More than one machine on a seat port: how many, and a router or switch at the seat marked.
+    expect(screen.getByText('2 seat ports with more than one machine')).toBeInTheDocument()
+    expect(screen.getByText('6 machines')).toBeInTheDocument()
+    expect(screen.getAllByText('Switch or router at the seat')).toHaveLength(1)
+    // Issue #949: PCs that never check in.
+    expect(screen.getByText('1 IP in the seat networks on no seat port')).toBeInTheDocument()
+    expect(screen.getByText('192.0.2.50 · 02:00:00:00:00:50')).toBeInTheDocument()
+    expect(screen.getByText('2 seats cabled to a port with no machine')).toBeInTheDocument()
+    expect(screen.getByText('A-4 (sw-a-01 Gi1/0/4), A-5 (sw-a-01 Gi1/0/5)')).toBeInTheDocument()
+    expect(screen.getByText('1 machine ignored (printers, crew PCs)')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Ignore' })[1])
+    await waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path === '/api/cables/clients/ignored'
+      && (c.body as { mac: string }).mac === '02:00:00:00:00:50')).toBe(true))
     fireEvent.click(screen.getByRole('button', { name: 'Patch to a seat' }))
     // The new cable starts with the port, and the seat whose IP the machine has.
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Switch port' })).toHaveValue('Gi1/0/30'))

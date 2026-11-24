@@ -219,6 +219,8 @@ export function CredentialsEditor({ own, inherited, overview, canSet, busy, erro
   const set = (k: keyof CredentialDraft) => (v: string) => setDraft((d) => (d ? { ...d, [k]: v } : d))
   const replacing = draft ? has(draft.kind) : undefined
   const usesUser = draft && draft.kind !== 'snmp_v2c'
+  // A trap user may be authNoPriv or noAuthNoPriv: both passphrases are optional.
+  const trap = draft?.kind === 'snmp_trap'
   return (
     <Stack gap="xs">
       {Object.keys(inherited ?? {}).length > 0 && (
@@ -279,9 +281,9 @@ export function CredentialsEditor({ own, inherited, overview, canSet, busy, erro
                 required={draft.kind !== 'api'} onChange={(e) => set('username')(e.currentTarget.value)} />
             )}
             <PasswordInput label={t(`inventory.creds.secretLabel.${draft.kind}`)} value={draft.secret} autoComplete="new-password"
-              required={!replacing} placeholder={replacing ? t('inventory.creds.keep') : undefined}
+              required={!replacing && !trap} placeholder={replacing ? t('inventory.creds.keep') : undefined}
               onChange={(e) => set('secret')(e.currentTarget.value)} />
-            {draft.kind === 'snmp_v3' && (
+            {(draft.kind === 'snmp_v3' || trap) && (
               <>
                 <Group grow>
                   <Select label={t('inventory.creds.authProtocol')} allowDeselect={false} data={overview.auth_protocols}
@@ -289,8 +291,8 @@ export function CredentialsEditor({ own, inherited, overview, canSet, busy, erro
                   <Select label={t('inventory.creds.privProtocol')} allowDeselect={false} data={overview.priv_protocols}
                     value={draft.priv_protocol} onChange={(v) => set('priv_protocol')(v ?? 'AES')} />
                 </Group>
-                <PasswordInput label={t('inventory.creds.privSecret')} value={draft.priv_secret} autoComplete="new-password"
-                  required={!replacing} placeholder={replacing ? t('inventory.creds.keep') : undefined}
+                <PasswordInput label={trap ? t('inventory.creds.privSecretOptional') : t('inventory.creds.privSecret')} value={draft.priv_secret} autoComplete="new-password"
+                  required={!replacing && !trap} placeholder={replacing ? t('inventory.creds.keep') : undefined}
                   onChange={(e) => set('priv_secret')(e.currentTarget.value)} />
               </>
             )}

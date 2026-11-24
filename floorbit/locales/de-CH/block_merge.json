@@ -1,0 +1,5 @@
+{
+ "A block has at most {} rows": "Ein Block hat höchstens {} Reihen",
+ "A row has at most {} seats": "Eine Reihe hat höchstens {} Plätze",
+ "Only seat blocks with the same straight rows can be merged side by side": "Nur Sitzblöcke mit den gleichen geraden Reihen können nebeneinander zusammengeführt werden"
+}

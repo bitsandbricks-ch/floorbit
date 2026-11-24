@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, MultiSelect, Paper, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, MultiSelect, PasswordInput, Select, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +8,7 @@ import type { Account, AccountsList } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, Panel } from '@/components/ui'
 
 const CREW_ROLES = ['admin', 'lead', 'tech']
 
@@ -154,8 +154,7 @@ function AddAccount({ list, onSaved }: { list: AccountsList; onSaved: (l: Accoun
   })
   const set = (k: keyof typeof empty) => (v: string) => { setAdded(''); setForm((f) => ({ ...f, [k]: v })) }
   return (
-    <Paper withBorder radius="lg" p="md">
-      <Title order={2} size="h4" mb="xs">{t('users.add')}</Title>
+    <Panel title={t('users.add')}>
       <form onSubmit={(e) => { e.preventDefault(); add.mutate() }} autoComplete="off">
         <Stack gap="sm">
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
@@ -177,7 +176,7 @@ function AddAccount({ list, onSaved }: { list: AccountsList; onSaved: (l: Accoun
           </Group>
         </Stack>
       </form>
-    </Paper>
+    </Panel>
   )
 }
 
@@ -194,12 +193,11 @@ function PlatformVisits() {
   })
   if (!query.data?.shown) return null
   return (
-    <Paper withBorder radius="lg" p="md">
-      <Title order={2} size="h4" mb="xs">{t('users.platformVisits')}</Title>
+    <Panel title={t('users.platformVisits')}>
       <Switch checked={query.data.visits} disabled={save.isPending} label={t('users.platformVisitsLabel')}
         description={t('users.platformVisitsHelp')} onChange={(e) => save.mutate(e.currentTarget.checked)} />
       {save.error && <Text size="sm" c="down" role="alert" mt="xs">{save.error.message}</Text>}
-    </Paper>
+    </Panel>
   )
 }
 
@@ -226,13 +224,11 @@ export default function Users() {
                 <span key={r.id}>{i ? ' ' : ''}<strong>{r.label}:</strong> {t(`teams.roleText.${r.id}`, { defaultValue: r.description })}</span>
               ))}
             </Text>
-            <Paper withBorder radius="lg" p="md">
-              <Title order={2} size="h4">{t('users.accounts')}</Title>
-              <Text size="sm" c="dimmed" mb="xs">{t('users.accountsHelp')}</Text>
+            <Panel title={t('users.accounts')} desc={t('users.accountsHelp')}>
               <div aria-live="polite">
                 {list.users.map((u) => <AccountRow key={u.username} user={u} list={list} boards={boards.data?.layouts ?? []} onSaved={saved} />)}
               </div>
-            </Paper>
+            </Panel>
             <AddAccount list={list} onSaved={saved} />
             <PlatformVisits />
           </>

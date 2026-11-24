@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { TimeChart, type TimePoint } from '@/widgets/TimeChart'
+import { IconChartLine } from '@tabler/icons-react'
 
 /** GET /api/agents/<id>/history (floorbit/agent_history.py): rates are per minute. */
 export interface AgentHistory { hours: number; series: Record<string, TimePoint[]> }
@@ -37,7 +38,7 @@ export function AgentGraphs({ agentId }: { agentId: string }) {
       </Group>
       <ErrorBanner error={q.error} />
       {q.isPending ? <LoadingState /> : shown.length === 0 ? (
-        <Panel><Text size="sm" c="dimmed">{t('agents.graphs.none')}</Text></Panel>
+        <Panel><EmptyState icon={<IconChartLine size={24} />} title={t('agents.graphs.noneTitle')} desc={t('agents.graphs.none')} /></Panel>
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           {shown.map((m) => {

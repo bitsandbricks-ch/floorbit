@@ -189,6 +189,25 @@ Endpoints: `POST /api/checkin`, `GET /api/checkin/info` (open or not, when it op
 device's check-in), `GET /api/checkin/me`, `GET /api/checkins` (the
 user/IP/seat/MAC table), `DELETE /api/checkins/<seat>`, `POST /api/checkins/refresh`.
 
+### Check-in on Floorbit's own address
+
+Only a local agent's front door sees a seat PC's own address, so a PC that opens `/checkin` on
+Floorbit's own address (hosted, or the crew's URL) is sent on to an agent's front door: the check-in
+name (`CHECKIN_ADDRESS`), else where browsers in the hall last reached an agent. There, the same page
+learns the seat's port. Nothing to set up (#1177).
+
+A browser off the event network can't open that address, and an HTTPS page can't test an HTTP one
+first, so the page only goes on by itself where Floorbit is sure the browser is in the hall:
+
+- it comes from the public address a connected agent comes from (the hall's NAT), or
+- a trip to a front door already worked from that address during the event (the trip carries a
+  one-time code, so Floorbit learns which address it left from; kept a week).
+
+Otherwise the page shows a *Continue on the event network* button, and checking in from where you
+are still keeps the seat and nick. Back from a trip that didn't open, the page doesn't go again by
+itself. Phones and tablets stay where they are. Private addresses never count as sure: behind a
+proxy Floorbit doesn't trust (`CHECKIN_TRUST_PROXY` off), every browser has the proxy's address.
+
 ### The "sign in to network" note (Captive Portal API)
 
 With a [local agent](agent.md), phones and laptops can be reminded to check in without blocking

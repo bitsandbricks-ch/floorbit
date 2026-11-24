@@ -1,4 +1,4 @@
-import { Alert, Anchor, Group, Loader, SegmentedControl, SimpleGrid, Table, Text } from '@mantine/core'
+import { Alert, Anchor, Group, Loader, SegmentedControl, SimpleGrid, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,9 +6,10 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { CacheRow, GamesData, LancacheData } from '@/api/types'
 import type { ViewProps } from '@/widgets/views'
+import { DataTable } from '@/components/DataTable'
 import { bytes } from '../traffic/format'
 import { ErrorBanner } from '@/components/ui'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { dayClock } from '@/lib/time'
 
 const W = 1000
@@ -59,6 +60,8 @@ function CacheChart({ cache }: { cache: LancacheData }) {
   )
 }
 
+type Launcher = GamesData['launchers'][number]
+
 function Launchers({ data }: { data: GamesData }) {
   const { t, i18n } = useTranslation()
   const num = (n: number | null) => (n == null ? '–' : n.toLocaleString(i18n.language))
@@ -66,46 +69,25 @@ function Launchers({ data }: { data: GamesData }) {
     <section className="fb-stats-panel wide" aria-labelledby="games-launchers">
       <h2 id="games-launchers">{t('games.launchers')}</h2>
       {data.launchers.length === 0 ? <Text size="sm" c="dimmed">{t('games.noLaunchers')}</Text> : (
-        <Table.ScrollContainer minWidth={620}>
-          <Table striped withRowBorders={false} verticalSpacing={4}>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>{t('games.launcher')}</Table.Th>
-                {data.sources.cache && <Table.Th>{t('games.fromCache')}</Table.Th>}
-                {data.sources.traffic && <Table.Th>{t('games.traffic')}</Table.Th>}
-                {data.sources.dns && <Table.Th>{t('games.lookups')}</Table.Th>}
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {data.launchers.map((l) => (
-                <Table.Tr key={l.id}>
-                  <Table.Td fw={600}>{l.name}</Table.Td>
-                  {data.sources.cache && (
-                    <Table.Td>
-                      {l.cache_hit_bytes == null ? '–' : (
-                        <>{bytes((l.cache_hit_bytes ?? 0) + (l.cache_miss_bytes ?? 0))}
-                          <Text span size="xs" c="dimmed"> · {t('games.ratio', { pct: pct(ratio(l.cache_hit_bytes ?? 0, l.cache_miss_bytes ?? 0)) })}</Text></>
-                      )}
-                    </Table.Td>
-                  )}
-                  {data.sources.traffic && (
-                    <Table.Td>
-                      {l.traffic_bytes == null ? '–' : (
-                        <>{bytes(l.traffic_bytes)}<Text span size="xs" c="dimmed"> · {t('games.seats', { count: l.traffic_seats ?? 0 })}</Text></>
-                      )}
-                    </Table.Td>
-                  )}
-                  {data.sources.dns && (
-                    <Table.Td>
-                      {num(l.lookups)}
-                      {!!l.dns_seats_max && <Text span size="xs" c="dimmed"> · {t('games.upTo', { count: l.dns_seats_max })}</Text>}
-                    </Table.Td>
-                  )}
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        <DataTable rows={data.launchers} rowKey={(l) => l.id} label={t('games.launchers')} urlState={false} pageSize={0} bare striped
+          density="compact" minWidth={620} defaultSort={{ id: data.sources.cache ? 'cache' : data.sources.traffic ? 'traffic' : 'launcher', desc: !!(data.sources.cache || data.sources.traffic) }}
+          columns={[
+            { id: 'launcher', header: t('games.launcher'), sort: (l) => l.name, cell: (l) => <Text span fw={600} inherit>{l.name}</Text> },
+            ...(data.sources.cache ? [{ id: 'cache', header: t('games.fromCache'), descFirst: true,
+              sort: (l: Launcher) => (l.cache_hit_bytes == null ? -1 : (l.cache_hit_bytes ?? 0) + (l.cache_miss_bytes ?? 0)),
+              cell: (l: Launcher) => (l.cache_hit_bytes == null ? '–' : (
+                <>{bytes((l.cache_hit_bytes ?? 0) + (l.cache_miss_bytes ?? 0))}
+                  <Text span size="xs" c="dimmed"> · {t('games.ratio', { pct: pct(ratio(l.cache_hit_bytes ?? 0, l.cache_miss_bytes ?? 0)) })}</Text></>
+              )) }] : []),
+            ...(data.sources.traffic ? [{ id: 'traffic', header: t('games.traffic'), descFirst: true, sort: (l: Launcher) => l.traffic_bytes ?? -1,
+              cell: (l: Launcher) => (l.traffic_bytes == null ? '–' : (
+                <>{bytes(l.traffic_bytes)}<Text span size="xs" c="dimmed"> · {t('games.seats', { count: l.traffic_seats ?? 0 })}</Text></>
+              )) }] : []),
+            ...(data.sources.dns ? [{ id: 'lookups', header: t('games.lookups'), descFirst: true, sort: (l: Launcher) => l.lookups ?? -1,
+              cell: (l: Launcher) => (
+                <>{num(l.lookups)}{!!l.dns_seats_max && <Text span size="xs" c="dimmed"> · {t('games.upTo', { count: l.dns_seats_max })}</Text>}</>
+              ) }] : []),
+          ]} />
       )}
       <Text size="xs" c="dimmed" mt={6}>{t('games.launchersText', { count: data.min_seats.dns })}</Text>
     </section>
@@ -137,9 +119,9 @@ function Board({ data, compact }: { data: GamesData; compact: boolean }) {
     <>
       {data.sources.cache && (
         <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md">
-          <StatCard label={t('games.servedLocally')} value={bytes(c.hit_bytes)} sub={t('games.servedLocallySub')} />
-          <StatCard label={t('games.fromInternet')} value={bytes(c.miss_bytes)} sub={t('games.fromInternetSub')} />
-          <StatCard label={t('games.hitRatio')} value={pct(c.hit_ratio)} sub={t('games.hitRatioSub')} />
+          <StatTile label={t('games.servedLocally')} value={bytes(c.hit_bytes)} sub={t('games.servedLocallySub')} />
+          <StatTile label={t('games.fromInternet')} value={bytes(c.miss_bytes)} sub={t('games.fromInternetSub')} />
+          <StatTile label={t('games.hitRatio')} value={pct(c.hit_ratio)} sub={t('games.hitRatioSub')} />
         </SimpleGrid>
       )}
       <div className="fb-stats">

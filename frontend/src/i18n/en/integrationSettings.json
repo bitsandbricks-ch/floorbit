@@ -127,6 +127,10 @@
     "plugin-victorialogs": {
       "title": "Plugin: VictoriaLogs",
       "desc": "Sends the syslog lines Floorbit receives to VictoriaLogs, to keep them longer than a day, and searches them with LogsQL on the Logs page."
+    },
+    "plugin-librenms-alerts": {
+      "title": "Plugin: LibreNMS alerts",
+      "desc": "LibreNMS sends every alert to the local agent (its API transport), and the agent passes it on: it shows on the Problems page at once and wakes the status monitor. A recovery clears it."
     }
   },
   "fields": {
@@ -587,10 +591,6 @@
       "label": "ARP and MAC tables every (minutes)",
       "help": "How often Telemetry walks the ARP and MAC tables while it polls. 0: never. Not used while LibreNMS polls."
     },
-    "plugin_telemetry_uplink_macs": {
-      "label": "Uplink MAC limit",
-      "help": "A port that sees more MAC addresses than this counts as an uplink and is skipped when Floorbit looks for where a seat is plugged in."
-    },
     "plugin_telemetry_exclude": {
       "label": "Ports to ignore",
       "help": "Parts of port names that are never a seat's port (trunks, port channels, SVIs), separated by commas."
@@ -817,6 +817,10 @@
     },
     "plugin_victorialogs_verify_ssl": {
       "label": "Verify TLS certificates"
+    },
+    "plugin_librenms-alerts_port": {
+      "label": "Port on the agent",
+      "help": "Where LibreNMS sends its alerts, on the agent machine (HTTP, or HTTPS when the agent has a certificate). 0: off."
     }
   },
   "plugins": {
@@ -828,6 +832,7 @@
     "netflow-relay": "The local agent collects NetFlow and IPFIX on the event network and sends only the summary the Traffic page shows (hall, area and service totals, per seat volume and mix). The flow records, with addresses and ports, stay on the agent.",
     "front-door": "The local agent answers attendees on the event network, on one port: check-in, the seat speed test, the check-in note on phones (DHCP option 114, while check-in is on) and the crew's seat walk-through. Each request goes on to Floorbit with the address the agent saw, so check-in finds the seat PC's switch port. Point the check-in name (CHECKIN_ADDRESS) at the agent.",
     "shelly": "The local agent reads the load from Shelly plugs, relays and energy meters on the event network (first and later generations) and hands it to the circuits on the Electrics page by meter id.",
-    "home-assistant": "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id."
+    "home-assistant": "The local agent reads power sensors from a Home Assistant on the event network (watts, kilowatts or amps) and hands them to the circuits on the Electrics page by meter id.",
+    "librenms-alerts": "LibreNMS sends every alert to the local agent (its API transport), and the agent passes it on: it shows on the Problems page at once and wakes the status monitor. A recovery clears it."
   }
 }

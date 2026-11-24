@@ -159,6 +159,7 @@
       "serial": "Serial",
       "vlan_id": "VLAN ID",
       "prefix": "Prefix",
+      "lookups": "Check-in lookups",
       "gateway": "Gateway",
       "purpose": "Purpose"
     },
@@ -296,10 +297,12 @@
     "authProtocol": "Authentication",
     "privProtocol": "Privacy",
     "privSecret": "Privacy passphrase",
+    "privSecretOptional": "Privacy passphrase (optional)",
     "kinds": {
       "ssh": "SSH login",
       "snmp_v2c": "SNMP v2c community",
       "snmp_v3": "SNMP v3 user",
+      "snmp_trap": "SNMP v3 trap user",
       "api": "API token",
       "http": "HTTP login"
     },
@@ -307,6 +310,7 @@
       "ssh": "Password",
       "snmp_v2c": "Community",
       "snmp_v3": "Authentication passphrase",
+      "snmp_trap": "Authentication passphrase (optional)",
       "api": "Token",
       "http": "Password"
     }
@@ -385,9 +389,9 @@
     "agent": "Agent",
     "agentHint": "The local agent that collects from it. While that agent is away, the others take over.",
     "anyAgent": "Any agent (the primary one)",
-    "telemetry_port_snmp": "SNMP port",
-    "telemetry_port_gnmi": "gNMI port",
-    "telemetry_port_api": "API port (NX-API, RESTCONF, OPNsense)",
+    "port_snmp": "SNMP port",
+    "port_gnmi": "gNMI port",
+    "port_api": "API port (NX-API, RESTCONF, OPNsense)",
     "portsHint": "Empty: the group above decides, or the usual port. Traps and MDT come in on the agent's own ports.",
     "groupIntro": "Every device in this group takes these unless it sets its own.",
     "collect": "Collect telemetry",
@@ -400,6 +404,9 @@
     "nothing": "nothing yet (no login, nothing that sends by itself)",
     "methodsHint": "Polling and the APIs need a login under Credentials. Traps, Cisco MDT, gNMI and a firewall's own Telegraf need the device set up to send (Device setup shows what to paste).",
     "needsLogin": "Some of these need a login this device doesn't have yet. Add it under Credentials, here or on its group.",
+    "trapPort": "Traps go to the agent's UDP port {{port}} (v2c).",
+    "trapPortV3": "Traps go to the agent's UDP port {{port}}, as the SNMPv3 user {{user}}. Each trap user has its own port.",
+    "trapNoPort": "Every trap listener on the agent belongs to another SNMPv3 trap user, so this device's traps go nowhere. Give it a trap user that already has a port.",
     "fdbLabel": "MAC tables",
     "fdb": {
       "qbridge": "Standard bridge table (Q-BRIDGE)",

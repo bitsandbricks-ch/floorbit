@@ -46,6 +46,8 @@ data.json
 floorbit.db
 floorbit.db-wal
 floorbit.db-shm
+# Syslog the app keeps when it runs from the checkout (its state folder).
+/syslog/
 checkins.json
 audit.jsonl
 timeline.jsonl
@@ -98,3 +100,6 @@ telegraf/
 # pytest-cov data
 .coverage
 .coverage.*
+
+# Written by a local demo server run from the repository.
+/syslog/

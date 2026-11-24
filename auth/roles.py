@@ -231,12 +231,17 @@ RULES = (
     ('/timeline', READ, 'audit.read'),
     ('/settings/audit', READ, 'audit.read'),
     ('/api/settings', None, 'settings.manage'),
+    # What an event still needs (floorbit/setup.py checklist): names which parts are missing.
+    ('/api/setup/checklist', None, 'settings.manage'),
     # Telemetry's admin parts (floorbit/blueprints/telemetry.py): the crew reads the rest.
     ('/api/telemetry/test', None, 'settings.manage'),
     ('/api/telemetry/raw', None, 'settings.manage'),
     ('/api/telemetry/device-config', None, 'settings.manage'),
     ('/api/telemetry/token', None, 'settings.manage'),
     ('/api/telemetry/telegraf.conf', None, 'settings.manage'),
+    # LibreNMS alerts (floorbit/blueprints/librenms_alerts.py): the token lets someone post alerts.
+    ('/api/alerts/librenms/setup', None, 'settings.manage'),
+    ('/api/alerts/librenms/token', None, 'settings.manage'),
     # Local agents (floorbit/agent_link.py): enrolling one hands out a key to the event's data.
     ('/api/agents', None, 'settings.manage'),
     # Clearing a failed agent login lets the agent try that password again (floorbit/agent_plugins.py).
@@ -280,6 +285,7 @@ RULES = (
     # A device blocked after a failed login: any tech clears it once the login is fixed.
     ('/api/inventory/blocks', None, 'ports.act'),
     ('/api/inventory', WRITE, 'floorplan.edit'),
+    ('/api/switch-swap', WRITE, 'floorplan.edit'),   # a new box in a dead switch's place (floorbit/switch_swap.py)
     ('/api/seat-map', READ, 'seats.view'),
     ('/api/seat-map.csv', READ, 'seats.view'),
     ('/api/seat-map', WRITE, 'seats.edit'),
@@ -290,6 +296,9 @@ RULES = (
     # The crew's walk-through check-in names the laptop's MAC; saving a seat's port is seats.edit.
     ('/api/seat-walk', READ, 'seats.view'),
     ('/api/seat-walk', WRITE, 'seats.edit'),
+    ('/api/switch-areas', READ, 'seats.view'),
+    ('/api/switch-areas', WRITE, 'seats.edit'),
+    ('/switch-areas', READ, 'seats.view'),
     ('/seat-walk', READ, 'seats.view'),
     # Nicks and IPs per seat, and what a seat's IP resolves to: personal data.
     ('/api/seats/info', READ, 'seats.view'),
@@ -314,6 +323,8 @@ RULES = (
     ('/api/dispatch', READ, 'incidents.assign'),
     # Cables and patching: reading is floorplan.view, like the floor plan (floorbit/cables.py).
     # Which MAC and IP is on which seat port is personal data, like the seat mapping.
+    # Marking a MAC as not a seat PC (a printer, a crew PC): like marking its port infrastructure (issue #949).
+    ('/api/cables/clients/ignored', WRITE, 'floorplan.edit'),
     ('/api/cables/clients', None, 'seats.view'),
     ('/api/cables', WRITE, 'floorplan.edit'),
     ('/api/cable-plan', WRITE, 'floorplan.edit'),
@@ -322,6 +333,8 @@ RULES = (
     ('/api/port-areas', WRITE, 'floorplan.edit'),
     # Dashboards (floorbit/dashboards.py): what a screen shows is the floor crew's to arrange.
     ('/api/dashboards', WRITE, 'floorplan.edit'),
+    # Saved widgets: everyone who may arrange dashboards may change them (Mike, #1009).
+    ('/api/widgets', WRITE, 'floorplan.edit'),
     # Schedule: everyone reads it, leads plan it (floorbit/schedule.py).
     ('/api/schedule', WRITE, 'floorplan.edit'),
     # Status page: the crew's view and updates; /status itself is public (floorbit/status_page.py).

@@ -1,10 +1,7 @@
-import { Button } from '@mantine/core'
-import { IconArrowLeft, IconFolder, IconTag, IconStack2 } from '@tabler/icons-react'
+import { IconFolder, IconTag, IconStack2 } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
-import { EmptyState, LoadingState } from '@/components/ui'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ItemPage } from '@/components/ItemPage'
 import { DeviceIcon } from './icons'
 import { scopePath } from './model'
 import { useInventoryGroups } from './scope'
@@ -35,20 +32,17 @@ export default function ScopePage({ kind }: { kind: 'group' | 'tag' | 'defaults'
     : kind === 'tag' ? <IconTag size={26} /> : kind === 'group' ? <IconFolder size={26} /> : <IconStack2 size={26} />
 
   return (
-    <Layout title={title}>
-      {groups.error || missing ? (
-        <EmptyState title={t('inventory.page.notFound')} desc={groups.error?.message}
-          action={<Button component={Link} to="/inventory" variant="default" leftSection={<IconArrowLeft size={16} />}>{t('inventory.page.back')}</Button>} />
-      ) : !target || !overview ? <LoadingState rows={6} /> : (
-        <>
-          <PageHead icon={icon} kicker={kicker} title={title} />
-          <ScopeEditor key={`${kind}-${id}`} target={target} overview={overview}
-            onDeleted={() => navigate('/inventory')}
-            onSaved={(saved) => {
-              if (saved.kind !== 'defaults' && saved.item) navigate(scopePath(saved.kind, saved.item.id), { replace: true })
-            }} />
-        </>
+    <ItemPage title={target && overview ? title : undefined} fallbackTitle={t('inventory.title')}
+      back={{ href: '/inventory', label: t('inventory.page.back') }} loading={!target || !overview}
+      missing={groups.error || missing ? { title: t('inventory.page.notFound'), desc: groups.error?.message } : null}
+      icon={icon} kicker={kicker}>
+      {target && overview && (
+        <ScopeEditor key={`${kind}-${id}`} target={target} overview={overview}
+          onDeleted={() => navigate('/inventory')}
+          onSaved={(saved) => {
+            if (saved.kind !== 'defaults' && saved.item) navigate(scopePath(saved.kind, saved.item.id), { replace: true })
+          }} />
       )}
-    </Layout>
+    </ItemPage>
   )
 }

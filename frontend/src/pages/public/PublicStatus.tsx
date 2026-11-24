@@ -11,6 +11,8 @@ type Update = { at: number; text: string; state?: State | null; area?: string }
 export type PublicStatusData = {
   state: State; since: number | null; checked_at: number
   areas: Area[]; recovered: Area[]; recovered_at: number | null
+  /** What players notice (issue #1038): switches, firewall, internet_slow, internet_down, dns, dhcp, no_firewall. */
+  reasons?: string[]
   updates: Update[]; override?: unknown
 }
 
@@ -51,6 +53,10 @@ export default function PublicStatus() {
   else if (feed.failed) body = <FeedFailed title={title} onRetry={feed.retry} />
   else if (!s) body = <Paper withBorder radius="lg" p="lg" mih={120} aria-busy="true" />
   else {
+    const reasons = s.reasons ?? []
+    // "Some seats have no network" is only true when switches are down; other causes explain themselves.
+    const detail = (s.state === 'degraded' || s.state === 'outage') && reasons.length && !reasons.includes('switches')
+      ? 'services' : s.state
     body = (
       <>
         <Paper withBorder radius="lg" p="lg" className={`fb-status-k-${s.state}`} aria-live="polite">
@@ -62,10 +68,15 @@ export default function PublicStatus() {
                 {t(`publicStatus.state.${s.state}`)}
               </Text>
               <Text c="dimmed" size="sm">
-                {t(`publicStatus.detail.${s.state}`)}{s.since ? ` ${t('publicStatus.since', { time: when(s.since) })}` : ''}
+                {t(`publicStatus.detail.${detail}`)}{s.since ? ` ${t('publicStatus.since', { time: when(s.since) })}` : ''}
               </Text>
             </div>
           </Group>
+          {reasons.length > 0 && s.state !== 'operational' && s.state !== 'maintenance' && (
+            <ul className="fb-status-list" aria-label={t('publicStatus.why')} style={{ marginTop: 12 }}>
+              {reasons.map((r) => <li key={r}><Text size="sm">{t(`publicStatus.reason.${r}`, { defaultValue: '' })}</Text></li>)}
+            </ul>
+          )}
         </Paper>
         {s.areas.length > 0 && (
           <Paper withBorder radius="lg" p="lg">

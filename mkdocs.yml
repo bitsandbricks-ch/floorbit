@@ -72,6 +72,8 @@ nav:
       - Pre-flight check: preflight.md
       - Cables and patching: cables.md
       - Seat walk-through: seat-walk.md
+      - Switch areas: switch-areas.md
+      - Swapping a dead switch: switch-swap.md
   - During the event:
       - Incidents and the seat helpdesk: incidents.md
       - Speedtest at the seat: speedtest.md
@@ -80,6 +82,7 @@ nav:
       - Crew notice: crew-notice.md
       - Crew Discord channel: crew-discord.md
       - Alerts and problems: alerts.md
+      - LibreNMS alerts: librenms-alerts.md
       - Port actions: ports.md
       - Switch commands: commands.md
       - Switch terminal: terminal.md
@@ -113,7 +116,7 @@ nav:
       - Network status page: status-page.md
       - Stats wall: stats-wall.md
       - Schedule: schedule.md
-      - Past events: events.md
+      - Events: events.md
   - How it works:
       - Overview: how-it-works.md
       - Seats, ports and MACs: how-seat-mapping.md

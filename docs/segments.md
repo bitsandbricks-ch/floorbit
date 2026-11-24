@@ -4,27 +4,30 @@ A segment is a VLAN and its IP range, for example VLAN 110 with 10.10.0.0/22. Se
 Floorbit which VLAN a PC's IP is on, so a check-in can ask the switches for that one PC in that one
 VLAN instead of walking every ARP and MAC table (issue #946, used by the check-in lookup in #947).
 
-Find them under **Telemetry > Lookup segments** (admins only).
+Segments are the inventory's **VLAN or IP range** entries that have both a VLAN ID and a prefix
+(**Inventory**, type *VLAN or IP range*). There is no separate list: a range is a segment as soon as
+it knows its VLAN.
 
 ## Lookups are off until you turn them on
 
-Every segment starts with lookups **off**, whether discovery found it or someone added it. Nothing
-is asked of the switches by surprise: turn lookups on for the segments where attendees' PCs sit
-(the seat VLANs), and leave them off for management, servers and Wi-Fi. While no segment has
-lookups on, the page says so.
+Every range starts with **Check-in lookups** off, whether discovery found it or someone added it.
+Nothing is asked of the switches by surprise: turn lookups on for the ranges where attendees' PCs
+sit (the seat VLANs), and leave them off for management, servers and Wi-Fi. The switch is right in
+the inventory's list of VLANs and IP ranges, and on each range's own page. While no range has
+lookups on, the crew's **Check-in** page says so and links to that list.
 
 ## Where segments come from
 
 - **Discovery.** A switch or router's VLAN interface with an address (Vlan110, Vl110, vlanif110,
-  irb.110, BVI110) becomes a proposal: its VLAN, its IP range, the VLAN's name and the device.
-  Discovery adds new ones by itself; **Take from discovery** does the same on demand. When two
-  devices carry the same range (a core pair), the first one names it.
-- **By hand.** Give the VLAN (1 to 4094), the IP range (IPv4, /8 to /30; host bits are dropped, so
-  10.10.1.7/22 becomes 10.10.0.0/22) and a name.
+  irb.110, BVI110) gives its network's range the VLAN. Discovery adds that range to the inventory
+  by itself, with lookups off. When two devices carry the same range (a core pair), the first one
+  names it.
+- **By hand.** Add a *VLAN or IP range* in the inventory with a VLAN ID (1 to 4094) and a prefix
+  (IPv4, /8 to /30; host bits are dropped, so 10.10.1.7/22 counts as 10.10.0.0/22).
 
-Discovery corrects its own segments when the facts change (a renamed VLAN, a new interface index).
-A segment someone changed by hand (VLAN, range or name) is never overwritten. Turning lookups on or
-off doesn't count as a change of the facts.
+Discovery corrects its own ranges when the facts change. A field someone changed by hand is never
+overwritten, the same as for everything discovery and plugins feed into the inventory. Turning
+lookups on or off is up to you; discovery never touches it.
 
 An IP in more than one range belongs to the narrowest one.
 
@@ -40,7 +43,8 @@ asks the local agent to find it:
 2. The MAC, from the core's ARP entry on the segment's VLAN interface (from discovery). Skipped when
    the MAC is known already.
 3. The switches, one at a time, until one learned the MAC on a port that isn't an uplink:
-   - the switches serving the seat's row (its learned ports and the patch plan's cables);
+   - the switches serving the seat's row (its learned ports, the patch plan's cables and the
+     [switch areas](switch-areas.md));
    - then the rest of its block;
    - then every other switch that carries the VLAN.
 

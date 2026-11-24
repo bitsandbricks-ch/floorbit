@@ -11,7 +11,8 @@ Select a seat. Under **Switch port**:
 
 - **Bounce port** (accounts with `ports.act`, while a port actions plugin is on) asks for your
   own switch username and password, then takes the port down and up again. The player loses
-  their connection for those seconds.
+  their connection for those seconds. The same button is on a seat's open incident on the
+  [incident board](incidents.md#the-board).
 - **Flag for a tech** (accounts that see the incident board) files an incident "Tech visit" for
   the seat, with your note. It shows on the [incident board](incidents.md) and as a red ring on
   the seat. Clear it there by marking it fixed.

@@ -56,13 +56,18 @@ class Plugin(Base):
     # the dashboard -----------------------------------------------------------------------------
     def widget_devices(self):
         """Which devices report: up when heard within the last minutes."""
-        from floorbit import agent_link, sources
-        # On a hosted Floorbit the picture lives on the agent, asked through its link.
-        found = sources.monitoring().devices() if agent_link.active() else self.devices()
-        if not found:
+        from floorbit import telemetry
+        from floorbit.telemetry import agent_devices
+        if telemetry.collector_here():
+            items = [{'label': d.get('display') or d.get('hostname'), 'state': 'up' if d.get('status') else 'down',
+                      'detail': d.get('driver') or ''} for d in self.devices()]
+        else:
+            # The picture lives on the agents: asked of their telemetry part, not of whichever
+            # plugin answers monitoring (LibreNMS's devices aren't telemetry's, issue #1223).
+            items = [{'label': name, 'state': 'up' if row['online'] else 'down', 'detail': row['driver']}
+                     for name, row in agent_devices.rows().items()]
+        if not items:
             return {'type': 'status', 'items': [], 'sub': 'No devices set up yet.', 'link': '/telemetry'}
-        items = [{'label': d.get('display') or d.get('hostname'), 'state': 'up' if d.get('status') else 'down',
-                  'detail': d.get('driver') or ''} for d in found]
         up = sum(i['state'] == 'up' for i in items)
         return {'type': 'status', 'items': items, 'link': '/telemetry',
                 'sub': f'{up} of {len(items)} up' if up == len(items)
@@ -134,12 +139,19 @@ class Plugin(Base):
         dev = self._device(hostname)
         if dev is None:
             return {'status': 'unknown', 'hostname': hostname, 'problems': _problems().get(hostname, [])}
+        if dev.waiting():
+            return {'status': 'unknown', 'hostname': hostname, 'ip': dev.address, 'source': 'telemetry',
+                    'driver': dev.driver, 'waiting': True,
+                    'problems': _problems().get(dev.name, [])}
         result = {'status': 'online' if dev.online() else 'offline', 'hostname': hostname, 'ip': dev.address,
                   'source': 'telemetry', 'driver': dev.driver, 'problems': _problems().get(dev.name, [])}
         for key, value in (('cpu_load', dev.cpu), ('mem_percent', dev.mem), ('uptime', dev.uptime),
                            ('states', dev.states)):
             if value is not None:
                 result[key] = round(value) if key in ('cpu_load', 'mem_percent') else value
+        temperature = dev.temperature()
+        if temperature is not None:
+            result['temperature'] = round(temperature, 1)    # degrees C, the hottest sensor, as LibreNMS's
         if dev.gateways:
             result['gateways'] = [{'name': n, **{k: v for k, v in g.items() if k != 'seen'}}
                                   for n, g in sorted(dev.gateways.items())]
@@ -199,8 +211,9 @@ class Plugin(Base):
 
     def _uplinks(self, dev):
         """Port keys that lead to other switches, and the MAC count per port."""
+        from floorbit.edge_ports import EDGE_PORT_MACS
         from floorbit.telemetry.clients import uplinks
-        return uplinks(dev, int(self.settings.get('uplink_macs') or 8))
+        return uplinks(dev, EDGE_PORT_MACS)
 
     def find_mac(self, mac):
         """(device, port name, vlan, MACs on that port) of the access port a MAC is on, or None."""

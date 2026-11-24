@@ -25,3 +25,5 @@ ignore = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+# A test stuck this long dumps every thread's stack, so a hung CI job names the test (#1145).
+faulthandler_timeout = 120

@@ -1,0 +1,8 @@
+{
+  "rowsOf": "{{from}}–{{to}} von {{count}}",
+  "empty": "Hier ist noch nichts.",
+  "previous": "Vorherige Seite",
+  "next": "Nächste Seite",
+  "first": "Erste Seite",
+  "last": "Letzte Seite"
+}

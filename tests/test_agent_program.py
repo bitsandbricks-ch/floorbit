@@ -45,6 +45,8 @@ class ClientHttp:
 
 
 def fake_execute(method, args):
+    if method == 'configured':     # an agent with LibreNMS set up
+        return True
     if method == 'devices':
         return [{'hostname': 'sw-a-01', 'status': 1}]
     if method == 'device_details':
@@ -256,8 +258,25 @@ def test_the_agent_sends_its_cable_plugins(app_module):
     with app_module.app.app_context():
         from floorbit import sources as srcs
         feeds = agent_mod.cable_feeds(srcs.registry)
-    # NetBox is on by default but not set up here: its error comes back, not an exception.
-    assert [f['plugin'] for f in feeds] == ['netbox'] and 'error' in feeds[0]
+    # NetBox is on by default but not set up here: it isn't asked, so no "set up NetBox" error
+    # reads as a failed import (issue #1169).
+    assert feeds == []
+
+
+def test_the_agent_sends_a_set_up_cable_plugin_and_its_error(app_module, monkeypatch):
+    from floorbit.plugins.base import PluginError
+
+    def cables(self):
+        raise PluginError('NetBox is down')
+    # The class the registry loaded (plugin.py is imported under its own module name).
+    cls = app_module.app.extensions['floorbit_plugins'].specs['netbox'].plugin_class()
+    monkeypatch.setattr(cls, 'configured', lambda self: True)
+    monkeypatch.setattr(cls, 'cables', cables)
+    with app_module.app.app_context():
+        from floorbit import sources as srcs
+        feeds = agent_mod.cable_feeds(srcs.registry)
+    # Set up but failing: it is asked, and its error comes back, not an exception.
+    assert [f['plugin'] for f in feeds] == ['netbox'] and feeds[0]['error']
 
 
 def test_an_away_agent_is_one_alert_that_says_so(client, app_module, monkeypatch):
@@ -387,6 +406,8 @@ def test_calls_go_to_the_agent_for_the_hall(client, app_module):
 
     def site(name, switch):
         def execute(method, args):
+            if method == 'configured':
+                return True
             if method == 'devices':
                 return [{'hostname': switch, 'status': 1}]
             if method == 'device_details':
@@ -429,6 +450,8 @@ def test_two_agents_for_the_same_halls_answer_from_the_primary(client, app_modul
 
     def site(primary):
         def execute(method, args):
+            if method == 'configured':
+                return True
             if method == 'devices':
                 return [{'hostname': 'sw-a-01', 'status': 1}] if primary else []
             if method == 'device_ports':

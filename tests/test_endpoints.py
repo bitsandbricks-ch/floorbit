@@ -35,6 +35,30 @@ def test_the_telemetry_picture_gives_each_machine_its_access_port():
                         "vlan": "10"}
 
 
+def test_an_arp_answer_before_the_mac_table_is_one_row(db):
+    """Issue #873: the core's ARP round names the machine before the access switch's MAC table
+    gives its port. The port-less row is folded into the port's, from when it was first seen."""
+    h = endpoints.History(db)
+    arp_only = {"mac": "02:00:00:00:00:07", "ip": "192.0.2.40", "device": "core-01", "port": "", "vlan": None}
+    on_port = {"mac": "02:00:00:00:00:07", "ip": "192.0.2.40", "device": "sw-a-01", "port": "Gi1/0/1", "vlan": "10"}
+    h.record([arp_only], NOW)
+    h.record([on_port], NOW + 60)
+    [row] = h.search("192.0.2.40")
+    assert (row["device"], row["port"], row["first_seen"], row["last_seen"]) == ("sw-a-01", "Gi1/0/1", NOW, NOW + 60)
+    # The other order: the access switch's entry ages out first while ARP still has it.
+    h.record([arp_only], NOW + 120)
+    h.record([on_port], NOW + 180)
+    [row] = h.search("192.0.2.40")
+    assert row["port"] == "Gi1/0/1" and row["last_seen"] == NOW + 180
+    # The same after a restart, from what the table holds.
+    again = endpoints.History(db)
+    again.record([arp_only], NOW + 240)
+    assert len(again.search("192.0.2.40")) == 1
+    # A machine only ever in ARP (behind a router) keeps its port-less row.
+    h.record([{**arp_only, "mac": "02:00:00:00:00:08", "ip": "192.0.2.41"}], NOW + 300)
+    assert h.search("192.0.2.41")[0]["port"] in ("", None)
+
+
 def test_rows_stay_open_while_seen_and_split_on_a_move(db):
     h = endpoints.History(db)
     seen = {"mac": "02:00:00:00:00:07", "ip": "192.0.2.40", "device": "sw-a-01", "port": "Gi1/0/1", "vlan": "10"}

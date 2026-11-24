@@ -36,9 +36,9 @@ export type Widget = WidgetBase &
     /** ``min`` and ``max`` let a stat show as a gauge. ``text`` never comes from the server: a
      *  pane's value mapping sets it to show instead of the number (widgets/kinds/display.ts). */
     | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number; text?: string }
-    | { type: 'status'; items: { label: string; state: State; detail: string }[] }
+    | { type: 'status'; items: { label: string; state: State; detail: string; device?: string }[] }
     /** ``number`` (and ``max``) on items let a list show as bars or a pie. */
-    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number }[] }
+    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number; colour?: string; device?: string }[] }
     | {
         type: 'table'
         columns: { key: string; label: string }[]
@@ -46,7 +46,9 @@ export type Widget = WidgetBase &
       }
     | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
     /** Up to four lines of [unix seconds, value], oldest first. */
-    | { type: 'series'; series: { label: string; points: [number, number][] }[]; unit: string }
+    | { type: 'series'; series: { label: string; points: [number, number][]; colour?: string; ghost?: boolean }[]; unit: string
+      /** What happened when, drawn as lines across the graph. */
+      marks?: { t: number; label: string; tone: Tone }[] }
   )
 
 /** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */
@@ -99,6 +101,10 @@ export interface WidgetTile {
   size: 'small' | 'wide'
   refresh: number
   url: string
+  /** A pane may pick the time it shows (``?range=``) and compare it (``?compare=``), issue #960. */
+  ranges?: boolean
+  /** It can mark what happened on its graph (``?marks=1``): switches down, incidents. */
+  marks?: boolean
 }
 
 export interface ActionTile {
@@ -387,6 +393,8 @@ export interface SeatRow {
   from: Partial<Record<'switch' | 'port' | 'ip' | 'mac' | 'nick' | 'note', string>>
   manual: ManualSeat | null
   sources: string[]
+  /** On a seat block of any hall; off-plan rows come only from a source (seats.json, a CSV feed). */
+  on_plan: boolean
 }
 
 export interface SeatMapList {
@@ -594,6 +602,11 @@ export interface HealthCheck {
   since: number
   /** Until when its alerts are muted (issue #260), or null. */
   muted_until?: number | null
+  /** How much of a pool is used, when the check counts one (a DHCP scope). */
+  capacity?: { used: number; total: number }
+  /** When that pool runs full at the rate of the last 15 minutes (issue #1061). `raised`: the wall
+   *  made an "up" check "warn" for it. */
+  forecast?: { used: number; total: number; pct: number; rate_per_min: number | null; full_in_min: number | null; level: State | null; raised?: boolean }
 }
 export interface HealthWall {
   checks: HealthCheck[]
@@ -691,13 +704,13 @@ export interface PowerOverview {
   last_poll: number | null
   plugins: number
   /** label: the name, or the row letters of a block named by its rows; row_names: each row, top first. */
-  blocks: { id: string; name: string; label: string; rows: number; row_names: string[] }[]
+  blocks: { id: string; name: string; label: string; rows: number; row_names: string[]; row_ids?: number[] }[]
   can_edit: boolean
   can_read: boolean
 }
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
-export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin'
+export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin' | 'librenms'
   | 'flapping' | 'errors' | 'duplex' | 'checkin'   // ports that need a look (issue #15)
 export interface AlertMute {
   /** The switch id, ``health:<service id>`` for a service (issue #256) or ``wifi:<ap>`` for an access point. */
@@ -724,6 +737,25 @@ export interface Problem {
   muted?: { until: number; by: string | null; reason: string } | null
   /** An offline switch's open incident, for people who see the board (issue #278). */
   incident?: string | null
+  /** What a down switch or link cuts off (issue #950): seat names only, and the switches behind it. */
+  seats?: string[]
+  behind?: string[]
+  /** The down switch this one is behind: the place to start. */
+  cause?: string
+  /** A LibreNMS alert: what DELETE /api/alerts/librenms/<id> takes when its recovery got lost (issue #951). */
+  clear_id?: string
+  ports?: string[]
+}
+/** What to paste into LibreNMS's API transport (GET /api/alerts/librenms/setup). */
+export interface LibreNMSAlertsSetup {
+  enabled: boolean
+  port: number
+  method: string
+  content_type: string
+  body: string
+  token: string
+  active: number
+  agents: { id: string; name: string; connected: boolean; url: string; address_known: boolean; status?: string | null; problem?: string }[]
 }
 export interface ProblemList {
   problems: Problem[]
@@ -859,8 +891,13 @@ export interface PlanCell {
   seat: string
   hit: boolean
   on: boolean | null
-  /** Row and column (from 0) in the block, for the editor's seat handles; missing on older answers. */
+  /** Row (its place in the block) and seat (its place in the row), from 0, for the editor's seat
+   *  handles; missing on older answers. */
   rc?: [number, number]
+  /** Degrees the seat is turned with its row (floorbit/seat_rows.py); missing on a straight row. */
+  a?: number
+  /** The side people sit on, of the way the row runs (left is up on a straight row); missing when not shown. */
+  side?: 'left' | 'right'
 }
 
 export interface PlanShape {
@@ -875,6 +912,9 @@ export interface PlanShape {
   cells: PlanCell[]
   /** Row letters (blocks named by row), in the block's own coordinates; missing on older answers. */
   rows?: { text: string; x: number; y: number }[]
+  /** Each row, top first (a cell's rc[0]): its id and name as /api/options/rows has them. Ids are
+   *  the server's: never build one. Missing on older answers. */
+  row_list?: { id: string; name: string; row?: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
 }
@@ -1359,7 +1399,14 @@ export interface PortClients {
   as_of: number | null; reading: boolean; started: boolean; error: string | null; switches: number; clients: number
   failed: { switch: string; error: string }[]
   unplanned: { count: number; rows: PortClient[] }; moved: { count: number; rows: PortClient[] }
+  /** Seat ports with more than one machine (issue #1119): only how many, never which. */
+  shared?: { count: number; rows: SharedPort[] }
+  /** Issue #949: IPs ARP knows on no seat port, and cabled seats with no machine (once check-ins started). */
+  no_port?: { count: number; rows: { mac: string; ip: string; ip_seat: string }[] }
+  empty?: { count: number; rows: { seat: string; switch: string; port: string }[] }
+  ignored?: number
 }
+export interface SharedPort { switch: string; port: string; seat: string; cable: string; macs: number; desk_switch: boolean }
 /** Walking the row (issue #473): ports that came up since the walk began. */
 export interface WalkUp { port: string; at: number; how: 'syslog' | 'poll'; area?: PortAreaHint | null }
 export interface WalkWatch { ups: WalkUp[]; syslog: boolean; since: number }
@@ -1385,11 +1432,14 @@ export interface SeatLocated {
   ms: number; tries: number; stale: boolean; found: WalkPort | null
   steps: { step: 'mac' | 'switch' | 'snmp' | 'monitoring'; ok: boolean; how?: string | null }[]
   replaced?: string[]; plan_seat?: string | null
+  /** The switch's area doesn't hold this seat (issue #1094). */
+  area_drift?: AreaDrift | null
 }
+export interface AreaDrift { kind: 'pin' | 'plan' | 'excluded'; switch: string; area: string[]; row: string }
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 /** A switch login Floorbit keeps (issue #474): never the password. */
 /** label: what pickers show: the name, or the row letters (C–D) of a block named by its rows. */
-export interface SeatBlock { id: string; name: string; label: string; row_names: string[]; cols: number; rows: number; hall_id: string }
+export interface SeatBlock { id: string; name: string; label: string; row_names: string[]; rows: { id: string; seats: number }[]; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */
 export type WifiBand = '2.4' | '5' | '6'
@@ -1441,11 +1491,24 @@ export interface StatusUpdate {
   area: string
 }
 
+/** One count of every service (issue #1037): the health wall's checks, each internet site a row. */
+export interface ServiceSummaryRow {
+  id: string; name: string; kind: string; status: ServiceStatus; summary: string; link: string
+}
+export interface ServiceSummary {
+  rows: ServiceSummaryRow[]
+  total: number
+  counts: Record<ServiceStatus, number>
+  by_kind: Record<string, Record<ServiceStatus | 'total', number>>
+}
+
 export interface StatusPageData {
   state: StatusState
   auto_state: StatusState
   override: { state: StatusState; note: string; by: string | null; at: number } | null
   since: number | null
+  /** What players notice (issue #1038): switches, firewall, no_firewall, internet_slow, internet_down, dns, dhcp. */
+  reasons?: string[]
   areas: StatusArea[]
   crew_areas: StatusArea[]
   /** Areas whose switch came back in the last half hour, with switch names (issue #396). */
@@ -1514,6 +1577,8 @@ export interface PlanSeat {
   changed?: number
   /** The crew left a note on the seat (issue #180); its text is in SeatDetails. */
   note?: boolean
+  /** The down switch or link that cuts the seat off (issue #950); crew only. */
+  behind?: string
 }
 
 export interface PlanBlock {
@@ -1628,6 +1693,8 @@ export interface FirewallRange {
   state: FirewallRouteState; seats: number
   /** 'import': read from NetBox (change it there); 'floorbit': planned here. */
   source?: 'import' | 'floorbit'; plugin?: string
+  /** Inventory switch or group ids the range is for: their seats outside it are flagged (issue #1062). */
+  switches?: string[]
 }
 export interface FirewallCard {
   id: string; name: string; model: string; hall: string; status: 'online' | 'offline' | 'unknown'
@@ -1818,7 +1885,7 @@ export interface AgentSettingsReport {
   values: Record<string, { source: SettingSource; value?: string; set?: boolean }>
   pending?: string[]
   key?: 'stored' | 'env' | 'file'
-  cert?: { not_after: number; names: string[]; source: SettingSource; floorbit_ca: boolean }
+  cert?: { not_after: number; names: string[]; source: SettingSource; floorbit_ca: boolean; public?: boolean }
 }
 
 /** One of an agent's own settings (agent_settings.FIELDS). */
@@ -1848,6 +1915,14 @@ export interface AgentSettingsPage {
   cert_asked: number | null
   /** The agent's own key, pinned by Floorbit; it signs every request (floorbit/agent_identity.py). */
   identity?: { fingerprint: string; not_after: number; pinned_at: number; issued_at: number } | null
+  /** The tenant's Let's Encrypt certificate, when the platform has a domain for the agents. */
+  public_cert?: {
+    name: string; not_after: number | null; issued_at: number | null; error: string | null; failed_at: number | null
+    /** Why the name doesn't reach Floorbit yet (public DNS, port 80); nothing is ordered until it does. */
+    waiting?: string | null; checked_at?: number | null
+  } | null
+  /** When this agent last took that certificate's key. */
+  public_cert_at?: number | null
 }
 
 export interface AgentPluginHealth {
@@ -2013,6 +2088,9 @@ export interface CheckinInfo {
   address?: string | null
   /** True: not through the local agent's front door, so the seat's port can't be learned from here. */
   outside?: boolean
+  /** Outside on a PC: the agent's front door that knows this PC (url), and whether Floorbit is sure
+   *  this browser is in the hall, so the page goes there by itself (sure). */
+  hall?: { url: string; sure: boolean } | null
 }
 
 export type WiredState = 'pending' | 'verified' | 'not_wired' | 'unverified'
@@ -2092,3 +2170,18 @@ export interface EndpointAnswer {
   rows: EndpointRow[]
   status: { store: 'database'; written: number; open: number; keep_days: number; error: string | null }
 }
+
+/** What one switch serves (GET /api/switch-areas, issue #948). */
+export interface SwitchArea {
+  name: string; id: string
+  /** Where ``serves`` comes from: a pin, learned seats, the switch's place on the plan, or nothing yet. */
+  how: 'manual' | 'learned' | 'plan' | 'todo' | 'excluded'
+  serves: { blocks: string[]; rows: string[]; seats: string[] }
+  manual: { blocks: string[]; rows: string[]; seats: string[]; exclude: boolean }
+  learned: { seat: string; source: string }[]
+  plan_blocks: string[]
+  todo: boolean
+  drift: { kind: 'learned_outside_pin' | 'learned_outside_plan' | 'drawn_elsewhere' | 'excluded_learned'; seats?: string[]; block?: string }[]
+  suggest: { id: string; name: string; block_label: string }[]
+}
+export interface SwitchAreas { switches: SwitchArea[]; blocks: { id: string; label: string }[] }
