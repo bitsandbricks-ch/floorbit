@@ -2,7 +2,7 @@
 .fb-widget-card { display: flex; flex-direction: column; overflow: hidden; }
 .fb-widget-preview {
   height: 220px; overflow: hidden; padding: 16px; box-sizing: border-box;
-  background: var(--color-ink); border-bottom: 1px solid var(--color-line);
+  background: var(--color-surface); border-bottom: 1px solid var(--color-line);
   /* Fades out at the bottom: a preview, not the whole widget. */
   mask-image: linear-gradient(to bottom, #000 75%, transparent);
 }

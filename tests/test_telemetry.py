@@ -440,11 +440,18 @@ def test_victoriametrics_gets_points_but_never_the_private_tables(monkeypatch):
 
 # ── the HTTP side ──────────────────────────────────────────────────────────────────────────────
 
+@pytest.fixture(autouse=True)
+def secret_key(tmp_path, monkeypatch):
+    """Each test's own secret key, from its start (#1083). Setting it halfway, after the background
+    telemetry loop had sealed the ingest token with the default key, left the token unreadable."""
+    from test_credentials import key_file
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    monkeypatch.delenv("FLOORBIT_SECRET_OLD_KEY_FILES", raising=False)
+
+
 def _inventory_switch(client, tmp_path, monkeypatch, **cred):
     """sw-a-01 in the inventory with Telemetry on and an SNMP v2c community (or ``cred``)."""
-    from test_credentials import key_file
     from test_inventory_scope import add, put_cred
-    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
     dev = add(client, name="sw-a-01", mgmt_ip="192.0.2.21", platform="IOS 15.2", features={"telemetry": True},
               properties={"telemetry.snmp.vlans": "10, 20"})
     login = cred or {"kind": "snmp_v2c", "secret": "s3cret-community"}
@@ -559,6 +566,14 @@ def test_the_agent_gets_the_devices_and_sends_series(client, anon_client, tmp_pa
     token = client.get("/api/telemetry/token").get_json()["token"]
     assert anon_client.post("/api/telemetry/write", data=b"pf,host=fw-01 entries=1i",
                             headers={"Authorization": f"Token {token}"}).status_code == 409
+
+
+def test_the_token_sealed_early_stays_readable(client, tmp_path, monkeypatch):
+    # The background loop renders telegraf.conf, and so seals the token, whenever it runs (#1083).
+    from floorbit.telemetry import targets
+    early = targets.ingest_token()
+    _inventory_switch(client, tmp_path, monkeypatch)
+    assert client.get("/api/telemetry/token").get_json() == {"token": early}
 
 
 class AgentCtx(MemoryContext):
