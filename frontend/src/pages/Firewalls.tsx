@@ -13,6 +13,7 @@ import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ConfirmButton } from '@bitsandbricks/ui'
+import { FirewallLookup } from './firewalls/Lookup'
 
 const STATUS_TONE = { online: 'up', offline: 'down', unknown: 'gray' } as const
 const ROUTE_TONE = { primary: 'up', failover: 'warn', unknown: 'gray', down: 'down' } as const
@@ -71,6 +72,7 @@ export default function Firewalls() {
             </Stack>
           </Alert>
         )}
+        {data && data.ranges.length > 0 && <FirewallLookup />}
         {data && data.firewalls.length === 0 && (
           <Paper withBorder radius="lg" p="md"><Text c="dimmed">{t('firewalls.none')}</Text></Paper>
         )}

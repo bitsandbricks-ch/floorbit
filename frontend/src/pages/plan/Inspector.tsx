@@ -70,7 +70,11 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
                   ? <Anchor href="/checkins">{t('plan.yes')} · {t(`crewCheckin.state.${d.checkin_wired}`)}</Anchor>
                   : t('plan.yes'))
                 : t('plan.no'))}
-              {d.firewall && row(t('plan.firewall'), <FirewallRoute route={d.firewall} />)}
+              {d.firewall && row(t('plan.firewall'), (
+                <Anchor href={`/firewalls?q=${encodeURIComponent(seat)}`} underline="hover" c="inherit">
+                  <FirewallRoute route={d.firewall} />
+                </Anchor>
+              ))}
               {d.people && row(t('plan.nick'), d.nick || '–')}
               {d.people && row(t('plan.ip'), d.ip ? <code>{d.ip}</code> : '–')}
               {d.people && row(t('plan.mac'), d.mac ? <code>{d.mac}</code> : '–')}
