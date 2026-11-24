@@ -537,7 +537,10 @@ def test_the_schedule_runs_only_the_actions_that_are_due(client, monkeypatch):
         sources.use(before)
 
 
-def test_run_now_for_one_action_on_one_device(client):
+def test_run_now_for_one_action_on_one_device(client, monkeypatch):
+    # The session's background sync loops call tick() too (#1222, #1283): one that runs the schedule
+    # here sets the actions' ``last``, which this test checks stays unset.
+    monkeypatch.setattr(inventory_discovery, 'tick', lambda now=None: None)
     sw = add(client, name='sw-a-01')
     fw = add(client, name='fw-01', role='firewall')
     rows = [{'hostname': 'sw-a-01', 'status': 1, 'facts': {'model': 'WS-C2960X-48FPD-L', 'poe': {'budget_w': 740}}},
