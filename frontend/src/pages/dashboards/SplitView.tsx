@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { isPane, type Node, type Path, type Split } from './model'
 import { PaneView } from './Panes'
 import { PaneKey } from './large'
-import { type Level, LevelReport } from '@bitsandbricks/widgets'
-import type { PaneFit } from './paneFit'
+import { type Level, LevelReport, type PaneFit } from '@bitsandbricks/widgets'
 
 export interface Editing {
   selected: Path | null
