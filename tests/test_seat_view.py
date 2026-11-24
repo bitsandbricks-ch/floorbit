@@ -32,7 +32,8 @@ def test_every_seat_gets_one_state(client, hall):
     assert seats["D-7"]["state"] == "offline" and seats["D-7"]["problems"] == 1
     assert seats["D-1"] == {"state": "unknown"}   # no known port: we can't say it's down
     # Each count carries its block's id, so unnamed or same-named blocks get their own (#1322).
-    assert out["blocks"] == [{"id": out["drawing"]["shapes"][0]["id"], "name": "D", "seats": 8, "online": 1, "problems": 1}]
+    block_id = out["drawing"]["shapes"][0]["id"]
+    assert out["blocks"] == [{"id": block_id, "name": "D", "seats": 8, "online": 1, "problems": 1}]
     assert out["drawing"]["shapes"][0]["name"] == "D" and out["size"]["cell"] == 32
     # Nothing personal in the plan itself.
     assert "198.51.100.7" not in str(out) and "player-six" not in str(out)
