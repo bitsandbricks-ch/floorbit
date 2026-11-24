@@ -552,6 +552,20 @@ def list_devices():
     return resp.json().get('devices', []) or []
 
 
+def active_alerts():
+    """LibreNMS's alerts that haven't recovered: [{id, device_id, rule_id, state, hostname}].
+    Raises on failure, so a failed read never counts as "nothing active"."""
+    resp = breaker.get(f'{rt.librenms_url}/api/v0/alerts',
+                       headers={'X-Auth-Token': rt.librenms_token, 'Accept': 'application/json'},
+                       timeout=15, verify=rt.librenms_verify_ssl)
+    resp.raise_for_status()
+    rows = resp.json().get('alerts')
+    if not isinstance(rows, list):
+        raise ValueError('LibreNMS sent no list of alerts')
+    keep = ('id', 'device_id', 'rule_id', 'state', 'hostname')
+    return [{k: r.get(k) for k in keep} for r in rows if isinstance(r, dict) and str(r.get('state')) != '0']
+
+
 def arp_entries(query):
     """ARP rows matching an IP or a MAC ([] when LibreNMS has none)."""
     resp = breaker.get(f'{rt.librenms_url}/api/v0/resources/ip/arp/{_seg(query)}',

@@ -8,7 +8,8 @@ LibreNMS saw go down shows offline right away.
 An alert is kept under (agent, LibreNMS host, alert id): LibreNMS keeps the alert id from the first
 alert to its recovery. State 0 (recovered) clears it; 1 (alert), 3 (worse) and 4 (better) replace
 it; 2 means someone acknowledged it in LibreNMS. A port alert lists its ports in ``faults``: the
-list each update brings is the whole current list, so a port missing from it is fixed.
+list each update brings is the whole current list, so a port missing from it is fixed. When a
+recovery gets lost anyway, the next read of LibreNMS's open alerts clears it (``reconcile``).
 
 Kept in data.json under ``librenms_alerts``: ``token`` (sealed with floorbit/vault.py) and
 ``active``. Device and port names only, never people.
@@ -29,8 +30,11 @@ PORT = 9530               # the plugin's default port on the agent (plugin.yaml)
 PATH = '/librenms'
 MAX_ACTIVE = 500          # LibreNMS with a broken rule can fire for every port; keep the newest
 MAX_PORTS = 64
+RECONCILE_EVERY = 300     # seconds between reads of LibreNMS's active alerts
+GRACE = 180               # an alert this new may not be in LibreNMS's list yet
 STATES = {0: 'ok', 1: 'alert', 2: 'acknowledged', 3: 'worse', 4: 'better'}
 _lock = threading.Lock()
+_last_reconcile = [0.0]
 
 
 class AlertError(ValueError):
@@ -194,6 +198,40 @@ def clear(key):
     if found is not None:
         _changed()
     return found
+
+
+def reconcile(listed, now=None):
+    """Clear the alerts whose recovery got lost: LibreNMS no longer lists their alert id as open.
+    ``listed`` is LibreNMS's open alerts; None (couldn't read them) clears nothing. Alerts newer than
+    GRACE, and those without an alert id, are left alone. Returns how many were cleared."""
+    if listed is None:
+        return 0
+    now = time.time() if now is None else now
+    open_ids = {_int(a.get('id')) for a in listed if isinstance(a, dict)} - {None}
+    with _lock:
+        data = load_data()
+        active = (_section(data).get('active') or {})
+        gone = [k for k, a in active.items() if a.get('alert_id') is not None
+                and a['alert_id'] not in open_ids and now - (a.get('received') or now) >= GRACE]
+        for k in gone:
+            active.pop(k)
+        if gone:
+            save_data(data)
+    if gone:
+        print(f'[librenms-alerts] cleared {len(gone)} alert(s) LibreNMS no longer lists as open')
+        _changed()
+    return len(gone)
+
+
+def maybe_reconcile(source, now=None):
+    """From the status monitor's poll: at most every RECONCILE_EVERY seconds, and only while
+    alerts are open, ask the monitoring source which are still open."""
+    now = time.time() if now is None else now
+    if now - _last_reconcile[0] < RECONCILE_EVERY or not active():
+        return 0
+    _last_reconcile[0] = now
+    reader = getattr(source, 'active_alerts', None)
+    return reconcile(reader() if callable(reader) else None, now)
 
 
 def active(data=None):

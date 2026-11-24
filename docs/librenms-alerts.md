@@ -19,7 +19,11 @@ the built-in plugin [`librenms-alerts`](../floorbit/builtin_plugins/librenms-ale
 - A recovery (state 0) clears the alert. "Worse" and "better" replace it: a port alert lists all the
   ports still down each time, so a port missing from a later update is fixed.
 - Acknowledged in LibreNMS: it stays on the list, as amber, with "(acknowledged in LibreNMS)".
-- If a recovery got lost, people with `incidents.work` clear the alert with **Clear** on the Problems page.
+- If a recovery got lost, Floorbit notices by itself: while alerts are open, the status monitor reads
+  LibreNMS's list of open alerts (`GET /api/v0/alerts`) through the agent at most every 5 minutes,
+  and clears an alert whose id LibreNMS no longer lists. An alert younger than 3 minutes is left
+  alone (LibreNMS may not list it yet), and a list that can't be read clears nothing. People with
+  `incidents.work` can still clear one at once with **Clear** on the Problems page.
 
 Each alert is kept under its agent, its device and LibreNMS's alert id, which stays the same from
 the alert to its recovery. An update older than the one Floorbit has (the agent can send queued
@@ -55,7 +59,6 @@ yet. Check it with the transport's test button before the event, and tell us wha
 
 ## Not in this version
 
-- Reading LibreNMS's list of active alerts to clear one whose recovery got lost.
 - Flags on the port, the plan and the seats behind it; health values (temperature, optics, PoE),
   routing peers and LibreNMS service checks in their own places (issue #951).
 - A ready-made rule set to paste.

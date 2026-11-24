@@ -35,6 +35,9 @@ class Plugin(Plugin):
     def arp(self, query):
         return client.arp_entries(query)
 
+    def active_alerts(self):
+        return client.active_alerts()
+
     def test(self):
         if not self.configured():
             raise PluginError('Set the LibreNMS URL and API token under Settings > LibreNMS first.')
