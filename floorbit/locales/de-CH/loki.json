@@ -1,0 +1,5 @@
+{
+ "Loki refused the username or password.": "Loki hat Benutzername oder Passwort abgelehnt.",
+ "Loki's answer isn't JSON. Is the URL its HTTP API?": "Die Antwort von Loki ist kein JSON. Ist die URL seine HTTP-API?",
+ "Set the Loki URL under Settings > Plugins.": "Setze die Loki-URL unter Einstellungen > Plugins."
+}

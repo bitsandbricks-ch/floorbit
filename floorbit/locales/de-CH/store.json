@@ -1,0 +1,4 @@
+{
+ "{} must be lower-case letters, digits and -, at most 40 (got {}).": "{} darf nur Kleinbuchstaben, Ziffern und - enthalten, höchstens 40 (war {}).",
+ "{}: other writers kept saving it; not saved": "{}: andere haben es laufend gespeichert; nicht gespeichert"
+}

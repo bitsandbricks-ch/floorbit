@@ -1,0 +1,51 @@
+/* Side panels, sections and fields (components/ui.tsx): one way to show an item's details. */
+/* Mantine puts the class on the drawer's inner wrapper too; only the panel itself is a column. */
+.mantine-Drawer-content.fb-sidepanel { display: flex; flex-direction: column; height: 100%; border-left: 1px solid var(--color-line); }
+.fb-sidepanel-head {
+  display: flex; align-items: center; gap: 12px; padding: 16px 20px; flex-shrink: 0;
+  border-bottom: 1px solid var(--color-line);
+}
+.fb-sidepanel-body { flex: 1; min-height: 0; overflow-y: auto; }
+.fb-sidepanel-foot { padding: 12px 20px; border-top: 1px solid var(--color-line); flex-shrink: 0; }
+.fb-panel-section { padding: 16px 20px; border-bottom: 1px solid var(--color-line); }
+.fb-panel-section:last-child { border-bottom: 0; }
+.fb-panel-section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.fb-panel-label, .fb-field-label {
+  font-size: var(--mantine-font-size-xs); color: var(--color-muted);
+}
+.fb-panel-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.fb-field-label { margin-bottom: 2px; }
+.fb-field-value { font-size: var(--mantine-font-size-sm); display: flex; align-items: center; gap: 4px; overflow-wrap: anywhere; }
+
+/* Settings: the save bar stays on screen while there are unsaved changes. */
+.fb-savebar {
+  position: sticky;
+  bottom: calc(var(--fb-status-h) + 12px);
+  margin-top: 16px;
+  z-index: 5;
+}
+.fb-item-row { display: flex; align-items: center; width: 100%; min-height: 28px; padding-right: 4px; border-radius: 6px; }
+.fb-item-row:hover { background: var(--color-raised); }
+.fb-item-row[data-selected] { background: color-mix(in srgb, var(--color-bit) 16%, transparent); }
+.fb-plan-screen .fb-plan-stale { font-size: 1.2vw; height: auto; padding: 0.4vw 0.9vw; }
+.fb-cable-legend .fb-legend-down { color: var(--color-down); font-weight: 600; }
+
+/* A line of text that opens something. Reset by class, not an inline `all: unset`,
+   which would also wipe the keyboard focus ring. */
+.fb-text-button {
+  background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; text-align: start;
+  cursor: pointer; text-decoration: underline dotted; border-radius: 2px; align-self: flex-start;
+}
+.fb-text-button:focus-visible { box-shadow: none; outline: 2px solid var(--color-bit); outline-offset: 2px; }
+/* Mantine clips the alert's message box, which would cut the ring off. */
+.mantine-Alert-message:has(.fb-text-button) { overflow: visible; }
+
+/* Inventory: the groups and tags beside the device list on wide screens, above it on phones. */
+.fb-inventory-layout { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 62em) {
+  .fb-inventory-layout { grid-template-columns: 260px minmax(0, 1fr); }
+}
+.fb-tree-row:hover { background: var(--mantine-color-default-hover); }
+/* The brand tint, like the sidebar: Mantine's primary "light" colour is a solid green with this
+   theme, which hid the dark text and the count of the picked group. */
+.fb-tree-row-active, .fb-tree-row-active:hover { background: var(--color-bit-soft); }

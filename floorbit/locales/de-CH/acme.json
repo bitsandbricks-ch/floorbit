@@ -1,0 +1,9 @@
+{
+ "The ACME directory answered HTTP {}.": "Das ACME-Verzeichnis antwortete mit HTTP {}.",
+ "The ACME server gave no nonce.": "Der ACME-Server gab keine Nonce.",
+ "The ACME server gave the account no address.": "Der ACME-Server gab dem Konto keine Adresse.",
+ "The ACME server is still at \"{}\" after {} s.": "Der ACME-Server steht nach {2} s noch bei «{1}».",
+ "The ACME server kept refusing the nonce.": "Der ACME-Server lehnte die Nonce immer wieder ab.",
+ "The ACME server offered no HTTP-01 challenge.": "Der ACME-Server bot keine HTTP-01-Prüfung an.",
+ "The ACME server sent no certificate.": "Der ACME-Server schickte kein Zertifikat."
+}

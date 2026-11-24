@@ -1,0 +1,5 @@
+{
+ "A block has at most {} gaps in each direction": "Ein Block hat höchstens {} Lücken in jede Richtung",
+ "A gap is {} to {} seats wide": "Eine Lücke ist {} bis {} Plätze breit",
+ "Each gap has \"after\" (a column or row number) and \"size\" (in seats)": "Jede Lücke hat \"after\" (eine Spalten- oder Reihennummer) und \"size\" (in Plätzen)"
+}

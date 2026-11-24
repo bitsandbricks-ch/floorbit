@@ -1,0 +1,14 @@
+{
+ "Check-in is turned off on this Floorbit.": "Check-in ist in diesem Floorbit ausgeschaltet.",
+ "No new key was asked for this agent.": "Für diesen Agent wurde kein neuer Schlüssel angefordert.",
+ "snapshot is missing": "snapshot fehlt",
+ "Syslog is turned off on this Floorbit (Settings > Features).": "Syslog ist in diesem Floorbit ausgeschaltet (Einstellungen > Funktionen).",
+ "That walk-through code is unknown, used or too old.": "Diesen Rundgang-Code gibt es nicht, er wurde schon gebraucht oder ist zu alt.",
+ "The agent key is wrong or was revoked. Enrol the agent again.": "Der Agent-Schlüssel ist falsch oder wurde widerrufen. Melde den Agent neu an.",
+ "The agent sent a body that is not JSON.": "Der Agent hat einen Inhalt geschickt, der kein JSON ist.",
+ "The agent sent a broken gzip body.": "Der Agent hat einen kaputten gzip-Inhalt geschickt.",
+ "The agent sent more than 32 MB at once; send it in parts.": "Der Agent hat mehr als 32 MB auf einmal geschickt; bitte in Teilen schicken.",
+ "The database is not answering.": "Die Datenbank antwortet nicht.",
+ "This Floorbit speaks agent protocol {}, the agent {}. Update the agent (or this Floorbit) so they match.": "Dieses Floorbit spricht Agent-Protokoll {}, der Agent {}. Aktualisiere den Agent (oder dieses Floorbit), damit sie zusammenpassen.",
+ "Traffic is turned off on this Floorbit (Settings > Features).": "Traffic ist in diesem Floorbit ausgeschaltet (Einstellungen > Funktionen)."
+}

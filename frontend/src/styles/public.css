@@ -1,0 +1,147 @@
+/* Pages before signing in: sign-in and seat check-in (issue #46). One column in the middle, the
+   event's brand on top; phones first, so it fills the width there. */
+.fb-public {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 32px 16px 16px; gap: 16px;
+}
+.fb-public-col { width: 100%; max-width: 420px; display: flex; flex-direction: column; }
+/* Pages that read top to bottom (status, schedule) start at the top and are wider; boards wider still. */
+.fb-public--page, .fb-public--board { justify-content: flex-start; }
+.fb-public--page .fb-public-col { max-width: 760px; }
+.fb-public--board .fb-public-col { max-width: 1100px; }
+/* The public status page (pages/public/PublicStatus.tsx): one colour per state, as a dot and as
+   the line beside each item. */
+.fb-status-k-operational { --k: var(--color-up); }
+.fb-status-k-degraded, .fb-status-k-maintenance { --k: var(--color-warn); }
+.fb-status-k-outage { --k: var(--color-down); }
+.fb-status-k-unknown { --k: var(--color-muted); }
+.fb-status-dot {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; background: var(--k);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--k) 25%, transparent);
+}
+.fb-status-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.fb-status-list li { border-left: 3px solid var(--k, var(--color-line)); padding: 2px 0 2px 12px; }
+/* The public stats wall (pages/public/PublicWall.tsx); ?screen=1 sizes everything to the screen. */
+.fb-wall { display: grid; gap: 16px; }
+.fb-wall-title { font-size: clamp(24px, 4vw, 40px); line-height: 1.15; }
+.fb-wall-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.fb-wall-fact { padding: 18px 20px; border-top: 4px solid var(--k) !important; }
+.fb-wall-k-up { --k: var(--color-up); }
+.fb-wall-k-warn { --k: var(--color-warn); }
+.fb-wall-k-trace { --k: var(--color-trace, var(--color-bit)); }
+.fb-wall-k-bit { --k: var(--color-bit); }
+.fb-wall-label { font-size: 14px; color: var(--color-muted); font-weight: 600; }
+.fb-wall-big {
+  display: block; margin-top: 6px; font-size: clamp(30px, 4.4vw, 52px); font-weight: 800; line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.fb-wall-big small { font-size: .45em; font-weight: 700; margin-left: .15em; color: var(--color-muted); }
+.fb-wall-fact .fb-wall-note { margin-top: 6px; font-size: 14px; }
+.fb-wall-games { grid-column: 1 / -1; }
+.fb-wall-games ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.fb-wall-games li {
+  display: grid; grid-template-columns: 2em minmax(8em, 14em) 1fr; gap: 12px; align-items: center;
+  font-weight: 700; font-size: 18px;
+}
+.fb-wall-n { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.fb-wall-bar { height: 12px; border-radius: 6px; background: color-mix(in srgb, var(--color-bit) 18%, transparent); overflow: hidden; }
+.fb-wall-bar span { display: block; height: 100%; background: var(--color-bit); border-radius: 6px; }
+@media (max-width: 600px) {
+  .fb-wall-games li { grid-template-columns: 2em 1fr; row-gap: 4px; font-size: 16px; }
+  .fb-wall-bar { grid-column: 2; }
+}
+.fb-wall--screen { gap: 1.4vw; align-content: start; }
+.fb-wall--screen .fb-wall-grid { grid-template-columns: repeat(4, 1fr); gap: 1.4vw; }
+.fb-wall--screen .fb-wall-fact { padding: 1.2vw 1.4vw; }
+.fb-wall--screen .fb-wall-label { font-size: 1.05vw; }
+.fb-wall--screen .fb-wall-big { font-size: 3.6vw; white-space: nowrap; }
+.fb-wall--screen .fb-wall-games ol { gap: .6vw; }
+.fb-wall--screen .fb-wall-games li { font-size: 1.5vw; }
+.fb-wall--screen .fb-wall-bar { height: .7vw; }
+.fb-wall--screen .fb-wall-note { font-size: 1vw !important; }
+/* A public page showing old data because the server can't be reached (lib/publicFeed.ts). */
+.fb-stale-note {
+  position: fixed; left: 50%; top: 12px; transform: translateX(-50%); margin: 0; padding: 6px 14px; z-index: 300;
+  border-radius: 999px; border: 1px solid var(--color-warn); background: var(--color-surface); color: var(--color-fg);
+  font: 600 14px/1.4 var(--font-sans); max-width: calc(100vw - 32px); text-align: center;
+}
+.fb-public-head { display: flex; justify-content: center; margin-bottom: 20px; }
+.fb-public-brand { --fb-brand-h: 30px; }
+.fb-public-logo { max-height: 56px; max-width: 220px; object-fit: contain; }
+/* The attendee's way in, above the crew's sign-in: the accent wash says "start here". */
+.fb-public-hero {
+  background: linear-gradient(135deg, var(--color-bit-soft), transparent 70%), var(--color-surface);
+  border-color: color-mix(in srgb, var(--color-bit) 45%, var(--color-line)) !important;
+}
+.fb-public-done { color: var(--color-up); }
+/* Discord's own colour, so the button reads as Discord's on every theme. */
+.fb-login-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
+.fb-login-discord:hover { background: #4752c4; border-color: #4752c4; }
+
+/* The sign-in page (pages/Login.tsx, issue #1192): the event's brand and a hall on the left, the
+   way in on the right. Phones: one column, a short strip of the hall on top. Colours are the
+   theme's tokens, so the event's accent and highlight carry through. */
+.fb-signin { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 520px); background: var(--color-ink); }
+.fb-signin-hall {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 40px; min-width: 0;
+  padding: 44px clamp(32px, 5vw, 72px); overflow: hidden;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--color-fg) 8%, transparent) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+}
+.fb-signin-brand { --fb-brand-h: 30px; display: flex; }
+.fb-signin-brand .fb-public-logo { max-height: 48px; }
+.fb-signin-tagline { max-width: 720px; }
+.fb-signin-claim { margin: 0; font-size: clamp(28px, 2.7vw, 40px); line-height: 1.1; font-weight: 600; letter-spacing: -0.03em; color: var(--color-fg); }
+.fb-signin-sub { margin: 10px 0 0; font-size: 16px; color: var(--color-muted); }
+.fb-hall-art { --cell: 16px; align-self: center; display: flex; flex-direction: column; gap: 20px; }
+.fb-hall-block { display: flex; align-items: flex-start; gap: 12px; }
+.fb-hall-label { width: var(--cell); font: 500 12px/var(--cell) var(--font-mono); color: var(--color-muted); }
+.fb-hall-seats { display: grid; grid-template-columns: repeat(16, var(--cell)); gap: 5px; }
+.fb-hall-seat { height: var(--cell); border-radius: 4px; background: var(--color-raised); }
+.fb-hall-seat.is-in { background: color-mix(in srgb, var(--color-bit) 22%, var(--color-raised)); }
+.fb-hall-seat.is-warn { background: color-mix(in srgb, var(--color-warn) 45%, var(--color-raised)); }
+.fb-hall-seat.is-traced { background: var(--color-trace); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-trace) 22%, transparent); }
+.fb-hall-link { display: flex; align-items: center; height: var(--cell); }
+.fb-hall-wire { width: 44px; height: 2px; background: var(--color-line); }
+.fb-hall-wire.is-traced { background: var(--color-trace); }
+.fb-hall-switch {
+  display: flex; align-items: center; gap: 6px; padding: 4px 8px; white-space: nowrap;
+  font: 12px var(--font-mono); color: var(--color-muted);
+  background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-bit);
+}
+.fb-hall-switch.is-traced { border-color: var(--color-trace); color: var(--color-fg); }
+.fb-hall-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-up); }
+.fb-signin-side {
+  display: flex; flex-direction: column; gap: 24px; padding: 40px clamp(24px, 4vw, 72px) 24px;
+  background: var(--color-surface); border-left: 1px solid var(--color-line);
+}
+.fb-signin-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 28px; width: 100%; max-width: 380px; margin: 0 auto; }
+.fb-signin-title { font-size: 28px; letter-spacing: -0.025em; }
+.fb-signin-title[data-small] { font-size: 22px; }
+/* The attendee's way in, above the crew's sign-in. */
+.fb-signin-checkin {
+  display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: var(--radius-card);
+  background: var(--color-bit-soft); border: 1px solid color-mix(in srgb, var(--color-bit) 40%, transparent);
+}
+.fb-signin-checkin-head { display: flex; gap: 12px; align-items: flex-start; }
+.fb-signin-checkin-head svg { color: var(--color-bit); flex-shrink: 0; margin-top: 2px; }
+.fb-signin-checkin-title { font-size: 16px; }
+.fb-signin-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.fb-signin-prefs { display: flex; align-items: center; gap: 8px; }
+.fb-signin-foot .fb-attribution { padding: 0; }
+@media (max-width: 960px) {
+  .fb-signin { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+  .fb-signin-hall { gap: 18px; padding: 20px 16px; border-bottom: 1px solid var(--color-line); }
+  .fb-signin-brand { --fb-brand-h: 26px; }
+  .fb-hall-art { --cell: 10px; align-self: flex-start; gap: 10px; }
+  .fb-hall-block:nth-child(n + 3), .fb-hall-label, .fb-signin-tagline { display: none; }
+  .fb-hall-seats { gap: 4px; }
+  .fb-hall-seat { border-radius: 3px; }
+  .fb-hall-seat.is-traced { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-trace) 22%, transparent); }
+  .fb-hall-wire { width: 20px; }
+  .fb-hall-switch { font-size: 11px; padding: 2px 6px; }
+  .fb-hall-dot { display: none; }
+  .fb-signin-side { border-left: 0; padding: 24px 16px 16px; }
+  .fb-signin-body { max-width: 480px; justify-content: flex-start; gap: 24px; }
+}
+@media (max-width: 359px) { .fb-hall-art { display: none; } }

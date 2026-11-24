@@ -1,0 +1,17 @@
+{
+ "A link joins two different switches.": "Ein Link verbindet zwei verschiedene Switches.",
+ "A place is {\"x\": number, \"y\": number}.": "Ein Platz ist {\"x\": Zahl, \"y\": Zahl}.",
+ "Check the patch (LLDP/CDP)": "Patch prüfen (LLDP/CDP)",
+ "Copper Cat5e": "Kupfer Cat5e",
+ "Copper Cat6": "Kupfer Cat6",
+ "Copper Cat6a": "Kupfer Cat6a",
+ "Fiber multi-mode": "Glasfaser Multimode",
+ "Fiber single-mode": "Glasfaser Singlemode",
+ "Floorbit keeps at most {} links.": "Floorbit speichert höchstens {} Links.",
+ "Floorbit keeps at most {} places.": "Floorbit speichert höchstens {} Plätze.",
+ "Name the port at both ends, like Te1/1/1.": "Gib den Port an beiden Enden an, zum Beispiel Te1/1/1.",
+ "Pick both switches from the inventory.": "Wähle beide Switches aus dem Inventar.",
+ "Send the places as {\"positions\": {switch: {\"x\", \"y\"}}}.": "Schicke die Plätze als {\"positions\": {Switch: {\"x\", \"y\"}}}.",
+ "The link from {} {} to {} {} already uses one of these ports.": "Der Link von {} {} nach {} {} braucht schon einen dieser Ports.",
+ "{}G planned": "{}G geplant"
+}

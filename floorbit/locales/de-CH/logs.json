@@ -1,0 +1,8 @@
+{
+ "after and before are line ids; limit is a whole number from 1 to 1000.": "after und before sind Zeilen-IDs; limit ist eine ganze Zahl von 1 bis 1000.",
+ "hours is a whole number from 1 to 2160.": "hours ist eine ganze Zahl von 1 bis 2160.",
+ "Reading this log needs the audit.read permission.": "Dieses Log zu lesen braucht das Recht audit.read.",
+ "severity is one of {}.": "severity ist eines von {}.",
+ "source is one of {} or plugin:<id>.": "source ist eines von {} oder plugin:<id>.",
+ "That logs plugin is not turned on.": "Dieses Log-Plugin ist nicht eingeschaltet."
+}

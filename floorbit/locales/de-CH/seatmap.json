@@ -1,0 +1,14 @@
+{
+ "\"{}\" is not a MAC address": "«{}» ist keine MAC-Adresse",
+ "\"{}\" is not a seat label (letters, digits, space, - and _, up to 16)": "«{}» ist keine Platzbezeichnung (Buchstaben, Ziffern, Leerzeichen, - und _, bis 16)",
+ "\"{}\" is not an IP address": "«{}» ist keine IP-Adresse",
+ "A port needs its switch.": "Ein Port braucht seinen Switch.",
+ "not a dict": "kein Dict",
+ "Pick the port on the switch too.": "Wähle auch den Port am Switch.",
+ "seat {} is in the file twice": "Platz {} ist zweimal in der Datei",
+ "The file is larger than 1 MB": "Die Datei ist grösser als 1 MB",
+ "The first line must name the columns: seat, switch, port, ip, mac, nick, note": "Die erste Zeile muss die Spalten nennen: seat, switch, port, ip, mac, nick, note",
+ "the plugin must return a dict of seat: {ip, mac, nick}": "das Plugin muss ein Dict mit Platz: {ip, mac, nick} zurückgeben",
+ "Unknown column(s): {}": "Unbekannte Spalte(n): {}",
+ "{} {} is already seat {}.": "{} {} ist schon Platz {}."
+}

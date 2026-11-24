@@ -1,0 +1,6 @@
+{
+ "Failed to clear cache: {}": "Cache konnte nicht geleert werden: {}",
+ "Failed to get cache stats: {}": "Cache-Statistik nicht lesbar: {}",
+ "hostnames is a list of switch names": "hostnames ist eine Liste von Switch-Namen",
+ "Redis is not configured": "Redis ist nicht eingerichtet"
+}

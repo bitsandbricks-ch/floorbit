@@ -1,0 +1,6 @@
+{
+ "Each feature is true (on) or false (off).": "Jede Funktion ist true (an) oder false (aus).",
+ "Send the features to change, like {\"power\": false}.": "Schicke die Funktionen, die sich ändern sollen, etwa {\"power\": false}.",
+ "This feature is turned off.": "Diese Funktion ist ausgeschaltet.",
+ "Unknown feature(s): {}": "Unbekannte Funktion(en): {}"
+}

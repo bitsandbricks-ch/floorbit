@@ -1,0 +1,10 @@
+{
+ "Interface errors rising (+{})": "Interface-Fehler steigen (+{})",
+ "Port flapping: {} link changes in 10 minutes": "Port flattert: {} Linkwechsel in 10 Minuten",
+ "Running at half duplex": "Läuft im Halbduplex",
+ "Seat {} checked in on a port meant for seats {}": "Platz {} hat an einem Port eingecheckt, der für die Plätze {} gedacht ist",
+ "Seat {} checked in on the port the patch plan gives to seat {}": "Platz {} hat am Port eingecheckt, den der Patchplan Platz {} gibt",
+ "Seat {} is online without a check-in": "Platz {} ist online ohne Check-in",
+ "Seat {} was taken over by another nick": "Platz {} wurde von einem anderen Nick übernommen",
+ "Seats {} and {} checked in on the same port": "Plätze {} und {} haben am selben Port eingecheckt"
+}

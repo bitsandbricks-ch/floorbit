@@ -1,0 +1,8 @@
+{
+ "List the names this agent is reached by (cert_names) before it can get a certificate.": "Gib zuerst die Namen an, unter denen dieser Agent erreichbar ist (cert_names), dann bekommt er ein Zertifikat.",
+ "The agents CA key cannot be opened. The server log says why.": "Der Schlüssel der Agent-CA lässt sich nicht öffnen. Das Server-Log sagt, warum.",
+ "The signing request is missing or too large.": "Die Zertifikatsanfrage fehlt oder ist zu gross.",
+ "The signing request is not a PEM certificate request.": "Die Zertifikatsanfrage ist keine PEM-Zertifikatsanfrage.",
+ "The signing request is not signed by its own key.": "Die Zertifikatsanfrage ist nicht mit ihrem eigenen Schlüssel signiert.",
+ "The signing request needs an EC key or an RSA key of 2048 bits or more.": "Die Zertifikatsanfrage braucht einen EC-Schlüssel oder einen RSA-Schlüssel mit mindestens 2048 Bit."
+}

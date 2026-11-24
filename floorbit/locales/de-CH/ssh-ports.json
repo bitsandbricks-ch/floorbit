@@ -1,0 +1,16 @@
+{
+ "Bad port name.": "Ungültiger Portname.",
+ "Could not reach {} over SSH ({}).": "{} war per SSH nicht erreichbar ({}).",
+ "Custom needs both command lists under Settings > Plugins.": "«Eigene» braucht beide Befehlslisten unter Einstellungen > Plugins.",
+ "No commands to run.": "Keine Befehle zum Ausführen.",
+ "The SSH host key of {} changed ({}). If the switch was replaced, an admin can forget the pinned keys under Settings > Plugins.": "Der SSH-Host-Key von {} hat sich geändert ({}). Wenn der Switch ersetzt wurde, kann ein Admin die gespeicherten Keys unter Einstellungen > Plugins vergessen.",
+ "The SSH session with {} broke off ({}).": "Die SSH-Sitzung mit {} ist abgebrochen ({}).",
+ "The switch did not show a prompt in time.": "Der Switch zeigte nicht rechtzeitig einen Prompt.",
+ "The switch refused \"{}\": {}": "Der Switch hat «{}» abgelehnt: {}",
+ "This needs your switch login.": "Dafür braucht es dein Switch-Login.",
+ "Unknown switch software {}.": "Unbekannte Switch-Software {}.",
+ "{} did not answer in time.": "{} hat nicht rechtzeitig geantwortet.",
+ "{} has no pinned host key and trusting new switches is off.": "{} hat keinen gespeicherten Host-Key, und neuen Switches vertrauen ist aus.",
+ "{} refused a shell ({}).": "{} hat eine Shell verweigert ({}).",
+ "{} refused the login.": "{} hat das Login abgelehnt."
+}

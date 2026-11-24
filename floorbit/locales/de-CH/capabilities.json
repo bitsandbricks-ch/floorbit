@@ -1,0 +1,5 @@
+{
+ "No such capability.": "Diese Fähigkeit gibt es nicht.",
+ "Send {\"on\": true} or {\"on\": false}.": "Sende {\"on\": true} oder {\"on\": false}.",
+ "{} is turned off by {} on the server.": "{} ist auf dem Server durch {} ausgeschaltet."
+}

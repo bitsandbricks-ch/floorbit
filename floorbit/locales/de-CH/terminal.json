@@ -1,0 +1,9 @@
+{
+ "Bad input.": "Ungültige Eingabe.",
+ "cols and rows are numbers.": "cols und rows sind Zahlen.",
+ "No plugin that can open a switch terminal is on. An admin turns on SSH port actions under Settings > Plugins.": "Kein Plugin, das ein Switch-Terminal öffnen kann, ist eingeschaltet. Ein Admin schaltet SSH-Port-Aktionen unter Einstellungen > Plugins ein.",
+ "That terminal is closed.": "Dieses Terminal ist geschlossen.",
+ "The connection to the switch was lost ({}).": "Die Verbindung zum Switch ist abgebrochen ({}).",
+ "Too many terminals are open. Close one first.": "Zu viele Terminals sind offen. Schliesse zuerst eines.",
+ "You have {} terminals open. Close one first.": "Du hast {} Terminals offen. Schliesse zuerst eines."
+}
