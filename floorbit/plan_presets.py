@@ -28,7 +28,23 @@ _lock = threading.Lock()
 
 
 class PresetError(ValueError):
-    pass
+    """Raised with one of the fixed messages below; the API answers with ``public(exc)``."""
+
+
+NO_ITEMS = 'A preset holds at least one item'
+TOO_MANY_ITEMS = f'A preset holds at most {MAX_ITEMS} items'
+BAD_ITEM = 'A preset holds seat blocks, marks, patch panels and power boards'
+TOO_BIG = f'A preset is at most {MAX_BYTES // 1024} kB'
+NO_NAME = 'A preset needs a name'
+LONG_NAME = f'A preset name is at most {NAME_MAX} characters'
+TOO_MANY = f'At most {MAX_PRESETS} presets: delete one first'
+NAME_TAKEN = 'A preset with this name exists already'
+_MESSAGES = {m: m for m in (NO_ITEMS, TOO_MANY_ITEMS, BAD_ITEM, TOO_BIG, NO_NAME, LONG_NAME, TOO_MANY, NAME_TAKEN)}
+
+
+def public(exc):
+    """The answer for ``exc``: its fixed message, looked up rather than read from the exception."""
+    return _MESSAGES.get(exc.args[0] if exc.args else None, 'The preset is not valid')
 
 
 def _path():
@@ -51,32 +67,32 @@ def counts(items):
 
 def clean_items(items):
     if not isinstance(items, list) or not items:
-        raise PresetError('A preset holds at least one item')
+        raise PresetError(NO_ITEMS)
     if len(items) > MAX_ITEMS:
-        raise PresetError(f'A preset holds at most {MAX_ITEMS} items')
+        raise PresetError(TOO_MANY_ITEMS)
     out = []
     for item in items:
         if not isinstance(item, dict) or item.get('kind') not in KINDS or not isinstance(item.get('body'), dict):
-            raise PresetError('A preset holds seat blocks, marks, patch panels and power boards')
+            raise PresetError(BAD_ITEM)
         out.append({'kind': item['kind'], 'body': {k: v for k, v in item['body'].items() if k not in SKIP}})
     if len(json.dumps(out)) > MAX_BYTES:
-        raise PresetError(f'A preset is at most {MAX_BYTES // 1024} kB')
+        raise PresetError(TOO_BIG)
     return out
 
 
 def add(name, items):
     name = str(name or '').strip()
     if not name:
-        raise PresetError('A preset needs a name')
+        raise PresetError(NO_NAME)
     if len(name) > NAME_MAX:
-        raise PresetError(f'A preset name is at most {NAME_MAX} characters')
+        raise PresetError(LONG_NAME)
     items = clean_items(items)
     with _lock:
         presets = all_presets()
         if len(presets) >= MAX_PRESETS:
-            raise PresetError(f'At most {MAX_PRESETS} presets: delete one first')
+            raise PresetError(TOO_MANY)
         if any(str(p.get('name', '')).lower() == name.lower() for p in presets):
-            raise PresetError('A preset with this name exists already')
+            raise PresetError(NAME_TAKEN)
         preset = {'id': uuid.uuid4().hex[:12], 'name': name, 'saved': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
                   'counts': counts(items), 'items': items}
         store.write_json(_path(), {'presets': [*presets, preset]})

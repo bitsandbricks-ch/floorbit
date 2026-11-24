@@ -1,0 +1,16 @@
+{
+ "That hall does not exist": "Diese Halle gibt es nicht",
+ "A seat block has a naming that Floorbit does not know": "Ein Sitzblock hat eine Benennung, die Floorbit nicht kennt",
+ "The template has a value that is not a number": "Die Vorlage hat einen Wert, der keine Zahl ist",
+ "The template has a value that is out of range": "Die Vorlage hat einen Wert ausserhalb des erlaubten Bereichs",
+ "A seat block in the template has rows that are not valid": "Ein Sitzblock in der Vorlage hat ungültige Reihen",
+ "A hall id is not valid or used twice": "Eine Hallen-ID ist ungültig oder doppelt",
+ "A hall in the template is not valid": "Eine Halle in der Vorlage ist ungültig",
+ "A seat block name is in the template twice": "Ein Sitzblockname kommt in der Vorlage zweimal vor",
+ "A mark on the plan is not valid": "Eine Markierung auf dem Plan ist ungültig",
+ "A template needs a name": "Eine Vorlage braucht einen Namen",
+ "This version of the template does not exist": "Diese Version der Vorlage gibt es nicht",
+ "This template format is not supported": "Dieses Vorlagenformat wird nicht unterstützt",
+ "Another hall already has seat blocks with these names": "Eine andere Halle hat schon Sitzblöcke mit diesen Namen",
+ "The template is not valid": "Die Vorlage ist ungültig"
+}

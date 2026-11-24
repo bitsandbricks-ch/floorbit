@@ -21,12 +21,12 @@ def list_presets():
 @bp.route('/api/plan-presets', methods=['POST'])
 def save_preset():
     if (request.content_length or 0) > presets.MAX_BYTES + 4096:
-        return jsonify({'error': f'A preset is at most {presets.MAX_BYTES // 1024} kB'}), 413
+        return jsonify({'error': presets.TOO_BIG}), 413
     body = request.get_json(silent=True) or {}
     try:
         preset = presets.add(body.get('name'), body.get('items'))
     except presets.PresetError as exc:
-        return jsonify({'error': str(exc)}), 400
+        return jsonify({'error': presets.public(exc)}), 400
     return jsonify(preset), 201
 
 

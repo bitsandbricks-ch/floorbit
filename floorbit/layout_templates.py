@@ -33,7 +33,41 @@ _ID = re.compile(r'[a-f0-9]{12}')
 
 
 class TemplateError(ValueError):
-    pass
+    """Raised with one of the fixed messages below. The API answers with ``public(exc)``, never with the
+    exception's own text, so no detail of a failure reaches the answer."""
+
+
+NO_HALL = 'That hall does not exist'
+UNKNOWN_NAMING = 'A seat block has a naming that Floorbit does not know'
+NOT_A_NUMBER = 'The template has a value that is not a number'
+OUT_OF_RANGE = 'The template has a value that is out of range'
+BAD_ROWS = 'A seat block in the template has rows that are not valid'
+NO_LAYOUT = 'The template has no layout'
+HALL_COUNT = f'A template has 1 to {halls.MAX_HALLS} halls'
+HALL_NOT_OBJECT = 'A hall is not an object'
+BAD_HALL_ID = 'A hall id is not valid or used twice'
+BAD_HALL = 'A hall in the template is not valid'
+BLOCK_NOT_OBJECT = 'A seat block is not an object'
+BLOCK_TWICE = 'A seat block name is in the template twice'
+SWITCH_NOT_OBJECT = 'A switch is not an object'
+SWITCH_NO_NAME = 'A switch has no name'
+BAD_MARK = 'A mark on the plan is not valid'
+NEEDS_NAME = 'A template needs a name'
+TOO_MANY = f'At most {MAX_TEMPLATES} templates'
+NO_VERSION = 'This version of the template does not exist'
+NOT_A_TEMPLATE = 'This is not a Floorbit template file'
+UNSUPPORTED = 'This template format is not supported'
+ONE_HALL_ONLY = 'Only a template of one hall can go into one hall'
+NAME_CLASH = 'Another hall already has seat blocks with these names'
+_MESSAGES = {m: m for m in (NO_HALL, UNKNOWN_NAMING, NOT_A_NUMBER, OUT_OF_RANGE, BAD_ROWS, NO_LAYOUT, HALL_COUNT,
+                            HALL_NOT_OBJECT, BAD_HALL_ID, BAD_HALL, BLOCK_NOT_OBJECT, BLOCK_TWICE, SWITCH_NOT_OBJECT,
+                            SWITCH_NO_NAME, BAD_MARK, NEEDS_NAME, TOO_MANY, NO_VERSION, NOT_A_TEMPLATE, UNSUPPORTED,
+                            ONE_HALL_ONLY, NAME_CLASH)}
+
+
+def public(exc):
+    """The answer for ``exc``: its fixed message, looked up rather than read from the exception."""
+    return _MESSAGES.get(exc.args[0] if exc.args else None, 'The template is not valid')
 
 
 # ── Snapshots ────────────────────────────────────────────────────────────────────────────
@@ -42,7 +76,7 @@ def snapshot(data, hall_id=None):
     """The layout of every hall, or of one, with nothing but layout in it."""
     chosen = [h for h in halls.halls(data) if hall_id is None or h['id'] == hall_id]
     if not chosen:
-        raise TemplateError(f'No hall "{hall_id}"')
+        raise TemplateError(NO_HALL)
     ids = {h['id'] for h in halls.halls(data)}
     wanted = {h['id'] for h in chosen}
     blocks = [{k: b.get(k) for k in BLOCK_KEYS if k != 'hall_id'} | {'hall_id': halls.hall_of(b, data, ids)}
@@ -81,16 +115,16 @@ def _naming(b, what):
     labels = b.get('row_labels') or 'start'
     known = naming in seat_names.NAMINGS and labels in seat_names.ROW_LABELS
     if not known or not seat_names.LETTERS_RE.match(start):
-        raise TemplateError(f'{what} has a naming that Floorbit does not know')
+        raise TemplateError(UNKNOWN_NAMING)
     return {'naming': naming, 'row_start': start, 'row_labels': labels}
 
 
 def _num(value, lo, hi, what, cast=float):
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise TemplateError(f'{what} is not a number')
+        raise TemplateError(NOT_A_NUMBER)
     value = cast(value)
     if not lo <= value <= hi:
-        raise TemplateError(f'{what} is out of range')
+        raise TemplateError(OUT_OF_RANGE)
     return value
 
 
@@ -101,27 +135,27 @@ def _places(b, what):
     try:
         rows = seat_rows.clean(b.get('rows'))
         return {'rows': rows, 'seat_at': seat_layout.clean(b.get('seat_at'), rows)}
-    except (seat_rows.RowError, seat_layout.LayoutError) as exc:
-        raise TemplateError(f'{what}: {exc}') from None
+    except (seat_rows.RowError, seat_layout.LayoutError):
+        raise TemplateError(BAD_ROWS) from None
 
 
 def clean_layout(layout):
     """A layout from a file, cut down to the template fields and checked. Returns (layout, dropped),
     ``dropped`` the names of the fields that were taken out."""
     if not isinstance(layout, dict):
-        raise TemplateError('The template has no layout')
+        raise TemplateError(NO_LAYOUT)
     dropped = set(layout) - {'halls', 'switches', 'seat_blocks', 'plan_marks'}
     raw_halls = layout.get('halls')
     if not isinstance(raw_halls, list) or not raw_halls or len(raw_halls) > halls.MAX_HALLS:
-        raise TemplateError(f'A template has 1 to {halls.MAX_HALLS} halls')
+        raise TemplateError(HALL_COUNT)
     out_halls, ids = [], set()
     for h in raw_halls:
         if not isinstance(h, dict):
-            raise TemplateError('A hall is not an object')
+            raise TemplateError(HALL_NOT_OBJECT)
         dropped |= set(h) - {'id', 'name', 'background', 'frame', 'opacity', 'seat_m'}
         hid = str(h.get('id') or '')[:40]
         if not re.fullmatch(r'[\w-]{1,40}', hid) or hid in ids:
-            raise TemplateError(f'Hall id "{hid}" is not valid or used twice')
+            raise TemplateError(BAD_HALL_ID)
         ids.add(hid)
         try:
             if h.get('background'):
@@ -130,17 +164,17 @@ def clean_layout(layout):
             _put_placing({'background': {'stand-in': True}}, placing)   # checked now, put on when applied
             out_halls.append({'id': hid, 'name': halls.clean_name(h.get('name')),
                               'background': h.get('background') or None, **placing})
-        except halls.HallError as exc:
-            raise TemplateError(f'Hall "{hid}": {exc}') from None
+        except halls.HallError:
+            raise TemplateError(BAD_HALL) from None
 
     blocks, names = [], set()
     for b in layout.get('seat_blocks') or []:
         if not isinstance(b, dict):
-            raise TemplateError('A seat block is not an object')
+            raise TemplateError(BLOCK_NOT_OBJECT)
         dropped |= set(b) - set(BLOCK_KEYS) - set(GRID_KEYS)
         name = str(b.get('name') or '')[:40]
         if name.upper() in names:
-            raise TemplateError(f'Block "{name}" is in the template twice')
+            raise TemplateError(BLOCK_TWICE)
         names.add(name.upper())
         what = f'Block "{name}"'
         blocks.append({
@@ -160,11 +194,11 @@ def clean_layout(layout):
     switches = []
     for s in layout.get('switches') or []:
         if not isinstance(s, dict):
-            raise TemplateError('A switch is not an object')
+            raise TemplateError(SWITCH_NOT_OBJECT)
         dropped |= set(s) - set(SWITCH_KEYS)
         name = str(s.get('name') or '').strip()[:80]
         if not name:
-            raise TemplateError('A switch has no name')
+            raise TemplateError(SWITCH_NO_NAME)
         switches.append({
             'name': name, 'role': str(s.get('role') or 'switch')[:40], 'model': str(s.get('model') or '')[:80],
             'x': _num(s.get('x'), 0, 100, f'Switch "{name}" x'), 'y': _num(s.get('y'), 0, 100, f'Switch "{name}" y'),
@@ -174,8 +208,8 @@ def clean_layout(layout):
     for m in layout.get('plan_marks') or []:
         try:
             mark = plan_marks.clean(m)
-        except plan_marks.MarkError as exc:
-            raise TemplateError(f'A mark on the plan: {exc}') from None
+        except plan_marks.MarkError:
+            raise TemplateError(BAD_MARK) from None
         mark.pop('id', None)
         marks.append({**mark, 'hall_id': m.get('hall_id') if m.get('hall_id') in ids else out_halls[0]['id']})
     return {'halls': out_halls, 'switches': switches, 'seat_blocks': blocks, 'plan_marks': marks}, sorted(dropped)
@@ -232,7 +266,7 @@ def all_templates():
 def _clean_text(value, limit, what, required=False):
     text = ' '.join(str(value or '').split())[:limit] if what == 'name' else str(value or '').strip()[:limit]
     if required and not text:
-        raise TemplateError(f'A template needs a {what}')
+        raise TemplateError(NEEDS_NAME)
     return text
 
 
@@ -242,7 +276,7 @@ def _now():
 
 def create(name, description, layout):
     if len(store.list_json(folder())) >= MAX_TEMPLATES:
-        raise TemplateError(f'At most {MAX_TEMPLATES} templates')
+        raise TemplateError(TOO_MANY)
     now = _now()
     template = {'id': uuid.uuid4().hex[:12], 'name': _clean_text(name, NAME_MAX, 'name', True),
                 'description': _clean_text(description, DESCRIPTION_MAX, 'description'),
@@ -288,7 +322,7 @@ def version(template, n=None):
     for v in template['versions']:
         if str(v['n']) == str(n):
             return v
-    raise TemplateError(f'No version {n}')
+    raise TemplateError(NO_VERSION)
 
 
 def export(template, n=None):
@@ -300,9 +334,9 @@ def export(template, n=None):
 def from_file(body):
     """(name, description, layout, dropped) from an exported file."""
     if not isinstance(body, dict) or body.get('format') != FORMAT:
-        raise TemplateError('This is not a Floorbit template file')
+        raise TemplateError(NOT_A_TEMPLATE)
     if body.get('version') != FORMAT_VERSION:
-        raise TemplateError(f'Template format {body.get("version")!r} is not supported (expected {FORMAT_VERSION})')
+        raise TemplateError(UNSUPPORTED)
     layout, dropped = clean_layout(body.get('layout'))
     dropped = sorted({*dropped, *(set(body) - {'format', 'version', 'name', 'description', 'saved', 'layout'})})
     return body.get('name') or 'Imported template', body.get('description') or '', layout, dropped
@@ -337,7 +371,7 @@ def apply(data, layout, hall_id=None):
     ids = {h['id'] for h in halls.halls(data)}
     if hall_id:
         if len(layout['halls']) != 1:
-            raise TemplateError('Only a template of one hall can go into one hall')
+            raise TemplateError(ONE_HALL_ONLY)
         target = halls.find(data, hall_id)
         if target is None:
             raise KeyError(hall_id)
@@ -347,7 +381,7 @@ def apply(data, layout, hall_id=None):
                   if halls.hall_of(b, data, ids) != hall_id}
         clash = sorted(b['name'] for b in layout['seat_blocks'] if b['name'].upper() in others)
         if clash:
-            raise TemplateError(f'Another hall already has block(s) {", ".join(clash)}')
+            raise TemplateError(NAME_CLASH)
         data['seat_blocks'] = [b for b in data.get('seat_blocks') or [] if halls.hall_of(b, data, ids) != hall_id]
         data[plan_marks.KEY] = [m for m in data.get(plan_marks.KEY) or [] if halls.hall_of(m, data, ids) != hall_id]
         for d in inventory.devices(data, include_hidden=True):
