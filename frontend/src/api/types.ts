@@ -192,6 +192,10 @@ export interface FeatureInfo {
   name: string
   default: boolean
   agent?: boolean
+  /** False: the plugin doesn't work on inventory devices, so switching it per device does nothing. */
+  per_device?: boolean
+  /** The device roles it is about; null: any (#878). */
+  roles?: string[] | null
 }
 
 /** An SVG from the shared icon library (floorbit/icon_library.py); `id` starts with `custom-`. */
