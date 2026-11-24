@@ -11,7 +11,7 @@ import { SeatActions } from './Actions'
 import { SeatNoteBox } from './SeatNoteBox'
 import { SeatSpeedTests } from './SeatSpeedTests'
 import { WatchSeat } from './WatchSeat'
-import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, linkSpans, rate } from './model'
+import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, PROBLEM_COLORS, linkSpans, rate } from './model'
 import { SeatGlyph } from './SeatMap'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock, dayClock } from '@/lib/time'
@@ -160,14 +160,14 @@ const SAMPLES: { key: string; seat: PlanSeat }[] = [
 
 /** The same shapes as on the plan, so the legend can't drift from it. ``seats: false`` leaves the
  *  seat states out (for one layer's legend); ``samples`` picks seat states by key. */
-export function Legend({ checkin, traffic = false, power = false, firewalls = false, seats = true, samples, label }: {
-  checkin: boolean; traffic?: boolean; power?: boolean; firewalls?: boolean; seats?: boolean; samples?: string[]
+export function Legend({ checkin, traffic = false, problems = false, power = false, firewalls = false, seats = true, samples, label }: {
+  checkin: boolean; traffic?: boolean; problems?: boolean; power?: boolean; firewalls?: boolean; seats?: boolean; samples?: string[]
   /** The list's name when there are several, such as one per layer. */
   label?: string
 }) {
   const { t } = useTranslation()
   const shown = SAMPLES.filter((x) => (samples ? samples.includes(x.key) : seats && (checkin || x.key !== 'checkedIn')))
-  if (!shown.length && !traffic && !power && !firewalls) return null
+  if (!shown.length && !traffic && !problems && !power && !firewalls) return null
   return (
     <ul className="fb-plan-legend" aria-label={label ?? t('plan.legend')}>
       {power && (['ok', 'warn', 'crit', 'tripped'] as const).map((s) => (
@@ -187,6 +187,16 @@ export function Legend({ checkin, traffic = false, power = false, firewalls = fa
       {traffic && (
         <li className="heat">
           {t('plan.trafficScale')} <span>{rate(HEAT_MIN)}</span><i style={{ background: HEAT_GRADIENT }} aria-hidden="true" /><span>{rate(HEAT_MAX)}</span>
+        </li>
+      )}
+      {problems && (
+        <li className="pheat-scale">
+          {t('plan.problemScale')}
+          <span className="pscale">
+            {[1, 2, 3].map((n) => (
+              <span key={n} className="pscale"><i style={{ background: PROBLEM_COLORS[n] }} aria-hidden="true" />{n === 3 ? '3+' : n}</span>
+            ))}
+          </span>
         </li>
       )}
       {shown.map((x) => (

@@ -2,14 +2,14 @@
  *  switched off or faded. The choice lives in the URL (``?layers=…&fade=…``) so a link or a big
  *  screen shows the same thing. */
 
-export const LAYERS = ['grid', 'marks', 'network', 'electrical', 'status', 'firewalls', 'wifi', 'safety', 'crew', 'checkin', 'services'] as const
+export const LAYERS = ['grid', 'marks', 'network', 'electrical', 'status', 'problems', 'firewalls', 'wifi', 'safety', 'crew', 'checkin', 'services'] as const
 export type LayerId = (typeof LAYERS)[number]
 
 export const PRESETS = {
   overview: ['marks', 'checkin'],
   network: ['marks', 'network', 'wifi'],
   electrical: ['marks', 'electrical'],
-  ops: ['marks', 'network', 'status', 'firewalls', 'crew', 'checkin'],
+  ops: ['marks', 'network', 'status', 'problems', 'firewalls', 'crew', 'checkin'],
 } satisfies Record<string, LayerId[]>
 export type PresetId = keyof typeof PRESETS
 /** Keys 1 to 4 pick these presets in Live mode, in the order the layer panel lists them. */
