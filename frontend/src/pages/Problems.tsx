@@ -24,8 +24,8 @@ const MINUTES = ['30', '60', '240', '720', '1440']
 const ENDING_SOON = 10 * 60
 
 
-function Row({ p, canMute, canSwap, busy, onMute, onReport }: {
-  p: Problem; canMute: boolean; canSwap?: boolean; busy: boolean; onMute: () => void; onReport?: () => void
+function Row({ p, canMute, canSwap, busy, onMute, onReport, onClear }: {
+  p: Problem; canMute: boolean; canSwap?: boolean; busy: boolean; onMute: () => void; onReport?: () => void; onClear?: () => void
 }) {
   const { t } = useTranslation()
   return (
@@ -69,6 +69,10 @@ function Row({ p, canMute, canSwap, busy, onMute, onReport }: {
           )}
           {canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted && (
             <Button size="xs" variant="subtle" leftSection={<IconBellOff size={14} />} onClick={onMute} disabled={busy}>{t('problems.mute')}</Button>
+          )}
+          {/* A LibreNMS alert whose recovery never came (issue #951). */}
+          {canMute && onClear && p.clear_id && (
+            <Button size="xs" variant="subtle" onClick={onClear} disabled={busy}>{t('problems.clear')}</Button>
           )}
         </Group>
       </Group>
@@ -190,6 +194,10 @@ export default function Problems() {
     mutationFn: (p: Problem) => post('/api/incidents', { switch_id: p.switch_id, title: p.title }),
     onSuccess: refresh,
   })
+  const clearAlert = useMutation({
+    mutationFn: (id: string) => del(`/api/alerts/librenms/${encodeURIComponent(id)}`),
+    onSuccess: refresh,
+  })
   const unmute = useMutation({
     mutationFn: (id: string) => del(`/api/alerts/mutes/${encodeURIComponent(id)}`),
     onSuccess: refresh,
@@ -204,7 +212,7 @@ export default function Problems() {
   // In the order they first appear, which is worst first.
   const kinds: string[] = data ? [...new Set(data.problems.map((p) => p.kind))] : []
   const visible = data ? data.problems.filter((p) => !kinds.includes(shown) || p.kind === shown) : []
-  const error = list.error ?? unmute.error ?? extend.error ?? report.error
+  const error = list.error ?? unmute.error ?? extend.error ?? report.error ?? clearAlert.error
 
   return (
     // Muted problems stay out of the tab count: someone is already on them (issue #214).
@@ -247,8 +255,9 @@ export default function Problems() {
           ) : (
             <Stack gap="xs">
               {visible.map((p) => (
-                <Row key={p.id} p={p} canMute={data.can_mute} canSwap={canSwap} busy={mute.isPending || report.isPending}
+                <Row key={p.id} p={p} canMute={data.can_mute} canSwap={canSwap} busy={mute.isPending || report.isPending || clearAlert.isPending}
                   onReport={data.can_report ? () => report.mutate(p) : undefined}
+                  onClear={p.clear_id ? () => clearAlert.mutate(p.clear_id ?? '') : undefined}
                   onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: muteKind(p.kind) }) }} />
               ))}
             </Stack>
