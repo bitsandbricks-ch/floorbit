@@ -1,5 +1,5 @@
-import { Alert, Badge, Button, Group, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
-import { IconArrowRight, IconCopy, IconDeviceTv, IconLayoutGridAdd, IconPencil, IconPlus, IconRestore, IconSeparator } from '@tabler/icons-react'
+import { ActionIcon, Alert, Badge, Button, Group, Menu, NumberInput, Paper, Popover, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title, Tooltip } from '@mantine/core'
+import { IconArrowRight, IconCopy, IconDeviceTv, IconDots, IconLayoutGridAdd, IconLayoutSidebarRight, IconLayoutSidebarRightCollapse, IconPencil, IconPlus, IconRestore, IconSeparator, IconSettings, IconTrash, IconX } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,12 +11,13 @@ import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState } from '@/components/ui'
+import { useConfirm } from '@bitsandbricks/ui'
 import { dateTime } from '@/lib/time'
 import {
   COLS, MAX_PANELS, MAX_SECTIONS, type Panel, type Section, type Spot, add, paneCount, place, rows, starterSections, total,
 } from './dashboards/grid'
 import { GridView } from './dashboards/GridView'
-import { type Board, type Node, MAX_PANES, TIME_RANGES, type TimeRange, boardName, boardSettings, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
+import { type Board, type Node, type Pane, MAX_PANES, TIME_RANGES, type TimeRange, boardName, boardSettings, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
 import { PaneForm } from './dashboards/PaneForm'
 import type { PaneFit } from '@bitsandbricks/widgets'
 import './dashboards/dashboards.css'
@@ -125,6 +126,7 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
   const [selected, setSelected] = useState<Spot | null>({ section: 0, panel: 0, path: [] })
   // How the picked pane draws now, from the pane itself (#928).
   const [drawn, setDrawn] = useState<PaneFit | null>(null)
+  const [docked, setDocked] = useDocked()
   const node = selected ? sections[selected.section]?.panels[selected.panel]?.node : undefined
   const picked = node && selected ? at(node, selected.path) : null
   const done = () => { void qc.invalidateQueries({ queryKey: qk.boards }); onDone() }
@@ -135,8 +137,9 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
     onSuccess: done,
   })
   const drop = useMutation({ mutationFn: () => del(`/api/dashboards/${board!.id}`), onSuccess: done })
-  // Reset loses the changes for good: the first click asks.
-  const [resetting, setResetting] = useState(false)
+  // Reset and delete lose the dashboard's changes for good: both ask first.
+  const askFirst = useConfirm()
+  const ask = async (title: string, label: string) => { if (await askFirst({ title, confirmLabel: label })) drop.mutate() }
   // A copy of the dashboard as saved, as a dashboard of one's own (#923): not public until someone says so.
   const copy = useMutation({
     mutationFn: () => {
@@ -168,45 +171,82 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
     setSections([...sections, { title: t('dashboards.section.new'), panels: [] }])
     setSelected(null)
   }
+  const settings = (
+    <Stack gap="sm">
+      <NumberInput label={t('dashboards.cycle')} description={t('dashboards.cycleHint')} min={10} max={600} value={cycle} placeholder={t('dashboards.focus.off')}
+        onChange={(v) => setCycle(typeof v === 'number' ? v : '')} allowDecimal={false} />
+      <Select label={t('dashboards.boardRange')} description={t('dashboards.boardRangeHint')} allowDeselect={false} comboboxProps={{ withinPortal: false }}
+        value={range ?? 'auto'} data={['auto', ...TIME_RANGES].map((r) => ({ value: r, label: t(`dashboards.range.${r}`) }))}
+        onChange={(v) => setRange(!v || v === 'auto' ? undefined : (v as TimeRange))} />
+      <Switch size="sm" label={t('dashboards.frame')} checked={frame} onChange={(e) => setFrame(e.currentTarget.checked)} />
+      <Switch size="sm" label={t('dashboards.sound')} description={t('dashboards.soundHint')} checked={sound}
+        onChange={(e) => setSound(e.currentTarget.checked)} />
+      {/* Stays spelled out: making a dashboard public is a decision, not a detail. */}
+      <Switch size="sm" label={t('dashboards.public')} description={t('dashboards.publicHint')} checked={open}
+        onChange={(e) => setOpen(e.currentTarget.checked)} />
+    </Stack>
+  )
+  const paneOpen = !!(picked && isPane(picked) && selected)
   return (
-    <div className="fb-board-editor">
-      <Group className="fb-board-bar" gap="sm" align="flex-end" wrap="wrap">
-        <TextInput label={t('dashboards.name')} placeholder={t('dashboards.namePlaceholder')} value={name} maxLength={60}
-          onChange={(e) => setName(e.currentTarget.value)} style={{ flex: 1, minWidth: 200 }} />
-        <NumberInput label={t('dashboards.cycle')} description={t('dashboards.cycleHint')} w={200} min={10} max={600} value={cycle}
-          onChange={(v) => setCycle(typeof v === 'number' ? v : '')} allowDecimal={false} />
-        <Select label={t('dashboards.boardRange')} description={t('dashboards.boardRangeHint')} w={220} allowDeselect={false}
-          value={range ?? 'auto'} data={['auto', ...TIME_RANGES].map((r) => ({ value: r, label: t(`dashboards.range.${r}`) }))}
-          onChange={(v) => setRange(!v || v === 'auto' ? undefined : (v as TimeRange))} />
-        <Group gap="xs">
-          <Button loading={save.isPending} disabled={!name.trim()} onClick={() => save.mutate()}>{t('dashboards.save')}</Button>
-          <Button variant="default" onClick={() => onDone()}>{t('dashboards.cancel')}</Button>
-          {board && <Button variant="default" component="a" href={`/dashboards/${encodeURIComponent(board.id)}`} leftSection={<IconDeviceTv size={16} />}>{t('dashboards.open')}</Button>}
-          {board && <Button variant="default" loading={copy.isPending} leftSection={<IconCopy size={16} />} onClick={() => copy.mutate()}>{t('dashboards.copy')}</Button>}
-          {board?.changed && (
-            <Button variant="subtle" color="down" loading={drop.isPending} leftSection={<IconRestore size={16} />}
-              onClick={() => (resetting ? drop.mutate() : setResetting(true))}>
-              {resetting ? t('dashboards.resetConfirm') : t('dashboards.reset')}
-            </Button>
+    // Focus mode (#1325): the app's sidebar, top bar and tabs step aside while a dashboard is edited
+    // (dashboards.css), so the canvas gets the whole screen like the plan editor.
+    <div className={`fb-board-editor${docked ? ' docked' : ''}`}>
+      <div className="fb-board-bar" role="toolbar" aria-label={t('dashboards.focus.toolbar')}>
+        <Tooltip label={t('dashboards.focus.exit')}>
+          <ActionIcon variant="subtle" color="gray" size="lg" onClick={() => onDone()} aria-label={t('dashboards.focus.exit')}><IconX size={18} /></ActionIcon>
+        </Tooltip>
+        <TextInput className="fb-board-name" aria-label={t('dashboards.name')} placeholder={t('dashboards.namePlaceholder')} value={name} maxLength={60}
+          variant="unstyled" onChange={(e) => setName(e.currentTarget.value)} />
+        <div className="fb-board-tools">
+          <Button size="xs" variant="default" leftSection={<IconLayoutGridAdd size={16} />} onClick={addWidget}
+            disabled={total(sections) >= MAX_PANELS || full}>{t('dashboards.edit.addWidget')}</Button>
+          <Button size="xs" variant="default" leftSection={<IconSeparator size={16} />} onClick={addSection}
+            disabled={sections.length >= MAX_SECTIONS}>{t('dashboards.edit.addSection')}</Button>
+          <SegmentedControl size="xs" aria-label={t('dashboards.layout')} value={fit ? 'screen' : 'page'} onChange={(v) => setFit(v === 'screen')}
+            data={[{ value: 'page', label: t('dashboards.layoutPage') }, { value: 'screen', label: t('dashboards.layoutScreen') }]} />
+          <Popover position="bottom-start" width={360} shadow="md" withArrow trapFocus>
+            <Popover.Target>
+              <Button size="xs" variant="default" leftSection={<IconSettings size={16} />}>{t('dashboards.focus.settings')}</Button>
+            </Popover.Target>
+            <Popover.Dropdown aria-label={t('dashboards.focus.settings')}>{settings}</Popover.Dropdown>
+          </Popover>
+          <Text size="xs" c="dimmed" className="fb-board-hint" title={t('dashboards.canvasHint', { max: MAX_PANELS, cols: COLS })}>
+            {t('dashboards.focus.hint')}
+          </Text>
+        </div>
+        <Group gap="xs" wrap="nowrap" className="fb-board-actions">
+          {board && (
+            <Tooltip label={t('dashboards.open')}>
+              <ActionIcon variant="default" size="lg" component="a" href={`/dashboards/${encodeURIComponent(board.id)}`} aria-label={t('dashboards.open')}><IconDeviceTv size={16} /></ActionIcon>
+            </Tooltip>
           )}
-          {board && !board.builtin && !board.changed && <Button variant="subtle" color="down" loading={drop.isPending} onClick={() => drop.mutate()}>{t('dashboards.delete')}</Button>}
+          <Button size="sm" variant="default" className="fb-board-cancel" onClick={() => onDone()}>{t('dashboards.cancel')}</Button>
+          <Button size="sm" loading={save.isPending} disabled={!name.trim()} onClick={() => save.mutate()}>{t('dashboards.save')}</Button>
+          {board && (
+            <Menu position="bottom-end" withinPortal>
+              <Menu.Target>
+                <ActionIcon variant="default" size="lg" aria-label={t('dashboards.focus.more')}><IconDots size={16} /></ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<IconCopy size={16} />} disabled={copy.isPending} onClick={() => copy.mutate()}>{t('dashboards.copy')}</Menu.Item>
+                {board.changed && (
+                  <Menu.Item color="down" leftSection={<IconRestore size={16} />} disabled={drop.isPending}
+                    onClick={() => void ask(t('dashboards.focus.resetAsk', { name: boardName(t, board) }), t('dashboards.reset'))}>
+                    {t('dashboards.reset')}
+                  </Menu.Item>
+                )}
+                {!board.builtin && !board.changed && (
+                  <Menu.Item color="down" leftSection={<IconTrash size={16} />} disabled={drop.isPending}
+                    onClick={() => void ask(t('dashboards.focus.deleteAsk', { name: boardName(t, board) }), t('dashboards.delete'))}>
+                    {t('dashboards.delete')}
+                  </Menu.Item>
+                )}
+              </Menu.Dropdown>
+            </Menu>
+          )}
         </Group>
-      </Group>
-      {(save.error || drop.error || copy.error) && <Alert color="down" role="alert" mb="sm">{(save.error || drop.error || copy.error)!.message}</Alert>}
-      <Group gap="sm" wrap="wrap">
-        <Button size="xs" variant="default" leftSection={<IconLayoutGridAdd size={16} />} onClick={addWidget}
-          disabled={total(sections) >= MAX_PANELS || full}>{t('dashboards.edit.addWidget')}</Button>
-        <Button size="xs" variant="default" leftSection={<IconSeparator size={16} />} onClick={addSection}
-          disabled={sections.length >= MAX_SECTIONS}>{t('dashboards.edit.addSection')}</Button>
-        <SegmentedControl size="xs" aria-label={t('dashboards.layout')} value={fit ? 'screen' : 'page'} onChange={(v) => setFit(v === 'screen')}
-          data={[{ value: 'page', label: t('dashboards.layoutPage') }, { value: 'screen', label: t('dashboards.layoutScreen') }]} />
-        <Switch size="sm" label={t('dashboards.frame')} checked={frame} onChange={(e) => setFrame(e.currentTarget.checked)} />
-        <Switch size="sm" label={t('dashboards.sound')} description={t('dashboards.soundHint')} checked={sound}
-          onChange={(e) => setSound(e.currentTarget.checked)} style={{ maxWidth: 300 }} />
-        <Switch size="sm" label={t('dashboards.public')} description={t('dashboards.publicHint')} checked={open}
-          onChange={(e) => setOpen(e.currentTarget.checked)} style={{ maxWidth: 360 }} />
-        <Text size="xs" c="dimmed" style={{ flex: 1, minWidth: 200 }}>{t('dashboards.canvasHint', { max: MAX_PANELS, cols: COLS })}</Text>
-      </Group>
+      </div>
+      {(save.error || drop.error || copy.error) && <Alert color="down" role="alert" mx="sm">{(save.error || drop.error || copy.error)!.message}</Alert>}
       <div className="fb-board-work">
         <div className="fb-board-canvas">
           <div className={`fb-board-screen${fit ? '' : ' scroll'}`}>
@@ -240,13 +280,50 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
             }} />
           </div>
         </div>
-        <Paper withBorder radius="lg" p="md" className="fb-board-side" component="aside" aria-label={t('dashboards.form.label')}>
-          {picked && isPane(picked) && selected
-            ? <PaneForm key={`${selected.section}.${selected.panel}.${selected.path.join('.')}`} pane={picked.pane} drawn={drawn}
-                onChange={(pane) => withNode(selected, (n) => setPane(n, selected.path, pane))} />
-            : <Text size="sm" c="dimmed">{t('dashboards.form.pickOne')}</Text>}
-        </Paper>
+        {/* The widget's settings: over the canvas while a widget is picked (the canvas stays usable,
+            so picking another widget switches them), or docked beside it. A sheet on phones. */}
+        {(paneOpen || docked) && (
+          <aside className={`fb-board-side ${docked ? 'is-docked' : 'is-float'}`} aria-label={t('dashboards.form.label')}>
+            <div className="fb-board-side-head">
+              <div className="fb-board-side-title">
+                <Text size="xs" c="dimmed">{t('dashboards.form.label')}</Text>
+                <Text fw={700} truncate>{paneOpen && picked && isPane(picked) ? paneTitle(t, picked.pane) : t('dashboards.form.pickOne')}</Text>
+              </div>
+              <Tooltip label={docked ? t('dashboards.focus.float') : t('dashboards.focus.dock')}>
+                <ActionIcon variant="subtle" color="gray" onClick={() => setDocked(!docked)} aria-label={docked ? t('dashboards.focus.float') : t('dashboards.focus.dock')}>
+                  {docked ? <IconLayoutSidebarRightCollapse size={18} /> : <IconLayoutSidebarRight size={18} />}
+                </ActionIcon>
+              </Tooltip>
+              {paneOpen && (
+                <ActionIcon variant="subtle" color="gray" onClick={() => setSelected(null)} aria-label={t('dashboards.focus.close')}><IconX size={18} /></ActionIcon>
+              )}
+            </div>
+            <div className="fb-board-side-body">
+              {paneOpen && picked && isPane(picked) && selected
+                ? <PaneForm key={`${selected.section}.${selected.panel}.${selected.path.join('.')}`} pane={picked.pane} drawn={drawn}
+                    onChange={(pane) => withNode(selected, (n) => setPane(n, selected.path, pane))} />
+                : <Text size="sm" c="dimmed">{t('dashboards.form.pickOne')}</Text>}
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   )
+}
+
+/** What the panel's head calls the picked widget: its own title, else its kind. */
+function paneTitle(t: (k: string) => string, pane: Pane): string {
+  return ('title' in pane && typeof pane.title === 'string' && pane.title.trim()) ? pane.title : t(`dashboards.kind.${pane.kind}`)
+}
+
+const DOCK_KEY = 'floorbit.boardPanelDocked'
+
+/** Whether the widget settings sit beside the canvas instead of over it, remembered in this browser. */
+function useDocked() {
+  const [docked, setDocked] = useState(() => { try { return localStorage.getItem(DOCK_KEY) === '1' } catch { return false } })
+  const save = (on: boolean) => {
+    setDocked(on)
+    try { if (on) localStorage.setItem(DOCK_KEY, '1'); else localStorage.removeItem(DOCK_KEY) } catch { /* private window: this visit only */ }
+  }
+  return [docked, save] as const
 }

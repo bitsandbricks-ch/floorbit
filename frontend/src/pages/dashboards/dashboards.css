@@ -44,19 +44,60 @@
 /* Only the picked pane (or the one under the pointer or the keyboard) shows its tools, so the others
    show their content as the screen will (#1135). */
 .fb-split-pane:not(.selected):not(:hover):not(:focus-within) > .fb-pane-tools { opacity: 0; }
-.fb-board-editor { display: flex; flex-direction: column; height: 100%; padding: 12px 16px; gap: 8px; }
+/* Focus mode (#1325): while a dashboard is edited, the app's sidebar, top bar, tabs and phone tab bar
+   step aside, so the canvas gets the whole screen like the plan editor. ✕ in the bar leaves. */
+body:has(.fb-board-editor) .fb-nav-slot,
+body:has(.fb-board-editor) .fb-tabbar,
+body:has(.fb-board-editor) .fb-header,
+body:has(.fb-board-editor) .fb-topbar,
+body:has(.fb-board-editor) .fb-hubtabs,
+body:has(.fb-board-editor) .fb-up { display: none; }
+body.fb-has-nav:has(.fb-board-editor) { padding-bottom: 0; }
+body .fb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; }
+.fb-board-editor { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+/* One slim bar: name, tools, the dashboard's settings in a popover, save. */
+.fb-board-bar { display: flex; align-items: center; gap: 8px; min-height: 50px; padding: 6px 10px;
+  background: var(--color-surface); border-bottom: 1px solid var(--color-line); }
+.fb-board-name { flex: 0 1 260px; min-width: 120px; }
+.fb-board-name input { height: 34px; padding: 0 8px; border: 1px dashed transparent; border-radius: 6px; font-size: 16px; font-weight: 700; color: var(--color-fg); }
+.fb-board-name input:hover, .fb-board-name input:focus { border-color: var(--color-line); }
+.fb-board-tools { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.fb-board-hint { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* One row the height of the editor: without it the row grows with the dashboard and nothing scrolls (#1324). */
-.fb-board-work { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: minmax(0, 1fr); gap: 16px; }
-.fb-board-canvas { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.fb-board-work { flex: 1; min-height: 0; position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.fb-board-editor.docked .fb-board-work { grid-template-columns: minmax(0, 1fr) 380px; }
+.fb-board-canvas { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 10px; }
 .fb-board-screen { aspect-ratio: 16 / 9; max-height: 100%; width: 100%; background: var(--color-ink); border-radius: 12px; padding: 6px; display: flex; }
 /* Scrolling dashboards are as long as they are: the canvas scrolls instead of keeping 16:9. */
 .fb-board-screen.scroll { aspect-ratio: auto; height: 100%; overflow: auto; display: block; }
-.fb-board-side { overflow: auto; }
-.fb-box-picker .fb-plan-wrap { height: 200px; }
+/* The widget settings: floating over the canvas while a widget is picked, or docked beside it. The
+   canvas stays usable under a floating panel, so picking another widget switches what it shows. */
+.fb-board-side { display: flex; flex-direction: column; min-height: 0; background: var(--color-surface); }
+.fb-board-side.is-docked { border-left: 1px solid var(--color-line); }
+.fb-board-side.is-float { position: absolute; z-index: 20; top: 12px; right: 12px; bottom: 12px; width: min(380px, calc(100% - 24px));
+  border: 1px solid var(--color-line); border-radius: 12px; box-shadow: 0 18px 50px rgb(0 0 0 / 35%); }
+.fb-board-side-head { display: flex; align-items: center; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--color-line); }
+.fb-board-side-title { flex: 1; min-width: 0; }
+.fb-board-side-body { flex: 1; min-height: 0; overflow: auto; padding: 12px 14px; }
 @media (max-width: 62em) {
-  /* Stacked: the canvas over the widget settings, each scrolling on its own. */
-  .fb-board-work { grid-template-columns: 1fr; grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); }
+  .fb-board-hint { display: none; }
+  .fb-board-editor.docked .fb-board-work { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); }
+  .fb-board-side.is-docked { border-left: 0; border-top: 1px solid var(--color-line); }
 }
+/* Phones: the tools in a bar at the bottom, the widget settings as a sheet from below. */
+@media (max-width: 48em) {
+  .fb-board-cancel { display: none; }
+  .fb-board-tools { position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; overflow-x: auto;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); background: var(--color-surface); border-top: 1px solid var(--color-line); }
+  /* A row that scrolls sideways rather than squeezing the buttons' words. */
+  .fb-board-tools > * { flex: none; }
+  .fb-board-canvas { padding: 6px 6px calc(56px + env(safe-area-inset-bottom)); }
+  .fb-board-editor .fb-board-side.is-float, .fb-board-editor .fb-board-side.is-docked {
+    position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; top: auto; width: auto; height: 60dvh;
+    border: 1px solid var(--color-line); border-radius: 16px 16px 0 0; box-shadow: 0 -10px 40px rgb(0 0 0 / 35%); }
+  .fb-board-editor.docked .fb-board-work { grid-template-rows: minmax(0, 1fr); }
+}
+.fb-box-picker .fb-plan-wrap { height: 200px; }
 
 /* The grid: sections one below the other, panels placed on COLS columns (grid.ts). */
 .fb-grid { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; }
@@ -213,3 +254,9 @@
 .fb-screen-alert-hint { color: var(--color-muted); font-size: .8em; }
 @keyframes fb-screen-alert { 50% { background: color-mix(in srgb, var(--color-down) 8%, var(--color-raised)); } }
 @media (prefers-reduced-motion: reduce) { .fb-screen-alert { animation: none; } }
+/* The demo badge (static/css/brand/demo.css) sits by the sidebar's logo, which focus mode hides:
+   bottom left of the canvas instead, clear of the bar's name and buttons. */
+html body:has(.fb-board-editor):has(.fb-nav-slot)::after { top: auto; bottom: 18px; left: 18px; transform: none; }
+@media (max-width: 48em) {
+  html body:has(.fb-board-editor):has(.fb-nav-slot)::after { bottom: calc(64px + env(safe-area-inset-bottom)); }
+}

@@ -17,7 +17,14 @@ layer at the bottom right.
 ## Making one
 
 **Dashboards** in the sidebar lists them; **New dashboard** opens the editor (needs
-`floorplan.edit`, like the tile layouts):
+`floorplan.edit`, like the tile layouts). The editor takes the whole screen: the sidebar, top bar
+and tabs step aside until you leave it with **✕** (or **Cancel**). One bar on top holds the name
+(click it to rename), **Add widget**, **Add section**, the layout, **Dashboard settings** (rotate
+halls, time shown, header in full screen, sound, public), **Save** and, under **⋯**, **Make a copy**,
+**Reset to default** and **Delete**, which ask first. Picking a widget opens its settings over the
+dashboard; pick another widget and they switch, **✕** closes them, and the dock button keeps them
+beside the dashboard instead (remembered in this browser). On a phone the buttons sit in a bar at
+the bottom and the settings open as a sheet from below.
 
 - **Add widget** puts an empty widget in the first free spot of the picked section. Drag a widget by
   its handle (top left) and resize it by its corner (bottom right); the others make room and
@@ -185,8 +192,8 @@ lookups, game launchers, downloaded, power circuits), or an empty pane where the
 ## Ready-made dashboards
 
 Floorbit comes with these. Change any of them; saving keeps your version under the same name, and
-the list marks it **Changed**. **Reset to default** in its editor drops your version and brings the
-ready-made one back (it asks once, since the changes are lost). **Make a copy** in any dashboard's
+the list marks it **Changed**. **Reset to default** under **⋯** in its editor drops your version and brings the
+ready-made one back (it asks first, since the changes are lost). **Make a copy** under **⋯** in any dashboard's
 editor saves it as a new dashboard of your own, named "… (copy)" and not public, and opens it.
 
 | Dashboard | What is on it |
