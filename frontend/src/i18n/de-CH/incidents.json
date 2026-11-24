@@ -133,5 +133,6 @@
     "switches": "Switches {{names}}",
     "and": " und "
   },
-  "fromProblem": "Aus einem Problem erfasst"
+  "fromProblem": "Aus einem Problem erfasst",
+  "assignedToMe": "Mir zugewiesen"
 }

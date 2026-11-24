@@ -417,7 +417,7 @@ def _jobs(user):
     if len(mine) > MAX_JOBS:
         lines.append(f"…and {len(mine) - MAX_JOBS} more")
     buttons = [_button(f"Fixed: {_where_text(i)}", 'fixed', i['id'], GREEN) for i in mine[:MAX_BUTTONS]]
-    return answer('\n'.join(lines) + _link('/jobs'), buttons)
+    return answer('\n'.join(lines) + _link('/incidents?mine=1'), buttons)
 
 
 def _statusupdate(user, given):
