@@ -6,8 +6,8 @@ the list: it works with no plugin at all, filled by hand on the **Inventory** pa
 or by placing switches on the floor plan. Plugins such as NetBox add to it.
 
 Every device, group and tag has its own page, with no side panel in between: a device opens at
-`/inventory/devices/<id>` with tabs for its overview, interfaces, telemetry, graphs, logs, settings and
-credentials; a group at `/inventory/groups/<id>`, a tag at `/inventory/tags/<id>` and the
+`/inventory/devices/<id>` with tabs for its overview, interfaces, networks and VLANs, MAC and IP, telemetry, graphs, logs,
+settings and credentials; a group at `/inventory/groups/<id>`, a tag at `/inventory/tags/<id>` and the
 defaults for all devices at `/inventory/defaults`, each with tabs for its details, telemetry,
 settings (properties and feature switches) and credentials. Other entries (cables, transceivers, ...) open at
 `/inventory/entries/<type>/<id>`. The links can be shared and bookmarked.
@@ -17,6 +17,12 @@ one port's traffic in and out and its errors (pick the port), as Floorbit stored
 monitoring or telemetry; a number never stored is left out. **Logs** shows the syslog lines this
 device sent, newest first, with a search and a level filter, and **Open in Logs** for the rest.
 It needs **See seats** (`seats.view`) like the Logs page, since lines name MACs and IPs.
+
+**Networks and VLANs** shows what discovery last read from the device: its VLANs (with the
+networks on their VLAN interfaces), the networks on its interfaces, and a firewall's routes. It is
+read-only; the IPAM tab's VLAN and prefix entries are made from it. **MAC and IP** lists every
+machine seen on the device's ports, newest first, from the [IP and MAC history](endpoints.md); it
+needs **See seats** too.
 
 The **Inventory** page is one list with a tab per type (Devices, then any other type that has
 entries) and a **Groups and tags** tab. The device list shows each device's live state (the status
