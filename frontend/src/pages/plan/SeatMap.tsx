@@ -356,7 +356,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </g>
           )
         })}</g>}
-        {network && placed && <g opacity={opacity(layers, 'network')}><CableLines cables={placed} size={data.size} scale={s} seats={data.seats} /></g>}
+        {network && placed && <g opacity={opacity(layers, 'network')}><CableLines cables={placed} size={data.size} scale={s} seats={data.seats} cell={drawing.cell} /></g>}
         {power && <g opacity={opacity(layers, 'electrical')}><PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} /></g>}
         {drawing.shapes.map((b, bi) => {
           const sum = data.blocks.find((x) => x.name === b.name)
@@ -463,8 +463,9 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
             <rect className="hit" width={cell} height={cell} />
             <SeatGlyph seat={seat} size={cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state}
               checkin={checkin} incidents={incidents?.[c.seat]} mark={marks?.[c.seat]?.tone} />
-            {/* The side people sit on (floorbit/seat_rows.py): left of the way the row runs is up. */}
-            {c.side && <rect className="side" x={cell * 0.2} y={c.side === 'left' ? 1 : cell - 4} width={cell * 0.6} height={3} rx={1.5} />}
+            {/* The chair, on the side people sit (floorbit/seat_rows.py): left of the way the row runs is up.
+                Just outside the seat, so it never covers its number or state (Mike, issue #1342). */}
+            {c.side && level !== 'far' && <rect className="chair" x={cell * 0.28} y={c.side === 'left' ? -cell * 0.38 : cell * 1.06} width={cell * 0.44} height={cell * 0.32} rx={cell * 0.08} />}
             {(labels === 'all' || ends?.has(c.seat)) && (
               <text className={labels === 'ends' ? 'num end' : 'num'} x={cell / 2} y={cell / 2} dy="0.35em"
                 transform={rotation || c.a ? `rotate(${-rotation - (c.a ?? 0)} ${cell / 2} ${cell / 2})` : undefined}>
