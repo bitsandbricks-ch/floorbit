@@ -11,7 +11,6 @@
  "Send the switches as a list.": "Schicke die Switches als Liste.",
  "Serves no range now": "Bedient jetzt keinen Bereich",
  "There is a prefix called {} already.": "Es gibt schon ein Präfix namens {}.",
- "This range comes from {}: change it there and import again.": "Dieser Bereich kommt aus {}: ändere ihn dort und importiere neu.",
  "Type an IP address or a seat.": "Gib eine IP-Adresse oder einen Platz ein.",
  "Write the range as a network (192.0.2.0/27) or from-to (192.0.2.0-192.0.2.128).": "Schreib den Bereich als Netz (192.0.2.0/27) oder von-bis (192.0.2.0-192.0.2.128).",
  "{} has fewer addresses than firewalls to share it.": "{} hat weniger Adressen, als Firewalls ihn teilen sollen.",
@@ -20,5 +19,6 @@
  "{} overlaps {} only in part: make one range inside the other, or split them where they meet.": "{} überschneidet sich nur teilweise mit {}: Leg einen Bereich ganz in den anderen oder trenn sie dort, wo sie sich treffen.",
  "{} prefix(es) skipped: not a network, or a firewall that is not in the inventory.": "{} Prefix(e) übersprungen: kein Netz, oder eine Firewall, die nicht im Inventar ist.",
  "{} prefix(es) skipped: planned in Floorbit already.": "{} Prefix(e) übersprungen: in Floorbit schon geplant.",
- "{} without a firewall": "{} ohne Firewall"
+ "{} without a firewall": "{} ohne Firewall",
+ "This range comes from {}: change it there, and the next inventory sync brings it.": "Dieser Bereich kommt aus {}: Ändere ihn dort, die nächste Inventar-Synchronisation bringt ihn."
 }
