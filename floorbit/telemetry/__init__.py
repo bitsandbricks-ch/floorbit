@@ -10,11 +10,14 @@ The pieces:
 - ``state``: the latest picture of each device, answered by the telemetry monitoring plugin.
 - ``storage``: series over time, in VictoriaMetrics or (lite) Floorbit's own database.
 
-**Where it runs.** Self-hosted, Floorbit is the collector: the Telegraf sidecar posts to
-``/api/telemetry/write`` and the pollers run here. Hosted, with a local agent enrolled, the agent is
-the collector: the telemetry plugin's agent part (builtin_plugins/telemetry/agent.py) gets the
+**Where it runs.** The local agent is the collector, self-hosted or hosted (it is the only way to
+the event network): the telemetry plugin's agent part (builtin_plugins/telemetry/agent.py) gets the
 targets as its settings, writes Telegraf's config, keeps the picture itself (monitoring calls
-reach it through the link) and sends the hosted side only the normalised series.
+reach it through the link) and sends Floorbit only the normalised series.
+
+Floorbit collects itself (``collector_here()``: ``/api/telemetry/write``, the pollers here) only
+while no agent is enrolled, and that is the demo: its made-up devices feed this path
+(blueprints/demo.py ``start_telemetry_feed``), so it stays (issue #955).
 """
 import os
 import threading

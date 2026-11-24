@@ -5,8 +5,8 @@ token as the password of Basic auth, the InfluxDB v1 way), no account. Never in 
 proxies log it:
 
 - ``POST /api/telemetry/write`` and ``POST /api/telemetry/api/v2/write``: line protocol from
-  Telegraf (the sidecar, or a firewall's own Telegraf pointed at ``/api/telemetry`` as its
-  InfluxDB URL). Gzip is fine.
+  Telegraf, only while Floorbit collects itself (no agent enrolled: the demo). With an agent the
+  answer is 409, and Telegraf sends to the agent's listener instead. Gzip is fine.
 
 For the crew:
 

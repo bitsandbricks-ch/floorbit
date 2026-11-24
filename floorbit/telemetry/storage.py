@@ -1,8 +1,8 @@
 """Where telemetry is kept over time (docs/telemetry.md).
 
-- **VictoriaMetrics** (``FLOORBIT_VICTORIAMETRICS_URL``, the optional sidecar): every point that
-  came in (``/write``, line protocol, for Grafana and deep dives), plus a normalised series per
-  device and port every ``SAMPLE`` seconds: ``fb_port_in_bps``, ``fb_port_out_bps``,
+- **VictoriaMetrics** (``FLOORBIT_VICTORIAMETRICS_URL``, the optional sidecar): a normalised series
+  per device and port every ``SAMPLE`` seconds (the raw points too, but only when Floorbit collects
+  itself, in the demo: with an agent they stay on the agent, issue #955): ``fb_port_in_bps``, ``fb_port_out_bps``,
   ``fb_port_errors``, ``fb_port_up``, ``fb_device_up``, ``fb_device_cpu``, ``fb_device_mem``,
   ``fb_device_states``, with ``device`` and ``port`` labels, the same whichever driver sent them;
   a wireless controller's ``fb_device_wifi_clients`` and, per AP (its ``port`` label),
