@@ -20,7 +20,7 @@ A node is a tree: a node is either a split (``split`` "row" puts its children si
 - ``tile``: one data tile (``<plugin>/w/<id>``, the tiles of ``GET /api/dashboard``, Floorbit's own
   and the plugins'), drawn as a widget ``type`` (:data:`WIDGET_TYPES`; ``auto`` picks one from the
   data's shape) at a ``level`` (``auto`` picks small, medium or large from the box it gets, or one of
-  ``s``, ``m``, ``l`` pinned). See frontend/src/widgets/kinds/.
+  ``s``, ``m``, ``l`` pinned). See @bitsandbricks/widgets (bitsandbricks-ch/ui).
 - ``text``: your own words (``text``, the Markdown subset of frontend/src/components/Markdown.tsx),
   in a ``size`` that reads from across the hall and ``align``-ed left or centred;
 - ``empty``: nothing yet.
@@ -77,7 +77,7 @@ TITLE_MAX = 40
 TEXT_MAX = 2000
 TEXT_SIZES = ('s', 'm', 'l', 'xl')
 TEXT_ALIGN = ('start', 'center')
-# The generic widget types a tile is drawn as (#894); the browser draws each one (widgets/kinds/).
+# The generic widget types a tile is drawn as (#894); the browser draws each one (@bitsandbricks/widgets).
 WIDGET_TYPES = ('auto', 'stat', 'gauge', 'status', 'list', 'table', 'bar', 'column', 'histogram', 'pie', 'graph')
 LEVELS = ('auto', 's', 'm', 'l')
 # How a tile with several series or segments is drawn; the first of each is the default.

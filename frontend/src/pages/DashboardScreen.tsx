@@ -16,10 +16,14 @@ import { type Board, TIME_RANGES, type TimeRange, boardName, boardSettings } fro
 import { nextInRotation, publicUrl, rotation, ScreenContext } from './dashboards/screen'
 import { GridView } from './dashboards/GridView'
 import { useProblemSound } from './dashboards/sound'
-import { AutoPage, WALL_PAGE_SECONDS } from '@/widgets/autoPage'
+import { AutoPage } from '@bitsandbricks/widgets'
 import { useIdle } from './plan/idle'
 import { updated, useReloadOnUpdate } from './plan/update'
 import './dashboards/dashboards.css'
+
+// Seconds a wall's long list stays on one page (#925): long enough to read across the hall. The
+// widgets kit has the same value but doesn't export it yet.
+const WALL_PAGE_SECONDS = 12
 
 /** One dashboard on a whole screen (``/dashboards/<id>``): no sidebar, the cursor hides while nobody
  *  moves it, and the page reloads itself after an update. ``?rotate=a,b,c&every=30`` moves on to the
