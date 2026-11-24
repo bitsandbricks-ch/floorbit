@@ -278,9 +278,55 @@ def _block_rows(data):
             seat_rows.from_grid(block)
 
 
+def _ipam(data):
+    """Issue #1345: "VLAN or IP range" entries split into VLANs and prefixes, and the firewall
+    ranges (``firewalls``) move onto prefixes as their plan, with their inventory settings."""
+    from . import firewalls
+    entries = data.get('inventory_entries')
+    if isinstance(entries, list):
+        vlan_ids = {str((e.get('fields') or {}).get('vlan_id')) for e in entries
+                    if isinstance(e, dict) and e.get('type') == 'vlan' and not (e.get('fields') or {}).get('prefix')}
+        for e in list(entries):
+            if not isinstance(e, dict) or e.get('type') != 'vlan':
+                continue
+            fields = e.get('fields') if isinstance(e.get('fields'), dict) else {}
+            if fields.get('prefix'):
+                e['type'] = 'prefix'
+                vid = fields.get('vlan_id')
+                if vid and str(vid) not in vlan_ids:
+                    # The VLAN it named gets an entry of its own, so the VLANs list has it.
+                    vlan_ids.add(str(vid))
+                    entries.append({'id': uuid.uuid4().hex[:12], 'type': 'vlan', 'name': f'VLAN {vid}',
+                                    'fields': {'vlan_id': vid}})
+            else:
+                e['fields'] = {k: v for k, v in fields.items() if k not in ('prefix', 'gateway', 'lookups')}
+    types = data.get('inventory_types')
+    if isinstance(types, list):
+        # Fields an admin added to "VLAN or IP range" go to both.
+        old = next((t for t in types if isinstance(t, dict) and t.get('id') == 'vlan'), None)
+        if old and old.get('fields') and not any(isinstance(t, dict) and t.get('id') == 'prefix' for t in types):
+            types.append({'id': 'prefix', 'fields': [dict(f) for f in old['fields']]})
+    stored = data.pop('firewalls', None)
+    rows = stored.get('ranges') if isinstance(stored, dict) else None
+    if rows:
+        moved = firewalls.adopt(data, rows)
+        attached = data.get('inventory_items') if isinstance(data.get('inventory_items'), dict) else {}
+        by_id = {e['id']: e for e in data.get('inventory_entries') or [] if isinstance(e, dict) and e.get('id')}
+        for old_id, new_id in moved.items():
+            own = attached.pop(f'firewall-range:{old_id}', None)
+            entry = by_id.get(new_id)
+            if isinstance(own, dict) and entry is not None:
+                for key in ('group_id', 'tags', 'properties', 'icon', 'color', 'notes'):
+                    if own.get(key) and not entry.get(key):
+                        entry[key] = own[key]
+    if isinstance(data.get('inventory_items'), dict):
+        for key in [k for k in data['inventory_items'] if str(k).startswith('firewall-range:')]:
+            data['inventory_items'].pop(key)
+
+
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
          _no_runbooks, _no_seat_finder, _small_status_page, _no_attendee_programme,
-         _platform_admins, _no_match_seats, _telemetry_properties, _block_rows)
+         _platform_admins, _no_match_seats, _telemetry_properties, _block_rows, _ipam)
 CURRENT = len(STEPS)
 
 

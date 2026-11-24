@@ -98,7 +98,7 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
           </Stack>
         </Panel>
       )}
-      {type.id === 'firewall-range' && <RangePanel id={entry.id} canEdit={canEdit} />}
+      {type.id === 'prefix' && <RangePanel id={entry.id} canEdit={canEdit} />}
       <Panel title={t('inventory.entries.details')}>
         <Stack gap="sm">
           {stored && <TextInput label={t('inventory.field.name')} value={name} onChange={(e) => setName(e.currentTarget.value)} disabled={!canEdit} maxLength={80} />}

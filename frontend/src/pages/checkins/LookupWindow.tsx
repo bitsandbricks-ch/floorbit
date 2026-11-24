@@ -34,7 +34,7 @@ export function LookupWindow({ w, canEdit, onChange }: { w: Window; canEdit: boo
         {w.segments_on === 0 && (
           <Alert color="warn" role="status">
             {t('crewCheckin.lookups.noSegments')}{' '}
-            <Anchor component={Link} to="/inventory?type=vlan">{t('crewCheckin.lookups.segments')}</Anchor>
+            <Anchor component={Link} to="/inventory?type=prefix">{t('crewCheckin.lookups.segments')}</Anchor>
           </Alert>
         )}
       </Stack>

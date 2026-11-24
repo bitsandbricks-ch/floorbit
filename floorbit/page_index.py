@@ -27,7 +27,6 @@ PAGES = (
     ('/plan?view=topology', 'topology', 'Topology', None),
     ('/firewalls', 'firewalls', 'Firewalls', None),
     ('/services', 'services', 'Services', None),
-    ('/health', 'health', 'Service health', lambda c, can: c['feature_on']('health')),
     ('/wifi', 'wifi', 'Wi-Fi', lambda c, can: c['feature_on']('wifi') and c.get('wifi_on')),
     ('/dns', 'dns', 'DNS', lambda c, can: c['feature_on']('dns')),
     ('/lancache', 'lancache', 'LAN cache', lambda c, can: _lancache_on()),

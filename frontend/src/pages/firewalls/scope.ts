@@ -3,7 +3,7 @@ import { useInventory } from '@/api/queries'
 import { useInventoryGroups } from '@/pages/inventory/scope'
 
 /** A range's own page: its inventory entry, where it is changed (#1312). */
-export const rangePage = (id: string) => `/inventory/entries/firewall-range/${encodeURIComponent(id)}`
+export const rangePage = (id: string) => `/inventory/entries/prefix/${encodeURIComponent(id)}`
 
 export const ROUTE_TONE = { primary: 'up', failover: 'warn', unknown: 'gray', down: 'down' } as const
 

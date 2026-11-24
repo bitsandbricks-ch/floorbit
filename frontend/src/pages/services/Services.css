@@ -1,0 +1,5 @@
+/* Services (issue #1337, layout A): the list, and on wide screens a service's panel beside it. */
+.fb-services-split { display: flex; gap: 16px; align-items: flex-start; }
+.fb-services-list { flex: 1; min-width: 0; }
+.fb-services-split > .fb-service-panel { width: 380px; flex: none; position: sticky; top: 12px; }
+.mantine-Drawer-body > .fb-service-panel { border: 0; }
