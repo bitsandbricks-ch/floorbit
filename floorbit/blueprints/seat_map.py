@@ -45,6 +45,9 @@ def _merged():
     manual = seatmap.entries(data)
     # The same seat set the dashboards count (every hall): rows outside it come from a source only.
     plan = incidents.seat_numbers(data)
+    # The seat block each seat is in, for the page's block filter (issue #872).
+    from .. import seat_names
+    blocks = {seat.upper(): b.get('name') or '' for b in data.get('seat_blocks') or [] for seat in seat_names.seats(b)}
     rows = []
     for seat in sorted(set(merged) | set(manual), key=seatmap._natural):
         m = merged.get(seat, {})
@@ -61,6 +64,7 @@ def _merged():
             'manual': seatmap.public(seat, manual[seat]) if seat in manual else None,
             'sources': m.get('sources') or [],
             'on_plan': seat.upper() in plan,
+            'block': blocks.get(seat.upper(), ''),
         })
     return rows
 

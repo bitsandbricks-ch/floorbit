@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Switch, Text, TextInput, Tooltip } from '@mantine/core'
+import { Alert, Badge, Button, Group, Select, Switch, Text, TextInput, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconDownload, IconPlugConnected, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -12,10 +12,28 @@ import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { ImportDialog } from './seatmap/ImportDialog'
-import { matches } from './seatmap/model'
+import { choices, matches } from './seatmap/model'
 import { SeatForm, type SeatDraft } from './seatmap/SeatForm'
 import { LoadingState } from '@/components/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
+
+/** Where a row came from, in one compact cell (issue #872): the first source, "+n" for the rest,
+ *  all of them in the tooltip, and the hand entry's note under it. */
+function Sources({ row, label }: { row: SeatRow; label: (s: string) => string }) {
+  const [first, ...rest] = row.sources
+  if (!first) return <Text size="sm" c="dimmed">–</Text>
+  return (
+    <>
+      <Tooltip label={row.sources.map(label).join(', ')} disabled={!rest.length}>
+        <Group gap={4} wrap="nowrap" style={{ display: 'inline-flex' }}>
+          <Badge size="sm" tt="none" variant={first === 'manual' ? 'filled' : 'light'} color={first === 'manual' ? 'bit' : 'trace'}>{label(first)}</Badge>
+          {rest.length > 0 && <Text size="xs" c="dimmed" aria-label={row.sources.map(label).join(', ')}>+{rest.length}</Text>}
+        </Group>
+      </Tooltip>
+      {row.manual?.note && <Text size="xs" c="dimmed">{row.manual.note}</Text>}
+    </>
+  )
+}
 
 function Cell({ value, source, label, mono }: { value: string; source?: string; label: (s: string) => string; mono?: boolean }) {
   if (!value) return <Text c="dimmed">–</Text>
@@ -73,6 +91,9 @@ export default function SeatMapping() {
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
   const [onlyManual, setOnlyManual] = useState(false)
   const [onlyOffPlan, setOnlyOffPlan] = useState(false)
+  const [block, setBlock] = useState<string | null>(null)
+  const [onSwitch, setOnSwitch] = useState<string | null>(null)
+  const [source, setSource] = useState<string | null>(null)
   const [editing, setEditing] = useState<SeatRow | null>(null)
   const [formOpen, form] = useDisclosure(false)
   const [importOpen, importDialog] = useDisclosure(false)
@@ -115,7 +136,11 @@ export default function SeatMapping() {
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
 
-  const rows = (data?.seats ?? []).filter((r) => matches(r, query, onlyManual, onlyOffPlan))
+  const all = data?.seats ?? []
+  const rows = all.filter((r) => matches(r, query, onlyManual, onlyOffPlan, { block, switch: onSwitch, source }))
+  const blocks = choices(all.map((r) => r.block ?? ''))
+  const switches = choices(all.map((r) => r.switch))
+  const sourceIds = choices(all.flatMap((r) => r.sources))
   // Seats a source names that no seat block has (a stale seats.json, a typo in a CSV): counted apart,
   // so the total here matches the plan and the dashboards.
   const offPlan = (data?.seats ?? []).filter((r) => r.on_plan === false).length
@@ -167,6 +192,18 @@ export default function SeatMapping() {
           onChange={(e) => setQuery(e.currentTarget.value)}
           style={{ flex: '1 1 260px' }}
         />
+        {blocks.length > 1 && (
+          <Select label={t('seatmap.block')} placeholder={t('seatmap.any')} data={blocks} value={block} onChange={setBlock}
+            clearable searchable w={130} />
+        )}
+        {switches.length > 1 && (
+          <Select label={t('seatmap.switch')} placeholder={t('seatmap.any')} data={switches} value={onSwitch} onChange={setOnSwitch}
+            clearable searchable w={160} />
+        )}
+        {sourceIds.length > 1 && (
+          <Select label={t('seatmap.source')} placeholder={t('seatmap.any')} data={sourceIds.map((s) => ({ value: s, label: label(s) }))}
+            value={source} onChange={setSource} clearable w={170} />
+        )}
         <Switch label={t('seatmap.onlyManual')} checked={onlyManual} onChange={(e) => setOnlyManual(e.currentTarget.checked)} mb={8} />
         {(offPlan > 0 || onlyOffPlan) && (
           <Switch label={t('seatmap.onlyOffPlan')} checked={onlyOffPlan} onChange={(e) => setOnlyOffPlan(e.currentTarget.checked)} mb={8} />
@@ -202,16 +239,7 @@ export default function SeatMapping() {
               { id: 'nick', header: t('seatmap.nick'), card: 'label', sort: (r) => r.nick, cell: (r) => <Cell value={r.nick} source={r.from.nick} label={label} /> },
               { id: 'ip', header: t('seatmap.ip'), card: 'label', sort: (r) => r.ip, cell: (r) => <Cell value={r.ip} source={r.from.ip} label={label} mono /> },
               { id: 'mac', header: t('seatmap.mac'), card: 'label', sort: (r) => r.mac, cell: (r) => <Cell value={r.mac} source={r.from.mac} label={label} mono /> },
-              { id: 'from', header: t('seatmap.from'), card: 'label', cell: (r) => (
-                <>
-                  <Group gap={4}>
-                    {r.sources.map((s) => (
-                      <Badge key={s} size="sm" tt="none" variant={s === 'manual' ? 'filled' : 'light'} color={s === 'manual' ? 'bit' : 'trace'}>{label(s)}</Badge>
-                    ))}
-                  </Group>
-                  {r.manual?.note && <Text size="xs" c="dimmed">{r.manual.note}</Text>}
-                </>
-              ) },
+              { id: 'from', header: t('seatmap.from'), card: 'label', sort: (r) => r.sources.map(label).join(', '), cell: (r) => <Sources row={r} label={label} /> },
               { id: 'actions', header: null, card: 'actions', cell: (r) => canEdit && r.manual && (
                 <ConfirmButton size="xs" variant="subtle" danger label={t('seatmap.removeManual')}
                   question={t('seatmap.removeQuestion', { seat: r.seat })} onConfirm={() => remove.mutate(r.seat)} />

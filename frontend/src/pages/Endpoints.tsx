@@ -44,8 +44,8 @@ export default function Endpoints() {
       : q.length >= 2 ? `q=${encodeURIComponent(q)}` : ''
   const query = useQuery({
     queryKey: qk.endpoints(ask),
-    queryFn: () => get<EndpointAnswer>(`/api/endpoints?${ask}`),
-    enabled: Boolean(ask),
+    // Nothing asked: the newest sightings anywhere, so the page opens with something (issue #872).
+    queryFn: () => get<EndpointAnswer>(ask ? `/api/endpoints?${ask}` : '/api/endpoints'),
     refetchInterval: 60_000,
   })
   const rows = query.data?.rows ?? []
@@ -77,10 +77,10 @@ export default function Endpoints() {
         )}
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {query.data?.status.error && <ErrorBanner error={query.data.status.error} />}
-        {!ask ? (
-          <EmptyState title={t('endpoints.start')} desc={t('endpoints.startDesc')} />
-        ) : query.isPending ? <LoadingState /> : !rows.length ? (
-          <EmptyState title={t('endpoints.none')} desc={t('endpoints.noneDesc', { days: query.data?.status.keep_days ?? 7 })} />
+        {!ask && <Text size="sm" c="dimmed">{t('endpoints.latest')}</Text>}
+        {query.isPending ? <LoadingState /> : !rows.length ? (
+          (ask ? <EmptyState title={t('endpoints.none')} desc={t('endpoints.noneDesc', { days: query.data?.status.keep_days ?? 7 })} />
+          : <EmptyState title={t('endpoints.nothingYet')} desc={t('endpoints.startDesc')} />)
         ) : (
           <Panel padding={0}>
             <DataTable label={t('endpoints.title')} rows={rows} rowKey={(r) => `${r.mac}|${r.ip}|${r.device}|${r.port}|${r.first_seen}`}

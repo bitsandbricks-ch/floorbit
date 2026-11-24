@@ -5,6 +5,7 @@
 - ``GET /api/endpoints?device=&port=``: a switch port's history.
 - ``GET /api/endpoints?seat=``: a seat's history.
 - ``GET /api/endpoints?device=``: everything seen on one device's ports (its MAC/IP tab).
+- ``GET /api/endpoints`` with none of these: the newest sightings anywhere.
 """
 from flask import Blueprint, jsonify, request
 
@@ -30,8 +31,10 @@ def find():
             rows = history.at_port(args['device'][:120], args['port'][:120])
         elif args.get('device'):
             rows = history.at_device(args['device'][:120])
+        elif args.get('q'):
+            rows = history.search(args['q'])
         else:
-            rows = history.search(args.get('q', ''))
+            rows = history.latest()
     except DatabaseError:
         return jsonify({'error': 'The database does not answer right now.'}), 503
     return jsonify({'rows': rows, 'status': history.status()})

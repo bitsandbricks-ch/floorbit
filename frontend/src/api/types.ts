@@ -377,6 +377,8 @@ export interface SeatRow {
   sources: string[]
   /** On a seat block of any hall; off-plan rows come only from a source (seats.json, a CSV feed). */
   on_plan: boolean
+  /** The seat block it is in; empty off the plan (issue #872). */
+  block?: string
 }
 
 export interface SeatMapList {

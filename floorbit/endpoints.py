@@ -206,6 +206,10 @@ class History:
         rows.sort(key=lambda r: (r['ip'] != q and r['mac'] != digits, -r['last_seen']))
         return [_public(r) for r in rows]
 
+    def latest(self, limit=LIMIT):
+        """The newest sightings anywhere: what the page shows before anyone searches (issue #872)."""
+        return [_public(r) for r in self._select('1 = 1', (), limit)]
+
     def at_port(self, device, port, limit=LIMIT):
         device, key = str(device or ''), _port_key(port)
         rows = self._select('LOWER(device) = ? AND port_key = ?', (device.lower(), key), limit)
