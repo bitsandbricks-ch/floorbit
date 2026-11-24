@@ -10,9 +10,8 @@ import { usePlugins } from '@/api/queries'
 import type { Agent } from '@/api/types'
 import { DangerZone } from '@/components/ItemPage'
 import { Layout } from '@/components/Layout'
-import { StatTile } from '@bitsandbricks/ui'
-import { Field, Panel } from '@/components/ui'
-import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { EmptyState, ErrorBanner, LoadingState, PanelField, StatTile } from '@bitsandbricks/ui'
+import { Panel } from '@/components/ui'
 import { ago, dateOnly } from '@/lib/time'
 import { AgentDevices } from './agents/AgentDevices'
 import { AgentGraphs } from './agents/AgentGraphs'
@@ -140,13 +139,13 @@ export default function AgentDetail() {
                 <Stack gap="md">
                   <Panel title={t('agents.detailsTitle')}>
                     <Stack gap="sm">
-                      <Field label={t('agents.tags')}>{tagText}</Field>
-                      {role && <Field label={t('agents.ha.groupsTitle')}>{`${role.group || t('agents.allDevices')} · ${t(`agents.ha.role.${role.role}`)}${role.holds.length ? ` · ${role.holds.join(', ')}` : ''}`}</Field>}
-                      <Field label={t('agents.fact.address')}>{a.address ?? '–'}</Field>
-                      <Field label={t('agents.fact.relays')}>
+                      <PanelField label={t('agents.tags')}>{tagText}</PanelField>
+                      {role && <PanelField label={t('agents.ha.groupsTitle')}>{`${role.group || t('agents.allDevices')} · ${t(`agents.ha.role.${role.role}`)}${role.holds.length ? ` · ${role.holds.join(', ')}` : ''}`}</PanelField>}
+                      <PanelField label={t('agents.fact.address')}>{a.address ?? '–'}</PanelField>
+                      <PanelField label={t('agents.fact.relays')}>
                         {[a.relays?.syslog && t('agents.relaySyslog'), a.relays?.flows && t('agents.relayFlows')].filter(Boolean).join(', ') || '–'}
-                      </Field>
-                      <Field label={t('agents.fact.enrolled')}>{t('agents.fact.enrolledValue', { date: dateOnly(a.created_at, lang), who: a.created_by ?? '?' })}</Field>
+                      </PanelField>
+                      <PanelField label={t('agents.fact.enrolled')}>{t('agents.fact.enrolledValue', { date: dateOnly(a.created_at, lang), who: a.created_by ?? '?' })}</PanelField>
                       {a.old_works_until && <Text size="xs" c="warn">{t('agents.oldKeyWorks', { when: dateOnly(a.old_works_until, lang) })}</Text>}
                     </Stack>
                   </Panel>

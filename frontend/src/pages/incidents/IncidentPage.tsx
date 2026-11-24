@@ -11,11 +11,11 @@ import { useIncidentPeople, useIncidents, useMe } from '@/api/queries'
 import type { CrewMember, Incident } from '@/api/types'
 import { BouncePort } from '@/components/BouncePort'
 import { Layout } from '@/components/Layout'
-import { Field, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState, PageHead, PanelField } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { incidentTitle, powerNote } from '@/lib/incidentTitle'
 import { ago, dateTime } from '@/lib/time'
-import { EmptyState, ErrorBanner, LoadingState, PageHead } from '@bitsandbricks/ui'
 import type { IncidentChange } from './IncidentCard'
 import { IncidentBadges, IncidentDetails, OwnerLine } from './IncidentFacts'
 import { whereOf } from './where'
@@ -130,11 +130,11 @@ export default function IncidentPage() {
                 </SimpleGrid>
               )}
               {i.dispatched_at && (
-                <Field label={t('incident.sent')}>
+                <PanelField label={t('incident.sent')}>
                   <Text size="sm">{dateTime(i.dispatched_at)}{i.taken_at ? ` · ${t('incident.takenAt', { at: dateTime(i.taken_at) })}` : ''}</Text>
-                </Field>
+                </PanelField>
               )}
-              {i.fixed_at && <Field label={t('incident.fixedAt')}><Text size="sm">{dateTime(i.fixed_at)}</Text></Field>}
+              {i.fixed_at && <PanelField label={t('incident.fixedAt')}><Text size="sm">{dateTime(i.fixed_at)}</Text></PanelField>}
             </Stack>
           </Panel>
         </SimpleGrid>
