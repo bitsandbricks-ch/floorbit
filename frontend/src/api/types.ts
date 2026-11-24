@@ -220,6 +220,8 @@ export interface InventoryEntry {
   icon: string; color: string; notes: string; fields: Record<string, string>
   /** Stored entries a plugin feeds (NetBox): which, and which no longer send it. */
   sources?: string[]; gone?: string[]; locked?: string[]
+  /** VLANs and prefixes: the devices discovery read them on (issue #1347). */
+  seen_on?: { id: string; name: string }[]
 }
 export interface EntryDetail extends InventoryEntry {
   resolved: Omit<DeviceDetail['resolved'], 'credentials' | 'features'>

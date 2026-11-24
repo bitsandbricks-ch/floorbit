@@ -351,6 +351,25 @@ def _settings(own):
             'color': own.get('color') or '', 'notes': own.get('notes') or '', 'fields': dict(own.get('fields') or {})}
 
 
+def _seen_on(data):
+    """({VLAN ID: [device]}, {network: [device]}) from what discovery read on each device, a device
+    as {'id', 'name'}: where a VLAN or a prefix lives (issue #1347)."""
+    found = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
+    from . import inventory
+    names = {d['id']: d.get('name') or d['id'] for d in inventory.devices(data, include_hidden=True)}
+    by_vid, by_net = {}, {}
+    for dev_id, record in sorted(found.items(), key=lambda kv: str(names.get(kv[0]) or kv[0]).lower()):
+        if dev_id not in names or not isinstance(record, dict):
+            continue
+        dev = {'id': dev_id, 'name': names[dev_id]}
+        for v in record.get('vlans') or []:
+            if isinstance(v, dict) and v.get('id') is not None:
+                by_vid.setdefault(str(v['id']), []).append(dev)
+        for net in record.get('networks') or []:
+            by_net.setdefault(str(net), []).append(dev)
+    return by_vid, by_net
+
+
 def listing(data, type_id=None):
     """Entries of one type (or every non-device type): {'id', 'type', 'name', 'summary', 'detail',
     'link', 'group_id', 'tags', 'properties', 'icon', 'color', 'notes', 'fields'}."""
@@ -363,11 +382,16 @@ def listing(data, type_id=None):
             for r in _records(data, t['id']):
                 out.append({**r, 'type': t['id'], **_settings(attached.get(f"{t['id']}:{r['id']}") or {})})
         else:
+            seen = _seen_on(data) if t['id'] in ('vlan', 'prefix') else None
             for e in _entries(data):
                 if e['type'] == t['id']:
-                    out.append({'id': e['id'], 'type': t['id'], 'name': e.get('name') or '', 'summary': _summary(e),
-                                'detail': '', 'link': '', **_settings(e), 'sources': sorted(e.get('refs') or {}),
-                                'locked': list(e.get('locked') or []), 'gone': list(e.get('gone') or [])})
+                    row = {'id': e['id'], 'type': t['id'], 'name': e.get('name') or '', 'summary': _summary(e),
+                           'detail': '', 'link': '', **_settings(e), 'sources': sorted(e.get('refs') or {}),
+                           'locked': list(e.get('locked') or []), 'gone': list(e.get('gone') or [])}
+                    if seen is not None:
+                        key = str((row['fields'] or {}).get('vlan_id' if t['id'] == 'vlan' else 'prefix') or '')
+                        row['seen_on'] = (seen[0] if t['id'] == 'vlan' else seen[1]).get(key, []) if key else []
+                    out.append(row)
     return sorted(out, key=lambda e: (e['type'], e['name'].lower()))
 
 
