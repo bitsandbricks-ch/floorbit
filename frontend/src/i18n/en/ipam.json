@@ -1,0 +1,26 @@
+{
+  "title": "IPAM",
+  "vlans": "VLANs",
+  "prefixes": "Prefixes",
+  "search": "VLAN, prefix, name…",
+  "anyPurpose": "Any purpose",
+  "anySource": "Any source",
+  "withFirewalls": "With firewalls",
+  "addVlan": "Add VLAN",
+  "addPrefix": "Add prefix",
+  "noVlans": "No VLANs yet. NetBox and discovery add them, or add one by hand.",
+  "noPrefixes": "No prefixes yet. NetBox and discovery add them, or add one by hand.",
+  "vlanCount_one": "{{count}} VLAN",
+  "vlanCount_other": "{{count}} VLANs",
+  "prefixCount_one": "{{count}} prefix",
+  "prefixCount_other": "{{count}} prefixes",
+  "col": {
+    "vlan": "VLAN",
+    "prefix": "Prefix",
+    "purpose": "Purpose",
+    "firewalls": "Firewalls",
+    "source": "Source"
+  },
+  "noRoute": "No firewalls route this prefix yet.",
+  "routeIt": "Route it over firewalls"
+}

@@ -12,14 +12,16 @@ import type { SwitchScope } from './scope'
 /** A range's plan: network, name, firewalls in order, fallback and the switches it is for. A new
  *  one saves with Add; an existing one through the save bar, on its own inventory page (#1312).
  *  An imported range only takes its switches here: the rest comes from NetBox. */
-export function RangeForm({ range, names, scope, onSaved }: {
+export function RangeForm({ range, names, scope, onSaved, cidr, name }: {
   range: FirewallRange | null; names: string[]; scope: SwitchScope; onSaved?: (r: FirewallRange) => void
+  /** A new plan for a prefix the inventory has already (its page): its network and name to start from. */
+  cidr?: string; name?: string
 }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const imported = range?.source === 'import'
   const start = () => ({
-    cidr: range?.cidr ?? '', name: range?.name ?? '', firewalls: range?.firewalls ?? [] as string[],
+    cidr: range?.cidr ?? cidr ?? '', name: range?.name ?? (name && name !== cidr ? name : ''), firewalls: range?.firewalls ?? [] as string[],
     fallback: range?.fallback ?? [] as string[], switches: range?.switches ?? [] as string[],
   })
   const [form, setForm] = useState(start)

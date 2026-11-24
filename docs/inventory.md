@@ -177,6 +177,21 @@ Devices are one **type** of inventory entry. The others sit in tabs on the Inven
 | Prefix or range | The inventory (a network or a from-to range, VLAN ID, gateway, purpose, check-in lookups). A prefix with firewalls set is a [firewall range](firewalls.md): its plan is kept on the prefix. |
 | Item | The inventory, for anything else worth listing. |
 
+### IPAM
+
+VLANs and prefixes share one **IPAM** tab instead of a tab each, with **VLANs** and **Prefixes** as
+sub-tabs (issue #1346):
+
+- **VLANs**: VLAN ID, name, purpose, the prefixes with that VLAN ID, and where it comes from.
+- **Prefixes**: the network or range (with its name below when that differs), its VLAN, purpose,
+  the firewalls it is routed over with how the route is doing now (as planned, on its fallback,
+  none up), and where it comes from.
+- Filters: search, purpose, source (by hand, NetBox, discovery) and, for prefixes, **With firewalls**.
+  **Add VLAN** and **Add prefix** open the new entry's page.
+
+A prefix's page shows its parts and where each runs now, and its plan. On a prefix no firewall routes
+yet, the crew (`floorplan.edit`) starts the plan right there (**Route it over firewalls**).
+
 Admins add their own types under **Inventory > Types**, and give any type, built-in or their own,
 extra **fields**: text, number, choice, yes/no, or a link to a device or an entry of another type (the rack a
 switch sits in, the VLAN of a range).

@@ -9,14 +9,23 @@ import { RangeForm } from './RangeForm'
 import { ROUTE_TONE, useSwitchScope } from './scope'
 
 /** On a firewall range's inventory page: its plan, changed here (#1312), and where each part runs now. */
-export function RangePanel({ id, canEdit }: { id: string; canEdit: boolean }) {
+export function RangePanel({ id, canEdit, prefix, name }: { id: string; canEdit: boolean; prefix?: string; name?: string }) {
   const { t } = useTranslation()
   const q = useQuery({ queryKey: qk.firewalls, queryFn: () => get<FirewallList>('/api/firewalls'), refetchInterval: 15_000 })
   const scope = useSwitchScope()
   if (q.isPending) return <LoadingState />
   if (!q.data) return <ErrorBanner error={q.error} />
   const range = q.data.ranges.find((r) => r.id === id)
-  if (!range) return null
+  if (!range) {
+    // A prefix no firewall routes yet: its plan starts here, on the prefix (IPAM, #1346).
+    if (!canEdit || !prefix) return null
+    return (
+      <Panel title={t('ipam.routeIt')}>
+        <Text size="sm" c="dimmed" mb="sm">{t('ipam.noRoute')}</Text>
+        <RangeForm range={null} cidr={prefix} name={name} names={q.data.firewalls.map((f) => f.name)} scope={scope} />
+      </Panel>
+    )
+  }
   return (
     <>
       <Panel title={t('firewalls.parts')}>
