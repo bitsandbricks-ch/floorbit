@@ -1,6 +1,7 @@
 """First-run setup (issue #13, floorbit/setup.py).
 
-- ``GET /setup``: the wizard. Open without an account, because a new install has none yet.
+- ``GET /setup``: the page. Open without an account, because a new install has none yet; the
+  crew sees only the checks before doors open there.
 - ``GET /api/setup``: whether an account or setup is still needed; the steps for admins.
 - ``POST /api/setup/account``: the first admin, with the setup code from the log. Only while
   there are no accounts.
@@ -52,8 +53,9 @@ def _may_set_up(user):
 @public_endpoint
 def setup_page():
     user = current_user()
-    if not _no_accounts() and not _may_set_up(user):
-        return redirect('/login?next=/setup' if not user else '/')
+    # The crew opens it too, for the checks before doors open (#1049); the checklist stays admins'.
+    if not _no_accounts() and not _may_set_up(user) and not user:
+        return redirect('/login?next=/setup')
     return spa.render('Set up Floorbit')
 
 

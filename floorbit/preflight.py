@@ -5,6 +5,9 @@ other services on the health wall answer? Each group of checks runs on its own o
 The last result of each group is kept in data.json under ``preflight``, with when and by whom, so
 the board and its printout show the state the crew signed off on.
 
+The Set up page refreshes the board by itself (``refresh``): a group older than ``FRESH`` seconds runs
+again, by no one in particular, so the crew sees the answers without pressing anything (#1049).
+
 The checks ask the sources directly. They never move the status monitor's or the health wall's
 confirmed state, so running them doesn't send alerts.
 """
@@ -17,8 +20,10 @@ KEY = 'preflight'
 GROUPS = ('switches', 'uplinks', 'services')
 PASS, WARN, FAIL, SKIP = 'pass', 'warn', 'fail', 'skip'
 NOTHING_PLACED = 'No switch is placed on the floor plan.'
+FRESH = 60   # seconds a group's result counts as current for refresh()
 
 _lock = threading.Lock()
+_refreshing = threading.Lock()   # one refresh at a time; the others read what is there
 
 
 def _placed(data):
@@ -127,6 +132,28 @@ def run(groups, user, wall, now=None):
         data[KEY] = {**stored(data), **results}
         save_data(data)
     return board()
+
+
+def stale(data=None, now=None, max_age=FRESH):
+    """The groups with no result yet, or one older than ``max_age`` seconds."""
+    now = time.time() if now is None else now
+    saved = stored(data)
+    return [g for g in GROUPS
+            if not isinstance(saved.get(g), dict) or not (0 <= now - float(saved[g].get('at') or 0) < max_age)]
+
+
+def refresh(wall, now=None, max_age=FRESH):
+    """Run the groups that are stale. Returns (board, whether anything ran). When another refresh
+    is running, returns what is stored now instead of asking the sources twice."""
+    if not _refreshing.acquire(blocking=False):
+        return board(), False
+    try:
+        todo = stale(now=now, max_age=max_age)
+        if not todo:
+            return board(), False
+        return run(todo, None, wall, now=now), True
+    finally:
+        _refreshing.release()
 
 
 def pdf_report(result, event_name='', tz_offset_min=0):

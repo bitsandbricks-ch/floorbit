@@ -48,7 +48,7 @@ FEATURES = (
     {'id': 'timeline', 'paths': ('/timeline', '/api/timeline', '/api/timeline.csv'), 'needs': ()},
     {'id': 'report', 'paths': ('/report', '/api/report', '/api/report.pdf'), 'needs': ()},
     {'id': 'past_events', 'paths': ('/api/past-events',), 'needs': ('report',)},
-    {'id': 'preflight', 'paths': ('/preflight', '/api/preflight', '/api/preflight.pdf'), 'needs': ()},
+    {'id': 'preflight', 'paths': ('/api/preflight', '/api/preflight.pdf'), 'needs': ()},
     {'id': 'status_page', 'paths': ('/status', '/status.json', '/network-status', '/api/status-page'),
      'needs': ()},
     {'id': 'stats_wall', 'paths': ('/wall.json',), 'needs': ()},

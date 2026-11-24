@@ -1,7 +1,8 @@
 """Pre-flight check board (issue #35). Rules in floorbit/preflight.py.
 
-- ``GET /preflight``: the page (React).
-- ``GET /api/preflight``: the last result of each group of checks.
+- ``GET /api/preflight``: the last result of each group of checks. The Set up page shows them (#1049).
+- ``POST /api/preflight/refresh``: run the groups whose result is over a minute old, as Floorbit
+  rather than a person. Everyone who sees the floor plan may: it only reads the sources.
 - ``POST /api/preflight/run`` ``{"group": "switches"|"uplinks"|"services"}``: run one group, or all
   without a group. Needs ``incidents.work``: it asks the monitoring source and the health plugins now.
 - ``GET /api/preflight.pdf?tz=<minutes>``: the result to print and sign.
@@ -10,14 +11,9 @@ from flask import Blueprint, Response, current_app, jsonify, request
 
 from integrations import events
 
-from .. import preflight, spa
+from .. import preflight
 
 bp = Blueprint('preflight', __name__)
-
-
-@bp.route('/preflight')
-def preflight_page():
-    return spa.render('Pre-flight check')
 
 
 @bp.route('/api/preflight', methods=['GET'])
@@ -36,6 +32,14 @@ def run():
                            user.get('display_name') or user.get('username'),
                            current_app.extensions.get('floorbit_health'))
     events.publish('preflight.changed', {'group': group})
+    return jsonify(result)
+
+
+@bp.route('/api/preflight/refresh', methods=['POST'])
+def refresh():
+    result, ran = preflight.refresh(current_app.extensions.get('floorbit_health'))
+    if ran:
+        events.publish('preflight.changed', {'group': None})
     return jsonify(result)
 
 

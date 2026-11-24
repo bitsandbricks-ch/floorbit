@@ -35,7 +35,7 @@
     "inventory": "Inventar",
     "seatMapping": "Platzzuordnung",
     "cables": "Kabel",
-    "preflight": "Pre-Flight-Check",
+    "preflight": "Vor der Türöffnung",
     "checkins": "Check-in",
     "seatWalk": "Platz-Rundgang",
     "switchAreas": "Switch-Bereiche",
@@ -89,7 +89,7 @@
     "teams": "Berechtigungen, Rollen",
     "agents": "Agent, vor Ort",
     "audit": "wer hat geändert, Verlauf",
-    "preflight": "Checkliste, vor Türöffnung",
+    "preflight": "Pre-Flight-Check, Go oder No-Go",
     "checkins": "PIN, Ankunft",
     "firewalls": "Routing, Uplinks",
     "networkStatus": "Internet, Provider, Uplinks"
