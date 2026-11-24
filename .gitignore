@@ -103,3 +103,6 @@ telegraf/
 
 # Written by a local demo server run from the repository.
 /syslog/
+
+# The seat mapping file holds attendees' names and IPs (#871): seats.example.json shows the shape.
+seats.json

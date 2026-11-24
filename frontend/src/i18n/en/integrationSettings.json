@@ -280,7 +280,7 @@
     },
     "integrations_seat_source_json_path": {
       "label": "Seat JSON file",
-      "help": "Path of the static seat mapping file."
+      "help": "Path of the static seat mapping file. Empty: seats.json next to data.json."
     },
     "integrations_seat_source_http_url": {
       "label": "Seat HTTP source URL",

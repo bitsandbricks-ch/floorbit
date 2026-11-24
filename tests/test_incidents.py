@@ -98,7 +98,7 @@ def test_rate_limit_counts_each_client_behind_a_trusted_proxy(anon_client, app_m
 
 
 def test_report_holds_no_personal_data(client, anon_client, app_module, floor, monkeypatch):
-    client.put("/api/seat-map/A-3", json={"ip_address": "192.0.2.33", "nick": "player-three"})
+    client.put("/api/seat-map/A-3", json={"ip": "192.0.2.33", "nick": "player-three"})
 
     class Monitoring:
         def resolve_ip(self, ip):

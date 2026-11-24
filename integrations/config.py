@@ -178,8 +178,9 @@ SCHEMA = [
     # Seat → user / IP sources
     {'key': 'SEAT_SOURCES', 'group': 'seats', 'type': 'string', 'default': 'json',
      'label': 'Seat sources', 'help': 'Comma-separated, merged in order. Built in: json, http, checkin.'},
-    {'key': 'SEAT_SOURCE_JSON_PATH', 'group': 'seats', 'type': 'string', 'default': 'seats.json',
-     'label': 'Seat JSON file', 'help': 'Path of the static seat mapping file.'},
+    {'key': 'SEAT_SOURCE_JSON_PATH', 'group': 'seats', 'type': 'string', 'default': '',
+     'label': 'Seat JSON file',
+     'help': 'Path of the static seat mapping file. Empty: seats.json next to data.json.'},
     {'key': 'SEAT_SOURCE_HTTP_URL', 'group': 'seats', 'type': 'string', 'default': '',
      'label': 'Seat HTTP source URL',
      'help': 'Endpoint returning {"seats": {"A-1": {"username": ..., "ip_address": ...}}}.'},
