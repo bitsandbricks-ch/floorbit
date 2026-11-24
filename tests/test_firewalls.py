@@ -40,19 +40,28 @@ def net(client, monkeypatch):
     firewalls.health.reset()
 
 
-def _add(client, cidr, *line, name=""):
-    return client.post("/api/firewalls/ranges", json={"cidr": cidr, "firewalls": list(line), "name": name})
+def _add(client, cidr, *line, name="", fallback=None):
+    body = {"cidr": cidr, "firewalls": list(line), "name": name}
+    if fallback is not None:
+        body["fallback"] = fallback
+    return client.post("/api/firewalls/ranges", json=body)
+
+
+def _parts(body, cidr):
+    row = next(r for r in body["ranges"] if r["cidr"] == cidr)
+    return [(p["cidr"], p["firewall"], p["now"], p["state"]) for p in row["parts"]]
 
 
 def test_a_range_names_its_firewalls_in_order(client, net):
     r = _add(client, "192.0.2.7/27", "fw-01", "FW-02", "fw-01", name="  Block   A ")
     assert r.status_code == 201
-    assert (r.get_json()["cidr"], r.get_json()["firewalls"], r.get_json()["name"]) == (
-        "192.0.2.0/27", ["fw-01", "fw-02"], "Block A")
+    assert (r.get_json()["cidr"], r.get_json()["firewalls"], r.get_json()["name"], r.get_json()["fallback"]) == (
+        "192.0.2.0/27", ["fw-01", "fw-02"], "Block A", [])
     assert _add(client, "192.0.2.0/27", "fw-03").status_code == 409
     assert _add(client, "192.0.2.0/33", "fw-01").status_code == 400
     assert _add(client, "192.0.2.64/27", "sw-a-01").status_code == 400        # not a firewall
     assert _add(client, "192.0.2.64/27").status_code == 400
+    assert _add(client, "192.0.2.64/32", "fw-01", "fw-02").status_code == 400  # one address, two firewalls
     row = r.get_json()
     changed = client.put(f"/api/firewalls/ranges/{row['id']}", json={"firewalls": ["fw-03"]}).get_json()
     assert (changed["cidr"], changed["firewalls"]) == ("192.0.2.0/27", ["fw-03"])
@@ -61,26 +70,45 @@ def test_a_range_names_its_firewalls_in_order(client, net):
     assert client.get("/api/firewalls").get_json()["ranges"] == []
 
 
-def test_a_range_fails_over_to_the_next_firewall_that_is_up(client, net):
-    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
-    _add(client, "192.0.2.32/27", "fw-02", "fw-03")
-    _add(client, "192.0.2.40/29", "fw-03")                       # more specific: A-2 and A-3 are here
-    net.up["fw-02"] = False
-    net.up["fw-03"] = False
+def test_a_range_over_several_firewalls_is_cut_into_equal_parts(client, net):
+    # Mike, 2026-11-24: four firewalls, and each quarter of the range goes to its own.
+    assert _add(client, "192.0.2.0/24", "fw-01", "fw-02", "fw-03", "fw-01").status_code == 201
     body = client.get("/api/firewalls").get_json()
-    by_cidr = {r["cidr"]: r for r in body["ranges"]}
-    assert (by_cidr["192.0.2.0/27"]["now"], by_cidr["192.0.2.0/27"]["state"]) == ("fw-01", "primary")
-    assert (by_cidr["192.0.2.32/27"]["now"], by_cidr["192.0.2.32/27"]["state"]) == (None, "down")
-    assert [r["seats"] for r in body["ranges"]] == [1, 0, 2]
-    assert body["counts"] == {"firewalls": 3, "down": 2, "failover": 0, "without": 2}
+    assert body["ranges"][0]["firewalls"] == ["fw-01", "fw-02", "fw-03"]     # a firewall once only
+    assert [p[:2] for p in _parts(body, "192.0.2.0/24")] == [
+        ("192.0.2.0-192.0.2.85", "fw-01"), ("192.0.2.86-192.0.2.170", "fw-02"), ("192.0.2.171-192.0.2.255", "fw-03")]
+    client.delete(f"/api/firewalls/ranges/{body['ranges'][0]['id']}")
+    client.post("/api/inventory", json={"name": "fw-04", "role": "firewall"})
+    net.up["fw-04"] = True
+    assert _add(client, "192.0.2.0/24", "fw-01", "fw-02", "fw-03", "fw-04").status_code == 201
+    body = client.get("/api/firewalls").get_json()
+    assert [p[:2] for p in _parts(body, "192.0.2.0/24")] == [
+        ("192.0.2.0/26", "fw-01"), ("192.0.2.64/26", "fw-02"), ("192.0.2.128/26", "fw-03"), ("192.0.2.192/26", "fw-04")]
+    # A-1 (.10) is in the first quarter, A-2 and A-3 (.40, .41) too.
+    assert [p["seats"] for p in body["ranges"][0]["parts"]] == [3, 0, 0, 0] and body["ranges"][0]["seats"] == 3
+    fw1 = next(f for f in body["firewalls"] if f["name"] == "fw-01")
+    assert (fw1["planned"], fw1["serving"], fw1["seats"]) == (["192.0.2.0/26"], ["192.0.2.0/26"], 3)
+    assert firewalls.for_seat("A-1")["intended"] == "fw-01"
+
+
+def test_a_part_goes_to_the_fallback_while_its_firewall_is_down(client, net):
+    _add(client, "192.0.2.0/26", "fw-01", "fw-02", fallback=["fw-03", "fw-01"])
+    _add(client, "198.51.100.0/24", "fw-02")
+    net.up["fw-01"] = False
+    body = client.get("/api/firewalls").get_json()
+    assert body["ranges"][0]["fallback"] == ["fw-03"]                  # not one of its own firewalls
+    assert _parts(body, "192.0.2.0/26") == [("192.0.2.0/27", "fw-01", "fw-03", "failover"),
+                                             ("192.0.2.32/27", "fw-02", "fw-02", "primary")]
+    assert body["ranges"][0]["state"] == "failover"
+    fw3 = next(f for f in body["firewalls"] if f["name"] == "fw-03")
+    assert (fw3["taken_over"], fw3["planned"]) == (["192.0.2.0/27"], [])
     firewalls.health.reset()
-    net.up["fw-03"] = True
+    net.up["fw-02"] = False
     body = client.get("/api/firewalls").get_json()
-    by_cidr = {r["cidr"]: r for r in body["ranges"]}
-    assert (by_cidr["192.0.2.32/27"]["now"], by_cidr["192.0.2.32/27"]["state"]) == ("fw-03", "failover")
-    fw2 = next(f for f in body["firewalls"] if f["name"] == "fw-02")
-    assert (fw2["status"], fw2["serving"], fw2["planned"], fw2["backup_for"]) == (
-        "offline", [], ["192.0.2.32/27"], ["192.0.2.0/27"])
+    # No fallback: its part has no firewall left.
+    assert _parts(body, "198.51.100.0/24") == [("198.51.100.0/24", "fw-02", None, "down")]
+    # Both halves of the first range on fw-03 now.
+    assert body["counts"] == {"firewalls": 3, "down": 2, "failover": 2, "without": 1}
 
 
 def test_an_unreadable_source_is_unknown_not_down(client, net):
@@ -88,23 +116,24 @@ def test_an_unreadable_source_is_unknown_not_down(client, net):
     net.broken = True
     body = client.get("/api/firewalls").get_json()
     assert body["unread"] is True
-    assert (body["ranges"][0]["now"], body["ranges"][0]["state"]) == ("fw-01", "unknown")
+    assert body["ranges"][0]["state"] == "unknown"
+    assert {p["state"] for p in body["ranges"][0]["parts"]} == {"unknown"}
 
 
 def test_without_a_monitoring_source_it_is_setup_not_trouble(client, net):
     # A fresh install showed "can't be read right now", as if something had broken.
-    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
+    _add(client, "192.0.2.0/27", "fw-01")
     net.on = False
     body = client.get("/api/firewalls").get_json()
     assert body["monitoring"] is False and body["unread"] is False
-    assert (body["ranges"][0]["now"], body["ranges"][0]["state"]) == ("fw-01", "unknown")
+    assert _parts(body, "192.0.2.0/27") == [("192.0.2.0/27", "fw-01", "fw-01", "unknown")]
     net.on = True
     firewalls.health.reset()
     assert client.get("/api/firewalls").get_json()["monitoring"] is True
 
 
 def test_the_seat_panel_says_which_firewall_and_never_the_ip(client, net):
-    _add(client, "192.0.2.0/27", "fw-01", "fw-02", name="Block A")
+    _add(client, "192.0.2.0/27", "fw-01", fallback=["fw-02"], name="Block A")
     client.post("/api/seat-blocks", json={"name": "A", "x": 40, "y": 50, "cols": 3, "rows": 1})
     net.up["fw-01"] = False
     seat = client.get("/api/plan/seats/A-1").get_json()
@@ -121,7 +150,7 @@ def test_viewers_see_the_firewalls_but_do_not_change_them(app_module):
 
 
 def test_a_down_firewall_is_red_on_the_health_wall(client, net):
-    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
+    _add(client, "192.0.2.0/27", "fw-01", fallback=["fw-02"])
     _add(client, "192.0.2.32/27", "fw-01")
     net.up["fw-01"] = False
     tiles = {t["name"]: t for t in firewalls.health_checks()}
@@ -130,48 +159,47 @@ def test_a_down_firewall_is_red_on_the_health_wall(client, net):
     assert (tiles["fw-02"]["status"], tiles["fw-02"]["summary"]) == ("up", "Serves 1 range, 1 seat")
 
 
-def test_a_network_splits_into_ranges_shared_over_the_firewalls(client, net):
+def test_a_range_can_be_any_span_of_addresses(client, net):
+    # The core routes .0 to .128 to one firewall and the rest to another: not CIDR blocks (#866).
+    assert _add(client, "192.0.2.0 - 192.0.2.128", "fw-01").status_code == 201
+    assert _add(client, "192.0.2.129-192.0.2.255", "fw-03").status_code == 201
+    # A span that is one network is written as that network.
+    assert _add(client, "198.51.100.0-198.51.100.255", "fw-03").get_json()["cidr"] == "198.51.100.0/24"
+    body = client.get("/api/firewalls").get_json()
+    assert [r["cidr"] for r in body["ranges"]] == [
+        "192.0.2.0-192.0.2.128", "192.0.2.129-192.0.2.255", "198.51.100.0/24"]
+    seats = {r["cidr"]: r["seats"] for r in body["ranges"]}
+    assert seats["192.0.2.0-192.0.2.128"] == 3 and seats["198.51.100.0/24"] == 1
+    # A narrower range inside one wins, like a longer prefix.
     assert _add(client, "192.0.2.32/27", "fw-03").status_code == 201
-    r = client.post("/api/firewalls/ranges/split",
-                    json={"cidr": "192.0.2.0/24", "size": 27, "firewalls": ["fw-01", "fw-02", "fw-03"], "name": "Hall"})
-    assert r.status_code == 201
-    out = r.get_json()
-    assert (out["added"], out["skipped"]) == (7, 1)
-    got = {x["cidr"]: (x["name"], x["firewalls"]) for x in out["ranges"]}
-    assert got["192.0.2.0/27"] == ("Hall 1", ["fw-01", "fw-02", "fw-03"])
-    assert got["192.0.2.64/27"] == ("Hall 3", ["fw-03", "fw-01", "fw-02"])
-    assert got["192.0.2.96/27"] == ("Hall 4", ["fw-01", "fw-02", "fw-03"])
-    # The range planned before keeps its own line.
-    kept = [x for x in client.get("/api/firewalls").get_json()["ranges"] if x["cidr"] == "192.0.2.32/27"]
-    assert kept[0]["firewalls"] == ["fw-03"]
-    again = client.post("/api/firewalls/ranges/split",
-                        json={"cidr": "192.0.2.0/24", "size": 27, "firewalls": ["fw-01"]})
-    assert again.status_code == 200 and again.get_json()["added"] == 0
+    assert firewalls.for_seat("A-2")["intended"] == "fw-03"
+    assert firewalls.for_seat("A-1")["intended"] == "fw-01"
 
 
-@pytest.mark.parametrize("body", [
-    {"cidr": "192.0.2.0/24", "size": 23, "firewalls": ["fw-01"]},
-    {"cidr": "192.0.2.0/24", "size": "x", "firewalls": ["fw-01"]},
-    {"cidr": "198.51.100.0/22", "size": 31, "firewalls": ["fw-01"]},
-    {"cidr": "192.0.2.0/24", "size": 26, "firewalls": ["sw-a-01"]},
-    {"cidr": "not a net", "size": 26, "firewalls": ["fw-01"]},
-])
-def test_a_split_that_makes_no_sense_is_refused(client, net, body):
-    r = client.post("/api/firewalls/ranges/split", json=body)
-    assert r.status_code == 400 and r.get_json()["error"]
-    assert client.get("/api/firewalls").get_json()["ranges"] == []
+@pytest.mark.parametrize("text", ["192.0.2.9-192.0.2.1", "192.0.2.1-2001:db8::1", "192.0.2.1-5", "192.0.2.1-"])
+def test_a_span_must_run_forwards_in_one_family(client, net, text):
+    r = _add(client, text, "fw-01")
+    assert r.status_code == 400 and "from-to" in r.get_json()["error"]
+
+
+def test_ranges_that_only_cross_are_refused(client, net):
+    assert _add(client, "192.0.2.0-192.0.2.100", "fw-01").status_code == 201
+    r = _add(client, "192.0.2.50-192.0.2.150", "fw-03")
+    assert r.status_code == 409 and "in part" in r.get_json()["error"]
+    assert _add(client, "192.0.2.10-192.0.2.20", "fw-03").status_code == 201   # inside: fine
 
 
 def test_the_plan_layer_lists_seats_off_their_planned_firewall_by_name_only(client, net):
     assert client.get("/api/firewalls/seats").get_json() == {"enabled": False, "seats": {}}
-    _add(client, "192.0.2.0/27", "fw-01", "fw-02")
-    _add(client, "192.0.2.32/27", "fw-02")
+    _add(client, "192.0.2.0/26", "fw-01", "fw-02", fallback=["fw-03"])
     _add(client, "198.51.100.0/24", "fw-03")
-    net.up["fw-01"] = False
+    net.up["fw-02"] = False
     net.up["fw-03"] = False
     body = client.get("/api/firewalls/seats").get_json()
+    # A-1 is in fw-01's half; A-2 and A-3 in fw-02's, whose fallback is down too.
     assert body == {"enabled": True, "seats": {
-        "A-1": {"now": "fw-02", "intended": "fw-01", "state": "failover"},
+        "A-2": {"now": None, "intended": "fw-02", "state": "down"},
+        "A-3": {"now": None, "intended": "fw-02", "state": "down"},
         "B-1": {"now": None, "intended": "fw-03", "state": "down"},
     }}
     assert "192.0.2" not in str(body) and "198.51" not in str(body)

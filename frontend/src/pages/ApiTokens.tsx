@@ -8,11 +8,11 @@ import { del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useRoles } from '@/api/queries'
 import type { ApiToken } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { dateOnly } from '@/lib/time'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 type Answer = { tokens: ApiToken[]; max_days: number }
 type Made = { token: ApiToken; secret: string }

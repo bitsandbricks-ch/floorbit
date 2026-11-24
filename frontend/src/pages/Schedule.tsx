@@ -6,7 +6,6 @@ import { IconCalendarPlus, IconPencil, IconPlus, IconTrash, IconUpload } from '@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ConfirmIcon } from '@/components/ConfirmButton'
 import { DateTimeInput } from '@/components/DateTimeInput'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -19,7 +18,7 @@ import { fromInput, toInput } from './schedule/time'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { revealForm } from '@/lib/revealForm'
 import { clock, dateOnly } from '@/lib/time'
-import { toastDone } from '@/components/toast'
+import { ConfirmIcon, toastDone } from '@bitsandbricks/ui'
 
 const COLORS: Record<ScheduleKind, string> = { talk: 'bit', tournament: 'warn', meal: 'up', quiet: 'cyan', other: 'gray' }
 

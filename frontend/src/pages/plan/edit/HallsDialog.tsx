@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { ApiError, del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Hall } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 // A PDF's first page becomes the image (./pdf.ts).
 const IMAGES = 'image/png,image/jpeg,image/webp,image/svg+xml,application/pdf'

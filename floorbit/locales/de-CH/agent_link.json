@@ -1,4 +1,5 @@
 {
+ "A demo agent has no key.": "Ein Demo-Agent hat keinen Schlüssel.",
  "At most {} agents. Revoke one you no longer use.": "Höchstens {} Agents. Widerrufe einen, den du nicht mehr brauchst.",
  "Give the agent a name of up to 60 characters, such as the event or the site.": "Gib dem Agent einen Namen mit bis zu 60 Zeichen, etwa das Event oder den Ort.",
  "halls must be a list of hall ids.": "halls muss eine Liste von Hallen-IDs sein.",

@@ -23,7 +23,7 @@ The built-in `demo` plugin (`floorbit/builtin_plugins/demo/`) feeds every data a
   - ten firewalls behind the core and ten access points
 - **Seat mapping:** a player on most of the 112 seats, with:
   - nicks like `player-07`
-  - IPs from `192.0.2.0/24`, spread over the ten firewall ranges as DHCP would hand them out
+  - IPs from `192.0.2.0/24`, spread over the firewalls' parts as DHCP would hand them out
   - locally administered MACs (`02:00:...`)
 - **Live data:** this replaces LibreNMS while the demo is on.
   - Status, CPU, memory and temperature for each switch.
@@ -55,7 +55,7 @@ instead, `POST /api/demo/layout` (admins) does the same. You get:
 - **Marks:** walls, the stage, the network rack, exits, an extinguisher, first aid, the bar and the toilets,
   each on its layer.
 - **Electrics:** two distribution boards with a circuit per seat row and one for the network rack.
-- **Firewalls:** a `/28` per firewall, the next one as its backup.
+- **Firewalls:** one range cut over eight firewalls (a `/28` each) with fw-10 as their fallback, and a second range shared by fw-09 and fw-10. fw-03 is down, so its part runs over fw-10.
 - **Internet:** two lines on `core-01`, each with a host at the far end to measure latency.
 - **Servers:** the LAN cache box `lancache-01`, which is also the hall's DNS server, and the provider's
   resolver for comparison; four game servers (two Counter-Strike 2, Minecraft, Trackmania), three of
@@ -91,6 +91,11 @@ only added while its page has nothing yet:
   so the review tab has a port clash to look at. Two players moved seats during the night.
 - **Status page:** two updates, with the public status page turned on.
 - **Dashboards:** a "NOC wall" and an "Ops desk" layout.
+- **Local agents:** two made-up agents, "Hall agent A" (the primary, holding the hall's VRRP address)
+  and "Hall agent B" (its standby), with their reports, graphs, devices and settings, added only when
+  there are no agents yet. They take no calls: the demo plugin keeps answering, so enrolling a real
+  agent next to them switches the hall to that agent as usual. Nobody can sign in as one, and they
+  are hidden while the demo is off.
 - **Schedule:** the event from yesterday to tonight, with talks, meals, a tournament and quiet hours,
   shown on the public schedule.
 

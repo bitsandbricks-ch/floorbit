@@ -7,8 +7,11 @@ install the CA once (``GET /api/agents/ca.pem``) and then trust every agent, in 
 - The agent's private key never leaves the agent; the CA's key is sealed with the vault.
 - A certificate names only what an admin listed for that agent (its ``cert_names`` setting),
   whatever the request asks for: an agent can't get a certificate for someone else's site.
-- 397 days, the longest phones and browsers accept for a server certificate; the agent asks again
-  30 days before the end.
+- 90 days: the agent asks again 30 days before the end by itself, so a short life costs nothing
+  and a lost agent's certificate dies soon (issue #1181).
+- Revoked: when an agent is revoked, its certificates go on the CA's revocation list
+  (``GET /api/agents/ca.crl``, open to everyone: it holds only serial numbers). Certificates name it
+  as their CRL Distribution Point when Floorbit knows its address (Public URL).
 """
 import datetime
 import ipaddress
@@ -20,8 +23,10 @@ from .store import load_data, save_data
 KEY = 'agent_ca'
 SLOT = 'agent-ca:key'
 CA_DAYS = 3650
-CERT_DAYS = 397
+CERT_DAYS = 90
 RENEW_DAYS = 30
+CRL_DAYS = 7         # how long a published list is good for; it is made again on every request
+CRL_PATH = '/api/agents/ca.crl'
 CSR_MAX = 8192
 
 _lock = threading.Lock()
@@ -113,9 +118,15 @@ def _sans(names):
     return out
 
 
+def _crl_url():
+    from integrations import config
+    base = str(config.get('PUBLIC_URL', '') or '').strip().rstrip('/')
+    return f'{base}{CRL_PATH}' if base.startswith(('https://', 'http://')) else ''
+
+
 def sign(csr_pem, names):
     """A certificate for the key in ``csr_pem``, naming only ``names``. Returns (cert PEM with the
-    CA after it, not_after as a unix time)."""
+    CA after it, not_after as a unix time, serial as hex)."""
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import ec, rsa
@@ -137,17 +148,64 @@ def sign(csr_pem, names):
     ca_cert, ca_key = _ca()
     start = _now() - datetime.timedelta(minutes=5)
     end = start + datetime.timedelta(days=CERT_DAYS)
-    cert = (x509.CertificateBuilder()
-            .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, names[0][:64])]))
-            .issuer_name(ca_cert.subject).public_key(public)
-            .serial_number(x509.random_serial_number()).not_valid_before(start).not_valid_after(end)
-            .add_extension(x509.SubjectAlternativeName(_sans(names)), critical=False)
-            .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
-            .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
-            .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()), critical=False)
-            .sign(ca_key, hashes.SHA256()))
+    serial = x509.random_serial_number()
+    builder = (x509.CertificateBuilder()
+               .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, names[0][:64])]))
+               .issuer_name(ca_cert.subject).public_key(public)
+               .serial_number(serial).not_valid_before(start).not_valid_after(end)
+               .add_extension(x509.SubjectAlternativeName(_sans(names)), critical=False)
+               .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+               .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), critical=False)
+               .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()),
+                              critical=False))
+    url = _crl_url()
+    if url:
+        builder = builder.add_extension(x509.CRLDistributionPoints([x509.DistributionPoint(
+            full_name=[x509.UniformResourceIdentifier(url)], relative_name=None, reasons=None, crl_issuer=None)]),
+            critical=False)
+    cert = builder.sign(ca_key, hashes.SHA256())
     pem = cert.public_bytes(serialization.Encoding.PEM).decode()
-    return pem + ca_cert.public_bytes(serialization.Encoding.PEM).decode(), end.timestamp()
+    return pem + ca_cert.public_bytes(serialization.Encoding.PEM).decode(), end.timestamp(), format(serial, 'x')
+
+
+# ── revocation (issue #1181) ─────────────────────────────────────────────────────────────────
+
+def revoke(serials, now=None):
+    """Put ``[{serial, not_after}]`` on the revocation list. Entries leave it once they expire."""
+    now = _now().timestamp() if now is None else now
+    with _lock:
+        data = load_data()
+        found = data.get(KEY) or {}
+        listed = {r['serial']: r for r in found.get('revoked') or [] if r.get('not_after', 0) > now}
+        for item in serials:
+            if item.get('serial') and item.get('not_after', 0) > now:
+                listed.setdefault(item['serial'], {'serial': item['serial'], 'not_after': item['not_after'],
+                                                   'at': now})
+        found['revoked'] = sorted(listed.values(), key=lambda r: r['at'])
+        data[KEY] = found
+        save_data(data)
+
+
+def revoked(now=None):
+    now = _now().timestamp() if now is None else now
+    return [r for r in (load_data().get(KEY) or {}).get('revoked') or [] if r.get('not_after', 0) > now]
+
+
+def crl_der(now=None):
+    """The CA's certificate revocation list, signed by it (DER)."""
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    ca_cert, ca_key = _ca()
+    start = _now() - datetime.timedelta(minutes=5)
+    builder = (x509.CertificateRevocationListBuilder().issuer_name(ca_cert.subject)
+               .last_update(start).next_update(start + datetime.timedelta(days=CRL_DAYS))
+               .add_extension(x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()),
+                              critical=False))
+    for r in revoked(now):
+        builder = builder.add_revoked_certificate(
+            x509.RevokedCertificateBuilder().serial_number(int(r['serial'], 16))
+            .revocation_date(datetime.datetime.fromtimestamp(r['at'], datetime.UTC)).build())
+    return builder.sign(ca_key, hashes.SHA256()).public_bytes(serialization.Encoding.DER)
 
 
 CLIENT_DAYS = 90

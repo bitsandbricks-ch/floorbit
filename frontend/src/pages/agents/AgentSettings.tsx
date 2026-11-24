@@ -6,13 +6,13 @@ import { Link } from 'react-router-dom'
 import { patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent, AgentSettingField, AgentSettingsPage, SettingSource } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { Advanced, SaveBar } from '@/pages/settings/editor'
 import { useAgentSettings, useAgents } from './data'
 import { Input, Row, Source } from './fields'
 import { fieldId, shown, type Value } from './values'
 import { ago, dateOnly } from '@/lib/time'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 // Floorbit sets these per agent (floorbit/agent_settings.py); the agent's own env wins.
 

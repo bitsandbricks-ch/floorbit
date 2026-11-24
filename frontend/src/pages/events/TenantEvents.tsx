@@ -11,8 +11,7 @@ import {
   COPY_PARTS, pickEvent, TENANT_EVENTS_URL,
   type CopyChanges, type CopyPart, type TenantEvent, type TenantEvents as Data,
 } from '@/api/tenantEvents'
-import { ConfirmButton } from '@/components/ConfirmButton'
-import { StateBadge } from '@/components/State'
+import { ConfirmButton, StatusBadge } from '@bitsandbricks/ui'
 
 const KEY = ['tenant-events'] as const
 const NEW = '__new__'
@@ -21,9 +20,9 @@ function label(e: TenantEvent | undefined, t: (k: string) => string): string {
   return e ? e.name || t('tenantEvents.unnamed') : ''
 }
 
-function StatusBadge({ status }: { status: TenantEvent['status'] }) {
+function EventStatus({ status }: { status: TenantEvent['status'] }) {
   const { t } = useTranslation()
-  return <StateBadge state={status} label={t(`tenantEvents.status.${status}`)} />
+  return <StatusBadge state={status} label={t(`tenantEvents.status.${status}`)} />
 }
 
 function NameModal({ title, initial, onClose, onSave, pending, error, children, saveLabel }: {
@@ -207,7 +206,7 @@ export function TenantEvents({ isAdmin }: { isAdmin: boolean }) {
                   <IconPencil size={14} />
                 </ActionIcon>
               )}
-              <StatusBadge status={e.status} />
+              <EventStatus status={e.status} />
               {e.id === d.current && <Badge size="sm" variant="outline" color="gray" tt="none">{t('tenantEvents.current')}</Badge>}
             </Group>
             <Group gap="xs">

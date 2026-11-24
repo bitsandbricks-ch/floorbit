@@ -7,12 +7,12 @@ import { useTranslation } from 'react-i18next'
 import { del, get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Webhook } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 import { IconWebhook } from '@tabler/icons-react'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 type Answer = { webhooks: Webhook[]; events: string[] }
 type WithSecret = { webhook: Webhook; secret: string }

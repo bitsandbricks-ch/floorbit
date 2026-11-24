@@ -8,13 +8,13 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { usePower } from '@/api/queries'
 import type { Circuit } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { CircuitForm, ReadingForm } from './Forms'
 import { Feeds, Load, StateBadge } from './parts'
 import { boardPath, circuitPath } from './state'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** One circuit (/power/circuits/<id>, or /new?board=): its load, a reading to type in, whether it
  *  tripped, what it feeds and its details (issue #877). */

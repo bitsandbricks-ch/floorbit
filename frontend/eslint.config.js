@@ -48,9 +48,9 @@ export default defineConfig([
           message: 'Dropdowns and tabs are styled in src/ui.css, not per page.' },
         // The browser's dialogs block the page and can't be themed or translated: ConfirmButton asks instead.
         { selector: "CallExpression[callee.object.name='window'][callee.property.name=/^(confirm|alert|prompt)$/]",
-          message: 'Ask with ConfirmButton (src/components/ConfirmButton.tsx), not the browser dialog.' },
+          message: 'Ask with ConfirmButton or ConfirmIcon (@bitsandbricks/ui), not the browser dialog.' },
         { selector: "CallExpression[callee.name=/^(confirm|alert|prompt)$/]",
-          message: 'Ask with ConfirmButton (src/components/ConfirmButton.tsx), not the browser dialog.' },
+          message: 'Ask with ConfirmButton or ConfirmIcon (@bitsandbricks/ui), not the browser dialog.' },
         // Dates and times go through DateTimeInput: the browser's inputs show AM/PM to English browsers.
         { selector: "JSXAttribute[name.name='type'][value.value=/^(datetime-local|time|date)$/]",
           message: 'Use DateTimeInput (src/components/DateTimeInput.tsx) for dates and times.' },

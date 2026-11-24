@@ -81,6 +81,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/settings` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>/settings` | `settings.manage` |  |
+| GET | `/api/agents/ca.crl` | anyone |  |
 | GET | `/api/agents/ca.pem` | `settings.manage` |  |
 | POST | `/api/agents/roll` | `settings.manage` |  |
 
@@ -332,7 +333,6 @@ Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch
 | DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | POST | `/api/firewalls/ranges/import` | `floorplan.edit` |  |
-| POST | `/api/firewalls/ranges/split` | `floorplan.edit` |  |
 | GET | `/api/firewalls/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.flows
@@ -473,6 +473,16 @@ Source: [`floorbit/blueprints/inventory_agent.py`](https://github.com/bitsandbri
 | --- | --- | --- | --- |
 | GET | `/api/agent/v1/inventory/<plugin_id>` | anyone |  |
 | POST | `/api/agent/v1/inventory/auth-failed` | anyone |  |
+
+## floorbit.blueprints.inventory_drift
+
+Fix drift from the device page (issue #918): take what the device reports into the inventory.
+
+Source: [`floorbit/blueprints/inventory_drift.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_drift.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/inventory/<device_id>/drift/take` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.inventory_groups
 

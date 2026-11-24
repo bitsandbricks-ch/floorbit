@@ -1,19 +1,23 @@
 """Firewalls and the ranges they serve (issue #470).
 
-The core policy-routes each seat range to its firewall while that one is up, and to the next in
-line when it isn't. Floorbit keeps that plan and shows it against the firewalls' health:
+The core policy-routes each seat range to its firewalls, and (only where it is set up to) to a
+fallback while one is down. Floorbit keeps that plan and shows it against the firewalls' health:
 
 - **The firewalls** are the inventory's devices with the role ``firewall``.
-- **A range** is a network (``192.0.2.0/27``) with its firewalls in order: the first is the one its
-  traffic should take, the rest the failover order. Kept in data.json under ``firewalls``; the crew
-  changes them (``floorplan.edit``), or imports them from NetBox prefixes that have the custom field
-  ``floorbit_firewalls`` (``source: import``; each import replaces the last).
-- **Now**: the first firewall in a range's line that the monitoring source doesn't report down. A
-  firewall the source can't tell about counts as up (the core would still route to it), but the
-  range says so (``unknown``).
+- **A range** is a network (``192.0.2.0/24``) or any span of addresses (``192.0.2.0-192.0.2.128``:
+  the core policy-routes by address, not by CIDR block, issue #866) with the firewalls it routes to.
+  With several, the range is cut into equal **parts**, one per firewall in their order: a /24 over
+  four firewalls sends each quarter to its own (Mike, 2026-11-24). ``fallback``, optional, lists
+  where a part goes while its own firewall is down; most events have none.
+  Kept in data.json under ``firewalls``; the crew changes them (``floorplan.edit``), or imports them
+  from NetBox prefixes that have the custom field ``floorbit_firewalls`` (``source: import``; each
+  import replaces the last).
+- **Now**: a part's firewall, or the first fallback, that the monitoring source doesn't report down.
+  A firewall the source can't tell about counts as up (the core would still route to it), but the
+  part says so (``unknown``).
 
-A seat's range is the most specific one its IP is in. Seat IPs never leave this module: the seat
-panel gets the firewall names only.
+A seat's range is the most specific one its IP is in, and within it the part its IP is in. Seat IPs
+never leave this module: the seat panel gets the firewall names only.
 """
 import ipaddress
 import threading
@@ -28,7 +32,7 @@ from .store import load_data, save_data
 
 KEY = 'firewalls'
 MAX_RANGES = 500
-MAX_LINE = 10            # firewalls in one range's failover line
+MAX_LINE = 16            # firewalls one range is cut over (and in its fallback)
 READ_EVERY = 15          # seconds the source's device list is kept
 _lock = threading.Lock()
 
@@ -50,11 +54,68 @@ def _firewall_names(data):
             if d.get('role') == 'firewall' and d.get('name')}
 
 
+class Span:
+    """Addresses from ``first`` to ``last``: a network or any range the core routes by policy."""
+
+    def __init__(self, first, last):
+        self.first, self.last = first, last
+        self.version = first.version
+
+    def __contains__(self, ip):
+        return ip.version == self.version and self.first <= ip <= self.last
+
+    @property
+    def size(self):
+        return int(self.last) - int(self.first) + 1
+
+    def overlaps(self, other):
+        return self.version == other.version and self.first <= other.last and other.first <= self.last
+
+    def __str__(self):
+        # A span that is exactly one network is written as one, so imports and splits still compare.
+        nets = list(ipaddress.summarize_address_range(self.first, self.last))
+        return str(nets[0]) if len(nets) == 1 else f'{self.first}-{self.last}'
+
+    def sort_key(self):
+        return (self.version, int(self.first), -self.size)
+
+
+def _parse(value):
+    text = str(value or '').strip()
+    if '-' in text:
+        a, b = (part.strip() for part in text.split('-', 1))
+        first, last = ipaddress.ip_address(a), ipaddress.ip_address(b)
+        if '.' not in b and ':' not in b:
+            raise ValueError(text)
+        if first.version != last.version or first > last:
+            raise ValueError(text)
+        return Span(first, last)
+    net = ipaddress.ip_network(text, strict=False)
+    return Span(net.network_address, net.broadcast_address)
+
+
+def parts(span, firewalls):
+    """[(Span, firewall)]: ``span`` cut into one equal part per firewall, in their order. Addresses
+    that don't divide evenly go one each to the first parts."""
+    if not firewalls:
+        return []
+    count = min(len(firewalls), span.size)
+    each, extra = divmod(span.size, count)
+    out, start = [], int(span.first)
+    cls = type(span.first)
+    for i in range(count):
+        end = start + each + (1 if i < extra else 0) - 1
+        out.append((Span(cls(start), cls(end)), firewalls[i]))
+        start = end + 1
+    return out
+
+
 def _network(value):
     try:
-        return ipaddress.ip_network(str(value or '').strip(), strict=False)
+        return _parse(value)
     except ValueError:
-        raise FirewallError('Write the range as a network, like 192.0.2.0/27.') from None
+        raise FirewallError('Write the range as a network (192.0.2.0/27) or from-to '
+                            '(192.0.2.0-192.0.2.128).') from None
 
 
 def _clean(body, data, current=None):
@@ -64,6 +125,19 @@ def _clean(body, data, current=None):
     line = body.get('firewalls', current.get('firewalls'))
     if not isinstance(line, list) or not line:
         raise FirewallError('Pick at least one firewall for the range.')
+    out = _pick(line, names)
+    if len(out) > net.size:
+        raise FirewallError(f'{net} has fewer addresses than firewalls to share it.')
+    fallback = body.get('fallback', current.get('fallback') or [])
+    if not isinstance(fallback, list):
+        raise FirewallError('Send the fallback firewalls as a list.')
+    fallback = [n for n in _pick(fallback, names) if n not in out] if fallback else []
+    label = ' '.join(str(body.get('name', current.get('name')) or '').split())[:60]
+    return {'cidr': str(net), 'name': label, 'firewalls': out, 'fallback': fallback,
+            'switches': _switches(body, data, current)}
+
+
+def _pick(line, names):
     out = []
     for name in line:
         found = names.get(str(name or '').strip().lower())
@@ -73,8 +147,7 @@ def _clean(body, data, current=None):
             out.append(found)
     if len(out) > MAX_LINE:
         raise FirewallError(f'A range has at most {MAX_LINE} firewalls.')
-    label = ' '.join(str(body.get('name', current.get('name')) or '').split())[:60]
-    return {'cidr': str(net), 'name': label, 'firewalls': out, 'switches': _switches(body, data, current)}
+    return out
 
 
 def _switches(body, data, current):
@@ -116,6 +189,10 @@ def save(body, by, range_id=None):
         fields = _clean(body, data, row)
         if any(r is not row and r.get('cidr') == fields['cidr'] for r in rows):
             raise FirewallError(f"{fields['cidr']} is planned already.", 409)
+        clash = _partly_over(_parse(fields['cidr']), [r for r in rows if r is not row])
+        if clash:
+            raise FirewallError(f"{fields['cidr']} overlaps {clash} only in part: make one range inside the other, "
+                                'or split them where they meet.', 409)
         if row is None:
             if len(rows) >= MAX_RANGES:
                 raise FirewallError(f'Floorbit keeps at most {MAX_RANGES} ranges.')
@@ -127,46 +204,19 @@ def save(body, by, range_id=None):
     return dict(row)
 
 
-MAX_SPLIT = 256          # ranges one split may make
-
-
-def split(body, by):
-    """Cut a network into equal ranges and hand them to the firewalls in turn: range 1 to the first
-    firewall with the others as backups in order, range 2 to the second, and so on. This is how a
-    core usually spreads seats over a firewall cluster, so a whole hall is planned in one go.
-    Ranges planned already are left as they are."""
-    net = _network(body.get('cidr'))
-    try:
-        size = int(body.get('size'))
-    except (TypeError, ValueError):
-        size = -1
-    if not net.prefixlen <= size <= net.max_prefixlen:
-        raise FirewallError(f'The range size is a prefix length from /{net.prefixlen} to /{net.max_prefixlen}.')
-    if size - net.prefixlen > 8:
-        raise FirewallError(f'One split makes at most {MAX_SPLIT} ranges.')
-    label = ' '.join(str(body.get('name') or '').split())[:50]
-    with _lock:
-        data = load_data()
-        # Checks the names (and the line length) the same way a single range does.
-        line = _clean({'cidr': str(net), 'firewalls': body.get('firewalls')}, data)['firewalls']
-        stored = data.get(KEY) if isinstance(data.get(KEY), dict) else {}
-        rows = stored.setdefault('ranges', [])
-        planned = {r.get('cidr') for r in rows}
-        added, skipped = [], 0
-        for i, sub in enumerate(net.subnets(new_prefix=size)):
-            if str(sub) in planned:
-                skipped += 1
-                continue
-            if len(rows) >= MAX_RANGES:
-                raise FirewallError(f'Floorbit keeps at most {MAX_RANGES} ranges.')
-            turn = i % len(line)
-            row = {'id': uuid.uuid4().hex[:12], 'cidr': str(sub), 'name': f'{label} {i + 1}' if label else '',
-                   'firewalls': line[turn:] + line[:turn], 'updated_at': time.time(), 'by': by}
-            rows.append(row)
-            added.append(row)
-        data[KEY] = stored
-        save_data(data)
-    return {'added': len(added), 'skipped': skipped, 'ranges': [dict(r) for r in added]}
+def _partly_over(span, rows):
+    """The first range that overlaps ``span`` without one holding the other. Nested ranges are fine
+    (the narrower one wins); two that only cross would leave the addresses between them ambiguous."""
+    for r in rows:
+        try:
+            other = _parse(r.get('cidr'))
+        except ValueError:
+            continue
+        inside = (other.first <= span.first and span.last <= other.last) or \
+                 (span.first <= other.first and other.last <= span.last)
+        if span.overlaps(other) and not inside:
+            return r.get('cidr')
+    return None
 
 
 # ── import from NetBox ───────────────────────────────────────────────────────
@@ -306,10 +356,13 @@ class Health:
 
 
 health = Health()
+# A range's state is its worst part's.
+STATES = ('down', 'failover', 'unknown', 'primary')
 
 
 def _route(line, status):
-    """(firewall now, state) for one range: primary, failover, unknown or down."""
+    """(firewall now, state) for one part: its firewall first, then the fallback. primary,
+    failover, unknown or down."""
     for i, name in enumerate(line):
         if status[name] == 'offline':
             continue
@@ -330,19 +383,35 @@ def _seat_ips():
 
 
 def _match(ip, nets):
-    """The most specific range ``ip`` is in, like the core's routing table."""
+    """The narrowest range ``ip`` is in, like the core's routing table."""
     best = None
     for row, net in nets:
-        if ip.version == net.version and ip in net and (best is None or net.prefixlen > best[1].prefixlen):
+        if ip in net and (best is None or net.size < best[1].size):
             best = (row, net)
     return best[0] if best else None
+
+
+def _parts(data):
+    """[(range row, part span, its firewall)] for every range: what the core routes by."""
+    out = []
+    for row, span in _nets(data):
+        out += [(row, part, fw) for part, fw in parts(span, list(row.get('firewalls') or []))]
+    return out
+
+
+def _part_of(ip, rows):
+    """(row, part span, firewall) for ``ip``: the narrowest range it is in, then its part there."""
+    row = _match(ip, [(r, span) for r, span, _fw in rows])
+    if row is None:
+        return None
+    return next(((r, span, fw) for r, span, fw in rows if r is row and ip in span), None)
 
 
 def _nets(data):
     out = []
     for row in _ranges(data):
         try:
-            out.append((row, ipaddress.ip_network(row['cidr'], strict=False)))
+            out.append((row, _parse(row['cidr'])))
         except ValueError:
             continue
     return out
@@ -354,38 +423,47 @@ def overview(now=None):
     data = load_data()
     firewalls = [d for d in inventory.devices(data) if d.get('role') == 'firewall' and d.get('name')]
     rows = _ranges(data)
-    names = {d['name'] for d in firewalls} | {n for r in rows for n in r.get('firewalls') or []}
+    names = {d['name'] for d in firewalls} | {n for r in rows for n in
+                                              [*(r.get('firewalls') or []), *(r.get('fallback') or [])]}
     status = {n: health.status(n, now) for n in names}
-    nets = _nets(data)
+    every = _parts(data)
     seats = {}
     for _seat, ip in _seat_ips().items():
-        row = _match(ip, nets)
-        if row:
-            seats[row['id']] = seats.get(row['id'], 0) + 1
-    ranges = []
+        found = _part_of(ip, every)
+        if found:
+            key = (found[0]['id'], str(found[1]))
+            seats[key] = seats.get(key, 0) + 1
+    ranges, all_parts = [], []
     for row in rows:
-        line = [n for n in row.get('firewalls') or [] if n in status]
-        now_on, state = _route(line, status)
-        ranges.append({'id': row['id'], 'cidr': row['cidr'], 'name': row.get('name') or '', 'firewalls': line,
-                       'intended': line[0] if line else None, 'now': now_on, 'state': state,
-                       'seats': seats.get(row['id'], 0), 'source': row.get('source') or 'floorbit',
-                       'switches': list(row.get('switches') or []),
+        fallback = [n for n in row.get('fallback') or [] if n in status]
+        shown = []
+        for part, fw in ((p, f) for r, p, f in every if r is row):
+            now_on, state = _route([fw, *fallback], status)
+            shown.append({'cidr': str(part), 'firewall': fw, 'now': now_on, 'state': state,
+                          'seats': seats.get((row['id'], str(part)), 0)})
+        all_parts += shown
+        worst = min((p['state'] for p in shown), key=STATES.index, default='down')
+        ranges.append({'id': row['id'], 'cidr': row['cidr'], 'name': row.get('name') or '',
+                       'firewalls': list(row.get('firewalls') or []), 'fallback': fallback, 'parts': shown,
+                       'state': worst, 'seats': sum(p['seats'] for p in shown),
+                       'source': row.get('source') or 'floorbit', 'switches': list(row.get('switches') or []),
                        'plugin': row.get('plugin') or ''})
-    ranges.sort(key=lambda r: (ipaddress.ip_network(r['cidr']).version, ipaddress.ip_network(r['cidr'])))
+    ranges.sort(key=lambda r: _parse(r['cidr']).sort_key())
     cards = []
     for d in firewalls:
         name = d['name']
         cards.append({'id': d['id'], 'name': name, 'model': d.get('model') or '', 'hall': d.get('hall') or '',
                       'status': status.get(name, 'unknown'),
-                      'serving': [r['cidr'] for r in ranges if r['now'] == name],
-                      'planned': [r['cidr'] for r in ranges if r['intended'] == name],
-                      'backup_for': [r['cidr'] for r in ranges if name in r['firewalls'][1:]],
-                      'seats': sum(r['seats'] for r in ranges if r['now'] == name)})
+                      'serving': [p['cidr'] for p in all_parts if p['now'] == name],
+                      'planned': [p['cidr'] for p in all_parts if p['firewall'] == name],
+                      # Parts that fell back to it from their own firewall, not a standing "backup" role.
+                      'taken_over': [p['cidr'] for p in all_parts if p['now'] == name and p['firewall'] != name],
+                      'seats': sum(p['seats'] for p in all_parts if p['now'] == name)})
     cards.sort(key=lambda c: c['name'].lower())
     return {'firewalls': cards, 'ranges': ranges,
             'counts': {'firewalls': len(cards), 'down': sum(c['status'] == 'offline' for c in cards),
-                       'failover': sum(r['state'] == 'failover' for r in ranges),
-                       'without': sum(r['state'] == 'down' for r in ranges)},
+                       'failover': sum(p['state'] == 'failover' for p in all_parts),
+                       'without': sum(p['state'] == 'down' for p in all_parts)},
             'monitoring': _monitored(),
             'unread': _monitored() and health.devices(now) is None, 'can_import': can_import()}
 
@@ -403,22 +481,19 @@ def seat_routes(now=None):
     the firewall now (None: none left) and the planned one. Names only, never the IPs."""
     now = time.time() if now is None else now
     data = load_data()
-    nets = _nets(data)
-    if not nets:
+    every = _parts(data)
+    if not every:
         return {'enabled': False, 'seats': {}}
-    status = {n: health.status(n, now) for _row, _net in nets for n in _row.get('firewalls') or []}
-    routes = {}
+    status = {n: health.status(n, now) for row, _part, fw in every for n in [fw, *(row.get('fallback') or [])]}
     seats = {}
     for seat, ip in _seat_ips().items():
-        row = _match(ip, nets)
-        if row is None:
+        found = _part_of(ip, every)
+        if found is None:
             continue
-        if row['id'] not in routes:
-            line = list(row.get('firewalls') or [])
-            routes[row['id']] = (*_route(line, status), line[0] if line else None)
-        now_on, state, intended = routes[row['id']]
+        row, _part, fw = found
+        now_on, state = _route([fw, *(row.get('fallback') or [])], status)
         if state in ('failover', 'down'):
-            seats[seat] = {'now': now_on, 'intended': intended, 'state': state}
+            seats[seat] = {'now': now_on, 'intended': fw, 'state': state}
     return {'enabled': True, 'seats': seats}
 
 
@@ -436,7 +511,8 @@ def health_checks(now=None):
     view = overview(now)
     by_planned = {}
     for r in view['ranges']:
-        by_planned.setdefault(r['intended'], []).append(r)
+        for p in r['parts']:
+            by_planned.setdefault(p['firewall'], []).append(p)
     out = []
     for fw in view['firewalls']:
         status = {'online': 'up', 'offline': 'down'}.get(fw['status'], 'unknown')
@@ -467,13 +543,14 @@ def for_seat(seat, data=None, now=None):
     covers its IP. Firewall names only: for the crew's seat panel."""
     now = time.time() if now is None else now
     data = load_data() if data is None else data
-    nets = _nets(data)
-    if not nets:
+    every = _parts(data)
+    if not every:
         return None
     ip = _seat_ips().get(str(seat or '').upper())
-    row = _match(ip, nets) if ip is not None else None
-    if row is None:
+    found = _part_of(ip, every) if ip is not None else None
+    if found is None:
         return None
-    line = list(row.get('firewalls') or [])
+    row, _part, fw = found
+    line = [fw, *(row.get('fallback') or [])]
     now_on, state = _route(line, {n: health.status(n, now) for n in line})
-    return {'intended': line[0] if line else None, 'now': now_on, 'state': state, 'range': row.get('name') or ''}
+    return {'intended': fw, 'now': now_on, 'state': state, 'range': row.get('name') or ''}

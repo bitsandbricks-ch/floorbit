@@ -94,7 +94,9 @@ in from each device (find and filter by problems or never heard), the collector'
    on the agent machine if the devices send (the agent's compose file does). The Local agents page
    shows how the collector is doing (points, devices heard, which devices fail and why).
     - Kubernetes: see [`deploy/kubernetes/telemetry.yaml`](https://github.com/bitsandbricks-ch/floorbit/blob/master/deploy/kubernetes/telemetry.yaml).
-    - Your own Telegraf: **Download telegraf.conf** and point its HTTP output at Floorbit.
+    - Your own Telegraf (on a firewall, say): point its InfluxDB output at the agent's telemetry
+      listener, not at Floorbit. Floorbit itself answers `/api/telemetry/write` with 409 while an
+      agent collects, which is always outside the demo.
 
 4. **Settings > Plugins**: turn on **Telemetry**. If LibreNMS is set up too, LibreNMS still wins
    (plugins are tried in id order); clear LibreNMS's URL to switch.
@@ -326,10 +328,11 @@ Neither does model-driven streaming. What comes closest:
 - **Lite** (the default): Floorbit's own database keeps a normalised series per device and port:
   a point a minute for 6 hours and every 15 minutes for `FLOORBIT_TELEMETRY_DAYS` (2 days).
 - **VictoriaMetrics**: `docker compose --profile metrics up -d` and
-  `FLOORBIT_VICTORIAMETRICS_URL=http://victoriametrics:8428`. Every point that came in is kept, plus
-  the normalised series (`fb_port_in_bps_value{device,port}`, `fb_port_out_bps_value`,
+  `FLOORBIT_VICTORIAMETRICS_URL=http://victoriametrics:8428`. It keeps the normalised series the
+  agent sends (`fb_port_in_bps_value{device,port}`, `fb_port_out_bps_value`,
   `fb_port_errors_value`, `fb_port_up_value`, `fb_device_up_value`, `fb_device_cpu_value`,
   `fb_device_mem_value`, `fb_device_states_value`), for as long as its `-retentionPeriod` says.
+  Telegraf's raw points stay on the agent: only the normalised series leave the event network.
 - Logs aren't telemetry: to keep the syslog longer, start VictoriaLogs with `--profile logs` and turn on
   its plugin ([syslog.md](syslog.md#keeping-it-longer-victorialogs-or-grafana-loki)).
 - **Grafana** (`--profile grafana`): add VictoriaMetrics as a Prometheus data source.

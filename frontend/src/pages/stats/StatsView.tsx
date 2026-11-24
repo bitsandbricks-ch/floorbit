@@ -8,7 +8,6 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useFeature, useStats } from '@/api/queries'
 import type { StatsData, StatsSample } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { StatTile } from '@/components/StatTile'
 import { Compare } from './Compare'
@@ -17,6 +16,7 @@ import { bps } from './format'
 import { onPlan } from '../plan/links'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 const HOUR = 3600
 

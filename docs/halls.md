@@ -241,7 +241,7 @@ and sets how strong it is drawn; the seats themselves are always there.
 | Network | Switches, uplinks with their type and speed, network marks |
 | Electrical | Distribution boards, power cables per circuit, electrical marks (needs Power) |
 | Status | Each online seat filled by its traffic |
-| Firewall per seat | Seats failed over to a backup firewall, or with none up (needs firewall ranges) |
+| Firewall per seat | Seats on a fallback firewall, or with none up (needs firewall ranges) |
 | Wi-Fi | Access points placed on this hall, their rough coverage, coloured by load (counts only) |
 | Safety | Marks on the safety layer: exits, extinguishers, escape routes, the assembly point |
 | Crew | Open incidents per seat and per switch |

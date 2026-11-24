@@ -35,10 +35,15 @@ def devices_of(agent_id, registry=None):
     if me is None:
         return None
     connected = agent_link.tunnel.connected_agents()
+    if me.get('demo'):
+        connected = {*connected, agent_id}
     given = targets.for_agent(targets.listing(), agent_id, connected)
     answer, error, detail = None, None, ''
     spec = registry.specs.get('telemetry') if registry is not None else None
-    if agent_id not in connected:
+    if me.get('demo'):
+        from . import agent_demo
+        answer = agent_demo.devices_answer(given, agent_id)
+    elif agent_id not in connected:
         error = 'offline'
     elif spec is None or not registry.enabled(spec):
         error = 'no_telemetry'

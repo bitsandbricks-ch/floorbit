@@ -6,11 +6,11 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { LayoutTemplate, SeatViewData } from '@/api/types'
-import { toastDone } from '@/components/toast'
 import { ApplyDialog, SaveDialog } from '../../templates/Dialogs'
 import { HallsDialog } from './HallsDialog'
 import { type PlanPreset, PresetsDialog } from './Presets'
 import { VersionsDialog } from './VersionsDialog'
+import { toastDone } from '@bitsandbricks/ui'
 
 /** What the editor's Plan menu opens (issue #1210). */
 export type PlanDialog = 'save' | 'start' | 'presets' | 'versions' | 'halls'

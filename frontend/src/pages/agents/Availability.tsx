@@ -2,7 +2,7 @@ import { Badge, Group, Paper, Stack, Text, Title } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import type { AgentGroup, HostedState } from '@/api/types'
 import { ago } from '@/lib/time'
-import { StateBadge } from '@/components/State'
+import { StatusBadge } from '@bitsandbricks/ui'
 
 const STATE_COLOR: Record<AgentGroup['state'], string> = {
   ok: 'up', single: 'gray', degraded: 'warn', no_primary: 'down', no_vrrp: 'warn', split: 'down', down: 'down',
@@ -20,7 +20,7 @@ export function HostedCard({ hosted }: { hosted?: HostedState }) {
     <Paper withBorder radius="lg" p="md" aria-labelledby="ha-hosted">
       <Group justify="space-between" mb="xs">
         <Title order={2} size="h4" id="ha-hosted">{t('agents.ha.hostedTitle')}</Title>
-        <StateBadge size="md" state={ok ? 'up' : 'down'} label={ok ? t('agents.ha.healthy') : t('agents.ha.unhealthy')} />
+        <StatusBadge size="md" state={ok ? 'up' : 'down'} label={ok ? t('agents.ha.healthy') : t('agents.ha.unhealthy')} />
       </Group>
       <Stack gap={4}>
         <Text size="sm">

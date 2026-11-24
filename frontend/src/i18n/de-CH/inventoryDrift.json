@@ -1,0 +1,24 @@
+{
+  "title": "Weicht vom Gerät ab",
+  "intro": "Was die Discovery vom Gerät gelesen hat, passt nicht zum Inventar. Übernimm den Wert vom Gerät oder korrigier das Gerät.",
+  "col": {
+    "what": "Was",
+    "inventory": "Inventar",
+    "device": "Gerät meldet",
+    "since": "Seit"
+  },
+  "kind": {
+    "hostname": "Hostname",
+    "address": "Management-Adresse",
+    "interface": "Interface {{name}}"
+  },
+  "value": {
+    "present": "vorhanden",
+    "missing": "fehlt",
+    "hidden": "ausgeblendet"
+  },
+  "take": "Übernehmen",
+  "takeLabel": "{{what}} vom Gerät übernehmen",
+  "taken": "Vom Gerät übernommen.",
+  "hostnameHint": "Benenn es im Inventar oder auf dem Gerät um: Ein neuer Name verschiebt auch seine Plätze und Verbindungen."
+}

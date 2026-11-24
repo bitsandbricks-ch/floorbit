@@ -5,7 +5,6 @@ import { IconExternalLink, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ConfirmIcon } from '@/components/ConfirmButton'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -16,6 +15,7 @@ import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { clock } from '@/lib/time'
 import { COLOR } from './status/state'
+import { ConfirmIcon } from '@bitsandbricks/ui'
 
 const BY_HAND: StatusState[] = ['operational', 'degraded', 'outage', 'maintenance']
 

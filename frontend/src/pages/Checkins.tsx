@@ -3,7 +3,6 @@ import { IconPlugConnectedX, IconRefresh, IconTrash, IconUnlink } from '@tabler/
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ConfirmIcon } from '@/components/ConfirmButton'
 import { ApiError, del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -18,6 +17,7 @@ import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { History } from './checkins/History'
 import { LookupNote, LookupWindow } from './checkins/LookupWindow'
+import { ConfirmIcon } from '@bitsandbricks/ui'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/seat-mapping.md'
 const STATE_COLOR: Record<WiredState, string> = { pending: 'blue', verified: 'up', not_wired: 'gray', unverified: 'warn' }

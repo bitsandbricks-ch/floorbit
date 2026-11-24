@@ -68,6 +68,7 @@ const overview: InventoryOverview = {
 }
 const fedDetail: DeviceDetail = {
   ...fed,
+  drift: [],
   group_id: 'g1',
   interfaces: [
     { id: 'i1', name: 'Gi1/0/1', type: 'copper', speed_mbps: 1000, mac: '', ips: [], vlan: 10, mode: 'access', description: 'Seat A-1', enabled: true, mgmt: false, lag: '', origin: 'netbox', hidden: false, sources: ['netbox'], locked: [], gone: [], fed: {} },

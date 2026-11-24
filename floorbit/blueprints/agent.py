@@ -97,8 +97,10 @@ def history(agent_id):
         hours = max(0.25, min(float(request.args.get('hours') or 6), 48.0))
     except ValueError:
         hours = 6
-    from .. import agent_history
+    from .. import agent_demo, agent_history
     from ..database import DatabaseUnavailable
+    if any(a['id'] == agent_id and a.get('demo') for a in agent_link.all_agents()):
+        return jsonify({'hours': hours, 'series': agent_demo.history(agent_id, hours)})
     try:
         series = agent_history.history(agent_id, hours)
     except DatabaseUnavailable:
@@ -178,6 +180,23 @@ def ca_certificate():
     resp = current_app.response_class(pem, mimetype='application/x-pem-file')
     resp.headers['Content-Disposition'] = 'attachment; filename="floorbit-agents-ca.pem"'
     return resp
+
+
+@bp.route('/api/agents/ca.crl', methods=['GET'])
+def ca_revocations():
+    """The CA's revocation list (agent_ca.py): open to everyone, since a crew device's TLS stack
+    fetches it without signing in, and it holds only serial numbers."""
+    from .. import agent_ca
+    try:
+        der = agent_ca.crl_der()
+    except agent_ca.CAError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    resp = current_app.response_class(der, mimetype='application/pkix-crl')
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
+ca_revocations._auth_public = True
 
 
 @bp.route('/api/agents/<agent_id>/settings', methods=['GET'])

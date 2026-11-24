@@ -8,7 +8,6 @@ import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan, useInventory } from '@/api/queries'
 import { SPEC_FIELDS, type CredentialInfo, type DeviceDetail, type InventoryField, type InventoryOverview } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import type { EntityOption } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -20,13 +19,14 @@ import { dateTime } from '@/lib/time'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
 import { DeviceForm } from './DeviceForm'
 import { DeviceIcon } from './icons'
+import { DriftPanel } from './DriftPanel'
 import { InterfacesPanel } from './InterfacesPanel'
 import { credentialBody, entryPath, roleIcon, scopePath, speedLabel, statusLabel, typeName, type Draft } from './model'
 import { useCustomIcons, useDeviceDetail, useInventoryGroups, useInventoryTypes } from './scope'
 import { CredentialsEditor, FeaturesEditor, FromLabel, PropertiesEditor, type CredentialDraft } from './ScopeEditors'
 import { useDeviceTelemetry } from './telemetry'
 import { TelemetrySettings } from './TelemetrySettings'
-import { StateBadge } from '@/components/State'
+import { ConfirmButton, StatusBadge } from '@bitsandbricks/ui'
 
 /** One device's own page (/inventory/devices/<id>): what it is, its ports, telemetry, settings and
  *  logins, each a tab. The inventory list links here; nothing opens a side panel. */
@@ -131,7 +131,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
       <PageHead
         icon={<DeviceIcon icon={icon} color={color} size={28} />}
         kicker={kicker}
-        title={<Group gap="sm" wrap="wrap" component="span">{dev.name}{dev.status && <StateBadge size="md" state={dev.status === 'active' ? 'active' : 'idle'} label={statusLabel(t, dev.status)} />}</Group>}
+        title={<Group gap="sm" wrap="wrap" component="span">{dev.name}{dev.status && <StatusBadge size="md" state={dev.status === 'active' ? 'active' : 'idle'} label={statusLabel(t, dev.status)} />}</Group>}
         actions={<>
           {dev.placed && (
             <Button component={Link} to={`/plan?switch=${encodeURIComponent(dev.name)}`} variant="default" leftSection={<IconMap size={16} />}>
@@ -208,6 +208,11 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                   ))}
                 </SimpleGrid>
               </Panel>
+              {!!dev.drift?.length && (
+                <Panel title={t('inventoryDrift.title')}>
+                  <DriftPanel deviceId={dev.id} rows={dev.drift} canEdit={canEdit} />
+                </Panel>
+              )}
               {dev.connected && (dev.connected.cables.length + dev.connected.circuits.length + dev.connected.uplinks.length
                 + (dev.connected.entries?.length ?? 0) > 0) && (
                 <Panel title={t('inventory.connected.title')}>
@@ -357,7 +362,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
       </div>
 
       {editing && inventory && (
-        <DeviceForm device={dev} roles={inventory.roles} overview={overview} sourceName={sourceName} opened busy={edit.isPending}
+        <DeviceForm device={{ ...dev, drift: dev.drift?.length }} roles={inventory.roles} overview={overview} sourceName={sourceName} opened busy={edit.isPending}
           error={formError} onClose={() => setEditing(false)} onSave={(changes) => edit.mutate(changes)}
           onUnlock={(f) => edit.mutate({ unlock: [f] })} />
       )}

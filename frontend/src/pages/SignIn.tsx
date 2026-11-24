@@ -8,11 +8,11 @@ import { del, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useOidcProviders } from '@/api/queries'
 import type { OidcProvider, OidcTestResult } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ProviderForm, type ProviderDraft } from './signin/ProviderForm'
 import { LoadingState } from '@/components/ui'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** Settings > Sign-in providers: OpenID Connect providers next to local accounts and Discord. Admins only. */
 export default function SignIn() {

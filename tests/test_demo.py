@@ -42,7 +42,8 @@ def test_lay_out_the_hall_once_on_an_empty_plan(demo):
     # The ten firewalls and the LAN cache stand in the rack behind the core, not on the floor.
     placed = [s for s in switches if not s['name'].startswith(('fw-', 'lancache'))]
     assert len(placed) == 26 and all(s['x'] is not None for s in placed)
-    assert len(demo.get('/api/firewalls').get_json()['ranges']) == 10
+    ranges = demo.get('/api/firewalls').get_json()['ranges']
+    assert [len(r['parts']) for r in ranges] == [8, 2]          # each firewall its /28
     lines = demo.get('/api/services').get_json()['uplinks']
     assert [(u['name'], u['device'], u['port'], u['probe_host']) for u in lines] == [
         ('ISP A', 'core-01', 'Ethernet1/47', '203.0.113.1'), ('ISP B', 'core-01', 'Ethernet1/48', '203.0.113.2')]

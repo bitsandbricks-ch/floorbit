@@ -6,13 +6,13 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { ActionResult, LancacheAgent, LancacheOverview } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { DataTable } from '@/components/DataTable'
 import { StatTile } from '@/components/StatTile'
 import { ErrorBanner } from '@/components/ui'
 import { ago, dayClock } from '@/lib/time'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { bytes } from '../traffic/format'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 const W = 1000
 const H = 140
