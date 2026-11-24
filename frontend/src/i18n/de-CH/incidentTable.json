@@ -1,0 +1,13 @@
+{
+  "view": "Anzeigen als",
+  "board": "Tafel",
+  "table": "Tabelle",
+  "title": "Störung",
+  "status": "Stand",
+  "where": "Wo",
+  "owner": "Wer hat sie",
+  "team": "Team",
+  "age": "Gemeldet",
+  "count_one": "{{count}} Störung",
+  "count_other": "{{count}} Störungen"
+}

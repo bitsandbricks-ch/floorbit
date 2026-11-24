@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Kbd, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Button, Group, Kbd, SegmentedControl, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { IconDownload, IconFilter, IconHandGrab, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -16,6 +16,7 @@ import { useNowSeconds } from '@/components/useNowSeconds'
 import { matchesFilter } from './incidents/filter'
 import { MyJobs } from './incidents/MyJobs'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
+import { IncidentTable } from './incidents/IncidentTable'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
 import { nextToTake, openOrder } from './incidents/waiting'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
@@ -43,6 +44,13 @@ export default function Incidents() {
   const setAssignedToMe = (on: boolean) => setParams((prev) => {
     const next = new URLSearchParams(prev)
     if (on) next.set('mine', '1'); else next.delete('mine')
+    return next
+  }, { replace: true })
+  // Board or table (issue #887), in the address so a link or a reload keeps it.
+  const view = params.get('view') === 'table' ? 'table' : 'board'
+  const setView = (v: string) => setParams((prev) => {
+    const next = new URLSearchParams(prev)
+    if (v === 'table') next.set('view', 'table'); else next.delete('view')
     return next
   }, { replace: true })
   const [filter, setFilterText] = useState(() => params.get('q') ?? '')
@@ -147,6 +155,8 @@ export default function Incidents() {
       {dispatchOn && me.data?.user && <MyJobs />}
       <Group justify="space-between" mb="sm">
         <Group gap="md">
+          <SegmentedControl size="sm" aria-label={t('incidentTable.view')} value={view} onChange={setView}
+            data={[{ value: 'board', label: t('incidentTable.board') }, { value: 'table', label: t('incidentTable.table') }]} />
           <TextInput ref={filterBox} aria-label={t('incidents.filter')} aria-keyshortcuts="/" placeholder={t('incidents.filterHint')} w={300} value={filter}
             leftSection={<IconFilter size={14} />} rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined}
             onChange={(e) => setFilter(e.currentTarget.value)} />
@@ -184,6 +194,8 @@ export default function Incidents() {
       <ErrorBanner error={board.error} mb="md" onRetry={() => void board.refetch()} />
       {board.isPending ? (
         <LoadingState rows={3} />
+      ) : view === 'table' ? (
+        board.data && <IncidentTable items={items} board={board.data} />
       ) : (
         board.data && (
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
