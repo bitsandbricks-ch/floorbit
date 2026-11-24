@@ -51,7 +51,7 @@ shift handover. **Past events** needs the **event report**. The page says why su
 | `replay` | `/replay`, `/api/replay` |
 | `report` | `/report`, `/api/report` |
 | `past_events` | `/events`, `/api/past-events` |
-| `preflight` | `/preflight`, `/api/preflight` |
+| `preflight` | the Before doors open panel on `/setup`, `/api/preflight` |
 
 The floor plan, inventory, seats, stats, problems, settings and sign-in are the core and are always on.
 

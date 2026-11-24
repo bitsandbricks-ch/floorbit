@@ -835,6 +835,7 @@ Source: [`floorbit/blueprints/preflight.py`](https://github.com/bitsandbricks-ch
 | --- | --- | --- | --- |
 | GET | `/api/preflight` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `preflight` |
 | GET | `/api/preflight.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `preflight` |
+| POST | `/api/preflight/refresh` | `floorplan.view` | `preflight` |
 | POST | `/api/preflight/run` | `incidents.work` | `preflight` |
 
 ## floorbit.blueprints.problems

@@ -38,7 +38,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'work', icon: IconLifebuoy, pages: ['helpdesk'] },
   { id: 'monitoring', icon: IconActivityHeartbeat, pages: ['health', 'network', 'services', 'traffic', 'agents'] },
   { id: 'places', icon: IconArmchair, pages: ['seats', 'inventory'] },
-  { id: 'tools', icon: IconTools, pages: ['console', 'preflight', 'logs'] },
+  { id: 'tools', icon: IconTools, pages: ['console', 'logs'] },
   { id: 'screens', icon: IconDeviceTv, pages: ['dashboards'] },
 ]
 
@@ -62,8 +62,9 @@ export const HUBS: Record<string, string[]> = {
 /** Hubs that draw their tabs themselves (pages/Settings.tsx). */
 export const OWN_TABS = ['settings']
 
-/** Rows outside the sidebar's groups: Settings sits at the foot. */
-export const OFF_LIST = ['settings']
+/** Rows outside the sidebar's groups: Settings sits at the foot, and the checks before doors open
+ *  are a panel on Set up (#1049) that "Go to" still finds. */
+export const OFF_LIST = ['settings', 'preflight']
 
 /** Pages that are a tab of another row: page -> its row. */
 export const INSIDE: Record<string, string> = Object.fromEntries(
