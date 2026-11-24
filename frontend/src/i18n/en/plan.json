@@ -392,7 +392,7 @@
     },
     "delete_one": "Delete",
     "delete_other": "Delete {{count}}",
-    "help": "Click to select, Shift-click or drag a box for more. Drag to move on the grid. Changes are saved at once.",
+    "help": "Click to select, Shift-click or drag a box for more, Ctrl-click for one item of a group. Drag to move on the grid. Changes are saved at once.",
     "keys": {
       "delete": "delete",
       "nudge": "move",

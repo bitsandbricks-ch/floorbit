@@ -14,7 +14,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   ctx: OverlayContext
   data: SeatViewData
   selection: ItemRef[]
-  onSelect: (items: ItemRef[]) => void
+  onSelect: (items: ItemRef[], alone?: boolean) => void
   /** While dragging: the move so far, in drawing units, and whether to snap to the grid. */
   onDrag: (d: Point, snap: boolean, lead: ItemRef, px: number) => void
   onDrop: (d: Point, snap: boolean, lead: ItemRef, px: number) => void
@@ -82,16 +82,19 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       else setDraft({ a: at, b: at })
       return
     }
-    const additive = e.shiftKey || e.metaKey || e.ctrlKey
+    // Ctrl (Cmd on a Mac) picks just this item, even out of its group, so it moves on its own (Mike).
+    const alone = (e.metaKey || e.ctrlKey) && !e.shiftKey
+    const additive = e.shiftKey
     if (ref) {
       const picked = selection.some((r) => sameRef(r, ref))
-      if (additive) {
+      if (alone) onSelect([ref], true)
+      else if (additive) {
         const drop = together(ref)
         onSelect(picked ? selection.filter((r) => !drop.some((x) => sameRef(x, r))) : [...selection, ref])
       }
       else if (!picked) onSelect([ref])
     }
-    drag.current = { start: ctx.toPlan(e.clientX, e.clientY), lead: ref, moved: false, additive, id: e.pointerId }
+    drag.current = { start: ctx.toPlan(e.clientX, e.clientY), lead: ref, moved: false, additive: additive || alone, id: e.pointerId }
   }
   const menu = (e: React.MouseEvent, ref: ItemRef | null) => {
     if (!onMenu) return
