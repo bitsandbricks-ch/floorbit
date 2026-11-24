@@ -222,6 +222,25 @@ editor saves it as a new dashboard of your own, named "… (copy)" and not publi
 | **Power load** | Every circuit's load, fullest first. The boards in detail are on the Power page. |
 | **Event in numbers** | The stats wall for the hall and attendees' phones: seats online, downloaded, the busiest moment and hour, most seats online, the most loyal block, the LAN cache and the top games, a tile each. Public, Screen layout. |
 
+A plugin can ship ready-made dashboards of its own widgets too (`dashboards:` in its
+`plugin.yaml`, see the [plugin spec](plugin-spec.md#screens)). They are listed while the plugin is on,
+marked **From <plugin>**, and work like the ones above: change one and **Reset to default** brings the
+plugin's back.
+
+## Moving a dashboard to another Floorbit
+
+**Export as file** under **⋯** in a dashboard's editor downloads it as saved, as a
+`<id>.dashboard.json` file. **Import** on the Dashboards page reads such a file in as a new
+dashboard, under a free name (`desk`, then `desk-2`). Anyone who may open a dashboard can export
+it; importing needs `floorplan.edit`.
+
+The file holds the layout only: sections, panels, panes, and the dashboard's settings. It never
+holds secrets, seat data or anything about a person, and who saved it and when stay behind. A saved
+widget goes in as a tile pane of its own, since the other Floorbit doesn't have it. An imported
+dashboard is never public until someone switches that on. Tiles from a plugin the other Floorbit
+doesn't have stay in the file; after the import a note names those plugins, and each such pane says
+which plugin it needs until it is installed and on.
+
 ## Kiosk
 
 **Kiosk** is a ready-made dashboard for the big screen in the hall, and what `/kiosk` opens: the

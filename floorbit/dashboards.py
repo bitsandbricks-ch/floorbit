@@ -253,11 +253,50 @@ def all_layouts(data=None):
     from . import saved_widgets
     data = load_data() if data is None else data
     # ``changed``: a ready-made dashboard someone edited; removing the saved one resets it (#923).
-    saved = [{**x, 'changed': True} if x.get('id') in BUILTIN else x for x in _saved(data)]
+    shipped = {**{k: {**copy.deepcopy(v), 'builtin': True} for k, v in BUILTIN.items()}, **plugin_layouts()}
+    saved = [{**x, 'changed': True} if x.get('id') in shipped else x for x in _saved(data)]
     taken = {x.get('id') for x in saved}
-    layouts = saved + [{'id': k, **copy.deepcopy(v), 'builtin': True} for k, v in BUILTIN.items() if k not in taken]
+    layouts = saved + [{'id': k, **v} for k, v in shipped.items() if k not in taken]
     widgets = saved_widgets.by_id(data)
     return [_with_widgets(x, widgets) for x in layouts]
+
+
+def plugin_board_id(plugin, board):
+    """The id a plugin's ready-made dashboard gets: ``<plugin>-<id>``, with dashes for underscores."""
+    return f'{plugin}-{board}'.replace('_', '-')[:32]
+
+
+def plugin_layout(plugin, raw):
+    """A plugin's ready-made dashboard (``dashboards:`` in plugin.yaml, #938) as a layout: one
+    section of its own widgets, each panel one tile pane. The plugin ships no code, only this."""
+    def pane(p):
+        out = {'kind': 'tile', 'tile': f"{plugin}/w/{p.get('widget')}"}
+        if p.get('type'):
+            out['type'] = p['type']
+        if p.get('title'):
+            out['title'] = p['title']
+        return out
+    panels = [{k: p.get(k) for k in ('x', 'y', 'w', 'h')} | {'node': {'pane': pane(p)}}
+              for p in raw.get('panels') or [] if isinstance(p, dict)]
+    return {'name': raw.get('label') or raw.get('id'), 'fit': bool(raw.get('fit')), 'sections': [{'panels': panels}]}
+
+
+def plugin_layouts():
+    """The ready-made dashboards of the plugins that are on, by id. Only inside the app: a script
+    without it (tests of this module alone) gets none."""
+    try:
+        from flask import current_app
+        registry = current_app.extensions['floorbit_plugins']
+    except (RuntimeError, KeyError):
+        return {}
+    out = {}
+    for spec in registry.specs.values():
+        if not registry.enabled(spec):
+            continue
+        for raw in spec.items('dashboards'):
+            out[plugin_board_id(spec.id, raw['id'])] = {**plugin_layout(spec.id, raw), 'builtin': True,
+                                                       'plugin': spec.id, 'plugin_name': spec.name}
+    return out
 
 
 def _with_widgets(layout, widgets):
@@ -754,6 +793,63 @@ def _overrides(raw):
         if len(entry) > 1:
             out.append(entry)
     return out
+
+
+# The file a dashboard is saved to for another Floorbit (#938); a new number when the format changes.
+FILE_FORMAT = 1
+FILE_KEYS = ('name', 'fit', 'cycle', 'range', 'frame', 'sound')
+
+
+def export(layout):
+    """A dashboard as a file for another Floorbit (#938). It holds the layout only: saved widgets
+    go in as tile panes of their own (the other side doesn't have them), plan panes lose the saved
+    views a public screen carries, and it is never public there until someone says so. Nothing in a
+    dashboard is a secret or about a person; ``plugins`` names the plugins its tiles come from."""
+    def node(n):
+        if 'pane' not in n:
+            return {**n, 'children': [node(c) for c in n['children']]}
+        pane = n['pane']
+        head = {k: pane[k] for k in ('title', 'hide_title') if k in pane}
+        if pane['kind'] == 'widget':
+            saved = pane.get('saved')
+            if not saved:
+                return {'pane': {'kind': 'empty', **head}}
+            return {'pane': {**saved['pane'], **head, 'title': (pane.get('title') or saved['name'])[:TITLE_MAX]}}
+        if pane['kind'] == 'plan':
+            return {'pane': {k: v for k, v in pane.items() if k != 'views'}}
+        if pane['kind'] == 'private':
+            return {'pane': {'kind': 'empty', **head}}
+        return n
+    sections = [{**sec, 'panels': [{**p, 'node': node(p['node'])} for p in sec.get('panels') or []]}
+                for sec in layout.get('sections') or []]
+    out = {'floorbit_dashboard': FILE_FORMAT, **{k: layout[k] for k in FILE_KEYS if k in layout}, 'sections': sections}
+    plugins = sorted({t.split('/w/')[0] for p in layout_panes(out) for t in pane_tiles(p)} - {'floorbit'})
+    if plugins:
+        out['plugins'] = plugins
+    return out
+
+
+def _free_id(name, taken):
+    base = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')[:28] or 'dashboard'
+    if not base[0].isalnum():
+        base = f'd-{base}'[:28]
+    return next((x for x in (base, *(f'{base}-{n}' for n in range(2, 100))) if x not in taken), None)
+
+
+def import_file(body, by):
+    """A dashboard file (:func:`export`) saved as a new dashboard under a free id. Checked like
+    any dashboard, and not public whatever the file says. Tiles of plugins this Floorbit doesn't
+    have stay in: their panes say which plugin they need."""
+    if not isinstance(body, dict) or body.get('floorbit_dashboard') != FILE_FORMAT:
+        raise LayoutError('This is not a Floorbit dashboard file.')
+    fields = {k: body[k] for k in (*FILE_KEYS, 'sections') if k in body}
+    if 'sections' not in fields:
+        raise LayoutError('This is not a Floorbit dashboard file.')
+    name = clean(fields)['name']
+    layout_id = _free_id(name, {x.get('id') for x in all_layouts()})
+    if layout_id is None:
+        raise LayoutError('Give the dashboard another name: this one is taken.')
+    return save(layout_id, fields, by)
 
 
 def pane_tiles(pane):

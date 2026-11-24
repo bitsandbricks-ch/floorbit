@@ -1,16 +1,16 @@
-import { ActionIcon, Alert, Badge, Button, Group, Menu, NumberInput, Paper, Popover, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title, Tooltip } from '@mantine/core'
-import { IconArrowRight, IconCopy, IconDeviceTv, IconDots, IconLayoutGridAdd, IconLayoutSidebarRight, IconLayoutSidebarRightCollapse, IconPencil, IconPlus, IconRestore, IconSeparator, IconSettings, IconTrash, IconX } from '@tabler/icons-react'
+import { ActionIcon, Alert, Badge, Button, FileButton, Group, Menu, NumberInput, Paper, Popover, SegmentedControl, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title, Tooltip } from '@mantine/core'
+import { IconArrowRight, IconCopy, IconDeviceTv, IconDots, IconDownload, IconLayoutGridAdd, IconLayoutSidebarRight, IconLayoutSidebarRightCollapse, IconPencil, IconPlus, IconRestore, IconSeparator, IconSettings, IconTrash, IconUpload, IconX } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { boardHref } from '@/nav/sections'
-import { del, get, put } from '@/api/client'
+import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState, useConfirm } from '@bitsandbricks/ui'
+import { ErrorBanner, LoadingState, toastDone, toastFailed, toastInfo, useConfirm } from '@bitsandbricks/ui'
 import { dateTime } from '@/lib/time'
 import {
   COLS, MAX_PANELS, MAX_SECTIONS, type Panel, type Section, type Spot, add, paneCount, place, rows, starterSections, total,
@@ -30,6 +30,17 @@ export default function Dashboards() {
   const q = useQuery({ queryKey: qk.boards, queryFn: () => get<{ layouts: Board[] }>('/api/dashboards') })
   const editId = canEdit ? params.get('edit') : null
   const editing = editId === 'new' ? null : q.data?.layouts.find((b) => b.id === editId) ?? null
+  const qc = useQueryClient()
+  // A dashboard file from another Floorbit (#938) becomes a new dashboard of its own.
+  const upload = useMutation({
+    mutationFn: async (file: File) => post<{ layout: Board; missing: string[] }>('/api/dashboards/import', JSON.parse(await file.text())),
+    onSuccess: (r) => {
+      void qc.invalidateQueries({ queryKey: qk.boards })
+      toastDone(t('dashboards.file.imported', { name: r.layout.name }))
+      if (r.missing.length) toastInfo(t('dashboards.file.missing', { plugins: r.missing.join(', ') }))
+    },
+    onError: (e) => toastFailed(e instanceof SyntaxError ? new Error(t('dashboards.file.notJson')) : e),
+  })
   const open = (id: string | null) => {
     const next = new URLSearchParams(params)
     if (id) next.set('edit', id)
@@ -48,6 +59,11 @@ export default function Dashboards() {
       <PageHead title={t('dashboards.title')} desc={t('dashboards.intro')}
         actions={<Group gap="xs">
           <Button variant="default" component="a" href="/widgets" leftSection={<IconLayoutGridAdd size={16} />}>{t('widgets.title')}</Button>
+          {canEdit && (
+            <FileButton accept=".json,application/json" onChange={(f) => f && upload.mutate(f)}>
+              {(props) => <Button {...props} variant="default" loading={upload.isPending} leftSection={<IconUpload size={16} />}>{t('dashboards.file.import')}</Button>}
+            </FileButton>
+          )}
           {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => open('new')}>{t('dashboards.new')}</Button>}
         </Group>} />
       {q.isPending && <LoadingState rows={3} />}
@@ -63,7 +79,8 @@ export default function Dashboards() {
               <div>
                 <Group gap={6}>
                   <Title order={3} fz="md">{boardName(t, b)}</Title>
-                  {(b.builtin || b.changed) && <Badge size="xs" variant="light">{t('dashboards.builtin')}</Badge>}
+                  {(b.builtin || b.changed) && !b.plugin && <Badge size="xs" variant="light">{t('dashboards.builtin')}</Badge>}
+                  {b.plugin && <Badge size="xs" variant="light">{t('dashboards.file.fromPlugin', { plugin: b.plugin_name ?? b.plugin })}</Badge>}
                   {b.changed && <Badge size="xs" variant="light" color="warn">{t('dashboards.changed')}</Badge>}
                   {b.public && <Badge size="xs" variant="light" color="up">{t('dashboards.publicBadge')}</Badge>}
                 </Group>
@@ -228,6 +245,10 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
               </Menu.Target>
               <Menu.Dropdown>
                 <Menu.Item leftSection={<IconCopy size={16} />} disabled={copy.isPending} onClick={() => copy.mutate()}>{t('dashboards.copy')}</Menu.Item>
+                {/* As saved: the file is for another Floorbit, not a backup of unsaved edits. */}
+                <Menu.Item leftSection={<IconDownload size={16} />} component="a" href={`/api/dashboards/${encodeURIComponent(board.id)}/export`} download>
+                  {t('dashboards.file.export')}
+                </Menu.Item>
                 {board.changed && (
                   <Menu.Item color="down" leftSection={<IconRestore size={16} />} disabled={drop.isPending}
                     onClick={() => void ask(t('dashboards.focus.resetAsk', { name: boardName(t, board) }), t('dashboards.reset'))}>
