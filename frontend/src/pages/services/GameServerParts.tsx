@@ -8,8 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { ApiError, del, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { GameServer, RconAnswer } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { EntitySelect } from '@/components/EntitySelect'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** A game server's settings and its RCON console (issue #472), opened from the Services page. */
 

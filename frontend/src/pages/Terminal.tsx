@@ -10,7 +10,7 @@ import type { TerminalInfo, TerminalOutput } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { type TerminalHandle, TerminalView } from './terminal/TerminalView'
 import { LoadingState, ErrorBanner } from '@/components/ui'
-import { StateBit } from '@/components/State'
+import { StatusBit } from '@bitsandbricks/ui'
 
 interface Open {
   id: string
@@ -71,7 +71,7 @@ export default function TerminalPage() {
             <div key={s.id} className="fb-term-tab" data-active={active === s.id || undefined}>
               <button type="button" role="tab" aria-selected={active === s.id} aria-controls={`term-${s.id}`}
                 onClick={() => setActive(s.id)} className="fb-term-tab-name">
-                <StateBit state={ended[s.id] ? 'ended' : 'connected'} />
+                <StatusBit state={ended[s.id] ? 'ended' : 'connected'} />
                 <span>{s.switch}</span>
                 <VisuallyHidden>{ended[s.id] ? t('terminal.closed') : t('terminal.connected')}</VisuallyHidden>
               </button>

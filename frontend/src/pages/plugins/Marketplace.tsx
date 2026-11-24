@@ -6,8 +6,8 @@ import { del, get, post } from '@/api/client'
 import { PluginIcon } from './icon'
 import { MARKET_KEY as KEY, useMarketplace } from './market'
 import { qk } from '@/api/keys'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { LoadingState } from '@/components/ui'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** One version a source offers (floorbit/marketplace.py, ``catalog``). */
 export type MarketVersion = {

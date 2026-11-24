@@ -8,7 +8,6 @@ import { del, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan, useSeatMap } from '@/api/queries'
 import type { ResolvePortsResult, SeatRow } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -16,6 +15,7 @@ import { ImportDialog } from './seatmap/ImportDialog'
 import { matches } from './seatmap/model'
 import { SeatForm, type SeatDraft } from './seatmap/SeatForm'
 import { LoadingState } from '@/components/ui'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 function Cell({ value, source, label, mono }: { value: string; source?: string; label: (s: string) => string; mono?: boolean }) {
   if (!value) return <Text c="dimmed">–</Text>

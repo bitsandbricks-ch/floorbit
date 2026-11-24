@@ -8,13 +8,13 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { usePower } from '@/api/queries'
 import type { PowerBoard } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { BoardForm } from './Forms'
 import { CircuitTable } from './parts'
 import { boardPath } from './state'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** One distribution board (/power/boards/<id>, or /new): its details and its circuits (issue #877). */
 export default function BoardPage() {

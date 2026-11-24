@@ -10,13 +10,12 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useFeature } from '@/api/queries'
 import type { EventFigures, EventsData, PastEvent } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { dates, METRICS, share } from './events/metrics'
 import { TenantEvents } from './events/TenantEvents'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
-import { toastDone } from '@/components/toast'
+import { ConfirmButton, toastDone } from '@bitsandbricks/ui'
 
 type Column = { id: string; name: string; start: number | null; end: number | null; figures: EventFigures; current?: boolean }
 

@@ -7,7 +7,7 @@ import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { BouncePort } from '@/components/BouncePort'
-import { toastDone } from '@/components/toast'
+import { toastDone } from '@bitsandbricks/ui'
 
 /** What a tech can do from the seat inspector (issue #151): bounce the seat's port with their own
  *  switch login, and flag the seat for a tech. The same calls as the floor plan editor. */

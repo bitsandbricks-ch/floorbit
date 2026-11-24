@@ -11,7 +11,6 @@ import { useCan } from '@/api/queries'
 import type {
   DnsResolver, GameServer, GameServerList, InternetSite, IspUplink, Services as ServicesData, ServiceSummary,
 } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ServiceGroup } from '@/widgets/ServiceList'
@@ -22,6 +21,7 @@ import { RconConsole, ServerModal } from './services/GameServerParts'
 import { FilterBar } from '@/components/FilterBar'
 import { useFilters } from '@/components/useFilters'
 import { ErrorBanner } from '@/components/ui'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 
 type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'; item: DnsResolver | null }

@@ -7,7 +7,6 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import type { EntityOption } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
@@ -20,6 +19,7 @@ import type { DeviceSeen } from '@/components/telemetry/api'
 import { TelemetryAgentNumbersList, type TelemetryAgentNumbers } from '@/components/telemetry/AgentNumbers'
 import { EmptyState, Field, Panel } from '@/components/ui'
 import { telemetryPath } from './inventory/model'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** A device telemetry collects from: an inventory device with the Telemetry feature on. No logins. */
 export interface TelemetryDevice {

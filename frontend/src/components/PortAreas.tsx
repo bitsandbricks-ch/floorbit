@@ -4,10 +4,10 @@ import { IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ConfirmIcon } from './ConfirmButton'
 import { del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PortArea } from '@/api/types'
+import { ConfirmIcon } from '@bitsandbricks/ui'
 
 type Draft = Omit<PortArea, 'id' | 'label'>
 

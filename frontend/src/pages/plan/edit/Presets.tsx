@@ -4,8 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post } from '@/api/client'
-import { toastDone } from '@/components/toast'
 import type { Raw } from './clipboard'
+import { toastDone } from '@bitsandbricks/ui'
 
 /** A preset: items of the plan kept together (floorbit/plan_presets.py). */
 export interface PlanPreset {

@@ -6,9 +6,9 @@ import { useTranslation } from 'react-i18next'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { CustomIcon } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { CustomIconGlyph } from './icons'
 import { useCustomIcons } from './scope'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** The shared icon library: admins upload SVGs (the server cleans them), everyone picks from it. */
 export function IconLibrary({ opened, canManage, onClose }: { opened: boolean; canManage: boolean; onClose: () => void }) {

@@ -3,9 +3,9 @@ import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CredentialInfo, FeatureInfo, InventoryOverview, InventoryTag, Origin } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { DEVICE_ICONS, DeviceIcon } from './icons'
 import { useCustomIcons } from './scope'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** Where an inherited value comes from, in words ("from group Hall A"). */
 export function FromLabel({ from }: { from: Origin | null | undefined }) {

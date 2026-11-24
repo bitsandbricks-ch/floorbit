@@ -6,12 +6,12 @@ import { useTranslation } from 'react-i18next'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { FieldDef, InventoryOverview, InventoryType } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { PanelSection } from '@/components/ui'
 import { DeviceIcon } from './icons'
 import { typeName } from './model'
 import { useInventoryTypes } from './scope'
 import { LookFields, PropertiesEditor } from './ScopeEditors'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 const KINDS = ['text', 'number', 'choice', 'bool', 'link'] as const
 
