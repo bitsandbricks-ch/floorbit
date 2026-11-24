@@ -864,6 +864,15 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // A drag redraws the editor on every pointer move; the panel shows nothing that changes until
   // the drop, so it (and the closed dialogs) shows the copy taken when the drag starts instead of being drawn again (Mike: moving
   // a row dragged behind a lot).
+  // While dragging, the rulers mark the middle of what moves rather than the pointer.
+  const dragMid = useMemo(() => {
+    if (!drag) return null
+    const boxes = unlocked(selected).map((r) => outlineOf(shown, r)?.box).filter((b) => !!b)
+    if (!boxes.length) return null
+    const x0 = Math.min(...boxes.map((b) => b.x)), y0 = Math.min(...boxes.map((b) => b.y))
+    const x1 = Math.max(...boxes.map((b) => b.x + b.w)), y1 = Math.max(...boxes.map((b) => b.y + b.h))
+    return { x: (x0 + x1) / 2, y: (y0 + y1) / 2 }
+  }, [drag, selected, shown, unlocked])
   const rail = useMemo(() => <ToolRail tool={tool} onTool={setTool} onView={onDone} />, [tool, onDone])
   const panel = (<>
     <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
@@ -996,7 +1005,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           {bgPlacing && data.background && tool === 'select' && (
             <BackgroundHandles ctx={ctx} frame={bgFrame} onDraft={(f) => setBgDraft(f ? { frame: f, data } : null)} onDone={placeBackground} />
           )}
-          {snapping.rulers && <Rulers ctx={ctx} cell={data.drawing?.cell ?? 32} />}
+          {snapping.rulers && <Rulers ctx={ctx} cell={data.drawing?.cell ?? 32} at={dragMid} />}
           {lockedSel.length > 0 && tool === 'select' && <LockBadges ctx={ctx} boxes={lockedSel.map((r) => outlineOf(shown, r)).filter((o) => !!o)} />}
           {oneMark && markBox && tool === 'select' && !drag && !isLocked(one!) && (
             <MarkHandles key={handlesKey(oneMark.id!)} ctx={ctx} mark={oneMark}

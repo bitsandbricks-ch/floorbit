@@ -1,10 +1,13 @@
 import type { OverlayContext } from '../SeatMap'
-import { RULER_BAND as BAND, rulerSteps } from './rulers'
+import { RULER_BAND as BAND, rulerSteps, seatsLabel, useRulerPointer } from './rulers'
 
 /** Rulers along the plan's top and left edges, in seats (one grid cell each) from the plan's corner,
- *  the unit the wall and zone tools measure in. They follow pan and zoom. */
-export function Rulers({ ctx, cell }: { ctx: OverlayContext; cell: number }) {
+ *  the unit the wall and zone tools measure in. They follow pan and zoom, and mark where the pointer
+ *  is, or while dragging the middle of what is dragged (``at``, Mike). */
+export function Rulers({ ctx, cell, at }: { ctx: OverlayContext; cell: number; at?: { x: number; y: number } | null }) {
   const { shown, scale } = ctx
+  const pointer = useRulerPointer()
+  const mark = at ?? pointer
   const px = 1 / scale
   const { major, minor } = rulerSteps(cell * scale)
   const band = BAND * px
@@ -34,6 +37,18 @@ export function Rulers({ ctx, cell }: { ctx: OverlayContext; cell: number }) {
           )}
         </g>
       ))}
+      {mark && mark.x > shown.x + band && mark.x < shown.x + shown.w && (
+        <g className="mark">
+          <line x1={mark.x} x2={mark.x} y1={shown.y} y2={shown.y + band} vectorEffect="non-scaling-stroke" />
+          <text x={mark.x + 3 * px} y={shown.y + 10 * px} fontSize={10 * px}>{seatsLabel(mark.x, cell)}</text>
+        </g>
+      )}
+      {mark && mark.y > shown.y + band && mark.y < shown.y + shown.h && (
+        <g className="mark">
+          <line y1={mark.y} y2={mark.y} x1={shown.x} x2={shown.x + band} vectorEffect="non-scaling-stroke" />
+          <text x={shown.x + 10 * px} y={mark.y - 3 * px} fontSize={10 * px} transform={`rotate(-90 ${shown.x + 10 * px} ${mark.y - 3 * px})`}>{seatsLabel(mark.y, cell)}</text>
+        </g>
+      )}
       <rect className="corner" x={shown.x} y={shown.y} width={band} height={band} />
     </g>
   )

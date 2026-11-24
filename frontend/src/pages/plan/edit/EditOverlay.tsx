@@ -5,6 +5,7 @@ import { type Box, type ItemRef, type Point, allItems, boxFrom, fromPct, inside,
 import { measure, snapCorner } from './reshape'
 import type { Guide } from './arrange'
 import { TOOL_GESTURE, type Tool } from './tools'
+import { setRulerPointer } from './rulers'
 
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
@@ -104,7 +105,9 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     onMenu(ref, e.clientX, e.clientY)
   }
   const move = (e: React.PointerEvent) => {
-    onPointer?.(ctx.toPlan(e.clientX, e.clientY))
+    const here = ctx.toPlan(e.clientX, e.clientY)
+    onPointer?.(here)
+    setRulerPointer(here)
     if (draft) {
       e.stopPropagation()
       setDraft({ a: draft.a, b: snap(ctx.toPlan(e.clientX, e.clientY), e.altKey, lineLike && e.shiftKey, draft.a) })
@@ -165,7 +168,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
 
   const shown = ctx.shown
   return (
-    <g className={`fb-edit${panning ? ' panning' : ''}${gesture !== 'select' && gesture !== 'pan' ? ' tooling' : ''}`}>
+    <g className={`fb-edit${panning ? ' panning' : ''}${gesture !== 'select' && gesture !== 'pan' ? ' tooling' : ''}`} onPointerLeave={() => setRulerPointer(null)}>
       <rect className="fb-edit-bg" x={shown.x} y={shown.y} width={shown.w} height={shown.h} onPointerDown={(e) => begin(e, null)}
         onContextMenu={(e) => menu(e, null)}
         onPointerMove={(e) => move(e)} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e)} />
