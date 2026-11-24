@@ -9,7 +9,8 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { ProblemDetail } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, dateTime } from '@/lib/time'
 import { PageHead, StatusBadge } from '@bitsandbricks/ui'
 import { canReport, reportBody } from './problems/format'
@@ -48,7 +49,7 @@ export default function ProblemPage() {
     return (
       <Layout title={t('problems.title')}>
         <PageHead title={t('problem.title')} back={back} />
-        {gone ? <EmptyState title={t('problem.over')} desc={t('problem.overDesc')} /> : <ErrorBanner error={q.error} />}
+        {gone ? <EmptyState title={t('problem.over')} description={t('problem.overDesc')} /> : <ErrorBanner error={q.error} />}
       </Layout>
     )
   }
