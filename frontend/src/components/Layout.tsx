@@ -7,6 +7,7 @@ import { inApp } from '@/nav/sections'
 import { readRail } from '@/nav/boot'
 import { usePageList } from '@/api/queries'
 import { openGoTo } from '@/nav/goto'
+import { useLiveRefresh } from '@/api/liveRefresh'
 import { AppNav } from './AppNav'
 import { CrewNoticeBadge } from './CrewNotice'
 import { DatabaseBanner } from './DatabaseBanner'
@@ -45,6 +46,8 @@ export function AppShell({ children }: { children?: ReactNode }) {
   // is text from the document.
   const pages = usePageList()
   const [slot, setSlot] = useState<HTMLElement | null>(null)
+  // The problem count and the crew notice follow the live events instead of asking every 30 s.
+  useLiveRefresh()
   // A wall screen or a print sheet is the page alone: no sidebar, banners or footer on the TV or the paper.
   if (params.get('screen') === '1' || params.get('print') === '1') {
     return <Suspense fallback={<PageSkeleton />}>{children ?? <Outlet />}</Suspense>

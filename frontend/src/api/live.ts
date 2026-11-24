@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { queryClient } from '../queryClient'
 
 // One EventSource for the whole page, shared by every hook: browsers allow only six connections
@@ -74,21 +74,32 @@ export function useLiveEvent(type: string, onEvent: (data: unknown) => void) {
   useEffect(() => {
     handler.current = onEvent
   }, [onEvent])
+  const one = useCallback((data: unknown) => handler.current(data), [])
+  useLiveEvents(type, one)
+}
+
+/** `useLiveEvent` for several types at once: `types` is one name or several, joined by spaces. */
+export function useLiveEvents(types: string, onEvent: (data: unknown, type: string) => void) {
+  const handler = useRef(onEvent)
+  useEffect(() => {
+    handler.current = onEvent
+  }, [onEvent])
   useEffect(() => {
     if (typeof EventSource === 'undefined') return
+    const wanted = types.split(' ').filter(Boolean)
     const fn: Listener = (e) => {
       try {
         const event = JSON.parse(e.data) as { type?: string; data?: unknown }
-        if (event.type === type) handler.current(event.data)   // events are named by type
+        if (event.type && wanted.includes(event.type)) handler.current(event.data, event.type)   // events are named by type
       } catch {
         // not one of ours
       }
     }
     acquire()
-    listen(type, fn)
+    for (const type of wanted) listen(type, fn)
     return () => {
-      listeners.get(type)?.delete(fn)
+      for (const type of wanted) listeners.get(type)?.delete(fn)
       release()
     }
-  }, [type])
+  }, [types])
 }
