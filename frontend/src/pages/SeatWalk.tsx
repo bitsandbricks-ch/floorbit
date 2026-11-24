@@ -14,6 +14,8 @@ import { DataTable } from '@/components/DataTable'
 import { PageHead } from '@bitsandbricks/ui'
 import { RowsSelect } from '@/components/RowsSelect'
 import { HallRows } from './seatWalk/HallRows'
+import { FlowStrip, LaptopStrip, TraceConsole } from './seatWalk/Trace'
+import { mergeSteps, newRun, type TraceEvent, type TraceStep } from '@/api/seatWalkTrace'
 import { leave } from './seatWalkLeave'
 
 /** How long the page keeps asking before it says the lookup failed. Each request tries about 20 s;
@@ -92,6 +94,15 @@ function Walk({ info, seats, startAt, rows, order, typedMac, walker, resumed, on
   const run = useRef(0)                      // a new Locate, Cancel or seat drops answers of the old one
   const laptop = useRef<{ mac: string; ip: string } | null>(resumed?.kept.laptop ?? null)
   const previous = useRef<WalkPort | null>(resumed?.kept.previous ?? null)
+  // The live trace of the current Locate (issue #1359) and the laptop as last seen (issue #1358).
+  const [steps, setSteps] = useState<TraceStep[]>([])
+  const traceRun = useRef('')
+  const [seen, setSeen] = useState<{ ip: string | null; mac: string | null; agent: string | null }>(
+    { ip: resumed?.kept.laptop?.ip ?? null, mac: typedMac || (resumed?.kept.laptop?.mac ?? null), agent: null })
+  useLiveEvent('seat-walk.trace', (data) => {
+    const e = data as TraceEvent
+    if (e?.run && e.run === traceRun.current && e.step) setSteps((have) => mergeSteps(have, [e.step]))
+  })
   const seat = seats[at]?.seat
   // Known at once (through the agent, or a typed MAC): no Locate to press, the page watches.
   const auto = Boolean(typedMac || info.through_agent)
@@ -126,6 +137,8 @@ function Walk({ info, seats, startAt, rows, order, typedMac, walker, resumed, on
       return
     }
     const started = Date.now()
+    traceRun.current = newRun()
+    setSteps([])
     setPlanFixed(false)
     setNow(started)
     setStatus({ kind: 'looking', started })
@@ -133,13 +146,15 @@ function Walk({ info, seats, startAt, rows, order, typedMac, walker, resumed, on
       let result: SeatLocated
       try {
         result = await post<SeatLocated>('/api/seat-walk/locate', typedMac
-          ? { seat, previous: previous.current, mac: typedMac, mac_typed: true }
-          : { seat, previous: previous.current, hello, mac: laptop.current?.mac, mac_ip: laptop.current?.ip })
+          ? { seat, previous: previous.current, mac: typedMac, mac_typed: true, run: traceRun.current }
+          : { seat, previous: previous.current, hello, mac: laptop.current?.mac, mac_ip: laptop.current?.ip, run: traceRun.current })
       } catch (e) {
         if (run.current === mine) setStatus({ kind: 'failed', error: e instanceof ApiError ? e.message : String(e) })
         return
       }
       if (run.current !== mine) return
+      if (result.trace?.length) setSteps((have) => mergeSteps(have, result.trace ?? []))
+      setSeen((was) => ({ ip: result.ip ?? was.ip, mac: result.mac ?? was.mac, agent: result.agent ?? was.agent }))
       if (result.mac && result.ip) laptop.current = { mac: result.mac, ip: result.ip }
       if (result.ok && result.found) {
         previous.current = result.found
@@ -239,8 +254,10 @@ function Walk({ info, seats, startAt, rows, order, typedMac, walker, resumed, on
   const had = seats[at].port
   const seconds = status.kind === 'looking' ? Math.max(0, Math.round((now - status.started) / 1000)) : 0
   const nextSeat = seats[at + 1]?.seat
+  const running = status.kind === 'looking' || status.kind === 'identifying'
   return (
     <Stack gap="md">
+      <LaptopStrip agentUrl={info.agent_url} ip={seen.ip} mac={seen.mac} agent={seen.agent} />
       <Paper withBorder radius="lg" p="lg">
         <Stack gap="xs">
           <Group justify="space-between">
@@ -334,6 +351,12 @@ function Walk({ info, seats, startAt, rows, order, typedMac, walker, resumed, on
         )}
       </div>
 
+      {(steps.length > 0 || running) && (
+        <>
+          <Paper withBorder radius="lg" p="md"><FlowStrip steps={steps} running={running} seat={seat} /></Paper>
+          <TraceConsole steps={steps} running={running} />
+        </>
+      )}
       <Group grow>
         <Button variant="default" disabled={at === 0} onClick={() => go(at - 1)}>{t('seatWalk.back')}</Button>
         <Button variant="default" onClick={() => go(at + 1)}>{t('seatWalk.skip')}</Button>

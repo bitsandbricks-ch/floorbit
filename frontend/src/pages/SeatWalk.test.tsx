@@ -68,9 +68,9 @@ describe('SeatWalk', () => {
     expect(await screen.findByText('Patch plan updated.')).toBeInTheDocument()
 
     const sent = api.calls.filter((c) => c.path === '/api/seat-walk/locate').map((c) => c.body)
-    expect(sent[0]).toEqual({ seat: 'A-1', previous: null, mac: '02-00-00-00-00-10', mac_typed: true })
+    expect(sent[0]).toEqual({ seat: 'A-1', previous: null, mac: '02-00-00-00-00-10', mac_typed: true, run: expect.any(String) })
     // The next seat says where the last one was, so an old MAC table isn't taken for this seat.
-    expect(sent[1]).toEqual({ seat: 'A-2', previous: { switch: 'sw-a-01', port: 'Gi1/0/1' }, mac: '02-00-00-00-00-10', mac_typed: true })
+    expect(sent[1]).toEqual({ seat: 'A-2', previous: { switch: 'sw-a-01', port: 'Gi1/0/1' }, mac: '02-00-00-00-00-10', mac_typed: true, run: expect.any(String) })
     expect(api.calls.some((c) => c.path === '/api/seat-walk/hello')).toBe(false)
     expect(sent).toHaveLength(3)
     // The walker said where they were, for the others' overview.
@@ -133,7 +133,7 @@ describe('SeatWalk', () => {
     renderWithApp(<SeatWalk />)
     expect(await screen.findByText('A-1 is on sw-a-01 Gi1/0/1')).toBeInTheDocument()
     const sent = api.calls.filter((c) => c.path === '/api/seat-walk/locate').map((c) => c.body)
-    expect(sent[0]).toEqual({ seat: 'A-1', previous: null, hello: 'code-for-a-1-xxxxxx' })
+    expect(sent[0]).toEqual({ seat: 'A-1', previous: null, hello: 'code-for-a-1-xxxxxx', run: expect.any(String) })
     expect(window.location.search).toBe('')
     expect(sessionStorage.length).toBe(0)
   })

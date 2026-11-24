@@ -39,6 +39,24 @@ asked. An answer that still
 names the last seat's port comes from a MAC table nobody read again yet: Floorbit doesn't take it and
 keeps asking for up to 90 seconds.
 
+## Watching what it does
+
+While the walk runs, the page shows:
+
+- **At the top:** the agent address to open on the laptop (with a copy button), the laptop's IP and
+  MAC that Floorbit is looking for, and which agent saw it.
+- **A flow strip:** laptop, MAC, the monitoring tables, then the switches of the row, the block and
+  the rest of the VLAN (and SSH when it comes to that), up to the seat. The step being asked right
+  now is marked.
+- **What Floorbit is doing:** every step with its time and how long it took: which agent saw the
+  laptop, whether the monitoring tables had it, which switch was asked in which group and what it
+  said (not there, only on an uplink, no answer, found), an answer that still names the last seat's
+  port, and the next try. **Everything** shows each try; **Steps** folds the waits. **Copy** puts the
+  whole trace on the clipboard, for a bug report.
+
+The steps reach the page live while the lookup runs. Only signed-in pages that may read seats see the
+laptop's IP and MAC in them; on other pages they are left out.
+
 ## Why always through the agent
 
 Floorbit itself often doesn't see the laptop's own address: behind NAT or on a hosted Floorbit it

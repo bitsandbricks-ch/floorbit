@@ -1420,6 +1420,8 @@ export interface SeatLocated {
   ms: number; tries: number; stale: boolean; found: WalkPort | null
   steps: { step: 'mac' | 'switch' | 'snmp' | 'monitoring'; ok: boolean; how?: string | null }[]
   replaced?: string[]; plan_seat?: string | null
+  /** Every step of this Locate (issue #1359) and the agent that saw the laptop. */
+  trace?: import('./seatWalkTrace').TraceStep[]; agent?: string | null
   /** The switch's area doesn't hold this seat (issue #1094). */
   area_drift?: AreaDrift | null
 }

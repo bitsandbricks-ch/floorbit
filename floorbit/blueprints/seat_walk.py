@@ -7,10 +7,11 @@
 - ``POST /api/seat-walk/hello``: a one-time code; ``ip`` at once when the page came through an agent's
   front door, else the agent URL the laptop opens with it (worked out, see seat_walk.agent_url).
   ``GET /api/seat-walk/hello/<code>``: the laptop's own IP once the agent saw it.
-- ``POST /api/seat-walk/locate``: ``{"seat", "hello", "previous": {"switch", "port"}, "mac", "mac_ip"}``:
-  find the port the laptop the agent identified is plugged into now and keep it for the seat. Tries
-  for about 20 seconds; ``retry`` says whether trying again is worth it. Or ``mac`` with ``mac_typed``:
-  the crew typed the laptop's MAC, no agent needed.
+- ``POST /api/seat-walk/locate``: ``{"seat", "hello", "previous": {"switch", "port"}, "mac", "mac_ip",
+  "run"}``: find the port the laptop the agent identified is plugged into now and keep it for the
+  seat. Tries for about 20 seconds; ``retry`` says whether trying again is worth it. Or ``mac`` with
+  ``mac_typed``: the crew typed the laptop's MAC, no agent needed. ``trace`` in the answer lists every
+  step; with ``run`` (the page's random id) each step also goes out live as ``seat-walk.trace``.
 - ``DELETE /api/seat-walk/<seat>``: forget the seat's port (a wrong one).
 - ``POST /api/seat-walk/walkers``: ``{"rows", "take"}``: start walking these rows (409 with ``held``
   when someone else walks one, unless ``take``). ``PUT /api/seat-walk/walkers/<id>``: ``{"seat"}``:
@@ -22,6 +23,8 @@ agent sees the laptop's own address, Floorbit may see a proxy's or the hall's pu
 
 Reading needs ``seats.view`` (it names the laptop's MAC), changing ``seats.edit`` (auth/roles.py).
 """
+import re
+
 from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import checkin, events
@@ -30,6 +33,7 @@ from .. import seat_walk, seat_walkers, sources, spa, switch_areas, tenancy
 from ..store import load_data
 
 bp = Blueprint('seat_walk', __name__)
+RUN_RE = re.compile(r'^[A-Za-z0-9_-]{8,64}\Z')
 
 
 def _registry():
@@ -79,14 +83,19 @@ def locate():
     typed = seat_walk._mac(body.get('mac')) if body.get('mac_typed') else None
     if body.get('mac_typed') and not typed:
         return jsonify({'error': 'That is not a MAC address.'}), 400
-    ip = None              # a typed MAC: no address needed
-    if not typed:
+    run = body.get('run') if RUN_RE.match(str(body.get('run') or '')) else None
+    trace = seat_walk.Trace(run, seat)
+    ip, agent = None, None   # a typed MAC: no address needed
+    if typed:
+        trace.add('macTyped', 'ok', mac=typed)
+    else:
         # Always through the local agent, self-hosted or not: it sees the laptop's own address,
         # where Floorbit may see a proxy's or the hall's public one.
         said = seat_walk.hello(body.get('hello')) if body.get('hello') else None
         if not said or not said.get('ip'):
             return jsonify({'error': "The local agent hasn't seen this laptop yet. Identify it again."}), 409
-        ip = said['ip']
+        ip, agent = said['ip'], said.get('agent') or None
+        trace.add('hello', 'ok', agent=agent, ip=ip)
     if ip and not checkin.ip_allowed(ip):
         return jsonify({'error': f'This laptop has {ip}, which is not in the seat networks. '
                                  'Turn off Wi-Fi and plug the cable in.', 'ip': ip}), 409
@@ -97,10 +106,13 @@ def locate():
     previous = _port(body.get('previous'))
     # The MAC the last seat found, while the laptop still has the same IP: saves the ARP lookup.
     mac = typed or (seat_walk._mac(body.get('mac')) if body.get('mac') and body.get('mac_ip') == ip else None)
+    if mac and not typed:
+        trace.add('macReused', 'ok', mac=mac, ip=ip)
     result = seat_walk.locate(ip, registry, g.get('audit_user') or _who(), previous,
-                              seat_walk.likely_switches(seat, previous), mac=mac, seat=seat)
-    out = {'seat': seat, 'ip': ip, 'mac': result['mac'], 'how': result['how'], 'ms': result['ms'],
-           'tries': result['tries'], 'steps': result['steps'], 'stale': result['stale'], 'found': result['found']}
+                              seat_walk.likely_switches(seat, previous), mac=mac, seat=seat, trace=trace)
+    out = {'seat': seat, 'ip': ip, 'mac': result['mac'], 'agent': agent, 'how': result['how'], 'ms': result['ms'],
+           'tries': result['tries'], 'steps': result['steps'], 'stale': result['stale'], 'found': result['found'],
+           'trace': result['trace']}
     if not result['found']:
         return jsonify({**out, 'ok': False, 'retry': True})
     saved = seat_walk.save(seat, result['found'], _who())
