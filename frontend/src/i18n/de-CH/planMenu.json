@@ -1,0 +1,15 @@
+{
+  "button": "Plan",
+  "save": "Als Vorlage speichern…",
+  "start": "Mit einer Vorlage beginnen…",
+  "versions": "Versionen dieser Halle…",
+  "halls": "Hallen…",
+  "library": "Vorlagen",
+  "templates": "Vorlagen",
+  "use": "Mit «{{name}}» beginnen",
+  "noTemplates": "Noch keine Vorlagen. Speichere diesen Plan als Vorlage, um das nächste Mal damit zu beginnen.",
+  "startHelp": "Eine Vorlage ersetzt den Plan oder eine Halle davon; du siehst vorher, was sich ändert.",
+  "emptyTitle": "Diese Halle ist leer",
+  "emptyHelp": "Zeichne Sitzblöcke mit den Werkzeugen links oder beginne mit einer gespeicherten Vorlage.",
+  "startTitle": "Mit einer Vorlage beginnen"
+}

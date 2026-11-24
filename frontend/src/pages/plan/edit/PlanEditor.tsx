@@ -2,9 +2,9 @@ import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, NumberInput,
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
-  IconArrowBackUp, IconArrowForwardUp, IconBuildingWarehouse, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
+  IconArrowBackUp, IconArrowForwardUp, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
-  IconHistoryToggle, IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
+  IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -23,7 +23,6 @@ import { SeatMap } from '../SeatMap'
 import { BendHandles } from './BendHandles'
 import { BlockFields } from './BlockFields'
 import { nextItem } from './cycle'
-import { HallsDialog } from './HallsDialog'
 import { ItemList } from './ItemList'
 import { BackgroundFields, CalibrateFields } from './BackgroundFields'
 import { BackgroundHandles } from './BackgroundHandles'
@@ -39,7 +38,8 @@ import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
 import { SharedFields } from './SharedFields'
 import { TintField } from './TintField'
-import { VersionsDialog } from './VersionsDialog'
+import { hallIsEmpty } from './emptyHall'
+import { EmptyHall, PlanDialogs, type PlanDialog } from './PlanMenu'
 import { LAYER_IDS, type SharedField, ZONE_COLORS, sharedEdits, sharedFields } from './shared'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
@@ -83,7 +83,7 @@ const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.isCo
 /** The plan's Edit mode (in React; the older editor at ``/`` still has the tools not moved yet):
  *  select by click, Shift-click or a box, move by dragging or the arrow keys on the editor's grid,
  *  rename, turn and delete, with undo and redo. Every change is saved at once. */
-export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall, onShortcuts, startTool = 'select', onDone = () => {}, filter = 'all', live }: {
+export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, onHall, onShortcuts, startTool = 'select', onDone = () => {}, filter = 'all', live, dialog = null, onDialog = () => {} }: {
   data: SeatViewData; view: View; setView: (v: View) => void; layers: LayerState; refresh: () => Promise<unknown>
   /** Shows another hall, still editing. */
   onHall: (id: string) => void
@@ -96,6 +96,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   /** The live plan's filter and layers keep showing while the plan is changed. */
   filter?: Filter
   live?: Pick<ComponentProps<typeof SeatMap>, 'traffic' | 'firewalls' | 'wifi' | 'incidents'>
+  /** What the top bar's Plan menu opened (PlanMenu.tsx). */
+  dialog?: PlanDialog | null
+  onDialog?: (d: PlanDialog | null) => void
 }) {
   const { t } = useTranslation()
   const [selection, setSelection] = useState<ItemRef[]>([])
@@ -119,8 +122,6 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const [placing, setPlacing] = useState<{ kind: 'block' | 'switch' | 'text' | 'icon' | 'panel' | 'board'; at: Point } | null>(null)
   // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
   const [cableForm, setCableForm] = useState<{ cable: Cable | null; initial?: Partial<CableDraft> } | null>(null)
-  const [hallsOpen, setHallsOpen] = useState(false)
-  const [versionsOpen, setVersionsOpen] = useState(false)
   const small = useMediaQuery('(max-width: 48em)')
   const [menu, setMenu] = useState<{ item: ItemRef | null; x: number; y: number; at: Point | null } | null>(null)
   const history = useHistory()
@@ -890,9 +891,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
       <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
       <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
-      <VersionsDialog opened={versionsOpen} hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall}
-        onClose={() => setVersionsOpen(false)} onRestored={() => { history.clear(); return refresh() }} />
-      <HallsDialog opened={hallsOpen} current={data.hall} onClose={() => setHallsOpen(false)} onOpen={onHall} onChanged={refresh} />
+      <PlanDialogs open={dialog} data={data} onClose={() => onDialog(null)} onHall={onHall} onChanged={refresh}
+        onReplaced={() => { history.clear(); return refresh() }} />
       <PlaceSwitchDialog opened={placing?.kind === 'switch'} onClose={() => setPlacing(null)} onPlace={placeSwitches} />
       <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
       {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}
@@ -980,6 +980,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           {!selected.length && (
             <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
           )}
+          {!selected.length && hallIsEmpty(data) && <EmptyHall onStart={() => onDialog('start')} />}
           {small && !selected.length && <Text size="xs" c="dimmed">{t('plan.edit.smallScreen')}</Text>}
           <ItemList data={data} groups={groups} selected={selected}
             onSelect={(refs, add) => pick(add ? [...selected, ...refs.filter((r) => !selected.some((x) => sameRef(x, r)))] : refs)}
@@ -992,10 +993,6 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             {t('plan.edit.keys.more')}{' · '}
             <Anchor component="button" type="button" size="xs" onClick={onShortcuts}>{t('plan.shortcuts.allKeys')}</Anchor> <Kbd size="xs">?</Kbd>
           </Text>
-          <Group gap="xs">
-            <Button size="xs" variant="default" leftSection={<IconBuildingWarehouse size={14} />} onClick={() => setHallsOpen(true)}>{t('plan.edit.halls.button')}</Button>
-            <Button size="xs" variant="default" leftSection={<IconHistoryToggle size={14} />} onClick={() => setVersionsOpen(true)}>{t('plan.edit.versions.button')}</Button>
-          </Group>
           <Attribution compact />
         </Stack>
       </Paper>

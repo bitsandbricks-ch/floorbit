@@ -1,6 +1,6 @@
 # Floor plan templates
 
-**Templates** (`/templates`, linked from Settings and the editor's Halls dialog) keeps floor plans
+**Templates** (`/templates`, linked from Settings and the editor's **Plan** menu) keeps floor plans
 to start from later: the layout of last year's event, or one another LAN shared.
 
 ## What a template holds
@@ -24,7 +24,20 @@ down to them; the page says which fields it took out.
 - **Rename**, **Duplicate** (the newest version) and **Delete**.
 - **Download** gives a `.json` file to keep or share; **Import file** adds one to the library.
 
-**Versions** in the floor plan editor's panel is a shortcut for one hall: **Save this version** keeps
+## In the editor
+
+The **Plan ▾** menu in the editor's top bar works on the plan as a whole:
+
+- **Save as template…** saves the hall on screen (or, picked in the dialog, every hall) to the library.
+- **Start from a template…** lists the library; picking one asks for the version and, for a one-hall
+  template, which hall it goes into (the one on screen at first), then replaces it. The undo history
+  starts over.
+- **Versions of this hall…** and **Halls…** open the dialogs below and in [halls.md](halls.md).
+- **Template library** opens this page.
+
+A hall with nothing on it yet offers **Start from a template** in the editor's panel.
+
+**Versions of this hall** is a shortcut for one hall: **Save this version** keeps
 the hall as it is now under a name (the hall and the time if none is given), and **Restore** puts a
 saved one back into the hall, first saving the plan as it was ("Before restoring …") unless that box
 is unticked. The undo history starts over after a restore. Versions are templates of one hall, so

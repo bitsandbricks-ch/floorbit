@@ -6,17 +6,21 @@ import { patch, post } from '@/api/client'
 import type { ApplyResult, Hall, LayoutTemplate } from '@/api/types'
 import { readText } from '../seatmap/model'
 
+type HallName = Pick<Hall, 'id' | 'name'>
+
 /** Save the floor plan, or one hall, as a new template or as a new version of one. */
-export function SaveDialog({ halls, template, onClose, onDone }: {
-  halls: Hall[]
+export function SaveDialog({ halls, template, hall: startHall = '', onClose, onDone }: {
+  halls: HallName[]
   template?: LayoutTemplate
+  /** The hall picked at first ('' for every hall). */
+  hall?: string
   onClose: () => void
   onDone: (t: LayoutTemplate) => void
 }) {
   const { t } = useTranslation()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [hall, setHall] = useState('')
+  const [hall, setHall] = useState(startHall)
   const save = useMutation({
     mutationFn: () => template
       ? post<LayoutTemplate>(`/api/templates/${template.id}/versions`, { hall: hall || null })
@@ -49,9 +53,11 @@ export function SaveDialog({ halls, template, onClose, onDone }: {
 }
 
 /** Start from a template: pick the version and, for a one-hall template, where it goes. */
-export function ApplyDialog({ template, halls, onClose, onDone }: {
+export function ApplyDialog({ template, halls, hall, onClose, onDone }: {
   template: LayoutTemplate
-  halls: Hall[]
+  halls: HallName[]
+  /** The hall a one-hall template goes into at first. */
+  hall?: string
   onClose: () => void
   onDone: (r: ApplyResult) => void
 }) {
@@ -60,7 +66,7 @@ export function ApplyDialog({ template, halls, onClose, onDone }: {
   const [version, setVersion] = useState(String(latest.n))
   const chosen = template.versions.find((v) => String(v.n) === version) ?? latest
   const oneHall = chosen.halls === 1
-  const [target, setTarget] = useState(oneHall && halls.length > 1 ? halls[0].id : '')
+  const [target, setTarget] = useState(oneHall && halls.length > 1 ? (halls.find((h) => h.id === hall) ?? halls[0]).id : '')
   const apply = useMutation({
     mutationFn: () => post<ApplyResult>(`/api/templates/${template.id}/apply`, { version: chosen.n, hall: oneHall && target ? target : null }),
     onSuccess: onDone,
