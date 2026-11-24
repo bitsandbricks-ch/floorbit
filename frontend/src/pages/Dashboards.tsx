@@ -18,7 +18,7 @@ import {
 import { GridView } from './dashboards/GridView'
 import { type Board, type Node, MAX_PANES, TIME_RANGES, type TimeRange, boardName, boardSettings, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
 import { PaneForm } from './dashboards/PaneForm'
-import type { PaneFit } from './dashboards/paneFit'
+import type { PaneFit } from '@bitsandbricks/widgets'
 import './dashboards/dashboards.css'
 
 /** Dashboards (floorbit/dashboards.py): widgets on a grid, for the ops desk or a big screen.
