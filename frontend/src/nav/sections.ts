@@ -48,7 +48,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
  *  page. */
 export const HUBS: Record<string, string[]> = {
   helpdesk: ['problems', 'incidents', 'handover', 'networkStatus'],
-  network: ['firewalls', 'wifi', 'telemetry', 'security'],
+  network: ['firewalls', 'wifi', 'telemetry'],
   services: ['dns', 'lancache'],
   traffic: ['games', 'stats', 'speedtests'],
   seats: ['seatMapping', 'checkins', 'seatWalk', 'switchAreas', 'endpoints'],

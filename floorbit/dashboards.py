@@ -17,7 +17,10 @@ A node is a tree: a node is either a split (``split`` "row" puts its children si
   (frontend/src/pages/plan/layers.ts PRESETS), a seat filter (``show``), how seats are numbered
   (``labels``, frontend/src/pages/plan/labels.ts) and which plan marks it draws (``marks``: ``all``
   the preset shows, ``public`` only the Overview and Safety ones, like the attendee pages, or ``none``);
-  ``turn`` turns a tall hall a quarter to fill a wide box (or the other way round);
+  ``turn`` turns a tall hall a quarter to fill a wide box (or the other way round); ``shows`` is
+  ``area`` (left out), one saved ``view`` (floorbit/plan_views.py), a ``tour`` through ``stops`` (the
+  whole area, each block in turn, saved views) for ``secs`` each, or ``spotlight``: the whole hall
+  beside the same stops zoomed in; ``on_problem`` ``next`` makes a new problem seat's rows the next stop;
 - ``tile``: one data tile (``<plugin>/w/<id>``, the tiles of ``GET /api/dashboard``, Floorbit's own
   and the plugins'), drawn as a widget ``type`` (:data:`WIDGET_TYPES`; ``auto`` picks one from the
   data's shape) at a ``level`` (``auto`` picks small, medium or large from the box it gets, or one of
@@ -42,6 +45,7 @@ import re
 import threading
 import time
 
+from . import plan_views
 from .store import load_data, save_data
 
 KEY = 'dashboards'
@@ -74,6 +78,12 @@ FILTERS = ('all', 'problems', 'offline', 'recent', 'note', 'checked_in')
 LABELS = ('auto', 'all', 'none')
 # Plan marks on a screen: "public" for one people walk past (plan_marks.PUBLIC_LAYERS only).
 MARKS = ('all', 'public', 'none')
+# What a plan pane shows: its area, one saved view, a tour through stops, or the whole hall beside a
+# zoomed spotlight (frontend/src/pages/dashboards/tour.ts).
+SHOWS = ('area', 'view', 'tour', 'spotlight')
+ON_PROBLEM = ('next', 'keep')
+MAX_STOP_VIEWS = 20
+STOP_SECS = (5, 300)
 TITLE_MAX = 40
 TEXT_MAX = 2000
 TEXT_SIZES = ('s', 'm', 'l', 'xl')
@@ -337,6 +347,36 @@ def _area(raw):
     return {'kind': 'box', **box}
 
 
+def _shows(raw):
+    """What a plan pane shows besides its area: a saved view, or the stops of a tour."""
+    shows = raw.get('shows') or 'area'
+    if shows not in SHOWS:
+        raise LayoutError(f'A hall plan shows one of: {", ".join(SHOWS)}.')
+    if shows == 'area':
+        return {}   # left out, so a pane reads the same as before tours existed
+    if shows == 'view':
+        view = str(raw.get('view') or '')
+        if not ID_RE.match(view):
+            raise LayoutError('Pick a saved view.')
+        return {'shows': shows, 'view': view}
+    stops = raw.get('stops') if isinstance(raw.get('stops'), dict) else {}
+    views = stops.get('views') if isinstance(stops.get('views'), list) else []
+    views = list(dict.fromkeys(str(v) for v in views))
+    if len(views) > MAX_STOP_VIEWS or not all(ID_RE.match(v) for v in views):
+        raise LayoutError(f'A tour goes through at most {MAX_STOP_VIEWS} saved views.')
+    whole, blocks = bool(stops.get('whole', True)), bool(stops.get('blocks', True))
+    if not (whole or blocks or views):
+        raise LayoutError('A tour needs at least one stop.')
+    secs = raw.get('secs', 15)
+    if isinstance(secs, bool) or not isinstance(secs, int) or not STOP_SECS[0] <= secs <= STOP_SECS[1]:
+        raise LayoutError(f'Seconds per stop are {STOP_SECS[0]} to {STOP_SECS[1]}.')
+    on_problem = raw.get('on_problem') or 'next'
+    if on_problem not in ON_PROBLEM:
+        raise LayoutError(f'When a seat has a problem is one of: {", ".join(ON_PROBLEM)}.')
+    return {'shows': shows, 'stops': {'whole': whole, 'blocks': blocks, 'views': views}, 'secs': secs,
+            'on_problem': on_problem}
+
+
 def _pane(raw):
     if not isinstance(raw, dict) or raw.get('kind') not in KINDS:
         raise LayoutError(f'A pane is one of: {", ".join(KINDS)}.')
@@ -367,6 +407,7 @@ def _pane(raw):
                     marks=marks)
         if raw.get('turn'):
             pane['turn'] = True   # turn a tall hall to fill a wide box (frontend/src/pages/plan/turn.ts)
+        pane.update(_shows(raw))
     elif kind == 'tile':
         tile = str(raw.get('tile') or '')
         if not TILE_RE.match(tile):
@@ -729,7 +770,12 @@ def _public_node(node):
     kind = pane['kind']
     head = {k: pane[k] for k in ('title', 'hide_title') if k in pane}
     if kind == 'plan':
-        return {'pane': {**pane, 'marks': 'none' if pane.get('marks') == 'none' else 'public'}}
+        out = {**pane, 'marks': 'none' if pane.get('marks') == 'none' else 'public'}
+        # Saved views need an account to read: the screen gets the shared ones its pane goes to.
+        wanted = [pane['view']] if pane.get('shows') == 'view' else (pane.get('stops') or {}).get('views') or []
+        if wanted:
+            out['views'] = plan_views.shared(wanted)
+        return {'pane': out}
     if kind == 'widget':
         # A screen nobody signed in to gets the widget's tile pane itself, not the saved widgets.
         saved = pane.get('saved') or {}

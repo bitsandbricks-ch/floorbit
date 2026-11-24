@@ -19,8 +19,10 @@
     "prefix": "Präfix",
     "purpose": "Zweck",
     "firewalls": "Firewalls",
-    "source": "Quelle"
+    "source": "Quelle",
+    "seenOn": "Gesehen auf"
   },
   "noRoute": "Noch keine Firewall routet dieses Präfix.",
-  "routeIt": "Über Firewalls routen"
+  "routeIt": "Über Firewalls routen",
+  "seenMore": "{{count}} weitere"
 }

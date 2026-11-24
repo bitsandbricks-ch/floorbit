@@ -392,8 +392,8 @@
   "telemetry": {
     "now": "Jetzt",
     "off": "Die Funktion Telemetrie ist für dieses Gerät aus. Schalte sie unter Einstellungen ein (hier, bei seiner Gruppe oder einem Tag), damit es gesammelt wird.",
-    "agent": "Agent",
-    "agentHint": "Der lokale Agent, der davon sammelt. Ist er weg, übernehmen die anderen.",
+    "agent": "Gesammelt von",
+    "agentHint": "Ein Agent, oder die Agenten mit einem Tag (einer aufs Mal, der nächste übernimmt, wenn er geht).",
     "anyAgent": "Irgendein Agent (der primäre)",
     "port_snmp": "SNMP-Port",
     "port_gnmi": "gNMI-Port",
@@ -441,7 +441,14 @@
     "verifyDefault": "Ja (üblich)",
     "verifyYes": "Ja",
     "verifyNo": "Nein, es hat ein eigenes Zertifikat",
-    "setup": "Einrichtung"
+    "setup": "Einrichtung",
+    "byTag": "Agenten mit Tag {{tag}}",
+    "tagsGroup": "Agenten mit einem Tag",
+    "agentsGroup": "Ein Agent",
+    "failover": "Solange er weg ist",
+    "failoverOn": "Ein anderer Agent übernimmt",
+    "failoverOff": "Niemand sammelt (kein Failover)",
+    "failoverOffAbove": "Wie oben: niemand sammelt"
   },
   "page": {
     "onPlan": "Im Hallenplan",
@@ -508,8 +515,8 @@
       "hint": "Womit der Agent sammelt; leer: was zur Plattform passt."
     },
     "telemetry_agent": {
-      "label": "Gesammelt von Agent",
-      "hint": "Der lokale Agent, der sammelt; leer: irgendeiner."
+      "label": "Gesammelt von",
+      "hint": "Eine Agent-ID, oder tag:<Tag-ID> für die Agenten mit diesem Tag; leer: irgendeiner."
     },
     "telemetry_address": {
       "label": "Telemetrie-Adresse",
@@ -540,6 +547,10 @@
     "telemetry_mdt_node": {
       "label": "MDT-Knotenname",
       "hint": "Ciscos modellgetriebene Telemetrie; leer: der Gerätename."
+    },
+    "telemetry_failover": {
+      "label": "Andere Agenten übernehmen",
+      "hint": "Aus: Solange der Agent (oder jeder Agent mit dem Tag) weg ist, sammelt niemand."
     }
   }
 }

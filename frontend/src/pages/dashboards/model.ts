@@ -1,4 +1,5 @@
 import type { PlanDrawing, PlanShape } from '@/api/types'
+import type { PlanView } from '@/api/planViews'
 import type { View } from '../plan/model'
 import type { PresetId } from '../plan/layers'
 import type { LabelMode } from '../plan/labels'
@@ -34,7 +35,11 @@ type Head = { title?: string; hide_title?: boolean }
 export type Pane = Head & (
   | { kind: 'plan'; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode; marks?: MarksMode
       /** Turn a tall hall to fill a wide box (or the other way round) when that makes it bigger. */
-      turn?: boolean }
+      turn?: boolean
+      /** Its area (left out), one saved view, a tour through stops, or the hall beside a spotlight (tour.ts). */
+      shows?: PlanShows; view?: string; stops?: TourStops; secs?: number; on_problem?: 'next' | 'keep'
+      /** Only on a public dashboard: the shared saved views it goes to (an account reads /api/plan-views). */
+      views?: SharedView[] }
   /** ``type`` draws the data as another kind (a status as a count), ``level`` pins S, M or L
    *  instead of picking it from the box (issue #924). ``stack``, ``style`` and ``trend`` say how
    *  bars and lines draw. ``also`` adds up to three more tiles to draw with it, ``group_by`` and
@@ -52,6 +57,12 @@ export type Pane = Head & (
   /** Only on a public dashboard read signed out: a pane that needs an account (floorbit/dashboards.py). */
   | { kind: 'private' }
 )
+
+export type PlanShows = 'area' | 'view' | 'tour' | 'spotlight'
+export const PLAN_SHOWS: PlanShows[] = ['area', 'view', 'tour', 'spotlight']
+/** A tour's stops: the pane's whole area, each seat block in turn, and saved views by id. */
+export interface TourStops { whole: boolean; blocks: boolean; views: string[] }
+export type SharedView = Pick<PlanView, 'id' | 'name' | 'hall' | 'view' | 'show'>
 
 /** The time a pane shows, for a tile that offers it (``ranges``), and what it is compared with. */
 export type TimeRange = '1h' | '6h' | '24h' | 'event'
@@ -272,7 +283,7 @@ export function areaView(area: Area, drawing: PlanDrawing): View | null {
   return contentBox(drawing)
 }
 
-function cellCenter(drawing: PlanDrawing, b: PlanShape, c: PlanShape['cells'][number]): { x: number; y: number } {
+export function cellCenter(drawing: PlanDrawing, b: PlanShape, c: PlanShape['cells'][number]): { x: number; y: number } {
   const rad = (b.rotation * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad)
   const lx = c.x + drawing.cell / 2, ly = c.y + drawing.cell / 2
   return { x: b.cx + lx * cos - ly * sin, y: b.cy + lx * sin + ly * cos }

@@ -991,7 +991,6 @@ Source: [`floorbit/blueprints/security.py`](https://github.com/bitsandbricks-ch/
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/security` | `seats.view` | `security` |
-| POST | `/api/security/<path:finding_id>/ack` | `seats.view` | `security` |
 | POST | `/api/security/check` | `plugins.run` | `security` |
 | GET | `/api/security/markers` | `seats.view` | `security` |
 

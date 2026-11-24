@@ -374,7 +374,6 @@ RULES = (
     # Security findings name MACs and IPs; asking the plugins now is like running a plugin action.
     ('/api/security/check', WRITE, 'plugins.run'),
     ('/api/security', None, 'seats.view'),
-    ('/security', READ, 'seats.view'),
     ('/api/logs', None, 'seats.view'),   # logs name MACs and IPs
     ('/logs', READ, 'seats.view'),
     # Asking every health plugin now sends requests out: the same as running a plugin action.

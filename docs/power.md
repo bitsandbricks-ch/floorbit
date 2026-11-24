@@ -22,7 +22,7 @@ move them first.
 
 Every board and circuit has its own page: `/power/boards/<id>` lists the board's circuits and is
 where it is changed or removed; `/power/circuits/<id>` shows the load, takes a reading, has
-**Tripped** / **Back on**, lists what the circuit feeds and is where it is changed or removed. The
+**Mark as tripped** / **Back on** (only red once the breaker tripped), lists what the circuit feeds and is where it is changed or removed. The
 list only links to them. **Add board** and **Add circuit** open `/power/boards/new` and
 `/power/circuits/new` (`?board=<id>` starts it on that board).
 
@@ -36,7 +36,7 @@ power plugin. Watts become amps at `POWER_VOLTAGE` (230 V). For a 3P circuit, en
 | Green | under `POWER_WARN` (80 %) | |
 | Amber | from `POWER_WARN` | shows on the page and the layer |
 | Red | from `POWER_CRIT` (95 %) | an incident for the Electrics team, a Discord message, the `power.alert` hook |
-| Red, hatched | someone pressed **Tripped** | the same, with "Breaker tripped" |
+| Red, hatched | someone pressed **Mark as tripped** | the same, with "Breaker tripped" |
 | Grey | no reading yet | |
 
 The incident goes to the team in `POWER_TEAM` (`electrics`, one of the default teams) and names

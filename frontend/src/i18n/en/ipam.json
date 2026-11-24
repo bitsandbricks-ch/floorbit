@@ -19,8 +19,10 @@
     "prefix": "Prefix",
     "purpose": "Purpose",
     "firewalls": "Firewalls",
-    "source": "Source"
+    "source": "Source",
+    "seenOn": "Seen on"
   },
   "noRoute": "No firewalls route this prefix yet.",
-  "routeIt": "Route it over firewalls"
+  "routeIt": "Route it over firewalls",
+  "seenMore": "{{count}} more"
 }

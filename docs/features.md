@@ -45,7 +45,7 @@ shift handover. **Past events** needs the **event report**. The page says why su
 | `health` | `/api/health` (not `/healthz`) |
 | `dashboard` | `/api/dashboard` |
 | `traffic` | `/api/flows`, the NetFlow collector |
-| `security` | `/security`, `/api/security` |
+| `security` | `/api/security` |
 | `ports` | `/api/ports` (port actions on the floor plan) |
 | `power` | `/power`, `/api/power` |
 | `replay` | `/replay`, `/api/replay` |
