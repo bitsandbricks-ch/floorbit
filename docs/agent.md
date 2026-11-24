@@ -653,6 +653,10 @@ hours and every 15 minutes for `FLOORBIT_TELEMETRY_DAYS`; or VictoriaMetrics as 
 with an `agent` label when it is set up) and age out with them. A gap in a graph is a time the
 agent didn't report.
 
+Each graph shows the value now in its header and the lowest, average and highest of the range
+under it. Hovering a graph (or focusing it and pressing the arrow keys) shows the time and value of
+the nearest sample; the arrows in a graph's corner open it large, with the same range picker.
+
 The **Devices** tab on the agent's page lists the devices it collects, worst first: sends
 nothing, never heard, partly (a VLAN or a table fails), waits for traps, another agent collects
 (the standby of a pair), sends. Each row shows its drivers, when it was last heard, what came in
