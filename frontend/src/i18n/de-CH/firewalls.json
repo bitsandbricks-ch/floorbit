@@ -76,5 +76,8 @@
       "down": "down"
     }
   },
-  "inInventory": "Gruppen, Tags und Notizen im Inventar"
+  "inInventory": "Gruppen, Tags und Notizen im Inventar",
+  "planned": "Geplant",
+  "now": "Jetzt",
+  "plan": "Plan"
 }
