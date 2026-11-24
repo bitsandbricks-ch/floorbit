@@ -1566,6 +1566,8 @@ export interface PlanSeat {
 }
 
 export interface PlanBlock {
+  /** The seat block's id, the same as its shape's; missing on older answers. */
+  id?: string
   name: string
   seats: number
   online: number
