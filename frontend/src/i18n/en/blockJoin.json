@@ -1,0 +1,12 @@
+{
+  "merge_one": "Merge {{count}} block",
+  "merge_other": "Merge {{count}} blocks",
+  "mergeHint": "Blocks turned the same way that touch or stand in line become one; their rows and seat numbers carry on.",
+  "split": "Split block above row {{name}}",
+  "splitHint": "Row {{name}} and the rows after it become a new block in the same place.",
+  "splitFreely": "Blocks with seats placed freely can't be split: Back to rows lines them up again first.",
+  "stepMerge_one": "merge {{count}} block",
+  "stepMerge_other": "merge {{count}} blocks",
+  "stepSplit": "split a block",
+  "gone": "A seat block is gone: the plan was changed somewhere else."
+}

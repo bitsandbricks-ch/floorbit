@@ -198,7 +198,8 @@ shows it), and the group moves, turns (<kbd>R</kbd>, <kbd>Shift</kbd>+<kbd>R</kb
 or **Ungroup** splits it again. <kbd>Ctrl</kbd>+click (<kbd>Cmd</kbd> on a Mac) picks one item out of its group, so you
 can drag it on its own; the group stays.
 
-**Merge** makes one block of blocks next to each other, as if it had been made that size:
+**Merge** (in the panel when you have selected two or more seat blocks and nothing else) makes one block
+of blocks next to each other, as if it had been made that size:
 
 - Blocks **stacked** become one block with more rows, whatever the rows are like; the space between them
   becomes the space above the first joined row. With a letter per row, the rows keep their letters (E, F,
@@ -210,6 +211,14 @@ can drag it on its own; the group stays.
 The blocks have to be turned the same way, use the same kind of seat names and stand in line. The top or
 left block keeps its name and settings, so the other blocks' seats get new names. Undo brings the separate blocks back. For scripts: `POST /api/seat-blocks/merge` with
 `{"ids": [...]}`; a block's `group` is a free text id.
+
+**Split** goes the other way. Pick a row other than the first on the block's **Rows** tab and click
+**Split block above row …**: that row and the rows after it become a new block, in the same place and
+turned the same way. With a letter per row every row keeps its letter, so no seat changes its name. A block
+with a name keeps it for the top part, and the new block gets the next free name (A gives B, Gaming gives
+Gaming 2), with its seats numbered from 1. A block with seats placed by hand needs **Back to rows** first.
+Undo joins the block again. For scripts: `POST /api/seat-blocks/<id>/split` with `{"at": 2}`, the place in
+the block of the first row that moves, counted from 0.
 
 ## What is drawn on top
 
