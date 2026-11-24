@@ -154,7 +154,8 @@ def summary(switch_events, problems_now, since=None, now=None):
                    'opened': opened, 'fixed': len(fixed),
                    'median_fix_s': round(took[len(took) // 2]) if took else None, 'outages': len(outages),
                    'still_down': sum(1 for o in outages if o['back_at'] is None), 'changes': len(changes),
-                   'problems': problems_now.get('total', problems_now.get('down', 0) + problems_now.get('warn', 0)), 'muted': len(mutes)},
+                   'problems': problems_now.get('total', problems_now.get('down', 0) + problems_now.get('warn', 0)),
+                   'muted': len(mutes)},
     }
 
 
