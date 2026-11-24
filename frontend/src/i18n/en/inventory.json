@@ -276,7 +276,7 @@
     "defaultOff": "Off unless switched on",
     "for": "for {{roles}}",
     "others": "Other features ({{count}})",
-    "othersHint": "Made for other kinds of device. Switch one on here only if this {{role}} really does it."
+    "othersHint": "Made for other kinds of device. Switch one on here only if this device ({{role}}) really does it."
   },
   "feature": {
     "ports": "Port actions",
