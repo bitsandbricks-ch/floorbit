@@ -61,6 +61,7 @@ import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
 import { type AlignHow, type Guide, alignMoves, distributeMoves, groupsOf, regrouped, snapToGuides, withGroups } from './arrange'
 import { PlanIconSelect } from './IconSelect'
+import { blockName } from './blockName'
 
 /** The bends a cable has of its own, also while it is drawn straight. */
 const bendsOf = (c: PlanCable): [number, number][] => c.bends ?? c.points.slice(1, -1)
@@ -1085,7 +1086,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
 }
 
 function itemTitle(t: (k: string, o?: Record<string, unknown>) => string, data: SeatViewData, ref: ItemRef) {
-  if (ref.kind === 'block') return t('plan.edit.kind.block', { name: data.drawing?.shapes.find((s) => s.id === ref.id)?.name || '—' })
+  if (ref.kind === 'block') return t('plan.edit.kind.block', { name: blockName(data.drawing?.shapes.find((s) => s.id === ref.id)) })
   if (ref.kind === 'switch') return t('plan.edit.kind.switch', { name: data.switches.find((w) => w.id === ref.id)?.name ?? '' })
   if (ref.kind === 'panel') return t('plan.edit.kind.panel', { name: ref.id })
   if (ref.kind === 'cable') return t('plan.edit.kind.cable')
