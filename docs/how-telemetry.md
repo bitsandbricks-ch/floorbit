@@ -83,4 +83,4 @@ flowchart TD
 
 Both agents get the targets; only the primary polls and logs in. A device can be pinned to one
 agent ("one agent per device"), which then polls it whatever VRRP says
-([telemetry.md](telemetry.md#two-agents-vrrp)).
+([telemetry.md](telemetry.md#two-agents-for-the-same-devices)).

@@ -763,6 +763,8 @@ class Tunnel:
             self._relayed.clear()
             self._reports.clear()
             self.last_seen = None
+            from . import agent_ha
+            agent_ha._granted.clear()
             # A long poll still waiting from before must not take calls made after the reset.
             self._era += 1
             self._cond.notify_all()
@@ -794,10 +796,19 @@ class Tunnel:
             back = self._back(agent, self.last_seen)
             self._seen[agent] = self.last_seen
             if back:
+                self._drop_lease(agent)
                 _agent_back()
             from . import cluster
             if cluster.current is not None:
                 cluster.current.agent_seen(agent, self.last_seen)
+
+    def _drop_lease(self, agent):
+        """An agent that was away gave up its lease when it lost the link (floorbit-agent's
+        plugin_host.primary): its last report must not win it back from the one that took over."""
+        with self._cond:
+            found = self._reports.get(agent)
+            if found and 'lease' in found:
+                self._reports[agent] = {k: v for k, v in found.items() if k != 'lease'}
 
     def waiting_on(self, agent, older_than, now=None):
         """Has the agent held a call for longer than ``older_than`` seconds without answering?"""
@@ -816,6 +827,7 @@ class Tunnel:
             back = self._back(agent, now)
             self.last_seen = self._seen[agent] = now
         if back:
+            self._drop_lease(agent)
             _agent_back()
         from . import cluster
         if cluster.current is not None:
@@ -848,6 +860,10 @@ class Tunnel:
                 return False
             self._links.pop(agent, None)
             self._seen.pop(agent, None)
+            found = self._reports.get(agent)
+            held = bool(found and found.get('lease'))
+            if found and 'lease' in found:
+                self._reports[agent] = {k: v for k, v in found.items() if k != 'lease'}
             self.last_seen = max(self._seen.values(), default=None)
             alive = {a for a, seen in self._seen.items() if now - seen < CONNECTED_FOR}
             for call in list(self._calls.values()):
@@ -868,6 +884,10 @@ class Tunnel:
         from . import cluster
         if cluster.current is not None:
             cluster.current.agent_left(agent)
+        if held:
+            # The primary went: its group's next agent takes the lease with this pull, not in a minute.
+            from .agent_plugins import reload_agents
+            reload_agents()
         return True
 
     def _here(self, now, agent=None):
@@ -1041,6 +1061,8 @@ class Tunnel:
             value = cleaner(raw.get(key))
             if value is not None:
                 clean[key] = value
+        if isinstance(raw.get('lease'), bool):
+            clean['lease'] = raw['lease']      # it holds its group's lease (agent_ha.lease_holder)
         # Where laptops on the event network reach the agent (the seat walk-through, seat_walk.py).
         lan_url = raw.get('lan_url')
         if isinstance(lan_url, str) and re.match(r'^https?://[A-Za-z0-9.:\[\]-]{1,120}(/[^\s]{0,60})?$', lan_url):
@@ -1064,7 +1086,8 @@ class Tunnel:
         if clean.get('updates'):
             from .agent_plugins import note_updates
             note_updates(agent, before, clean, now=clean['at'])
-        if ((before or {}).get('vrrp') or {}).get('primary') != (clean.get('vrrp') or {}).get('primary'):
+        if (((before or {}).get('vrrp') or {}).get('primary') != (clean.get('vrrp') or {}).get('primary')
+                or (before or {}).get('lease') != clean.get('lease')):
             # An agent became primary or stopped being it: a split (two primaries) or its end must reach
             # the agents' plugin config now, not at their next minute's pull (agent_ha.stand_by_for).
             from .agent_plugins import reload_agents
@@ -1109,9 +1132,12 @@ def feeds(method, args=()):
     """``[{plugin, name, base, base_name, items | error}]`` from the agent. Raises AgentUnavailable
     or AgentError. Feeds that don't look right are dropped.
 
-    Once an agent serves only some tags, every connected agent is asked, and each one's feeds get
-    their own id (``netbox.<agent id>``): two sites' NetBox servers must not mark each other's
-    devices gone. ``base`` and ``base_name`` stay the plugin's own."""
+    Once an agent serves only some tags, each group of connected agents (the same tags) is asked,
+    and each group's feeds get their own id (``netbox.<agent id>``, the group's smallest id): two
+    sites' NetBox servers must not mark each other's devices gone. One agent of a group answers
+    for it, its primary first, so a pair doesn't fetch NetBox twice or list it twice.
+    ``base`` and ``base_name`` stay the plugin's own."""
+    from . import agent_ha
     scoped, everyone, _ = _routing()
     if not scoped:
         return _clean_feeds(tunnel.call(method, args, timeout=INVENTORY_TIMEOUT))
@@ -1119,18 +1145,30 @@ def feeds(method, args=()):
     if not agents:
         raise AgentUnavailable('No local agent is connected.')
     names = {a['id']: a['name'] for a in load_data().get(KEY) or []}
-    out = []
-    with ThreadPoolExecutor(len(agents)) as pool:
-        futures = [(a, pool.submit(tunnel.call, method, args, INVENTORY_TIMEOUT, {a})) for a in agents]
-        for agent, fut in futures:
+    groups = agent_ha.one_per_group(agents)
+
+    def ask(order):
+        exc = None
+        for agent in order:
             try:
-                got = _clean_feeds(fut.result())
+                return _clean_feeds(tunnel.call(method, args, INVENTORY_TIMEOUT, {agent}))
+            except (AgentUnavailable, AgentError) as e:
+                exc = e
+        raise exc
+
+    out = []
+    with ThreadPoolExecutor(len(groups)) as pool:
+        futures = [(gid, pool.submit(ask, order)) for gid, order in groups]
+        for gid, fut in futures:
+            name = names.get(gid, gid)
+            try:
+                got = fut.result()
             except (AgentUnavailable, AgentError) as exc:
-                out.append({'plugin': f'agent.{agent}', 'name': names.get(agent, agent), 'base': f'agent.{agent}',
-                            'base_name': names.get(agent, agent), 'error': str(exc)[:300]})
+                out.append({'plugin': f'agent.{gid}', 'name': name, 'base': f'agent.{gid}',
+                            'base_name': name, 'error': str(exc)[:300]})
                 continue
             for f in got:
-                f.update(plugin=f"{f['plugin']}.{agent}", name=f"{f['name']}, {names.get(agent, agent)}"[:60])
+                f.update(plugin=f"{f['plugin']}.{gid}", name=f"{f['name']}, {name}"[:60])
                 out.append(f)
     return out
 

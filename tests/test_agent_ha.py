@@ -141,14 +141,15 @@ def test_the_split_reaches_the_agents_with_their_plugin_config(client, anon_clie
     report(anon_client, low["key"], vrrp={"primary": True, "holds": ["192.0.2.10/24"]})
     report(anon_client, high["key"], vrrp={"primary": False, "holds": ["192.0.2.11/24"]})
     cfg = anon_client.get("/api/agent/v1/plugins", headers=head(high["key"])).get_json()
-    assert cfg["ha"] == {}
+    assert cfg["ha"] == {"lease": {"primary": False, "members": 2}}     # the VRRP primary gets the lease
     reloads.clear()
     report(anon_client, high["key"], vrrp={"primary": True, "holds": ["192.0.2.10/24", "192.0.2.11/24"]})
     assert reloads, "a new primary must reach the agents now"
     split = anon_client.get("/api/agent/v1/plugins", headers=head(high["key"]))
-    assert split.get_json()["ha"] == {"stand_by_for": low["id"]}
+    assert split.get_json()["ha"] == {"stand_by_for": low["id"], "lease": {"primary": False, "members": 2}}
     assert split.get_json()["etag"] != cfg["etag"]
-    assert anon_client.get("/api/agent/v1/plugins", headers=head(low["key"])).get_json()["ha"] == {}
+    assert anon_client.get("/api/agent/v1/plugins", headers=head(low["key"])).get_json()["ha"] == {
+        "lease": {"primary": True, "members": 2}}
 
 
 def test_a_plugin_action_goes_to_one_agent_per_hall(monkeypatch):

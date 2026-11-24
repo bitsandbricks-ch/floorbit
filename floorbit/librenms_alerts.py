@@ -156,12 +156,14 @@ def key_of(agent, alert):
 
 # ── keeping them ─────────────────────────────────────────────────────────────────────────
 
-def take(payload, agent=None, now=None):
+def take(payload, agent=None, now=None, scope=None):
     """Store, update or clear one alert. Returns what happened ('opened', 'updated', 'cleared',
-    'stale', 'unknown'). Any change wakes the status monitor."""
+    'stale', 'unknown'). Any change wakes the status monitor. ``scope``: the agent's group
+    (agent_ha.group_key): an alert raised through one agent of a group and cleared through the other
+    (the VIP moved, or LibreNMS posts to both) is the same alert."""
     now = time.time() if now is None else now
     alert = read(payload, now)
-    key = key_of(agent, alert)
+    key = key_of(scope if scope is not None else agent, alert)
     with _lock:
         data = load_data()
         active = data.setdefault(KEY, {}).setdefault('active', {})

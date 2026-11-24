@@ -126,46 +126,67 @@ like that:
 - a question about one switch (its status, ports, port traffic) goes to an agent for one of that
   switch's tags, matched by the switch's name in the [inventory](inventory.md). A switch Floorbit
   doesn't know goes to any agent. Calls that must stay on one agent (an SSH shell, a port bounce) go
-  to the first connected one by id, so the same agent keeps a device while it is there and the next
-  one takes over when it goes;
+  to the group's primary (the lease holder, see below), so the same agent keeps a device while it is
+  there and the other one takes over when it goes;
 - a question about everything (the device list, which switch an IP is on, ARP) goes to every
   connected agent, and their answers are put together: the device lists are joined, and the first
   agent that knows an IP answers;
-- each agent's inventory and cable plugins are synced under their own id (`netbox.<agent id>`, shown as
-  "NetBox, Hall 2 agent"), so two sites' NetBox servers don't mark each other's devices as gone.
+- each group's inventory and cable plugins are synced under their own id (`netbox.<agent id>`, the
+  group's smallest id, shown as "NetBox, Hall 2 agent"), so two sites' NetBox servers don't mark each
+  other's devices as gone. One agent of a group answers for it, its primary first, so a pair fetches
+  NetBox once and keeps the same id when the other agent takes over.
 
 Changing an agent's tags is written to the [audit log](audit.md).
 
 ### Two agents for the same devices (failover)
 
-Agents that answer for the same tags back each other up. For the event network to reach them at
-one address that moves, turn on VRRP in the agents (floorbit-agent's `docs/vrrp.md`): they share
-virtual IPs, and the agent holding the first one is the group's **primary**.
+Agents that answer for the same tags form a **group** and back each other up, with nothing to set
+up (issue #1405). This Floorbit picks the group's **primary**: it hands one agent a lease, sent with
+the plugin config and again the moment it changes. Only the primary polls the devices and logs in
+to them (agent plugins ask `ctx.primary()`, and `may_login` follows it), so no device is polled
+twice and no login is tried twice, which is what locks accounts.
 
-- **Active/passive:** every VIP on one agent (the same `FLOORBIT_AGENT_VRRP_PREFER` on both). The
-  standby only takes over.
+- **Sticky.** The agent that holds the lease keeps it while it is connected. A new one goes to the
+  group's VRRP primary if there is one, else to the connected agent with the smallest id.
+- **Failover.** When the primary's link closes (the agent stops, its machine dies, the line is
+  cut), the next agent of the group gets the lease at once: its config is reloaded within a
+  second, and its plugins start polling. An agent on the HTTPS long poll counts as gone after a
+  minute without a request.
+- **Back again.** An agent that lost its link gives up the lease until this Floorbit says it again,
+  so it doesn't take it back from the one that took over.
+- **This Floorbit out of reach.** Each agent keeps its last role, and a standby never takes over on
+  its own. The primary keeps polling (a point sent twice later is kept once), but tries no login
+  until it hears this Floorbit again, since the lease may have moved meanwhile.
+- **Alone in its group** an agent is always primary, uplink or not.
+
+Plugin actions that change something in the hall (clear a cache, bounce a port), switch terminals
+and switch commands go to the primary as well.
+
+**Addresses that move.** Devices and attendees reach "the agent" at one address: syslog, NetFlow
+and traps, the check-in name, LibreNMS's alert webhook. For that address to move with a failover,
+use VRRP in the agents (floorbit-agent's `docs/vrrp.md`): they share virtual IPs, and moving one
+takes 1 to 4 seconds. On Kubernetes the Service's LoadBalancer address does it (kube-vip, MetalLB).
+VRRP no longer picks who polls: the lease does.
+
+- **Active/passive:** every VIP on one agent (the same `FLOORBIT_AGENT_VRRP_PREFER` on both).
 - **Active/active:** the VIPs spread over the agents (`PREFER` 1 on one, 2 on the other). Both take
-  syslog, NetFlow and traps sent to their address, and both answer this Floorbit's calls.
+  syslog, NetFlow and traps sent to their address.
 
-Either way only the primary polls devices and logs in to them (agent plugins ask `ctx.primary()`,
-and a standby's `may_login` is always no), so no device is polled twice and no login is tried twice.
 Syslog that reached both agents is kept once (each line has the same id on every agent), and a
-standby's NetFlow summary doesn't replace the primary's on the Traffic page. Point devices' syslog,
-NetFlow and traps at the first VIP.
+standby's NetFlow summary doesn't replace the primary's on the Traffic page. Without VRRP, list
+both agents as syslog servers on the devices, and give the check-in name both agents' addresses
+in the event DNS: browsers try the next address when one doesn't answer.
+
+Agents of a group share their **certificate names**: names set on one agent's page go on the
+others' certificates too, so a second agent behind the same VIP or name needs none typed in.
 
 **Failover per tag** on the Local agents page shows each group: who is primary or standby, which
 addresses each holds, active/active or active/passive, and what needs a look: **Backup missing**
-(a standby is offline), **No VRRP** (several agents without it, so each polls), **Two primaries**
-(they can't hear each other: check the VLAN or set `FLOORBIT_AGENT_VRRP_PEERS`), **No primary**, or
-**One agent** (no failover).
-
-**Two primaries** (split brain) is settled here as well: when a switch or a cable between the agents
-drops their VRRP, each takes every address and calls itself primary. This Floorbit hears both, so
-it tells all but the one with the smallest id to stand by (with the plugin config they pull, within
-seconds). They keep their addresses and listeners but leave polling and logins to that one, so no
-account is locked by two agents trying it. If this Floorbit can't reach them either, VRRP alone
-decides until it can. Older agents ignore the hint and keep polling (floorbit-agent's
-`docs/vrrp.md`, "Split brain").
+(a standby is offline), **No primary**, or **One agent** (no failover). Agents from before the
+lease (floorbit-agent before #94) still follow VRRP alone, so a group of those can also show
+**No VRRP** (several agents without it, so each polls) and **Two primaries** (they can't hear each
+other's VRRP). This Floorbit settles the second one too: it tells all but the agent with the
+smallest id to stand by.
 
 ## Running the agent
 
