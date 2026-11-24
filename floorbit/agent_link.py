@@ -94,7 +94,7 @@ def _public(a, now):
     seen = a.get('last_seen')
     return {'id': a['id'], 'name': a['name'], 'created_at': a['created_at'], 'created_by': a.get('created_by'),
             'last_seen': seen, 'version': a.get('version'), 'address': a.get('address'), 'protocol': a.get('protocol'),
-            'connected': bool(seen and now - seen < CONNECTED_FOR), 'halls': list(a.get('halls') or []),
+            'connected': bool(seen and now - seen < CONNECTED_FOR), 'tags': list(a.get('tags') or []),
             'plugins_off': list(a.get('plugins_off') or []), 'local': bool(a.get('local')),
             'demo': bool(a.get('demo')),
             'renewed_at': a.get('renewed_at') or a['created_at'],
@@ -177,7 +177,7 @@ def _demo_on():
 def _enrolled():
     global _active
     from . import store
-    # Agents are the tenant's, the halls they serve the event's: either changing counts.
+    # Agents are the tenant's, the tags they serve the event's: either changing counts.
     path = store.event_file()
     stamp = (path, store.stamp(path), store.stamp(store.tenant_file()))
     if stamp[1] is None and stamp[2] is None:
@@ -200,11 +200,12 @@ _routes = None   # ((data file, mtime), routing)
 
 
 def _routing():
-    """(agents that serve only some halls -> those halls, every agent id, switch name -> hall),
-    kept until data.json changes: it's asked on every monitoring call."""
+    """(agents that serve only some tags -> those tags, every agent id, device name -> its tags with
+    the ones its groups give it), kept until data.json changes: it's asked on every monitoring call.
+    Tags took the place of halls (issue #869): a hall is just one way to group devices."""
     global _routes
-    from . import halls, inventory, store
-    # Agents are the tenant's, the halls they serve the event's: either changing counts.
+    from . import inventory, inventory_scope, store
+    # Agents are the tenant's, the tags they serve the event's: either changing counts.
     path = store.event_file()
     stamp = (path, store.stamp(path), store.stamp(store.tenant_file()))
     if stamp[1] is None and stamp[2] is None:
@@ -212,12 +213,11 @@ def _routing():
     if _routes is None or _routes[0] != stamp:
         data = load_data()
         agents = [a for a in data.get(KEY) or [] if not a.get('demo')]
-        scoped = {a['id']: frozenset(a['halls']) for a in agents if a.get('halls')}
+        scoped = {a['id']: frozenset(a['tags']) for a in agents if a.get('tags')}
         by_name = {}
         if scoped:
-            ids = {h['id'] for h in halls.halls(data)}
             for dev in inventory.devices(data, include_hidden=True):
-                by_name.setdefault(str(dev['name']).lower(), halls.hall_of(dev, data, ids))
+                by_name.setdefault(str(dev['name']).lower(), inventory_scope.device_tags(data, dev))
         _routes = (stamp, (scoped, [a['id'] for a in agents], by_name))
     return _routes[1]
 
@@ -245,9 +245,16 @@ REPORT_FRESH = 180        # seconds: an older report says more about the past th
 HOST_METHODS = ('device_details', 'port_stats', 'device_ports', 'port_clients', 'neighbours', 'device_facts')
 
 
-def _hall_of(by_name, hostname):
+def _tags_of(by_name, hostname):
+    """A device's tags by its name, or None for a device Floorbit doesn't know."""
     name = str(hostname or '').lower()
-    return by_name.get(name) or by_name.get(name.split('.')[0])
+    found = by_name.get(name)
+    return found if found is not None else by_name.get(name.split('.')[0])
+
+
+def _serves(scoped, agent_id, tags):
+    """An agent with no tags serves every device; one with tags, the devices with one of them."""
+    return agent_id not in scoped or bool(scoped[agent_id] & tags)
 
 
 def _agent_back():
@@ -258,8 +265,8 @@ def _agent_back():
 def ask(method, args=()):
     """A monitoring call, sent to the right agent.
 
-    While no agent is limited to some halls, any agent answers (one queue). Once one is: a call
-    about a switch goes to an agent for that switch's hall, and a call about everything (the device
+    While no agent is limited to some tags, any agent answers (one queue). Once one is: a call
+    about a switch goes to an agent for one of that switch's tags, and a call about everything (the device
     list, an IP, ARP) goes to every connected agent, and their answers are put together."""
     scoped, everyone, by_name = _routing()
     if method in HOST_METHODS and args:
@@ -268,16 +275,16 @@ def ask(method, args=()):
         if owner is not None:
             return tunnel.call(method, args, targets={owner})
     if not scoped:
-        # Two agents for the same halls (VIPs shared with VRRP, the agent's docs/vrrp.md): only the
+        # Two agents for the same tags (VIPs shared with VRRP, the agent's docs/vrrp.md): only the
         # primary one collects telemetry, so ask both and keep the answer that has something.
         if len(tunnel.connected_agents() & set(everyone)) < 2:
             return tunnel.call(method, args)
         return _ask_all(method, args, everyone)
     if method in HOST_METHODS and args:
-        hall = _hall_of(by_name, args[0])
-        if hall is None:        # a switch Floorbit doesn't know: whoever answers
+        tags = _tags_of(by_name, args[0])
+        if tags is None:        # a switch Floorbit doesn't know: whoever answers
             return tunnel.call(method, args)
-        return tunnel.call(method, args, targets={a for a in everyone if a not in scoped or hall in scoped[a]})
+        return tunnel.call(method, args, targets={a for a in everyone if _serves(scoped, a, tags)})
     return _ask_all(method, args, everyone)
 
 
@@ -306,7 +313,9 @@ def _pinned_agent(hostname, everyone):
 
 
 def agent_for(hostname):
-    """The one connected agent that should talk to this switch: one serving its hall, else any.
+    """The one connected agent that should talk to this switch: one serving one of its tags, else
+    any. The first by id, so the same agent keeps it while it is there (sticky), and the next one
+    takes over when it goes.
     For calls that hold something open on the agent (an SSH shell) or must not run twice (a port
     bounce), where ``ask()`` would ask every agent. Raises AgentUnavailable."""
     scoped, everyone, by_name = _routing()
@@ -315,9 +324,9 @@ def agent_for(hostname):
         return owner
     connected = tunnel.connected_agents() & set(everyone)
     if scoped:
-        hall = _hall_of(by_name, hostname)
-        if hall is not None:
-            connected = {a for a in connected if a not in scoped or hall in scoped[a]}
+        tags = _tags_of(by_name, hostname)
+        if tags is not None:
+            connected = {a for a in connected if _serves(scoped, a, tags)}
     if not connected:
         raise AgentUnavailable(f'No local agent that reaches {hostname} is connected.')
     return sorted(connected)[0]
@@ -345,7 +354,7 @@ def _ask_all(method, args, everyone):
     try:
         rest = agents
         if method in FIRST_ANSWER and len(agents) > 1:
-            # Two agents for one hall would each ask LibreNMS about every seat. Ask the one that
+            # Two agents for the same tags would each ask LibreNMS about every seat. Ask the one that
             # knew last; the others only when it doesn't know, fails or hangs past HEDGE_AFTER.
             first = _last_knew[0] if _last_knew[0] in agents else agents[0]
             rest = [a for a in agents if a != first]
@@ -564,26 +573,28 @@ def plugins_off(agent_id):
     return set((found or {}).get('plugins_off') or [])
 
 
-def set_halls(agent_id, hall_ids):
-    """The halls an agent answers for; empty means every hall. Returns the cleaned list."""
-    from . import halls
-    if not isinstance(hall_ids, list):
-        raise AgentError('halls must be a list of hall ids.')
+def set_tags(agent_id, tag_ids):
+    """The inventory tags an agent answers for: the devices with one of them (directly or through
+    their group). Empty means every device. Returns (agent name, the cleaned list)."""
+    from . import inventory_scope
+    if not isinstance(tag_ids, list):
+        raise AgentError('tags must be a list of tag ids.')
     with _lock:
         data = load_data()
-        known = {h['id'] for h in halls.halls(data)}
+        known = {t['id'] for t in inventory_scope.tags(data)}
         wanted = []
-        for h in hall_ids:
-            if str(h) not in known:
-                raise AgentError(f'No hall "{h}".')
-            if str(h) not in wanted:
-                wanted.append(str(h))
+        for tid in tag_ids:
+            if str(tid) not in known:
+                raise AgentError('No such tag.')
+            if str(tid) not in wanted:
+                wanted.append(str(tid))
         found = next((a for a in data.get(KEY) or [] if a['id'] == agent_id), None)
         if not found:
             err = AgentError('No such agent.')
             err.status = 404
             raise err
-        found['halls'] = wanted
+        found['tags'] = wanted
+        found.pop('halls', None)
         save_data(data)
     _forget_cache()
     return found['name'], wanted
@@ -899,7 +910,7 @@ class Tunnel:
             now = time.time()
             targets = frozenset(targets)
             if not targets & {a for a, seen in list(self._seen.items()) if now - seen < CONNECTED_FOR}:
-                raise AgentUnavailable('No local agent for this hall is connected.')
+                raise AgentUnavailable('No local agent for this device is connected.')
         elif not self._here(time.time()):
             raise AgentUnavailable('The local agent is not connected.')
         with self._cond:
@@ -1079,7 +1090,7 @@ def feeds(method, args=()):
     """``[{plugin, name, base, base_name, items | error}]`` from the agent. Raises AgentUnavailable
     or AgentError. Feeds that don't look right are dropped.
 
-    Once an agent serves only some halls, every connected agent is asked, and each one's feeds get
+    Once an agent serves only some tags, every connected agent is asked, and each one's feeds get
     their own id (``netbox.<agent id>``): two sites' NetBox servers must not mark each other's
     devices gone. ``base`` and ``base_name`` stay the plugin's own."""
     scoped, everyone, _ = _routing()

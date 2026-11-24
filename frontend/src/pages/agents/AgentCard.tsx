@@ -12,13 +12,13 @@ const SHOWN_PROBLEMS = 3
 
 /** One agent at a glance on the overview: is it there, how it connects, which version, how its
  *  plugins do and what needs a look. Everything else is on its own page. */
-export function AgentCard({ row, newest, hallNames }: { row: AgentRow; newest?: string | null; hallNames: Record<string, string> }) {
+export function AgentCard({ row, newest, tagNames }: { row: AgentRow; newest?: string | null; tagNames: Record<string, string> }) {
   const { t, i18n } = useTranslation()
   const { agent: a, problems, tone } = row
   const lang = i18n.language
   const list = plugins(a)
   const drops = Math.max(a.report?.reconnects ?? 0, a.report?.link_drops ?? 0)
-  const halls = a.halls?.length ? a.halls.map((h) => hallNames[h] ?? h).join(', ') : t('agents.allHalls')
+  const tags = a.tags?.length ? a.tags.map((x) => tagNames[x] ?? x).join(', ') : t('agents.allDevices')
   const href = agentHref(a.id)
 
   return (
@@ -52,7 +52,7 @@ export function AgentCard({ row, newest, hallNames }: { row: AgentRow; newest?: 
           <Field label={t('agents.fact.calls')}>
             {a.stats?.calls ? t('agents.fact.callsValue', { count: a.stats.calls, n: a.stats.calls.toLocaleString(lang), ms: a.stats.median_ms ?? '–' }) : '–'}
           </Field>
-          <Field label={t('agents.halls')}>{halls}</Field>
+          <Field label={t('agents.tags')}>{tags}</Field>
         </SimpleGrid>
 
         {list.length > 0 && (

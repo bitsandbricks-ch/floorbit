@@ -8,11 +8,11 @@ import { admin, busyAgent } from './agents/fixtures'
 
 afterEach(() => vi.unstubAllGlobals())
 
-const halls = { halls: [{ id: 'main', name: 'Main hall' }, { id: 'h2', name: 'Hall 2' }] }
+const groups = { groups: [], tags: [{ id: 't1', name: 'Site A' }, { id: 't2', name: 'Hall 2' }] }
 
 function open(agent: Agent, tab = '', extra: Record<string, unknown> = {}) {
   const api = fakeFetch({
-    'GET /api/auth/me': admin, 'GET /api/halls': halls,
+    'GET /api/auth/me': admin, 'GET /api/inventory/groups': groups,
     'GET /api/agents': { agents: [agent], connected: true, max: 10, protocol: 2, newest_version: agent.version },
     ...extra,
   })
@@ -139,7 +139,7 @@ describe('AgentDetail', () => {
     expect(screen.getByText(/telemetry 0\.5\.0 · .* · cannot start/)).toBeInTheDocument()
   })
 
-  it('changes its settings: a new key, a new name, its halls, revoke', async () => {
+  it('changes its settings: a new key, a new name, its tags, revoke', async () => {
     const a = { ...busyAgent(), plugins_off: ['shelly'] }
     const api = open(a, 'settings', {
       [`POST /api/agents/${a.id}/rotate`]: { id: a.id, name: a.name, key: 'fba_a1b2c3d4_another-example-key-012345' },
@@ -164,7 +164,7 @@ describe('AgentDetail', () => {
   })
 
   it('says when the agent is gone', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/halls': halls, 'GET /api/agents': { agents: [], connected: false, max: 10 } }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/inventory/groups': groups, 'GET /api/agents': { agents: [], connected: false, max: 10 } }).fn)
     renderWithApp(<Routes><Route path="/settings/agents/:id" element={<AgentDetail />} /></Routes>, '/settings/agents/nope')
     expect(await screen.findByText('No such agent')).toBeInTheDocument()
   })

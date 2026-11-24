@@ -18,7 +18,7 @@ import { AgentDevices } from './agents/AgentDevices'
 import { AgentGraphs } from './agents/AgentGraphs'
 import { AgentRename, NewKeyButton, PluginsOff, Updates } from './agents/AgentTools'
 import { AgentSettingsForm, CertPanel, KeyPanel } from './agents/AgentSettings'
-import { useAgentSettings, useAgents, useHalls } from './agents/data'
+import { useAgentSettings, useAgents, useAgentTags } from './agents/data'
 import { Blocked, PluginTable, Report } from './agents/Details'
 import { HintAnchor } from './agents/HintAnchor'
 import { KeyAlert, type Made } from './agents/KeyAlert'
@@ -28,7 +28,7 @@ const TABS = ['overview', 'devices', 'graphs', 'plugins', 'updates', 'settings']
 type Tab = (typeof TABS)[number]
 
 /** One local agent: a header with what it is and how it connects, then tabs for what needs a
- *  look and its numbers, the devices it collects, its numbers over time, its plugins, its plugin updates, and its settings (halls, key, revoke). */
+ *  look and its numbers, the devices it collects, its numbers over time, its plugins, its plugin updates, and its settings (tags, key, revoke). */
 export default function AgentDetail() {
   const { t, i18n } = useTranslation()
   const lang = i18n.language
@@ -36,7 +36,7 @@ export default function AgentDetail() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { query, data: d, rows } = useAgents()
-  const halls = useHalls()
+  const tags = useAgentTags()
   // The agent plugins that exist here, so the Plugins tab can list the ones this agent doesn't run (#1001).
   const available = (usePlugins().data?.plugins ?? []).filter((p) => p.agent)
     .map((p) => ({ id: p.id, name: p.name, enabled: p.enabled }))
@@ -45,7 +45,7 @@ export default function AgentDetail() {
   const setTab = (v: string | null) => setParams(v && v !== 'overview' ? { tab: v } : {}, { replace: true })
   const [made, setMade] = useState<Made | null>(null)
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.agents })
-  const setHalls = useMutation({ mutationFn: (ids: string[]) => patch(`/api/agents/${id}`, { halls: ids }), onSuccess: refresh })
+  const setTags = useMutation({ mutationFn: (ids: string[]) => patch(`/api/agents/${id}`, { tags: ids }), onSuccess: refresh })
   const revoke = useMutation({
     mutationFn: () => del(`/api/agents/${id}`),
     onSuccess: () => { refresh(); navigate('/settings/agents') },
@@ -67,13 +67,13 @@ export default function AgentDetail() {
   const pluginCount = new Set([...Object.keys(plugins), ...available.map((p) => p.id)]).size
   const r = a.report
   const role = d.groups?.flatMap((g) => g.agents.map((x) => ({ ...x, group: g.label }))).find((x) => x.id === a.id)
-  const hallText = a.halls?.length ? a.halls.map((h) => halls.names[h] ?? h).join(', ') : t('agents.allHalls')
+  const tagText = a.tags?.length ? a.tags.map((x) => tags.names[x] ?? x).join(', ') : t('agents.allDevices')
   const num = (n?: number) => (n ?? 0).toLocaleString(lang)
   const chips = [
     a.version && `${t('agents.fact.version')} ${a.version}`,
     a.connected && t(`agents.transport.${a.transport ?? 'elsewhere'}`),
     a.address,
-    hallText,
+    tagText,
     a.protocol && t('agents.chip.protocol', { v: a.protocol }),
   ].filter(Boolean) as string[]
 
@@ -97,7 +97,7 @@ export default function AgentDetail() {
           </Stack>
         </Group>
 
-        <ErrorBanner error={setHalls.error ?? revoke.error} />
+        <ErrorBanner error={setTags.error ?? revoke.error} />
         {made && <KeyAlert made={made} onClose={() => setMade(null)} />}
 
         <Tabs value={tab} onChange={setTab} keepMounted={false}>
@@ -140,8 +140,8 @@ export default function AgentDetail() {
                 <Stack gap="md">
                   <Panel title={t('agents.detailsTitle')}>
                     <Stack gap="sm">
-                      <Field label={t('agents.halls')}>{hallText}</Field>
-                      {role && <Field label={t('agents.ha.groupsTitle')}>{`${role.group || t('agents.allHalls')} · ${t(`agents.ha.role.${role.role}`)}${role.holds.length ? ` · ${role.holds.join(', ')}` : ''}`}</Field>}
+                      <Field label={t('agents.tags')}>{tagText}</Field>
+                      {role && <Field label={t('agents.ha.groupsTitle')}>{`${role.group || t('agents.allDevices')} · ${t(`agents.ha.role.${role.role}`)}${role.holds.length ? ` · ${role.holds.join(', ')}` : ''}`}</Field>}
                       <Field label={t('agents.fact.address')}>{a.address ?? '–'}</Field>
                       <Field label={t('agents.fact.relays')}>
                         {[a.relays?.syslog && t('agents.relaySyslog'), a.relays?.flows && t('agents.relayFlows')].filter(Boolean).join(', ') || '–'}
@@ -182,7 +182,7 @@ export default function AgentDetail() {
           </Tabs.Panel>
 
           <Tabs.Panel value="settings" pt="md">
-            <SettingsTab agent={a} hallOptions={halls.options} onHalls={(ids) => setHalls.mutate(ids)}
+            <SettingsTab agent={a} tagOptions={tags.options} onTags={(ids) => setTags.mutate(ids)}
               onKey={(m) => setMade({ ...m, rotated: true })} onRevoke={() => revoke.mutate()} />
           </Tabs.Panel>
         </Tabs>
@@ -192,10 +192,10 @@ export default function AgentDetail() {
 }
 
 
-/** Its name, halls and plugins; its own settings and plugin settings (Floorbit sets them, the agent's
+/** Its name, tags and plugins; its own settings and plugin settings (Floorbit sets them, the agent's
  *  env wins); its key and certificate; revoking it. */
-function SettingsTab({ agent: a, hallOptions, onHalls, onKey, onRevoke }: {
-  agent: Agent; hallOptions: { value: string; label: string }[]; onHalls: (ids: string[]) => void
+function SettingsTab({ agent: a, tagOptions, onTags, onKey, onRevoke }: {
+  agent: Agent; tagOptions: { value: string; label: string }[]; onTags: (ids: string[]) => void
   onKey: (m: { name: string; key: string }) => void; onRevoke: () => void
 }) {
   const { t } = useTranslation()
@@ -210,11 +210,10 @@ function SettingsTab({ agent: a, hallOptions, onHalls, onKey, onRevoke }: {
           <Panel title={t('agents.cfg.generalTitle')}>
             <Stack gap="md">
               <AgentRename agent={a} />
-              {hallOptions.length > 1 && (
-                <MultiSelect label={t('agents.halls')} description={t('agents.hallsHelp')}
-                  placeholder={a.halls?.length ? undefined : t('agents.allHalls')}
-                  data={hallOptions} value={a.halls ?? []} clearable onChange={onHalls} />
-              )}
+              <MultiSelect label={t('agents.tags')} description={t('agents.tagsHelp')}
+                placeholder={a.tags?.length ? undefined : t('agents.allDevices')}
+                nothingFoundMessage={t('agents.noTags')} searchable
+                data={tagOptions} value={a.tags ?? []} clearable onChange={onTags} />
               <PluginsOff agent={a} />
             </Stack>
           </Panel>

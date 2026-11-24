@@ -476,7 +476,7 @@ def test_a_killed_agent_shows_as_gone_at_once_not_a_minute_later(client):
 
 
 def test_a_lookup_takes_the_first_agent_that_knows_and_does_not_wait_for_the_other(monkeypatch):
-    """Two agents for the same halls: one was just killed and holds the call until it times out."""
+    """Two agents for the same tags: one was just killed and holds the call until it times out."""
     def call(method, args=(), timeout=agent_link.CALL_TIMEOUT, targets=None):
         if targets == {"dead"}:
             time.sleep(3)
