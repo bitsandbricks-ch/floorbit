@@ -289,9 +289,19 @@ def test_feature_off_hides_logs(client):
 
 
 def _free_port():
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+    # Free for UDP and TCP both: the receiver listens on both, and a port free for only one of them
+    # failed the TCP bind (#1145).
+    for _ in range(50):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as u:
+            u.bind(("127.0.0.1", 0))
+            port = u.getsockname()[1]
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as t:
+                try:
+                    t.bind(("127.0.0.1", port))
+                except OSError:
+                    continue
+                return port
+    raise RuntimeError("no port free for UDP and TCP")
 
 
 def _line(n, at, line_id=None, sender="192.0.2.21"):
