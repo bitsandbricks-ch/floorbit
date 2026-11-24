@@ -260,7 +260,8 @@
     "name": "Name",
     "value": "Value",
     "add": "Add property",
-    "remove": "Remove {{name}}"
+    "remove": "Remove {{name}}",
+    "untyped": "custom, untyped"
   },
   "features": {
     "title": "Feature switches",
@@ -471,5 +472,76 @@
     "online": "Online",
     "offline": "Offline",
     "unknown": "Unknown"
+  },
+  "propTypes": {
+    "text": "Text",
+    "number": "Number",
+    "bool": "Yes / no",
+    "ip": "IP address",
+    "url": "Web address",
+    "choice": "One of a list",
+    "list": "Several of a list"
+  },
+  "propCatalog": {
+    "title": "Properties",
+    "open": "Known properties",
+    "intro": "The properties Floorbit knows and the kind of value each takes. Editors get the fitting input and a wrong value is refused. A name that isn't listed stays free text.",
+    "label": "Label",
+    "type": "Type",
+    "unit": "Unit",
+    "choices": "Allowed values",
+    "choicesHint": "Press Enter after each one.",
+    "roles": "For",
+    "anyRole": "Any device",
+    "hint": "Help text",
+    "builtin": "Built in",
+    "edit": "Edit",
+    "remove": "Remove",
+    "removeQ": "Remove {{key}}? Values set with it stay, as free text.",
+    "addTitle": "Add a property",
+    "editTitle": "Change {{key}}",
+    "addHint": "Give it a name in lower case (dots group them, like poe.budget), the kind of value and, if it fits, a unit and the device roles it is for.",
+    "add": "Add property",
+    "save": "Save"
+  },
+  "propBuiltin": {
+    "telemetry_drivers": {
+      "label": "Telemetry drivers",
+      "hint": "What the agent collects with; empty: what fits the platform."
+    },
+    "telemetry_agent": {
+      "label": "Collected by agent",
+      "hint": "The local agent that collects; empty: any."
+    },
+    "telemetry_address": {
+      "label": "Telemetry address",
+      "hint": "Where the agent reaches it, when not the management address."
+    },
+    "telemetry_verify_tls": {
+      "label": "Check the TLS certificate"
+    },
+    "telemetry_snmp_fdb": {
+      "label": "MAC table over SNMP"
+    },
+    "telemetry_snmp_vlans": {
+      "label": "VLANs to read over SNMP",
+      "hint": "VLAN IDs, comma separated; empty: the ones on its interfaces."
+    },
+    "telemetry_snmp_port": {
+      "label": "SNMP port"
+    },
+    "telemetry_gnmi_port": {
+      "label": "gNMI port"
+    },
+    "telemetry_api_port": {
+      "label": "API port"
+    },
+    "telemetry_api_url": {
+      "label": "API address"
+    },
+    "telemetry_mdt_node": {
+      "label": "MDT node name",
+      "hint": "Cisco's model-driven telemetry; empty: the device name."
+    }
   }
 }
