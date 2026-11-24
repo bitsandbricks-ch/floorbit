@@ -50,5 +50,6 @@
     "agents": "Agents {{online}}/{{total}}",
     "checked": "checked {{ago}}"
   },
-  "admin": "Plugins and settings"
+  "admin": "Plugins and settings",
+  "problemsSplit": "{{count}} down · {{look}} to look at"
 }

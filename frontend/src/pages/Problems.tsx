@@ -236,7 +236,7 @@ export default function Problems() {
   return (
     // Muted problems stay out of the tab count: someone is already on them (issue #214).
     <Layout title={t('problems.title')} back={{ href: '/', label: t('common.floorPlan') }}
-      count={data ? (data.counts.down ?? 0) + (data.counts.warn ?? 0) : undefined}>
+      count={data ? data.counts.total ?? (data.counts.down ?? 0) + (data.counts.warn ?? 0) : undefined}>
       <PageHead title={t('problems.title')} desc={t('problems.intro')} actions={data && (
         // For pasting into the crew chat instead of a screenshot (issue #280).
         <CopyButton value={problemsText(visible, data.mutes, t, (ts) => ago(ts))} timeout={2000}>
@@ -255,9 +255,9 @@ export default function Problems() {
         <Stack gap="md">
           {data.quiet_hours && <Alert color="gray" variant="light">{t('problems.quiet')}</Alert>}
           <div className="fb-stat-row" aria-live="polite">
-            {(['down', 'warn', 'seats', 'muted'] as const).map((k) => (
-              <StatTile key={k} label={t(`problems.card.${k}`)} value={String(data.counts[k] ?? 0)}
-                tone={data.counts[k] && k !== 'muted' ? (k === 'seats' ? 'warn' : k) : undefined} />
+            {(['down', 'look', 'seats', 'muted'] as const).map((k) => (
+              <StatTile key={k} label={t(`problems.card.${k}`)} value={String(data.counts[k] ?? (k === 'look' ? data.counts.warn : 0))}
+                tone={data.counts[k] && k !== 'muted' ? (k === 'down' ? 'down' : 'warn') : undefined} />
             ))}
           </div>
           {kinds.length > 1 && (

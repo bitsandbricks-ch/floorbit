@@ -59,7 +59,8 @@
     "down": "Down",
     "warn": "To look at",
     "muted": "Muted",
-    "seats": "Seats with trouble"
+    "seats": "Seats with trouble",
+    "look": "To look at"
   },
   "muteTextService": "No Discord messages about this service going down or coming back until the mute ends. It stays on this list and on the health wall.",
   "muteTextAp": "Keeps this access point out of the problem counts until the mute ends. It stays on this list and in the Wi-Fi view.",

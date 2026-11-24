@@ -324,6 +324,10 @@ def current(may_see_people):
                        + _shared_ports() + _seat_incidents(),
                        key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
+    # One count for every place that shows one (#884): the sidebar shows `down`, the footer `down`
+    # and `look`, the bell, tab titles and the handover `total`; seat and port trouble is a look too.
+    counts['look'] = counts['warn'] + len(attention)
+    counts['total'] = counts['down'] + counts['look']
     counts['seats'] = len({p['seat'] for p in items + attention if p.get('seat') and p['kind'] != 'checkin'})
     mutes = [{'switch_id': k, 'kind': _mute_kind(k), **v}
              for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
