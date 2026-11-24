@@ -18,6 +18,8 @@ export function Rulers({ ctx, cell, at }: { ctx: OverlayContext; cell: number; a
   }
   const xs = ticks(shown.x + band, shown.x + shown.w)
   const ys = ticks(shown.y + band, shown.y + shown.h)
+  // A number that would sit under the mark's readout makes way for it.
+  const near = (v: number, m: number | undefined) => m !== undefined && Math.abs(v - m) < 28 * px
   const len = (n: number) => (n % major === 0 ? 8 : 4) * px
   return (
     <g className="fb-edit-rulers" pointerEvents="none" aria-hidden="true">
@@ -26,13 +28,13 @@ export function Rulers({ ctx, cell, at }: { ctx: OverlayContext; cell: number; a
       {xs.map((n) => (
         <g key={`x${n}`}>
           <line x1={n * cell} x2={n * cell} y1={shown.y + band} y2={shown.y + band - len(n)} vectorEffect="non-scaling-stroke" />
-          {n % major === 0 && <text x={n * cell + 3 * px} y={shown.y + 10 * px} fontSize={10 * px}>{n}</text>}
+          {n % major === 0 && !near(n * cell, mark?.x) && <text x={n * cell + 3 * px} y={shown.y + 10 * px} fontSize={10 * px}>{n}</text>}
         </g>
       ))}
       {ys.map((n) => (
         <g key={`y${n}`}>
           <line y1={n * cell} y2={n * cell} x1={shown.x + band} x2={shown.x + band - len(n)} vectorEffect="non-scaling-stroke" />
-          {n % major === 0 && (
+          {n % major === 0 && !near(n * cell, mark?.y) && (
             <text x={shown.x + 10 * px} y={n * cell - 3 * px} fontSize={10 * px} transform={`rotate(-90 ${shown.x + 10 * px} ${n * cell - 3 * px})`}>{n}</text>
           )}
         </g>
