@@ -27,7 +27,7 @@ describe('Problems', () => {
     const sw = await screen.findByRole('article', { name: 'sw-c-02 is offline' })
     expect(within(sw).getByText('Switch')).toBeInTheDocument()
     // The counts are cards now (issue #103): label, then the number.
-    const card = (label: string) => screen.getByText(label, { selector: 'dt' }).closest('dl')
+    const card = (label: string) => screen.getByText(label, { selector: 'dt > span' }).closest('dl')
     expect(card('Down')).toHaveTextContent('Down1')
     expect(card('Muted')).toHaveTextContent('Muted1')
     // Down and warn show in a background tab; the muted switch doesn't (issue #214).
@@ -75,7 +75,7 @@ describe('Problems', () => {
     const names = () => screen.getAllByRole('article').map((a) => a.getAttribute('aria-label'))
     expect(names()).toEqual(['sw-c-02 is offline', 'Circuit B row 2 getting close (86.9 %)', 'sw-d-01 is offline',
       'No internet at the seat', 'Seat A-12 is online without a check-in', 'Port flapping: 4 link changes in 10 minutes'])
-    const card = (label: string) => screen.getByText(label, { selector: 'dt' }).closest('dl')
+    const card = (label: string) => screen.getByText(label, { selector: 'dt > span' }).closest('dl')
     expect(card('Seats with trouble')).toHaveTextContent('Seats with trouble2')
     const incident = screen.getByRole('article', { name: 'No internet at the seat' })
     expect(within(incident).getByText('Incident')).toBeInTheDocument()

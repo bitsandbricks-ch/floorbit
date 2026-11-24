@@ -11,7 +11,7 @@ import { useCan, useProblems } from '@/api/queries'
 import type { Problem } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { StatTile } from '@/components/StatTile'
+import { StatTile } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
 import { ErrorBanner, LoadingState } from '@/components/ui'
@@ -257,7 +257,7 @@ export default function Problems() {
           <div className="fb-stat-row" aria-live="polite">
             {(['down', 'look', 'seats', 'muted'] as const).map((k) => (
               <StatTile key={k} label={t(`problems.card.${k}`)} value={String(data.counts[k] ?? (k === 'look' ? data.counts.warn : 0))}
-                tone={data.counts[k] && k !== 'muted' ? (k === 'down' ? 'down' : 'warn') : undefined} />
+                tone={data.counts[k] && k !== 'muted' ? (k === 'down' ? 'err' : 'warn') : undefined} />
             ))}
           </div>
           {kinds.length > 1 && (

@@ -14,11 +14,11 @@ import { duration } from './report/format'
 import { byLine, summaryText, when } from './handover/format'
 import { isWaiting, waitedFor } from './incidents/waiting'
 import { LoadingState } from '@/components/ui'
-import { StatTile } from '@/components/StatTile'
+import { StatTile } from '@bitsandbricks/ui'
 import { incidentTitle } from '@/lib/incidentTitle'
 
 /** A count that only takes its colour when there is something to count. */
-function Figure({ label, value, tone, sub }: { label: string; value: number; tone?: 'down' | 'warn' | 'up'; sub?: string }) {
+function Figure({ label, value, tone, sub }: { label: string; value: number; tone?: 'err' | 'warn' | 'ok'; sub?: string }) {
   return <StatTile label={label} value={String(value)} tone={tone && value > 0 ? tone : undefined} sub={sub} />
 }
 
@@ -100,10 +100,10 @@ export default function Handover() {
               </Alert>
             )}
             <SimpleGrid cols={{ base: 2, sm: 3, lg: 6 }}>
-              <Figure label={t('handover.open')} value={d.counts.open} tone="down"
+              <Figure label={t('handover.open')} value={d.counts.open} tone="err"
                 sub={d.counts.waiting ? t('handover.waiting', { count: d.counts.waiting }) : undefined} />
               <Figure label={t('handover.opened')} value={d.counts.opened} />
-              <Figure label={t('handover.fixed')} value={d.counts.fixed} tone="up"
+              <Figure label={t('handover.fixed')} value={d.counts.fixed} tone="ok"
                 sub={d.counts.median_fix_s != null ? t('handover.halfWithin', { d: duration(Math.max(60, d.counts.median_fix_s)) }) : undefined} />
               <Figure label={t('handover.outages')} value={d.counts.outages} tone="warn" />
               <Figure label={t('handover.problems')} value={d.counts.problems} tone="warn" />

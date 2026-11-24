@@ -2,7 +2,7 @@ import { Group, Table, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import type { Tone, Widget } from '@/api/types'
 import { FitWidget } from './FitWidget'
-import { Sparkline } from './Sparkline'
+import { Sparkline } from '@bitsandbricks/ui'
 
 // A widget is data (floorbit/plugins/widgets.py checks it on the server). Everything a plugin
 // sends is drawn as text: React escapes it, and nothing here sets HTML.

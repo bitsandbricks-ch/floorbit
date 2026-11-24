@@ -14,7 +14,7 @@ import { bytes, duration, hourPath, pdfUrl, stamp } from './report/format'
 import { Compare } from './stats/Compare'
 import { bps } from './stats/format'
 import { LoadingState, ErrorBanner } from '@/components/ui'
-import { StatTile } from '@/components/StatTile'
+import { StatTile } from '@bitsandbricks/ui'
 import { incidentTitle } from '@/lib/incidentTitle'
 import { ConfirmButton } from '@bitsandbricks/ui'
 

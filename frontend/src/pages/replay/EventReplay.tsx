@@ -3,7 +3,7 @@ import { IconDownload, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlayerSk
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EventReplayData } from '@/api/types'
-import { StatTile } from '@/components/StatTile'
+import { StatTile } from '@bitsandbricks/ui'
 import { Panel } from '@/components/ui'
 import { bps } from '../stats/format'
 import { heatmap, sampleAt, when, type HeatMetric } from './model'

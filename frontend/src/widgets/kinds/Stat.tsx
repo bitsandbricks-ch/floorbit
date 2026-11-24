@@ -1,14 +1,11 @@
 import { useTranslation } from 'react-i18next'
 import type { Widget } from '@/api/types'
-import { StatTile, type StatTone } from '@/components/StatTile'
+import { normalizeTone, StatTile } from '@bitsandbricks/ui'
 import type { Level } from '../level'
 import { useNumberStyle } from './display'
 import { clock } from '@/lib/time'
 import { changeOf, formatValue, linesOf, type Look, stateCounts, statOf } from './shape'
 import { Graph } from './Graph'
-
-// A widget's tones (ok, warn, err) as the shared tile names them.
-const TONE: Record<string, StatTone | undefined> = { ok: 'up', warn: 'warn', err: 'down' }
 
 /** One number, as big as the box allows, drawn by the same StatTile as every page (#1154).
  *  Medium adds how it is made up; large adds its history. */
@@ -42,7 +39,7 @@ export function StatKind({ widget, level, box, look = {} }: { widget: Widget; le
   return (
     <div className="fb-w-stat">
       <StatTile size="fit" hideLabel label={widget.label} value={s.value} unit={s.unit || undefined} of={s.of}
-        tone={TONE[s.tone]} trend={trend} change={change} extra={extra} />
+        tone={normalizeTone(s.tone)} trend={trend} change={change} extra={extra} />
       {graphH > 40 && <Graph widget={widget} level="m" box={{ w: box.w, h: graphH }} />}
     </div>
   )

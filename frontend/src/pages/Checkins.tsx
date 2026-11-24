@@ -12,7 +12,7 @@ import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { Link } from 'react-router-dom'
 import { PageHead } from '@/components/PageHead'
-import { StatTile } from '@/components/StatTile'
+import { StatTile } from '@bitsandbricks/ui'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { History } from './checkins/History'
@@ -99,7 +99,7 @@ export default function Checkins() {
             <div className="fb-stat-row">
               <StatTile label={t('crewCheckin.count.checkedIn')} value={num(d.counts.checked_in)}
                 sub={d.counts.pins ? t('crewCheckin.count.pins', { used: d.counts.pins - d.counts.unused_pins, total: d.counts.pins }) : t('crewCheckin.count.pinsNone')} />
-              <StatTile label={t('crewCheckin.count.verified')} value={num(d.counts.verified)} tone={d.counts.verified ? 'up' : undefined}
+              <StatTile label={t('crewCheckin.count.verified')} value={num(d.counts.verified)} tone={d.counts.verified ? 'ok' : undefined}
                 sub={t('crewCheckin.count.learned', { count: d.counts.learned })} />
               <StatTile label={t('crewCheckin.count.pending')} value={num(d.counts.pending)}
                 sub={t('crewCheckin.count.pendingSub', { count: d.counts.unverified })} tone={d.counts.unverified ? 'warn' : undefined} />

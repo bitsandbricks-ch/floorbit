@@ -22,21 +22,18 @@
 .fb-w-stat-unit { color: var(--color-muted); font-weight: 500; font-size: calc(clamp(12px, min(9cqh, 6cqw), 32px) * var(--fb-w-text, 1)); }
 /* The stat widget is the shared StatTile (#1154) at size fit: the pane is the card, so no box of its
    own, and the figure grows with the pane. The tone colours the figure instead of an edge. */
-.fb-stat-fit { background: none; border: 0; border-radius: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.fb-stat-fit dd:not(.fb-stat-more) { margin: 0; line-height: 1; white-space: nowrap; overflow: hidden; display: flex; align-items: baseline; gap: 6px;
+.fb-w-stat .bnb-stat-fit { gap: 6px; height: auto; }
+.fb-w-stat .bnb-stat-fit .bnb-stat-value { margin: 0; line-height: 1; white-space: nowrap; overflow: hidden; display: flex; align-items: baseline; gap: 6px;
   font-size: calc(clamp(22px, min(26cqh, 18cqw), 120px) * var(--fb-w-text, 1)); }
-.fb-stat-fit .fb-stat-unit { font-size: calc(clamp(12px, min(9cqh, 6cqw), 32px) * var(--fb-w-text, 1)); }
-.fb-stat-fit.fb-stat-up dd:not(.fb-stat-more) { color: var(--color-up); }
-.fb-stat-fit.fb-stat-warn dd:not(.fb-stat-more) { color: var(--color-warn); }
-.fb-stat-fit.fb-stat-down dd:not(.fb-stat-more) { color: var(--color-down); }
-.fb-stat-fit dd.fb-stat-more { display: flex; flex-direction: column; gap: 6px; color: var(--color-muted);
+.fb-w-stat .bnb-stat-fit .bnb-stat-unit { font-size: calc(clamp(12px, min(9cqh, 6cqw), 32px) * var(--fb-w-text, 1)); }
+.fb-w-stat .bnb-stat-fit .bnb-stat-more { margin: 0; display: flex; flex-direction: column; align-items: stretch; gap: 6px; color: var(--color-muted);
   font-size: clamp(12px, min(7cqh, 5cqw), 22px); }
-.fb-stat-fit dd.fb-stat-more span:not(.fb-w-counts):not(.fb-stat-spark) { display: inline; font-size: inherit; }
-.fb-stat-fit .fb-w-counts { font-size: inherit; }
-.fb-stat-fit .fb-stat-change { white-space: nowrap; overflow: hidden; }
-.fb-stat-fit .fb-stat-change b { font-weight: 600; color: var(--color-fg); }
-.fb-stat-fit .fb-stat-change.fb-tone-up b, .fb-stat-fit .fb-stat-change.fb-tone-down b { color: inherit; }
-.fb-stat-fit .fb-stat-spark { display: block; height: clamp(16px, 25cqh, 60px); margin-top: 0; }
+.fb-w-stat .bnb-stat-fit .bnb-stat-more span:not(.fb-w-counts):not(.bnb-stat-spark) { display: inline; font-size: inherit; }
+.fb-w-stat .bnb-stat-fit .fb-w-counts { font-size: inherit; }
+.fb-w-stat .bnb-stat-fit .bnb-stat-change { white-space: nowrap; overflow: hidden; }
+.fb-w-stat .bnb-stat-fit .bnb-stat-change b { font-weight: 600; color: var(--color-fg); }
+.fb-w-stat .bnb-stat-fit .bnb-stat-change.is-ok b, .fb-w-stat .bnb-stat-fit .bnb-stat-change.is-err b { color: inherit; }
+.fb-w-stat .bnb-stat-fit .bnb-stat-spark { display: block; height: clamp(16px, 25cqh, 60px); margin-top: 0; }
 .fb-w-counts { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-muted); font-size: clamp(12px, 6cqh, 18px);
   font-variant-numeric: tabular-nums; }
 .fb-w-counts .fb-dot { vertical-align: 0; }

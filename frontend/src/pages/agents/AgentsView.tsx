@@ -2,7 +2,7 @@ import { Anchor, Badge, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/c
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { ErrorBanner, LoadingState } from '@/components/ui'
-import { StatTile } from '@/components/StatTile'
+import { StatTile } from '@bitsandbricks/ui'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { AgentCard } from './AgentCard'
 import { agentHref, useAgents, useHalls, type AgentRow } from './data'
@@ -57,9 +57,9 @@ function Overview({ rows }: { rows: AgentRow[] }) {
   return (
     <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm" aria-label={t('agents.overview.title')} aria-live="polite">
       <StatTile label={t('agents.overview.online')} value={`${online} / ${rows.length}`}
-        tone={online === rows.length ? 'up' : online ? 'warn' : 'down'} />
+        tone={online === rows.length ? 'ok' : online ? 'warn' : 'err'} />
       <StatTile label={t('agents.overview.look')} value={num(look.length)}
-        tone={look.some((r) => r.tone === 'down') ? 'down' : look.length ? 'warn' : undefined}
+        tone={look.some((r) => r.tone === 'down') ? 'err' : look.length ? 'warn' : undefined}
         sub={look.length ? look.map((r) => r.agent.name).join(', ') : t('agents.overview.allGood')} />
       <StatTile label={t('agents.overview.plugins')} value={plugins.length ? `${healthy} / ${plugins.length}` : '–'}
         tone={plugins.length && healthy < plugins.length ? 'warn' : undefined}

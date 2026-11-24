@@ -142,17 +142,17 @@ describe('FitWidget', () => {
     const t0 = 1800000000
     const series: Widget = { ...base, type: 'series', unit: '', series: [{ label: 'Clients', points: [[t0, 40], [t0 + 1800, 50], [t0 + 5400, 60]] }] }
     const { container } = renderWithApp(<FitWidget widget={series} pick="stat" pin="m" look={{ spark: true, change: true, text: 'l' }} />)
-    expect(container.querySelector('.fb-stat-spark polyline')).not.toBeNull()
-    expect(container.querySelector('.fb-stat-change')!.textContent!.trim()).toBe('+20 % vs an hour ago')
+    expect(container.querySelector('.bnb-stat-spark polyline')).not.toBeNull()
+    expect(container.querySelector('.bnb-stat-change')!.textContent!.trim()).toBe('+20 % vs an hour ago')
     expect(container.querySelector('.fb-w-text-l')).not.toBeNull()
   })
 
   it('draws a stat with the shared stat tile, its name kept for screen readers (#1154)', () => {
     size = { w: 300, h: 220 }
     const { container } = renderWithApp(<FitWidget widget={{ ...base, type: 'stat', value: 7, unit: '', tone: 'err' }} pick="stat" />)
-    const tile = container.querySelector('dl.fb-stat.fb-stat-fit')!
-    expect(tile.className).toContain('fb-stat-down')
-    expect(tile.querySelector('dt')!.className).toBe('fb-sr-only')
+    const tile = container.querySelector('dl.bnb-stat.bnb-stat-fit')!
+    expect(tile.className).toContain('is-err')
+    expect(tile.querySelector('dt')!.className).toBe('bnb-sr-only')
     expect(tile.querySelector('dd')!.textContent).toBe('7')
   })
 

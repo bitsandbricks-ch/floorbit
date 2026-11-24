@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { Widget } from '@/api/types'
 import { renderWithApp } from '@/test/render'
-import { sparkPoints } from './spark'
+import { sparkPoints } from '@bitsandbricks/ui'
 import { WidgetBody } from './WidgetBody'
 
 const base = { id: 'w', label: 'W', size: 'small', refresh: 60, sub: '', link: '' } as const
