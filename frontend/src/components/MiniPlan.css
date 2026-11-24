@@ -1,0 +1,10 @@
+/* One look for the small hall drawings (MiniPlan.tsx). The height follows the hall's shape and
+   stops where the screen ends below the top bar, not at a share of the screen per page (#936). */
+.fb-mini-plan {
+  display: block; width: 100%; height: auto;
+  max-height: calc(100dvh - 160px - var(--fb-tabbar-h, 0px)); min-height: 160px;
+  background: var(--color-raised); border-radius: var(--radius-card);
+}
+.fb-mini-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
+.fb-mini-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-mini-plan .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
