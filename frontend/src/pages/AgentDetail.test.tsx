@@ -49,6 +49,22 @@ describe('AgentDetail', () => {
     expect(screen.getByText('Syslog, NetFlow')).toBeInTheDocument()
   })
 
+  it('lists the agent plugins it does not run, and why (#1001)', async () => {
+    const plugin = (id: string, enabled: boolean, agent = true) => ({ id, name: id, enabled, agent: agent ? { actions: [], calls: [], sends: [] } : null })
+    open({ ...busyAgent(), plugins_off: ['netflow-relay'] }, 'plugins', { 'GET /api/settings/plugins': { plugins: [
+      plugin('lancache', true), plugin('shelly', false), plugin('netflow-relay', true), plugin('loki', true), plugin('dhcp', true, false),
+    ] } })
+    const table = await screen.findByRole('table', { name: 'Agent plugins' })
+    const row = (id: string) => within(table).getByText(id).closest('tr') as HTMLElement
+    expect(await within(table).findByText('shelly')).toBeInTheDocument()
+    expect(within(row('shelly')).getByText('Off on every agent')).toBeInTheDocument()
+    expect(within(row('shelly')).getByRole('link', { name: 'Turn it on' })).toHaveAttribute('href', '/settings/plugins/shelly')
+    expect(within(row('netflow-relay')).getByText('Left to another agent')).toBeInTheDocument()
+    expect(within(row('loki')).getByText("On, but this agent hasn't reported it yet")).toBeInTheDocument()
+    expect(within(row('lancache')).getByText('lines 52,000 · backlog 0')).toBeInTheDocument()   // reported: as before
+    expect(within(table).queryByText('dhcp')).not.toBeInTheDocument()                           // no part on the agent
+  })
+
   it('lists the devices it collects, what needs a look first', async () => {
     const problem = { driver: 'snmp', kind: 'refused', address: '192.0.2.22:161', detail: 'connection refused', hint: 'nothing listens' }
     open(busyAgent(), 'devices', {

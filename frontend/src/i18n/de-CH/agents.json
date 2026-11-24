@@ -413,5 +413,12 @@
     "standbyHelp": "Der andere Agent dieses Paars sammelt. Dieser nimmt nur die Geräte, die ihm mit Namen gegeben sind, und übernimmt den Rest, wenn der andere wegfällt.",
     "none": "Keine Geräte für diesen Agent. Schalte im Inventar Telemetrie für Geräte ein."
   },
-  "runInsecure": "Dieses Floorbit läuft über einfaches http. Der Agent braucht darum FLOORBIT_AGENT_INSECURE=1 und schickt seinen Schlüssel unverschlüsselt. Nur für einen Test oder in einem Netz, dem du vertraust; für einen Event Floorbit hinter HTTPS stellen."
+  "runInsecure": "Dieses Floorbit läuft über einfaches http. Der Agent braucht darum FLOORBIT_AGENT_INSECURE=1 und schickt seinen Schlüssel unverschlüsselt. Nur für einen Test oder in einem Netz, dem du vertraust; für einen Event Floorbit hinter HTTPS stellen.",
+  "quiet": {
+    "offEverywhere": "Auf jedem Agent aus",
+    "offHere": "Einem anderen Agent überlassen",
+    "notReported": "Eingeschaltet, aber dieser Agent hat es noch nicht gemeldet",
+    "turnOn": "Einschalten",
+    "agentSettings": "Einstellungen dieses Agents"
+  }
 }

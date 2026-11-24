@@ -143,6 +143,8 @@ export interface PluginInfo {
   endpoints: { id: string; label: string; url: string }[]
   hooks: { events: string[]; action: string }[]
   has_test: boolean
+  /** Set for a plugin with a part on the local agent (``agent:`` in plugin.yaml). */
+  agent?: { actions: string[]; calls: string[]; sends: string[] } | null
   /** ``schema:`` of this version, and the schema this tenant's data is at (0: none). */
   schema?: number
   data_schema?: number

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { del, patch } from '@/api/client'
 import { qk } from '@/api/keys'
+import { usePlugins } from '@/api/queries'
 import type { Agent } from '@/api/types'
 import { DangerZone } from '@/components/ItemPage'
 import { Layout } from '@/components/Layout'
@@ -35,6 +36,9 @@ export default function AgentDetail() {
   const qc = useQueryClient()
   const { query, data: d, rows } = useAgents()
   const halls = useHalls()
+  // The agent plugins that exist here, so the Plugins tab can list the ones this agent doesn't run (#1001).
+  const available = (usePlugins().data?.plugins ?? []).filter((p) => p.agent)
+    .map((p) => ({ id: p.id, name: p.name, enabled: p.enabled }))
   const [params, setParams] = useSearchParams()
   const tab: Tab = (TABS as readonly string[]).includes(params.get('tab') ?? '') ? params.get('tab') as Tab : 'overview'
   const setTab = (v: string | null) => setParams(v && v !== 'overview' ? { tab: v } : {}, { replace: true })
@@ -59,7 +63,7 @@ export default function AgentDetail() {
   }
   const { agent: a, problems, tone } = row
   const plugins = a.report?.plugins ?? {}
-  const pluginCount = Object.keys(plugins).length
+  const pluginCount = new Set([...Object.keys(plugins), ...available.map((p) => p.id)]).size
   const r = a.report
   const role = d.groups?.flatMap((g) => g.agents.map((x) => ({ ...x, group: g.label }))).find((x) => x.id === a.id)
   const hallText = a.halls?.length ? a.halls.map((h) => halls.names[h] ?? h).join(', ') : t('agents.allHalls')
@@ -165,7 +169,7 @@ export default function AgentDetail() {
 
           <Tabs.Panel value="plugins" pt="md">
             <Stack gap="md">
-              <Panel padding={0}><PluginTable plugins={plugins} lang={lang} agentId={a.id} /></Panel>
+              <Panel padding={0}><PluginTable plugins={plugins} lang={lang} agentId={a.id} available={available} off={a.plugins_off} /></Panel>
               <Blocked agentId={a.id} plugins={plugins} lang={lang} />
             </Stack>
           </Tabs.Panel>

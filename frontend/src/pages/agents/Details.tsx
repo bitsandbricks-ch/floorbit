@@ -1,6 +1,7 @@
-import { Badge, Button, Group, Text } from '@mantine/core'
+import { Anchor, Badge, Button, Group, Text } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { AgentPluginHealth, AgentReport, AgentStats } from '@/api/types'
@@ -89,18 +90,43 @@ export function Blocked({ agentId, plugins, lang, size = 'xs' }: { agentId: stri
   )
 }
 
-/** Every plugin the agent runs, one row each: state, its message, all its numbers, the last error. */
-export function PluginTable({ plugins, lang, agentId }: { plugins?: Record<string, AgentPluginHealth>; lang: string; agentId?: string }) {
+/** A plugin with a part on the agent that this agent didn't report: why not, and where to change it (#1001). */
+export interface QuietPlugin { id: string; name: string; enabled: boolean }
+
+function QuietState({ p, offHere }: { p: QuietPlugin; offHere: boolean }) {
   const { t } = useTranslation()
-  const ids = Object.keys(plugins ?? {}).sort()
+  const why = !p.enabled ? 'offEverywhere' : offHere ? 'offHere' : 'notReported'
+  return (
+    <>
+      <Text size="sm">{t(`agents.quiet.${why}`)}</Text>
+      {why !== 'notReported' && (
+        <Anchor component={Link} size="xs" to={why === 'offEverywhere' ? `/settings/plugins/${encodeURIComponent(p.id)}` : '?tab=settings'}>
+          {t(why === 'offEverywhere' ? 'agents.quiet.turnOn' : 'agents.quiet.agentSettings')}
+        </Anchor>
+      )}
+    </>
+  )
+}
+
+/** Every plugin the agent runs, one row each: state, its message, all its numbers, the last error. With
+ *  ``available``, also the agent plugins it doesn't run, saying why (off, left to another agent). */
+export function PluginTable({ plugins = {}, lang, agentId, available = [], off = [] }: {
+  plugins?: Record<string, AgentPluginHealth>; lang: string; agentId?: string; available?: QuietPlugin[]; off?: string[]
+}) {
+  const { t } = useTranslation()
+  const quiet = new Map(available.filter((p) => !plugins[p.id]).map((p) => [p.id, p]))
+  // Running ones first, then the rest by name.
+  const ids = [...Object.keys(plugins).sort(), ...[...quiet.keys()].sort()]
   // Callers put the table in a Panel without padding; the empty note needs its own.
-  if (!plugins || !ids.length) return <Text size="sm" c="dimmed" p="md">{t('agents.noPluginReport')}</Text>
+  if (!ids.length) return <Text size="sm" c="dimmed" p="md">{t('agents.noPluginReport')}</Text>
   return (
     <DataTable rows={ids} rowKey={(id) => id} label={t('agents.plugins')} urlState={false} pageSize={0} bare cards
       columns={[
         { id: 'plugin', header: t('agents.col.plugin'), card: 'inline',
-          cell: (id) => <Badge variant="light" color={PLUGIN_COLOR[plugins[id].status] ?? 'gray'} tt="none">{id}</Badge> },
+          cell: (id) => <Badge variant="light" color={plugins[id] ? PLUGIN_COLOR[plugins[id].status] ?? 'gray' : 'gray'} tt="none">{id}</Badge> },
         { id: 'state', header: t('agents.col.state'), card: 'label', wrap: true, cell: (id) => {
+          const q = quiet.get(id)
+          if (q) return <QuietState p={q} offHere={off.includes(id)} />
           const p = plugins[id]
           const says = pluginSays(p, t, agentId)
           const tone = p.status === 'error' ? 'down' : p.status === 'warning' ? 'warn' : 'dimmed'
@@ -114,11 +140,11 @@ export function PluginTable({ plugins, lang, agentId }: { plugins?: Record<strin
         } },
         { id: 'numbers', header: t('agents.col.numbers'), card: 'label', wrap: true, cell: (id) => (
           <Text size="xs" c="dimmed">
-            {Object.entries(plugins[id].metrics).map(([k, v]) => `${k.replace(/_/g, ' ')} ${v.toLocaleString(lang)}`).join(' · ') || '–'}
+            {Object.entries(plugins[id]?.metrics ?? {}).map(([k, v]) => `${k.replace(/_/g, ' ')} ${v.toLocaleString(lang)}`).join(' · ') || '–'}
           </Text>
         ) },
         { id: 'error', header: t('agents.col.lastError'), card: 'label', wrap: true, cell: (id) => {
-          const last = plugins[id].errors[plugins[id].errors.length - 1]
+          const last = plugins[id]?.errors[plugins[id].errors.length - 1]
           return last ? <Text size="xs" c="down" style={{ overflowWrap: 'anywhere' }}>{last.at ? `${ago(last.at, lang)}: ` : ''}{last.error}</Text> : <Text size="xs" c="dimmed">–</Text>
         } },
       ]} />
