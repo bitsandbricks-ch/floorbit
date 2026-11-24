@@ -28,7 +28,7 @@ export function ServiceRow({ row: r, showType = false, canRcon = false, onConsol
     mutationFn: () => post(`/api/game-servers/check/${r.game!.id}`, {}),
     onSuccess: () => void qc.invalidateQueries({ queryKey: qk.gameServers }),
   })
-  const bad = r.status === 'down' || r.status === 'unknown'
+  const bad = r.status === 'down'
   return (
     <div className="fb-service-row" role="group" aria-label={r.name} data-status={r.status} data-selected={selected || undefined}
       onClick={onSelect ? (e) => { if (!(e.target as HTMLElement).closest('button, a, input')) onSelect() } : undefined}>
@@ -42,9 +42,14 @@ export function ServiceRow({ row: r, showType = false, canRcon = false, onConsol
                 </UnstyledButton>
               : <Text fw={600} truncate>{r.name}</Text>}
             <Badge size="sm" variant="light" color={TONE[r.status]}>{t(`services.status.${r.status}`)}</Badge>
-            {r.tags?.map((tag) => <Badge key={tag} size="sm" variant="outline" color="gray" tt="none">{tag}</Badge>)}
           </Group>
           <Text size="sm" c="dimmed" ff="monospace" truncate>{showType ? `${t(`services.types.${r.type}`)} · ${r.target}` : r.target}</Text>
+          {/* On their own line, so a long tag never squeezes the name. */}
+          {!!r.tags?.length && (
+            <Group gap={4} mt={4} wrap="wrap">
+              {r.tags.map((tag) => <Badge key={tag} size="xs" variant="outline" color="gray" tt="none">{tag}</Badge>)}
+            </Group>
+          )}
         </div>
       </div>
       <div className="fb-service-value">
@@ -54,7 +59,7 @@ export function ServiceRow({ row: r, showType = false, canRcon = false, onConsol
             {r.unit && <Text size="sm" c="dimmed">{r.unit}</Text>}
           </Group>
         )}
-        {r.note && <Text size="sm" c={bad ? 'down' : r.status === 'warn' && !r.value ? 'warn' : undefined} lineClamp={2}>{r.note}</Text>}
+        {r.note && <Text size="sm" c={bad ? 'down' : r.status === 'warn' && !r.value ? 'warn' : r.status === 'unknown' ? 'dimmed' : undefined} lineClamp={2}>{r.note}</Text>}
       </div>
       <div className="fb-service-spark">{r.points.length > 1 && <Sparkline points={r.points} min={0} />}</div>
       <Group gap={4} className="fb-service-actions" wrap="nowrap" justify="flex-end">

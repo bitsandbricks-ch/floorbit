@@ -240,3 +240,13 @@ def test_ping_says_when_this_machine_does_not_allow_it(monkeypatch):
     monkeypatch.setattr(probes.socket, "socket", refuse)
     with pytest.raises(probes.ProbeError, match="ping"):
         probes.ping("127.0.0.1")
+
+
+def test_demo_answers_own_checks_at_example_addresses_only():
+    from floorbit.builtin_plugins.demo.plugin import Plugin as DemoPlugin
+    ping = DemoPlugin._check_answer({'kind': 'ping', 'host': '192.0.2.40'}, 1_794_650_400)
+    assert ping['lost'] == 0 and ping['ms'] > 0
+    web = DemoPlugin._check_answer({'kind': 'http', 'url': 'https://tournament.example.com/'}, 1_794_650_400)
+    assert web['code'] == 200
+    assert DemoPlugin._check_answer({'kind': 'tcp', 'host': '10.0.0.5', 'port': 22}, 1_794_650_400) is None
+    assert DemoPlugin._check_answer({'kind': 'http', 'url': 'https://www.example.org/'}, 1_794_650_400) is None

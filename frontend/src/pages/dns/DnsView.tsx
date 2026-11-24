@@ -135,15 +135,15 @@ function Board({ data, compact }: { data: DnsData; compact: boolean }) {
                 ]} />
               <Text size="xs" c="dimmed" mt={6}>{t('dns.categoriesText')}</Text>
             </Panel>
-            <Panel id="dns-top" title={t('dns.top')} wide>
-              <DataTable {...table} label={t('dns.top')} rows={data.sites} pageSize={SITE_ROWS} columns={siteColumns(t, lookups).concat(clients)}
-                defaultSort={{ id: 'lookups', desc: true }} empty={<Text size="sm" c="dimmed">{t('dns.noneYet', { count: data.min_clients })}</Text>} />
-            </Panel>
             <Panel id="dns-blocked" title={t('dns.blockedSites')}>
               <DataTable {...table} label={t('dns.blockedSites')} rows={data.blocked_sites} pageSize={PANEL_ROWS} columns={siteColumns(t, blocked)}
                 defaultSort={{ id: 'blocked', desc: true }} empty={<Text size="sm" c="dimmed">{t('dns.noneBlocked')}</Text>} />
             </Panel>
-            <Panel id="dns-new" title={t('dns.new')}>
+            <Panel id="dns-top" title={t('dns.top')} wide>
+              <DataTable {...table} label={t('dns.top')} rows={data.sites} pageSize={SITE_ROWS} columns={siteColumns(t, lookups).concat(clients)}
+                defaultSort={{ id: 'lookups', desc: true }} empty={<Text size="sm" c="dimmed">{t('dns.noneYet', { count: data.min_clients })}</Text>} />
+            </Panel>
+            <Panel id="dns-new" title={t('dns.new')} wide>
               <DataTable {...table} label={t('dns.new')} rows={data.new} pageSize={PANEL_ROWS} columns={siteColumns(t, seen)}
                 defaultSort={{ id: 'seen', desc: true }} empty={<Text size="sm" c="dimmed">{t('dns.noneNew')}</Text>} />
             </Panel>
