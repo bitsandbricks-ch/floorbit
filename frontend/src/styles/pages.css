@@ -50,11 +50,6 @@
 .fb-finding.high { border-left-color: var(--color-down); }
 .fb-finding.medium { border-left-color: var(--color-warn); }
 .fb-evidence { margin: 2px 0; padding-left: 18px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.fb-problem { border-left: 6px solid var(--color-unknown); }
-.fb-problem.down { border-left-color: var(--color-down); }
-.fb-problem.warn { border-left-color: var(--color-warn); }
-/* Muted: the grey edge says it, not faded text, which fell under WCAG contrast. */
-.fb-problem.muted { border-left-style: dashed; }
 
 /* Stats dashboard (pages/Stats.tsx) */
 .fb-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
