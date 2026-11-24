@@ -42,7 +42,7 @@ describe('a problem page (issue #882)', () => {
 
   it('links its open incident instead', async () => {
     open({ [`GET ${path}`]: detail({ incident: 'abc123' }) })
-    expect(await screen.findByRole('link', { name: 'Incident open' })).toHaveAttribute('href', '/incidents?q=id%3Aabc123')
+    expect(await screen.findByRole('link', { name: 'Incident open' })).toHaveAttribute('href', '/incidents/abc123')
     expect(screen.queryByRole('button', { name: 'Make an incident' })).not.toBeInTheDocument()
   })
 

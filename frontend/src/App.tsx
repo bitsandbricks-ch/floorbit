@@ -21,6 +21,7 @@ const PropertiesPage = lazy(() => import('@/pages/inventory/PropertiesPage'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
 const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
+const IncidentPage = lazy(() => import('@/pages/incidents/IncidentPage'))
 const Security = lazy(() => import('@/pages/Security'))
 const Power = lazy(() => import('@/pages/Power'))
 const BoardPage = lazy(() => import('@/pages/power/BoardPage'))
@@ -112,6 +113,7 @@ export default function App() {
             <Route path="/seat-mapping" element={<SeatMapping />} />
             <Route path="/incidents" element={<Incidents />} />
             <Route path="/incidents/qr" element={<HelpdeskQr />} />
+            <Route path="/incidents/:id" element={<IncidentPage />} />
             <Route path="/security" element={<Security />} />
             <Route path="/power" element={<Power />} />
             <Route path="/power/boards/:id" element={<BoardPage />} />
