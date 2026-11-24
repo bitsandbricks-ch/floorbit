@@ -1,2 +1,2 @@
-# Messages that still need German in de-CH.json, one JSON string per line (tests/test_i18n_server.py).
+# Messages that still need German in de-CH/<area>.json, one JSON string per line (tests/test_i18n_server.py).
 # This list may only get shorter.

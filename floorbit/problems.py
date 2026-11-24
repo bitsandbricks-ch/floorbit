@@ -13,11 +13,12 @@ Gathered from what is already watched, without asking anything new:
 - plugins turned on that don't load or keep failing, and installed versions the Marketplace withdrew;
 - alerts LibreNMS pushed through the agent (floorbit/librenms_alerts.py).
 
-Ports that need a look (issue #15: flapping, errors rising, half duplex, online without a check-in)
-seats outside their switch's range (floorbit/seat_ranges.py), seat ports whose config breaks a
-rule (floorbit/port_config.py) and seat ports with more than one machine on them
-(floorbit/port_clients.py) come as a list of their own under
-``attention``, newest first.
+Seat and port trouble (issue #15: flapping, errors rising, half duplex, online without a check-in;
+syslog matches; seats outside their switch's range, floorbit/seat_ranges.py; seat ports whose config
+breaks a rule, floorbit/port_config.py; seat ports with more than one machine, floorbit/port_clients.py;
+open incidents on a seat, issue #1204) comes as a list of its own under ``attention``, newest first,
+each with its ``seat`` when it has one. The page shows it with the rest, after it; ``counts['seats']``
+is how many seats have trouble, counted like the floor plan's "!" (check-in left out).
 
 Each problem is ``{id, kind, level, title, where, since, link}`` with ``level`` ``down`` or ``warn``.
 """
@@ -126,7 +127,8 @@ def _security(may_see_people):
                     'level': 'down' if f['severity'] == 'high' else 'warn',
                     'title': f['title'] if may_see_people else SECURITY_KINDS.get(f['kind'], 'Security finding'),
                     'where': where, 'since': f.get('first_seen'),
-                    'link': '/security' if may_see_people else ''})
+                    'link': '/security' if may_see_people else '',
+                    'seat': f.get('seat') if may_see_people else None})
     return out
 
 
@@ -171,7 +173,21 @@ def _attention():
     for a in (watch.snapshot()['items'] if watch else []):
         link = _on_plan(seat=a.get('seat'), switch=a.get('switch') or a['switch_id'])
         out.append({'id': f"attention:{a['id']}", 'kind': a['kind'], 'level': 'warn', 'title': a['title'],
-                    'where': a['where'], 'since': a['since'], 'link': link, 'switch_id': a['switch_id']})
+                    'where': a['where'], 'since': a['since'], 'link': link, 'switch_id': a['switch_id'],
+                    'seat': a.get('seat')})
+    return out
+
+
+def _seat_incidents():
+    """Open incidents on a seat: the floor plan marks those seats, so Problems lists them too (issue #1204)."""
+    from . import incidents
+    out = []
+    for i in incidents.list_all():
+        if i.get('status') == 'fixed' or not i.get('seat'):
+            continue
+        out.append({'id': f"incident:{i['id']}", 'kind': 'incident', 'level': 'warn', 'title': i['title'],
+                    'where': f"Seat {i['seat']}, on the incident board", 'since': i.get('created_at'),
+                    'link': f"/incidents?q={quote('seat:' + i['seat'])}", 'seat': i['seat']})
     return out
 
 
@@ -238,7 +254,7 @@ def _logs(may_see_people):
         else:
             link = _on_plan(seat=a['seat'], switch=a['device']) if a['seat'] or switch_id else ''
         out.append({'id': a['id'], 'kind': 'log', 'level': 'warn', 'title': title, 'where': where,
-                    'since': a['since'], 'link': link, 'switch_id': switch_id})
+                    'since': a['since'], 'link': link, 'switch_id': switch_id, 'seat': a['seat'] or None})
     return out
 
 
@@ -305,9 +321,10 @@ def current(may_see_people):
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
     attention = sorted(_attention() + _logs(may_see_people) + _ranges() + _port_check()
-                       + _shared_ports(),
+                       + _shared_ports() + _seat_incidents(),
                        key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
+    counts['seats'] = len({p['seat'] for p in items + attention if p.get('seat') and p['kind'] != 'checkin'})
     mutes = [{'switch_id': k, 'kind': _mute_kind(k), **v}
              for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
     return {'problems': items, 'attention': attention, 'counts': counts, 'mutes': mutes,

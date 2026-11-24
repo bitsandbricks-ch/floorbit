@@ -1,7 +1,7 @@
 """German for the server's messages (floorbit/i18n.py, issue #467).
 
 Every message the code can send to a person (``{'error': ...}`` and ``raise SomethingError(...)``)
-needs a German text in floorbit/locales/de-CH/<area>.json (or the older floorbit/locales/de-CH.json).
+needs a German text in floorbit/locales/de-CH/<area>.json.
 The ones still waiting are listed in floorbit/locales/untranslated.txt: that list may only get
 shorter, so a new message without German fails here.
 """
@@ -40,6 +40,9 @@ def messages_in_code():
             if isinstance(node, ast.Dict):
                 candidates = [v for k, v in zip(node.keys, node.values, strict=True)
                               if isinstance(k, ast.Constant) and k.value == 'error']
+            elif (isinstance(node, ast.Call) and ast.unparse(node.func).split('.')[-1] == 'abort'):
+                # abort(403, description=...) answers {"error": description} on the API (floorbit/not_found.py)
+                candidates = [k.value for k in node.keywords if k.arg == 'description']
             elif (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call) and node.exc.args
                   and ast.unparse(node.exc.func).split('.')[-1].endswith(ERROR_ENDINGS)):
                 candidates = [node.exc.args[0]]
@@ -180,3 +183,20 @@ def test_the_area_files_are_loaded(tmp_path, monkeypatch):
         assert i18n.translate('No such rack r1', 'de-CH', ('de-CH.json',)) == 'Kein Rack r1'
     finally:
         i18n.catalog.cache_clear()
+
+
+@pytest.mark.parametrize('name', ['de-CH.json', 'log.de-CH.json'])
+def test_no_single_file_any_more(name):
+    # One big file was the place every pull request added to, so parallel ones conflicted (#1230).
+    assert not os.path.exists(os.path.join(LOCALES, name)), (
+        f'floorbit/locales/{name} is back: run python scripts/split_locales.py to move its texts into '
+        f'floorbit/locales/{name[:-5]}/<area>.json')
+
+
+def test_no_catalog_file_is_left_out_by_gitignore():
+    # .gitignore ignores state files like plugins.json; a texts file named so would never be committed.
+    import subprocess
+    for name in ('de-CH.json', 'log.de-CH.json', 'discord.de-CH.json'):
+        for path in i18n.catalog_paths(name):
+            ignored = subprocess.run(['git', 'check-ignore', '-q', path], cwd=ROOT).returncode == 0
+            assert not ignored, f'{os.path.relpath(path, ROOT)} is ignored by .gitignore: rename it'

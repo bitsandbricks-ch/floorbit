@@ -1,0 +1,9 @@
+{
+ "Cleared the failed login of {} to {} ({})": "Fehlgeschlagene Anmeldung von {} bei {} ({}) zurückgesetzt",
+ "Took over plugin settings from an agent": "Plugin-Einstellungen von einem Agenten übernommen",
+ "{}: kept plugin {} {}": "{}: Plugin {} {} behalten",
+ "{}: refused plugin {} {} ({})": "{}: Plugin {} {} abgelehnt ({})",
+ "{}: rolled back plugin {} {} ({})": "{}: Plugin {} {} zurückgenommen ({})",
+ "{}: updated plugin {} to {}": "{}: Plugin {} auf {} aktualisiert",
+ "{}: {} stopped logging in to {} with {} ({})": "{}: {} meldet sich nicht mehr bei {} mit {} an ({})"
+}

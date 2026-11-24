@@ -1,0 +1,14 @@
+{
+ "Added cable": "Kabel hinzugefügt",
+ "Changed cable": "Kabel geändert",
+ "Ignored a machine": "Gerät ignoriert",
+ "Imported cables": "Kabel importiert",
+ "Imported {} cables": "{} Kabel importiert",
+ "Patched rows {}": "Reihen {} gepatcht",
+ "Removed cable": "Kabel entfernt",
+ "Removed port area": "Port-Bereich entfernt",
+ "Removed port areas": "Port-Bereiche entfernt",
+ "Saved port areas": "Port-Bereiche gespeichert",
+ "Seat {} found on its port": "Platz {} an seinem Port gefunden",
+ "Stopped ignoring a machine": "Gerät nicht mehr ignoriert"
+}

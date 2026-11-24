@@ -62,6 +62,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agent/v1/env-settings` | anyone |  |
 | POST | `/api/agent/v1/flows` | anyone |  |
 | GET | `/api/agent/v1/hello` | anyone |  |
+| POST | `/api/agent/v1/identity` | anyone |  |
 | POST | `/api/agent/v1/key` | anyone |  |
 | POST | `/api/agent/v1/report` | anyone |  |
 | POST | `/api/agent/v1/seat-walk` | anyone |  |
@@ -75,6 +76,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agents/<agent_id>/cert` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/devices` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/history` | `settings.manage` |  |
+| POST | `/api/agents/<agent_id>/identity/reset` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/roll` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/settings` | `settings.manage` |  |
@@ -729,6 +731,18 @@ Source: [`floorbit/blueprints/plan_marks.py`](https://github.com/bitsandbricks-c
 | POST | `/api/plan-marks` | `floorplan.edit` |  |
 | DELETE | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
 | PUT | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
+
+## floorbit.blueprints.plan_presets
+
+Plan presets (floorbit/plan_presets.py): items of the plan kept together to place again.
+
+Source: [`floorbit/blueprints/plan_presets.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan_presets.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/plan-presets` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/plan-presets` | `floorplan.edit` |  |
+| DELETE | `/api/plan-presets/<preset_id>` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.platform
 

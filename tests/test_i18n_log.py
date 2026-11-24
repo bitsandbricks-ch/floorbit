@@ -1,4 +1,4 @@
-"""German for the audit log, the event changelog and the handover (``floorbit/locales/log.de-CH.json``).
+"""German for the audit log, the event changelog and the handover (``floorbit/locales/log.de-CH/``).
 
 Every action the code writes to the audit log needs a German text, so a new one without fails here.
 """
@@ -72,7 +72,7 @@ def actions_in_code():
 @pytest.mark.parametrize('action', sorted(actions_in_code()))
 def test_every_audit_action_has_german(action):
     assert i18n._log_german(action.replace('{}', 'sw-01')) is not None, \
-        f'{action!r} needs a German text in floorbit/locales/log.de-CH.json'
+        f'{action!r} needs a German text in floorbit/locales/log.de-CH/<area>.json'
 
 
 def test_found_the_actions():

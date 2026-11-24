@@ -212,6 +212,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Roles and audit:** every change and sign-in is audited; check-in records are never public.
 - **Agents dial out only;** plugins and agent bundles are signed; keys and signing are the
   maintainer's.
+- **Agents prove who they are twice:** their bearer key and a signature on every request by their
+  own key, pinned in Floorbit. The app checks both itself, the same behind any proxy or none.
 - **No personal data** in code, fixtures, screenshots or logs: use `example.com` and `192.0.2.x`.
 
 ## 6. How we build it

@@ -1,0 +1,8 @@
+{
+ "\"{}\" is not a job name.": "«{}» ist kein Job-Name.",
+ "\"{}\" is not a label name.": "«{}» ist kein Label-Name.",
+ "Prometheus answered {} without JSON": "Prometheus antwortete {} ohne JSON",
+ "Prometheus answers, but has no \"up\" series for job \"{}\".": "Prometheus antwortet, hat aber keine «up»-Reihe für den Job «{}».",
+ "Prometheus: {}": "Prometheus: {}",
+ "Set the Prometheus URL under Settings > Plugins first.": "Setze zuerst die Prometheus-URL unter Einstellungen > Plugins."
+}

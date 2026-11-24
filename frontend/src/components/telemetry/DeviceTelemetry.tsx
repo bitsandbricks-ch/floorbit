@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Code, Group, Loader, Modal, ScrollArea, Stack, Text, VisuallyHidden } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, Loader, Modal, ScrollArea, Stack, Switch, Text, TextInput, VisuallyHidden } from '@mantine/core'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -58,11 +58,11 @@ export function DeviceProblems({ problems }: { problems?: DeviceProblem[] }) {
   return <>{problems.map((p) => <ProblemLine key={`${p.driver}-${p.kind}-${p.vlan ?? ''}`} p={p} />)}</>
 }
 
-function RawLines({ lines }: { lines: string[] }) {
+function RawLines({ lines, height = 360 }: { lines: string[]; height?: number | string }) {
   const { t } = useTranslation()
   if (!lines.length) return <Text size="sm" c="dimmed">{t('telemetry.raw.none')}</Text>
   return (
-    <ScrollArea.Autosize mah={360} type="auto">
+    <ScrollArea.Autosize mah={height} type="auto">
       <Code block style={{ whiteSpace: 'pre', fontSize: 11 }}>{lines.join('\n')}</Code>
     </ScrollArea.Autosize>
   )
@@ -102,8 +102,64 @@ function TestView({ r }: { r: TestResult }) {
   )
 }
 
-/** "Test now" and "Raw data" for one device, with their dialogs. */
-export function DeviceTelemetryActions({ name, setup = false }: { name: string; setup?: boolean }) {
+/** The measurement of one line protocol line: what comes before the first unescaped comma or space. */
+function measurement(line: string): string {
+  const m = /^((?:\\.|[^,\s\\])+)/.exec(line)
+  return m ? m[1] : ''
+}
+
+/** One device's raw lines on a tab of its own: refreshing, filtered by measurement or text, with
+ *  a pause to read and a copy for a bug report. Same API as the dialog (/api/telemetry/raw). */
+export function DeviceRawData({ name }: { name: string }) {
+  const { t } = useTranslation()
+  const [paused, setPaused] = useState(false)
+  const [text, setText] = useState('')
+  const [only, setOnly] = useState<string | null>(null)
+  const raw = useQuery({
+    queryKey: qk.telemetryRaw(name), refetchInterval: paused ? false : 10_000,
+    queryFn: () => get<{ lines: string[]; agent: string }>(`/api/telemetry/raw?name=${encodeURIComponent(name)}`),
+  })
+  if (raw.isLoading) return <Loader size="sm" />
+  if (raw.error) return <Alert color="down">{raw.error.message}</Alert>
+  const lines = raw.data?.lines ?? []
+  const counts = new Map<string, number>()
+  for (const l of lines) counts.set(measurement(l), (counts.get(measurement(l)) ?? 0) + 1)
+  const needle = text.trim().toLowerCase()
+  const shown = lines.filter((l) => (!only || measurement(l) === only) && (!needle || l.toLowerCase().includes(needle)))
+  return (
+    <Stack gap="sm">
+      <Text size="xs" c="dimmed">{paused ? t('telemetry.raw.pausedHelp', { agent: raw.data?.agent ?? '' }) : t('telemetry.raw.help', { agent: raw.data?.agent ?? '' })}</Text>
+      <Group gap="sm" wrap="wrap">
+        <TextInput size="xs" placeholder={t('telemetry.raw.filter')} aria-label={t('telemetry.raw.filter')}
+          value={text} onChange={(e) => setText(e.currentTarget.value)} style={{ flex: '1 1 220px', maxWidth: 360 }} />
+        <Switch size="sm" label={t('telemetry.raw.pause')} checked={paused} onChange={(e) => setPaused(e.currentTarget.checked)} />
+        <CopyButton value={shown.join('\n')}>
+          {({ copied, copy }) => (
+            <Button size="compact-sm" variant="default" onClick={copy} disabled={!shown.length}>
+              {copied ? t('telemetry.raw.copied') : t('telemetry.raw.copy')}
+            </Button>
+          )}
+        </CopyButton>
+        <Text size="xs" c="dimmed">{t('telemetry.raw.shown', { shown: shown.length, count: lines.length })}</Text>
+      </Group>
+      {counts.size > 1 && (
+        <Group gap={4} role="group" aria-label={t('telemetry.raw.measurements')}>
+          {[...counts.entries()].sort((a, b) => b[1] - a[1]).map(([m, n]) => (
+            <Badge key={m} component="button" type="button" tt="none" size="sm" style={{ cursor: 'pointer' }}
+              variant={only === m ? 'filled' : 'default'} aria-pressed={only === m}
+              onClick={() => setOnly(only === m ? null : m)}>{m} {n}</Badge>
+          ))}
+        </Group>
+      )}
+      {lines.length && !shown.length ? <Text size="sm" c="dimmed">{t('telemetry.raw.noMatch')}</Text>
+        : <RawLines lines={shown} height="calc(100vh - 360px)" />}
+    </Stack>
+  )
+}
+
+/** "Test now" and "Raw data" for one device, with their dialogs. ``raw={false}`` where the page
+ *  has a Raw data tab of its own. */
+export function DeviceTelemetryActions({ name, setup = false, raw: rawButton = true }: { name: string; setup?: boolean; raw?: boolean }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState<'test' | 'raw' | 'setup' | null>(null)
   const test = useMutation({ mutationFn: () => post<TestResult>('/api/telemetry/test', { name }) })
@@ -121,7 +177,7 @@ export function DeviceTelemetryActions({ name, setup = false }: { name: string; 
     <>
       <Button size="compact-sm" variant="default" loading={test.isPending}
         onClick={() => { setOpen('test'); test.mutate() }}>{t('telemetry.test.button')}</Button>
-      <Button size="compact-sm" variant="default" onClick={() => setOpen('raw')}>{t('telemetry.raw.button')}</Button>
+      {rawButton && <Button size="compact-sm" variant="default" onClick={() => setOpen('raw')}>{t('telemetry.raw.button')}</Button>}
       {setup && <Button size="compact-sm" variant="default" onClick={() => setOpen('setup')}>{t('telemetry.deviceConfig')}</Button>}
       <Modal opened={open !== null} onClose={() => setOpen(null)} size="xl" title={open ? t(titles[open], { name }) : ''}>
         {open === 'test' && (test.isPending ? <Group gap="xs"><Loader size="sm" /><Text size="sm">{t('telemetry.test.running')}</Text></Group>

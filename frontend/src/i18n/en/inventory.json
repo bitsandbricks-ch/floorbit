@@ -72,7 +72,8 @@
     "settings": "Settings",
     "credentials": "Credentials",
     "telemetry": "Telemetry",
-    "details": "Details"
+    "details": "Details",
+    "raw": "Raw data"
   },
   "icon": {
     "switch": "Switch",

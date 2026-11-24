@@ -14,7 +14,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PageTabs } from '@/components/PageTabs'
 import { usePageTab } from '@/components/pageTab'
-import { DeviceTelemetryActions, DeviceTelemetryStatus } from '@/components/telemetry/DeviceTelemetry'
+import { DeviceRawData, DeviceTelemetryActions, DeviceTelemetryStatus } from '@/components/telemetry/DeviceTelemetry'
 import { EmptyState, Field, LoadingState, Panel } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
@@ -112,12 +112,15 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
   const agentName = agentId ? agents?.find((a) => a.value === agentId)?.label ?? agentId : null
   const telemetryOn = !!dev.resolved.features.telemetry?.on
   const telemetry = useDeviceTelemetry(dev.id)
-  const tabIds = ['overview', 'interfaces', 'telemetry', 'settings', ...(canEdit ? ['credentials'] : [])]
+  // Raw data only where there is any to read: telemetry on, and admins (the API is theirs).
+  const rawTab = telemetryOn && canSetCreds
+  const tabIds = ['overview', 'interfaces', 'telemetry', ...(rawTab ? ['raw'] : []), 'settings', ...(canEdit ? ['credentials'] : [])]
   const [tab, setTab] = usePageTab(tabIds)
   const tabs = [
     { id: 'overview', label: t('inventory.tabs.overview') },
     { id: 'interfaces', label: t('inventory.tabs.interfaces'), count: visible.length },
     { id: 'telemetry', label: t('inventory.tabs.telemetry') },
+    ...(rawTab ? [{ id: 'raw', label: t('inventory.tabs.raw') }] : []),
     { id: 'settings', label: t('inventory.tabs.settings') },
     ...(canEdit ? [{ id: 'credentials', label: t('inventory.tabs.credentials'), alert: dev.blocks.length ? 'down' as const : null }] : []),
   ]
@@ -312,7 +315,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
               {!telemetryOn ? <Text size="sm" c="dimmed">{t('inventory.telemetry.off')}</Text> : canSetCreds ? (
                 <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
                   <DeviceTelemetryStatus name={dev.name} />
-                  <Group gap={6}><DeviceTelemetryActions name={dev.name} setup /></Group>
+                  <Group gap={6}><DeviceTelemetryActions name={dev.name} setup raw={false} /></Group>
                 </Group>
               ) : <Text size="sm" c="dimmed">{t('inventory.page.telemetryAdmins')}</Text>}
             </Panel>
@@ -323,6 +326,12 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                 canEdit={canEdit} busy={save.isPending} onSave={(body) => save.mutate(body)} />
             </Panel>
           </Stack>
+        )}
+
+        {tab === 'raw' && rawTab && (
+          <Panel title={t('telemetry.raw.title', { name: dev.name })}>
+            <DeviceRawData name={dev.name} />
+          </Panel>
         )}
 
         {tab === 'settings' && (

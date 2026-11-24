@@ -298,3 +298,55 @@ def front_door(monkeypatch):
         return real_open(self, *args, **kwargs)
     monkeypatch.setattr(FlaskClient, "open", through_the_door)
     return FRONT_DOOR_KEY
+
+
+# ── agents sign their requests (floorbit/agent_identity.py) ────────────────────────────────────
+
+from tests.agent_keys import AGENT_KEYS, UNSIGNED, agent_csr, agent_signature  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _agents_sign(monkeypatch):
+    """A request a test makes with an agent's key (``Floorbit-Agent-Key`` or the front door's) is
+    signed with that agent's test key, enrolled the first time, as the real agent does. Tests of
+    the signature itself send ``Floorbit-Test-Unsigned`` or their own ``Floorbit-Agent-Signature``."""
+    from flask.testing import EnvironBuilder, FlaskClient
+
+    from floorbit import agent_identity, agent_link
+    AGENT_KEYS.clear()
+    agent_identity._seen.clear()
+    real_open = FlaskClient.open
+
+    def signing_open(self, *args, **kwargs):
+        if args and not isinstance(args[0], str):
+            return real_open(self, *args, **kwargs)
+        headers = dict(kwargs.get("headers") or {})
+        key = headers.get("Floorbit-Agent-Key") or headers.get("Floorbit-Front-Door")
+        m = agent_link.KEY_RE.match(str(key or "").strip())
+        if not m or UNSIGNED in headers or agent_identity.SIGNATURE_HEADER in headers:
+            headers.pop(UNSIGNED, None)
+            if "headers" in kwargs:
+                kwargs["headers"] = headers
+            return real_open(self, *args, **kwargs)
+        agent_id = m.group(1)
+        path = args[0] if args else kwargs.get("path", "/")
+        if path != agent_identity.OPEN_PATHS[1]:
+            with self.application.app_context():
+                pinned = agent_identity.pinned(agent_id)
+            if pinned is None:
+                real_open(self, agent_identity.OPEN_PATHS[1], method="POST",
+                          json={"csr": agent_csr(agent_id)},
+                          headers={"Floorbit-Agent-Key": key, "Floorbit-Agent-Protocol": "2"})
+        builder = EnvironBuilder(self.application, *args, **{k: v for k, v in kwargs.items()
+                                                             if k not in ("buffered", "follow_redirects")})
+        try:
+            req = builder.get_request()
+            query = req.query_string.decode("latin-1")
+            target = req.path + (f"?{query}" if query else "")
+            body = req.get_data()
+        finally:
+            builder.close()
+        headers[agent_identity.SIGNATURE_HEADER] = agent_signature(agent_id, req.method, target, body)
+        kwargs["headers"] = headers
+        return real_open(self, *args, **kwargs)
+    monkeypatch.setattr(FlaskClient, "open", signing_open)

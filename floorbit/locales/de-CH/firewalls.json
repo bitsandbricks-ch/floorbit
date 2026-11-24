@@ -1,0 +1,20 @@
+{
+ "A range has at most {} firewalls.": "Ein Bereich hat höchstens {} Firewalls.",
+ "Down, serves no range": "Down, bedient keinen Bereich",
+ "Floorbit keeps at most {} ranges.": "Floorbit speichert höchstens {} Bereiche.",
+ "No such range.": "Diesen Bereich gibt es nicht.",
+ "One split makes at most {} ranges.": "Eine Aufteilung macht höchstens {} Bereiche.",
+ "Pick at least one firewall for the range.": "Wähle mindestens eine Firewall für den Bereich.",
+ "Pick the firewalls from the inventory (devices with the role firewall).": "Wähle die Firewalls aus dem Inventar (Geräte mit der Rolle Firewall).",
+ "Pick the switches and groups from the inventory.": "Wähle die Switches und Gruppen aus dem Inventar.",
+ "Seats": "Plätze",
+ "Send the switches as a list.": "Schicke die Switches als Liste.",
+ "Serves no range now": "Bedient jetzt keinen Bereich",
+ "The range size is a prefix length from /{} to /{}.": "Die Grösse der Bereiche ist eine Präfixlänge von /{} bis /{}.",
+ "This range comes from {}: change it there and import again.": "Dieser Bereich kommt aus {}: ändere ihn dort und importiere neu.",
+ "Write the range as a network, like 192.0.2.0/27.": "Schreib den Bereich als Netz, etwa 192.0.2.0/27.",
+ "{} is planned already.": "{} ist schon geplant.",
+ "{} prefix(es) skipped: not a network, or a firewall that is not in the inventory.": "{} Prefix(e) übersprungen: kein Netz, oder eine Firewall, die nicht im Inventar ist.",
+ "{} prefix(es) skipped: planned in Floorbit already.": "{} Prefix(e) übersprungen: in Floorbit schon geplant.",
+ "{} without a firewall": "{} ohne Firewall"
+}

@@ -1,0 +1,18 @@
+{
+ "a DHCP server that is not ours": "ein DHCP-Server, der nicht unserer ist",
+ "a DNS server at a seat": "ein DNS-Server an einem Platz",
+ "Anomaly": "Auffälligkeit",
+ "DDoS-like burst towards {}": "DDoS-artige Spitze zu {}",
+ "DHCP server at a seat": "DHCP-Server an einem Platz",
+ "DNS server at a seat": "DNS-Server an einem Platz",
+ "P2P or torrent traffic": "P2P- oder Torrent-Verkehr",
+ "P2P or torrent traffic from seat {}": "P2P- oder Torrent-Verkehr von Platz {}",
+ "Packet burst": "Paketspitze",
+ "Packet burst from seat {}": "Paketspitze von Platz {}",
+ "rogue-dhcp": "Fremder DHCP",
+ "Seat {} answers DHCP": "Platz {} antwortet auf DHCP",
+ "Seat {} answers DNS to other seats": "Platz {} beantwortet DNS für andere Plätze",
+ "{} packets per second": "{} Pakete pro Sekunde",
+ "{} packets per second from {} seats": "{} Pakete pro Sekunde von {} Plätzen",
+ "{} peers in one minute": "{} Peers in einer Minute"
+}

@@ -1,0 +1,12 @@
+{
+ "bad set length": "ungültige Set-Länge",
+ "Category \"{}\" is not one of {}.": "Kategorie «{}» ist keine von {}.",
+ "cut short: {}": "abgeschnitten: {}",
+ "Every service needs a name.": "Jeder Dienst braucht einen Namen.",
+ "not NetFlow or IPFIX (version {})": "kein NetFlow oder IPFIX (Version {})",
+ "Port \"{}\" should look like udp/27015 or tcp/6881-6889": "Port «{}» sollte wie udp/27015 oder tcp/6881-6889 aussehen",
+ "short IPFIX header": "zu kurzer IPFIX-Header",
+ "short v5 header": "zu kurzer v5-Header",
+ "short v9 header": "zu kurzer v9-Header",
+ "too short": "zu kurz"
+}

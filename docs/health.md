@@ -63,7 +63,7 @@ this warns while there are still addresses left:
 - The plugin's own amber and red still win: the forecast only ever adds a warning.
 
 Write `summary` and metric labels in English. On a German page the wall shows the German text from
-`floorbit/locales/de-CH.json` when there is one (Floorbit's own checks and the demo have them), and
+`floorbit/locales/de-CH/` when there is one (Floorbit's own checks and the demo have them), and
 the plugin's own words otherwise.
 
 ## Polling and alerts

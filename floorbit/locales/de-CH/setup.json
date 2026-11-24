@@ -1,0 +1,6 @@
+{
+ "A step is done, skipped or open.": "Ein Schritt ist erledigt, übersprungen oder offen.",
+ "That setup code isn't right. It is in Floorbit's log (docker compose logs floorbit).": "Dieser Einrichtungscode stimmt nicht. Er steht im Log von Floorbit (docker compose logs floorbit).",
+ "There is an account already. Sign in instead.": "Es gibt schon ein Konto. Melde dich stattdessen an.",
+ "Unknown step: {}": "Unbekannter Schritt: {}"
+}

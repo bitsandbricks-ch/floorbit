@@ -1,0 +1,7 @@
+{
+ "NetBox answered {}": "NetBox antwortete {}",
+ "NetBox answered {} for the {} list": "NetBox antwortete {} für die Liste {}",
+ "NetBox has more than {} {}s; stopped": "NetBox hat mehr als {} {}s; abgebrochen",
+ "NetBox sent a \"next\" page on another host; stopped": "NetBox schickte eine «next»-Seite auf einem anderen Host; abgebrochen",
+ "Set the NetBox URL and API token under Settings > NetBox first.": "Setze zuerst die NetBox-URL und das API-Token unter Einstellungen > NetBox."
+}

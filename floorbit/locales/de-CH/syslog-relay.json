@@ -1,0 +1,3 @@
+{
+ "cannot listen for syslog on UDP {}: {}": "kann nicht auf UDP {} auf Syslog hören: {}"
+}

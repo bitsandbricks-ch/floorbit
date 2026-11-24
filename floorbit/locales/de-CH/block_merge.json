@@ -1,5 +1,13 @@
 {
  "A block has at most {} rows": "Ein Block hat höchstens {} Reihen",
  "A row has at most {} seats": "Eine Reihe hat höchstens {} Plätze",
- "Only seat blocks with the same straight rows can be merged side by side": "Nur Sitzblöcke mit den gleichen geraden Reihen können nebeneinander zusammengeführt werden"
+ "Only seat blocks with the same straight rows can be merged side by side": "Nur Sitzblöcke mit den gleichen geraden Reihen können nebeneinander zusammengeführt werden",
+ "Seat blocks in different halls cannot be merged": "Sitzblöcke in verschiedenen Hallen lassen sich nicht zusammenführen",
+ "Seat blocks that are turned differently cannot be merged": "Unterschiedlich gedrehte Sitzblöcke lassen sich nicht zusammenführen",
+ "Seat blocks that name their seats differently cannot be merged": "Sitzblöcke mit unterschiedlicher Platzbenennung lassen sich nicht zusammenführen",
+ "Seat blocks with seats placed freely cannot be merged": "Sitzblöcke mit frei gestellten Plätzen lassen sich nicht zusammenführen",
+ "Select two or more seat blocks to merge": "Wähle zwei oder mehr Sitzblöcke zum Zusammenführen",
+ "The seat blocks are more than {} seats apart": "Die Sitzblöcke sind mehr als {} Plätze voneinander entfernt",
+ "The seat blocks do not line up: move them in line first": "Die Sitzblöcke stehen nicht in einer Linie: richte sie zuerst aus",
+ "The seat blocks overlap: move them apart first": "Die Sitzblöcke überlappen: schiebe sie zuerst auseinander"
 }

@@ -72,7 +72,8 @@
     "settings": "Einstellungen",
     "credentials": "Zugangsdaten",
     "telemetry": "Telemetrie",
-    "details": "Angaben"
+    "details": "Angaben",
+    "raw": "Rohdaten"
   },
   "icon": {
     "switch": "Switch",

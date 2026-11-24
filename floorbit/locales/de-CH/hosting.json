@@ -1,0 +1,9 @@
+{
+ "A tenant is active or suspended.": "Ein Mandant ist aktiv oder gesperrt.",
+ "A tenant name is lower-case letters, digits and -, at most 40.": "Ein Mandanten-Name besteht aus Kleinbuchstaben, Ziffern und -, höchstens 40.",
+ "The address is a URL like https://club.example.com (http only for localhost).": "Die Adresse ist eine URL wie https://club.example.com (http nur für localhost).",
+ "The default tenant runs the platform and can't be suspended.": "Der Standard-Mandant betreibt die Plattform und kann nicht gesperrt werden.",
+ "The domain is a name like example.com.": "Die Domain ist ein Name wie example.com.",
+ "There already is a tenant called {}.": "Es gibt schon einen Mandanten namens {}.",
+ "There is no such tenant.": "Diesen Mandanten gibt es nicht."
+}

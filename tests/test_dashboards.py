@@ -285,6 +285,17 @@ def test_ready_made_dashboards_use_known_widgets(client):
     assert BUILTIN["event"]["public"] is True
 
 
+def test_the_crew_dashboards_are_built_from_tiles_only():
+    """Views draw page sections that don't fit a pane (#1045); the crew's ready-made dashboards use
+    tiles, and the pages keep the actions."""
+    from floorbit.dashboards import BUILTIN
+    for layout_id, layout in BUILTIN.items():
+        if layout_id == "event":   # the public stats wall gets its own tiles next
+            continue
+        kinds = {p["node"]["pane"]["kind"] for s in layout["sections"] for p in s["panels"]}
+        assert kinds <= {"tile", "plan"}, (layout_id, kinds)
+
+
 def test_the_widget_gallery_needs_an_account(client, anon_client, app_module, monkeypatch):
     assert client.get("/widgets").status_code in (200, 503)   # 503: no frontend build in CI
     monkeypatch.setattr(app_module.app.extensions["auth"], "public_read", False)

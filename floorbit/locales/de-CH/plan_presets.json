@@ -1,0 +1,12 @@
+{
+ "A preset holds at least one item": "Ein Baustein enthält mindestens ein Element",
+ "A preset holds at most {} items": "Ein Baustein enthält höchstens {} Elemente",
+ "A preset holds seat blocks, marks, patch panels and power boards": "Ein Baustein enthält Sitzblöcke, Markierungen, Patchpanels und Stromverteiler",
+ "A preset is at most {} kB": "Ein Baustein ist höchstens {} kB gross",
+ "A preset needs a name": "Ein Baustein braucht einen Namen",
+ "A preset name is at most {} characters": "Ein Bausteinname hat höchstens {} Zeichen",
+ "At most {} presets: delete one first": "Höchstens {} Bausteine: lösche zuerst einen",
+ "A preset with this name exists already": "Einen Baustein mit diesem Namen gibt es schon",
+ "No such preset": "Diesen Baustein gibt es nicht",
+ "The preset is not valid": "Der Baustein ist ungültig"
+}

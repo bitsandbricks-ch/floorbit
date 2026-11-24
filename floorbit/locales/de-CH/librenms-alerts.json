@@ -1,0 +1,3 @@
+{
+ "cannot listen for LibreNMS alerts on port {}: {}": "kann auf Port {} nicht auf LibreNMS-Alarme hören: {}"
+}

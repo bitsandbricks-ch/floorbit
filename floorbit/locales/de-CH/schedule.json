@@ -1,0 +1,15 @@
+{
+ "Choose an iCal file (.ics).": "Wähle eine iCal-Datei (.ics).",
+ "Give the item a title.": "Gib dem Eintrag einen Titel.",
+ "No such item.": "Diesen Eintrag gibt es nicht.",
+ "That file is too big for a schedule.": "Diese Datei ist zu gross für ein Programm.",
+ "That isn't an iCal file: it has no BEGIN:VCALENDAR.": "Das ist keine iCal-Datei: es fehlt BEGIN:VCALENDAR.",
+ "The end is before the start.": "Das Ende liegt vor dem Anfang.",
+ "The file has no events Floorbit can read.": "Die Datei hat keine Termine, die Floorbit lesen kann.",
+ "The kinds are: {}.": "Die Arten sind: {}.",
+ "The schedule holds at most {} items.": "Das Programm fasst höchstens {} Einträge.",
+ "Unknown time zone.": "Unbekannte Zeitzone.",
+ "{} is missing.": "{} fehlt.",
+ "{} is not a believable date.": "{} ist kein glaubhaftes Datum.",
+ "{} must be a time in seconds since 1970.": "{} muss eine Zeit in Sekunden seit 1970 sein."
+}

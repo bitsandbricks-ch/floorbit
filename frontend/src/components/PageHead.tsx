@@ -46,7 +46,7 @@ export function PageHead({ title, kicker, desc, actions, icon }: {
           </Stack>
         </Group>
         {actions && (
-          // Phones: one row that scrolls sideways, so the page starts on screen (app.css).
+          // Phones: one row that scrolls sideways, so the page starts on screen (styles/shell.css).
           <Group gap="xs" wrap="wrap" align="center" className="fb-pagehead-actions">
             {actions}
           </Group>

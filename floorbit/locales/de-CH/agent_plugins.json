@@ -1,0 +1,8 @@
+{
+ "bad plugin or kind": "Ungültiges Plugin oder ungültige Art",
+ "No agent plugin {} here.": "Hier gibt es kein Agent-Plugin {}.",
+ "No such bundle here.": "Dieses Paket gibt es hier nicht.",
+ "Send the device and the credential.": "Schick das Gerät und die Zugangsdaten.",
+ "{} has no agent {} {}": "{} hat auf dem Agent kein {} {}",
+ "{} is turned off on this Floorbit.": "{} ist in diesem Floorbit ausgeschaltet."
+}

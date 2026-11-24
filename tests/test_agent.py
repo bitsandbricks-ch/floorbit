@@ -177,12 +177,37 @@ def live_server(app_module):
     server = make_server("127.0.0.1", 0, app_module.app, threaded=True)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"127.0.0.1:{server.server_port}"
+    # A link handler can outlive its test by up to LINK_TAKE: after the next test's reset it would
+    # mark its agent seen and asking again, and that test's calls would wait on a ghost.
+    deadline = time.time() + 15
+    while agent_link.tunnel._links and time.time() < deadline:
+        time.sleep(0.05)
     server.shutdown()
 
 
 def link_to(address, key):
+    """The link as the agent opens it: its key enrolled once, the upgrade signed with it."""
+    import contextlib
+    import json
+    import urllib.error
+    import urllib.request
+
     import simple_websocket
-    return simple_websocket.Client.connect(f"ws://{address}/api/agent/v2/link", headers=head(key))
+
+    from floorbit import agent_link
+    from tests.agent_keys import agent_csr, agent_signature
+    m = agent_link.KEY_RE.match(key)
+    headers = head(key)
+    if m:
+        agent_id = m.group(1)
+        enrol_req = urllib.request.Request(f"http://{address}/api/agent/v1/identity", method="POST",
+                                           data=json.dumps({"csr": agent_csr(agent_id)}).encode(),
+                                           headers={**head(key), "Content-Type": "application/json"})
+        # Already pinned, or a wrong key: the link says so.
+        with contextlib.suppress(urllib.error.HTTPError):
+            urllib.request.urlopen(enrol_req, timeout=5).close()
+        headers["Floorbit-Agent-Signature"] = agent_signature(agent_id, "GET", "/api/agent/v2/link", b"")
+    return simple_websocket.Client.connect(f"ws://{address}/api/agent/v2/link", headers=headers)
 
 
 def test_hello_offers_the_link(client, anon_client):

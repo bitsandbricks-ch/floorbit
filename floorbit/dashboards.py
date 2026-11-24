@@ -148,17 +148,17 @@ BUILTIN = {
         _at(8, 20, 8, 8, _tile('traffic_mix', type='pie')),
         _at(16, 20, 8, 8, _tile('anomalies', type='status')),
     ]}]},
+    # Each check's numbers and mutes stay on the Health page; here, what is up and down.
     'health': {'name': 'Service health', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 6, 3, _tile('service_health', type='stat')),
         _at(6, 0, 6, 3, _tile('switches')),
         _at(12, 0, 6, 3, _tile('lancache')),
         _at(18, 0, 6, 3, _tile('agents')),
-        _at(0, 3, 14, 12, _tile('service_health', type='status')),
+        _at(0, 3, 14, 15, _tile('service_health', type='status')),
         _at(14, 3, 10, 6, _tile('internet_uplinks', type='bar')),
-        _at(14, 9, 10, 6, _tile('down')),
-        # The wall with each check's numbers and mutes, until those have a home of their own (#1045).
-        _at(0, 15, 24, 12, _view('health', expanded=True)),
+        _at(14, 9, 10, 9, _tile('down')),
     ]}]},
+    # IP/MAC search and status updates are actions: they live on their pages (#1045).
     'network': {'name': 'Network', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 6, 3, _tile('switches')),
         _at(6, 0, 6, 3, _tile('seats')),
@@ -169,20 +169,21 @@ BUILTIN = {
         _at(0, 12, 8, 9, _tile('uplinks', type='bar')),
         _at(8, 12, 8, 9, _tile('top_ports', type='bar', limit=10)),
         _at(16, 12, 8, 9, _tile('switch_states', type='status')),
-        _at(0, 21, 5, 6, _tile('wifi_clients')),
-        _at(5, 21, 7, 6, _tile('wifi_aps', type='status')),
-        _at(12, 21, 12, 3, _view('endpoints')),
-        _at(12, 24, 12, 3, _view('network-status')),
+        _at(0, 21, 6, 6, _tile('wifi_clients')),
+        _at(6, 21, 9, 6, _tile('wifi_aps', type='status')),
+        _at(15, 21, 9, 6, _tile('seats_by_block', type='bar')),
     ]}]},
+    # Adding and editing DNS servers, sites and uplinks is on the Services page (#1045).
     'services': {'name': 'Services', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 8, 3, _tile('service_health', type='stat')),
-        _at(8, 0, 8, 3, _tile('lancache')),
-        _at(16, 0, 8, 3, _tile('agents')),
+        _at(0, 0, 6, 3, _tile('service_health', type='stat')),
+        _at(6, 0, 6, 3, _tile('lancache')),
+        _at(12, 0, 6, 3, _tile('dns_lookups')),
+        _at(18, 0, 6, 3, _tile('agents')),
         _at(0, 3, 12, 9, _tile('service_health', type='status')),
         _at(12, 3, 12, 9, _tile('internet_uplinks', type='bar')),
-        # Adding and editing DNS servers, sites and uplinks, and the cache's details (#1045).
-        _at(0, 12, 24, 10, _view('services', expanded=True)),
-        _at(0, 22, 24, 10, _view('lancache', expanded=True)),
+        _at(0, 12, 8, 9, _tile('dns_sites', type='bar', limit=8)),
+        _at(8, 12, 8, 9, _tile('dns_blocked', type='bar', limit=8)),
+        _at(16, 12, 8, 9, _tile('launchers', type='bar')),
     ]}]},
     'traffic': {'name': 'Traffic', 'fit': False, 'sections': [{'panels': [
         _at(0, 0, 6, 3, _tile('bandwidth')),
@@ -198,11 +199,10 @@ BUILTIN = {
         _at(12, 21, 12, 11, _tile('launchers', type='bar')),
         _at(0, 24, 6, 8, _tile('dns_sites', type='bar', limit=8)),
         _at(6, 24, 6, 8, _tile('dns_blocked', type='bar', limit=8)),
-        _at(0, 32, 24, 8, _view('speedtests')),
     ]}]},
+    # Boards and their history are on the Power page.
     'power': {'name': 'Power load', 'fit': False, 'sections': [{'panels': [
-        _at(0, 0, 24, 10, _tile('power_circuits', type='bar')),
-        _at(0, 10, 24, 14, _view('power-load', expanded=True)),
+        _at(0, 0, 24, 14, _tile('power_circuits', type='bar')),
     ]}]},
     # What the old public stats wall showed, for a screen in the hall: off until Settings > Attendee
     # pages turns on the stats wall.

@@ -1,0 +1,11 @@
+{
+ "A group has at least two items": "Eine Gruppe hat mindestens zwei Elemente",
+ "A group has at most {} items": "Eine Gruppe hat höchstens {} Elemente",
+ "A group name has at most {} characters": "Ein Gruppenname hat höchstens {} Zeichen",
+ "A member is a seat block, mark, switch, patch panel or distribution board": "Ein Element ist ein Sitzblock, eine Markierung, ein Switch, ein Patchpanel oder ein Verteiler",
+ "A member needs an id": "Ein Element braucht eine id",
+ "At most {} groups on the plan": "Höchstens {} Gruppen auf dem Plan",
+ "groups is a list": "groups ist eine Liste",
+ "members is a list of items with a kind and an id": "members ist eine Liste von Elementen mit kind und id",
+ "No such group on the plan": "Diese Gruppe gibt es auf dem Plan nicht"
+}
