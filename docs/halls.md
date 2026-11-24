@@ -104,10 +104,16 @@ one is refused with the seat it clashes on. `POST /api/seat-blocks/many` does th
 
 ## Rows in a seat block
 
-A seat block is a group of rows: one row or many. Select a block and its rows are listed in the panel,
-top first, with the space above each:
+A seat block is a group of rows: one row or many. The edit panel has a tab for each part of a block:
+**Block** (name, rotation, mirror and flip, duplicate, lock, delete), **Rows**, **Seats** (seat names,
+seats placed freely, where seat 1 is) and **Items** (everything on the plan). The panel is 440 pixels wide
+(520 on screens 1600 pixels wide and more); drag its left edge to make it wider or narrower, and
+double-click the edge to go back. Floorbit remembers the width in this browser.
 
-- **Add row** puts a row under the others, as long as the last one. The arrows move a row up or down and
+In **Rows**, each row of the block has a small tab, top row first; double-clicking a row on the plan opens
+its tab. The picked row shows the space above it and its fields:
+
+- **+** puts a row under the others, as long as the last one. The arrows move a row earlier or later and
   **×** takes it out. With a letter per row the letters follow the order, so moving row D above row C
   makes it C.
 - **Space above** a row is the aisle between it and the row above, in seats (0 to 20): room for a switch

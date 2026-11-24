@@ -10,6 +10,7 @@ import { type Gap, GAP_MAX, GAP_MIN, cleanGaps, freeGapSpot } from './gaps'
 import type { ItemRef } from './geometry'
 import { mirrorBlock } from './rowShapes'
 import { type BlockRow, MAX_ROWS, MAX_SEATS, type RowShape, SHAPES, moveRow, newRow, withSeats, withShape, withUSide } from './rows'
+import { RowTabs } from './RowTabs'
 import './BlockFields.css'
 
 interface StoredBlock {
@@ -21,8 +22,10 @@ type Change = (ref: ItemRef, before: Record<string, unknown>, after: Record<stri
 /** A seat block's naming and its rows (floorbit/seat_rows.py): a block is a list of rows, each with
  *  its own seats, shape and space above it, from the block as the server keeps it (the drawing has
  *  only cells). Each change is saved on its own, as one step to undo. */
-export function BlockFields({ data, item, onChange, arranging = false, onArrange, picked: pickedProp, onPick }: {
+export function BlockFields({ data, item, onChange, arranging = false, onArrange, picked: pickedProp, onPick, section }: {
   data: SeatViewData; item: ItemRef; onChange: Change
+  /** One of the panel's tabs (Block, Rows, Seats); all of them when left out. */
+  section?: 'block' | 'rows' | 'seats'
   /** The picked row's id, when the editor keeps it (a double-click on the plan picks one). */
   picked?: string | null
   onPick?: (id: string | null) => void
@@ -56,31 +59,46 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
     { rows: block.rows, seat_at: block.seat_at ?? null, ...(flip ? { rotation } : {}) },
     { ...mirrorBlock(block), ...(flip ? { rotation: (rotation + 180) % 360 } : {}) },
   )
+  const show = (part: 'block' | 'rows' | 'seats') => !section || section === part
+  // In the Rows tab a row is always open: the first one until another is picked.
+  const shown = section === 'rows' && open < 0 ? 0 : open
   return (
     <>
-      <Select label={t('plan.edit.block.naming')} allowDeselect={false} value={naming} onChange={(v) => v && save({ naming }, { naming: v })}
-        data={[{ value: 'rows', label: t('plan.edit.block.namingRows') }, { value: 'block', label: t('plan.edit.block.namingBlock') }]} />
-      {naming === 'rows' && (
-        <SimpleGrid cols={2}>
-          <TextInput label={t('plan.edit.block.rowStart')} value={rowStart ?? start} maxLength={2}
-            onChange={(e) => setRowStart(e.currentTarget.value.replace(/[^a-z]/gi, ''))}
-            onBlur={saveStart} onKeyDown={(e) => { if (e.key === 'Enter') saveStart() }} />
-          <Select label={t('plan.edit.block.rowLabels')} allowDeselect={false} value={block.row_labels || 'start'}
-            onChange={(v) => v && save({ row_labels: block.row_labels || 'start' }, { row_labels: v })}
-            data={['start', 'end', 'both', 'none'].map((x) => ({ value: x, label: t(`plan.edit.block.labels.${x}`) }))} />
-        </SimpleGrid>
+      {show('seats') && (
+        <>
+          <Select label={t('plan.edit.block.naming')} allowDeselect={false} value={naming} onChange={(v) => v && save({ naming }, { naming: v })}
+            data={[{ value: 'rows', label: t('plan.edit.block.namingRows') }, { value: 'block', label: t('plan.edit.block.namingBlock') }]} />
+          {naming === 'rows' && (
+            <SimpleGrid cols={2}>
+              <TextInput label={t('plan.edit.block.rowStart')} value={rowStart ?? start} maxLength={2}
+                onChange={(e) => setRowStart(e.currentTarget.value.replace(/[^a-z]/gi, ''))}
+                onBlur={saveStart} onKeyDown={(e) => { if (e.key === 'Enter') saveStart() }} />
+              <Select label={t('plan.edit.block.rowLabels')} allowDeselect={false} value={block.row_labels || 'start'}
+                onChange={(v) => v && save({ row_labels: block.row_labels || 'start' }, { row_labels: v })}
+                data={['start', 'end', 'both', 'none'].map((x) => ({ value: x, label: t(`plan.edit.block.labels.${x}`) }))} />
+            </SimpleGrid>
+          )}
+        </>
       )}
-      <Group gap="xs" wrap="nowrap">
-        <Button size="xs" variant="default" leftSection={<IconFlipVertical size={14} />} onClick={() => turnBlock(false)}>{t('blockRows.mirrorBlock')}</Button>
-        <Button size="xs" variant="default" leftSection={<IconFlipHorizontal size={14} />} onClick={() => turnBlock(true)}>{t('blockRows.flipBlock')}</Button>
-      </Group>
-      <RowList rows={block.rows} name={rowName} picked={picked} onPick={setPicked} onSave={saveRows} />
-      {block.rows.length > 1 && !block.seat_at && <Text size="xs" c="dimmed">{t('blockRows.planHint')}</Text>}
-      {open >= 0 && (
-        <RowFields key={block.rows[open].id} row={block.rows[open]} name={rowName(open)} first={open === 0}
-          onSave={(row) => saveRows(block.rows.map((r, i) => (i === open ? row : r)))} />
+      {show('block') && (
+        <Group gap="xs" wrap="nowrap">
+          <Button size="xs" variant="default" leftSection={<IconFlipVertical size={14} />} onClick={() => turnBlock(false)}>{t('blockRows.mirrorBlock')}</Button>
+          <Button size="xs" variant="default" leftSection={<IconFlipHorizontal size={14} />} onClick={() => turnBlock(true)}>{t('blockRows.flipBlock')}</Button>
+        </Group>
       )}
-      {onArrange && (
+      {show('rows') && (
+        <>
+          {section === 'rows'
+            ? <RowTabs rows={block.rows} name={rowName} picked={block.rows[shown]?.id ?? null} onPick={setPicked} onSave={saveRows} />
+            : <RowList rows={block.rows} name={rowName} picked={picked} onPick={setPicked} onSave={saveRows} />}
+          {block.rows.length > 1 && !block.seat_at && <Text size="xs" c="dimmed">{t('blockRows.planHint')}</Text>}
+          {shown >= 0 && (
+            <RowFields key={block.rows[shown].id} row={block.rows[shown]} name={rowName(shown)} first={shown === 0}
+              onSave={(row) => saveRows(block.rows.map((r, i) => (i === shown ? row : r)))} />
+          )}
+        </>
+      )}
+      {show('seats') && onArrange && (
         <div>
           <Group gap="xs" wrap="nowrap">
             <Button size="xs" variant={arranging ? 'filled' : 'default'} leftSection={<IconArrowsMove size={14} />} aria-pressed={arranging}
@@ -93,8 +111,10 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
           <Text size="xs" c="dimmed" mt={4}>{t(arranging ? 'plan.edit.seats.hint' : block.seat_at ? 'plan.edit.seats.free' : 'plan.edit.seats.intro')}</Text>
         </div>
       )}
-      <Checkbox label={t('plan.edit.block.reverse')} checked={!!block.reverse_numbers}
-        onChange={(e) => save({ reverse_numbers: !!block.reverse_numbers }, { reverse_numbers: e.currentTarget.checked })} />
+      {show('seats') && (
+        <Checkbox label={t('plan.edit.block.reverse')} checked={!!block.reverse_numbers}
+          onChange={(e) => save({ reverse_numbers: !!block.reverse_numbers }, { reverse_numbers: e.currentTarget.checked })} />
+      )}
     </>
   )
 }

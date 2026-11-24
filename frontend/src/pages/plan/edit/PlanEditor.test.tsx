@@ -318,6 +318,8 @@ describe('Plan editor: background and scale', () => {
     const r = renderWithApp(<PlanEditor data={admins} view={{ x: 0, y: 0, w: 1600, h: 1000 }} setView={vi.fn()} layers={layers}
       refresh={() => Promise.resolve()} onHall={() => {}} onShortcuts={() => {}} />)
     fireEvent.pointerDown(r.container.querySelector('[data-item="block:A"]')!, { button: 0, pointerId: 1, clientX: 0, clientY: 0 })
+    // Placing seats freely sits in the block's Seats tab.
+    fireEvent.click(await screen.findByRole('tab', { name: 'Seats' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Place seats freely' }))
     // Seat 4 two seats down: the box grows a seat below the row, so the block's middle moves a seat down.
     const seat = await screen.findByRole('button', { name: 'Seat ADM-4: drag to move' })

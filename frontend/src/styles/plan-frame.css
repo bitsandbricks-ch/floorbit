@@ -54,7 +54,12 @@
 .fb-plan-key .fb-plan-legend + .fb-plan-legend { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-line); }
 
 /* Edit: the tool rail docked on the plan's left edge, the edit panel on the right, full height. */
-.fb-main-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) 340px; }
+/* The panel is wide enough for two fields side by side (Mike: it was crammed at 340 px); its left
+   edge can be dragged (PanelResize.tsx sets --fb-edit-w), and wide screens get more by default. */
+.fb-main-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) var(--fb-edit-w, 440px); }
+@media (min-width: 1600px) {
+  .fb-main-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) var(--fb-edit-w, 520px); }
+}
 .fb-main-full .fb-edit-stage { height: 100%; gap: 0; align-items: stretch; min-height: 0; }
 .fb-main-full .fb-plan-editor .fb-plan-wrap { min-height: 0; }
 .fb-main-full .fb-edit-rail { position: static; border: 0; border-right: 1px solid var(--color-line); border-radius: 0; padding: 8px 6px; overflow-y: auto; }
@@ -63,7 +68,7 @@
   border: 0; border-left: 1px solid var(--color-line); border-radius: 0;
 }
 @media (max-width: 1279.98px) {
-  .fb-main-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) 300px; }
+  .fb-main-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) var(--fb-edit-w, 360px); }
   .fb-main-full .fb-plan-layout.with-inspector { grid-template-columns: minmax(0, 1fr) 320px; }
 }
 /* Too narrow for a side panel: the panel goes under the plan and the plan keeps most of the height. */

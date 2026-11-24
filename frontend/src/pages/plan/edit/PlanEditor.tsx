@@ -1,4 +1,4 @@
-import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, NumberInput, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
+import { ActionIcon, Anchor, Badge, Button, ColorSwatch, Group, Kbd, Menu, NumberInput, Paper, SegmentedControl, Select, Stack, Tabs, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
@@ -61,6 +61,8 @@ import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
 import { type AlignHow, type Guide, alignMoves, distributeMoves, groupsOf, regrouped, snapToGuides, withGroups } from './arrange'
 import { PlanIconSelect } from './IconSelect'
+import { PanelResize } from './PanelResize'
+import { usePanelWidth } from './panelWidth'
 import { blockName } from './blockName'
 
 /** The bends a cable has of its own, also while it is drawn straight. */
@@ -186,6 +188,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const selected = useMemo(() => selection.filter((r) => present.some((p) => sameRef(p, r))), [selection, present])
   // The row picked in a seat block's panel, kept here so a double-click on the plan can pick one.
   const [pickedRow, setPickedRow] = useState<{ block: string; row: string } | null>(null)
+  // The panel's tab (Mike picked tabs and sub tabs): Rows and Seats are there for one seat block.
+  const [tab, setTab] = useState<PanelTab>('edit')
+  const [panelWidth, setPanelWidth] = usePanelWidth()
   const oneBlock = selected.length === 1 && selected[0].kind === 'block' ? selected[0].id : null
   // The selected block as the server keeps it (its rows' spaces), shared with BlockFields.
   const storedBlocks = useQuery({
@@ -541,6 +546,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     if (!id) return
     setSelection([ref])
     setPickedRow({ block: ref.id, row: id })
+    setTab('rows')
   }
 
   const pct = useCallback((p: Point) => { const v = toPct(data.size, p); return { x: Math.round(v.x * 100) / 100, y: Math.round(v.y * 100) / 100 } }, [data.size])
@@ -886,6 +892,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     const x1 = Math.max(...boxes.map((b) => b.x + b.w)), y1 = Math.max(...boxes.map((b) => b.y + b.h))
     return { x: (x0 + x1) / 2, y: (y0 + y1) / 2 }
   }, [drag, selected, shown, unlocked])
+  const tabNow: PanelTab = (tab === 'rows' || tab === 'seats') && !oneBlock ? 'edit' : tab
+  const rowCount = oneBlock ? data.drawing?.shapes.find((b) => b.id === oneBlock)?.row_list?.length ?? 0 : 0
   const rail = useMemo(() => <ToolRail tool={tool} onTool={setTool} onView={onDone} />, [tool, onDone])
   const panel = (<>
     <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
@@ -898,6 +906,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
     {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}
       onClose={() => setCableForm(null)} onDone={(c) => void cableDone(c)} />}
+    <div className="fb-edit-side">
+    <PanelResize width={panelWidth} onWidth={setPanelWidth} />
     <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
       <Stack gap="sm">
         <Group justify="space-between" wrap="nowrap">
@@ -928,63 +938,93 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             </Menu>
           </Group>
         </Group>
-        {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} arranging={arranging === one.id} onArrange={(on) => setArranging(on ? one.id : null)}
-          picked={pickedRow?.block === one.id ? pickedRow.row : null} onPick={(id) => setPickedRow(id ? { block: one.id, row: id } : null)} />}
-        {one?.kind === 'switch' && (
-          <Text size="sm" c="dimmed">{t(data.switches.find((w) => w.id === one.id)?.manual ? 'plan.edit.switch.manualNote' : 'plan.edit.switch.inventoryNote')}</Text>
-        )}
-        {one?.kind === 'panel' && data.panels?.find((p) => p.name === one.id) && (
-          <PanelFields key={`p-${one.id}`} panel={data.panels.find((p) => p.name === one.id)!} onPorts={(a, b) => change(one, { ports: a }, { ports: b })} />
-        )}
-        {one && oneCable && (
-          <CableFields cable={oneCable} onEdit={() => void editCable(one.id)}
-            onCorners={(corners) => void setRoute(oneCable, { points: oneCable.manual ? bendsOf(oneCable) : null, corners }, t('plan.edit.step.corners'))}
-            onReset={() => void setRoute(oneCable, { points: null, corners: 'square' }, t('plan.edit.step.autoRoute'))}
-            onEnds={(change) => void changeEnds(one.id, change)} />
-        )}
-        {boardSel && (
-          <BoardFields key={`b-${boardSel}`} board={boardSel} feedable={feedable.length}
-            onAddCircuit={(name) => addCircuit(boardSel, name)} onFeed={(c) => feed(c, feedable)} />
-        )}
-        {selected.length > 1 && <SharedFields fields={sharedFields(data, selected)} onChange={(f, v) => void changeAll(selected, f, v)} />}
-        {lockedSel.length > 0 && <Text size="xs" c="dimmed">{t('plan.edit.lockedN', { count: lockedSel.length })}</Text>}
-        {movable.length > 1 && (
-          <Arrange count={movable.length} grouped={grouped} canGroup={canGroup}
-            onAlign={(how) => void moveEach(alignMoves(data, movable, how), t('plan.edit.step.align'))}
-            onDistribute={(axis) => void moveEach(distributeMoves(data, movable, axis), t('plan.edit.step.distribute'))}
-            onGroup={(join) => void regroup(selected, join)} />
-        )}
-        {selected.length > 0 && (
-          <QuickActions canTurn={canTurn} locked={movable.length ? allLocked : null} onLock={() => void setLocked(selected, !allLocked)} onDuplicate={() => void duplicate(selected)} onRotate={() => void rotate(selected, false)}
-            onFront={() => void restack(selected, true)} onBack={() => void restack(selected, false)} onFrame={() => frame(selected)} />
-        )}
-        {selected.length > 0 && (
-          <Button variant="light" color="down" leftSection={<IconTrash size={16} />} disabled={allLocked} onClick={() => void remove(selected)}>
-            {t(onlyUnplace ? 'plan.edit.unplace' : 'plan.edit.delete', { count: selected.length })}
-          </Button>
-        )}
-        {!selected.length && tool === 'select' && data.background && (
-          <BackgroundFields opacity={data.background_opacity ?? 1} placing={bgPlacing} seatM={data.seat_m} onPlacing={setBgPlacing}
-            onOpacity={(v) => void changeHall('background', { opacity: data.background_opacity ?? 1 }, { opacity: v }, t('plan.edit.step.background'))}
-            onFit={() => placeBackground(null)} />
-        )}
-        {tool === 'measure' && measured && (() => {
-          const seats = Math.hypot(measured.b.x - measured.a.x, measured.b.y - measured.a.y) / (data.drawing?.cell ?? 32)
-          return (
-            <CalibrateFields seats={seats} seatM={data.seat_m} hasBackground={!!data.background}
-              onScale={(m) => void changeHall('scale', { seat_m: data.seat_m ?? null }, { seat_m: seatMetres(seats, m) }, t('plan.edit.step.scale'))}
-              onFit={(m) => placeBackground(scaleFrame(bgFrame, measured.a, fitFactor(seats, m, data.seat_m!)))} />
-          )
-        })()}
-        {!selected.length && (
-          <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
-        )}
-        {!selected.length && hallIsEmpty(data) && <EmptyHall onStart={() => onDialog('start')} />}
-        {small && !selected.length && <Text size="xs" c="dimmed">{t('plan.edit.smallScreen')}</Text>}
-        <ItemList data={data} groups={groups} selected={selected}
-          onSelect={(refs, add) => pick(add ? [...selected, ...refs.filter((r) => !selected.some((x) => sameRef(x, r)))] : refs)}
-          onRename={(g, name) => void renameGroup(g, name)}
-          onUngroup={(g) => void regroup(g.members, false)} onFrame={frame} />
+        <Tabs value={tabNow} onChange={(v) => v && setTab(v as PanelTab)} keepMounted={false} className="fb-edit-tabs">
+          <Tabs.List grow>
+            <Tabs.Tab value="edit">{t(oneBlock ? 'editPanel.block' : selected.length ? 'editPanel.selection' : 'editPanel.plan')}</Tabs.Tab>
+            {oneBlock && <Tabs.Tab value="rows" rightSection={rowCount ? <Badge size="xs" variant="light" color="gray" circle>{rowCount}</Badge> : null}>{t('editPanel.rows')}</Tabs.Tab>}
+            {oneBlock && <Tabs.Tab value="seats">{t('editPanel.seats')}</Tabs.Tab>}
+            <Tabs.Tab value="items">{t('editPanel.items')}</Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value="edit" pt="md">
+            <Stack gap="sm">
+                {one && <ItemFields key={refKey(one)} section={oneBlock ? 'block' : undefined} data={data} item={one} onChange={change} arranging={arranging === one.id} onArrange={(on) => setArranging(on ? one.id : null)}
+                  picked={pickedRow?.block === one.id ? pickedRow.row : null} onPick={(id) => setPickedRow(id ? { block: one.id, row: id } : null)} />}
+                {one?.kind === 'switch' && (
+                  <Text size="sm" c="dimmed">{t(data.switches.find((w) => w.id === one.id)?.manual ? 'plan.edit.switch.manualNote' : 'plan.edit.switch.inventoryNote')}</Text>
+                )}
+                {one?.kind === 'panel' && data.panels?.find((p) => p.name === one.id) && (
+                  <PanelFields key={`p-${one.id}`} panel={data.panels.find((p) => p.name === one.id)!} onPorts={(a, b) => change(one, { ports: a }, { ports: b })} />
+                )}
+                {one && oneCable && (
+                  <CableFields cable={oneCable} onEdit={() => void editCable(one.id)}
+                    onCorners={(corners) => void setRoute(oneCable, { points: oneCable.manual ? bendsOf(oneCable) : null, corners }, t('plan.edit.step.corners'))}
+                    onReset={() => void setRoute(oneCable, { points: null, corners: 'square' }, t('plan.edit.step.autoRoute'))}
+                    onEnds={(change) => void changeEnds(one.id, change)} />
+                )}
+                {boardSel && (
+                  <BoardFields key={`b-${boardSel}`} board={boardSel} feedable={feedable.length}
+                    onAddCircuit={(name) => addCircuit(boardSel, name)} onFeed={(c) => feed(c, feedable)} />
+                )}
+                {selected.length > 1 && <SharedFields fields={sharedFields(data, selected)} onChange={(f, v) => void changeAll(selected, f, v)} />}
+                {lockedSel.length > 0 && <Text size="xs" c="dimmed">{t('plan.edit.lockedN', { count: lockedSel.length })}</Text>}
+                {movable.length > 1 && (
+                  <Arrange count={movable.length} grouped={grouped} canGroup={canGroup}
+                    onAlign={(how) => void moveEach(alignMoves(data, movable, how), t('plan.edit.step.align'))}
+                    onDistribute={(axis) => void moveEach(distributeMoves(data, movable, axis), t('plan.edit.step.distribute'))}
+                    onGroup={(join) => void regroup(selected, join)} />
+                )}
+                {selected.length > 0 && (
+                  <QuickActions canTurn={canTurn} locked={movable.length ? allLocked : null} onLock={() => void setLocked(selected, !allLocked)} onDuplicate={() => void duplicate(selected)} onRotate={() => void rotate(selected, false)}
+                    onFront={() => void restack(selected, true)} onBack={() => void restack(selected, false)} onFrame={() => frame(selected)} />
+                )}
+                {selected.length > 0 && (
+                  <Button variant="light" color="down" leftSection={<IconTrash size={16} />} disabled={allLocked} onClick={() => void remove(selected)}>
+                    {t(onlyUnplace ? 'plan.edit.unplace' : 'plan.edit.delete', { count: selected.length })}
+                  </Button>
+                )}
+                {!selected.length && tool === 'select' && data.background && (
+                  <BackgroundFields opacity={data.background_opacity ?? 1} placing={bgPlacing} seatM={data.seat_m} onPlacing={setBgPlacing}
+                    onOpacity={(v) => void changeHall('background', { opacity: data.background_opacity ?? 1 }, { opacity: v }, t('plan.edit.step.background'))}
+                    onFit={() => placeBackground(null)} />
+                )}
+                {tool === 'measure' && measured && (() => {
+                  const seats = Math.hypot(measured.b.x - measured.a.x, measured.b.y - measured.a.y) / (data.drawing?.cell ?? 32)
+                  return (
+                    <CalibrateFields seats={seats} seatM={data.seat_m} hasBackground={!!data.background}
+                      onScale={(m) => void changeHall('scale', { seat_m: data.seat_m ?? null }, { seat_m: seatMetres(seats, m) }, t('plan.edit.step.scale'))}
+                      onFit={(m) => placeBackground(scaleFrame(bgFrame, measured.a, fitFactor(seats, m, data.seat_m!)))} />
+                  )
+                })()}
+                {!selected.length && (
+                  <Text size="sm" c="dimmed">{t(tool === 'select' ? 'plan.edit.help' : `plan.edit.hint.${tool}`)}</Text>
+                )}
+                {!selected.length && hallIsEmpty(data) && <EmptyHall onStart={() => onDialog('start')} />}
+                {small && !selected.length && <Text size="xs" c="dimmed">{t('plan.edit.smallScreen')}</Text>}
+            </Stack>
+          </Tabs.Panel>
+          {oneBlock && (
+            <Tabs.Panel value="rows" pt="md">
+              <Stack gap="sm">
+                <ItemFields key={`${refKey(one!)}-rows`} section="rows" data={data} item={one!} onChange={change} arranging={arranging === one!.id} onArrange={(on) => setArranging(on ? one!.id : null)}
+              picked={pickedRow?.block === one!.id ? pickedRow.row : null} onPick={(id) => setPickedRow(id ? { block: one!.id, row: id } : null)} />
+              </Stack>
+            </Tabs.Panel>
+          )}
+          {oneBlock && (
+            <Tabs.Panel value="seats" pt="md">
+              <Stack gap="sm">
+                <ItemFields key={`${refKey(one!)}-seats`} section="seats" data={data} item={one!} onChange={change} arranging={arranging === one!.id} onArrange={(on) => setArranging(on ? one!.id : null)}
+              picked={pickedRow?.block === one!.id ? pickedRow.row : null} onPick={(id) => setPickedRow(id ? { block: one!.id, row: id } : null)} />
+              </Stack>
+            </Tabs.Panel>
+          )}
+          <Tabs.Panel value="items" pt="md">
+                <ItemList data={data} groups={groups} selected={selected}
+                  onSelect={(refs, add) => pick(add ? [...selected, ...refs.filter((r) => !selected.some((x) => sameRef(x, r)))] : refs)}
+                  onRename={(g, name) => void renameGroup(g, name)}
+                  onUngroup={(g) => void regroup(g.members, false)} onFrame={frame} />
+          </Tabs.Panel>
+        </Tabs>
         <Text size="xs" c="dimmed">
           <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
         </Text>
@@ -995,9 +1035,11 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
         <Attribution compact />
       </Stack>
     </Paper>
+    </div>
   </>)
   return (
-    <div className="fb-plan-layout with-inspector fb-plan-editor" onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}>
+    <div className="fb-plan-layout with-inspector fb-plan-editor" onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}
+      style={panelWidth ? ({ '--fb-edit-w': `${panelWidth}px` } as React.CSSProperties) : undefined}>
       <div className="fb-edit-stage">
       {rail}
       <SeatMap data={shown} view={view} setView={setView} filter={filter} selected={null} layers={layers} onSelect={() => {}} cables={cablePlan?.cables} power={power} {...live}
@@ -1128,8 +1170,11 @@ function itemTitle(t: (k: string, o?: Record<string, unknown>) => string, data: 
 
 
 /** One item's fields. Each change is saved on its own (Enter or leaving a text field). */
-function ItemFields({ data, item, onChange, arranging, onArrange, picked, onPick }: {
+type PanelTab = 'edit' | 'rows' | 'seats' | 'items'
+
+function ItemFields({ data, item, onChange, arranging, onArrange, picked, onPick, section }: {
   data: SeatViewData; item: ItemRef
+  section?: 'block' | 'rows' | 'seats'
   onChange: (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => Promise<void>
   arranging?: boolean
   onArrange?: (on: boolean) => void
@@ -1155,12 +1200,15 @@ function ItemFields({ data, item, onChange, arranging, onArrange, picked, onPick
     </div>
   )
   if (shape) {
+    if (section && section !== 'block') {
+      return <BlockFields item={item} data={data} onChange={onChange} arranging={arranging} onArrange={onArrange} picked={picked} onPick={onPick} section={section} />
+    }
     return (
       <>
         <TextInput label={t('plan.edit.name')} value={name} maxLength={40} onChange={(e) => setName(e.currentTarget.value)} onBlur={() => set('name', shape.name, name)}
           onKeyDown={(e) => { if (e.key === 'Enter') set('name', shape.name, name) }} />
         {turn(shape.rotation)}
-        <BlockFields item={item} data={data} onChange={onChange} arranging={arranging} onArrange={onArrange} picked={picked} onPick={onPick} />
+        <BlockFields item={item} data={data} onChange={onChange} arranging={arranging} onArrange={onArrange} picked={picked} onPick={onPick} section={section} />
       </>
     )
   }
