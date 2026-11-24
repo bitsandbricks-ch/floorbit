@@ -22,5 +22,6 @@
  "The first piece keeps at least one seat": "Das erste Teil behält mindestens einen Platz",
  "A row label is at the start, the end, both, hidden or moved": "Eine Reihenbezeichnung steht am Anfang, am Ende, an beiden Enden, ist versteckt oder verschoben",
  "{} is at an [x, y] point in seats": "{} liegt an einem [x, y]-Punkt in Plätzen",
- "{} is at most {} seats out": "{} liegt höchstens {} Plätze draussen"
+ "{} is at most {} seats out": "{} liegt höchstens {} Plätze draussen",
+ "Seat cables plug in automatically, behind the table or on the chair side": "Platzkabel werden automatisch, hinter dem Tisch oder auf der Stuhlseite eingesteckt"
 }

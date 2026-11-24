@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanCable, PlanDrawing } from '@/api/types'
-import { bundles, followPlan, plugAt } from './cableRoute'
+import { followPlan, plugAt, spread } from './cableRoute'
 
 // Block A of tests/test_cable_plan.py: 12 x 2 seats at 40 %, 40 % of a 1600 x 1000 plan (cell 32).
 const size = { w: 1600, h: 1000, cell: 32 }
@@ -34,14 +34,58 @@ describe('followPlan', () => {
   })
 })
 
-describe('bundles', () => {
-  it('counts the cables sharing a run and leaves single cables alone', () => {
-    const run = (x: number) => cable(`A-${x}`, [[36, 20], [36, 35.2], [x, 35.2], [x, 38.4]], { key: `k${x}` })
-    const out = bundles([run(29), run(31), run(33)], size)
-    // Down from the switch all three; along the top three as far as A-3's drop (x 33 %), then fewer.
-    expect(out).toContainEqual({ x1: 576, y1: 200, x2: 576, y2: 352, count: 3, label: true })
-    expect(out).toContainEqual({ x1: 528, y1: 352, x2: 576, y2: 352, count: 3, label: true })
-    expect(out).toHaveLength(2)
+describe('followPlan with lanes', () => {
+  // The same block with its rows touching: the cables run along the seam between them (y 40 %).
+  const laned = {
+    ...drawing,
+    shapes: [{ ...drawing.shapes[0], cells: cells.map((c, i) => ({ ...c, lane: i < 12 ? 16 : -16 })) }],
+  } as unknown as PlanDrawing
+  it('routes into the lane as the server does (tests/test_cable_plan.py)', () => {
+    const c = cable('A-14', [[36, 20], [36, 35.2], [31, 35.2], [31, 41.6]])
+    const [moved] = followPlan([c], { drawing: laned, switches: [at(10, 20)], size })
+    expect(moved.points).toEqual([[10, 20], [27, 20], [27, 40], [31, 40], [31, 41.6]])
+    const [above] = followPlan([{ ...c, points: [[50, 20], ...c.points.slice(1)] }], { drawing: laned, switches: [at(36, 20)], size })
+    expect(above.points).toEqual([[36, 20], [36, 35.2], [27, 35.2], [27, 40], [31, 40], [31, 41.6]])
+  })
+})
+
+describe('spread', () => {
+  const run = (x: number) => cable(`A-${x}`, [[36, 20], [36, 35.2], [x, 35.2], [x, 38.4]], { key: `k${x}` })
+  const px = (c: PlanCable) => c.points.map(([x, y]) => [Math.round((x / 100) * 1600 * 10) / 10, Math.round((y / 100) * 1000 * 10) / 10])
+
+  it('draws cables that share a run side by side, with one count per run', () => {
+    const { cables: out, bundles } = spread([run(29), run(31), run(33)], size, 32)
+    // Down from the switch all three, then along the top: one count on each run.
+    expect(bundles).toHaveLength(2)
+    expect(bundles).toContainEqual({ x1: 576, y1: 200, x2: 576, y2: 352, count: 3 })
+    expect(bundles).toContainEqual({ x1: 528, y1: 352, x2: 576, y2: 352, count: 3 })
+    // Every cable still starts at its switch and ends at its seat...
+    for (const c of out) {
+      expect(c.points[0]).toEqual([36, 20])
+      expect(c.points[c.points.length - 1][1]).toBe(38.4)
+    }
+    // ...but the runs no longer lie on top of each other.
+    const lanes = out.map((c) => px(c)[2][1])
+    expect(new Set(lanes).size).toBe(3)
+  })
+
+  it('lets the cable that turns off first run on the side it turns to', () => {
+    const { cables: out } = spread([run(29), run(31), run(33)], size, 32)
+    // Coming down the right of the block and turning left, A-3 (x 33 %) leaves first: it runs on the
+    // outside of the bend, lowest along the top, so it drops to its seat without crossing the others.
+    const along = (c: PlanCable) => px(c)[2][1]
+    const [a1, a2, a3] = out.map(along)
+    expect(a3).toBeGreaterThan(a2)
+    expect(a2).toBeGreaterThan(a1)
+    // The drop into each seat stays straight down at the seat.
+    for (const c of out) expect(px(c).at(-2)![0]).toBe(px(c).at(-1)![0])
+  })
+
+  it('leaves a lone cable and straight cables alone', () => {
+    const one = run(29)
+    expect(spread([one], size).cables[0]).toBe(one)
+    const straight = { ...run(31), corners: 'straight' as const, points: [[36, 20], [31, 38.4]] as [number, number][] }
+    expect(spread([straight, { ...straight, key: 'other' }], size).bundles).toEqual([])
   })
 })
 

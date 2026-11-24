@@ -12,6 +12,9 @@ export interface BlockRow {
   shift: number
   /** Where people sit, of the way the row runs; '' is the shape's own default. */
   side: '' | 'left' | 'right'
+  /** Where its seat cables plug in: Auto (unset), behind the table, or on the chair side
+   *  (floorbit/cable_lanes.py). */
+  cables?: RowCables
   reverse: boolean
   col_gaps: Gap[]
   /** arc: degrees from the first seat to the last. */
@@ -32,6 +35,8 @@ export interface BlockRow {
   flip?: boolean
 }
 
+export type RowCables = '' | 'behind' | 'chair'
+export const ROW_CABLES: RowCables[] = ['', 'behind', 'chair']
 export type RowShape = 'line' | 'arc' | 'u' | 'l' | 'path'
 export type RowLabel = 'start' | 'end' | 'both' | 'hidden' | 'moved'
 export const ROW_LABELS: RowLabel[] = ['start', 'end', 'both', 'hidden']

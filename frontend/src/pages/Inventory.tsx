@@ -4,7 +4,7 @@ import {
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  IconAlertTriangle, IconCategory, IconDots, IconIcons, IconLock, IconMapPin, IconPlus, IconRefresh, IconSearch,
+  IconAlertTriangle, IconCategory, IconDots, IconIcons, IconLock, IconMapPin, IconPlus, IconRefresh, IconSearch, IconTags,
 } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
@@ -205,6 +205,7 @@ export default function Inventory() {
                 <Menu.Dropdown>
                   {canManage && <Menu.Item leftSection={<IconCategory size={16} />} onClick={typesEditor.open}>{t('inventory.types.open')}</Menu.Item>}
                   <Menu.Item leftSection={<IconIcons size={16} />} onClick={library.open}>{t('inventory.library.open')}</Menu.Item>
+                  <Menu.Item leftSection={<IconTags size={16} />} component={Link} to="/inventory/properties">{t('inventory.propCatalog.open')}</Menu.Item>
                 </Menu.Dropdown>
               </Menu>
             </>

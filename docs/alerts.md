@@ -30,20 +30,31 @@ power layer, the link reader and the Wi-Fi view already know. Anyone with `floor
 and its name in the list of muted switches, open that switch on the floor plan (`/plan`), in its hall.
 
 Seat and port trouble (see [Seats with trouble](#seats-with-trouble) below) is part of the same
-list, after the rest so a switch that is down stays on top. The cards on top count what is down, what
+list. The list is a table: type, the problem (title, where, what it cuts off, its mute), when it
+started and the actions. It is sorted worst first: down, then what needs a look, then what is
+muted, and within each the longest standing first; **Started** and **Problem** sort it the other
+ways. The cards on top count what is down, what
 needs a look, the **seats with trouble** (counted like the floor plan's "!": check-in left out) and
 what is muted.
 
 When the list holds more than one kind, a row above it shows one kind at a time (switches,
 services, power, …) with how many of each; **Seats** shows everything about a seat, whatever its
 kind. The choice is kept in the address (`/problems?kind=power`), so a reload or a shared link shows
-the same. The list comes in pages of 25, the page in the address too (`/problems?page=2`).
+the same. Next to it:
+
+- **Severity**: all, only what is down, or only what needs a look (`?level=down`, `?level=warn`);
+- **Group by**: nothing, type or switch (`?group=device`). Grouped, each type or switch gets its
+  own table under its name with a count; problems on no switch (a service, the forecast) come last
+  under **Not on a switch**;
+- **Hide muted** (`?muted=hide`).
+
+The list comes in pages of 25, the page and the sort in the address too (`/problems?page=2`).
 
 For people who see the [incident board](incidents.md), an offline switch has **Make an incident**:
 one click puts it on the board with the switch and the problem's title. Once an incident for that
 switch is open, the button becomes **Incident open**, which opens the board filtered to the switch (`/incidents?q=switch:sw-a-01`).
 
-**Copy list** in the page header copies the problems shown (after the kind filter) as plain text,
+**Copy list** in the page header copies the problems shown (after the filters) as plain text,
 with the time, the counts and the mutes, for pasting into the crew chat or a ticket.
 
 ## Seats behind a failure

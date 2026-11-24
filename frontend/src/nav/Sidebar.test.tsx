@@ -10,7 +10,8 @@ const pages = [
   { href: '/problems', id: 'problems', label: 'Problems' },
   { href: '/incidents', id: 'incidents', label: 'Incidents' },
   { href: '/widgets', id: 'widgets', label: 'Widgets' },
-  { href: '/topology', id: 'topology', label: 'Topology' },
+  { href: '/firewalls', id: 'firewalls', label: 'Firewalls' },
+  { href: '/plan?view=topology', id: 'topology', label: 'Topology' },
   { href: '/settings', id: 'settings', label: 'Settings' },
   { href: '/settings/agents', id: 'agents', label: 'Local agents' },
   { href: '/brand-new', id: 'brandNew', label: 'Brand new page' },
@@ -50,7 +51,7 @@ describe('sections', () => {
 
   it("lists a row's tabs this account may open, the row's own page first", () => {
     expect(hubTabs(pages, '/incidents/qr')?.tabs.map((p) => p.id)).toEqual(['problems', 'incidents'])
-    expect(hubTabs(pages, '/topology')).toBeNull()   // one tab only: no strip
+    expect(hubTabs(pages, '/firewalls')).toBeNull()   // one tab only: no strip
     expect(hubTabs(pages, '/settings/users')).toBeNull()   // Settings draws its own tabs
   })
 
@@ -58,11 +59,11 @@ describe('sections', () => {
     const mon = [
       { href: '/services', id: 'services', label: 'Services' }, { href: '/dns', id: 'dns', label: 'DNS' },
       { href: '/traffic', id: 'traffic', label: 'Traffic' }, { href: '/games', id: 'games', label: 'Games' },
-      { href: '/topology', id: 'topology', label: 'Topology' }, { href: '/wifi', id: 'wifi', label: 'Wi-Fi' },
+      { href: '/firewalls', id: 'firewalls', label: 'Firewalls' }, { href: '/wifi', id: 'wifi', label: 'Wi-Fi' },
     ]
     expect(hubTabs(mon, '/dns')?.tabs.map((p) => p.id)).toEqual(['services', 'dns'])
     expect(hubTabs(mon, '/games')?.tabs.map((p) => p.id)).toEqual(['traffic', 'games'])
-    expect(hubTabs(mon, '/wifi')?.tabs.map((p) => p.id)).toEqual(['topology', 'wifi'])
+    expect(hubTabs(mon, '/wifi')?.tabs.map((p) => p.id)).toEqual(['firewalls', 'wifi'])
   })
 
   it('lights one row: the longest page that holds the path', () => {
@@ -112,8 +113,10 @@ describe('Sidebar', () => {
   })
 
   it('shows every group open, folds one on a click, and remembers it on this browser', () => {
-    sidebar('/topology')
+    sidebar('/firewalls')
     expect(within(main()).getByRole('link', { name: 'Network' })).toHaveAttribute('aria-current', 'page')
+    // The topology is a view of the floor plan (#1330): "Go to" finds it, the sidebar has no row for it.
+    expect(within(main()).queryByRole('link', { name: 'Topology' })).not.toBeInTheDocument()
     const live = within(main()).getByRole('button', { name: 'Work' })
     expect(live).toHaveAttribute('aria-expanded', 'true')
     expect(within(main()).getByRole('link', { name: 'Settings' })).toBeInTheDocument()

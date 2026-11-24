@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { FirewallList } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
+import { Route, Routes } from 'react-router-dom'
 import Firewalls from './Firewalls'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -68,24 +69,21 @@ describe('Firewalls', () => {
     }))
   })
 
-  it('names the switch groups of an imported range, and sends only those (issue #1062)', async () => {
+  it('names the switch groups of an imported range, and Switches opens its inventory page (#1062, #1312)', async () => {
     const imported = { ...list.ranges[0], source: 'import' as const, plugin: 'netbox', switches: ['g-green'] }
-    const api = fakeFetch({
+    vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [imported] },
-      'GET /api/inventory/groups': { groups: [{ id: 'g-green', name: 'Green' }, { id: 'g-red', name: 'Red' }], tags: [] },
-      'GET /api/inventory': { devices: [{ id: 'd1', name: 'sw-r1', role: 'switch' }, { id: 'd2', name: 'fw-01', role: 'firewall' }], sources: [] },
-      [`PUT /api/firewalls/ranges/${imported.id}`]: { body: { ...imported, switches: ['g-green', 'd1'] } },
-    })
-    vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Firewalls />)
+      'GET /api/inventory/groups': { groups: [{ id: 'g-green', name: 'Green' }], tags: [] },
+    }).fn)
+    renderWithApp(
+      <Routes>
+        <Route path="/" element={<Firewalls />} />
+        <Route path="/inventory/entries/firewall-range/:id" element={<p>Range page {imported.id}</p>} />
+      </Routes>,
+    )
     expect(await screen.findByText('For: Green')).toBeInTheDocument()
     fireEvent.click(await screen.findByRole('button', { name: 'Switches' }))
-    expect(await screen.findByRole('textbox', { name: 'Range' })).toBeDisabled()
-    const [pick] = screen.getAllByLabelText('Switches and switch groups').filter((el) => el.tagName === 'INPUT' && el.getAttribute('type') !== 'hidden')
-    fireEvent.click(pick)
-    fireEvent.click(await screen.findByRole('option', { name: 'sw-r1', hidden: true }))
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ switches: ['g-green', 'd1'] }))
+    expect(await screen.findByText(`Range page ${imported.id}`)).toBeInTheDocument()
   })
 
   it('imports ranges from NetBox and leaves imported ranges to NetBox', async () => {

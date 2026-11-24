@@ -20,7 +20,8 @@ open incidents on a seat, issue #1204) comes as a list of its own under ``attent
 each with its ``seat`` when it has one. The page shows it with the rest, after it; ``counts['seats']``
 is how many seats have trouble, counted like the floor plan's "!" (check-in left out).
 
-Each problem is ``{id, kind, level, title, where, since, link}`` with ``level`` ``down`` or ``warn``.
+Each problem is ``{id, kind, level, title, where, since, link, device}`` with ``level`` ``down`` or ``warn``;
+``device`` is the switch it is on, when it is on one.
 """
 import time
 from urllib.parse import quote
@@ -127,7 +128,7 @@ def _security(may_see_people):
                     'title': f['title'] if may_see_people else SECURITY_KINDS.get(f['kind'], 'Security finding'),
                     'where': where, 'since': f.get('first_seen'),
                     'link': '/security' if may_see_people else '',
-                    'seat': f.get('seat') if may_see_people else None})
+                    'seat': f.get('seat') if may_see_people else None, 'device': f.get('switch') or None})
     return out
 
 
@@ -201,7 +202,7 @@ def _ranges(data):
         return []
     # A range set for the wrong switch is fixed under Firewalls; the rest on the plan.
     return [{'id': f['id'], 'kind': 'range', 'level': 'warn', 'title': f['title'], 'where': f['where'],
-             'since': None, 'switch_id': None,
+             'since': None, 'switch_id': None, 'device': f.get('switch') or None,
              'link': '/firewalls' if f['id'].startswith('range:plan:')
              else _on_plan(seat=f['seat'], switch=f['switch'])}
             for f in found]
@@ -227,7 +228,7 @@ def _shared_ports():
     if not state:
         return []
     return [{'id': f['id'], 'kind': 'shared', 'level': 'warn', 'title': f['title'], 'where': f['where'],
-             'since': None, 'switch_id': None,
+             'since': None, 'switch_id': None, 'device': f.get('switch') or None,
              'link': _on_plan(seat=f['seat'], switch=f['switch']) if f['seat'] else '/cables#port-clients'}
             for f in port_clients.problems(state)]
 
@@ -322,6 +323,11 @@ def current(may_see_people):
                        + _shared_ports() + _seat_incidents(),
                        key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
+    # The switch each one is on, so the page can group by it (issue #883).
+    from . import inventory
+    names = {d['id']: d['name'] for d in inventory.devices(data, include_hidden=True)}
+    for p in items + attention:
+        p.setdefault('device', p.get('name') if p['kind'] == 'switch' else names.get(p.get('switch_id')))
     # One count for every place that shows one (#884): the sidebar shows `down`, the footer `down`
     # and `look`, the bell, tab titles and the handover `total`; seat and port trouble is a look too.
     counts['look'] = counts['warn'] + len(attention)

@@ -733,6 +733,8 @@ export interface Problem {
   /** A LibreNMS alert: what DELETE /api/alerts/librenms/<id> takes when its recovery got lost (issue #951). */
   clear_id?: string
   ports?: string[]
+  /** The switch it is on, when it is on one: what the page groups by (issue #883). */
+  device?: string | null
 }
 /** What to paste into LibreNMS's API transport (GET /api/alerts/librenms/setup). */
 export interface LibreNMSAlertsSetup {
@@ -887,6 +889,9 @@ export interface PlanCell {
   a?: number
   /** The side people sit on, of the way the row runs (left is up on a straight row); missing when not shown. */
   side?: 'left' | 'right'
+  /** Where its seat cables run, across the row from the seat's centre (drawing units, in the block's
+   *  own frame; floorbit/cable_lanes.py); missing when they come along the block instead. */
+  lane?: number
 }
 
 export interface PlanShape {

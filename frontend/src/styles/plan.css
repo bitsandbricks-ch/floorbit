@@ -65,7 +65,7 @@
 .fb-plan .blk { fill: color-mix(in srgb, var(--color-surface) 60%, transparent); stroke: var(--color-line); }
 .fb-plan .hit { fill: transparent; }
 .fb-plan .cell { cursor: pointer; }
-.fb-plan .cell .side { fill: var(--color-muted); pointer-events: none; }
+.fb-plan .cell .chair { fill: var(--color-muted); opacity: 0.85; pointer-events: none; }
 .fb-plan .seat { stroke-width: 2; }
 .fb-plan .s-online { fill: var(--color-up); stroke: color-mix(in srgb, var(--color-up) 70%, var(--color-fg)); }
 .fb-plan .s-offline { fill: var(--color-surface); stroke: var(--color-down); stroke-width: 2.5; }
@@ -145,8 +145,7 @@
 .fb-plan .seatcable.down { stroke-dasharray: 6 4; }
 .fb-plan .seatcable.unread { stroke-dasharray: 1 4; }
 /* Runs shared by several cables: one soft band under them and a count (pages/plan/cableRoute.ts). */
-.fb-plan .cable-bundle { stroke: color-mix(in srgb, var(--mantine-color-blue-6) 22%, transparent); stroke-linecap: round; }
-.fb-plan .cable-count circle { fill: var(--color-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.fb-plan .cable-count circle, .fb-plan .cable-count rect { fill: var(--color-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .fb-plan .cable-count text { fill: var(--color-fg); font-weight: 700; text-anchor: middle; pointer-events: none; }
 /* Where a cable plugs into its seat, drawn over the seats. */
 .fb-plan .plug { fill: var(--mantine-color-blue-6); stroke: var(--color-surface); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
@@ -268,3 +267,4 @@
 .fb-filter-scroll::-webkit-scrollbar { display: none; }
 .fb-edit-rulers .mark line { stroke: var(--color-bit); stroke-width: 1.5; }
 .fb-edit-rulers .mark text { fill: var(--color-bit); font-weight: 600; paint-order: stroke; stroke: var(--color-surface); stroke-width: 4px; stroke-linejoin: round; }
+.fb-plan .seat-ring { fill: none; stroke: var(--color-down); stroke-width: 2px; pointer-events: none; }

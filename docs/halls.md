@@ -135,8 +135,12 @@ its tab. The picked row shows the space above it and its fields:
     apart along the shape and turn with it.
   - **Line up with the other rows**: at the start, the middle or the end of the widest row, plus a
     **Shift** in seats.
-  - **People sit** left or right of the way the row runs, drawn as a bar on that side of each seat. "As
-    the shape says" draws nothing on a straight row and the inside of an arc, U or L.
+  - **Chairs**: people sit left or right of the way the row runs, drawn as a small grey square outside
+    each seat on that side (hidden when zoomed far out). "Shape default" draws nothing on a straight row
+    and the inside of an arc, U or L. **Set chairs automatically** on the Block tab sets them for every
+    straight row ([cables.md](cables.md#where-seat-cables-plug-in)).
+  - **Cables connect** (straight rows): where the row's seat cables plug in, Auto, behind the table or on
+    the chair side ([cables.md](cables.md#where-seat-cables-plug-in)).
   - **Mirror** turns the row over left to right, **Flip** upside down: an L that turns the other way,
     a U that opens downwards. The seats keep their numbers and the people stay on the same side of the
     shape; the shape's handles work as before.
@@ -169,7 +173,7 @@ order, so what named a row by its place still names the same row. Old templates 
 same way.
 
 **In the API** a block has `rows`, top first, each
-`{"id", "seats", "shape", "gap", "align", "shift", "side", "reverse", "col_gaps", "mirror", "flip"}` plus `bend` (arc), `sides`
+`{"id", "seats", "shape", "gap", "align", "shift", "side", "reverse", "col_gaps", "mirror", "flip"}` and optional `cables` (`behind` or `chair`; Auto when left out) plus `bend` (arc), `sides`
 (U and L) or `path` (`[[x, y], ...]` in seats) with optional `pieces` (`[{"path", "seats"}]`, the
 pieces after the first), and optional `label` (`start`, `end`, `both`, `hidden` or `moved` with
 `label_at`, a point in the row's own frame). A new block can still be given as `cols` and `rows` numbers

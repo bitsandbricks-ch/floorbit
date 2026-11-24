@@ -32,7 +32,9 @@ export const TEXT_MAX = 2000
 type Head = { title?: string; hide_title?: boolean }
 
 export type Pane = Head & (
-  | { kind: 'plan'; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode; marks?: MarksMode }
+  | { kind: 'plan'; hall: string; area: Area; preset: PresetId; show: PlanFilter; labels: LabelMode; marks?: MarksMode
+      /** Turn a tall hall to fill a wide box (or the other way round) when that makes it bigger. */
+      turn?: boolean }
   /** ``type`` draws the data as another kind (a status as a count), ``level`` pins S, M or L
    *  instead of picking it from the box (issue #924). ``stack``, ``style`` and ``trend`` say how
    *  bars and lines draw. ``also`` adds up to three more tiles to draw with it, ``group_by`` and

@@ -1,0 +1,13 @@
+{
+  "chairs": "Stühle",
+  "connect": "Kabel stecken",
+  "connectAll": "Kabel stecken, alle Reihen",
+  "connectHint": "Auto steckt auf der Seite mit einer Lücke zur nächsten Reihe ein, nie unter den Stühlen; sonst hinter dem Tisch.",
+  "modes": {
+    "auto": "Auto",
+    "behind": "Hinten",
+    "chair": "Stuhlseite"
+  },
+  "autoChairs": "Stühle automatisch setzen",
+  "autoChairsHint": "Reihen am selben Tisch bekommen die Stühle auf den Aussenseiten; eine Reihe allein schaut zur grösseren Lücke. Nur gerade Reihen; Rückgängig stellt sie zurück."
+}
