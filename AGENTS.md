@@ -8,6 +8,18 @@ This repo follows the [BitsAndBricks handbook](https://github.com/bitsandbricks-
 profile **web-app** (see `.mason.toml`). Read its core chapters and the blocks that profile lists.
 Where this file differs from the handbook, this file wins for this repo.
 
+**Where Floorbit differs from the handbook, on purpose** (Mike, 2026-11-24):
+
+- The default branch is `master`, not `main`.
+- Roles are Admin, Lead, Tech, Viewer and Kiosk, with permissions written `area.action`
+  ([docs/auth.md](docs/auth.md)), not `viewer`/`operator`/`admin`/`owner` with `resource:action`.
+  They follow how an event crew works, down to a Kiosk account for a big screen.
+- The local agent is the only way Floorbit reaches the event network, so it opens SSH to switches,
+  its features are on by default, and it speaks its own protocol. bitsandbricks-ch/floorbit-agent's
+  `AGENTS.md` says why.
+
+Don't propose to change these; a change is Mike's call.
+
 ## What this is
 
 A Flask web app that shows the event's network on a floor plan: switches from NetBox, their live
