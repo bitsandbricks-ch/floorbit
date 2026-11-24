@@ -1,8 +1,6 @@
 // Floorbit's Mantine theme: the shared BitsAndBricks theme (@bitsandbricks/ui) with Floorbit's
 // accent. The accent and the neutrals come from CSS (styles/bnb.css feeds the --bnb-* tokens from
-// Floorbit's own), so presets, light/dark and an admin's colours apply without a rebuild. The hex
-// pair is Bit Green for the few Mantine shades read from the theme; bnb.css wins for the rest.
-// TODO(#1267): accent: 'css' once a release has it (bitsandbricks-ch/ui#9).
+// Floorbit's own), so presets, light/dark and an admin's colours apply without a rebuild (#1267).
 import { Chip, type MantineColorsTuple, type VariantColorsResolver } from '@mantine/core'
 import { createBnbTheme, variantColorResolver as bnbVariantColorResolver } from '@bitsandbricks/ui'
 
@@ -17,7 +15,7 @@ export const variantColorResolver: VariantColorsResolver = (input) => {
 }
 
 export const theme = createBnbTheme({
-  accent: { light: '#047857', dark: '#2ee59d' },
+  accent: 'css',
   overrides: {
     variantColorResolver,
     colors: { bit: shades('accent'), up: shades('ok'), down: shades('err'), trace: shades('info') },

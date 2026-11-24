@@ -1,10 +1,10 @@
 /* The shared @bitsandbricks tokens, fed from Floorbit's own (static/css/brand/tokens.css), so the
    admin's colours, the presets (ops, kiosk) and light/dark keep working on the shared components.
-   The selectors match the package's light and dark blocks and load after them; html:root also
-   beats the accent Mantine writes from the theme (a <style> after this file). */
+   The selectors match the package's light and dark blocks and load after them. The theme takes
+   its accent from here (accent: 'css'), so Mantine writes none of its own. */
 :root,
 :root[data-theme],
-html:root[data-mantine-color-scheme] {
+:root[data-mantine-color-scheme] {
   --bnb-accent-light: var(--color-bit);
   --bnb-accent-dark: var(--color-bit);
   --bnb-on-accent-light: var(--color-on-bit);
