@@ -255,6 +255,9 @@ def create_app(start_background=True):
     # Inventory syncs on a schedule, off until INVENTORY_SYNC_MINUTES is set (docs/inventory.md).
     from . import inventory_schedule
     inventory_schedule.init_app(app, start_background=start_background)
+    # An incident made from a problem hears when the problem ends (docs/incidents.md).
+    from . import problem_watch
+    problem_watch.init_app(app, start_background=start_background)
     # Scheduled backups to an S3 bucket, off until one is set (docs/backup.md).
     from . import s3_backup
     s3_backup.init_app(app, start_background=start_background)
