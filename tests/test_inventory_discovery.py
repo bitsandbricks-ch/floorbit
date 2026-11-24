@@ -498,13 +498,21 @@ def test_each_action_has_its_own_schedule_and_admins_change_it(client, app_modul
     assert lead.put('/api/inventory/discovery/actions/poe', json={'minutes': 30}).status_code == 403
 
 
-def test_the_schedule_runs_only_the_actions_that_are_due(client):
-    from floorbit.store import load_data
+def test_the_schedule_runs_only_the_actions_that_are_due(client, monkeypatch):
+    from floorbit.store import load_data, save_data
+    tick = inventory_discovery.tick
+    # Every app made in this session left an inventory-sync loop that calls tick() each minute
+    # (#1222): keep them out, wait for one that is running, and start from an empty schedule.
+    monkeypatch.setattr(inventory_discovery, 'tick', lambda now=None: None)
+    with inventory_discovery.running:
+        data = load_data()
+        data.pop(inventory_discovery.RUNS, None)
+        save_data(data)
     before = sources.use(Telemetry([], {}))
     try:
-        first = inventory_discovery.tick()
+        first = tick()
         assert set(first['actions']) == set(inventory_discovery.ACTION_IDS)
-        later = inventory_discovery.tick(now=time.time() + 15 * 60 + 5)        # the hourly ones aren't due
+        later = tick(now=time.time() + 15 * 60 + 5)        # the hourly ones aren't due
         assert set(later['actions']) == {'interfaces', 'networks', 'poe', 'routes'}
         assert set(load_data()['inventory_discovery_runs']) == set(inventory_discovery.ACTION_IDS)
     finally:

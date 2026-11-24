@@ -623,6 +623,21 @@ CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switche
               'wifi_aps': lambda user: core.wifi_aps_widget(_lang(), _wifi())}
 
 
+def _event_tile(tile):
+    def build(user):
+        from .. import dashboard_event
+        from .stats_wall import _facts, page_on
+        # Off with the stats wall (Settings > Attendee pages), as /wall.json is.
+        if not page_on():
+            return dashboard_event.off(tile, _lang())
+        return dashboard_event.widget(tile, _lang(), _facts())
+    return build
+
+
+# The Event in numbers, one tile each (#1045).
+CORE_TILES.update({tile: _event_tile(tile) for tile in core._event.TILES})
+
+
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])
 def core_widget(tile):
     refused = _allowed('floorplan.view')

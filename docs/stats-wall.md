@@ -1,9 +1,11 @@
 # Stats wall
 
 The ready-made **Event in numbers** dashboard (`/dashboards/event`) shows the event in numbers, for a
-big screen in the hall and for attendees' phones. It is public, and the **Event in numbers** widget can go
-on any public dashboard too. No account
-is needed. It is off until **Settings > Attendee pages > Stats wall** (or `STATS_WALL=true`) turns it on.
+big screen in the hall and for attendees' phones. It is public, and each of its numbers is a tile of its
+own (**Downloaded**, **Busiest moment**, **Most seats online**, **Busiest hour**, **Most loyal block**,
+**From the LAN cache**, **Top games**) that can go on any public dashboard too. No account
+is needed. It is off until **Settings > Attendee pages > Stats wall** (or `STATS_WALL=true`) turns it on;
+while it is off, those tiles say so.
 
 What it shows, each only once there is something to show:
 

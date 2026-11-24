@@ -85,7 +85,11 @@ LEVELS = ('auto', 's', 'm', 'l')
 # How a tile with several series or segments is drawn; the first of each is the default.
 LOOKS = {'stack': ('none', 'stacked', 'percent'), 'style': ('line', 'area'), 'trend': ('none', 'linear', 'average')}
 # The tiles a public dashboard may show: counts and switch names, nothing about people or the crew.
-PUBLIC_TILES = ('floorbit/w/switches', 'floorbit/w/seats', 'floorbit/w/down')
+PUBLIC_TILES = ('floorbit/w/switches', 'floorbit/w/seats', 'floorbit/w/down',
+                # The stats wall's numbers, public as /wall.json is (dashboard_event.py).
+                *(f'floorbit/w/{t}' for t in ('event_downloaded', 'event_peak', 'event_online_max',
+                                             'event_busiest_hour', 'event_loyal_block', 'event_cache_saved',
+                                             'event_games')))
 # The widgets a public dashboard may show: they read only public feeds (/wall.json).
 PUBLIC_VIEWS = ('event-numbers',)
 _lock = threading.Lock()
@@ -203,7 +207,14 @@ BUILTIN = {
     # What the old public stats wall showed, for a screen in the hall: off until Settings > Attendee
     # pages turns on the stats wall.
     'event': {'name': 'Event in numbers', 'fit': True, 'public': True, 'sections': [{'panels': [
-        _at(0, 0, 24, 12, _view('event-numbers', expanded=True)),
+        _at(0, 0, 6, 6, _tile('seats')),
+        _at(6, 0, 6, 6, _tile('event_downloaded')),
+        _at(12, 0, 6, 6, _tile('event_peak')),
+        _at(18, 0, 6, 6, _tile('event_online_max')),
+        _at(0, 6, 6, 6, _tile('event_busiest_hour')),
+        _at(6, 6, 6, 6, _tile('event_loyal_block')),
+        _at(12, 6, 6, 6, _tile('event_cache_saved')),
+        _at(18, 6, 6, 6, _tile('event_games', type='bar')),
     ]}]},
 }
 

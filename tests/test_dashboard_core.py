@@ -157,7 +157,10 @@ def test_seats_by_block_say_when_nobody_knows():
 
 STATS_TILES = ["bandwidth", "peak", "ports", "uplinks", "top_ports", "traffic_mix", "flow_services", "traffic_areas",
                "anomalies", "service_health", "internet_uplinks", "lancache", "power_circuits", "agents",
-               "dns_lookups", "dns_sites", "dns_blocked", "launchers", "wifi_clients", "wifi_aps"]
+               "dns_lookups", "dns_sites", "dns_blocked", "launchers", "wifi_clients", "wifi_aps",
+               # The Event in numbers (#1045, dashboard_event.py).
+               "event_downloaded", "event_peak", "event_online_max", "event_busiest_hour", "event_loyal_block",
+               "event_cache_saved", "event_games"]
 SNAP = {"now": {"t": 160, "down": 4.8e9, "up": 9.4e9, "online": 93,
                 "ports_up": 138, "ports_down": 598, "ports_errors": 1},
         "peak": {"bps": 16e9, "at": 100}, "day": {"peak_bps": 15.5e9},
