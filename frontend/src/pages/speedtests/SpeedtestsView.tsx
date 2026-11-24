@@ -5,7 +5,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { SpeedSeat, SpeedtestSummary } from '@/api/types'
-import type { ViewProps } from '@/widgets/views'
+import type { ViewProps } from '@/pages/monitoring/pages'
 import { StatTile } from '@/components/StatTile'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 

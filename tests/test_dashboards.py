@@ -47,18 +47,17 @@ def test_other_panes(client):
     body = {"name": "Ops", "cycle": 30, "root": {"split": "column", "sizes": [1, 3], "children": [
         {"pane": {"kind": "tile", "tile": "demo/w/dhcp"}},
         {"split": "row", "children": [
-            {"pane": {"kind": "view", "view": "health", "expanded": True}},
-            {"pane": {"kind": "view", "view": "lancache", "expanded": 0}},
+            {"pane": {"kind": "text", "text": "Doors"}},
             {"pane": {"kind": "empty"}},
         ]},
     ]}}
     saved = client.put("/api/dashboards/ops", json=body).get_json()
     node = saved["sections"][0]["panels"][0]["node"]
     assert node["sizes"] == [25, 75] and saved["cycle"] == 30
-    assert [c["pane"] for c in node["children"][1]["children"][:2]] == [
-        {"kind": "view", "view": "health", "expanded": True}, {"kind": "view", "view": "lancache"}]
-    # The tile dashboard and the page panes are gone: widgets do their job.
-    for gone in ({"kind": "dashboard", "layout": "ops-desk"}, {"kind": "page", "page": "health"}):
+    assert [c["pane"]["kind"] for c in node["children"][1]["children"]] == ["text", "empty"]
+    # The tile dashboard, the page panes and the rich widgets (views) are gone: tiles do their job.
+    for gone in ({"kind": "dashboard", "layout": "ops-desk"}, {"kind": "page", "page": "health"},
+                 {"kind": "view", "view": "health"}):
         assert client.put("/api/dashboards/ops", json={"name": "Ops", "root": {"pane": gone}}).status_code == 400
 
 
@@ -186,8 +185,8 @@ def test_public_dashboards_open_without_an_account(client, anon_client, monkeypa
         {"x": 12, "y": 0, "w": 6, "h": 6, "node": {"pane": {"kind": "tile", "tile": "floorbit/w/down"}}},
         {"x": 12, "y": 6, "w": 6, "h": 6, "node": {"pane": {"kind": "tile", "tile": "floorbit/w/problems",
                                                             "title": "Crew"}}},
-        {"x": 18, "y": 0, "w": 6, "h": 6, "node": {"pane": {"kind": "view", "view": "health"}}},
-        {"x": 18, "y": 6, "w": 6, "h": 6, "node": {"pane": {"kind": "view", "view": "event-numbers"}}},
+        {"x": 18, "y": 0, "w": 6, "h": 6, "node": {"pane": {"kind": "tile", "tile": "floorbit/w/service_health"}}},
+        {"x": 18, "y": 6, "w": 6, "h": 6, "node": {"pane": {"kind": "tile", "tile": "floorbit/w/event_games"}}},
     ]}]}
     assert client.put("/api/dashboards/hall", json=wall).get_json()["public"] is True
     assert anon_client.get("/dashboards/hall").status_code in (200, 503)   # 503: no frontend build in CI
@@ -198,7 +197,7 @@ def test_public_dashboards_open_without_an_account(client, anon_client, monkeypa
     assert panes[0]["kind"] == "plan" and panes[0]["marks"] == "public"   # "all" turns public
     assert panes[1]["tile"] == "floorbit/w/down"
     assert panes[2] == {"kind": "private"} and panes[3] == {"kind": "private", "title": "Crew"}   # by row
-    assert panes[4] == {"kind": "view", "view": "event-numbers"}   # the stats wall is public itself
+    assert panes[4]["tile"] == "floorbit/w/event_games"   # the stats wall's numbers are public themselves
     assert client.get("/api/dashboards/hall/public").get_json()["account"] is True
 
     plan = anon_client.get("/api/dashboards/hall/public/plan").get_json()
@@ -268,30 +267,18 @@ def test_a_screen_account_limited_to_some_dashboards(client, kiosk_client):
 def test_ready_made_dashboards_use_known_widgets(client):
     """The ready-made dashboards replace the old pages and walls; each one saves through clean()
     unchanged, so the editor can open and save it, and the stats wall's is public."""
-    import re
-    from pathlib import Path
-
     from floorbit.dashboards import BUILTIN, clean
-    source = (Path(__file__).parent.parent / "frontend/src/widgets/views.ts").read_text()
-    views = set(re.findall(r"id: '([\w-]+)'", source))
     for layout_id, layout in BUILTIN.items():
         assert clean(layout)["sections"] == layout["sections"], layout_id
-        for sec in layout["sections"]:
-            for panel in sec["panels"]:
-                pane = panel["node"].get("pane", {})
-                if pane.get("kind") == "view":
-                    assert pane["view"] in views, (layout_id, pane)
     assert client.get("/api/dashboards/network").get_json()["builtin"] is True
     assert BUILTIN["event"]["public"] is True
 
 
 def test_the_crew_dashboards_are_built_from_tiles_only():
-    """Views draw page sections that don't fit a pane (#1045); the crew's ready-made dashboards use
+    """Views drew page sections that didn't fit a pane (#1045); the ready-made dashboards use
     tiles, and the pages keep the actions."""
     from floorbit.dashboards import BUILTIN
     for layout_id, layout in BUILTIN.items():
-        if layout_id == "event":   # the public stats wall gets its own tiles next
-            continue
         kinds = {p["node"]["pane"]["kind"] for s in layout["sections"] for p in s["panels"]}
         assert kinds <= {"tile", "plan"}, (layout_id, kinds)
 

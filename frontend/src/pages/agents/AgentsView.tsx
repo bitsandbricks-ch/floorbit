@@ -3,13 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { StatTile } from '@/components/StatTile'
-import type { ViewProps } from '@/widgets/views'
+import type { ViewProps } from '@/pages/monitoring/pages'
 import { AgentCard } from './AgentCard'
 import { agentHref, useAgents, useHalls, type AgentRow } from './data'
 import { stateKey } from './model'
 
-/** The local agents as a view (widgets/views.ts): the four figures, then a card per agent when
- *  expanded (the Local agents page), or only the agents that need a look on a dashboard. */
+/** The body of the Local agents page: the four figures, then a card per agent. */
 export default function AgentsView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const { query, data: d, rows } = useAgents()

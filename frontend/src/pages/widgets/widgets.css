@@ -6,7 +6,6 @@
   /* Fades out at the bottom: a preview, not the whole widget. */
   mask-image: linear-gradient(to bottom, #000 75%, transparent);
 }
-.fb-view-big { min-height: 60vh; }
 /* A saved widget is drawn as the pane a dashboard shows, so it needs a box of its own size. */
 .fb-widget-preview-pane { padding: 0; }
 .fb-widget-preview-pane > .fb-pane, .fb-widget-editor-preview > .fb-pane { height: 100%; }

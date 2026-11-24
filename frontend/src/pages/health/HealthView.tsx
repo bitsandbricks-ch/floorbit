@@ -8,7 +8,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useHealth } from '@/api/queries'
 import type { HealthCheck, HealthKind, HealthWall, State } from '@/api/types'
-import type { ViewProps } from '@/widgets/views'
+import type { ViewProps } from '@/pages/monitoring/pages'
 import { clock } from '@/lib/time'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 

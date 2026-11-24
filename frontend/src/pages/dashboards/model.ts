@@ -48,8 +48,6 @@ export type Pane = Head & (
   /** A saved widget (Widgets page), followed as it changes. ``saved`` comes with the dashboard
    *  (null: removed) and is dropped when saving; "Clone" turns the pane into a tile pane of its own. */
   | { kind: 'widget'; widget: string; saved?: { name: string; pane: Extract<Pane, { kind: 'tile' }> } | null }
-  /** ``expanded``: the widget at its big size right on the grid (a pane that fills a screen). */
-  | { kind: 'view'; view: string; expanded?: boolean }
   | { kind: 'text'; text: string; size: TextSize; align: 'start' | 'center' }
   | { kind: 'empty' }
   /** Only on a public dashboard read signed out: a pane that needs an account (floorbit/dashboards.py). */
@@ -81,7 +79,7 @@ export function rangedUrl(tile: { url: string; ranges?: boolean; marks?: boolean
 }
 
 export type PaneKind = Exclude<Pane['kind'], 'private'>
-export const PANE_KINDS: PaneKind[] = ['plan', 'widget', 'view', 'tile', 'text', 'empty']
+export const PANE_KINDS: PaneKind[] = ['plan', 'widget', 'tile', 'text', 'empty']
 
 export type Split = 'row' | 'column'
 export type Node = { pane: Pane } | { split: Split; sizes: number[]; children: Node[] }
