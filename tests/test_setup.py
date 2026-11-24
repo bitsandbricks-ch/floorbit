@@ -99,6 +99,14 @@ def test_a_floor_plan_filled_before_setup_started_counts_as_set_up(client):
     assert setup.state()["done"] is True
 
 
+def test_a_floor_filled_through_the_api_counts_at_once(client):
+    # #1111: the lab sets everything up through the API and never opens the wizard; no restart.
+    setup.mark_existing()
+    assert client.get("/api/setup").get_json()["done"] is False
+    client.post("/api/switches", json={"name": "sw-a-01", "x": 10, "y": 10})
+    assert client.get("/api/setup").get_json()["done"] is True
+
+
 def test_a_started_setup_stays_open(client):
     setup.mark_existing()
     client.post("/api/setup/steps/netbox", json={"state": "skipped"})
