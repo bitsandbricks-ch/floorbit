@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanBlock, PlanDrawing } from '@/api/types'
 import { blockAlarm } from './blockTop'
+import { blockSums } from './blockSums'
 import { centreOn } from './minimap'
 import type { View } from './model'
 
@@ -21,6 +22,7 @@ export function Minimap({ drawing, blocks, view, fit, setView }: {
     setView(centreOn(view, { x, y }))
   }
   const width = 180
+  const sums = blockSums(drawing.shapes, blocks)
   return (
     <svg ref={svg} className="fb-minimap fb-no-print" role="img" aria-label={t('plan.minimap')}
       viewBox={`${fit.x} ${fit.y} ${fit.w} ${fit.h}`} width={width} height={(width * fit.h) / fit.w} preserveAspectRatio="none"
@@ -29,7 +31,7 @@ export function Minimap({ drawing, blocks, view, fit, setView }: {
       onPointerUp={() => { dragging.current = false }}>
       <rect className="bg" x={fit.x} y={fit.y} width={fit.w} height={fit.h} />
       {drawing.shapes.map((b, i) => (
-        <rect key={i} className={blockAlarm(blocks.find((x) => x.name === b.name)) ? 'blk alarm' : 'blk'}
+        <rect key={i} className={blockAlarm(sums[i]) ? 'blk alarm' : 'blk'}
           x={-b.w / 2} y={-b.h / 2} width={b.w} height={b.h} transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`} />
       ))}
       <rect className="view" x={view.x} y={view.y} width={view.w} height={view.h} vectorEffect="non-scaling-stroke" />
