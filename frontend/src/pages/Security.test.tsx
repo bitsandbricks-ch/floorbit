@@ -38,6 +38,17 @@ describe('Security findings', () => {
     expect(document.title).toBe('Security · Floorbit')
   })
 
+  it('offers the switch terminal instead of Shut port on an uplink (#886)', async () => {
+    const storm: Finding = { ...finding, id: 'demo:storm', kind: 'storm', title: 'Broadcast storm on sw-d-02', seat: '',
+      switch: 'sw-d-02', port: 'Te1/0/1', uplink: 'neighbour' }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/security': list({ findings: [storm] }) }).fn)
+    renderWithApp(<Security />)
+    const card = await screen.findByRole('article', { name: storm.title })
+    expect(within(card).queryByRole('button', { name: 'Shut port' })).toBeNull()
+    expect(within(card).getByRole('link', { name: 'Open the switch' })).toHaveAttribute('href', '/terminal?switch=sw-d-02')
+    expect(within(card).getByText(/Another device is seen on this port/)).toBeInTheDocument()
+  })
+
   it('shuts a finding’s port with the tech’s own login, naming only the finding', async () => {
     const fake = fakeFetch({
       'GET /api/auth/me': me,

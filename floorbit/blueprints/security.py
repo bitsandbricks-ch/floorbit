@@ -32,7 +32,11 @@ def findings():
     user = current_user()
     may_act = not current_app.extensions['auth'].enabled or bool(user and roles.can(user, 'ports.act'))
     info = ports.info(current_app.extensions['floorbit_plugins']) if may_act else {'available': False}
-    return jsonify({**snap, 'shut_ports': ports.shut_ports(), 'can_act': bool(info.get('available')),
+    from .. import uplink_guard
+    data = load_data()
+    found = [{**f, 'uplink': uplink_guard.reason(f['switch'], f['port'], data) if f.get('switch') and f.get('port')
+              else None} for f in snap.get('findings') or []]
+    return jsonify({**snap, 'findings': found, 'shut_ports': ports.shut_ports(), 'can_act': bool(info.get('available')),
                     'needs_login': bool(info.get('needs_login'))})
 
 

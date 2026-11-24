@@ -42,5 +42,11 @@
   },
   "bounce": "Port neu starten",
   "bounceTitle": "Port von {{where}} neu starten",
-  "bounceText": "Der Port geht für ein paar Sekunden aus und wieder an. Der Spieler verliert so lange die Verbindung."
+  "bounceText": "Der Port geht für ein paar Sekunden aus und wieder an. Der Spieler verliert so lange die Verbindung.",
+  "openSwitch": "Switch öffnen",
+  "uplink": {
+    "topology": "Dieser Port ist in der Topologie ein Uplink: Ihn abzuschalten würde jeden Platz hinter dem Switch trennen, darum bietet Floorbit es nicht an. Schau ihn im Switch-Terminal an.",
+    "neighbour": "An diesem Port ist ein anderes Gerät zu sehen (LLDP/CDP): Ihn abzuschalten würde jeden Platz dahinter trennen, darum bietet Floorbit es nicht an. Schau ihn im Switch-Terminal an.",
+    "pattern": "Der Name dieses Ports weist ihn als Uplink aus: Ihn abzuschalten würde jeden Platz dahinter trennen, darum bietet Floorbit es nicht an. Schau ihn im Switch-Terminal an."
+  }
 }

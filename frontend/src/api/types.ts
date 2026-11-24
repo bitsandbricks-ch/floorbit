@@ -637,6 +637,8 @@ export interface Finding {
   last_seen: number
   ack: { by: string | null; at: number } | null
   cleared_at?: number
+  /** Why the port is an uplink (a topology link, an LLDP/CDP neighbour, the uplink pattern): no Shut port then (#886). */
+  uplink?: 'topology' | 'neighbour' | 'pattern' | null
 }
 export interface ShutPort {
   switch: string

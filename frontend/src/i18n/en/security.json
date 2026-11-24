@@ -42,5 +42,11 @@
   },
   "bounce": "Bounce port",
   "bounceTitle": "Bounce the port of {{where}}",
-  "bounceText": "The port goes down for a few seconds and comes back up. The player loses the connection for that time."
+  "bounceText": "The port goes down for a few seconds and comes back up. The player loses the connection for that time.",
+  "openSwitch": "Open the switch",
+  "uplink": {
+    "topology": "This port is an uplink in the topology: shutting it would cut every seat behind the switch, so Floorbit doesn't offer it. Look at it in the switch terminal.",
+    "neighbour": "Another device is seen on this port (LLDP/CDP): shutting it would cut every seat behind it, so Floorbit doesn't offer it. Look at it in the switch terminal.",
+    "pattern": "This port's name marks it as an uplink: shutting it would cut every seat behind it, so Floorbit doesn't offer it. Look at it in the switch terminal."
+  }
 }
