@@ -52,7 +52,8 @@ function Plan({ data, band, mode, label }: { data: WifiData; band: WifiBand; mod
     </>
   )
   return (
-    <MiniPlan drawing={drawing} label={label} className="fb-wifi-plan" defs={heat}>
+    <MiniPlan drawing={drawing} label={label} className="fb-wifi-plan" defs={heat}
+      points={aps.map((ap): [number, number] => [ap.px!, ap.py!])}>
       {aps.map((ap, i) => ap.status === 'up' && radioOn(ap, band) && (
         <circle key={ap.name} cx={ap.px!} cy={ap.py!} r={RADIUS * 2.2} fill={`url(#wifi-heat-${i})`} className="heat" />
       ))}
