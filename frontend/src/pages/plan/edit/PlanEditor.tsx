@@ -135,10 +135,24 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // Cables and patch-panel use follow every change: ask for them again with the plan.
   const refresh = useCallback(() => Promise.all([
     refreshPlan(), qc.invalidateQueries({ queryKey: qk.cablePlan(data.hall) }), qc.invalidateQueries({ queryKey: qk.optionsAll }),
-    qc.invalidateQueries({ queryKey: qk.power }), qc.invalidateQueries({ queryKey: qk.powerMarkers }),
+    // ['power'] covers the markers too; asking for both fetched the markers twice (#1301).
+    qc.invalidateQueries({ queryKey: qk.power }),
     // A block's rows (the panel's list, the bars between rows) follow undo and redo too.
     qc.invalidateQueries({ queryKey: qk.planBlocks(data.hall) }),
   ]), [refreshPlan, qc, data.hall])
+  /** After moving, turning, restacking (``shape`` false) or changing (``shape`` true) ``refs``: reads
+   *  again only what that can change, not every query of the editor (#1301). The plan, and the power
+   *  layer when a board moved; a block's rows when a block changed. A change to anything but blocks
+   *  and marks (names, ports) reads everything. */
+  const refreshFor = useCallback((refs: ItemRef[], shape = false): Promise<unknown> => {
+    const kinds = new Set(refs.map((r) => r.kind))
+    if (shape && [...kinds].some((k) => k !== 'block' && k !== 'mark')) return refresh()
+    return Promise.all([
+      refreshPlan(),
+      kinds.has('board') ? qc.invalidateQueries({ queryKey: qk.power }) : null,
+      shape && kinds.has('block') ? qc.invalidateQueries({ queryKey: qk.planBlocks(data.hall) }) : null,
+    ])
+  }, [refresh, refreshPlan, qc, data.hall])
   const groupsQ = useQuery({ queryKey: qk.planGroups(data.hall), queryFn: () => get<{ groups: PlanGroup[] }>(`/api/plan-groups?hall=${encodeURIComponent(data.hall)}`) })
   const groups = useMemo(() => groupsQ.data?.groups ?? [], [groupsQ.data])
   const saveGroups = useCallback(async (list: PlanGroup[]) => {
@@ -236,15 +250,15 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       await Promise.all(there.map(([r, a]) => send(r, a!)))
       history.push({
         label: label ?? t('plan.edit.step.move', { count: there.length }),
-        undo: () => Promise.all(there.map(([r, , b]) => send(r, b!))).then(refresh),
-        redo: () => Promise.all(there.map(([r, a]) => send(r, a!))).then(refresh),
+        undo: () => Promise.all(there.map(([r, , b]) => send(r, b!))).then(() => refreshFor(moves.map(([r]) => r))),
+        redo: () => Promise.all(there.map(([r, a]) => send(r, a!))).then(() => refreshFor(moves.map(([r]) => r))),
       })
     } catch (err) {
       setPending(null)
       fail(err)
     }
-    await refresh()
-  }, [data, send, history, t, refresh, fail, isLocked])
+    await refreshFor(moves.map(([r]) => r))
+  }, [data, send, history, t, refreshFor, fail, isLocked])
   const moveBy = useCallback((items: ItemRef[], d: Point) => moveEach(items.map((r) => [r, d] as [ItemRef, Point])), [moveEach])
 
   /** Puts the selected items in one new group (``join``) or takes them out of theirs. */
@@ -259,14 +273,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       await saveGroups(after)
       history.push({
         label: t(join ? 'plan.edit.step.group' : 'plan.edit.step.ungroup'),
-        undo: () => saveGroups(before).then(refresh),
-        redo: () => saveGroups(after).then(refresh),
+        undo: () => saveGroups(before),
+        redo: () => saveGroups(after),
       })
     } catch (err) {
       fail(err)
     }
-    await refresh()
-  }, [groups, saveGroups, history, t, refresh, fail])
+  }, [groups, saveGroups, history, t, fail])
 
   const renameGroup = useCallback(async (group: PlanGroup, name: string) => {
     const before = groups, after = groups.map((g) => (g.id === group.id ? { ...g, name } : g))
@@ -430,14 +443,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       await Promise.all(moves.map(([r, , a]) => send(r, a)))
       history.push({
         label: t(up ? 'plan.edit.step.front' : 'plan.edit.step.back'),
-        undo: () => Promise.all(moves.map(([r, b]) => send(r, b))).then(refresh),
-        redo: () => Promise.all(moves.map(([r, , a]) => send(r, a))).then(refresh),
+        undo: () => Promise.all(moves.map(([r, b]) => send(r, b))).then(() => refreshFor(items)),
+        redo: () => Promise.all(moves.map(([r, , a]) => send(r, a))).then(() => refreshFor(items)),
       })
     } catch (err) {
       fail(err)
     }
-    await refresh()
-  }, [snapshot, present, send, history, t, refresh, fail])
+    await refreshFor(items)
+  }, [snapshot, present, send, history, t, refreshFor, fail])
 
   /** R turns the selected blocks, labels and icons a quarter turn each, in place (Shift+R back). */
   const rotate = useCallback(async (items: ItemRef[], back: boolean) => {
@@ -447,14 +460,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       await Promise.all(turns.map(([r, , a]) => send(r, a)))
       history.push({
         label: t('plan.edit.step.rotate', { count: turns.length }),
-        undo: () => Promise.all(turns.map(([r, b]) => send(r, b))).then(refresh),
-        redo: () => Promise.all(turns.map(([r, , a]) => send(r, a))).then(refresh),
+        undo: () => Promise.all(turns.map(([r, b]) => send(r, b))).then(() => refreshFor(turns.map(([r]) => r))),
+        redo: () => Promise.all(turns.map(([r, , a]) => send(r, a))).then(() => refreshFor(turns.map(([r]) => r))),
       })
     } catch (err) {
       fail(err)
     }
-    await refresh()
-  }, [data, send, history, t, refresh, fail, isLocked])
+    await refreshFor(turns.map(([r]) => r))
+  }, [data, send, history, t, refreshFor, fail, isLocked])
 
   /** Gives every selected item that has ``field`` the same value, as one step to undo. Locked items
    *  keep their angle. */
@@ -465,14 +478,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       await Promise.all(edits.map(([r, , a]) => send(r, a)))
       history.push({
         label: t('plan.edit.step.changeAll', { count: edits.length }),
-        undo: () => Promise.all(edits.map(([r, b]) => send(r, b))).then(refresh),
-        redo: () => Promise.all(edits.map(([r, , a]) => send(r, a))).then(refresh),
+        undo: () => Promise.all(edits.map(([r, b]) => send(r, b))).then(() => refreshFor(edits.map(([r]) => r), true)),
+        redo: () => Promise.all(edits.map(([r, , a]) => send(r, a))).then(() => refreshFor(edits.map(([r]) => r), true)),
       })
     } catch (err) {
       fail(err)
     }
-    await refresh()
-  }, [data, send, history, t, refresh, fail, isLocked])
+    await refreshFor(edits.map(([r]) => r), true)
+  }, [data, send, history, t, refreshFor, fail, isLocked])
 
   /** Changes the hall itself (its background's place, its scale), as one step to undo. */
   const changeHall = useCallback(async (path: 'background' | 'scale', before: Record<string, unknown>, after: Record<string, unknown>, label: string) => {
@@ -497,14 +510,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       await send(ref, after)
       history.push({
         label: t('plan.edit.step.change'),
-        undo: () => send(ref, before).then(refresh),
-        redo: () => send(ref, after).then(refresh),
+        undo: () => send(ref, before).then(() => refreshFor([ref], true)),
+        redo: () => send(ref, after).then(() => refreshFor([ref], true)),
       })
     } catch (err) {
       fail(err)
     }
-    await refresh()
-  }, [send, history, t, refresh, fail])
+    await refreshFor([ref], true)
+  }, [send, history, t, refreshFor, fail])
 
   /** The space above row ``i`` dragged to ``gap`` seats: the rows above stay where they are. */
   const moveGap = (ref: ItemRef, shape: PlanShape, rows: BlockRow[], i: number, gap: number) => {
