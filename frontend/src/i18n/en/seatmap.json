@@ -71,5 +71,8 @@
     "http": "HTTP JSON endpoint",
     "ports": "Cables and check-ins",
     "network": "Switch MAC tables"
-  }
+  },
+  "block": "Block",
+  "source": "Source",
+  "any": "Any"
 }

@@ -27,6 +27,10 @@ you leave empty on a hand entry is filled from the other sources. The page shows
 each field, so you can see why a seat has the IP it has. Removing a hand entry brings the other
 sources' values back.
 
+The table pages, sorts on each column, and narrows by search and by **Block**, **Switch** and
+**Source** (each shown once there is more than one to pick from). The **From** column shows the
+first source and "+n" for the others; hovering names them all.
+
 One port belongs to one seat: a hand entry can't take a port another hand entry has.
 
 ## Finding a port by MAC

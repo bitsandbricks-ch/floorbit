@@ -33,4 +33,11 @@ describe('Endpoints', () => {
     expect(screen.getByText('Seat B-2')).toBeInTheDocument()
     expect(screen.getByText('Nothing like it in the last 7 days.')).toBeInTheDocument()
   })
+
+  it('opens with the newest sightings before anyone searches (issue #872)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': crew, 'GET /api/endpoints': { rows: [row], status } }).fn)
+    renderWithApp(<Endpoints />, '/endpoints')
+    expect(await screen.findByRole('link', { name: 'sw-a-01 Gi1/0/1' })).toBeInTheDocument()
+    expect(screen.getByText(/The newest sightings/)).toBeInTheDocument()
+  })
 })

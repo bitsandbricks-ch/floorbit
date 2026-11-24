@@ -71,5 +71,8 @@
     "http": "HTTP-JSON-Endpunkt",
     "ports": "Kabel und Check-ins",
     "network": "MAC-Tabellen der Switches"
-  }
+  },
+  "block": "Block",
+  "source": "Quelle",
+  "any": "Alle"
 }
