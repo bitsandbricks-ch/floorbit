@@ -1,0 +1,10 @@
+{
+  "_metadata": {
+    "description": "Example of the seat mapping file. Copy it to seats.json next to data.json (or set SEAT_SOURCE_JSON_PATH) and list json in SEAT_SOURCES. The real file holds attendees' names and IPs: keep it out of the repository."
+  },
+  "seats": {
+    "A-1": {"username": "player-01", "ip_address": "192.0.2.11"},
+    "A-2": {"username": "player-02", "ip_address": "192.0.2.12"},
+    "B-1": {"username": "player-03", "ip_address": "192.0.2.21"}
+  }
+}

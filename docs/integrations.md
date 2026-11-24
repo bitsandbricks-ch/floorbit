@@ -142,7 +142,7 @@ error); the rest of the answer is still there.
 
 | Source | What it reads |
 |---|---|
-| `json` | `SEAT_SOURCE_JSON_PATH` (default `seats.json`), the current behaviour |
+| `json` | `SEAT_SOURCE_JSON_PATH` (default `seats.json` next to `data.json`; `seats.example.json` shows the shape). Never read in demo mode. |
 | `http` | `SEAT_SOURCE_HTTP_URL` returning `{"seats": {"A-1": {"username": "...", "ip_address": "..."}}}`, optional `SEAT_SOURCE_HTTP_TOKEN` (Bearer) |
 | `checkin` | the seat check-in page below |
 

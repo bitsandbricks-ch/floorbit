@@ -1,7 +1,7 @@
 """Pluggable sources for the seat → user / IP mapping.
 
 The floor plan needs, per seat number, who sits there and which IP their
-machine has. Today that is the hand-edited ``seats.json``. Later it can come
+machine has. One option is a hand-edited ``seats.json`` in the state folder. Others can come
 from a DHCP server, an event/registration backend, or anything else, without
 touching the rest of the app: write a ``SeatSource`` subclass, register it,
 and list it in ``SEAT_SOURCES``.
@@ -24,13 +24,15 @@ Built-in sources:
 * ``ports``    the switch port of each seat from the cables and the ports check-ins found (always on)
 * ``network``  the MAC and IP on each seat's port, from the last read of the switches' MAC tables
                (always on). The port is the key; an IP or MAC from a file is only a hint.
-* ``json``     reads ``SEAT_SOURCE_JSON_PATH`` (default ``seats.json``)
+* ``json``     reads ``SEAT_SOURCE_JSON_PATH`` (default ``seats.json`` next to data.json; never in
+               demo mode). ``seats.example.json`` in the repository shows the shape.
 * ``http``     GETs ``SEAT_SOURCE_HTTP_URL``; the response must be the shape
                above, either at the top level or under ``"seats"``. Optional
                ``SEAT_SOURCE_HTTP_TOKEN`` is sent as a Bearer token.
 * ``checkin``  the seat check-in page (see ``checkin.py``)
 """
 import json
+import os
 import threading
 import time
 
@@ -57,9 +59,13 @@ class JsonFileSource(SeatSource):
     label = 'seats.json file'
 
     def path(self):
-        return config.get('SEAT_SOURCE_JSON_PATH', 'seats.json')
+        # Next to data.json, not in the repository: the file holds attendees' names and IPs (#871).
+        from floorbit import store
+        return config.get('SEAT_SOURCE_JSON_PATH') or os.path.join(store.state_folder(), 'seats.json')
 
     def fetch(self):
+        if os.environ.get('FLOORBIT_DEMO', '').strip().lower() in ('1', 'true', 'yes', 'on'):
+            return {}   # the demo hall's made-up players only, never a real file next to it
         try:
             with open(self.path()) as f:
                 data = json.load(f)
