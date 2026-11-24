@@ -346,7 +346,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                 canEdit={canEdit} busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
             </Panel>
             <Panel title={t('inventory.features.title')}>
-              <FeaturesEditor catalog={overview.features} value={dev.features ?? {}} resolved={dev.resolved.features}
+              <FeaturesEditor key={JSON.stringify(dev.features)} catalog={overview.features} value={dev.features ?? {}} resolved={dev.resolved.features}
                 canEdit={canEdit} busy={save.isPending} onSave={(features) => save.mutate({ features })} />
             </Panel>
           </Stack>

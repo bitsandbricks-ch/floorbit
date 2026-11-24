@@ -245,8 +245,10 @@ export function ThemeHint({ current }: { current: (key: string) => unknown }) {
   return <TestLine result={{ ok, message: t(ok ? 'settings.contrastOk' : 'settings.contrastLow', { ratio: ratio.toFixed(1) }) }} />
 }
 
-export function SaveBar({ count, bad, saving, error, saved, onDiscard }: {
-  count: number; bad: boolean; saving: boolean; error: Error | null; saved: string | null; onDiscard: () => void
+/** "N unsaved changes, Discard, Save": the one way pages with settings save (#993). Inside a form it
+ *  submits it; ``onSave`` is for editors that sit inside another page's form or none. */
+export function SaveBar({ count, bad = false, saving, error = null, saved = null, onDiscard, onSave }: {
+  count: number; bad?: boolean; saving: boolean; error?: Error | null; saved?: string | null; onDiscard: () => void; onSave?: () => void
 }) {
   const { t } = useTranslation()
   if (!count && !saved && !error) return null
@@ -259,7 +261,8 @@ export function SaveBar({ count, bad, saving, error, saved, onDiscard }: {
         {count > 0 && (
           <Group gap="xs">
             <Button variant="default" onClick={onDiscard}>{t('settings.discard')}</Button>
-            <Button type="submit" loading={saving} disabled={bad}>{t('settings.save')}</Button>
+            {onSave ? <Button loading={saving} disabled={bad} onClick={onSave}>{t('settings.save')}</Button>
+              : <Button type="submit" loading={saving} disabled={bad}>{t('settings.save')}</Button>}
           </Group>
         )}
       </Group>

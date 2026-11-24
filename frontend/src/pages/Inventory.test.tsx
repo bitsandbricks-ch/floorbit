@@ -340,10 +340,12 @@ describe('Inventory page', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     app('/inventory/devices/netbox-12?tab=telemetry')
-    await screen.findByRole('button', { name: 'Save' })     // once it knows who may edit
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Off' })).toBeEnabled())     // once it knows who may edit
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()     // nothing changed yet
     fireEvent.click(screen.getByRole('radio', { name: 'Off' }))
     // Off: nothing left to set up.
     expect(screen.queryByLabelText('MAC tables')).toBeNull()
+    expect(screen.getByText('1 unsaved change')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
       properties: detail.properties ?? {}, features: { ...detail.features, telemetry: false },

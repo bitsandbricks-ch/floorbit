@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { TFunction } from 'i18next'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
+import { useLeaveWarning } from '@/components/useLeaveWarning'
 
 type FieldType = 'url' | 'text' | 'secret' | 'list' | 'bool' | 'int' | 'choice' | 'color' | 'image'
 export type Field = {
@@ -84,12 +85,7 @@ export function useSettingsEditor({ enabled = true }: { enabled?: boolean } = {}
     return !!f && v !== null && invalid(f, v)
   })
 
-  useEffect(() => {
-    if (!count) return
-    const warn = (e: BeforeUnloadEvent) => { e.preventDefault() }
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [count])
+  useLeaveWarning(count > 0)
 
   const setField = (f: Field, v: unknown) => {
     setSaved(null)

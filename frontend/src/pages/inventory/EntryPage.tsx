@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Select, Stack, Text, Textarea, TextInput } from '@mantine/core'
+import { Anchor, Group, Select, Stack, Text, Textarea, TextInput } from '@mantine/core'
 import { IconExternalLink } from '@tabler/icons-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -9,6 +9,8 @@ import { qk } from '@/api/keys'
 import type { EntryDetail, InventoryOverview, InventoryType } from '@/api/types'
 import { DangerZone, ItemPage } from '@/components/ItemPage'
 import { Field, Panel } from '@/components/ui'
+import { useLeaveWarning } from '@/components/useLeaveWarning'
+import { SaveBar } from '@/pages/settings/editor'
 import { useCan } from '@/api/queries'
 import { FieldInputs } from './FieldInputs'
 import { DeviceIcon } from './icons'
@@ -75,6 +77,11 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
   if (icon !== entry.icon) changes.icon = icon
   if (color !== entry.color) changes.color = color
   if (notes !== entry.notes) changes.notes = notes
+  useLeaveWarning(Object.keys(changes).length > 0)
+  const discard = () => {
+    setName(entry.name); setFields(entry.fields); setGroupId(entry.group_id); setTags(entry.tags)
+    setIcon(entry.icon); setColor(entry.color); setNotes(entry.notes); setMessage(null)
+  }
   return (
     <Stack gap="md">
       {(entry.summary || entry.link) && (
@@ -101,11 +108,10 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
           <LookFields icon={icon} color={color} icons={overview.icons} onIcon={setIcon} onColor={setColor}
             inherited={{ icon: entry.resolved.look.icon.value || type.default_icon, color: entry.resolved.look.color.value }} />
           <Textarea label={t('inventory.field.notes')} value={notes} onChange={(e) => setNotes(e.currentTarget.value)} autosize minRows={2} maxLength={1000} disabled={!canEdit} />
-          {message && <Text size="sm" role="status" className={message.ok ? 'fb-tone-ok' : 'fb-tone-err'}>{message.ok ? '✓' : '✕'} {message.text}</Text>}
           {canEdit && (
-            <Group justify="flex-end">
-              <Button loading={save.isPending} disabled={!Object.keys(changes).length} onClick={() => save.mutate(changes)}>{t('inventory.save')}</Button>
-            </Group>
+            <SaveBar count={Object.keys(changes).length} saving={save.isPending} onSave={() => save.mutate(changes)}
+              error={message && !message.ok ? new Error(message.text) : null} saved={message?.ok ? message.text : null}
+              onDiscard={discard} />
           )}
         </Stack>
       </Panel>

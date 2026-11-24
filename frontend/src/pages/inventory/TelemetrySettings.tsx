@@ -1,6 +1,8 @@
-import { Alert, Anchor, Button, Chip, Collapse, Group, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Chip, Collapse, Group, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
+import { useLeaveWarning } from '@/components/useLeaveWarning'
+import { SaveBar } from '@/pages/settings/editor'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -46,7 +48,8 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
   const [collect, setCollect] = useState<Collect>(startCollect)
   const [more, setMore] = useState(!!(own[PROP.url] || own[PROP.verify_tls]))
   const set = (k: Key, v: string) => setForm((f) => ({ ...f, [k]: v }))
-  const dirty = collect !== startCollect() || KEYS.some((k) => form[k] !== (own[PROP[k]] ?? ''))
+  const count = (collect !== startCollect() ? 1 : 0) + KEYS.filter((k) => form[k].trim() !== (own[PROP[k]] ?? '')).length
+  useLeaveWarning(count > 0)
   // What applies when the field here is empty: a group's or a tag's value, never the device's own.
   const above = (k: Key) => {
     const v = inherited?.[PROP[k]]
@@ -202,9 +205,8 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
       )}
 
       {canEdit && (
-        <Group justify="flex-end">
-          <Button disabled={!dirty} loading={busy} onClick={save}>{t('inventory.save')}</Button>
-        </Group>
+        <SaveBar count={count} saving={busy} onSave={save}
+          onDiscard={() => { setForm(start()); setCollect(startCollect()) }} />
       )}
     </Stack>
   )

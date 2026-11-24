@@ -7,6 +7,7 @@ import { get, patch } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent, AgentPluginField, AgentSettingsPage, PluginInfo } from '@/api/types'
 import { ErrorBanner, Panel } from '@/components/ui'
+import { useLeaveWarning } from '@/components/useLeaveWarning'
 import { Input, Row, Source } from '@/pages/agents/fields'
 import { fieldId, shown, type Value } from '@/pages/agents/values'
 import { SaveBar } from '@/pages/settings/editor'
@@ -36,10 +37,11 @@ export function PerAgentSettings({ plugin, agents }: { plugin: PluginInfo; agent
     },
     onSuccess: () => setSaved(true),
   })
+  const count = Object.values(draft).reduce((n, d) => n + Object.keys(d).length, 0)
+  useLeaveWarning(count > 0)
   const mine = (p?: AgentSettingsPage) => p?.plugins.find((x) => x.id === plugin.id)
   const fields = pages.map((q) => mine(q.data)).find(Boolean)?.fields
   if (!fields?.length) return null
-  const count = Object.values(draft).reduce((n, d) => n + Object.keys(d).length, 0)
   const set = (agent: string, key: string, v: Value) => { setSaved(false); setDraft((d) => ({ ...d, [agent]: { ...d[agent], [key]: v } })) }
   const undo = (agent: string, key: string) => setDraft((d) => {
     const left = Object.fromEntries(Object.entries(d[agent] ?? {}).filter(([k]) => k !== key))
