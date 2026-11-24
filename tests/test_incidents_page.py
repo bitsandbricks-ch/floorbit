@@ -2,7 +2,7 @@
 from tests.test_incidents import sign_in_as
 
 
-def test_an_incident_has_its_own_page(client):
+def test_an_incident_has_its_own_page(client, built):
     assert client.get('/incidents/abc123').status_code == 200
 
 
