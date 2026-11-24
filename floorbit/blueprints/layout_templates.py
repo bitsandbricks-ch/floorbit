@@ -23,8 +23,13 @@ bp = Blueprint('layout_templates', __name__)
 MAX_BODY = 64 * 1024 * 1024   # background images travel inline, like in a backup
 
 
-def _error(exc, status=400):
-    return jsonify({'error': str(exc)}), status
+def _error(message, status=400):
+    return jsonify({'error': message}), status
+
+
+def _fail(exc, status=400):
+    # Never the exception's own text: its fixed message (layout_templates.public).
+    return jsonify({'error': lib.public(exc)}), status
 
 
 def _hall(body):
@@ -47,7 +52,7 @@ def save_template():
     try:
         template = lib.create(body.get('name'), body.get('description'), lib.snapshot(load_data(), _hall(body)))
     except lib.TemplateError as exc:
-        return _error(exc)
+        return _fail(exc)
     return jsonify(lib.meta(template)), 201
 
 
@@ -58,7 +63,7 @@ def change_template(template_id):
     except KeyError:
         return _error('No such template', 404)
     except lib.TemplateError as exc:
-        return _error(exc)
+        return _fail(exc)
     return jsonify(lib.meta(template))
 
 
@@ -79,7 +84,7 @@ def save_version(template_id):
     except KeyError:
         return _error('No such template', 404)
     except lib.TemplateError as exc:
-        return _error(exc)
+        return _fail(exc)
     return jsonify(lib.meta(template)), 201
 
 
@@ -90,7 +95,7 @@ def duplicate_template(template_id):
     except KeyError:
         return _error('No such template', 404)
     except lib.TemplateError as exc:
-        return _error(exc)
+        return _fail(exc)
     return jsonify(lib.meta(template)), 201
 
 
@@ -101,7 +106,7 @@ def export_template(template_id):
     except KeyError:
         return _error('No such template', 404)
     except lib.TemplateError as exc:
-        return _error(exc, 404)
+        return _fail(exc, 404)
     slug = ''.join(c if c.isalnum() else '-' for c in out['name'].lower()).strip('-')[:40] or 'template'
     filename = f"floorbit-template-{slug}-{time.strftime('%Y%m%d')}.json"
     return Response(json.dumps(out, indent=2) + '\n', mimetype='application/json',
@@ -116,7 +121,7 @@ def import_template():
         name, description, layout, dropped = lib.from_file(request.get_json(silent=True))
         template = lib.create(name, description, layout)
     except lib.TemplateError as exc:
-        return _error(exc)
+        return _fail(exc)
     return jsonify({**lib.meta(template), 'dropped': dropped}), 201
 
 
@@ -128,7 +133,7 @@ def apply_template(template_id):
     except KeyError:
         return _error('No such template', 404)
     except lib.TemplateError as exc:
-        return _error(exc, 404)
+        return _fail(exc, 404)
     with data_lock:
         data = load_data()
         try:
@@ -136,6 +141,6 @@ def apply_template(template_id):
         except KeyError:
             return _error('No such hall', 404)
         except lib.TemplateError as exc:
-            return _error(exc, 409)
+            return _fail(exc, 409)
         save_data(data)
     return jsonify(result)

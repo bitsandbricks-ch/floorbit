@@ -36,6 +36,7 @@ import { ScreenLink } from './plan/ScreenLink'
 import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
+import { PlanMenu, type PlanDialog } from './plan/edit/PlanMenu'
 import { ExportMenu } from './plan/ExportMenu'
 import { SnapToggles } from './plan/edit/SnapToggles'
 import { fromOldMode, isEditing, setEditing } from './plan/workspace'
@@ -85,6 +86,7 @@ export default function FloorPlan() {
   const editParam = isEditing(params) || params.get('mode') === 'edit'
   const canEdit = useCan('floorplan.edit')
   const editing = editParam && canEdit
+  const [planDialog, setPlanDialog] = useState<PlanDialog | null>(null)
   // The tool picked on the live plan's rail, handed to the editor it opens.
   const [startTool, setStartTool] = useState<Tool>('select')
   const traffic = layers.on.has('status')
@@ -423,6 +425,7 @@ export default function FloorPlan() {
                   onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
               </form>
               <ScreenLink hall={data.hall} params={params} />
+              {editing && <PlanMenu onOpen={setPlanDialog} />}
               <ExportMenu hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall} filter={filter} />
               <Tooltip label={t('plan.shortcuts.show')}>
                 <ActionIcon variant="default" size="md" aria-label={t('plan.shortcuts.show')} aria-keyshortcuts="?" onClick={showShortcuts}><IconHelp size={16} aria-hidden="true" /></ActionIcon>
@@ -455,7 +458,8 @@ export default function FloorPlan() {
             )}
             {editing && data.drawing && view && (
               <PlanEditor data={data} view={view} setView={setView} layers={layers} refresh={() => qc.invalidateQueries({ queryKey: qk.planAll })} onHall={toHall} onShortcuts={showShortcuts}
-                startTool={startTool} onDone={() => setParams(setEditing(params, false))} filter={filter} live={{ traffic, firewalls, wifi, incidents }} />
+                startTool={startTool} onDone={() => setParams(setEditing(params, false))} filter={filter} live={{ traffic, firewalls, wifi, incidents }}
+                dialog={planDialog} onDialog={setPlanDialog} />
             )}
             {/* The side panel's tabs carry the attribution in their foot; one is enough. */}
             {!editing && data.drawing && <div className={`fb-plan-layout${(panel || side.open) && !phone ? ' with-inspector' : ''}${list ? ' is-list' : ''}`}>

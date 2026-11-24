@@ -732,6 +732,18 @@ Source: [`floorbit/blueprints/plan_marks.py`](https://github.com/bitsandbricks-c
 | DELETE | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
 | PUT | `/api/plan-marks/<mark_id>` | `floorplan.edit` |  |
 
+## floorbit.blueprints.plan_presets
+
+Plan presets (floorbit/plan_presets.py): items of the plan kept together to place again.
+
+Source: [`floorbit/blueprints/plan_presets.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan_presets.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/plan-presets` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/plan-presets` | `floorplan.edit` |  |
+| DELETE | `/api/plan-presets/<preset_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.platform
 
 The platform's tenants, for its admins (issue #466, docs/tenancy.md).

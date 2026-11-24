@@ -6,7 +6,7 @@ switches and seat blocks. The floor plan shows one hall at a time.
 ## Halls
 
 The hall picker above the plan switches between halls (the address gets `?hall=<id>`; editing
-stays editing). While editing, **Halls** in the panel on the right opens the Halls dialog:
+stays editing). While editing, **Plan ▾ → Halls…** in the top bar opens the Halls dialog:
 
 - **Add hall**, rename one by editing its name.
 - **Delete** a hall once it is empty: move or delete its switches and seat blocks first. The last

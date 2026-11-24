@@ -1,0 +1,15 @@
+{
+  "button": "Plan",
+  "save": "Save as template…",
+  "start": "Start from a template…",
+  "versions": "Versions of this hall…",
+  "halls": "Halls…",
+  "library": "Template library",
+  "templates": "Templates",
+  "use": "Start from “{{name}}”",
+  "noTemplates": "No templates yet. Save this plan as one to start from it next time.",
+  "startHelp": "Starting from a template replaces the plan, or one hall of it; you see what before anything changes.",
+  "emptyTitle": "This hall is empty",
+  "emptyHelp": "Draw seat blocks with the tools on the left, or start from a saved template.",
+  "startTitle": "Start from a template"
+}

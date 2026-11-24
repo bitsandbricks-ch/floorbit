@@ -1,0 +1,29 @@
+{
+  "saveTitle": "Save as preset",
+  "name": "Name",
+  "saveHelp_one": "Keeps this item to place again in any hall or event, like a paste.",
+  "saveHelp_other": "Keeps these {{count}} items together to place again in any hall or event, like a paste. Switches and cables stay out.",
+  "save": "Save preset",
+  "saved": "Saved the preset “{{name}}”",
+  "placeTitle": "Place a preset",
+  "none": "No presets yet. Select items on the plan, right-click and pick Save as preset.",
+  "list": "Presets",
+  "place": "Place",
+  "placeOne": "Place “{{name}}”",
+  "delete": "Delete preset",
+  "deleteOne": "Delete “{{name}}”",
+  "help": "A preset goes where you right-clicked, or where the pointer last was, with free row letters and names, and is selected so you can move it.",
+  "kind": {
+    "block_one": "{{count}} seat block",
+    "block_other": "{{count}} seat blocks",
+    "mark_one": "{{count}} mark",
+    "mark_other": "{{count}} marks",
+    "panel_one": "{{count}} patch panel",
+    "panel_other": "{{count}} patch panels",
+    "board_one": "{{count}} power board",
+    "board_other": "{{count}} power boards"
+  },
+  "menuSave": "Save as preset…",
+  "menuPlace": "Place a preset…",
+  "step": "Place “{{name}}”"
+}
