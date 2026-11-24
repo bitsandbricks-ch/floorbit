@@ -47,6 +47,12 @@ describe('Edit overlay', () => {
     expect(taken.onSelect).toHaveBeenCalledWith([])
   })
 
+  it('picks one item of a group alone with Ctrl, so it moves on its own', () => {
+    const { hit, onSelect } = overlay({ selection: [A, B] })
+    fireEvent.pointerDown(hit('B'), { button: 0, pointerId: 1, ctrlKey: true, clientX: 400, clientY: 100 })
+    expect(onSelect).toHaveBeenCalledWith([B], true)
+  })
+
   it('drops a drag by how far the pointer went', () => {
     const { onDrop, hit } = overlay({ selection: [A] })
     fireEvent.pointerDown(hit('A'), { button: 0, pointerId: 1, clientX: 100, clientY: 100 })

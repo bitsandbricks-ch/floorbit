@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { LayerState } from '../layers'
 import { setSnapPrefs, useSnapPrefs } from './snap'
 
-/** Edit mode's top bar toggles: show the grid (the grid layer), snap to it, snap to other items,
+/** Edit mode's top bar toggles (on is green, off is a dim icon: grey on white read as one state, Mike): show the grid (the grid layer), snap to it, snap to other items,
  *  and the rulers along the plan's edges. */
 export function SnapToggles({ layers, onLayers }: { layers: LayerState; onLayers: (next: LayerState) => void }) {
   const { t } = useTranslation()
@@ -12,7 +12,7 @@ export function SnapToggles({ layers, onLayers }: { layers: LayerState; onLayers
   const gridShown = layers.on.has('grid')
   const toggle = (label: string, on: boolean, Icon: typeof IconMagnet, onClick: () => void, keys?: string) => (
     <Tooltip label={keys ? <>{label} <Kbd size="xs">{keys}</Kbd></> : label}>
-      <ActionIcon variant={on ? 'light' : 'default'} size="md" aria-label={label} aria-pressed={on} aria-keyshortcuts={keys?.replace(/ /g, '+')} onClick={onClick}>
+      <ActionIcon variant={on ? 'light' : 'subtle'} color={on ? 'bit' : 'gray'} c={on ? undefined : 'dimmed'} size="md" aria-label={label} aria-pressed={on} aria-keyshortcuts={keys?.replace(/ /g, '+')} onClick={onClick}>
         <Icon size={16} aria-hidden="true" />
       </ActionIcon>
     </Tooltip>

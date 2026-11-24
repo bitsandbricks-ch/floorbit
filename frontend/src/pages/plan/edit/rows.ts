@@ -81,6 +81,17 @@ export function withSeats(row: BlockRow, seats: number): BlockRow {
   return out
 }
 
+/** A U with one outer side (0 first, 2 last) set to ``seats``: the middle is what the row's seats
+ *  leave over, so people only type the two sides (Mike). A side can't take more than the other
+ *  side leaves. */
+export function withUSide(row: BlockRow, side: 0 | 2, seats: number): BlockRow {
+  const sides: number[] = row.sides && row.sides.length === 3 ? [...row.sides] : defaultSides('u', row.seats) ?? [0, row.seats, 0]
+  const other = sides[2 - side]
+  sides[side] = Math.min(Math.max(0, Math.round(seats)), row.seats - other)
+  sides[1] = row.seats - sides[0] - sides[2]
+  return { ...row, sides }
+}
+
 /** ``rows`` with the row at ``from`` moved to ``to``; ids stay with their rows. */
 export function moveRow(rows: BlockRow[], from: number, to: number): BlockRow[] {
   if (to < 0 || to >= rows.length || from === to) return rows

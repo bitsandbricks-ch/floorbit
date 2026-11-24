@@ -5,6 +5,7 @@ import { type Box, type ItemRef, type Point, allItems, boxFrom, fromPct, inside,
 import { measure, snapCorner } from './reshape'
 import type { Guide } from './arrange'
 import { TOOL_GESTURE, type Tool } from './tools'
+import { setRulerPointer } from './rulers'
 
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
@@ -14,7 +15,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   ctx: OverlayContext
   data: SeatViewData
   selection: ItemRef[]
-  onSelect: (items: ItemRef[]) => void
+  onSelect: (items: ItemRef[], alone?: boolean) => void
   /** While dragging: the move so far, in drawing units, and whether to snap to the grid. */
   onDrag: (d: Point, snap: boolean, lead: ItemRef, px: number) => void
   onDrop: (d: Point, snap: boolean, lead: ItemRef, px: number) => void
@@ -82,16 +83,19 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       else setDraft({ a: at, b: at })
       return
     }
-    const additive = e.shiftKey || e.metaKey || e.ctrlKey
+    // Ctrl (Cmd on a Mac) picks just this item, even out of its group, so it moves on its own (Mike).
+    const alone = (e.metaKey || e.ctrlKey) && !e.shiftKey
+    const additive = e.shiftKey
     if (ref) {
       const picked = selection.some((r) => sameRef(r, ref))
-      if (additive) {
+      if (alone) onSelect([ref], true)
+      else if (additive) {
         const drop = together(ref)
         onSelect(picked ? selection.filter((r) => !drop.some((x) => sameRef(x, r))) : [...selection, ref])
       }
       else if (!picked) onSelect([ref])
     }
-    drag.current = { start: ctx.toPlan(e.clientX, e.clientY), lead: ref, moved: false, additive, id: e.pointerId }
+    drag.current = { start: ctx.toPlan(e.clientX, e.clientY), lead: ref, moved: false, additive: additive || alone, id: e.pointerId }
   }
   const menu = (e: React.MouseEvent, ref: ItemRef | null) => {
     if (!onMenu) return
@@ -101,7 +105,9 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     onMenu(ref, e.clientX, e.clientY)
   }
   const move = (e: React.PointerEvent) => {
-    onPointer?.(ctx.toPlan(e.clientX, e.clientY))
+    const here = ctx.toPlan(e.clientX, e.clientY)
+    onPointer?.(here)
+    setRulerPointer(here)
     if (draft) {
       e.stopPropagation()
       setDraft({ a: draft.a, b: snap(ctx.toPlan(e.clientX, e.clientY), e.altKey, lineLike && e.shiftKey, draft.a) })
@@ -162,7 +168,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
 
   const shown = ctx.shown
   return (
-    <g className={`fb-edit${panning ? ' panning' : ''}${gesture !== 'select' && gesture !== 'pan' ? ' tooling' : ''}`}>
+    <g className={`fb-edit${panning ? ' panning' : ''}${gesture !== 'select' && gesture !== 'pan' ? ' tooling' : ''}`} onPointerLeave={() => setRulerPointer(null)}>
       <rect className="fb-edit-bg" x={shown.x} y={shown.y} width={shown.w} height={shown.h} onPointerDown={(e) => begin(e, null)}
         onContextMenu={(e) => menu(e, null)}
         onPointerMove={(e) => move(e)} onPointerUp={(e) => end(e)} onPointerCancel={(e) => end(e)} />

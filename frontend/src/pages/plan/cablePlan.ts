@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -14,7 +15,18 @@ export function useCablePlan(hall: string | undefined, enabled: boolean) {
     enabled: enabled && !!hall,
     staleTime: 15_000,
   })
-  const again = () => { if (enabled) void qc.invalidateQueries({ queryKey: qk.cablePlan(hall ?? '') }) }
+  // One edit sends a burst of live events (one per saved item, plan and cables both): read the
+  // cables once for the burst, and let a read already on its way answer it (#1301).
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
+  const again = () => {
+    if (!enabled) return
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      timer.current = null
+      void qc.invalidateQueries({ queryKey: qk.cablePlan(hall ?? '') }, { cancelRefetch: false })
+    }, 200)
+  }
   useLiveEvent('cables.changed', again)
   useLiveEvent('plan.changed', again)
   return enabled ? q.data : undefined
