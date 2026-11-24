@@ -49,6 +49,8 @@ def test_a_plugin_whose_calls_keep_failing(client, registry, monkeypatch):
     assert found['level'] == 'warn' and found['where'] == 'the controller refused the login'
     monkeypatch.undo()
     registry.call(spec, 'wifi_aps')           # works again
+    assert 'demo' in registry.failing()       # the seat mapping Problems read still failed (#1225)
+    registry.call(spec, 'seat_mapping')
     assert 'demo' not in registry.failing()
 
 
