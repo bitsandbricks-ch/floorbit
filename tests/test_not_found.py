@@ -33,3 +33,22 @@ def test_a_page_whose_feature_is_off_gets_the_404_page(client):
 def test_signed_out_people_still_go_to_sign_in(app_module):
     answer = app_module.app.test_client().get("/no-such-page", headers={"Accept": "text/html"})
     assert answer.status_code == 302 and "/login" in answer.headers["Location"]
+
+
+def test_a_refusal_in_a_view_answers_json_the_page_can_show(app_module):
+    # abort(403, description=...) used to give Flask's HTML page, so the board could only say "HTTP 403".
+    app_module.app.extensions["auth"].users.add("vi", "viewer-password-1", role="viewer")
+    viewer = app_module.app.test_client()
+    viewer.post("/login", data={"username": "vi", "password": "viewer-password-1"})
+    answer = viewer.post("/api/incidents", json={"seat": "A-1", "title": "No internet"})
+    assert answer.status_code == 403
+    assert answer.get_json() == {"error": 'Needs the "work incidents" permission, in your role or a team.'}
+    german = viewer.post("/api/incidents", json={"seat": "A-1"}, headers={"Accept-Language": "de-CH"})
+    assert german.get_json()["error"].startswith("Braucht das Recht")
+
+
+def test_a_bare_abort_gets_a_short_text_and_keeps_its_headers(client):
+    answer = client.delete("/api/auth/me")      # GET only: 405 with an Allow header
+    assert answer.status_code == 405
+    assert answer.get_json() == {"error": "This address does not take that method."}
+    assert "GET" in answer.headers.get("Allow", "")
