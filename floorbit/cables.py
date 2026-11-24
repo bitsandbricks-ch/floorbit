@@ -162,11 +162,11 @@ def delete(cable_id):
 
 
 def sources(registry):
-    """Plugins that are on and can tell Floorbit about cables."""
+    """Plugins that are on, set up, and can tell Floorbit about cables."""
     out = []
     for spec in registry.feeders('inventory'):
         cls = spec.plugin_class()
-        if cls is not None and hasattr(cls, 'cables'):
+        if cls is not None and hasattr(cls, 'cables') and registry.set_up(spec):
             out.append(spec)
     return out
 
@@ -182,7 +182,10 @@ def import_from(registry, by):
         except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
             feeds = []
             errors.append(f'Local agent: {exc}')
+        not_set_up = {s.id for s in registry.feeders('inventory') if not registry.set_up(s)}
         for feed in feeds:
+            if 'error' in feed and feed.get('base', feed.get('plugin')) in not_set_up:
+                continue    # asked although it isn't set up (NetBox without a URL): not a fault
             if 'error' in feed:
                 errors.append(f"{feed['name']} (local agent): {feed['error']}")
             else:

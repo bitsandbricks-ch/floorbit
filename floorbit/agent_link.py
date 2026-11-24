@@ -253,7 +253,7 @@ def ask(method, args=()):
     list, an IP, ARP) goes to every connected agent, and their answers are put together."""
     scoped, everyone, by_name = _routing()
     if method in HOST_METHODS and args:
-        # A device collected by one agent by name (telemetry_agent): only that agent knows it.
+        # A device collected by one agent by name (telemetry.agent): only that agent knows it.
         owner = _pinned_agent(args[0], everyone)
         if owner is not None:
             return tunnel.call(method, args, targets={owner})
@@ -275,7 +275,7 @@ _pins = [None, {}]      # (data stamp, {device name: agent id}), like _routes
 
 
 def _pinned_agent(hostname, everyone):
-    """The connected agent a device is given to by name (telemetry_agent), else None: then the
+    """The connected agent a device is given to by name (telemetry.agent), else None: then the
     usual routing (an agent away hands its devices back to the others, targets.for_agent)."""
     from . import store
     from .telemetry import targets

@@ -85,7 +85,8 @@ export function CircuitForm({ circuit, overview, switches, busy, error, extra, o
     group: b.label || b.name,
     items: [
       { value: b.id, label: t('power.allRows', { name: b.label || b.name }) },
-      ...Array.from({ length: b.rows }, (_, i) => ({ value: `${b.id}:${i + 1}`, label: t('power.row', { name: b.label || b.name, row: b.row_names?.[i] ?? i + 1 }) })),
+      // A feed names a row by its id, which stays when the block's rows are reordered.
+      ...Array.from({ length: b.rows }, (_, i) => ({ value: `${b.id}:${b.row_ids?.[i] ?? i + 1}`, label: t('power.row', { name: b.label || b.name, row: b.row_names?.[i] ?? i + 1 }) })),
     ],
   }))
   return (

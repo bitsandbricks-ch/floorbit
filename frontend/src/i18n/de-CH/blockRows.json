@@ -1,0 +1,48 @@
+{
+  "title_one": "{{count}} Reihe",
+  "title_other": "{{count}} Reihen",
+  "add": "Reihe hinzufügen",
+  "pick": "Reihe {{name}}: ändern",
+  "summary_one": "{{count}} Platz · {{shape}}",
+  "summary_other": "{{count}} Plätze · {{shape}}",
+  "gapAbove": "Abstand über {{name}}",
+  "gapAboveLabel": "Abstand über Reihe {{name}}, in Plätzen",
+  "seatsUnit": "Plätze",
+  "up": "Reihe {{name}} nach oben",
+  "down": "Reihe {{name}} nach unten",
+  "remove": "Reihe {{name}} entfernen",
+  "rowTitle": "Reihe {{name}}",
+  "shape": "Form",
+  "shapes": {
+    "line": "Gerade",
+    "arc": "Bogen",
+    "u": "U",
+    "l": "L",
+    "path": "Pfad"
+  },
+  "bend": "Biegung",
+  "bendHint": "Wie weit sich die Reihe vom ersten bis zum letzten Platz dreht. Negativ biegt sie in die andere Richtung.",
+  "side_u_0": "Erste Seite",
+  "side_u_1": "Mitte",
+  "side_u_2": "Letzte Seite",
+  "side_l_0": "Erster Schenkel",
+  "side_l_1": "Zweiter Schenkel",
+  "sidesHint": "Plätze pro Seite, {{count}} insgesamt. Eine Änderung nimmt die Plätze aus der Mitte oder dem anderen Schenkel.",
+  "pathHint": "Die Plätze folgen den Punkten des Pfads. Er beginnt als L; den Pfad auf dem Plan zeichnen kommt als Nächstes.",
+  "align": "Mit den anderen Reihen ausrichten",
+  "aligns": {
+    "start": "Anfang",
+    "middle": "Mitte",
+    "end": "Ende"
+  },
+  "shift": "Verschieben (Plätze)",
+  "side": "Leute sitzen",
+  "sides": {
+    "auto": "Je nach Form",
+    "left": "Links der Reihe",
+    "right": "Rechts der Reihe"
+  },
+  "firstGap": "Die erste Reihe hat keinen Abstand darüber: verschiebe stattdessen den Block.",
+  "reverse": "Diese Reihe andersherum nummerieren",
+  "seats": "Plätze"
+}

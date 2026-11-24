@@ -65,6 +65,7 @@
 .fb-plan .blk { fill: color-mix(in srgb, var(--color-surface) 60%, transparent); stroke: var(--color-line); }
 .fb-plan .hit { fill: transparent; }
 .fb-plan .cell { cursor: pointer; }
+.fb-plan .cell .side { fill: var(--color-muted); pointer-events: none; }
 .fb-plan .seat { stroke-width: 2; }
 .fb-plan .s-online { fill: var(--color-up); stroke: color-mix(in srgb, var(--color-up) 70%, var(--color-fg)); }
 .fb-plan .s-offline { fill: var(--color-surface); stroke: var(--color-down); stroke-width: 2.5; }

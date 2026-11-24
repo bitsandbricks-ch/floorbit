@@ -69,7 +69,7 @@ def test_a_circuit_feeds_rows_and_switches(client, floor):
     assert c["fed"]["switches"] == [{"id": floor["switch"], "name": "sw-a-01"}]
     assert c["state"] == "unknown" and c["feeds_label"] == "block A row 2"
     assert body["can_edit"] and body["blocks"] == [{"id": floor["block"], "name": "A", "label": "A",
-                                                 "row_names": ["1", "2"], "rows": 2}]
+                                                 "row_names": ["1", "2"], "rows": 2, "row_ids": [1, 2]}]
 
 
 def test_circuits_are_checked(client, floor):

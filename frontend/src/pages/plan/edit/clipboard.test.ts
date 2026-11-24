@@ -6,7 +6,7 @@ describe('editor clipboard', () => {
   const wall = rawOf('mark', { id: 'w1', hall_id: 'main', kind: 'wall', x: 10, y: 10, x2: 20, y2: 10 })
 
   it('keeps what the server takes back, not ids or halls', () => {
-    expect(block.body).toEqual({ name: '', naming: 'rows', row_start: 'A', rows: 2, cols: 8, x: 30, y: 40 })
+    expect(block.body).toEqual({ name: '', naming: 'rows', row_start: 'A', rows: 2, x: 30, y: 40 })
     expect(wall.body).toEqual({ kind: 'wall', x: 10, y: 10, x2: 20, y2: 10 })
   })
 

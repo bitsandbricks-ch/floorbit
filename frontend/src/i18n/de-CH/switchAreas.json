@@ -1,0 +1,51 @@
+{
+  "title": "Switch-Bereiche",
+  "intro": "Welche Plätze jeder Switch versorgt: hier festgelegt, gelernt aus den Plätzen an seinen Ports (Rundgang, Check-in, Patchplan) oder aus seiner Lage auf dem Plan. Wo sich das widerspricht, steht es hier. Muss ein Check-in die Switches fragen, fragt er zuerst die Switches des Platzes.",
+  "switch": "Switch",
+  "serves": "Versorgt",
+  "from": "Quelle",
+  "check": "Prüfung",
+  "block": "Block {{block}}",
+  "rows_one": "{{count}} Reihe",
+  "rows_other": "{{count}} Reihen",
+  "seats_one": "{{count}} Platz",
+  "seats_other": "{{count}} Plätze",
+  "how": {
+    "manual": "Festgelegt",
+    "learned": "Gelernt",
+    "plan": "Im Block gezeichnet",
+    "todo": "Offen",
+    "excluded": "Ausgenommen"
+  },
+  "drift": {
+    "learned_outside_pin": "Ausserhalb der Festlegung gelernt: {{seats}}",
+    "learned_outside_plan": "Ausserhalb des Blocks gelernt, in dem er gezeichnet ist: {{seats}}",
+    "drawn_elsewhere": "In Block {{block}} gezeichnet, anderswo festgelegt",
+    "excluded_learned": "Ausgenommen, aber Plätze sind an ihm gelernt: {{seats}}"
+  },
+  "todoCount_one": "{{count}} Switch versorgt noch keine Plätze: lege ihn fest, zeichne ihn in seinen Block oder geh seine Plätze ab.",
+  "todoCount_other": "{{count}} Switches versorgen noch keine Plätze: lege sie fest, zeichne sie in ihren Block oder geh ihre Plätze ab.",
+  "driftCount_one": "Bei {{count}} Switch widersprechen sich die Quellen.",
+  "driftCount_other": "Bei {{count}} Switches widersprechen sich die Quellen.",
+  "todo": "In keinem Block gezeichnet und keine Plätze gelernt",
+  "agrees": "Alles stimmt überein",
+  "pinRow": "Reihe {{row}} festlegen",
+  "edit": "Festlegen",
+  "editTitle": "Plätze von {{name}}",
+  "editHint": "Eine Festlegung gilt vor dem Gelernten und der Lage auf dem Plan. Ausserhalb gelernte Plätze werden weiter angezeigt.",
+  "exclude": "Diesen Switch ausnehmen",
+  "excludeHint": "Für Verteil- und Core-Switches, die keine Plätze versorgen.",
+  "blocks": "Blöcke",
+  "rowsLabel": "Reihen",
+  "seatsLabel": "Einzelne Plätze",
+  "clear": "Festlegung entfernen",
+  "save": "Speichern",
+  "none": "Keine Switches im Inventar",
+  "noneHint": "Switches kommen aus dem Inventar (NetBox, Erkennung oder von Hand).",
+  "found": {
+    "pin": "{{switch}} ist auf {{area}} festgelegt; dieser Platz ist in {{row}}.",
+    "plan": "{{switch}} ist in {{area}} gezeichnet; dieser Platz ist in {{row}}.",
+    "excluded": "{{switch}} bedient keine Plätze; dieser Platz ({{row}}) hängt trotzdem daran.",
+    "open": "In Switch-Bereiche prüfen"
+  }
+}

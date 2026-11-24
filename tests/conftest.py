@@ -116,6 +116,8 @@ def fresh_monitoring_state(tmp_path, monkeypatch):
     from floorbit.sources import lastgood
     lastgood.clear()
     sources.mark_ok(None)
+    from integrations import seat_sources  # its merged mapping is kept 30 s: one test's seats aren't the next's
+    seat_sources.invalidate()
     yield
     lastgood.clear()
     sources.mark_ok(None)

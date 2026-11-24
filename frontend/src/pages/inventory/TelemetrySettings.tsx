@@ -11,11 +11,16 @@ import type { DeviceTelemetryInfo } from './telemetry'
 
 const DRIVERS = ['snmp', 'traps', 'nxapi', 'restconf', 'opnsense', 'gnmi', 'mdt', 'push'] as const
 const FDB = ['qbridge', 'cisco_vlans', 'bridge', 'off'] as const
-// Every property this form owns (floorbit/telemetry/targets.py reads them); the rest stay untouched.
-const KEYS = ['telemetry_drivers', 'telemetry_fdb', 'telemetry_vlans', 'telemetry_mdt_node', 'telemetry_address', 'telemetry_agent',
-  'telemetry_port_snmp', 'telemetry_port_gnmi', 'telemetry_port_api', 'telemetry_url', 'telemetry_verify_tls'] as const
-type Key = typeof KEYS[number]
-const PORTS: [Key, string][] = [['telemetry_port_snmp', '161'], ['telemetry_port_gnmi', '50051 / 9339'], ['telemetry_port_api', '443']]
+// Every property this form owns, by the form's own short name (floorbit/telemetry/targets.py reads
+// them; docs/telemetry.md lists them); the rest stay untouched.
+const PROP = {
+  drivers: 'telemetry.drivers', fdb: 'telemetry.snmp.fdb', vlans: 'telemetry.snmp.vlans', mdt_node: 'telemetry.mdt.node',
+  address: 'telemetry.address', agent: 'telemetry.agent', port_snmp: 'telemetry.snmp.port', port_gnmi: 'telemetry.gnmi.port',
+  port_api: 'telemetry.api.port', url: 'telemetry.api.url', verify_tls: 'telemetry.verify_tls',
+} as const
+type Key = keyof typeof PROP
+const KEYS = Object.keys(PROP) as Key[]
+const PORTS: [Key, string][] = [['port_snmp', '161'], ['port_gnmi', '50051 / 9339'], ['port_api', '443']]
 type Collect = 'inherit' | 'on' | 'off'
 
 const words = (v: string | undefined) => (v ?? '').split(/[,\s]+/).filter(Boolean)
@@ -35,15 +40,18 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
 }) {
   const { t } = useTranslation()
   const isDevice = !!inherited
-  const start = () => Object.fromEntries(KEYS.map((k) => [k, own[k] ?? ''])) as Record<Key, string>
+  const start = () => Object.fromEntries(KEYS.map((k) => [k, own[PROP[k]] ?? ''])) as Record<Key, string>
   const startCollect = (): Collect => ('telemetry' in ownFeatures ? (ownFeatures.telemetry ? 'on' : 'off') : 'inherit')
   const [form, setForm] = useState(start)
   const [collect, setCollect] = useState<Collect>(startCollect)
-  const [more, setMore] = useState(!!(own.telemetry_url || own.telemetry_verify_tls))
+  const [more, setMore] = useState(!!(own[PROP.url] || own[PROP.verify_tls]))
   const set = (k: Key, v: string) => setForm((f) => ({ ...f, [k]: v }))
-  const dirty = collect !== startCollect() || KEYS.some((k) => form[k] !== (own[k] ?? ''))
+  const dirty = collect !== startCollect() || KEYS.some((k) => form[k] !== (own[PROP[k]] ?? ''))
   // What applies when the field here is empty: a group's or a tag's value, never the device's own.
-  const above = (k: Key) => (inherited?.[k] && inherited[k].from.type !== 'device' ? inherited[k] : null)
+  const above = (k: Key) => {
+    const v = inherited?.[PROP[k]]
+    return v && v.from.type !== 'device' ? v : null
+  }
   const agents = useQuery({ queryKey: qk.options('agents', ''), queryFn: () => get<{ options: EntityOption[] }>('/api/options/agents') })
   const agentName = (id: string) => agents.data?.options.find((o) => o.value === id)?.label ?? id
   const driverName = (d: string) => t(`telemetry.driver.${d}`, { defaultValue: d })
@@ -51,19 +59,19 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
   const list = (ds: string[]) => (ds.length ? ds.map(driverName).join(', ') : t('inventory.telemetry.nothing'))
 
   // How: the drivers set here, else above, else the automatic ones.
-  const picked = words(form.telemetry_drivers)
-  const choosing = !!form.telemetry_drivers
-  const effective = choosing ? picked : above('telemetry_drivers') ? words(above('telemetry_drivers')!.value)
+  const picked = words(form.drivers)
+  const choosing = !!form.drivers
+  const effective = choosing ? picked : above('drivers') ? words(above('drivers')!.value)
     : info?.target?.drivers ?? info?.auto.drivers ?? []
-  const fdbNow = form.telemetry_fdb || above('telemetry_fdb')?.value || info?.auto.fdb || ''
+  const fdbNow = form.fdb || above('fdb')?.value || info?.auto.fdb || ''
   const needsLogin = isDevice && info && ((effective.includes('snmp') && !info.logins.snmp)
     || (effective.some((d) => ['nxapi', 'restconf', 'opnsense'].includes(d)) && !info.logins.api))
 
   const save = () => {
     const properties = { ...own }
     for (const k of KEYS) {
-      if (form[k].trim()) properties[k] = form[k].trim()
-      else delete properties[k]
+      if (form[k].trim()) properties[PROP[k]] = form[k].trim()
+      else delete properties[PROP[k]]
     }
     onSave({ properties, features: { ...ownFeatures, telemetry: collect === 'inherit' ? null : collect === 'on' } })
   }
@@ -89,49 +97,56 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
               <Text size="sm" fw={600}>{t('inventory.telemetry.methods')}</Text>
               <SegmentedControl size="xs" disabled={disabled} value={choosing ? 'pick' : 'auto'}
                 aria-label={t('inventory.telemetry.methods')}
-                data={[{ value: 'auto', label: above('telemetry_drivers') ? t('inventory.features.inherit') : t('inventory.telemetry.auto') },
+                data={[{ value: 'auto', label: above('drivers') ? t('inventory.features.inherit') : t('inventory.telemetry.auto') },
                   { value: 'pick', label: t('inventory.telemetry.pick') }]}
-                onChange={(v) => set('telemetry_drivers', v === 'pick' ? (effective.length ? effective : ['snmp', 'traps']).join(' ') : '')} />
+                onChange={(v) => set('drivers', v === 'pick' ? (effective.length ? effective : ['snmp', 'traps']).join(' ') : '')} />
             </Group>
             {choosing ? (
-              <Chip.Group multiple value={picked} onChange={(v) => set('telemetry_drivers', DRIVERS.filter((d) => v.includes(d)).join(' '))}>
+              <Chip.Group multiple value={picked} onChange={(v) => set('drivers', DRIVERS.filter((d) => v.includes(d)).join(' '))}>
                 <Group gap={6}>
                   {DRIVERS.map((d) => <Chip key={d} value={d} size="sm" disabled={disabled}>{driverName(d)}</Chip>)}
                 </Group>
               </Chip.Group>
             ) : (
               <Text size="sm">
-                {above('telemetry_drivers') ? <>{list(effective)} · <FromLabel from={above('telemetry_drivers')!.from} /></>
+                {above('drivers') ? <>{list(effective)} · <FromLabel from={above('drivers')!.from} /></>
                   : info ? t('inventory.telemetry.autoDevice', { list: list(info.auto.drivers), platform: t(`telemetry.platform.${info.platform}`, { defaultValue: info.platform }) })
                     : t('inventory.telemetry.autoGroup')}
               </Text>
             )}
             <Text size="xs" c="dimmed">{t('inventory.telemetry.methodsHint')}</Text>
             {needsLogin && <Alert color="warn" py={6}>{t('inventory.telemetry.needsLogin')}</Alert>}
+            {isDevice && info?.target && effective.includes('traps') && info.target.trap_send_port !== undefined && (
+              info.target.trap_send_port === null
+                ? <Alert color="warn" py={6}>{t('inventory.telemetry.trapNoPort')}</Alert>
+                : <Text size="sm">{info.target.trap_user
+                  ? t('inventory.telemetry.trapPortV3', { port: info.target.trap_send_port, user: info.target.trap_user })
+                  : t('inventory.telemetry.trapPort', { port: info.target.trap_send_port })}</Text>
+            )}
           </Stack>
 
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
             <div>
               <Select label={t('inventory.telemetry.fdbLabel')} disabled={disabled} allowDeselect={false}
-                value={form.telemetry_fdb} onChange={(v) => set('telemetry_fdb', v ?? '')}
-                data={[{ value: '', label: above('telemetry_fdb') ? t('inventory.telemetry.asAbove', { value: fdbName(above('telemetry_fdb')!.value) })
+                value={form.fdb} onChange={(v) => set('fdb', v ?? '')}
+                data={[{ value: '', label: above('fdb') ? t('inventory.telemetry.asAbove', { value: fdbName(above('fdb')!.value) })
                   : info ? t('inventory.telemetry.autoValue', { value: fdbName(info.auto.fdb) }) : t('inventory.telemetry.autoFdb') },
                 ...FDB.map((f) => ({ value: f, label: fdbName(f) }))]} />
-              {above('telemetry_fdb') && !form.telemetry_fdb && <FromLabel from={above('telemetry_fdb')!.from} />}
+              {above('fdb') && !form.fdb && <FromLabel from={above('fdb')!.from} />}
             </div>
             {(!isDevice || fdbNow === 'cisco_vlans') && (
-              <Inherited from={!form.telemetry_vlans ? above('telemetry_vlans')?.from : null}>
-                <TextInput label={t('inventory.telemetry.vlans')} disabled={disabled} value={form.telemetry_vlans}
-                  placeholder={above('telemetry_vlans')?.value ?? (info ? (info.auto.vlans.join(' ') || t('inventory.telemetry.noVlans')) : t('inventory.telemetry.vlansAuto'))}
+              <Inherited from={!form.vlans ? above('vlans')?.from : null}>
+                <TextInput label={t('inventory.telemetry.vlans')} disabled={disabled} value={form.vlans}
+                  placeholder={above('vlans')?.value ?? (info ? (info.auto.vlans.join(' ') || t('inventory.telemetry.noVlans')) : t('inventory.telemetry.vlansAuto'))}
                   description={t('inventory.telemetry.vlansHint')} inputWrapperOrder={['label', 'input', 'description']}
-                  onChange={(e) => set('telemetry_vlans', e.currentTarget.value.replace(/[^\d,\s]/g, ''))} />
+                  onChange={(e) => set('vlans', e.currentTarget.value.replace(/[^\d,\s]/g, ''))} />
               </Inherited>
             )}
             {(!isDevice || effective.includes('mdt')) && (
-              <Inherited from={!form.telemetry_mdt_node ? above('telemetry_mdt_node')?.from : null}>
-                <TextInput label={t('inventory.telemetry.mdtNode')} disabled={disabled} value={form.telemetry_mdt_node}
-                  placeholder={above('telemetry_mdt_node')?.value ?? info?.auto.mdt_node ?? t('inventory.telemetry.mdtAuto')}
-                  onChange={(e) => set('telemetry_mdt_node', e.currentTarget.value)} />
+              <Inherited from={!form.mdt_node ? above('mdt_node')?.from : null}>
+                <TextInput label={t('inventory.telemetry.mdtNode')} disabled={disabled} value={form.mdt_node}
+                  placeholder={above('mdt_node')?.value ?? info?.auto.mdt_node ?? t('inventory.telemetry.mdtAuto')}
+                  onChange={(e) => set('mdt_node', e.currentTarget.value)} />
               </Inherited>
             )}
           </SimpleGrid>
@@ -139,17 +154,17 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
           <Stack gap="sm">
             <Text size="sm" fw={600}>{t('inventory.telemetry.where')}</Text>
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-              <Inherited from={!form.telemetry_agent ? above('telemetry_agent')?.from : null}>
+              <Inherited from={!form.agent ? above('agent')?.from : null}>
                 <EntitySelect kind="agents" label={t('inventory.telemetry.agent')} clearable disabled={disabled}
                   description={t('inventory.telemetry.agentHint')} inputWrapperOrder={['label', 'input', 'description']}
-                  placeholder={above('telemetry_agent') ? agentName(above('telemetry_agent')!.value) : t('inventory.telemetry.anyAgent')}
-                  value={form.telemetry_agent} onChange={(v) => set('telemetry_agent', v ?? '')} />
+                  placeholder={above('agent') ? agentName(above('agent')!.value) : t('inventory.telemetry.anyAgent')}
+                  value={form.agent} onChange={(v) => set('agent', v ?? '')} />
               </Inherited>
-              <Inherited from={!form.telemetry_address ? above('telemetry_address')?.from : null}>
-                <TextInput label={t('inventory.telemetry.address')} disabled={disabled} value={form.telemetry_address}
-                  placeholder={above('telemetry_address')?.value ?? info?.auto.address ?? t('inventory.telemetry.addressAuto')}
+              <Inherited from={!form.address ? above('address')?.from : null}>
+                <TextInput label={t('inventory.telemetry.address')} disabled={disabled} value={form.address}
+                  placeholder={above('address')?.value ?? info?.auto.address ?? t('inventory.telemetry.addressAuto')}
                   description={t('inventory.telemetry.addressHint')} inputWrapperOrder={['label', 'input', 'description']}
-                  onChange={(e) => set('telemetry_address', e.currentTarget.value.trim())} />
+                  onChange={(e) => set('address', e.currentTarget.value.trim())} />
               </Inherited>
             </SimpleGrid>
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
@@ -170,14 +185,14 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
             </Anchor>
             <Collapse expanded={more}>
               <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm" mt="sm">
-                <Inherited from={!form.telemetry_url ? above('telemetry_url')?.from : null}>
-                  <TextInput label={t('inventory.telemetry.url')} disabled={disabled} value={form.telemetry_url}
-                    placeholder={above('telemetry_url')?.value ?? 'https://198.51.100.10'}
+                <Inherited from={!form.url ? above('url')?.from : null}>
+                  <TextInput label={t('inventory.telemetry.url')} disabled={disabled} value={form.url}
+                    placeholder={above('url')?.value ?? 'https://198.51.100.10'}
                     description={t('inventory.telemetry.urlHint')} inputWrapperOrder={['label', 'input', 'description']}
-                    onChange={(e) => set('telemetry_url', e.currentTarget.value.trim())} />
+                    onChange={(e) => set('url', e.currentTarget.value.trim())} />
                 </Inherited>
                 <Select label={t('inventory.telemetry.verifyTls')} disabled={disabled} allowDeselect={false}
-                  value={form.telemetry_verify_tls} onChange={(v) => set('telemetry_verify_tls', v ?? '')}
+                  value={form.verify_tls} onChange={(v) => set('verify_tls', v ?? '')}
                   data={[{ value: '', label: t('inventory.telemetry.verifyDefault') }, { value: 'true', label: t('inventory.telemetry.verifyYes') },
                     { value: 'false', label: t('inventory.telemetry.verifyNo') }]} />
               </SimpleGrid>

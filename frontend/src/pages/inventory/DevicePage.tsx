@@ -108,7 +108,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
   const deviceFields = types.find((x) => x.id === 'device')?.fields ?? []
   const uploaded = useCustomIcons(icon.startsWith('custom-')).data?.icons.find((i) => i.id === icon)
   const visible = dev.interfaces.filter((i) => !i.hidden)
-  const agentId = dev.resolved.properties.telemetry_agent?.value
+  const agentId = dev.resolved.properties['telemetry.agent']?.value
   const agentName = agentId ? agents?.find((a) => a.value === agentId)?.label ?? agentId : null
   const telemetryOn = !!dev.resolved.features.telemetry?.on
   const telemetry = useDeviceTelemetry(dev.id)

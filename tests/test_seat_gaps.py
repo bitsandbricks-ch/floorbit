@@ -22,25 +22,30 @@ def test_gaps_are_cleaned():
         raise AssertionError(bad)
 
 
+def _rows(col_gaps=None, gap=0, seats=12):
+    return [{"id": "1", "seats": seats, "col_gaps": col_gaps or []},
+            {"id": "2", "seats": seats, "col_gaps": col_gaps or [], "gap": gap}]
+
+
 def test_a_block_keeps_its_gaps_and_its_seat_names(client):
-    made = client.post("/api/seat-blocks", json={**ROW, "col_gaps": [{"after": 6, "size": 2}]})
+    made = client.post("/api/seat-blocks", json={**ROW, "rows": _rows([{"after": 6, "size": 2}])})
     assert made.status_code == 201
     block = made.get_json()
-    assert block["col_gaps"] == [{"after": 6, "size": 2.0}] and block["row_gaps"] == []
+    assert block["rows"][0]["col_gaps"] == [{"after": 6, "size": 2.0}] and block["rows"][1]["gap"] == 0
     assert block["seat_rows"][0][:7] == ["A-1", "A-2", "A-3", "A-4", "A-5", "A-6", "A-7"]   # numbers carry on
-    lane = client.put(f"/api/seat-blocks/{block['id']}", json={"row_gaps": [{"after": 1, "size": 3}]})
-    assert lane.get_json()["row_gaps"] == [{"after": 1, "size": 3.0}]
-    # Fewer columns drop the gaps that no longer fit.
-    small = client.put(f"/api/seat-blocks/{block['id']}", json={"cols": 5}).get_json()
-    assert small["col_gaps"] == [] and small["row_gaps"] == [{"after": 1, "size": 3.0}]
-    bad = client.put(f"/api/seat-blocks/{block['id']}", json={"row_gaps": [{"after": 1, "size": 50}]})
-    assert bad.status_code == 400 and "gap" in bad.get_json()["error"]
-    assert load_data()["seat_blocks"][0]["row_gaps"] == [{"after": 1, "size": 3.0}]
+    lane = client.put(f"/api/seat-blocks/{block['id']}", json={"rows": _rows([{"after": 6, "size": 2}], gap=3)})
+    assert lane.get_json()["rows"][1]["gap"] == 3.0
+    # Fewer seats drop the gaps that no longer fit.
+    fewer = _rows([{"after": 6, "size": 2}], gap=3, seats=5)
+    small = client.put(f"/api/seat-blocks/{block['id']}", json={"rows": fewer}).get_json()
+    assert small["rows"][0]["col_gaps"] == [] and small["rows"][1]["gap"] == 3.0
+    bad = client.put(f"/api/seat-blocks/{block['id']}", json={"rows": _rows(gap=50)})
+    assert bad.status_code == 400 and "space above a row" in bad.get_json()["error"]
+    assert load_data()["seat_blocks"][0]["rows"][1]["gap"] == 3.0
 
 
 def test_the_seats_view_draws_the_gaps(client):
-    client.post("/api/seat-blocks", json={**ROW, "col_gaps": [{"after": 6, "size": 2}],
-                                          "row_gaps": [{"after": 1, "size": 3}]})
+    client.post("/api/seat-blocks", json={**ROW, "rows": _rows([{"after": 6, "size": 2}], gap=3)})
     shape = client.get("/api/plan").get_json()["drawing"]["shapes"][0]
     assert shape["w"] == 14 * CELL and shape["h"] == 5 * CELL
     xs = sorted({c["x"] for c in shape["cells"]})

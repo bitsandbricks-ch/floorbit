@@ -122,10 +122,11 @@ def _block_rows(seat, data):
 
 
 def _switches_of(seats, data):
-    """The switches that serve these seats: their learned ports, then the patch plan's cables."""
+    """The switches that serve these seats: their learned ports, then the patch plan's cables, then
+    the switches whose area holds them (pins and plan position, floorbit/switch_areas.py)."""
     from integrations import checkin
 
-    from . import cables
+    from . import cables, switch_areas
     wanted = set(seats)
     out = []
     for seat, port in sorted(checkin.learned_ports().items()):
@@ -134,6 +135,7 @@ def _switches_of(seats, data):
     for c in cables.all_cables(data):
         if str(c.get('seat') or '').upper() in wanted and c.get('switch'):
             out.append(c['switch'])
+    out += switch_areas.switches_for(wanted, data)
     return list(dict.fromkeys(out))
 
 
