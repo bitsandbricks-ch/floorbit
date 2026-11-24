@@ -175,6 +175,7 @@ function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; 
         </div>
       )}
       {row.shape === 'path' && <Text size="xs" c="dimmed">{t('blockRows.pathHint')}</Text>}
+      {row.shape !== 'line' && <Text size="xs" c="dimmed">{t('blockRows.shapeHint')}</Text>}
       <Input.Wrapper label={t('blockRows.align')}>
         <SegmentedControl fullWidth size="xs" value={row.align} onChange={(v) => onSave({ ...row, align: v as BlockRow['align'] })}
           data={(['start', 'middle', 'end'] as const).map((v) => ({ value: v, label: t(`blockRows.aligns.${v}`) }))} />

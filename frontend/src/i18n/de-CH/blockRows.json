@@ -28,7 +28,7 @@
   "side_l_0": "Erster Schenkel",
   "side_l_1": "Zweiter Schenkel",
   "sidesHint": "Plätze pro Seite, {{count}} insgesamt. Eine Änderung nimmt die Plätze aus der Mitte oder dem anderen Schenkel.",
-  "pathHint": "Die Plätze folgen den Punkten des Pfads. Er beginnt als L; den Pfad auf dem Plan zeichnen kommt als Nächstes.",
+  "pathHint": "Die Plätze folgen den Punkten des Pfads; er beginnt als L.",
   "align": "Mit den anderen Reihen ausrichten",
   "aligns": {
     "start": "Anfang",
@@ -48,5 +48,10 @@
   "gapHandle": "Ziehen, um den Abstand über {{name}} zu ändern",
   "gapDraft_one": "{{value}} Platz",
   "gapDraft_other": "{{value}} Plätze",
-  "planHint": "Doppelklick auf eine Reihe im Plan wählt sie; den Balken zwischen zwei Reihen ziehen ändert den Abstand."
+  "planHint": "Doppelklick auf eine Reihe im Plan wählt sie; den Balken zwischen zwei Reihen ziehen ändert den Abstand.",
+  "bendHandle": "Ziehen, um Reihe {{name}} zu biegen",
+  "armHandle": "Ziehen, um Seite {{arm}} von Reihe {{name}} zu ändern",
+  "pointHandle": "Punkt {{n}} von Reihe {{name}}: ziehen zum Verschieben, Doppelklick zum Entfernen",
+  "addPoint": "Hier einen Punkt zu Reihe {{name}} hinzufügen",
+  "shapeHint": "Im Plan: die Griffe ziehen, um die Reihe zu biegen, eine Seite zu ändern oder die Punkte des Pfads zu verschieben. + fügt einen Punkt hinzu; Doppelklick auf einen Punkt entfernt ihn."
 }

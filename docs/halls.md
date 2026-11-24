@@ -121,14 +121,22 @@ top first, with the space above each:
   - **Seats per row**: rows in a block can differ, for a block that narrows towards a pillar or the stage.
   - **Shape**: **Straight**; **Arc** (how far the row turns from its first seat to its last, in degrees,
     negative for the other way); **U** round a table (seats on the first side, the middle and the last
-    side); **L** (two arms); **Path** (seats follow points; it starts as an L until the path can be drawn
-    on the plan). Seats stand one seat apart along the shape and turn with it.
+    side); **L** (two arms); **Path** (seats follow points; it starts as an L). Seats stand one seat
+    apart along the shape and turn with it.
   - **Line up with the other rows**: at the start, the middle or the end of the widest row, plus a
     **Shift** in seats.
   - **People sit** left or right of the way the row runs, drawn as a bar on that side of each seat. "As
     the shape says" draws nothing on a straight row and the inside of an arc, U or L.
   - **Number this row the other way**, and **gaps in this row**: an empty space after a seat, for a
     fiber roll or a post (0.25 to 20 seats). Seat names and numbers carry on across a gap.
+- **A picked row's shape has handles on the plan**, and faint seats show where they will go while you drag:
+  - **Arc**: drag the round handle on the middle seat to bend the row through that point (5° steps).
+  - **U** and **L**: drag the square handle past an arm's end to make the arm longer or shorter; the
+    middle (U) or the other arm (L) gives or takes the seats, so the row keeps its count.
+  - **Path**: drag a point to move it (quarter seats), click a **+** halfway along a line to add a point
+    (up to 50), and Alt-click or double-click a point to remove it (a path keeps two).
+  - Hold Alt, or turn snapping off, to place freely. The block stays where it is: a U's middle, an L's
+    corner or the row's first seat keeps its place (the last seat when the path's first point moves).
 
 Every change is one step to undo. The Seats view, the kiosk, dashboards and the port dispatch draw what the
 server lays out, so they show the rows' shapes too.
