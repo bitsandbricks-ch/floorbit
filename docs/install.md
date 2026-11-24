@@ -114,6 +114,9 @@ firewall. Otherwise anyone could send their own `X-Forwarded-For`. With a second
 Live updates are a long-running request (`/api/events`): don't buffer it (Floorbit already sends
 `X-Accel-Buffering: no` for nginx) and allow it a long read timeout.
 
+Floorbit gzips its own scripts and styles and tells browsers to keep the app's build files
+(`/static/app/assets/`) for a year, so the proxy needs no compression or cache settings for them.
+
 ## 6. Syslog and traffic insights (optional)
 
 The agent takes syslog on udp/514 (`SYSLOG_PUBLISH_PORT`, [syslog.md](syslog.md)) and NetFlow/IPFIX
