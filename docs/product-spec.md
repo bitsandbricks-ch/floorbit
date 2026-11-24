@@ -97,7 +97,7 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Marketplace:** official plugins only, signed, with install, update, rollback and withdrawn
   versions. Agents only run signed bundles, so a stolen hosted login cannot run code in the hall.
   See [marketplace.md](marketplace.md).
-- **Widgets first.** Anything dashboard-like is built from widgets (`frontend/src/widgets/`), so it
+- **Widgets first.** Anything dashboard-like is built from widgets (`@bitsandbricks/widgets`, with Floorbit-only pieces in `frontend/src/widgets/`), so it
   also works on custom dashboards and big screens. Overview pages (Overview, Health, Traffic, Power)
   are ready-made dashboards; read-only pages became widgets. Pages with tools stay pages.
   See [dashboards.md](dashboards.md).

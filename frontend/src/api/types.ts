@@ -22,34 +22,8 @@ export interface Me {
 export type Tone = '' | 'ok' | 'warn' | 'err'
 export type State = 'up' | 'down' | 'warn' | 'unknown'
 
-interface WidgetBase {
-  id: string
-  label: string
-  size: 'small' | 'wide'
-  refresh: number
-  sub: string
-  link: string
-}
-
-export type Widget = WidgetBase &
-  (
-    /** ``min`` and ``max`` let a stat show as a gauge. ``text`` never comes from the server: a
-     *  pane's value mapping sets it to show instead of the number (widgets/kinds/display.ts). */
-    | { type: 'stat'; value: number | string; unit: string; tone: Tone; min?: number; max?: number; text?: string }
-    | { type: 'status'; items: { label: string; state: State; detail: string; device?: string }[] }
-    /** ``number`` (and ``max``) on items let a list show as bars or a pie. */
-    | { type: 'list'; items: { label: string; value: string; tone: Tone; number?: number; max?: number; colour?: string; device?: string }[] }
-    | {
-        type: 'table'
-        columns: { key: string; label: string }[]
-        rows: Record<string, string>[]
-      }
-    | { type: 'sparkline'; points: number[]; value?: number; min?: number; max?: number; unit: string }
-    /** Up to four lines of [unix seconds, value], oldest first. */
-    | { type: 'series'; series: { label: string; points: [number, number][]; colour?: string; ghost?: boolean }[]; unit: string
-      /** What happened when, drawn as lines across the graph. */
-      marks?: { t: number; label: string; tone: Tone }[] }
-  )
+/** A widget's data, as plugins and Floorbit's own tiles answer it: the shared kit's type. */
+export type { Widget } from '@bitsandbricks/ui'
 
 /** A plugin's box in a side panel (GET /api/plugins/panels?on=...). */
 export interface PluginPanelInfo {

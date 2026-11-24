@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PluginPanelInfo, Widget } from '@/api/types'
-import { WidgetBody } from '@/widgets/WidgetBody'
+import { WidgetBody } from '@bitsandbricks/widgets'
 import { PluginIcon } from './icon'
 
 export type PanelFor = 'seat' | 'switch' | 'device'

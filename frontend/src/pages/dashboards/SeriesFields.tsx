@@ -2,7 +2,7 @@ import { ActionIcon, Button, Checkbox, Group, NumberInput, Select, Stack, Switch
 import { IconPlus, IconX } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import type { Widget } from '@/api/types'
-import { MAX_OVERRIDES, type Override, SERIES_COLOURS, type SeriesColour, seriesColour, seriesLabels } from '@/widgets/kinds/display'
+import { MAX_OVERRIDES, type Override, SERIES_COLOURS, type SeriesColour, seriesColour, seriesLabels } from '@bitsandbricks/widgets'
 import type { Pane } from './model'
 
 type TilePane = Extract<Pane, { kind: 'tile' }>
