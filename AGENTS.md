@@ -61,13 +61,14 @@ pull request.
    - `docker build .`
 3. **Pull request:** open it as a **draft** and fill in the template
    (`.github/pull_request_template.md`). Link the issue.
-4. **Screenshots:** every pull request has them, UI change or not. Take them from the CI
-   `screenshots` job's artifact (or run `scripts/screenshots.py` against a local server) and put them in the
-   description. An agent that can't drag files into GitHub commits them to `.pr-screenshots/<topic>/`,
-   removes them again in the next commit, and links each one as
-   `https://raw.githubusercontent.com/bitsandbricks-ch/floorbit/<sha>/.pr-screenshots/<topic>/<file>.png`,
-   with the sha of the commit that added it. Never `github.com/.../blob/...?raw=true`: github.com
-   throttles those and a random few show as broken images (#1400).
+4. **Screenshots:** every pull request has them, UI change or not. CI shows them in one comment on
+   the pull request (the `screenshots-comment` job, #1400): every image the pull request added under
+   `.pr-screenshots/<topic>/`, else the shots the `screenshots` job took. So commit yours to
+   `.pr-screenshots/<topic>/`, remove them again in the next commit, and point to the comment from the
+   description. Don't link images in a description you write as an agent: the links can come out
+   wrapped in backticks and show as text. If you link one anyway, use
+   `https://raw.githubusercontent.com/<repo>/<sha>/<path>`, never `github.com/.../blob/...?raw=true`,
+   which github.com throttles.
 5. **CI:** wait for the checks. Fix failures yourself. Never skip, disable or weaken a check or a
    test to get green.
 6. **Done** means the task is complete, the checklist is ticked and CI is green: then mark

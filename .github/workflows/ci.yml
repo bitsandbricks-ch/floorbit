@@ -118,7 +118,7 @@ jobs:
 
   screenshots:
     # Every pull request has screenshots: this takes them, desktop and phone, of every page.
-    # Download the "screenshots" artifact from the run's summary and drag them into the PR.
+    # The screenshots-comment job shows them on the pull request.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -153,6 +153,32 @@ jobs:
           name: screenshots
           path: screenshots/
           retention-days: 30
+
+  screenshots-comment:
+    # Shows the screenshots in one comment on the pull request (#1400): the ones the PR committed
+    # under .pr-screenshots/, else the ones the screenshots job took. Not for forks: their token
+    # can't comment or push.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    needs: screenshots
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write          # pushes CI's screenshots to the pr-screenshots branch
+      pull-requests: write     # writes the comment
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0       # the PR's commits, to find the ones that added screenshots
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: screenshots
+          path: ci-screenshots
+      - env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 .github/scripts/pr_screenshots.py ci-screenshots
 
   changelog:
     # Entries live in changelog.d/ fragments (one per PR); this checks they parse.
