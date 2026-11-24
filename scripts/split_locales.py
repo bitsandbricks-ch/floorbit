@@ -13,6 +13,7 @@ import glob
 import json
 import os
 import re
+import subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCALES = os.path.join(ROOT, 'floorbit', 'locales')
@@ -85,6 +86,9 @@ def split(name, code):
         areas.setdefault(code.get(english, 'shared'), {})[english] = german
     for area, texts in areas.items():
         path = os.path.join(folder, f'{area}.json')
+        if subprocess.run(['git', 'check-ignore', '-q', path], cwd=ROOT).returncode == 0:
+            # .gitignore leaves out state files such as plugins.json: a texts file must not match.
+            path = os.path.join(folder, f'{area}_texts.json')
         merged = _read(path) if os.path.exists(path) else {}
         merged.update(texts)
         _write(path, dict(sorted(merged.items(), key=lambda kv: kv[0].lower())))
