@@ -59,6 +59,7 @@ export const qk = {
   telemetryDevices: ['telemetry-devices'] as const,
   telemetryRaw: (name: string) => ['telemetry-raw', name] as const,
   telemetryDeviceConfig: (name: string) => ['telemetry-device-config', name] as const,
+  telemetrySeries: (device: string, port: string, metric: string, hours: string) => ['telemetry-series', device, port, metric, hours] as const,
   webhooks: ['webhooks'] as const,
   gameServers: ['game-servers'] as const,
   firewalls: ['firewalls'] as const,

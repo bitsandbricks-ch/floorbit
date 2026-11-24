@@ -80,7 +80,7 @@ function StatusLine({ status }: { status: LogStatus }) {
 
 /** The log as the shared table: newest first as the server sends it, in pages; time, level and
  *  device sort the lines loaded so far (issue #1206). */
-function LogTable({ lines, store, source, onDevice }: { lines: SyslogLine[]; store: boolean; source: string; onDevice?: (d: string) => void }) {
+export function LogTable({ lines, store, source, onDevice }: { lines: SyslogLine[]; store: boolean; source: string; onDevice?: (d: string) => void }) {
   const { t, i18n } = useTranslation()
   return (
     <DataTable label={t('logs.title')} rows={lines} rowKey={(l, i) => (store ? `${l.id}-${i}` : String(l.id))} pageSize={PAGE_SIZE}
