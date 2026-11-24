@@ -44,6 +44,10 @@ def state(data=None):
     found = data.get('setup')
     if found is None:
         return {'done': _has_content(data), 'steps': {}, 'auto': _has_content(data)}
+    if not found.get('done') and not found.get('steps') and _has_floor(data):
+        # Set up through the API or by hand without opening the wizard (the agent lab, #1111):
+        # in use now, not only after the next restart runs mark_existing().
+        return {'done': True, 'steps': {}, 'auto': True}
     return {'done': bool(found.get('done')), 'steps': dict(found.get('steps') or {}),
             'finished_at': found.get('finished_at'), 'by': found.get('by')}
 
