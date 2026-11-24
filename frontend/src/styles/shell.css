@@ -104,20 +104,6 @@ a.fb-status-item:hover { color: var(--color-fg); }
   .fb-status-grow { display: none; }
 }
 
-/* The bell's list. */
-.fb-notify-list { list-style: none; margin: -6px -10px 0; padding: 0; }
-.fb-notify-row {
-  display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; border-radius: var(--ui-radius);
-  color: var(--color-fg); text-decoration: none;
-}
-.fb-notify-row:hover { background: var(--color-raised); }
-.fb-notify-row .fb-bit { margin-top: 5px; }
-.fb-notify-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.fb-notify-text b { font-weight: 550; font-size: var(--fs-md); }
-.fb-notify-text small { font-size: var(--fs-sm); color: var(--color-muted); }
-.fb-notify-when { flex: none; font-family: var(--font-mono); font-size: 11.5px; color: var(--color-faint); margin-top: 2px; }
-.fb-notify-empty { padding: 8px 0; }
-
 /* A sidebar row's pages as tabs under the top bar (components/HubTabs.tsx): links, one row that
    wraps on phones instead of scrolling sideways. */
 .fb-hubtabs { display: flex; flex-wrap: wrap; gap: 4px 20px; padding: 0 28px; border-bottom: 1px solid var(--color-line); background: var(--color-ink); }
@@ -160,7 +146,7 @@ a.fb-status-item:hover { color: var(--color-fg); }
 @media (min-width: 768px) {
   /* Keyboard focus must never land on something hidden: the sidebar has both. */
   /* Doubled class: nav.css loads later and would show the button again. */
-  .fb-header .fb-header-brand, .fb-header .fb-header-search, .fb-header .fb-notice-badge { display: none; }
+  .fb-header .fb-header-brand, .fb-header .fb-header-search, .fb-header .fb-notice-badge, .fb-header .fb-topbar-bell { display: none; }
   .fb-header {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap; border: 0;

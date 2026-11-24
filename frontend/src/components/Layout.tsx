@@ -16,6 +16,7 @@ import { PageError } from './PageError'
 import { rememberPage } from './pages'
 import { setPageTitle } from './pageTitle'
 import { StatusLine } from './StatusLine'
+import { NotificationsBell } from './NotificationsBell'
 import { TopBar } from './TopBar'
 import { TitleLevel, TopBarSlot, useInPanel } from '@bitsandbricks/ui'
 
@@ -61,6 +62,7 @@ export function AppShell({ children }: { children?: ReactNode }) {
           </Link>
           <div className="fb-header-end">
             <CrewNoticeBadge compact />
+            <NotificationsBell compact />
             <button type="button" className="fb-nav-icon-btn fb-header-search" onClick={openGoTo} aria-label={t('nav.search')}>
               <IconSearch size={20} aria-hidden="true" />
             </button>

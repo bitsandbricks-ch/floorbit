@@ -704,9 +704,10 @@ export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'pow
   | 'flapping' | 'errors' | 'duplex' | 'checkin' | 'mapping' | 'log' | 'forecast'   // ports that need a look (issue #15)
   | 'incident'   // an open incident on a seat (issue #1204)
 export interface AlertMute {
-  /** The switch id, ``health:<service id>`` for a service (issue #256) or ``wifi:<ap>`` for an access point. */
+  /** The switch id, ``health:<service id>`` for a service (issue #256), ``wifi:<ap>`` for an access
+   *  point, or ``problem:<problem id>`` for any other problem (issue #887). */
   switch_id: string
-  kind?: 'switch' | 'health' | 'wifi'
+  kind?: 'switch' | 'health' | 'wifi' | 'problem'
   name: string
   until: number
   at: number
