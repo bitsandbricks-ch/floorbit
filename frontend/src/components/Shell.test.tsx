@@ -1,12 +1,10 @@
 import { fireEvent, screen, within } from '@testing-library/react'
-import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { crumbsFor } from '@/nav/crumbs'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import { Layout } from './Layout'
 import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from './pageTab'
-import { SidePanel } from './SidePanel'
 import { TopBar } from './TopBar'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -52,7 +50,8 @@ describe('top bar', () => {
     expect(within(crumbs).getByRole('link', { name: 'Local agents' })).toHaveAttribute('href', '/settings/agents')
     expect(within(crumbs).getByText('Rack A')).toHaveAttribute('aria-current', 'page')
     fireEvent.click(await screen.findByRole('button', { name: 'Notifications (2)' }))
-    const rows = await screen.findAllByRole('link', { name: /down|Uplink/ })
+    const list = await screen.findByRole('list', { name: 'Notifications' })
+    const rows = within(list).getAllByRole('button')
     // What is down comes first.
     expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining('fw-07 down'), expect.stringContaining('Uplink at 1G')])
   })
@@ -89,16 +88,16 @@ describe('page tabs', () => {
   })
 })
 
-function Peek() {
-  const [open, setOpen] = useState(true)
-  return <SidePanel opened={open} onClose={() => setOpen(false)} title="sw-c-02" kicker="Switch" href="/inventory?device=sw-c-02"><p>ports</p></SidePanel>
-}
-
-describe('side panel', () => {
-  it('peeks at a thing and leads on to its page', async () => {
-    vi.stubGlobal('fetch', fakeFetch({}).fn)
-    renderWithApp(<Peek />)
-    expect(await screen.findByText('ports')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/inventory?device=sw-c-02')
+describe('notifications panel', () => {
+  it('shows the picked notification beside the list and leads to its problem page', async () => {
+    const detail = { problem: problems.problems[1], device: null, can_mute: false, can_report: false, may_see_people: false }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/problems': problems, 'GET /api/problems/b': detail }).fn)
+    renderWithApp(<TopBar pages={pages} />, '/overview')
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifications (2)' }))
+    // The worst one is picked at first, so the details are never empty.
+    expect(await screen.findByRole('link', { name: 'Open problem' })).toHaveAttribute('href', '/problems/b')
+    const list = screen.getByRole('list', { name: 'Notifications' })
+    fireEvent.click(within(list).getByRole('button', { name: /Uplink at 1G/ }))
+    expect(within(list).getByRole('button', { name: /Uplink at 1G/ })).toHaveAttribute('aria-current', 'true')
   })
 })

@@ -33,6 +33,13 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
 Above each page a bar shows where you are (group, page, sub page), **Go to** (**Ctrl K**, **⌘K** on
 a Mac) for any page, seat or switch, and the bell with what needs a look.
 
+The bell (also in the phone header) opens the notifications: everything down, every warning and
+the seat and port trouble, worst first, 50 to a page, with a search and a **Show** filter. The
+picked one's details sit beside the list: since when, what it cuts off, its incident, **Mute**,
+**Make an incident**, where to look next, and **Open problem** for its own page. ↑ ↓ in the
+panel's header step through the list; its left edge drags it wider. On a phone the details replace
+the list until **Back to the list**.
+
 ## Settings and Plugins
 
 **Settings** is one page with tabs: **General** (the event, its look, seat sources, monitoring),

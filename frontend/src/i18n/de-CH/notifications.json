@@ -1,0 +1,15 @@
+{
+  "eyebrow_one": "Geprüft {{ago}} · {{count}} offen",
+  "eyebrow_other": "Geprüft {{ago}} · {{count}} offen",
+  "show": "Zeigen",
+  "filter": {
+    "all": "Alle",
+    "down": "Ausgefallen",
+    "warn": "Warnungen",
+    "seats": "Plätze und Ports"
+  },
+  "search": "Suchen",
+  "noMatch": "Nichts passt zu diesem Filter.",
+  "openProblem": "Problem öffnen",
+  "back": "Zurück zur Liste"
+}
