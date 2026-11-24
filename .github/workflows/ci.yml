@@ -190,10 +190,32 @@ jobs:
           pip install --quiet actionlint-py
           actionlint -color
 
+  pr-title:
+    # The PR title follows Conventional Commits (handbook decision 0009). It reads the current
+    # title from the API, so after renaming a PR a re-run of this job is enough.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      pull-requests: read
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          title=$(gh api "repos/$REPO/pulls/$PR" --jq .title)
+          printf 'Title: %s\n' "$title"
+          re='^(feat|fix|docs|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: [^ ].*$'
+          if ! [[ "$title" =~ $re ]]; then
+            echo "::error::The PR title must follow Conventional Commits: <type>(<scope>): <subject>, e.g. 'fix(plan): keep seat labels on zoom'. Types: feat fix docs refactor perf test build ci chore revert. Rename the PR, then re-run this job."
+            exit 1
+          fi
+
   ci-passed:
     name: CI passed
     if: always()
-    needs: [ruff, javascript, frontend, pytest, screenshots, changelog, workflows, docs]
+    needs: [ruff, javascript, frontend, pytest, screenshots, changelog, workflows, docs, pr-title]
     runs-on: ubuntu-24.04
     steps:
       - env:
