@@ -469,26 +469,35 @@ def seed_on_start(app):
 
 def demo_history(now=None, step=120):
     """A made-up last day for the stats dashboard: doors open, the hall fills up over the first
-    hours, then quiet at night and busy in the evening."""
+    hours, then quiet at night and busy in the evening. It ends at the live demo hall's level, so the
+    first real read continues the line instead of jumping (#944)."""
     import math
     import time
 
-    from ..builtin_plugins.demo.plugin import PORTS, _model, _switches, _uplinks
+    from ..builtin_plugins.demo.plugin import PORTS, _model, _switches, _uplinks, live_level
     now = time.time() if now is None else now
     # Every port of every switch is read, so most of them are down: nothing is plugged in.
     ports = sum(len(PORTS[_model(name)]) for name, _role, _i in _switches())
     links = 2 * len(_uplinks())
-    out = []
+    live_down, live_up, taken = live_level()
     start = now - 24 * 3600
+
+    def busy(t):
+        hour = time.localtime(t).tm_hour + time.localtime(t).tm_min / 60
+        return 0.15 + 0.85 * max(0.0, math.sin((hour - 9) / 24 * 2 * math.pi)) ** 2
+
+    def level(t):
+        jitter = 0.9 + 0.2 * math.sin(t / 700) * math.cos(t / 1900)
+        return (0.55 + 0.45 * busy(t)) * jitter
+
+    end, end_busy = level(now), 0.8 + 0.2 * busy(now)
+    out = []
     for k in range(24 * 3600 // step, 0, -1):
         t = now - k * step
-        hour = time.localtime(t).tm_hour + time.localtime(t).tm_min / 60
-        busy = 0.15 + 0.85 * max(0.0, math.sin((hour - 9) / 24 * 2 * math.pi)) ** 2
-        jitter = 0.9 + 0.2 * math.sin(t / 700) * math.cos(t / 1900)
         arrived = min(1.0, (t - start) / (4 * 3600))
-        online = round((70 + 15 * busy) * arrived)
-        down = 3.3e9 * (0.55 + 0.45 * busy) * jitter * max(0.05, arrived)   # about what the live demo hall sends
-        out.append({'t': t, 'down': round(down), 'up': round(down * 0.14), 'online': online,
+        online = min(taken, round(taken * (0.8 + 0.2 * busy(t)) / end_busy * arrived))
+        share = level(t) / end * max(0.05, arrived)
+        out.append({'t': t, 'down': round(live_down * share), 'up': round(live_up * share), 'online': online,
                     'ports_up': online + links, 'ports_down': ports - online - links, 'ports_errors': 0})
     return out
 

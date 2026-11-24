@@ -162,6 +162,21 @@ def _taken(index):
     return index % 7 != 3          # a few empty seats, like any LAN
 
 
+GOLDEN = 2.39996 / 1.7    # ``_wave`` turns a seed into seed * 1.7 radians: this makes it the golden angle
+
+
+def _base_rate(index):
+    """A seat's download in bytes per second at the middle of its wave: a few heavy downloaders."""
+    return 40e6 if index % 11 == 0 else 1.5e6
+
+
+def live_level():
+    """What the demo hall sends on average, for the made-up day to end on: (download bit/s, upload
+    bit/s, seats taken). ``0.2 + _wave`` averages 0.7, the upload share 0.13."""
+    down = sum(_base_rate(i) * 0.7 for _s, _b, _n, i in _seats() if _taken(i)) * 8
+    return down, down * 0.13, sum(1 for _s, _b, _n, i in _seats() if _taken(i))
+
+
 def _ip(index):
     # DHCP hands addresses out as players arrive, so neighbours rarely share a range: seat i is in
     # firewall range i mod 10 (each /28 of 192.0.2.0 to .159), and every firewall serves about 11 seats.
@@ -615,8 +630,9 @@ class Plugin(Plugin):
     @staticmethod
     def _rates(index):
         """(download, upload) in bytes per second: mostly quiet, a few heavy downloaders."""
-        heavy = index % 11 == 0
-        down = (40e6 if heavy else 1.5e6) * (0.2 + _wave(index))
+        # Spread by the golden angle: with plain ``_wave(index)`` every 11th seat (the heavy ones)
+        # swung almost in phase, and the hall's total jumped 5x every five minutes (#944).
+        down = _base_rate(index) * (0.2 + _wave(index * GOLDEN))
         return down, down * (0.08 + 0.1 * _wave(index + 5, period=120))
 
     # port actions -----------------------------------------------------------------------
