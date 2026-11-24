@@ -187,10 +187,10 @@ def mark_seat(seat):
     if seat not in {s.upper() for s in checkin.known_seats(load_data)}:
         return jsonify({'error': 'That seat is not on the floor plan.'}), 400
     body = request.get_json(silent=True) or {}
-    try:
-        mark = seat_marks.put(seat, body.get('mark'), body.get('note'), _who())
-    except seat_marks.MarkError as exc:
-        return jsonify({'error': str(exc)}), exc.status
+    # Checked here with a fixed text, so no exception text reaches the answer.
+    if body.get('mark') not in seat_marks.MARKS:
+        return jsonify({'error': 'A seat is marked broken, later or skip.'}), 400
+    mark = seat_marks.put(seat, body['mark'], body.get('note'), _who())
     events.publish('seat-walk.changed', {})
     return jsonify({'seat': seat, **mark})
 
