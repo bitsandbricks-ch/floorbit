@@ -319,7 +319,8 @@ The NetBox plugin also fills these types, with the same rules (hand edits lock a
 deleted, the first sync joins by name):
 
 - **Racks and locations** from racks and locations.
-- **VLANs and IP ranges** from VLANs and prefixes.
+- **VLANs and IP ranges** from VLANs and prefixes, and a prefix's firewalls from its custom field
+  `floorbit_firewalls` (see [Firewalls](firewalls.md#ranges-from-netbox)).
 - **Transceivers** from modules and from inventory items that look like optics (SFP, QSFP, ...).
 - **Power boards and circuits** from power panels and power feeds. They go onto the power page;
   a board that already exists there by name is joined, never overwritten.

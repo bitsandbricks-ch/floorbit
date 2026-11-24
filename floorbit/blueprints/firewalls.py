@@ -7,11 +7,11 @@ docs/firewalls.md.
 - ``POST /api/firewalls/ranges``, ``PUT/DELETE /api/firewalls/ranges/<id>``: ``floorplan.edit``.
 - ``GET /api/firewalls/seats``: the seats not on their planned firewall, for the plan's layer.
 - ``GET /api/firewalls/lookup?q=<IP or seat>``: which part and firewall that address or seat goes through.
-- ``POST /api/firewalls/ranges/import``: read the ranges from NetBox prefixes again.
+- Ranges from NetBox come with every inventory sync (``floorbit_firewalls`` on a prefix, issue #1347).
 """
 from flask import Blueprint, current_app, g, jsonify, request
 
-from .. import audit, firewalls, sources, spa
+from .. import audit, firewalls, spa
 
 bp = Blueprint('firewalls', __name__)
 
@@ -58,16 +58,6 @@ def save_range(range_id=None):
     audit.record('floor plan', 'Changed firewall range' if range_id else 'Added firewall range', g.get('audit_user'),
                  f"{row['cidr']} to {', '.join(row['firewalls'])}")
     return jsonify(row), 200 if range_id else 201
-
-
-@bp.route('/api/firewalls/ranges/import', methods=['POST'])
-def import_ranges():
-    try:
-        added, errors = firewalls.import_from(sources.registry, g.get('audit_user'))
-    except firewalls.FirewallError as exc:
-        return jsonify({'error': str(exc)}), exc.status
-    audit.record('floor plan', 'Imported firewall ranges', g.get('audit_user'), f'{added} ranges from NetBox')
-    return jsonify({'added': added, 'errors': errors})
 
 
 @bp.route('/api/firewalls/ranges/<range_id>', methods=['DELETE'])

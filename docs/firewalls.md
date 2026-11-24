@@ -45,9 +45,10 @@ The firewalls are the inventory's devices with the role **Firewall** (from NetBo
 hand). A seat's range is the narrowest one its IP is in, the way the core picks it. Ranges may sit inside
 each other, but two that only cross are refused: the addresses in between would be ambiguous. A range is an inventory item: **Change** (or **Switches** on an imported one) opens its page in the inventory, with its parts, where each runs now, and its plan, saved with the save bar. **Add range** stays a dialog here. Changing ranges needs `floorplan.edit`; every change is in the audit log.
 
-### Importing from NetBox
+### Ranges from NetBox
 
-Where the ranges are kept in NetBox, **Import from NetBox** reads them instead (`floorplan.edit`).
+Where the ranges are kept in NetBox, every inventory sync (on its schedule, or **Sync now** on the
+Inventory page) reads them with the prefixes; there is no separate import (issue #1347).
 Give each prefix the custom field **`floorbit_firewalls`** (Customization › Custom fields, on
 IPAM › Prefix):
 
@@ -59,10 +60,11 @@ Prefixes with the field empty are left out. The prefix's description becomes the
 firewalls must be devices with the role Firewall in the inventory (NetBox feeds it), and a prefix that
 names one Floorbit doesn't know is skipped and counted.
 
-Each import replaces the last one, so a prefix taken out of NetBox goes here too. When NetBox can't be
-read, the last import stays. Ranges planned in Floorbit stay as they are, and a prefix for a network
+Each sync replaces what the last one brought, so a prefix taken out of NetBox goes here too. When NetBox
+can't be read, the last ranges stay and the sync goes on. Ranges planned in Floorbit stay as they are, and a prefix for a network
 planned here already is skipped. Imported ranges say **From NetBox** and are changed there. On a hosted
-Floorbit the local agent asks the event's NetBox (an agent with `firewall_feeds`; older agents say they can't). Every import is in the audit log.
+Floorbit the local agent asks the event's NetBox (an agent with `firewall_feeds`). The inventory sync's report says how many ranges came
+(`firewall_ranges` on the NetBox report: `added`, `errors`).
 
 ### Seats in the wrong range
 
@@ -83,7 +85,7 @@ A range can also name the **switches and switch groups** it is for; that wins ov
 the group (Green) and every switch in it, and in its subgroups, uses that range. When most seats of
 a named switch are outside its ranges, the range is set for the wrong switch: that is one item
 linking here. An imported range takes its switches here too (**Switches**); they are kept across
-imports. The items name ranges, never a seat's IP.
+syncs. The items name ranges, never a seat's IP.
 
 ## On the floor plan
 

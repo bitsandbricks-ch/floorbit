@@ -333,7 +333,6 @@ Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/firewalls/ranges` | `floorplan.edit` |  |
 | DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
-| POST | `/api/firewalls/ranges/import` | `floorplan.edit` |  |
 | GET | `/api/firewalls/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.flows
