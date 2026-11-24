@@ -7,7 +7,7 @@ import { useCan } from '@/api/queries'
 import { qk } from '@/api/keys'
 import type { BlockDetails } from '@/api/types'
 import { rate } from './model'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 const TONE: Record<string, string> = { online: 'up', offline: 'down' }
 

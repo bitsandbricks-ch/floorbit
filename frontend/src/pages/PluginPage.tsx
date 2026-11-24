@@ -7,7 +7,7 @@ import { qk } from '@/api/keys'
 import type { PluginPageData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { TileGrid } from '@/widgets/PluginTiles'
 
 /** A plugin's own page (plugin.yaml ``pages:``), in the sidebar's Plugins section: its widgets and

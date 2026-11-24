@@ -14,7 +14,7 @@ import { Compare } from './Compare'
 import { Forecast } from './Forecast'
 import { bps } from './format'
 import { onPlan } from '../plan/links'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { ConfirmButton } from '@bitsandbricks/ui'
 

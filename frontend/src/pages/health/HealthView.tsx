@@ -10,7 +10,7 @@ import { useCan, useHealth } from '@/api/queries'
 import type { HealthCheck, HealthKind, HealthWall, State } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { clock } from '@/lib/time'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 const KINDS: HealthKind[] = ['dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other']
 const STATES: State[] = ['down', 'warn', 'up', 'unknown']

@@ -11,7 +11,7 @@ import { useLiveEvent } from '@/api/live'
 import type { TimelineData, TimelineEntry, TimelineKind } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { fieldsText } from '@/lib/auditFields'
 import { clockSeconds, dateOnly } from '@/lib/time'
 
@@ -104,7 +104,7 @@ export default function Timeline() {
           </Group>
         </Chip.Group>
         <ErrorBanner error={list.error} onRetry={() => void list.refetch()} />
-        {list.isPending ? <LoadingState /> : rows.length === 0 ? (
+        {list.isPending ? <LoadingState rows={3} /> : rows.length === 0 ? (
           <EmptyState icon={<IconHistory size={24} />} title={t('timeline.empty')} />
         ) : (
           <>

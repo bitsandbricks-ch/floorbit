@@ -9,7 +9,8 @@ import { useCan } from '@/api/queries'
 import type { SwitchArea, SwitchAreas as Areas } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { AreaEditor } from './switchAreas/AreaEditor'
 
 const HOW_COLOR = { manual: 'blue', learned: 'up', plan: 'gray', todo: 'warn', excluded: 'gray' } as const
@@ -49,8 +50,8 @@ export default function SwitchAreas() {
           </Alert>
         )}
         <Panel padding={0}>
-          {query.isPending ? <LoadingState /> : !d?.switches.length ? (
-            <EmptyState title={t('switchAreas.none')} desc={t('switchAreas.noneHint')} />
+          {query.isPending ? <LoadingState rows={3} /> : !d?.switches.length ? (
+            <EmptyState title={t('switchAreas.none')} description={t('switchAreas.noneHint')} />
           ) : (
             <Table.ScrollContainer minWidth={720}>
               <Table verticalSpacing="sm" highlightOnHover>

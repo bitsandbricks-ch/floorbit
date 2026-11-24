@@ -10,8 +10,7 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState } from '@/components/ui'
-import { useConfirm } from '@bitsandbricks/ui'
+import { ErrorBanner, LoadingState, useConfirm } from '@bitsandbricks/ui'
 import { dateTime } from '@/lib/time'
 import {
   COLS, MAX_PANELS, MAX_SECTIONS, type Panel, type Section, type Spot, add, paneCount, place, rows, starterSections, total,
@@ -51,7 +50,7 @@ export default function Dashboards() {
           <Button variant="default" component="a" href="/widgets" leftSection={<IconLayoutGridAdd size={16} />}>{t('widgets.title')}</Button>
           {canEdit && <Button leftSection={<IconPlus size={16} />} onClick={() => open('new')}>{t('dashboards.new')}</Button>}
         </Group>} />
-      {q.isPending && <LoadingState />}
+      {q.isPending && <LoadingState rows={3} />}
       <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
       {q.data && q.data.layouts.length === 0 && (
         <Paper withBorder radius="lg" p="lg"><Text>{t('dashboards.empty')}</Text></Paper>

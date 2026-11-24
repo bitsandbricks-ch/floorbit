@@ -8,7 +8,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import Marketplace from './plugins/Marketplace'
 import { useMarketplace } from './plugins/market'
 import { pluginName } from '@/lib/pluginName'
@@ -79,7 +79,7 @@ export default function Plugins() {
       ]} />
       <div role="tabpanel" aria-labelledby={`fb-tab-${tab}`}>
         {tab === 'installed' && <>
-          {isPending && <LoadingState />}
+          {isPending && <LoadingState rows={3} />}
           {error && (
             <Alert color="down" role="alert">
               {t('common.error', { message: error.message })}

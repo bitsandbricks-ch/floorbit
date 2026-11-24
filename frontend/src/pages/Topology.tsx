@@ -16,7 +16,7 @@ import { PageHead } from '@bitsandbricks/ui'
 import { download, standaloneSvg, svgToPng } from './plan/exportImage'
 import { type Box as ViewBox, bounds, toDiagram, zoomAt } from './topology/camera'
 import { NODE_H, NODE_W, type Placed, arranged, gbit, layout, placeUplinks } from './topology/layout'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner } from '@bitsandbricks/ui'
 import { ConfirmButton, StatusBadge } from '@bitsandbricks/ui'
 
 const COLOR: Record<string, string> = {

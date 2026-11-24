@@ -14,7 +14,8 @@ import { PageHead } from '@bitsandbricks/ui'
 import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { DeviceRawData, DeviceTelemetryActions, DeviceTelemetryStatus } from '@/components/telemetry/DeviceTelemetry'
-import { EmptyState, Field, LoadingState, Panel } from '@/components/ui'
+import { Field, Panel } from '@/components/ui'
+import { EmptyState, LoadingState } from '@bitsandbricks/ui'
 import { dateTime } from '@/lib/time'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
 import { DeviceForm } from './DeviceForm'
@@ -39,7 +40,7 @@ export default function DevicePage() {
   if (detail.error) {
     return (
       <Layout title={t('inventory.title')}>
-        <EmptyState title={t('inventory.page.notFound')} desc={detail.error.message}
+        <EmptyState title={t('inventory.page.notFound')} description={detail.error.message}
           action={<Button component={Link} to="/inventory" variant="default" leftSection={<IconArrowLeft size={16} />}>{t('inventory.page.back')}</Button>} />
       </Layout>
     )

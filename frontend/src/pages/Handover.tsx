@@ -13,7 +13,7 @@ import { PageHead } from '@bitsandbricks/ui'
 import { duration } from './report/format'
 import { byLine, summaryText, when } from './handover/format'
 import { isWaiting, waitedFor } from './incidents/waiting'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
 import { incidentTitle } from '@/lib/incidentTitle'
 
@@ -90,7 +90,7 @@ export default function Handover() {
             {done.posted ? t('handover.doneDiscord') : t('handover.done')}
           </Alert>
         )}
-        {query.isPending ? <LoadingState /> : d && (
+        {query.isPending ? <LoadingState rows={3} /> : d && (
           <>
             <Text size="sm" c="dimmed">{t('handover.since', { when: when(d.since) })}</Text>
             {d.previous && <Note record={d.previous} title={t('handover.lastNote')} />}

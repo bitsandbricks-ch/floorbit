@@ -6,7 +6,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { DnsData, DnsSite } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
 import { clock, dayClock } from '@/lib/time'
 

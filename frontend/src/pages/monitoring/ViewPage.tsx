@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import { type MonitoringPage, PAGE_BODY, PAGE_LABEL } from './pages'
 
 /** A Monitoring page (Health, Wi-Fi, DNS, Traffic, ...): its body with the page's header around
@@ -14,7 +14,7 @@ export default function ViewPage({ view }: { view: MonitoringPage }) {
   return (
     <Layout title={title}>
       <PageHead title={title} desc={t(`${view}.intro`)} />
-      <Suspense fallback={<LoadingState />}><View expanded /></Suspense>
+      <Suspense fallback={<LoadingState rows={3} />}><View expanded /></Suspense>
     </Layout>
   )
 }

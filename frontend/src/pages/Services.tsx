@@ -20,7 +20,7 @@ import { EntitySelect } from '@/components/EntitySelect'
 import { RconConsole, ServerModal } from './services/GameServerParts'
 import { FilterBar } from '@/components/FilterBar'
 import { useFilters } from '@/components/useFilters'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
 

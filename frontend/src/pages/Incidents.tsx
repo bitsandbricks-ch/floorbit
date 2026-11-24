@@ -17,7 +17,7 @@ import { matchesFilter } from './incidents/filter'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
 import { nextToTake, openOrder } from './incidents/waiting'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 const COLUMNS: IncidentStatus[] = ['open', 'assigned', 'fixed']
 const FIXED_SHOWN = 20
@@ -171,7 +171,7 @@ export default function Incidents() {
       )}
       <ErrorBanner error={board.error} mb="md" onRetry={() => void board.refetch()} />
       {board.isPending ? (
-        <LoadingState />
+        <LoadingState rows={3} />
       ) : (
         board.data && (
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">

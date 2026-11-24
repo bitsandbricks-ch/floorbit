@@ -43,7 +43,7 @@ import { fromOldMode, isEditing, setEditing } from './plan/workspace'
 import { ToolRail } from './plan/edit/ToolRail'
 import { TOOL_KEYS, TOOLS, type Tool } from './plan/edit/tools'
 import { revealActive } from './plan/reveal'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 
 const PANELS = ['seat', 'block', 'switch']
@@ -389,7 +389,7 @@ export default function FloorPlan() {
   }
   return (
     <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }} count={problems + elsewhere} full>
-      {q.isPending && <div className="fb-ws-pad"><LoadingState /></div>}
+      {q.isPending && <div className="fb-ws-pad"><LoadingState rows={3} /></div>}
       {q.error && <div className="fb-ws-pad"><ErrorBanner error={q.error} onRetry={() => void q.refetch()} /></div>}
       {data && (
         <div className="fb-ws">

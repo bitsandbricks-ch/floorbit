@@ -14,7 +14,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { dates, METRICS, share } from './events/metrics'
 import { TenantEvents } from './events/TenantEvents'
-import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton, toastDone } from '@bitsandbricks/ui'
 
 type Column = { id: string; name: string; start: number | null; end: number | null; figures: EventFigures; current?: boolean }
@@ -137,12 +137,12 @@ export default function Events() {
       <Stack gap="md">
         <ErrorBanner error={error} />
         <TenantEvents isAdmin={isAdmin} />
-        {!pastOn ? null : query.isPending ? <LoadingState /> : d && (
+        {!pastOn ? null : query.isPending ? <LoadingState rows={3} /> : d && (
           <>
             <Comparison columns={columns} />
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('events.past')}</Title>
-              {d.archived.length === 0 ? <EmptyState icon={<IconArchive size={24} />} title={t('events.noneTitle')} desc={t('events.none')} /> : (
+              {d.archived.length === 0 ? <EmptyState icon={<IconArchive size={24} />} title={t('events.noneTitle')} description={t('events.none')} /> : (
                 <Stack gap="sm">
                   {d.archived.map((e) => (
                     <Group key={e.id} justify="space-between" wrap="wrap" gap="xs">

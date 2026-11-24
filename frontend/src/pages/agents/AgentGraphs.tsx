@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { TimeChart, type TimePoint } from '@bitsandbricks/widgets'
 import { IconChartLine } from '@tabler/icons-react'
 
@@ -37,8 +38,8 @@ export function AgentGraphs({ agentId }: { agentId: string }) {
           data={RANGES.map((h) => ({ value: h, label: t('agents.graphs.hours', { count: Number(h) }) }))} />
       </Group>
       <ErrorBanner error={q.error} />
-      {q.isPending ? <LoadingState /> : shown.length === 0 ? (
-        <Panel><EmptyState icon={<IconChartLine size={24} />} title={t('agents.graphs.noneTitle')} desc={t('agents.graphs.none')} /></Panel>
+      {q.isPending ? <LoadingState rows={3} /> : shown.length === 0 ? (
+        <Panel><EmptyState icon={<IconChartLine size={24} />} title={t('agents.graphs.noneTitle')} description={t('agents.graphs.none')} /></Panel>
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           {shown.map((m) => {

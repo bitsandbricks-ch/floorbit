@@ -10,7 +10,7 @@ import type { AuditEntry, AuditPage } from '@/api/types'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { fieldsText } from '@/lib/auditFields'
 import { dateTime } from '@/lib/time'
 
