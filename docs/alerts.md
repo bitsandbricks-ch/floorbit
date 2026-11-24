@@ -32,8 +32,17 @@ and its name in the list of muted switches, open that switch on the floor plan (
 
 Seat and port trouble (see [Seats with trouble](#seats-with-trouble) below) is part of the same
 list. The list is a table: type, the problem (title, where, what it cuts off, its mute), when it
-started and the actions. It is sorted worst first: down, then what needs a look, then what is
-muted, and within each the longest standing first; **Started** and **Problem** sort it the other
+started and the actions. It is sorted by **priority**, then muted ones last, and within each the
+longest standing first:
+
+1. **Urgent**: down and cutting off more than itself: a switch or link with switches behind it, or
+   a router, firewall, core or distribution box (its role in the inventory);
+2. the rest that is down;
+3. what needs a look.
+
+People with `incidents.work` can **Raise** any problem to urgent by hand when the rules don't know
+it matters more (it shows **Raised**, with who did it), and **Lower again**. A raise is forgotten
+after 7 days. **Started** and **Problem** sort it the other ways; **Started** and **Problem** sort it the other
 ways. The cards on top count what is down, what
 needs a look, the **seats with trouble** (counted like the floor plan's "!": check-in left out) and
 what is muted.
@@ -44,9 +53,11 @@ kind. The choice is kept in the address (`/problems?kind=power`), so a reload or
 the same. Next to it:
 
 - **Severity**: all, only what is down, or only what needs a look (`?level=down`, `?level=warn`);
-- **Group by**: nothing, type or switch (`?group=device`). Grouped, each type or switch gets its
-  own table under its name with a count; problems on no switch (a service, the forecast) come last
-  under **Not on a switch**;
+- **Group by**: nothing, type, switch (`?group=device`) or, with more than one hall, hall
+  (`?group=hall`). Grouped, each gets its own table under its name with a count; problems on no
+  switch (a service, the forecast) come last under **Not on a switch** (or **No hall**). The hall is
+  the one the switch is placed in, or for seat trouble the seat's block;
+- **Tag**: only problems on a switch with that tag in the inventory (`?tag=stage`);
 - **Hide muted** (`?muted=hide`).
 
 The list comes in pages of 25, the page and the sort in the address too (`/problems?page=2`).
