@@ -1,0 +1,18 @@
+{
+  "button": "Saved views",
+  "none": "No saved views in this hall yet",
+  "private": "Only for you",
+  "save": "Save current view…",
+  "update": "Update \"{{name}}\"",
+  "updated": "Updated \"{{name}}\"",
+  "delete": "Delete \"{{name}}\"",
+  "copyLink": "Copy link to this view",
+  "copied": "Link copied",
+  "saveTitle": "Save view",
+  "name": "Name",
+  "keeps": "Keeps where the plan looks and its zoom, the layers and how strong they are, and the seat filter.",
+  "onlyMe": "Only for me",
+  "onlyMeHint": "Otherwise everyone on the crew sees it, and dashboards can show it.",
+  "saveButton": "Save",
+  "saved": "Saved \"{{name}}\""
+}

@@ -33,6 +33,7 @@ import { useIdle } from './plan/idle'
 import { useReloadOnUpdate } from './plan/update'
 import { findPlace } from './plan/find'
 import { ScreenLink } from './plan/ScreenLink'
+import { ViewMenu } from './plan/views/ViewMenu'
 import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
@@ -430,6 +431,7 @@ export default function FloorPlan() {
                   onChange={(e) => setSearch(e.currentTarget.value)}
                   onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
               </form>
+              {!list && <ViewMenu hall={data.hall} view={view} params={params} setParams={setParams} setView={setView} canEdit={canEdit} />}
               <ScreenLink hall={data.hall} params={params} />
               {editing && <PlanMenu onOpen={setPlanDialog} />}
               <ExportMenu hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall} filter={filter} />

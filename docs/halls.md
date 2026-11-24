@@ -287,6 +287,18 @@ Electrical, Services). Switching one off hides its marks while you edit, so a bu
 layer at a time; the editor remembers this per browser. A new mark on a hidden layer switches that layer back
 on. **Open these layers on the Seats view** opens this hall there with the same mark layers and check-in.
 
+## Saved views
+
+**Saved views ▾** in the plan's top bar keeps what the plan shows now under a name: where it looks and its
+zoom, the layers and how strong they are, and the seat filter. Pick a view from the same menu to open it
+again; the menu lists the views of the hall shown. **Copy link to this view** gives an address with
+`?pv=<id>` that opens the view (hall, layers, filter and position). **Update** saves the current state into
+the open view, **Delete** removes it.
+
+Views are shared with the event's crew; **Only for me** keeps one personal. Saving, updating and deleting
+need `floorplan.edit`; everyone who sees the plan can open the shared ones. Views belong to the event
+(`plan-views.json`), like its halls. API: `GET/POST /api/plan-views`, `PUT/DELETE /api/plan-views/<id>`.
+
 ## Big screens and attendee pages
 
 - `/kiosk?hall=<id>` (or `/dashboards/<id>?hall=<id>`) shows another hall than the first; with `?rotate=` it goes along to

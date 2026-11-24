@@ -1,0 +1,18 @@
+{
+  "button": "Gespeicherte Ansichten",
+  "none": "In dieser Halle gibt es noch keine gespeicherten Ansichten",
+  "private": "Nur für dich",
+  "save": "Aktuelle Ansicht speichern…",
+  "update": "«{{name}}» aktualisieren",
+  "updated": "«{{name}}» aktualisiert",
+  "delete": "«{{name}}» löschen",
+  "copyLink": "Link zu dieser Ansicht kopieren",
+  "copied": "Link kopiert",
+  "saveTitle": "Ansicht speichern",
+  "name": "Name",
+  "keeps": "Speichert den Ausschnitt des Plans mit Zoom, die Ebenen und ihre Stärke sowie den Sitzfilter.",
+  "onlyMe": "Nur für mich",
+  "onlyMeHint": "Sonst sehen sie alle in der Crew, und Dashboards können sie zeigen.",
+  "saveButton": "Speichern",
+  "saved": "«{{name}}» gespeichert"
+}
