@@ -1,20 +1,21 @@
 # Firewalls
 
 Network › Firewalls (`/firewalls`, issue #470). For events where the core spreads the seats over
-several firewalls: the core policy-routes each seat range to its firewall (issue #866). A range is
-any span of addresses, not only a CIDR block. Where the core also moves a range while its firewall is
-down, the range names that fallback. Floorbit keeps the plan and holds it against the firewalls'
-health, so the crew sees at a glance which ranges are off their firewall and which firewall a seat's
-traffic takes.
+several firewalls: the core policy-routes each seat range to its firewalls (issue #866). A range is
+any span of addresses, not only a CIDR block. A range over several firewalls is cut into equal
+**parts**, one per firewall in their order: a /24 over four firewalls sends each quarter to its own.
+Where the core also moves a part while its firewall is down, the range names that fallback. Floorbit
+keeps the plan and holds it against the firewalls' health, so the crew sees at a glance which parts
+are off their firewall and which firewall a seat's traffic takes.
 
 ## What you see
 
-- **A card per firewall**: up or down, the ranges it serves now and how many seats that is, the
-  ranges it is planned for (stand out while it is down) and the ranges it took over from a firewall
+- **A card per firewall**: up or down, the parts it serves now and how many seats that is, the
+  parts it is planned for (stand out while it is down) and the parts it took over from a firewall
   that is down.
-- **The ranges**: each range with its firewall (and fallback, if any), the one it takes now and
-  whether that is as planned, on its fallback, or no firewall up at all. Ranges not on their planned firewall are
-  listed at the top.
+- **The ranges**: each range with its parts, the firewall each takes now and whether that is as
+  planned, on its fallback, or no firewall up at all, and the fallback if any. Parts not on their
+  planned firewall are listed at the top.
 - **On the floor plan**: the seat panel says which firewall the seat takes, and when it failed over,
   which one it should take (crew only, from `incidents.work`). The seat's IP is never shown there
   for this.
@@ -25,24 +26,13 @@ traffic takes.
 | --- | --- |
 | Range | A network, like `192.0.2.0/27`, or from-to, like `192.0.2.0-192.0.2.128`. A from-to that is exactly one network is written as that network. A host address is turned into its network. IPv4 and IPv6. |
 | Name | Optional, like `Block A`. |
-| Firewall | The firewall the core routes the range to. |
-| Fallback | Optional: where the core moves the range while its firewall is down, in order (at most 9). Left empty, the range is down with its firewall. |
-| Seat blocks | Optional: the blocks this range is for. See [Seats in the wrong range](#seats-in-the-wrong-range). |
+| Firewalls | The firewalls the core routes the range to, in order (at most 16). With several, the range is cut into equal parts, one per firewall: the first part to the first firewall, and so on. Addresses that don't divide evenly go one each to the first parts, so a /24 over three firewalls is `.0-.85`, `.86-.170` and `.171-.255`. |
+| Fallback | Optional: where the core moves a part while its own firewall is down, in order. Left empty, the part is down with its firewall. |
+| Switches and switch groups | Optional: what this range is for. See [Seats in the wrong range](#seats-in-the-wrong-range). |
 
 The firewalls are the inventory's devices with the role **Firewall** (from NetBox, or added by
 hand). A seat's range is the narrowest one its IP is in, the way the core picks it. Ranges may sit inside
 each other, but two that only cross are refused: the addresses in between would be ambiguous. Changing ranges needs `floorplan.edit`; every change is in the audit log.
-
-### Splitting a network
-
-**Split a network** plans a whole hall at once: give a network (`198.51.100.0/22`), a range size
-(`/24`), optionally a name and the firewalls. Floorbit cuts the network into equal ranges and shares
-them out in turn: the first range goes to the first firewall, the second to the second, and so on,
-the way a core usually spreads seats over a cluster. Tick **falls back to the next firewall** only
-if the core moves a range while its firewall is down: each range then gets the next firewall as its
-fallback.
-The ranges are numbered after the name (`Seat range 1`, `Seat range 2`, ...). A range planned
-already keeps its own line. One split makes at most 256 ranges.
 
 ### Importing from NetBox
 
@@ -50,7 +40,8 @@ Where the ranges are kept in NetBox, **Import from NetBox** reads them instead (
 Give each prefix the custom field **`floorbit_firewalls`** (Customization › Custom fields, on
 IPAM › Prefix):
 
-- a **text** field with the firewall, then any fallbacks, like `fw-01` or `fw-01, fw-02`, or
+- a **text** field with its firewalls in order, like `fw-01` or `fw-01, fw-02` (the prefix is cut
+  into equal parts over them), or
 - a **multiple objects** field of devices, picked in order.
 
 Prefixes with the field empty are left out. The prefix's description becomes the range's name. The
@@ -86,8 +77,8 @@ imports. The items name ranges, never a seat's IP.
 ## On the floor plan
 
 Once ranges are planned, the floor plan has a **Firewalls** switch. It rings every seat whose
-traffic isn't on its planned firewall: a dashed amber ring when the range is on its fallback,
-a solid red ring when no firewall in its line is up. Seats on their planned firewall stay as they
+traffic isn't on its planned firewall: a dashed amber ring when its part is on the fallback,
+a solid red ring when neither its firewall nor a fallback is up. Seats on their planned firewall stay as they
 are, so a failover shows as a patch of rings in the hall. The seat panel says which firewall the
 seat takes now. The plan gets seat names and firewall names only, never the IPs.
 
@@ -95,17 +86,17 @@ seat takes now. The plan gets seat names and firewall names only, never the IPs.
 
 Each firewall's state comes from the monitoring source's device list (LibreNMS, or the local
 agent on a hosted Floorbit), read at most every 15 seconds, matched by name like the status
-monitor does. A range takes the first firewall in its line that isn't reported down. A firewall
-the source knows nothing about counts as up, since the core would still route to it, and the range
+monitor does. A part takes its firewall, or the first fallback, that isn't reported down. A firewall
+the source knows nothing about counts as up, since the core would still route to it, and the part
 says **Not read** instead of **As planned**. When the source can't be read at all, the page says
-so and every range shows its planned firewall.
+so and every part shows its planned firewall.
 
 Firewalls don't need to be on the floor plan: most stand in the rack behind the core.
 
 ## On the health wall
 
 Each firewall is also a tile on the [service health](health.md) widget (under **Firewalls**): green
-while it is up, red when it is down, saying which of its ranges failed over or have no firewall left.
+while it is up, red when it is down, saying which of its parts failed over or have no firewall left.
 So a firewall going down pages the crew on Discord like any other service.
 
 ## Not yet

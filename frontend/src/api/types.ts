@@ -1691,8 +1691,15 @@ export interface SeatFirewall { intended: string | null; now: string | null; sta
 export type FirewallRouteState = 'primary' | 'failover' | 'unknown' | 'down'
 
 /** GET /api/firewalls (issue #470): the firewalls with their health, and each seat range's route now. */
+/** One firewall's equal share of a range (Mike, 2026-11-24): a range over four firewalls has four. */
+export interface FirewallPart {
+  cidr: string; firewall: string; now: string | null; state: FirewallRouteState; seats: number
+}
 export interface FirewallRange {
-  id: string; cidr: string; name: string; firewalls: string[]; intended: string | null; now: string | null
+  id: string; cidr: string; name: string
+  /** The firewalls the range is cut over, in order; ``fallback``: where a part goes while its own is down. */
+  firewalls: string[]; fallback: string[]; parts: FirewallPart[]
+  /** The worst of its parts. */
   state: FirewallRouteState; seats: number
   /** 'import': read from NetBox (change it there); 'floorbit': planned here. */
   source?: 'import' | 'floorbit'; plugin?: string

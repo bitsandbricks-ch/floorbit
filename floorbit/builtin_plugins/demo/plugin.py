@@ -68,8 +68,8 @@ APS = (('ap-01', (7, 30), (1, 36)), ('ap-02', (47, 30), (6, 44)), ('ap-03', (53,
        ('ap-07', (60, 92), (1, 132)), ('ap-08', (86, 92), (6, 149)), ('ap-stage', (50, 60), (None, 60)),
        ('ap-10', (75, 30), (11, 157)))
 CROWDED_AP = 'ap-stage'     # the stage: always busy
-# Ten firewalls behind the core, each serving a /28 of the seats; fw-03 is down, so its range has
-# failed over to fw-04 (the firewall view's failover to show).
+# Ten firewalls behind the core, each serving a /28 of the seats; fw-03 is down, so its part has
+# failed over to fw-10 (the firewall view's failover to show).
 FIREWALLS = tuple(f'fw-{n:02d}' for n in range(1, 11))
 DOWN_FIREWALL = 'fw-03'
 # The core's two internet lines (the services view): port, line speed, how busy on average.
@@ -100,9 +100,11 @@ LAYOUT = {
         + [{'board': 'DB-1', 'name': T['rack'], 'rating_a': 32, 'phase': '3P', 'meter': 'rack',
             'switches': ['core-01', 'dist-01', 'dist-02']}],
     },
-    # The seats are spread over 192.0.2.0 to .159 (see _ip): one /28 per firewall, the next one as its backup.
-    'firewalls': [{'cidr': f'192.0.2.{16 * i}/28', 'name': T['range'].format(i + 1),
-                   'firewalls': [fw, FIREWALLS[(i + 1) % len(FIREWALLS)]]} for i, fw in enumerate(FIREWALLS)],
+    # The seats are spread over 192.0.2.0 to .159 (see _ip). The main range is cut over eight
+    # firewalls (a /28 each) with fw-10 as their fallback; the rest is shared by fw-09 and fw-10.
+    'firewalls': [{'cidr': '192.0.2.0/25', 'name': T['range'].format(1), 'firewalls': list(FIREWALLS[:8]),
+                   'fallback': [FIREWALLS[9]]},
+                  {'cidr': '192.0.2.128/27', 'name': T['range'].format(2), 'firewalls': list(FIREWALLS[8:])}],
     # The internet lines on core-01's ISP ports. The probes to their far ends are answered by the demo
     # itself (Plugin.answer), so nothing is sent out.
     'uplinks': [{'name': T['isp'].format(chr(65 + i)), 'device': 'core-01', 'port': port,

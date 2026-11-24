@@ -14,8 +14,10 @@ const list: FirewallList = {
     { id: 'f2', name: 'fw-02', model: '', hall: '', status: 'offline', serving: [], planned: ['192.0.2.32/27'], taken_over: [], seats: 0 },
   ],
   ranges: [
-    { id: 'r1', cidr: '192.0.2.0/27', name: 'Block A', firewalls: ['fw-01', 'fw-02'], intended: 'fw-01', now: 'fw-01', state: 'primary', seats: 22 },
-    { id: 'r2', cidr: '192.0.2.32/27', name: '', firewalls: ['fw-02', 'fw-01'], intended: 'fw-02', now: 'fw-01', state: 'failover', seats: 18 },
+    // One range over two firewalls: each half goes to its own, fw-02's half to the fallback.
+    { id: 'r1', cidr: '192.0.2.0/26', name: 'Block A', firewalls: ['fw-01', 'fw-02'], fallback: ['fw-01'], state: 'failover', seats: 40,
+      parts: [{ cidr: '192.0.2.0/27', firewall: 'fw-01', now: 'fw-01', state: 'primary', seats: 22 },
+        { cidr: '192.0.2.32/27', firewall: 'fw-02', now: 'fw-01', state: 'failover', seats: 18 }] },
   ],
   counts: { firewalls: 2, down: 1, failover: 1, without: 0 }, unread: false,
 }
@@ -28,7 +30,8 @@ describe('Firewalls', () => {
     expect(within(down).getByText('Down')).toBeInTheDocument()
     expect(within(down).getByText('Planned for 192.0.2.32/27')).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'fw-01' })).getByText('Serves 2 ranges, 40 seats')).toBeInTheDocument()
-    expect(screen.getByText('192.0.2.32/27 runs over fw-01, planned fw-02')).toBeInTheDocument()
+    expect(screen.getByText('Block A (192.0.2.32/27) runs over fw-01, planned fw-02')).toBeInTheDocument()
+    expect(screen.getByText('1 part of a range is not on its planned firewall')).toBeInTheDocument()
     expect(screen.getAllByText('then fw-01').length).toBeGreaterThan(0)
     expect(within(screen.getByRole('region', { name: 'fw-01' })).getByText('Took over 192.0.2.32/27')).toBeInTheDocument()
     expect(screen.queryByText(/Backup for/)).not.toBeInTheDocument()
@@ -36,7 +39,7 @@ describe('Firewalls', () => {
     expect(screen.queryByRole('button', { name: 'Change' })).not.toBeInTheDocument()
   })
 
-  it('lets the crew add a from-to range with its firewall and a fallback (#866)', async () => {
+  it('lets the crew add a range over several firewalls, in order, with a fallback', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [] },
       'POST /api/firewalls/ranges': () => ({ status: 201, body: list.ranges[0] }),
@@ -54,11 +57,12 @@ describe('Firewalls', () => {
       const list = await waitFor(() => document.getElementById(el.getAttribute('aria-controls') ?? '') as HTMLElement)
       fireEvent.click(within(list).getByRole('option', { name, hidden: true }))
     }
-    await pick('Firewall', 'fw-02')
-    await pick('Fallback', 'fw-01')
+    await pick('Firewalls', 'fw-02')
+    await pick('Firewalls', 'fw-01')
+    expect(screen.getByText('Cut into 2 equal parts, one per firewall in this order.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({
-      cidr: '192.0.2.0-192.0.2.128', name: '', firewalls: ['fw-02', 'fw-01'], switches: [],
+      cidr: '192.0.2.0-192.0.2.128', name: '', firewalls: ['fw-02', 'fw-01'], fallback: [], switches: [],
     }))
   })
 
@@ -82,36 +86,10 @@ describe('Firewalls', () => {
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ switches: ['g-green', 'd1'] }))
   })
 
-  it('splits a network over all firewalls and says how many ranges that makes', async () => {
-    const api = fakeFetch({
-      'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [] },
-      'POST /api/firewalls/ranges/split': () => ({ status: 201, body: { added: 4, skipped: 0, ranges: [] } }),
-    })
-    vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Firewalls />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Split a network' }))
-    fireEvent.change(await screen.findByRole('textbox', { name: 'Network' }), { target: { value: '198.51.100.0/22' } })
-    expect(screen.getByText('Makes 4 ranges.')).toBeInTheDocument()
-    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Hall' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Split' }))
-    await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({
-      cidr: '198.51.100.0/22', size: 24, name: 'Hall', firewalls: ['fw-01', 'fw-02'], fallback: false,
-    }))
-  })
-
-  it('refuses a split into more than 256 ranges before asking the server', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/firewalls': list }).fn)
-    renderWithApp(<Firewalls />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Split a network' }))
-    fireEvent.change(await screen.findByRole('textbox', { name: 'Network' }), { target: { value: '198.51.0.0/15' } })
-    expect(screen.getByText('That makes more than 256 ranges: pick a larger range size.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Split' })).toBeDisabled()
-  })
-
   it('imports ranges from NetBox and leaves imported ranges to NetBox', async () => {
     const fromNetbox = { ...list.ranges[0], source: 'import' as const, plugin: 'NetBox' }
     const api = fakeFetch({
-      'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [fromNetbox, list.ranges[1]], can_import: true },
+      'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [fromNetbox, { ...list.ranges[0], id: 'r2', cidr: '198.51.100.0/24', name: '' }], can_import: true },
       'POST /api/firewalls/ranges/import': () => ({ status: 200, body: { added: 3, errors: ['1 prefix(es) skipped: planned in Floorbit already.'] } }),
     })
     vi.stubGlobal('fetch', api.fn)
