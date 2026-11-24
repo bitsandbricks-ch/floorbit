@@ -595,6 +595,10 @@ class SyslogReceiver:
                 tcp = TcpServer((s['bind'], s['port']), Tcp)
                 self._servers.append(tcp)
         except OSError as exc:
+            # Close what did bind: a server that never served makes stop() wait forever (#1145).
+            for server in self._servers:
+                server.server_close()
+            self._servers = []
             self.error = f"Can't listen on port {s['port']}: {exc.strerror or exc}"
             print(f'[syslog] {self.error}')
             return
