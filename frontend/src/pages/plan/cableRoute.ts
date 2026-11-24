@@ -1,4 +1,4 @@
-import type { PlanCable, PlanDrawing, PlanShape, SeatViewData } from '@/api/types'
+import type { PlanCable, PlanCell, PlanDrawing, PlanShape, SeatViewData } from '@/api/types'
 import { seatCenter } from './model'
 
 type Pt = [number, number]
@@ -38,12 +38,29 @@ export function toSeat(start: Pt, seat: Pt, box: Box | null): Pt[] {
     const top = box.t - (TRUNK * PITCH_Y) / 2
     const bottom = box.b + (TRUNK * PITCH_Y) / 2
     const [near, far] = sy < box.cy ? [top, bottom] : [bottom, top]
-    if (box.sideways || (seat[1] < box.cy) === (sy < box.cy)) return [[sx, near], [seat[0], near]]
+    const farHalf = sy < box.cy ? seat[1] > box.cy : seat[1] < box.cy
+    if (box.sideways || !farHalf) return [[sx, near], [seat[0], near]]
     const x = sx < box.cx ? box.l - (TRUNK * PITCH_X) / 2 : box.r + (TRUNK * PITCH_X) / 2
     return [[sx, near], [x, near], [x, far], [seat[0], far]]
   }
   const x = sx < box.cx ? box.l - (TRUNK * PITCH_X) / 2 : box.r + (TRUNK * PITCH_X) / 2
   return [[x, sy], [x, seat[1]]]
+}
+
+/** The route into a seat whose row has a lane, as the server draws it (cable_plan._in_lane): to the
+ *  block's end nearer the start, along it to the lane, along the lane to the seat. In the block's
+ *  own frame (drawing units), so a turned block's cables turn with it. */
+export function inLane(start: Pt, shape: PlanShape, c: PlanCell, cell: number, size: Size): Pt[] {
+  const a = (shape.rotation * Math.PI) / 180, cos = Math.cos(a), sin = Math.sin(a)
+  const dx = (start[0] / 100) * size.w - shape.cx, dy = (start[1] / 100) * size.h - shape.cy
+  const su = dx * cos + dy * sin, sv = -dx * sin + dy * cos
+  const w = shape.w / 2, h = shape.h / 2, out = (TRUNK * cell) / 2
+  const u = c.x + cell / 2, lane = c.y + cell / 2 + (c.lane ?? 0)
+  const end = su < 0 ? -w - out : w + out
+  const bends: Pt[] = -w <= su && su <= w
+    ? [[su, sv < 0 ? -h - out : h + out], [end, sv < 0 ? -h - out : h + out], [end, lane], [u, lane]]
+    : [[end, sv], [end, lane], [u, lane]]
+  return bends.map(([bu, bv]) => pct(size, shape.cx + bu * cos - bv * sin, shape.cy + bu * sin + bv * cos))
 }
 
 /** Drops repeated points and bends that are not bends, like the server's ``_tidy``. */
@@ -70,8 +87,8 @@ export function followPlan(cables: PlanCable[], data: Pick<SeatViewData, 'switch
   if (!drawing) return cables
   const switches = new Map(data.switches.map((s) => [s.name.toLowerCase(), pct(size, s.x, s.y)]))
   const blocks = new Map<string, Box>()
-  const blockOf = (seat: string) => {
-    const shape = drawing.shapes.find((b) => b.cells.some((c) => c.seat === seat))
+  const shapeOf = (seat: string) => drawing.shapes.find((b) => b.cells.some((c) => c.seat === seat))
+  const blockOf = (shape: PlanShape | undefined) => {
     if (!shape) return null
     if (!blocks.has(shape.name)) blocks.set(shape.name, boxOf(shape, size))
     return blocks.get(shape.name)!
@@ -87,66 +104,101 @@ export function followPlan(cables: PlanCable[], data: Pick<SeatViewData, 'switch
     if (c.corners === 'straight') return { ...c, points: [start, end] }
     // Through a patch panel the panel's leg stays as drawn; the rest follows the seat.
     if (c.manual || c.via) return { ...c, points: [start, ...c.points.slice(1, -1), end] }
-    return { ...c, points: tidy([start, ...toSeat(start, end, blockOf(c.ref.seat)), end]) }
+    const shape = shapeOf(c.ref.seat), seatCell = shape?.cells.find((x) => x.seat === c.ref.seat)
+    const bends = shape && seatCell?.lane != null ? inLane(start, shape, seatCell, drawing.cell, size) : toSeat(start, end, blockOf(shape))
+    return { ...c, points: tidy([start, ...bends, end]) }
   })
 }
 
-/** ``label``: the fullest stretch of its line, where the count is shown (once per line, not per stretch). */
-export interface Bundle { x1: number; y1: number; x2: number; y2: number; count: number; label?: boolean }
+/** A bundle on the plan (drawing units): the stretch where its count shows, and how many cables run there. */
+export interface Bundle { x1: number; y1: number; x2: number; y2: number; count: number }
 
-/** Where several cables run along the same line (in drawing units): one entry per stretch, with how
- *  many cables share it. Drawn as one wider band with a count, so a block's cables read as a bundle
- *  instead of a dozen lines on top of each other. Only straight runs across or down count. */
-export function bundles(cables: PlanCable[], size: Size, least = 3): Bundle[] {
-  const lines = new Map<string, [number, number][]>()
-  for (const c of cables) {
-    if (c.kind !== 'lan') continue
-    const pts = c.points.map(([x, y]) => [round((x / 100) * size.w), round((y / 100) * size.h)] as Pt)
-    for (let i = 1; i < pts.length; i++) {
-      const [a, b] = [pts[i - 1], pts[i]]
+interface Seg { cable: number; i: number; lo: number; hi: number; exit: number; len: number }
+
+/** Seat cables that share a run drawn side by side, like a ribbon, instead of on top of each other
+ *  (Mike, issue #1342: "it should still be visible that there are multiple cables"). Each cable
+ *  keeps its own thin line, so one can be followed out to its seat; the ribbon narrows as cables
+ *  leave it. Cables that turn off first run on the side they turn to, so they peel off without
+ *  crossing the others. The last stretch, into the seat, stays where it is, so the plug does too.
+ *
+ *  Returns the cables with their points moved (still in % of the plan) and one ``Bundle`` per run of
+ *  two or more cables, on its fullest stretch, for the count. Only straight runs across or down
+ *  count; ``cell`` (drawing units) sets how far apart the cables run. */
+export function spread(cables: PlanCable[], size: Size, cell = 32): { cables: PlanCable[]; bundles: Bundle[] } {
+  const pts = cables.map((c) => c.points.map(([x, y]): Pt => [round((x / 100) * size.w), round((y / 100) * size.h)]))
+  const lines = new Map<string, Seg[]>()
+  cables.forEach((c, k) => {
+    if (c.kind !== 'lan' || c.corners === 'straight') return
+    const p = pts[k]
+    // Not the last stretch: the drop into the seat stays put.
+    for (let i = 0; i < p.length - 2; i++) {
+      const [a, b, next] = [p[i], p[i + 1], p[i + 2]]
       const across = Math.abs(a[1] - b[1]) < 0.5, down = Math.abs(a[0] - b[0]) < 0.5
-      if (across === down) continue        // a slanted run or no run at all
+      if (across === down) continue
       const key = across ? `h${Math.round(a[1])}` : `v${Math.round(a[0])}`
       const [from, to] = across ? [a[0], b[0]] : [a[1], b[1]]
+      const turn = across ? next[1] - b[1] : next[0] - b[0]
       if (!lines.has(key)) lines.set(key, [])
-      lines.get(key)!.push([Math.min(from, to), Math.max(from, to)])
+      lines.get(key)!.push({ cable: k, i, lo: Math.min(from, to), hi: Math.max(from, to), exit: Math.abs(turn) < 0.5 ? 0 : Math.sign(turn), len: Math.abs(to - from) })
     }
-  }
+  })
+  const offsets = cables.map((c) => new Array<number>(Math.max(0, c.points.length - 1)).fill(0))
   const out: Bundle[] = []
-  for (const [key, spans] of lines) {
-    // Sweep along the line counting how many runs cover each stretch.
-    const edges = spans.flatMap(([a, b]): [number, number][] => [[a, 1], [b, -1]]).sort((p, q) => p[0] - q[0] || q[1] - p[1])
-    let count = 0, at = 0
-    const at0 = Number(key.slice(1))
-    for (const [pos, step] of edges) {
-      if (count >= least && pos - at > 1) {
-        out.push(key[0] === 'h' ? { x1: at, y1: at0, x2: pos, y2: at0, count } : { x1: at0, y1: at, x2: at0, y2: pos, count })
-      }
-      count += step
-      at = pos
+  for (const [key, segs] of lines) {
+    const across = key[0] === 'h', at = Number(key.slice(1))
+    // Runs that overlap on this line are one bundle.
+    segs.sort((a, b) => a.lo - b.lo)
+    const groups: Seg[][] = []
+    for (const s of segs) {
+      const g = groups[groups.length - 1]
+      if (g && s.lo < Math.max(...g.map((x) => x.hi)) - 0.5) g.push(s)
+      else groups.push([s])
+    }
+    for (const g of groups) {
+      if (new Set(g.map((s) => s.cable)).size < 2) continue
+      // A cable turning down (or right) runs on that side, the soonest to leave outermost.
+      const score = (s: Seg) => (s.exit > 0 ? 2e6 - s.len : s.exit < 0 ? -2e6 + s.len : 0)
+      const order = [...g].sort((a, b) => score(a) - score(b) || a.cable - b.cable)
+      const gap = Math.min(cell * 0.09, (cell * 0.6) / (order.length - 1))
+      order.forEach((s, slot) => { offsets[s.cable][s.i] = (slot - (order.length - 1) / 2) * gap })
+      const label = fullest(g)
+      out.push(across ? { x1: label[0], y1: at, x2: label[1], y2: at, count: label[2] } : { x1: at, y1: label[0], x2: at, y2: label[1], count: label[2] })
     }
   }
-  // Neighbouring stretches with the same count are one run.
-  const runs = out.reduce<Bundle[]>((acc, b) => {
-    const p = acc[acc.length - 1]
-    const across = b.y1 === b.y2
-    const joins = p && p.count === b.count && (across
-      ? p.y1 === p.y2 && p.y1 === b.y1 && p.x2 === b.x1
-      : p.x1 === p.x2 && p.x1 === b.x1 && p.y2 === b.y1)
-    if (joins) acc[acc.length - 1] = { ...p, x2: b.x2, y2: b.y2 }
-    else acc.push(b)
-    return acc
-  }, [])
-  // One count per line: on its fullest stretch (the longest, when two are as full).
-  const best = new Map<string, Bundle>()
-  const len = (b: Bundle) => Math.hypot(b.x2 - b.x1, b.y2 - b.y1)
-  for (const b of runs) {
-    const key = b.y1 === b.y2 ? `h${b.y1}` : `v${b.x1}`
-    const p = best.get(key)
-    if (!p || b.count > p.count || (b.count === p.count && len(b) > len(p))) best.set(key, b)
+  const moved = cables.map((c, k) => {
+    const p = pts[k], off = offsets[k]
+    if (!off.some((o) => o)) return c
+    // Each bend moves across by the run before it and the run after it, so the corners stay square.
+    const axis = (i: number) => (Math.abs(p[i][1] - p[i + 1][1]) < 0.5 ? 'h' : Math.abs(p[i][0] - p[i + 1][0]) < 0.5 ? 'v' : '')
+    const shifted = p.map((q, j): Pt => {
+      let [x, y] = q
+      for (const i of [j - 1, j]) {
+        if (i < 0 || i >= off.length || !off[i]) continue
+        if (axis(i) === 'h') y = q[1] + off[i]
+        else if (axis(i) === 'v') x = q[0] + off[i]
+      }
+      return [x, y]
+    })
+    // Both ends stay where they are: the cable leaves its switch and meets its seat as before.
+    const points = [p[0], ...shifted.slice(0, -1), p[p.length - 1]]
+      .filter((q, j, all) => j === 0 || !same(q, all[j - 1]))
+      .map(([x, y]): Pt => [(x / size.w) * 100, (y / size.h) * 100])
+    return { ...c, points }
+  })
+  return { cables: moved, bundles: out }
+}
+
+/** The fullest stretch of one bundle (the longest when two are as full): ``[from, to, count]``. */
+function fullest(segs: Seg[]): [number, number, number] {
+  const edges = segs.flatMap((s): [number, number][] => [[s.lo, 1], [s.hi, -1]]).sort((p, q) => p[0] - q[0] || q[1] - p[1])
+  let count = 0, at = edges[0][0]
+  let best: [number, number, number] = [at, at, 0]
+  for (const [pos, step] of edges) {
+    if (pos > at && (count > best[2] || (count === best[2] && pos - at > best[1] - best[0]))) best = [at, pos, count]
+    count += step
+    at = pos
   }
-  const shown = new Set(best.values())
-  return runs.map((b) => (shown.has(b) ? { ...b, label: true } : b))
+  return best
 }
 
 /** Where a cable meets its seat: on the seat's edge along the last run, so the plug shows next to

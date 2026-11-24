@@ -9,7 +9,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { readBoot, useNavPrefs } from '@/nav/boot'
 import { type Board, TIME_RANGES, type TimeRange, boardName } from '../dashboards/model'
@@ -48,7 +48,7 @@ export function BoardPage({ id, title, kicker }: { id: string; title?: string; k
   return (
     <Layout title={name}>
       <PageHead
-        title={name} kicker={kicker}
+        title={name} eyebrow={kicker}
         actions={<>
           <Select aria-label={t('board.range')} w={170} allowDeselect={false} leftSection={<IconClock size={16} aria-hidden="true" />} value={range ?? 'auto'} onChange={pickRange}
             data={['auto', ...TIME_RANGES].map((r) => ({ value: r, label: r === 'auto' ? t('board.rangeAuto') : t(`dashboards.range.${r}`) }))} />

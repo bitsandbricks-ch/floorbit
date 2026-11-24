@@ -31,8 +31,9 @@ def test_a_seat_cable_runs_along_its_block_into_the_row(client):
     assert client.post("/api/cables", json={"switch": "sw-a-01", "port": "Gi1/0/1", "seat": "A-14",
                                             "type": "fiber-sm", "speed": 10}).status_code == 201
     (cable,) = _drawn(client, "lan")
-    # A-14 is row 2, column 2. The switch is left of the block: the run is one seat left of it.
-    assert cable["points"] == [[10, 20], [27, 20], [27, 41.6], [31, 41.6]]
+    # A-14 is row 2, column 2. The switch is left of the block: the run is half a seat left of it, and
+    # the two rows touch, so the cable comes along their seam and plugs into the seat from there.
+    assert cable["points"] == [[10, 20], [27, 20], [27, 40], [31, 40], [31, 41.6]]
     assert cable["layer"] == "network" and cable["media"] == "fiber" and cable["speed"] == 10
     assert cable["manual"] is False and cable["key"] == "lan:sw-a-01|gi1/0/1"
 
@@ -145,18 +146,26 @@ def test_turned_blocks_keep_their_seats_in_place(client):
     assert (round(x, 2), round(y, 2)) == (41, 57.6)
 
 
-def test_a_cable_from_above_reaches_the_far_row_round_the_block(client):
-    # Mike: cables seemed to end at the block, not the seat; the near row hid the drop to the far row.
+def test_a_cable_from_above_comes_round_the_block_into_the_seam(client):
+    # Mike: cables seemed to end at the block, not the seat; now they plug in behind the tables.
     client.put("/api/settings", json={"cabling.auto": True})
     client.post("/api/seat-blocks", json=A)
     client.post("/api/switches", json={"name": "sw-a-02", "x": 36, "y": 20})
     for port, seat in (("Gi1/0/1", "A-2"), ("Gi1/0/2", "A-14")):
         assert client.post("/api/cables", json={"switch": "sw-a-02", "port": port, "seat": seat}).status_code == 201
     far, near = sorted(_drawn(client, "lan"), key=lambda c: c["ref"]["seat"])  # "A-14" sorts first
-    # A-2 is in the near row: down to the run above the block, along it, into the seat.
-    assert near["points"] == [[36, 20], [36, 35.2], [31, 35.2], [31, 38.4]]
-    # A-14 is in the far row: round the block's left end and in from below, not across A-2.
-    assert far["points"] == [[36, 20], [36, 35.2], [27, 35.2], [27, 44.8], [31, 44.8], [31, 41.6]]
+    # Down to the run above the block, round its nearer end and along the seam between the rows.
+    assert near["points"] == [[36, 20], [36, 35.2], [27, 35.2], [27, 40], [31, 40], [31, 38.4]]
+    assert far["points"] == [[36, 20], [36, 35.2], [27, 35.2], [27, 40], [31, 40], [31, 41.6]]
+
+
+def test_a_lone_row_without_chairs_keeps_the_route_along_the_block(client):
+    client.put("/api/settings", json={"cabling.auto": True})
+    client.post("/api/seat-blocks", json={**A, "rows": 1})
+    client.post("/api/switches", json={"name": "sw-a-02", "x": 36, "y": 20})
+    client.post("/api/cables", json={"switch": "sw-a-02", "port": "Gi1/0/1", "seat": "A-2"})
+    (cable,) = _drawn(client, "lan")
+    assert cable["points"] == [[36, 20], [36, 36.8], [31, 36.8], [31, 40]]
 
 
 def test_a_straight_cable_runs_end_to_end_and_keeps_its_bends(client):

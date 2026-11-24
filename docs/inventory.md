@@ -109,6 +109,13 @@ Per device, tag, group or for all devices, Floorbit's own per-device features ca
 switched on. A plugin with a part on the [local agent](agent.md) works on a device only
 where it is switched on **and** a credential for it resolves.
 
+A device lists only the switches that fit its kind: port actions on switches; commands, the terminal
+and config backups on switches, routers and firewalls; telemetry on what it can poll; a plugin on
+the roles its manifest names. The rest fold under **Other features**, in case a device does more
+than its kind suggests. Plugins that don't work on inventory devices (they read one address from
+their settings) aren't listed at all. Groups, tags and All devices show every switch, each with the
+kinds of device it is for.
+
 Switches, properties and telemetry settings don't save on their own: changes collect in the bar at
 the bottom ("2 unsaved changes") until **Save**, and **Discard changes** puts them back, as on
 Settings.

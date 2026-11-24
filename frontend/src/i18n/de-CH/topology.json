@@ -71,5 +71,9 @@
   "portsFree": "Frei",
   "portsUsed": "Hat einen Link",
   "portUsedBy": "zu {{other}}",
-  "portsUnread": "Die Ports dieses Switches sind gerade nicht lesbar: Gib den Port ein."
+  "portsUnread": "Die Ports dieses Switches sind gerade nicht lesbar: Gib den Port ein.",
+  "tools": "Werkzeuge der Topologie",
+  "select": "Auswählen",
+  "showOnMap": "Auf dem Plan zeigen",
+  "side": { "problems": "Probleme", "found": "Von LLDP gefunden", "allGood": "Jeder Link läuft mit der geplanten Geschwindigkeit.", "nothingFound": "LLDP sieht nichts, was kein Link erklärt." }
 }

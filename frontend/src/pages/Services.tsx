@@ -12,7 +12,7 @@ import type {
   DnsResolver, GameServer, GameServerList, InternetSite, IspUplink, Services as ServicesData, ServiceSummary,
 } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { ServiceGroup } from '@/widgets/ServiceList'
 import { STATES, TYPES, serviceRows } from '@/widgets/serviceRows'
 import type { ServiceRowData, ServiceType } from '@/widgets/serviceRows'

@@ -43,7 +43,7 @@ A prefix NetBox or discovery keeps stays when its plan goes.
 
 The firewalls are the inventory's devices with the role **Firewall** (from NetBox, or added by
 hand). A seat's range is the narrowest one its IP is in, the way the core picks it. Ranges may sit inside
-each other, but two that only cross are refused: the addresses in between would be ambiguous. Changing ranges needs `floorplan.edit`; every change is in the audit log.
+each other, but two that only cross are refused: the addresses in between would be ambiguous. A range is an inventory item: **Change** (or **Switches** on an imported one) opens its page in the inventory, with its parts, where each runs now, and its plan, saved with the save bar. **Add range** stays a dialog here. Changing ranges needs `floorplan.edit`; every change is in the audit log.
 
 ### Importing from NetBox
 

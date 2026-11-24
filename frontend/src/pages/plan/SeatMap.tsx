@@ -12,11 +12,14 @@ import { DEFAULT_LAYERS, type LayerState, layerStyle, opacity } from './layers'
 import { CableLines, CablePlugs, PanelGlyphs } from './NetworkLayer'
 import { followPlan } from './cableRoute'
 import { PowerLayer } from './PowerLayer'
-import { blockAlarm, blockTop } from './blockTop'
+import { blockAlarm } from './blockTop'
+import { blockSums, placeLabels, placesAround, shapeLabel, shapeRect, textWidth } from './blockSums'
 import { Minimap } from './Minimap'
+import { useSize } from './useSize'
 import { showMinimap } from './minimap'
 import { WifiLayer } from './WifiLayer'
 import { type LabelMode, type SeatLabels, labelPlan, labelStyle, rowEnds } from './labels'
+import { UPLINK_WIDTH } from './linkLook'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
@@ -58,18 +61,6 @@ export function SeatGlyph({ seat, size, detail, traffic = false, route, checkin 
       ) : null}
     </>
   )
-}
-
-function useSize(ref: React.RefObject<HTMLElement | null>) {
-  const [px, setPx] = useState({ w: 0, h: 0 })
-  useEffect(() => {
-    const el = ref.current
-    if (!el || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(() => setPx({ w: el.clientWidth, h: el.clientHeight }))
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [ref])
-  return px
 }
 
 // The editor's grid steps, in % of the plan, so things sit on the same lines.
@@ -117,7 +108,6 @@ export function SwitchGlyph({ status }: { status: string }) {
 }
 
 const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
-const UPLINK_WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 100: 5 }
 
 /** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */
@@ -134,7 +124,7 @@ export interface OverlayContext {
 }
 
 export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, filter, view, setView, traffic = false, power, firewalls, level: forced,
-  layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus, labels: labelMode = 'auto', pluginSeats }: {
+  layers = ALL_DEFAULT, wifi, incidents, cables, overlay, focus, labels: labelMode = 'auto', pluginSeats, rings = false }: {
   /** An open switch panel: only that switch's seats stay bright, and the switch gets a ring. An
    *  open seat: its switch gets the ring and a line from the seat (``seat``), nothing is dimmed. An
    *  open block: only ``seats``. */
@@ -162,6 +152,9 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   labels?: LabelMode
   /** The plugin layer that is on: a tone per seat. */
   pluginSeats?: PluginLayerData['seats']
+  /** A ring that stays a few pixels wide around every seat with a problem, so one red seat in a
+   *  hall of hundreds still shows on a big screen. */
+  rings?: boolean
 }) {
   const { t } = useTranslation()
   const ids = useId().replace(/:/g, '')
@@ -310,6 +303,31 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   ].filter(Boolean).join(' · '), [t])
 
   const label = 14 / s   // block labels stay about 14 px tall at every zoom
+  const sums = useMemo(() => blockSums(drawing.shapes, data.blocks), [drawing.shapes, data.blocks])
+  // Block labels that fit: far out a name and counts, closer the name only (row letters do the rest).
+  // A label goes above its block, else beside it, else not at all, so none covers another (#1323).
+  const blockLabels = useMemo(() => {
+    const rects = drawing.shapes.map(shapeRect)
+    const far = level === 'far'
+    const size = far ? label : Math.max(18, label)
+    const items = drawing.shapes.map((b, i) => {
+      const sum = sums[i]
+      const name = far ? shapeLabel(b) : b.name
+      if (far ? !sum : !name) return { places: [], rank: 0, name, sub: '' }
+      const sub = far && sum ? `${sum.online}/${sum.seats}${sum.problems ? ` · ! ${sum.problems}` : ''}` : ''
+      const bad = !far && sum?.problems ? `  ! ${sum.problems}` : ''
+      const w = Math.max(textWidth(name + bad, size * 1.08), textWidth(sub, size))
+      const h = far ? size * 2.3 : size * 1.2
+      return { places: placesAround(rects[i], w, h, far ? 4 : 8), rank: (sum?.problems ? 1e6 : 0) + (sum?.seats ?? 0), name, sub }
+    })
+    const at = placeLabels(items, rects)
+    return drawing.shapes.map((_, i) => {
+      const k = at.get(i)
+      return k === undefined ? null : { ...items[i].places[k], name: items[i].name, sub: items[i].sub, size }
+    })
+  }, [drawing.shapes, sums, level, label])
+  const ringed = useMemo(() => (rings ? Object.keys(data.seats).filter((k) => data.seats[k].problems)
+    .map((k) => seatCenter(drawing, k)).filter((c): c is { x: number; y: number } => !!c) : []), [rings, data.seats, drawing])
   const network = layers.on.has('network')
   // Cables drawn from where their switch and seat are now (a block or switch just moved, or being dragged).
   const placed = useMemo(() => (cables ? followPlan(cables, { drawing, switches: data.switches, size: data.size }) : undefined), [cables, drawing, data.switches, data.size])
@@ -356,10 +374,10 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             </g>
           )
         })}</g>}
-        {network && placed && <g opacity={opacity(layers, 'network')}><CableLines cables={placed} size={data.size} scale={s} seats={data.seats} /></g>}
+        {network && placed && <g opacity={opacity(layers, 'network')}><CableLines cables={placed} size={data.size} scale={s} seats={data.seats} cell={drawing.cell} /></g>}
         {power && <g opacity={opacity(layers, 'electrical')}><PowerLayer power={power} drawing={drawing} switches={data.switches} size={data.size} /></g>}
         {drawing.shapes.map((b, bi) => {
-          const sum = data.blocks.find((x) => x.name === b.name)
+          const sum = sums[bi]
           return (
           <g key={bi}>
             <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
@@ -372,27 +390,29 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                 cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} firewalls={firewalls} marks={pluginSeats}
                 checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} labels={seatLabels} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
             </g>
-            {b.name && level !== 'far' && (
-              <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={b.cx} y={blockTop(b) - 12} fontSize={Math.max(18, label)}>
-                {b.name}
-                {sum?.problems ? <tspan className="name-bad" dx="0.4em">! {sum.problems}</tspan> : null}
-              </text>
-            )}
+            {level !== 'far' && blockLabels[bi] && (() => {
+              const l = blockLabels[bi]!
+              return (
+                <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={l.x} y={l.y + l.size * 0.9} fontSize={l.size}>
+                  {l.name}
+                  {sum?.problems ? <tspan className="name-bad" dx="0.4em">! {sum.problems}</tspan> : null}
+                </text>
+              )
+            })()}
           </g>
           )
         })}
         {level === 'far' && drawing.shapes.map((b, bi) => {
-          const sum = data.blocks.find((x) => x.name === b.name)
-          if (!sum) return null
+          const l = blockLabels[bi]
+          if (!l) return null
           return (
-            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.name) : undefined} transform={`translate(${b.cx} ${blockTop(b) - 4})`} fontSize={label}>
-              <text y={-label * 1.3}>{b.name}</text>
-              <text y={-label * 0.2} className="sub">
-                {sum.online}/{sum.seats}{sum.problems ? ` · ! ${sum.problems}` : ''}
-              </text>
+            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.name) : undefined} transform={`translate(${l.x} ${l.y})`} fontSize={l.size}>
+              <text y={l.size * 0.95}>{l.name}</text>
+              <text y={l.size * 2.05} className="sub">{l.sub}</text>
             </g>
           )
         })}
+        {ringed.map((c, i) => <circle key={`ring${i}`} className="seat-ring" cx={c.x} cy={c.y} r={Math.max(drawing.cell * 0.8, 9 / s)} vectorEffect="non-scaling-stroke" />)}
         {network && placed && level !== 'far' && <g opacity={opacity(layers, 'network')}><CablePlugs cables={placed} size={data.size} cell={drawing.cell} seats={data.seats} /></g>}
         {network && trace && <line className="sw-trace" x1={trace.from.x} y1={trace.from.y} x2={trace.to.x} y2={trace.to.y} vectorEffect="non-scaling-stroke" />}
         {/* Switches go over the seat blocks, so one in a lane between rows stays visible. */}
@@ -422,8 +442,8 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
       )}
       <VisuallyHidden id={`${ids}-keys`}>{t('plan.keys')}</VisuallyHidden>
       <VisuallyHidden id={`${ids}-blocks`}>
-        {data.blocks.map((b) => [t('plan.blockSummary', { name: b.name, online: b.online, count: b.seats }),
-          b.problems ? t('plan.problemsN', { count: b.problems }) : null].filter(Boolean).join(', ') + '.').join(' ')}
+        {drawing.shapes.map((shape, i) => [sums[i], shapeLabel(shape)] as const).filter(([b]) => b).map(([b, name]) => [t('plan.blockSummary', { name, online: b!.online, count: b!.seats }),
+          b!.problems ? t('plan.problemsN', { count: b!.problems }) : null].filter(Boolean).join(', ') + '.').join(' ')}
       </VisuallyHidden>
       <VisuallyHidden role="status" aria-live="polite">{cursorSeat && `${cursor}: ${stateText(cursorSeat)}`}</VisuallyHidden>
       <Group gap={4} className="fb-plan-zoom fb-no-print">
@@ -463,8 +483,9 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
             <rect className="hit" width={cell} height={cell} />
             <SeatGlyph seat={seat} size={cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state}
               checkin={checkin} incidents={incidents?.[c.seat]} mark={marks?.[c.seat]?.tone} />
-            {/* The side people sit on (floorbit/seat_rows.py): left of the way the row runs is up. */}
-            {c.side && <rect className="side" x={cell * 0.2} y={c.side === 'left' ? 1 : cell - 4} width={cell * 0.6} height={3} rx={1.5} />}
+            {/* The chair, on the side people sit (floorbit/seat_rows.py): left of the way the row runs is up.
+                Just outside the seat, so it never covers its number or state (Mike, issue #1342). */}
+            {c.side && level !== 'far' && <rect className="chair" x={cell * 0.28} y={c.side === 'left' ? -cell * 0.38 : cell * 1.06} width={cell * 0.44} height={cell * 0.32} rx={cell * 0.08} />}
             {(labels === 'all' || ends?.has(c.seat)) && (
               <text className={labels === 'ends' ? 'num end' : 'num'} x={cell / 2} y={cell / 2} dy="0.35em"
                 transform={rotation || c.a ? `rotate(${-rotation - (c.a ?? 0)} ${cell / 2} ${cell / 2})` : undefined}>

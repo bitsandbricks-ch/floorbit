@@ -9,8 +9,8 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { EntityOption } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
-import { PageTabs } from '@/components/PageTabs'
+import { PageHead } from '@bitsandbricks/ui'
+import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { StatTile } from '@bitsandbricks/ui'
 import { DeviceStateTable, type DeviceFilter } from '@/components/telemetry/DeviceStateTable'
@@ -68,7 +68,7 @@ export default function Telemetry() {
               sub={t(`telemetry.storageIs.${d.status.storage.mode}`, { days: d.status.storage.keep_days })} />
           </SimpleGrid>
         )}
-        <PageTabs label={t('telemetry.title')} value={tab} onChange={setTab} tabs={[
+        <PageTabs label={t('telemetry.title')} active={tab} onChange={setTab} tabs={[
           { id: 'devices', label: t('telemetry.devicesTitle'), count: d?.devices.length },
           { id: 'collector', label: t('telemetry.collectorTab'), alert: errors ? 'warn' : null },
           ...(isAdmin ? [{ id: 'senders', label: t('telemetry.sendersTitle') }] : []),

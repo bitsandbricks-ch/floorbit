@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Dashboards from './Dashboards'
@@ -18,10 +18,12 @@ describe('Dashboards', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Dashboards />, '/dashboards?edit=kiosk')
-    fireEvent.click(await screen.findByRole('button', { name: 'Reset to default' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'More' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Reset to default' }))
     expect(api.calls.some((c) => c.method === 'DELETE')).toBe(false)
-    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Reset: drop the changes' }))
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: /Reset Kiosk to its default/ })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reset to default' }))
     await waitFor(() => expect(api.calls.some((c) => c.method === 'DELETE' && c.path === '/api/dashboards/kiosk')).toBe(true))
   })
 
@@ -33,7 +35,8 @@ describe('Dashboards', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Dashboards />, '/dashboards?edit=kiosk')
-    fireEvent.click(await screen.findByRole('button', { name: 'Make a copy' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'More' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Make a copy' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toMatchObject({ name: 'Kiosk (copy)', public: false, fit: true }))
     expect(api.calls.find((c) => c.method === 'PUT')?.path).toBe('/api/dashboards/kiosk-copy-2')
   })
@@ -50,5 +53,24 @@ describe('Dashboards', () => {
     }).fn)
     renderWithApp(<Dashboards />, '/dashboards?edit=kiosk')
     expect(await screen.findByText(/^Draws as (Small|Medium|Large) at this size\./)).toBeInTheDocument()
+  })
+
+  it('keeps the dashboard settings in a popover and floats the widget settings over the canvas', async () => {
+    localStorage.removeItem('floorbit.boardPanelDocked')
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/dashboards': { layouts: [kiosk] }, 'GET /api/auth/me': editor }).fn)
+    renderWithApp(<Dashboards />, '/dashboards?edit=kiosk')
+    // The first widget starts picked: its settings float over the canvas.
+    const panel = await screen.findByRole('complementary', { name: 'Pane settings' })
+    expect(panel).toHaveClass('is-float')
+    expect(screen.queryByRole('switch', { name: /Public/ })).not.toBeInTheDocument()
+    fireEvent.click(within(screen.getByRole('toolbar', { name: 'Dashboard editor' })).getByRole('button', { name: 'Dashboard settings' }))
+    expect(await screen.findByRole('switch', { name: /Public/ })).toBeChecked()
+    // Docked beside the canvas, remembered; closing a floating panel hides it.
+    fireEvent.click(screen.getByRole('button', { name: 'Dock beside the dashboard' }))
+    expect(screen.getByRole('complementary', { name: 'Pane settings' })).toHaveClass('is-docked')
+    expect(localStorage.getItem('floorbit.boardPanelDocked')).toBe('1')
+    fireEvent.click(screen.getByRole('button', { name: 'Float over the dashboard' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close the widget settings' }))
+    expect(screen.queryByRole('complementary', { name: 'Pane settings' })).not.toBeInTheDocument()
   })
 })

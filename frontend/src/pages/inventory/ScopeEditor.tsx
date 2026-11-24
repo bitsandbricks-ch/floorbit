@@ -6,7 +6,7 @@ import { del, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { CredentialInfo, InventoryGroup, InventoryOverview, InventoryTag } from '@/api/types'
-import { PageTabs } from '@/components/PageTabs'
+import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { Panel } from '@/components/ui'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
@@ -101,7 +101,7 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
   return (
     <Stack gap="md">
       {tabIds.length > 1 && (
-        <PageTabs label={t('inventory.title')} value={tab} onChange={setTab} tabs={tabIds.map((id) => ({ id, label: t(`inventory.tabs.${id}`) }))} />
+        <PageTabs label={t('inventory.title')} active={tab} onChange={setTab} tabs={tabIds.map((id) => ({ id, label: t(`inventory.tabs.${id}`) }))} />
       )}
       {tab === 'details' && (
         <Panel title={t('inventory.groups.basics')}>

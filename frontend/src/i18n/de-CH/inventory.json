@@ -271,7 +271,10 @@
     "isOn": "An",
     "isOff": "Aus",
     "defaultOn": "An, ausser ausgeschaltet",
-    "defaultOff": "Aus, ausser eingeschaltet"
+    "defaultOff": "Aus, ausser eingeschaltet",
+    "for": "für {{roles}}",
+    "others": "Weitere Funktionen ({{count}})",
+    "othersHint": "Für andere Gerätearten gedacht. Nur einschalten, wenn dieses Gerät ({{role}}) es wirklich kann."
   },
   "feature": {
     "ports": "Port-Aktionen",

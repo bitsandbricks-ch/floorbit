@@ -294,7 +294,7 @@ def view(hall_id=None, now=None, seat=None, switch=None, public=False):
             counts['seats'] += 1
             counts['online'] += state == 'online'
             counts['problems'] += bool(problems.get(s))
-        blocks.append({'name': shape['name'], **counts})
+        blocks.append({'id': shape.get('id'), 'name': shape['name'], **counts})
     bg = hall.get('background')
     plan_switches = _switches(data, hall['id'], drawing and drawing['box'])
     here = {k: sum(b[k] for b in blocks) for k in ('seats', 'online', 'problems')}

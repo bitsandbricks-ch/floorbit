@@ -192,6 +192,10 @@ export interface FeatureInfo {
   name: string
   default: boolean
   agent?: boolean
+  /** False: the plugin doesn't work on inventory devices, so switching it per device does nothing. */
+  per_device?: boolean
+  /** The device roles it is about; null: any (#878). */
+  roles?: string[] | null
 }
 
 /** An SVG from the shared icon library (floorbit/icon_library.py); `id` starts with `custom-`. */
@@ -882,6 +886,9 @@ export interface PlanCell {
   a?: number
   /** The side people sit on, of the way the row runs (left is up on a straight row); missing when not shown. */
   side?: 'left' | 'right'
+  /** Where its seat cables run, across the row from the seat's centre (drawing units, in the block's
+   *  own frame; floorbit/cable_lanes.py); missing when they come along the block instead. */
+  lane?: number
 }
 
 export interface PlanShape {
@@ -1566,6 +1573,8 @@ export interface PlanSeat {
 }
 
 export interface PlanBlock {
+  /** The seat block's id, the same as its shape's; missing on older answers. */
+  id?: string
   name: string
   seats: number
   online: number

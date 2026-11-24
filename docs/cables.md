@@ -176,10 +176,14 @@ grey when the type is not known) and a thicker line a faster cable.
 
 - **Automatic cabling** (on by default) draws a cable from the switch to every seat whose port is
   known: from the cables here, from NetBox, and from the port descriptions on the switches. The cables
-  of one seat block run together along the side of the block that faces the switch, then into each
-  row; coming from above or below, the far row is reached round the end of the block, so no cable
-  crosses the near row. A dot on the seat's edge shows where each cable plugs in. Where three or more
-  cables share a run they are drawn as one band with the number of cables on it. Moving a switch or a
+  of one seat block run together down the end of the block nearer the switch, then along each
+  straight row in a lane and into its seats from that side (see **Where seat cables plug in** below).
+  Rows without a lane (bent rows, U and L, paths, a row on its own without chairs, seats placed
+  freely) are reached along the side of the block that faces the switch; coming from above or below,
+  the far half is reached round the end of the block, so no cable crosses the near row. A dot on the
+  seat's edge shows where each cable plugs in. Cables that share a run are drawn side by side like a
+  ribbon, each its own thin line, with the number of cables on each run; the cables that turn off
+  first run on the side they turn to, so they peel off without crossing. Moving a switch or a
   seat block takes its cables along at once. Venues that patch seats through panels can turn it off under Settings > Cabling
   (`CABLE_AUTO=false`) and draw the cables they want with the Cable tool. A cable that names a patch
   panel runs through it once the panel is on the plan: right-click the floor and pick **Put patch panel
@@ -196,6 +200,23 @@ grey when the type is not known) and a thicker line a faster cable.
   end; its bends are kept for later), angled or rounded. Right-click a cable for round or square corners, **Back to the automatic route**, or to delete it (an imported cable is
   changed in NetBox; one from a port description goes away with the description). Everything can be
   undone with Ctrl+Z.
+
+### Where seat cables plug in
+
+Each seat shows its chair as a small grey square on the side people sit (a row's **Chairs**, see
+[halls.md](halls.md)). A straight row's cables run in a lane along the row and plug into the seats from
+that side. Pick it per row under **Cables connect**, or for every row of a block on the Block tab:
+
+- **Auto**: away from the chairs. A row without chairs takes the side with a gap to the next row (the
+  smaller gap when both sides have one, so a cable gap before the aisle), or the seam when the next row
+  touches. A row on its own without chairs keeps the route along the block.
+- **Behind**: away from the chairs, behind the table. A row without chairs goes by Auto.
+- **Chair side**: where the player sits.
+
+The lane runs in the middle of the gap to the next row, on the seam when the rows touch, and half a seat
+out at the block's edge. **Set chairs automatically** on the Block tab sets the chairs of all straight
+rows: rows that share a table (touching, or with a gap of a seat or less) sit on its outer sides; a row on
+its own faces its bigger gap. A row in the middle of three or more keeps its side. Undo puts them back.
 
 The drawing is kept apart from the cables (data.json `cable_routes` and `patch_panels`), so importing
 from NetBox again keeps the bends.

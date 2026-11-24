@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Button, ColorInput, Group, MultiSelect, PasswordInput, SegmentedControl, Select, Stack, Table, Text, TextInput } from '@mantine/core'
+import { ActionIcon, Anchor, Badge, Button, Collapse, ColorInput, Group, MultiSelect, PasswordInput, SegmentedControl, Select, Stack, Table, Text, TextInput } from '@mantine/core'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
@@ -149,10 +149,12 @@ export function PropertiesEditor({ value, inherited, busy, canEdit, onSave }: {
 type Choice = 'inherit' | 'on' | 'off'
 
 /** Feature switches: inherit, on or off, each with what it is now and why. */
-export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave }: {
+export function FeaturesEditor({ catalog, value, resolved, role, busy, canEdit, onSave }: {
   catalog: FeatureInfo[]
   value: Record<string, boolean>
   resolved?: Record<string, { on: boolean; from: Origin | null }>
+  /** A device's role: features about other kinds of device fold under "Other features" (#878). */
+  role?: string
   busy: boolean
   canEdit: boolean
   onSave: (features: Record<string, boolean | null>) => void
@@ -169,7 +171,13 @@ export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave
     for (const id of changed) next[id] = draft[id] === 'inherit' ? null : draft[id] === 'on'
     onSave(next)
   }
-  const section = (core: boolean) => catalog.filter((f) => f.core === core)
+  const [others, setOthers] = useState(false)
+  // A plugin that doesn't work on inventory devices has nothing to switch here, unless it was set before.
+  const listed = catalog.filter((f) => f.per_device !== false || f.id in value || f.id in draft)
+  const fits = (f: FeatureInfo) => !role || !f.roles || f.roles.includes(role) || f.id in value || f.id in draft
+  const section = (core: boolean, fit = true) => listed.filter((f) => f.core === core && fits(f) === fit)
+  const elsewhere = listed.filter((f) => !fits(f))
+  const roleNames = (roles: string[]) => roles.map((r) => t(`inventory.role.${r}`, { defaultValue: r })).join(', ')
   const row = (f: FeatureInfo) => {
     const now = resolved?.[f.id]
     return (
@@ -181,7 +189,10 @@ export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave
               {now.on ? t('inventory.features.isOn') : t('inventory.features.isOff')} · <FromLabel from={now.from} />
             </Text>
           ) : (
-            <Text size="xs" c="dimmed">{f.default ? t('inventory.features.defaultOn') : t('inventory.features.defaultOff')}</Text>
+            <Text size="xs" c="dimmed">
+              {f.default ? t('inventory.features.defaultOn') : t('inventory.features.defaultOff')}
+              {f.roles ? ` · ${t('inventory.features.for', { roles: roleNames(f.roles) })}` : ''}
+            </Text>
           )}
         </Table.Td>
         <Table.Td ta="right">
@@ -198,9 +209,24 @@ export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave
     <Stack gap="xs">
       <Text size="xs" fw={600} c="dimmed" tt="uppercase">{t('inventory.features.core')}</Text>
       <Table verticalSpacing={6}><Table.Tbody>{section(true).map(row)}</Table.Tbody></Table>
-      <Text size="xs" fw={600} c="dimmed" tt="uppercase">{t('inventory.features.plugins')}</Text>
-      <Text size="xs" c="dimmed">{t('inventory.features.pluginsHint')}</Text>
-      <Table verticalSpacing={6}><Table.Tbody>{section(false).map(row)}</Table.Tbody></Table>
+      {section(false).length > 0 && (
+        <>
+          <Text size="xs" fw={600} c="dimmed" tt="uppercase">{t('inventory.features.plugins')}</Text>
+          <Text size="xs" c="dimmed">{t('inventory.features.pluginsHint')}</Text>
+          <Table verticalSpacing={6}><Table.Tbody>{section(false).map(row)}</Table.Tbody></Table>
+        </>
+      )}
+      {elsewhere.length > 0 && (
+        <>
+          <Anchor component="button" type="button" size="sm" onClick={() => setOthers((o) => !o)} aria-expanded={others}>
+            {t('inventory.features.others', { count: elsewhere.length })}
+          </Anchor>
+          <Collapse expanded={others}>
+            <Text size="xs" c="dimmed">{t('inventory.features.othersHint', { role: t(`inventory.role.${role}`, { defaultValue: role }) })}</Text>
+            <Table verticalSpacing={6}><Table.Tbody>{[...section(true, false), ...section(false, false)].map(row)}</Table.Tbody></Table>
+          </Collapse>
+        </>
+      )}
       {canEdit && <SaveBar count={changed.length} saving={busy} onDiscard={() => setDraft({})} onSave={save} />}
     </Stack>
   )

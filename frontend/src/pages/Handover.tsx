@@ -9,7 +9,7 @@ import { useLiveEvent } from '@/api/live'
 import type { HandoverData, HandoverIncident, HandoverRecord } from '@/api/types'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { duration } from './report/format'
 import { byLine, summaryText, when } from './handover/format'
 import { isWaiting, waitedFor } from './incidents/waiting'
@@ -22,24 +22,31 @@ function Figure({ label, value, tone, sub }: { label: string; value: number; ton
   return <StatTile label={label} value={String(value)} tone={tone && value > 0 ? tone : undefined} sub={sub} />
 }
 
-function IncidentRow({ i, now }: { i: HandoverIncident; now: number }) {
+/** The open or fixed incidents as one table: one status badge in its own column, and the wait as
+ *  plain text that only turns amber once nobody has picked the job up for a while (issue #888). */
+function IncidentTable({ rows, now, fixed }: { rows: HandoverIncident[]; now: number; fixed?: boolean }) {
   const { t } = useTranslation()
-  const where = i.where.kind === 'seat' ? t('incidents.seat', { seat: i.where.name })
+  const where = (i: HandoverIncident) => i.where.kind === 'seat' ? t('incidents.seat', { seat: i.where.name })
     : i.where.kind === 'circuit' ? t('incidents.circuit', { name: i.where.name }) : t('incidents.switch', { name: i.where.name })
   return (
-    // On a phone the badges move under the title instead of squeezing it and themselves.
-    <Group justify="space-between" align="flex-start" gap="xs">
-      <Stack gap={2} style={{ minWidth: 0, flex: '1 1 12em' }}>
-        <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{incidentTitle(i.title, t)}</Text>
-        <Text size="sm" c="dimmed">{where}{i.assignee ? ` · ${i.assignee}` : ''}</Text>
-      </Stack>
-      <Group gap={4}>
-        {isWaiting(i, now) && <Badge variant="filled" color="warn" tt="none">{waitedFor(now - i.created_at, t)}</Badge>}
-        <Badge variant="light" color={i.status === 'open' ? 'down' : i.status === 'fixed' ? 'up' : 'trace'} tt="none">
-          {t(`handover.status.${i.status}`)}
-        </Badge>
-      </Group>
-    </Group>
+    <DataTable rows={rows} rowKey={(i) => i.id} label={fixed ? t('handover.fixedThisShift') : t('handover.stillOpen')}
+      urlState={false} pageSize={25} bare cards density="compact"
+      columns={[
+        { id: 'what', header: t('handover.colIncident'), wrap: true, cell: (i) => (
+          <>
+            <Text fw={600} size="sm" style={{ overflowWrap: 'anywhere' }}>{incidentTitle(i.title, t)}</Text>
+            <Text size="xs" c="dimmed">{where(i)}</Text>
+          </>
+        ) },
+        { id: 'who', header: t('handover.who'), card: 'label', cell: (i) => i.assignee ?? '–' },
+        { id: 'age', header: fixed ? t('handover.colTook') : t('handover.colAge'), card: 'label', cell: (i) => fixed && i.fixed_at
+          ? duration(Math.max(60, i.fixed_at - i.created_at))
+          : isWaiting(i, now) ? <Text span size="sm" c="warn" fw={600}>{waitedFor(now - i.created_at, t)}</Text>
+            : duration(Math.max(60, now - i.created_at)) },
+        { id: 'status', header: t('handover.colStatus'), card: 'actions', width: 110, cell: (i) => (
+          <Badge variant="light" color={i.status === 'fixed' ? 'up' : 'gray'} tt="none">{t(`handover.status.${i.status}`)}</Badge>
+        ) },
+      ]} />
   )
 }
 
@@ -103,7 +110,7 @@ export default function Handover() {
               <Figure label={t('handover.open')} value={d.counts.open} tone="err"
                 sub={d.counts.waiting ? t('handover.waiting', { count: d.counts.waiting }) : undefined} />
               <Figure label={t('handover.opened')} value={d.counts.opened} />
-              <Figure label={t('handover.fixed')} value={d.counts.fixed} tone="ok"
+              <Figure label={t('handover.fixed')} value={d.counts.fixed}
                 sub={d.counts.median_fix_s != null ? t('handover.halfWithin', { d: duration(Math.max(60, d.counts.median_fix_s)) }) : undefined} />
               <Figure label={t('handover.outages')} value={d.counts.outages} tone="warn" />
               <Figure label={t('handover.problems')} value={d.counts.problems} tone="warn" />
@@ -113,7 +120,7 @@ export default function Handover() {
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('handover.stillOpen')}</Title>
               {d.incidents.open.length === 0 ? <Text size="sm" c="dimmed">{t('handover.noneOpen')}</Text> : (
-                <Stack gap="sm">{d.incidents.open.map((i) => <IncidentRow key={i.id} i={i} now={d.now} />)}</Stack>
+                <IncidentTable rows={d.incidents.open} now={d.now} />
               )}
             </Paper>
 
@@ -123,7 +130,7 @@ export default function Handover() {
                 <Text size="sm" c="dimmed" mb="xs">
                   {byLine(d.incidents.fixed, t)}
                 </Text>
-                <Stack gap="sm">{d.incidents.fixed.map((i) => <IncidentRow key={i.id} i={i} now={d.now} />)}</Stack>
+                <IncidentTable rows={d.incidents.fixed} now={d.now} fixed />
               </Paper>
             )}
 

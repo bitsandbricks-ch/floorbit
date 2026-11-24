@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { usePlugins } from '@/api/queries'
 import type { PluginInfo } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
-import { PageTabs } from '@/components/PageTabs'
+import { PageHead } from '@bitsandbricks/ui'
+import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { LoadingState } from '@/components/ui'
 import Marketplace from './plugins/Marketplace'
@@ -69,10 +69,10 @@ export default function Plugins() {
     <Layout title={t('plugins.title')}>
       <PageHead
         title={t('plugins.title')}
-        kicker={t('plugins.kicker')}
+        eyebrow={t('plugins.kicker')}
         actions={<Button component="a" variant="default" size="xs" href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/plugins.md">{t('plugins.docs')}</Button>}
       />
-      <PageTabs label={t('plugins.title')} value={tab} onChange={setTab} tabs={[
+      <PageTabs label={t('plugins.title')} active={tab} onChange={setTab} tabs={[
         { id: 'installed', label: t('plugins.installedTitle'), count: data?.plugins.length ?? null },
         { id: 'marketplace', label: t('marketplace.title') },
         { id: 'updates', label: t('plugins.updates'), count: updates || null, alert: updates ? 'warn' : null },
