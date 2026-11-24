@@ -20,6 +20,7 @@ import { dateTime } from '@/lib/time'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
 import { DeviceForm } from './DeviceForm'
 import { DeviceIcon } from './icons'
+import { DriftPanel } from './DriftPanel'
 import { InterfacesPanel } from './InterfacesPanel'
 import { credentialBody, entryPath, roleIcon, scopePath, speedLabel, statusLabel, typeName, type Draft } from './model'
 import { useCustomIcons, useDeviceDetail, useInventoryGroups, useInventoryTypes } from './scope'
@@ -208,6 +209,11 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                   ))}
                 </SimpleGrid>
               </Panel>
+              {!!dev.drift?.length && (
+                <Panel title={t('inventoryDrift.title')}>
+                  <DriftPanel deviceId={dev.id} rows={dev.drift} canEdit={canEdit} />
+                </Panel>
+              )}
               {dev.connected && (dev.connected.cables.length + dev.connected.circuits.length + dev.connected.uplinks.length
                 + (dev.connected.entries?.length ?? 0) > 0) && (
                 <Panel title={t('inventory.connected.title')}>
@@ -357,7 +363,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
       </div>
 
       {editing && inventory && (
-        <DeviceForm device={dev} roles={inventory.roles} overview={overview} sourceName={sourceName} opened busy={edit.isPending}
+        <DeviceForm device={{ ...dev, drift: dev.drift?.length }} roles={inventory.roles} overview={overview} sourceName={sourceName} opened busy={edit.isPending}
           error={formError} onClose={() => setEditing(false)} onSave={(changes) => edit.mutate(changes)}
           onUnlock={(f) => edit.mutate({ unlock: [f] })} />
       )}

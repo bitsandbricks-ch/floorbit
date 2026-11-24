@@ -553,7 +553,11 @@ def _same(field, a, b):
         # What a device reports is usable memory or formatted disk: a few percent off isn't drift.
         big = max(int(a), int(b))
         return big == 0 or abs(int(a) - int(b)) / big <= 0.1
-    return ' '.join(a.lower().split()) == ' '.join(b.lower().split())
+    a, b = ' '.join(a.lower().split()), ' '.join(b.lower().split())
+    if field == 'platform' and a != b:
+        # NetBox says "NX-OS", the device "Cisco NX-OS": the same platform, with or without the vendor.
+        return a.endswith(' ' + b) or b.endswith(' ' + a)
+    return a == b
 
 
 def _short(name):
