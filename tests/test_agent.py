@@ -177,6 +177,11 @@ def live_server(app_module):
     server = make_server("127.0.0.1", 0, app_module.app, threaded=True)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"127.0.0.1:{server.server_port}"
+    # A link handler can outlive its test by up to LINK_TAKE: after the next test's reset it would
+    # mark its agent seen and asking again, and that test's calls would wait on a ghost.
+    deadline = time.time() + 15
+    while agent_link.tunnel._links and time.time() < deadline:
+        time.sleep(0.05)
     server.shutdown()
 
 
