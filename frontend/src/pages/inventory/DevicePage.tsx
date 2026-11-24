@@ -114,7 +114,11 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
   const uploaded = useCustomIcons(icon.startsWith('custom-')).data?.icons.find((i) => i.id === icon)
   const visible = dev.interfaces.filter((i) => !i.hidden)
   const agentId = dev.resolved.properties['telemetry.agent']?.value
-  const agentName = agentId ? agents?.find((a) => a.value === agentId)?.label ?? agentId : null
+  const tagsList = useInventoryGroups().data?.tags ?? []
+  const byTag = agentId?.startsWith('tag:') ? agentId.slice(4) : null
+  const agentName = !agentId ? null : byTag
+    ? t('inventory.telemetry.byTag', { tag: tagsList.find((x) => x.id === byTag)?.name ?? byTag })
+    : agents?.find((a) => a.value === agentId)?.label ?? agentId
   const telemetryOn = !!dev.resolved.features.telemetry?.on
   const telemetry = useDeviceTelemetry(dev.id)
   // Raw data only where there is any to read: telemetry on, and admins (the API is theirs).

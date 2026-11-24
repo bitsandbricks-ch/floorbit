@@ -189,7 +189,8 @@ without the namespace (`telemetry_vlans`, `telemetry_port_snmp`, ...) are moved 
 | `telemetry.drivers` | the ways to collect, like `snmp, traps, gnmi` (instead of the automatic ones) |
 | `telemetry.snmp.fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
 | `telemetry.snmp.vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs the switch lists, else the ones on its interfaces) |
-| `telemetry.agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
+| `telemetry.agent` | who collects from it: an agent's id, or `tag:<tag id>` for the agents with that [tag](agent.md#several-agents); empty: any (the Telemetry tab's **Collected by**) |
+| `telemetry.failover` | `false`: nobody else collects while the agent, or every agent with the tag, is away |
 | `telemetry.snmp.port`, `telemetry.gnmi.port`, `telemetry.api.port` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
 | `telemetry.address` | where the agent reaches the device, when not its management address |
 | `telemetry.api.url` | the API's full `https://` address |
@@ -300,13 +301,23 @@ Nothing comes in twice on the hosted side either:
   manifest, so a point written twice is kept once.
 
 
-## One agent per device
+## Collected by: any agent, a tag or one agent
 
-A device with an agent (`telemetry.agent`, the Telemetry tab) is collected by that agent alone, even
-when it stands by for another one, and calls about the device (its ports, its clients) go there.
-Give a hall's group its hall's agent, and each agent polls only its own switches. While that agent
-is away, its devices go back to the others like devices without an agent, so they aren't left
-unheard. Devices without an agent are collected as above: by the agent with the first VIP.
+**Collected by** on the Telemetry tab (`telemetry.agent`, issue #869) says who collects a device,
+and calls about it (its ports, its clients) go to the same agent:
+
+- **Any agent** (empty): collected as above, by the agent with the first VIP.
+- **Agents tagged …** (`tag:<tag id>`): the agents whose **Answers for** has that
+  [tag](agent.md#several-agents), one at a time: the first connected one by id keeps it while it is
+  there, and the next takes over when it goes. VictoriaMetrics keeps a point written twice once, so
+  the overlap costs nothing.
+- **One agent** (its id): that agent alone, even when it stands by for another one.
+
+Give a hall's group its hall's tag (or agent), and each agent polls only its own switches. While
+nobody it was given to is there, the device goes back to the others like a device without an
+agent, so it isn't left unheard. **While it is away: Nobody collects** (`telemetry.failover`
+`false`) turns that off, for a device another agent can't reach anyway; calls about it then say
+that its agent is not connected.
 
 ## Firewalls: pfSense and OPNsense
 
