@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Loader, Paper, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core'
 import { IconPlugConnectedX, IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -8,6 +8,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useSecurity } from '@/api/queries'
 import type { Finding, SecurityList, Severity } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PortDialog, type PortRequest } from './security/PortDialog'
@@ -140,35 +141,19 @@ export default function Security() {
           {data.shut_ports.length > 0 && (
             <section aria-labelledby="sec-shut">
               <Title order={2} size="h4" id="sec-shut" mb="xs">{t('security.shutPorts')}</Title>
-              <Table.ScrollContainer minWidth={560}>
-                <Table>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>{t('security.port')}</Table.Th>
-                      <Table.Th>{t('security.why')}</Table.Th>
-                      <Table.Th>{t('security.by')}</Table.Th>
-                      <Table.Th />
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {data.shut_ports.map((p) => (
-                      <Table.Tr key={`${p.switch} ${p.port}`}>
-                        <Table.Td>{where(p, t)}</Table.Td>
-                        <Table.Td>{p.reason || '—'}</Table.Td>
-                        <Table.Td>{p.by}, {ago(p.at)}</Table.Td>
-                        <Table.Td>
-                          {data.can_act && (
-                            <Button size="xs" variant="default"
-                              onClick={() => { setDialogError(null); setRequest({ action: 'enable', switch: p.switch, port: p.port, where: where(p, t) }) }}>
-                              {t('security.enable')}
-                            </Button>
-                          )}
-                        </Table.Td>
-                      </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
-              </Table.ScrollContainer>
+              <DataTable label={t('security.shutPorts')} rows={data.shut_ports} rowKey={(p) => `${p.switch} ${p.port}`} defaultSort={{ id: 'when', desc: true }}
+                minWidth={560} urlState={false} pageSize={0}
+                columns={[
+                  { id: 'port', header: t('security.port'), sort: (p) => `${p.switch} ${p.port}`, cell: (p) => where(p, t) },
+                  { id: 'why', header: t('security.why'), wrap: true, cell: (p) => p.reason || '—' },
+                  { id: 'when', header: t('security.by'), sort: (p) => p.at, cell: (p) => `${p.by}, ${ago(p.at)}` },
+                  { id: 'act', header: null, cell: (p) => data.can_act && (
+                    <Button size="xs" variant="default"
+                      onClick={() => { setDialogError(null); setRequest({ action: 'enable', switch: p.switch, port: p.port, where: where(p, t) }) }}>
+                      {t('security.enable')}
+                    </Button>
+                  ) },
+                ]} />
             </section>
           )}
 

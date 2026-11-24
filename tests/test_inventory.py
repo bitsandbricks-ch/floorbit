@@ -205,7 +205,23 @@ def fake_netbox(app_module, monkeypatch):
     # The class the registry loaded (plugin.py is imported under its own module name).
     cls = registry.specs['netbox'].plugin_class()
     monkeypatch.setattr(cls, 'inventory', lambda self: [device(d) for d in devices])
+    monkeypatch.setattr(cls, 'configured', lambda self: True)
     return devices
+
+
+def test_sources_list_only_what_is_set_up(client, app_module, monkeypatch):
+    """Issue #1112: NetBox without a URL, and an agent that fed nothing yet, aren't listed as
+    "not synced yet"; a sync that failed still is."""
+    from floorbit import agent_link
+    ids = lambda: [s['id'] for s in client.get('/api/inventory').get_json()['sources']]  # noqa: E731
+    assert 'netbox' not in ids()
+    monkeypatch.setattr(agent_link, 'active', lambda: True)
+    assert 'agent' not in ids()
+    monkeypatch.setattr(agent_link, 'inventory_feeds',
+                        lambda: (_ for _ in ()).throw(agent_link.AgentUnavailable('no agent connected')))
+    client.post('/api/inventory/sync')
+    [agent] = [s for s in client.get('/api/inventory').get_json()['sources'] if s['id'] == 'agent']
+    assert agent['last_sync']['error']
 
 
 def test_sync_endpoint_and_switch_api_share_one_inventory(client, fake_netbox):
@@ -263,11 +279,24 @@ def test_api_edits_unlock_and_hide(client, fake_netbox):
     assert client.patch('/api/inventory/nope', json={}).status_code == 404
 
 
+def test_a_source_that_is_not_set_up_is_no_source(client):
+    # NetBox is on by default but has no URL in tests: it isn't asked, and isn't listed as failing.
+    r = client.post('/api/inventory/sync')
+    assert r.status_code == 400 and 'No inventory source is set up' in r.get_json()['error']
+    assert 'netbox' not in [s['id'] for s in client.get('/api/inventory').get_json()['sources']]
+
+
 def test_a_failing_source_is_logged_not_fatal(client, app_module, monkeypatch):
-    # NetBox is on by default but has no URL in tests: its sync fails with a clear message.
+    from floorbit.plugins.base import PluginError
+    cls = app_module.app.extensions['floorbit_plugins'].specs['netbox'].plugin_class()
+
+    def down(self):
+        raise PluginError('NetBox answered 500.')
+    monkeypatch.setattr(cls, 'configured', lambda self: True)
+    monkeypatch.setattr(cls, 'inventory', down)
     resp = client.post('/api/inventory/sync').get_json()
-    assert 'Set the NetBox URL' in resp['reports'][0]['error']
-    assert 'Set the NetBox URL' in client.get('/api/inventory/log').get_json()['log'][0]['error']
+    assert 'NetBox answered 500' in resp['reports'][0]['error']
+    assert 'NetBox answered 500' in client.get('/api/inventory/log').get_json()['log'][0]['error']
     assert client.post('/api/switches/sync').status_code == 502
 
 
@@ -296,6 +325,23 @@ def test_old_backups_still_restore(client):
     assert 'inventory' in new['layout'] and 'switches' not in new['layout']
     assert client.post('/api/settings/backup', json=new).status_code == 200
     assert sorted(d['name'] for d in client.get('/api/inventory').get_json()['devices']) == ['sw-nb', 'sw-old']
+
+
+def test_an_agent_feed_from_a_plugin_not_set_up_is_no_failure(client, monkeypatch):
+    # Issue #1169: the agent asks every inventory plugin that's on; NetBox without a URL answers
+    # "set it up first". That isn't a failed sync, and the sources list leaves it out.
+    from floorbit import agent_link
+    monkeypatch.setattr(agent_link, 'active', lambda: True)
+    monkeypatch.setattr(agent_link, 'may_call_here', lambda spec: False)
+    monkeypatch.setattr(agent_link, 'inventory_feeds', lambda: [
+        {'plugin': 'netbox', 'name': 'NetBox',
+         'error': 'Set the NetBox URL and API token under Settings > NetBox first.'},
+        {'plugin': 'lab', 'name': 'Lab', 'items': [{'id': '1', 'name': 'sw-lab-01'}]}])
+    reports = client.post('/api/inventory/sync').get_json()['reports']
+    assert 'netbox' not in [r['plugin'] for r in reports]
+    assert next(r for r in reports if r['plugin'] == 'lab').get('error') is None
+    names = [s['name'] for s in client.get('/api/inventory').get_json()['sources']]
+    assert 'Lab (local agent)' in names and not any('NetBox' in n for n in names)
 
 
 def test_the_list_shows_each_device_live_state_and_ports_up(client, app_module, monkeypatch):

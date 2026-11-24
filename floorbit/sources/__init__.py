@@ -57,6 +57,13 @@ def mark_failed(source, error, label=None):
     return starting
 
 
+def mark_off():
+    """No monitoring source at all: an outage marked while one was still asked is over."""
+    with _health_lock:
+        if _health['offline_since'] is not None:
+            _health.update(source=None, label=None, ok=True, offline_since=None, error=None)
+
+
 def offline():
     with _health_lock:
         return _health['offline_since'] is not None
@@ -315,6 +322,12 @@ def monitoring():
     # A hosted instance: the event's own LibreNMS is reached through the local agent (issue #2).
     from .. import agent_link
     if agent_link.active():
+        if not agent_link.monitoring_set_up():
+            # The agent answered that it has nothing to monitor with: asking it anyway made every
+            # page's call fail and read as an agent outage. Demo data, when on, still shows the hall.
+            mark_off()
+            demo = registry is not None and registry.demo_on()
+            return PluginMonitoring(registry, registry.specs['demo']) if demo else NoMonitoring()
         if _agent is None:
             _agent = agent_link.monitoring_source()
         return _agent

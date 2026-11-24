@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, CopyButton, Group, Paper, SimpleGrid, Stack, Switch, Table, Text, Textarea, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, CopyButton, Group, Paper, SimpleGrid, Stack, Switch, Text, Textarea, Title } from '@mantine/core'
 import { IconCheck, IconCopy } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -7,18 +7,19 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { HandoverData, HandoverIncident, HandoverRecord } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { duration } from './report/format'
 import { byLine, summaryText, when } from './handover/format'
 import { isWaiting, waitedFor } from './incidents/waiting'
 import { LoadingState } from '@/components/ui'
-import { StatCard } from '@/components/StatCard'
+import { StatTile } from '@/components/StatTile'
 import { incidentTitle } from '@/lib/incidentTitle'
 
 /** A count that only takes its colour when there is something to count. */
 function Figure({ label, value, tone, sub }: { label: string; value: number; tone?: 'down' | 'warn' | 'up'; sub?: string }) {
-  return <StatCard label={label} value={String(value)} tone={tone && value > 0 ? tone : undefined} sub={sub} />
+  return <StatTile label={label} value={String(value)} tone={tone && value > 0 ? tone : undefined} sub={sub} />
 }
 
 function IncidentRow({ i, now }: { i: HandoverIncident; now: number }) {
@@ -146,20 +147,13 @@ export default function Handover() {
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('handover.changesTitle')}</Title>
               {d.changes.length === 0 ? <Text size="sm" c="dimmed">{t('handover.noChanges')}</Text> : (
-                <Table striped className="fb-table-stack">
-                    <Table.Thead>
-                      <Table.Tr><Table.Th>{t('handover.when')}</Table.Th><Table.Th>{t('handover.who')}</Table.Th><Table.Th>{t('handover.what')}</Table.Th></Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {d.changes.map((c, n) => (
-                        <Table.Tr key={n}>
-                          <Table.Td style={{ whiteSpace: 'nowrap' }}>{when(c.at)}</Table.Td>
-                          <Table.Td>{c.user ?? '–'}</Table.Td>
-                          <Table.Td>{c.action}{c.target ? `: ${c.target}` : ''}</Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
+                <DataTable rows={d.changes} rowKey={(_, n) => String(n)} label={t('handover.changesTitle')} urlState={false} pageSize={25}
+                  bare striped cards density="compact"
+                  columns={[
+                    { id: 'when', header: t('handover.when'), card: 'inline', cell: (c) => when(c.at) },
+                    { id: 'who', header: t('handover.who'), card: 'inline', cell: (c) => c.user ?? '–' },
+                    { id: 'what', header: t('handover.what'), wrap: true, cell: (c) => `${c.action}${c.target ? `: ${c.target}` : ''}` },
+                  ]} />
               )}
             </Paper>
 
@@ -169,7 +163,7 @@ export default function Handover() {
                 <Stack gap={6}>
                   {d.mutes.map((m) => (
                     <Group key={`${m.kind}-${m.name}`} gap="sm" wrap="nowrap" align="baseline">
-                      <Anchor href={m.kind === 'health' ? '/health' : `/plan?switch=${encodeURIComponent(m.name)}`} fw={600} style={{ whiteSpace: 'nowrap' }}>{m.name}</Anchor>
+                      <Anchor href={m.kind === 'health' ? '/services' : `/plan?switch=${encodeURIComponent(m.name)}`} fw={600} style={{ whiteSpace: 'nowrap' }}>{m.name}</Anchor>
                       <Text size="sm" style={{ flex: 1, overflowWrap: 'anywhere' }}>
                         {t('handover.mutedUntil', { until: when(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}
                       </Text>

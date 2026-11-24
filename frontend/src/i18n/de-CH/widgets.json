@@ -1,6 +1,6 @@
 {
   "title": "Widgets",
-  "intro": "Jedes Widget, das Floorbit zeigen kann, live mit deinen Daten. Öffne eines gross oder füge es einem Dashboard hinzu.",
+  "intro": "Widgets sind gespeichert: ein Typ mit seinen Quellen und Einstellungen unter einem Namen, für jedes Dashboard. Typen sind alle Arten von Widgets, die Floorbit zeichnen kann.",
   "search": "Widget suchen",
   "area": "Bereich",
   "none": "Kein Widget passt.",
@@ -38,7 +38,10 @@
       "linear": "Trend",
       "average": "Durchschnitt"
     },
-    "state": "Status"
+    "state": "Status",
+    "changeHour": "zu vor einer Stunde",
+    "changeSince": "seit {{time}}",
+    "changeStart": "seit Beginn"
   },
   "state": {
     "up": "Läuft",
@@ -54,5 +57,28 @@
     "max": "Max.",
     "first": "Erster",
     "last": "Letzter"
-  }
+  },
+  "tabSaved": "Widgets",
+  "tabTypes": "Typen",
+  "new": "Neues Widget",
+  "newTitle": "Neues Widget",
+  "editTitle": "Widget bearbeiten",
+  "name": "Name",
+  "preview": "Vorschau",
+  "pickType": "Wähle, was das Widget zeigt.",
+  "save": "Widget speichern",
+  "saveAs": "Als Widget speichern",
+  "saveAsNamed": "{{name}} als Widget speichern",
+  "edit": "Bearbeiten",
+  "editNamed": "{{name}} bearbeiten",
+  "copy": "Kopieren",
+  "copyNamed": "{{name}} kopieren",
+  "copyName": "{{name}} (Kopie)",
+  "remove": "Entfernen",
+  "removeNamed": "{{name}} entfernen",
+  "removeAsk": "Das Widget {{name}} entfernen? Dashboards, die es noch zeigen, behalten es, bis es dort geklont oder entfernt ist.",
+  "usedOn": "Auf {{names}}",
+  "unused": "Noch auf keinem Dashboard",
+  "noSaved": "Noch keine gespeicherten Widgets. Erstelle eines mit «Neues Widget» oder speichere einen Typ im Tab Typen.",
+  "followHint": "Jedes Dashboard, das dieses Widget zeigt, ändert sich mit."
 }

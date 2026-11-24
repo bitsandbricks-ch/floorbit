@@ -124,6 +124,43 @@ def test_ports_rates_and_state_from_snmp(plugin):
     assert [d["hostname"] for d in plugin.devices()] == ["sw-a-01"]
 
 
+def test_the_temperature_like_librenms(plugin):
+    """Issue #1085: the hottest fresh sensor, from CISCO-ENVMON (degrees) or ENTITY-SENSOR (scaled)."""
+    now = time.time()
+    state.state.apply_text(snmp_poll(now, 1000), now)
+    assert "temperature" not in plugin.device_details("sw-a-01")
+    ns = int(now * 1e9)
+    state.state.apply_text("\n".join([
+        f"fb_envtemp,{SW},index=1 tempValue=34i {ns}",
+        f"fb_envtemp,{SW},index=2 tempValue=0i {ns}",                       # an empty slot
+        # NX-OS: 41.5 °C as 415 with one decimal; a fan (type 10) and millidegrees (scale 8) are left out.
+        f"fb_sensor,{CORE},index=21590 sensorType=8i,sensorScale=9i,sensorPrecision=1i,sensorValue=415i {ns}",
+        f"fb_sensor,{CORE},index=22000 sensorType=10i,sensorScale=9i,sensorPrecision=0i,sensorValue=5400i {ns}",
+        f"fb_sensor,{CORE},index=22001 sensorType=8i,sensorScale=8i,sensorPrecision=0i,sensorValue=90000i {ns}",
+    ]), now)
+    assert plugin.device_details("sw-a-01")["temperature"] == 34
+    assert state.state.devices["core-01"].temperature() == 41.5
+    # A sensor that stopped answering doesn't stay as the reading.
+    assert state.state.devices["sw-a-01"].temperature(now + state.STALE + 1) is None
+
+
+def test_before_the_first_poll_it_says_waiting(plugin):
+    """Issue #1085: a trap names one port before the port table is in; that isn't the port count."""
+    state.state.know([{"name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp", "traps"]}])
+    now = time.time()
+    state.state.apply_text('snmp_trap,source=192.0.2.21,oid=.1.3.6.1.6.3.1.1.5.3,driver=traps '
+                           '.1.3.6.1.2.1.2.2.1.1.10101=10101i', now)
+    details = plugin.device_details("sw-a-01")
+    assert details["status"] == "unknown" and details["waiting"] is True and "up_ports" not in details
+    state.state.apply_text(snmp_poll(now, 1000), now)
+    assert plugin.device_details("sw-a-01")["status"] == "online"
+    # While LibreNMS polls the ports there is no poll to wait for.
+    state.state.reset()
+    state.state.know([{"name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp"], "poll_ports": False}])
+    state.state.apply_text(f"fb_system,{SW} sysUpTime=1i {int(now * 1e9)}", now)
+    assert plugin.device_details("sw-a-01")["status"] == "online"
+
+
 def test_the_devices_widget_for_dashboards(plugin, client):
     import time
     assert client.get("/api/plugins/telemetry/widgets/devices").get_json()["sub"] == "No devices set up yet."
@@ -403,13 +440,20 @@ def test_victoriametrics_gets_points_but_never_the_private_tables(monkeypatch):
 
 # ── the HTTP side ──────────────────────────────────────────────────────────────────────────────
 
+@pytest.fixture(autouse=True)
+def secret_key(tmp_path, monkeypatch):
+    """Each test's own secret key, from its start (#1083). Setting it halfway, after the background
+    telemetry loop had sealed the ingest token with the default key, left the token unreadable."""
+    from test_credentials import key_file
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    monkeypatch.delenv("FLOORBIT_SECRET_OLD_KEY_FILES", raising=False)
+
+
 def _inventory_switch(client, tmp_path, monkeypatch, **cred):
     """sw-a-01 in the inventory with Telemetry on and an SNMP v2c community (or ``cred``)."""
-    from test_credentials import key_file
     from test_inventory_scope import add, put_cred
-    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
     dev = add(client, name="sw-a-01", mgmt_ip="192.0.2.21", platform="IOS 15.2", features={"telemetry": True},
-              properties={"telemetry_vlans": "10, 20"})
+              properties={"telemetry.snmp.vlans": "10, 20"})
     login = cred or {"kind": "snmp_v2c", "secret": "s3cret-community"}
     put_cred(client, owner_type="device", owner_id=dev["id"], **login)
     return dev
@@ -459,10 +503,11 @@ def test_a_device_that_sends_by_itself_needs_no_login(client, tmp_path, monkeypa
     from floorbit.telemetry import targets
     monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
     add(client, name="fw-01", mgmt_ip="192.0.2.41", role="firewall", platform="OPNsense", features={"telemetry": True},
-        properties={"telemetry_drivers": "push, snmp"})
+        properties={"telemetry.drivers": "push, snmp"})
     add(client, name="sw-quiet", mgmt_ip="192.0.2.42", features={"telemetry": True})     # nothing to ask with
     found = {t["name"]: t for t in targets.from_inventory()}
     assert list(found) == ["fw-01"] and found["fw-01"]["drivers"] == ["push"] and found["fw-01"]["kind"] == "firewall"
+    assert found["fw-01"]["facts_every"]["routes"] == 15 * 60          # discovery's clock, by device type
     assert targets.any_device()
 
 
@@ -477,10 +522,10 @@ def test_what_a_device_leaves_open_comes_from_its_software_and_interfaces(client
         added = client.post(f"/api/inventory/{sw['id']}/interfaces", json={"name": name, "vlan": vlan})
         assert added.status_code == 201, added.get_json()
     core = add(client, name="core-01", mgmt_ip="192.0.2.11", platform="NX-OS", features={"telemetry": True},
-               properties={"telemetry_drivers": "snmp mdt"})
+               properties={"telemetry.drivers": "snmp mdt"})
     put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="s3cret-community")
     found = {t["name"]: t for t in targets.from_inventory()}
-    # A Catalyst keeps a MAC table per VLAN: the VLANs on its interfaces, unless telemetry_vlans says.
+    # A Catalyst keeps a MAC table per VLAN: the VLANs on its interfaces, unless telemetry.snmp.vlans says.
     assert found["sw-b-01"]["fdb"] == "cisco_vlans" and found["sw-b-01"]["vlans"] == [101, 102]
     # Cisco names an MDT stream after the switch.
     assert found["core-01"]["mdt_node"] == "core-01" and found["core-01"]["fdb"] == "qbridge"
@@ -521,6 +566,14 @@ def test_the_agent_gets_the_devices_and_sends_series(client, anon_client, tmp_pa
     token = client.get("/api/telemetry/token").get_json()["token"]
     assert anon_client.post("/api/telemetry/write", data=b"pf,host=fw-01 entries=1i",
                             headers={"Authorization": f"Token {token}"}).status_code == 409
+
+
+def test_the_token_sealed_early_stays_readable(client, tmp_path, monkeypatch):
+    # The background loop renders telegraf.conf, and so seals the token, whenever it runs (#1083).
+    from floorbit.telemetry import targets
+    early = targets.ingest_token()
+    _inventory_switch(client, tmp_path, monkeypatch)
+    assert client.get("/api/telemetry/token").get_json() == {"token": early}
 
 
 class AgentCtx(MemoryContext):
@@ -666,7 +719,7 @@ def test_devices_from_the_inventory_are_collected_with_their_stored_logins(clien
     inventory_scope._handed.clear()
     core = tag(client, name="core", features={"telemetry": True})
     nx = add(client, name="core-1", mgmt_ip="192.0.2.1", platform="NX-OS 10.3", tags=[core["id"]],
-             properties={"telemetry_vlans": "10, 20"})
+             properties={"telemetry.snmp.vlans": "10, 20"})
     add(client, name="sw-a-01", mgmt_ip="192.0.2.21", platform="IOS 15.2", tags=[core["id"]])
     add(client, name="sw-off", mgmt_ip="192.0.2.99")                        # feature off
     put_cred(client, owner_type="tag", owner_id=core["id"], kind="snmp_v3", username="mon",
@@ -697,10 +750,10 @@ def test_a_port_per_way_of_asking_and_an_agent_from_the_group(client, tmp_path, 
     from floorbit.telemetry import pollers, targets
     monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
     hall = group(client, name="Hall B", features={"telemetry": True},
-                 properties={"telemetry_port_snmp": "1161", "telemetry_agent": "rack-b"})
+                 properties={"telemetry.snmp.port": "1161", "telemetry.agent": "rack-b"})
     add(client, name="sw-b-01", mgmt_ip="192.0.2.31", platform="IOS-XE 17", group_id=hall["id"],
-        properties={"telemetry_port_gnmi": "50052", "telemetry_drivers": "snmp, gnmi, restconf",
-                    "telemetry_port_api": "8443", "telemetry_address": "192.0.2.131"})
+        properties={"telemetry.gnmi.port": "50052", "telemetry.drivers": "snmp, gnmi, restconf",
+                    "telemetry.api.port": "8443", "telemetry.address": "192.0.2.131"})
     put_cred(client, owner_type="group", owner_id=hall["id"], kind="snmp_v2c", secret="example-community")
     found = {t["name"]: t for t in targets.from_inventory()}["sw-b-01"]
     assert found["ports"] == {"snmp": 1161, "gnmi": 50052, "api": 8443} and found["agent"] == "rack-b"
@@ -736,7 +789,7 @@ def test_each_agent_gets_its_share_of_the_devices(client, anon_client, tmp_path,
     a, b = enrol(client, "Rack A"), enrol(client, "Rack B")
     client.put("/api/settings/plugins/telemetry", json={"enabled": True})
     add(client, name="sw-a-01", mgmt_ip="192.0.2.21", features={"telemetry": True},
-        properties={"telemetry_agent": a["id"]})
+        properties={"telemetry.agent": a["id"]})
     add(client, name="sw-c-01", mgmt_ip="192.0.2.23", features={"telemetry": True})
     put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="example-community")
 
@@ -839,3 +892,119 @@ def test_victoriametrics_names_agent_numbers_by_agent(monkeypatch):
     assert sent[0] == "fb_agent_points,agent=ab12 value=3.0 1000000000000"
     assert store.series("agent:ab12", None, "points", hours=1, now=2000) == [[1000, 3.0]]
     assert asked == ['fb_agent_points_value{agent="ab12"}']
+
+
+def test_old_telemetry_property_names_move_to_their_namespace():
+    from floorbit import upgrades
+    data = {'inventory': [{'id': 'd1', 'properties': {'telemetry_vlans': '10 20', 'rack': 'B3'}}],
+            'inventory_groups': [{'id': 'g1', 'properties': {'telemetry_agent': 'a1', 'telemetry.agent': 'a2'}}],
+            'inventory_tags': [{'id': 't1', 'properties': {'telemetry_port_snmp': '1161'}}],
+            'inventory_defaults': {'properties': {'telemetry_drivers': 'snmp traps'}}}
+    upgrades._telemetry_properties(data)
+    assert data['inventory'][0]['properties'] == {'telemetry.snmp.vlans': '10 20', 'rack': 'B3'}
+    assert data['inventory_groups'][0]['properties'] == {'telemetry.agent': 'a2'}       # the new name wins
+    assert data['inventory_tags'][0]['properties'] == {'telemetry.snmp.port': '1161'}
+    assert data['inventory_defaults']['properties'] == {'telemetry.drivers': 'snmp traps'}
+    upgrades._telemetry_properties(data)                                                 # safe to run twice
+    assert data['inventory'][0]['properties'] == {'telemetry.snmp.vlans': '10 20', 'rack': 'B3'}
+
+
+def test_each_snmpv3_trap_user_gets_its_own_listener(client, tmp_path, monkeypatch):
+    """#975: the trap user is a credential like the others; one Telegraf trap listener knows one
+    v3 user, so each distinct one gets its own port, kept while others come and go."""
+    from test_credentials import key_file
+    from test_inventory_scope import add, put_cred
+
+    from floorbit.telemetry import targets
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    a = add(client, name="sw-a-01", mgmt_ip="192.0.2.21", platform="IOS 15.2", features={"telemetry": True})
+    b = add(client, name="sw-b-01", mgmt_ip="192.0.2.22", platform="IOS 15.2", features={"telemetry": True})
+    c = add(client, name="core-01", mgmt_ip="192.0.2.11", platform="NX-OS", features={"telemetry": True})
+    put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="s3cret-community")
+    # Hall A's switches send as trap-a (authPriv), core-01 as trap-core with no passphrases.
+    put_cred(client, owner_type="device", owner_id=a["id"], kind="snmp_trap", username="trap-a",
+             secret="auth-pass-a", priv_secret="priv-pass-a")
+    put_cred(client, owner_type="device", owner_id=c["id"], kind="snmp_trap", username="trap-core")
+    bad = client.put("/api/inventory/credentials", json={"owner_type": "device", "owner_id": b["id"],
+                                                         "kind": "snmp_trap", "username": "x", "priv_secret": "p"})
+    assert bad.status_code == 400                      # privacy without authentication
+    found = {t["name"]: t for t in targets.from_inventory()}
+    assert found["sw-b-01"]["trap_port"] == telegraf.TRAP_PORT and found["sw-b-01"].get("trap") is None   # v2c
+    ports = {found["sw-a-01"]["trap_port"], found["core-01"]["trap_port"]}
+    assert ports == {telegraf.TRAP_PORT, telegraf.TRAP_PORT + 1}
+    conf = telegraf.render(list(found.values()), "http://127.0.0.1:9/write", "tok")
+    assert conf.count("[[inputs.snmp_trap]]") == 2
+    assert 'sec_name = "trap-a"' in conf and 'sec_level = "authPriv"' in conf
+    assert 'priv_password = "priv-pass-a"' in conf
+    core_block = conf[conf.index('sec_name = "trap-core"'):].split("[inputs.snmp_trap.tags]")[0]
+    assert 'sec_level = "noAuthNoPriv"' in core_block and "auth_password" not in core_block
+    # The device's page and its paste-in config say where to send.
+    page = client.get(f"/api/telemetry/devices/{c['id']}").get_json()
+    want = telegraf.sent_trap_port(found["core-01"]["trap_port"])
+    assert page["target"]["trap_send_port"] == want and page["target"]["trap_user"] == "trap-core"
+    assert page["logins"]["trap"] == "snmp_trap" and "trap" not in page["target"]
+    snippet = client.get("/api/telemetry/device-config?name=core-01&collector=192.0.2.5").get_json()["config"]
+    assert f"snmp-server host 192.0.2.5 traps version 3 noauth trap-core udp-port {want}" in snippet
+    overview = {d["name"]: d for d in client.get("/api/telemetry/overview").get_json()["devices"]}
+    assert overview["core-01"]["trap_send_port"] == want and "trap-a" not in json.dumps(overview)
+    # A new user doesn't move the others; a removed one frees its port.
+    before = {n: t["trap_port"] for n, t in found.items()}
+    put_cred(client, owner_type="device", owner_id=b["id"], kind="snmp_trap", username="trap-b", secret="auth-b")
+    again = {t["name"]: t["trap_port"] for t in targets.from_inventory()}
+    assert again["sw-a-01"] == before["sw-a-01"] and again["core-01"] == before["core-01"]
+    assert again["sw-b-01"] == telegraf.TRAP_PORT + 2
+
+
+def test_more_trap_users_than_listeners_is_a_problem(client, tmp_path, monkeypatch):
+    from test_credentials import key_file
+    from test_inventory_scope import add, put_cred
+
+    from floorbit.telemetry import targets
+    monkeypatch.setenv("FLOORBIT_SECRET_KEY_FILE", key_file(tmp_path / "key"))
+    put_cred(client, owner_type="defaults", owner_id="defaults", kind="snmp_v2c", secret="s3cret-community")
+    for i in range(telegraf.TRAP_EXTRA + 2):
+        dev = add(client, name=f"sw-{i:02d}", mgmt_ip=f"192.0.2.{30 + i}", platform="IOS 15.2",
+                  features={"telemetry": True})
+        put_cred(client, owner_type="device", owner_id=dev["id"], kind="snmp_trap", username=f"trap-{i}")
+    found = targets.from_inventory()
+    assert sorted(t["trap_port"] for t in found if t["trap_port"]) == list(
+        range(telegraf.TRAP_PORT, telegraf.TRAP_PORT + telegraf.TRAP_EXTRA + 1))
+    left = [t["name"] for t in found if t["trap_port"] is None]
+    assert len(left) == 1
+    conf = telegraf.render(found, "http://127.0.0.1:9/write", "tok")
+    assert conf.count("[[inputs.snmp_trap]]") == telegraf.TRAP_EXTRA + 1
+    seen = client.get("/api/telemetry/devices").get_json()["devices"]
+    assert seen[left[0]]["problems"][0]["kind"] == "trap_user"
+def test_what_a_device_is_is_read_as_often_as_discovery_uses_it():
+    """Issue #967: the fact tables follow the discovery actions' clocks, not a fixed five minutes."""
+    import tomllib
+    switch = {"id": "a", "name": "sw-a-01", "address": "192.0.2.21", "drivers": ["snmp"], "platform": "ios",
+              "kind": "switch", "community": "public", "tables": False,
+              "facts_every": {"identity": 3600, "interfaces": 900, "networks": 900, "optics": 3600, "routes": 0}}
+    facts = [i for i in tomllib.loads(telegraf.render([switch], "http://x/write", "tok"))["inputs"]["snmp"]
+             if i["name"] == "fb_facts"]
+    by_clock = {i["interval"]: sorted(t["name"] for t in i.get("table", [])) for i in facts}
+    assert by_clock == {"900s": ["fb_ifmac", "fb_ifvlan", "fb_ip", "fb_vtp"], "3600s": ["fb_entalias", "fb_entity"]}
+    assert [i["interval"] for i in facts if i.get("field")] == ["3600s"]          # sysDescr & co with identity
+    # A table two actions share takes the shorter clock; an action that is off reads nothing.
+    shared = {**switch, "facts_every": {"identity": 3600, "optics": 1800}}
+    facts = [i for i in tomllib.loads(telegraf.render([shared], "http://x/write", "tok"))["inputs"]["snmp"]
+             if i["name"] == "fb_facts"]
+    assert {i["interval"]: sorted(t["name"] for t in i.get("table", [])) for i in facts} == {
+        "1800s": ["fb_entalias", "fb_entity"], "3600s": []}
+    off = {**switch, "facts_every": dict.fromkeys(switch["facts_every"], 0)}
+    assert 'name = "fb_facts"' not in telegraf.render([off], "http://x/write", "tok")
+    # Without a schedule (a Floorbit that sends none): everything every five minutes, as before.
+    plain = {k: v for k, v in switch.items() if k != "facts_every"}
+    facts = [i for i in tomllib.loads(telegraf.render([plain], "http://x/write", "tok"))["inputs"]["snmp"]
+             if i["name"] == "fb_facts"]
+    assert [i["interval"] for i in facts] == ["300s"]
+
+
+def test_the_targets_carry_discoverys_schedule_per_device_type():
+    from floorbit import inventory_discovery
+    data = {inventory_discovery.SCHEDULES: {"optics": 0, "networks": 30}}
+    switch = inventory_discovery.facts_every(data, "switch")
+    assert switch["optics"] == 0 and switch["networks"] == 1800 and switch["identity"] == 3600
+    assert switch["routes"] == 0                                    # routes are read from firewalls only
+    assert inventory_discovery.facts_every(data, "firewall")["routes"] == 15 * 60

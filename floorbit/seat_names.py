@@ -15,6 +15,8 @@ of these rules exists.
 """
 import re
 
+from .seat_rows import count, rows_of
+
 NAMINGS = ('block', 'rows')
 ROW_LABELS = ('start', 'end', 'both', 'none')
 LETTERS_RE = re.compile(r'^[A-Z]{1,2}\Z')
@@ -42,28 +44,31 @@ def _quarter(block):
     return round((int(block.get('rotation') or 0) % 360) / 90) % 4
 
 
-def _block_numbering(block, cols, rows):
-    base = list(range(1, cols * rows + 1))
+def _block_numbering(block, lengths):
+    """A running number over all rows, given out in reading order once the block is turned: rows
+    top first (last first upside down or a quarter anticlockwise), seats left to right (right to
+    left upside down or a quarter clockwise). A row's ``reverse`` turns its own numbers round."""
     rotation = int(block.get('rotation') or 0) % 360
-    if rotation < 90:
-        ordered = base
-    elif rotation < 180:
-        ordered = [n for r in range(rows) for n in reversed(base[r * cols:(r + 1) * cols])]
-    elif rotation < 270:
-        ordered = list(reversed(base))
-    else:
-        ordered = [n for r in reversed(range(rows)) for n in base[r * cols:(r + 1) * cols]]
+    rows_first = rotation < 180
+    seats_first = rotation < 90 or rotation >= 270
+    order = range(len(lengths)) if rows_first else reversed(range(len(lengths)))
+    reading = [(r, c) for r in order for c in (range(lengths[r]) if seats_first else reversed(range(lengths[r])))]
     if block.get('reverse_numbers'):
-        ordered = list(reversed(ordered))
+        reading.reverse()
+    number = {rc: k + 1 for k, rc in enumerate(reading)}
     prefix = f"{str(block['name']).upper()}-" if block.get('name') else ''
-    return [[f'{prefix}{n}' for n in ordered[r * cols:(r + 1) * cols]] for r in range(rows)]
+    out = [[f'{prefix}{number[r, c]}' for c in range(n)] for r, n in enumerate(lengths)]
+    for r, row in enumerate(rows_of(block)):
+        if row.get('reverse'):
+            out[r].reverse()
+    return out
 
 
 def row_letters(block):
     """The letter of each row of a ``rows`` block, top row of the block first; [] otherwise."""
     if block.get('naming') != 'rows':
         return []
-    rows = int(block.get('rows') or 0)
+    rows = count(block)
     start = letter_index(block.get('row_start') or 'A')
     # Turned upside down or a quarter clockwise, the block's last row is the one read first.
     flip = _quarter(block) in (1, 2)
@@ -84,12 +89,13 @@ def label(block):
 
 def row_names(block):
     """Each row's name, top row of the block first: its letter in a ``rows`` block, else 1, 2, ..."""
-    return row_letters(block) or [str(n + 1) for n in range(int(block.get('rows') or 0))]
+    return row_letters(block) or [str(n + 1) for n in range(count(block))]
 
 
 def row_id(block, index):
-    """A row's id: its block and its place in the block (1 is the top row as drawn)."""
-    return f"{block['id']}:{index}"
+    """A row's id: its block and the row's own id (floorbit/seat_rows.py), for the row at ``index``
+    (1 is the top row as drawn). It stays when rows are reordered."""
+    return f"{block['id']}:{rows_of(block)[index - 1]['id']}"
 
 
 def hall_rows(data):
@@ -107,6 +113,12 @@ def hall_rows(data):
                         'index': i + 1, 'name': names[i] if i < len(names) else str(i + 1),
                         'naming': block.get('naming') or 'block', 'seats': [s.upper() for s in row]})
     return out
+
+
+def row_label(row):
+    """What a ``hall_rows`` row is called in pickers and lists: its letter, or for a block numbered
+    as a whole, the block and the row ("A 2")."""
+    return row['name'] if row['naming'] == 'rows' else f"{row['block_label']} {row['name']}".strip()
 
 
 def pick_rows(data, ids):
@@ -132,13 +144,18 @@ def seat_one_first(block):
 
 
 def block_rows(block):
-    """The seat numbers of each row of a seat block as drawn, top row first, columns left to right
-    (before the rotation)."""
-    cols, rows = int(block.get('cols') or 0), int(block.get('rows') or 0)
+    """The seat numbers of each row of a seat block, top row first, each row's seats in the order
+    the row runs (before the rotation)."""
+    rows = rows_of(block)
+    lengths = [int(r['seats']) for r in rows]
     if block.get('naming') != 'rows':
-        return _block_numbering(block, cols, rows)
+        return _block_numbering(block, lengths)
     one_first = seat_one_first(block)
-    return [[f'{letter}-{c + 1 if one_first else cols - c}' for c in range(cols)] for letter in row_letters(block)]
+    out = []
+    for row, letter, n in zip(rows, row_letters(block), lengths, strict=False):
+        first = one_first != bool(row.get('reverse'))
+        out.append([f'{letter}-{c + 1 if first else n - c}' for c in range(n)])
+    return out
 
 
 def seats(block):

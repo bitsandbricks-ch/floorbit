@@ -274,20 +274,21 @@ describe('Inventory page', () => {
   it('sets telemetry up on the Telemetry tab: automatic from its software, chosen ways, agent and ports over the group', async () => {
     const hallA = { type: 'group' as const, id: 'g1', name: 'Hall A' }
     const detail: DeviceDetail = {
-      ...fedDetail, blocks: [], properties: { telemetry_port_gnmi: '50052' },
+      ...fedDetail, blocks: [], properties: { 'telemetry.gnmi.port': '50052' },
       resolved: {
         ...fedDetail.resolved,
         properties: {
-          telemetry_port_snmp: { value: '1161', from: hallA },
-          telemetry_port_gnmi: { value: '50052', from: { type: 'device', id: 'netbox-12', name: 'Stage switch' } },
+          'telemetry.snmp.port': { value: '1161', from: hallA },
+          'telemetry.gnmi.port': { value: '50052', from: { type: 'device', id: 'netbox-12', name: 'Stage switch' } },
         },
         features: { ...fedDetail.resolved.features, telemetry: { on: true, from: hallA } },
       },
     }
     const info = {
-      on: true, platform: 'nxos', logins: { snmp: 'snmp_v2c' },
+      on: true, platform: 'nxos', logins: { snmp: 'snmp_v2c', trap: 'snmp_trap' },
       auto: { drivers: ['snmp', 'traps'], fdb: 'qbridge', vlans: [], mdt_node: 'Stage switch', address: '192.0.2.5' },
-      target: { drivers: ['snmp', 'traps'], fdb: 'qbridge', vlans: [], mdt_node: null, address: '192.0.2.5', agent: '' },
+      target: { drivers: ['snmp', 'traps'], fdb: 'qbridge', vlans: [], mdt_node: null, address: '192.0.2.5', agent: '',
+        trap_send_port: 1163, trap_user: 'trap-stage' },
     }
     const api = fakeFetch({
       'GET /api/auth/me': editor,
@@ -305,6 +306,8 @@ describe('Inventory page', () => {
     // On because its group says so; how follows from its software and logins.
     expect(await screen.findByText('Automatic for Cisco NX-OS (Nexus) with its logins: SNMP polling, SNMP traps.')).toBeInTheDocument()
     expect(screen.getByText(/^On ·/)).toHaveTextContent('from group Hall A')
+    // Its own trap user has its own listener: where to send.
+    expect(screen.getByText("Traps go to the agent's UDP port 1163, as the SNMPv3 user trap-stage. Each trap user has its own port.")).toBeInTheDocument()
     // Empty here: the group's port shows, and where it comes from.
     expect(screen.getByLabelText('SNMP port')).toHaveAttribute('placeholder', '1161')
     expect(screen.getByLabelText('gNMI port')).toHaveValue('50052')
@@ -319,7 +322,7 @@ describe('Inventory page', () => {
     fireEvent.click(await screen.findByRole('option', { name: /Rack A/, hidden: true }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
-      properties: { telemetry_agent: 'a1', telemetry_port_api: '8443', telemetry_drivers: 'snmp traps mdt' },
+      properties: { 'telemetry.agent': 'a1', 'telemetry.api.port': '8443', 'telemetry.drivers': 'snmp traps mdt' },
       features: { ...detail.features, telemetry: null },
     }))
   })

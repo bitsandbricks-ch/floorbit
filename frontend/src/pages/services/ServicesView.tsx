@@ -1,10 +1,10 @@
-import { Anchor, Loader, Stack, Text } from '@mantine/core'
+import { Anchor, Stack, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { GameServerList, Services as ServicesData } from '@/api/types'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { ServiceGroup } from '@/widgets/ServiceList'
 import { TYPES, serviceRows } from '@/widgets/serviceRows'
 import type { ViewProps } from '@/widgets/views'
@@ -15,7 +15,7 @@ export default function ServicesView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const q = useQuery({ queryKey: qk.services, queryFn: () => get<ServicesData>('/api/services'), refetchInterval: 15_000 })
   const games = useQuery({ queryKey: qk.gameServers, queryFn: () => get<GameServerList>('/api/game-servers'), refetchInterval: 15_000 })
-  if (!q.data || !games.data) return <><ErrorBanner error={q.error ?? games.error} /><Loader size="sm" aria-label={t('common.loading')} /></>
+  if (!q.data || !games.data) return <><ErrorBanner error={q.error ?? games.error} onRetry={() => { void q.refetch(); void games.refetch() }} /><LoadingState lines /></>
   const rows = serviceRows(t, q.data, games.data, {})
   const shown = expanded ? rows : rows.filter((r) => r.status !== 'up')
   return (

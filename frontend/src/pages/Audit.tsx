@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Paper, Select, Stack, Table, Text, TextInput } from '@mantine/core'
+import { Badge, Box, Button, Group, Paper, Select, Stack, Text, TextInput } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { AuditEntry, AuditPage } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState } from '@/components/ui'
@@ -99,36 +100,23 @@ export default function Audit() {
               </Stack>
             ))}
           </Stack>
-          <Table.ScrollContainer minWidth={640} visibleFrom="sm">
-            <Table striped verticalSpacing="xs">
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>{t('audit.when')}</Table.Th><Table.Th>{t('audit.account')}</Table.Th>
-                  <Table.Th>{t('audit.area')}</Table.Th><Table.Th>{t('audit.what')}</Table.Th>
-                  <Table.Th>{t('audit.fields')}</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {query.isSuccess && !total && (
-                  <Table.Tr><Table.Td colSpan={5}><Text c="dimmed" size="sm">{t('audit.empty')}</Text></Table.Td></Table.Tr>
-                )}
-                {rows.map((e, i) => (
-                  <Table.Tr key={`${e.time}-${i}`}>
-                    <Table.Td title={e.time} style={{ whiteSpace: 'nowrap' }}>{when(e.time)}</Table.Td>
-                    <Table.Td c={e.user ? undefined : 'dimmed'}>{e.user || t('audit.nobody')}</Table.Td>
-                    <Table.Td style={{ whiteSpace: 'nowrap' }}><Badge variant="light" color="gray" tt="none" style={{ flexShrink: 0, minWidth: 'max-content' }}>{areaText(e.area)}</Badge></Table.Td>
-                    <Table.Td>
-                      <Text size="sm" c={e.ok === false ? 'down' : undefined}>
-                        {e.action}{e.ok === false ? ` · ${t('audit.failed')}` : ''}
-                      </Text>
-                      {e.target && <Text size="xs" c="dimmed" style={{ overflowWrap: 'anywhere' }}>{e.target}</Text>}
-                    </Table.Td>
-                    <Table.Td><Text size="xs" c="dimmed">{fieldsText(t, e.area, e.fields)}</Text></Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
+          <Box visibleFrom="sm">
+            {/* Newest first, page by page from the server: the order is the log's, so no column sorts. */}
+            <DataTable label={t('audit.title')} rows={rows} rowKey={(e, i) => `${e.time}-${i}`} pageSize={0} bare striped minWidth={640}
+              empty={query.isSuccess && !total ? <Text c="dimmed" size="sm">{t('audit.empty')}</Text> : null}
+              columns={[
+                { id: 'when', header: t('audit.when'), cell: (e) => <span title={e.time}>{when(e.time)}</span> },
+                { id: 'account', header: t('audit.account'), cell: (e) => <Text span size="sm" c={e.user ? undefined : 'dimmed'}>{e.user || t('audit.nobody')}</Text> },
+                { id: 'area', header: t('audit.area'), cell: (e) => <Badge variant="light" color="gray" tt="none" miw="max-content">{areaText(e.area)}</Badge> },
+                { id: 'what', header: t('audit.what'), wrap: true, cell: (e) => (
+                  <>
+                    <Text size="sm" c={e.ok === false ? 'down' : undefined}>{e.action}{e.ok === false ? ` · ${t('audit.failed')}` : ''}</Text>
+                    {e.target && <Text size="xs" c="dimmed">{e.target}</Text>}
+                  </>
+                ) },
+                { id: 'fields', header: t('audit.fields'), wrap: true, cell: (e) => <Text size="xs" c="dimmed">{fieldsText(t, e.area, e.fields)}</Text> },
+              ]} />
+          </Box>
           {query.hasNextPage && (
             <Group justify="center">
               <Button variant="default" loading={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>

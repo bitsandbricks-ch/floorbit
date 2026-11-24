@@ -162,11 +162,11 @@ def delete(cable_id):
 
 
 def sources(registry):
-    """Plugins that are on and can tell Floorbit about cables."""
+    """Plugins that are on, set up, and can tell Floorbit about cables."""
     out = []
     for spec in registry.feeders('inventory'):
         cls = spec.plugin_class()
-        if cls is not None and hasattr(cls, 'cables'):
+        if cls is not None and hasattr(cls, 'cables') and registry.set_up(spec):
             out.append(spec)
     return out
 
@@ -182,7 +182,10 @@ def import_from(registry, by):
         except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
             feeds = []
             errors.append(f'Local agent: {exc}')
+        not_set_up = {s.id for s in registry.feeders('inventory') if not registry.set_up(s)}
         for feed in feeds:
+            if 'error' in feed and feed.get('base', feed.get('plugin')) in not_set_up:
+                continue    # asked although it isn't set up (NetBox without a URL): not a fault
             if 'error' in feed:
                 errors.append(f"{feed['name']} (local agent): {feed['error']}")
             else:
@@ -466,9 +469,12 @@ def assign(body, by):
 
 def port_seats(data=None, learned=True):
     """{(switch lowercase, canonical port): seat} from the cables that end at a seat, and with
-    ``learned`` the ports seat check-ins found (integrations/checkin.py) where no cable says.
-    A cable wins: it is what the crew patched."""
+    ``learned`` also the ports seat check-ins and the seat walk found (integrations/checkin.py)
+    where no cable says, and the switch ports typed in by hand on the Seat mapping page. A hand
+    entry wins, as it does everywhere in the seat mapping (docs/seat-mapping.md), then a cable
+    (what the crew patched), then a learned port. Without ``learned``: the patch plan alone."""
     from .syslog import canonical_port
+    data = load_data() if data is None else data
     out = {}
     if learned:
         from integrations import checkin
@@ -478,4 +484,12 @@ def port_seats(data=None, learned=True):
             print(f'[cables] could not read the learned seat ports: {exc}')
     out.update({(c['switch'].lower(), canonical_port(c['port'])): c['seat']
                 for c in all_cables(data) if c.get('seat')})
+    if learned:
+        from . import seatmap
+        hand = {seatmap.port_key(e['switch'], e['port']): seat for seat, e in seatmap.entries(data).items()
+                if isinstance(e, dict) and e.get('switch') and e.get('port')}
+        # A hand entry moves its seat: the cable or learned port that named it elsewhere goes.
+        moved = set(hand.values())
+        out = {k: v for k, v in out.items() if v not in moved}
+        out.update(hand)
     return out

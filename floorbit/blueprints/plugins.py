@@ -488,9 +488,19 @@ def _seats_by_block_tile(user):
     online, _last = online_seats()
     blocks = {}
     for block in load_data().get('seat_blocks') or []:
-        if block.get('name'):
-            blocks.setdefault(str(block['name']), set()).update(s.upper() for s in seat_names.seats(block))
+        # A block named by its rows has no name: it shows as its row letters (#1078).
+        name = seat_names.label(block)
+        if name:
+            blocks.setdefault(name, set()).update(s.upper() for s in seat_names.seats(block))
     return core.seats_by_block_widget(_lang(), blocks, online)
+
+
+def _seats_by_row_tile(user):
+    from .. import seat_names
+    from ..store import load_data
+    from .stats_wall import online_seats
+    online, _last = online_seats()
+    return core.seats_by_row_widget(_lang(), seat_names.hall_rows(load_data()), online)
 
 
 def _down_tile(user):
@@ -506,7 +516,18 @@ def _open_incidents_tile(user):
 
 
 def _traffic_tile(user):
-    return core.traffic_widget(_lang(), current_app.extensions['floorbit_stats'].snapshot())
+    # A pane's time range and comparison come as ?range= and ?compare= (dashboards._display).
+    stats = current_app.extensions['floorbit_stats']
+    rng = request.args.get('range') if request.args.get('range') in core.RANGES else None
+    compare = request.args.get('compare') if request.args.get('compare') in core.COMPARES else None
+    event = stats.event() if rng == 'event' or compare or request.args.get('marks') else None
+    widget = core.traffic_widget(_lang(), stats.snapshot(), rng, compare, event['hours'] if event else ())
+    if request.args.get('marks') == '1':
+        from .. import incidents
+        # Incidents only for those who may see the board, like the incident tiles.
+        found = incidents.list_all() if _may_see_board(user) else ()
+        core.with_marks(widget, core.event_marks(_lang(), event['switch_events'], found))
+    return widget
 
 
 def _snapshot():
@@ -529,11 +550,57 @@ def _flows(user):
     return out
 
 
+def _health():
+    from .health import _wall, _with_mutes
+    return _with_mutes(_wall().fresh())
+
+
+def _services():
+    from .. import services
+    return services.overview()
+
+
+def _lancache():
+    from .. import agent_plugins
+    from ..lancache import overview
+    return overview(current_app.extensions.get('floorbit_lancache'), agent_plugins.health_of('lancache'))
+
+
+def _power():
+    from .power import _watch
+    return _watch().snapshot()
+
+
+def _agents():
+    from .. import agent_link
+    return [{**a, 'outdated': agent_link.outdated(a.get('protocol'))} for a in agent_link.all_agents()]
+
+
+def _dns():
+    dns = current_app.extensions.get('floorbit_dns')
+    return dns.snapshot(core.DNS_HOURS) if dns else None
+
+
+def _games():
+    from .. import features, games
+    from .flows import current
+    ext = current_app.extensions
+    return games.insights(ext.get('floorbit_dns') if features.on('dns') else None,
+                          current() if features.on('traffic') else None, ext.get('floorbit_lancache'), core.DNS_HOURS)
+
+
+def _wifi():
+    from .. import wifi
+    from ..store import load_data
+    return wifi.overview(_registry(), load_data())
+
+
 # Floorbit's own tiles (dashboard_core.TILES): one builder each, None when this account may not see it.
 CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switches': _switches_tile,
               'seats': _seats_tile, 'down': _down_tile, 'switch_states': _switch_states_tile,
               'open_incidents': _open_incidents_tile, 'traffic': _traffic_tile,
               'seats_by_block': _seats_by_block_tile,
+              'seats_by_row': _seats_by_row_tile,
               'bandwidth': lambda user: core.bandwidth_widget(_lang(), _snapshot()),
               'peak': lambda user: core.peak_widget(_lang(), _snapshot()),
               'ports': lambda user: core.ports_widget(_lang(), _snapshot()),
@@ -542,7 +609,18 @@ CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switche
               'traffic_mix': lambda user: core.traffic_mix_widget(_lang(), _flows(user)),
               'flow_services': lambda user: core.flow_services_widget(_lang(), _flows(user)),
               'traffic_areas': lambda user: core.traffic_areas_widget(_lang(), _flows(user)),
-              'anomalies': lambda user: core.anomalies_widget(_lang(), _flows(user))}
+              'anomalies': lambda user: core.anomalies_widget(_lang(), _flows(user)),
+              'service_health': lambda user: core.service_health_widget(_lang(), _health()),
+              'internet_uplinks': lambda user: core.internet_uplinks_widget(_lang(), _services()),
+              'lancache': lambda user: core.lancache_widget(_lang(), _lancache()),
+              'power_circuits': lambda user: core.power_circuits_widget(_lang(), _power()),
+              'agents': lambda user: core.agents_widget(_lang(), _agents()),
+              'dns_lookups': lambda user: core.dns_lookups_widget(_lang(), _dns()),
+              'dns_sites': lambda user: core.dns_sites_widget(_lang(), _dns()),
+              'dns_blocked': lambda user: core.dns_blocked_widget(_lang(), _dns()),
+              'launchers': lambda user: core.launchers_widget(_lang(), _games()),
+              'wifi_clients': lambda user: core.wifi_clients_widget(_lang(), _wifi()),
+              'wifi_aps': lambda user: core.wifi_aps_widget(_lang(), _wifi())}
 
 
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])

@@ -380,3 +380,31 @@ def test_the_switcher_asks_for_other_tenants(client):
     resp = client.get("/api/tenant/mine")
     assert resp.status_code == 200
     assert resp.get_json() == {"here": "default", "tenants": []}
+
+
+def test_the_agents_ca_belongs_to_the_tenant(client, two_events, app_module):
+    from floorbit import agent_ca
+    first = agent_ca.ca_pem()
+    with tenancy.using_event(tenancy.find("lan-2027")):
+        assert agent_ca.ca_pem() == first          # a later event signs with the same CA
+        assert "agent_ca" not in store.read_json(store.event_file(), {})
+
+
+def test_the_live_events_own_ca_moves_up_at_start(client, two_events, app_module):
+    """An older Floorbit kept the CA in the live event's document (issue #1095)."""
+    from floorbit import upgrades
+    tenant_doc = store.read_json(store.tenant_file(), {})
+    tenant_doc["agent_ca"] = {"cert": "OLD", "key": "v1:old"}
+    store.write_json(store.tenant_file(), tenant_doc)
+    client.patch("/api/tenant/events/lan-2027", json={"status": "live"})
+    with tenancy.using_event(tenancy.find("lan-2027")):
+        event_doc = store.read_json(store.event_file(), {})
+        event_doc["agent_ca"] = {"cert": "IN USE", "key": "v1:used"}
+        store.write_json(store.event_file(), event_doc)
+        said = []
+        upgrades.run_at_start(log=said.append)
+        assert "agent_ca" not in store.read_json(store.event_file(), {})
+        assert store.load_data()["agent_ca"]["cert"] == "IN USE"
+    assert store.read_json(store.tenant_file(), {})["agent_ca"]["cert"] == "IN USE"
+    assert any("agent_ca" in line for line in said)
+    assert store.lift_from_live_event() == []      # nothing left to move

@@ -7,12 +7,14 @@
 - ``GET /api/configs/<switch>``: its copies. ``GET /api/configs/<switch>/<id>``: one copy (``?download=1``
   as a file). ``GET /api/configs/<switch>/diff?from=&to=``: what changed (baseline to latest by default).
 - ``POST /api/configs/<switch>/baseline``: ``{id}``, the copy later ones are compared with.
+- ``GET /api/configs/port-check``: the seat port config check (floorbit/port_config.py).
+  ``PUT /api/configs/port-check``: ``{off: [rule ids]}``, the rules this event doesn't use.
 
 All need ``configs.read`` (admin and lead): configs describe the whole network, even without secrets.
 """
 from flask import Blueprint, Response, current_app, g, jsonify, request
 
-from .. import audit, commands, config_backup, downloads, ports, spa
+from .. import audit, commands, config_backup, downloads, port_config, ports, spa
 
 bp = Blueprint('configs', __name__)
 
@@ -36,6 +38,30 @@ def overview():
                     'switches': config_backup.overview(switches), 'keep': config_backup.keep(),
                     'max_switches': commands.MAX_SWITCHES,
                     'nightly': config_backup.nightly_state(registry)})
+
+
+@bp.route('/api/configs/port-check', methods=['GET'])
+def port_check():
+    from integrations import seat_sources
+
+    from ..store import load_data
+    return jsonify(port_config.check(load_data(), seat_sources.load()))
+
+
+@bp.route('/api/configs/port-check', methods=['PUT'])
+def port_check_rules():
+    from ..store import load_data, save_data
+    from .inventory import data_lock
+    body = request.get_json(silent=True) or {}
+    with data_lock:
+        data = load_data()
+        try:
+            rules = port_config.set_off(data, body.get('off'))
+        except port_config.PortCheckError as exc:
+            return jsonify({'error': exc.args[0]}), 400
+        save_data(data)
+    audit.record('configs', 'Changed the seat port check rules', g.get('audit_user'), ', '.join(rules) or '-')
+    return port_check()
 
 
 @bp.route('/api/configs/backup', methods=['POST'])

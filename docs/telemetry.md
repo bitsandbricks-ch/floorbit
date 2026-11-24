@@ -1,7 +1,7 @@
 # Device telemetry
 
 Floorbit can hear from the hall's switches, routers and firewalls directly, without LibreNMS:
-port state, traffic and errors, MAC tables, ARP, LLDP and CDP neighbours, CPU and memory, a
+port state, traffic and errors, MAC tables, ARP, LLDP and CDP neighbours, CPU, memory and temperature, a
 firewall's gateways and states. [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/)
 does the collecting; Floorbit tells it what to ask and keeps what comes back.
 
@@ -25,6 +25,12 @@ setting **Who polls the switches** decides:
 Traps stay with Telemetry either way: they turn a port down or up within a second, while LibreNMS
 sees it on its next 5-minute poll. The device facts (model, software, interfaces) keep filling the
 inventory ([discovery](inventory.md)).
+
+With the ports Telemetry also reads the temperatures: CISCO-ENVMON-MIB on Catalyst and IOS-XE,
+ENTITY-SENSOR-MIB (the celsius sensors) on Nexus and others. A switch's status gives the hottest
+sensor heard in the last 3 minutes as `temperature`, in degrees C, where LibreNMS gives its sensors'
+average. Until a switch's first port poll is in, its status says `unknown` with `waiting: true`
+instead of counting only the ports a trap or a stream has named so far.
 
 When Telemetry polls, it walks the ARP and MAC tables every **ARP and MAC tables every (minutes)**
 (0: never). **Auto** (the default) walks them every 15 minutes while a [network segment](segments.md)
@@ -71,14 +77,14 @@ in from each device (find and filter by problems or never heard), the collector'
     | OPNsense API | OPNsense | Gateways (up, delay, loss), ARP, interface counters. A key with the Diagnostics and Status privileges only. |
     | Own Telegraf | OPNsense, pfSense | The firewall runs Telegraf (OPNsense `os-telegraf`, the pfSense Telegraf package) and sends to the collector. |
 
-    A device that only sends by itself (`telemetry_drivers` of `push`, `mdt` or `traps`) needs no
+    A device that only sends by itself (`telemetry.drivers` of `push`, `mdt` or `traps`) needs no
     login. **Device setup** on the device's Telemetry tab shows what to paste on the device for traps, MDT,
     gNMI, NX-API and RESTCONF.
 
 2. **Catalyst IOS (2960-X, 4500 on IOS-XE 3.x)** answers MAC tables one VLAN at a time. That is
    the default on IOS; Floorbit reads the VLANs the switch lists itself (discovery's VTP walk, without
    the reserved 1002 to 1005), else the VLANs on its interfaces, or the ones listed in
-   `telemetry_vlans`. Floorbit then asks `community@vlan` (v2c) or the
+   `telemetry.snmp.vlans`. Floorbit then asks `community@vlan` (v2c) or the
    `vlan-<id>` context (v3). A VLAN the switch doesn't have gets no answer at all, so each VLAN is
    its own poll and a problem names it ("no answer for VLAN 30"). Nexus and IOS-XE 16+ answer Q-BRIDGE in one table.
 
@@ -103,7 +109,7 @@ agent's page names the first one, and the agent's log has each new one with the 
 | --- | --- | --- |
 | Nothing listens on *address* | The device answered "port closed" (ICMP port unreachable, TCP reset) | SNMP, gNMI or the API is off on the device, listens on another port, or only on another address (`snmp-server` on a management VRF) |
 | No answer from *address* | Nothing came back in time | For SNMP a wrong community or SNMPv3 login looks exactly like this (the device stays silent), as does an ACL that doesn't list the agent's address; for the others, a firewall on the way |
-| No answer for VLAN *n* | The switch answers SNMP, but not `community@n` (or the `vlan-n` context) | The switch doesn't have that VLAN (fix `telemetry_vlans`), or with SNMPv3 the user's group doesn't allow the `vlan-` contexts |
+| No answer for VLAN *n* | The switch answers SNMP, but not `community@n` (or the `vlan-n` context) | The switch doesn't have that VLAN (fix `telemetry.snmp.vlans`), or with SNMPv3 the user's group doesn't allow the `vlan-` contexts |
 | No answer while reading *table* | A table walk timed out | If the device's other data comes in, the walk is too slow: a very big table, or SNMP rate limited on the device. If nothing comes in, as "No answer" above |
 | Refused the login | The device said no to the user, password, SNMPv3 keys or API key | The login on the device or in Floorbit; refused logins aren't tried again until cleared (agent-plugins.md, "Failed logins") |
 | No route to *address* | The agent's machine can't reach that network | The address, and the agent machine's routes or VLAN |
@@ -115,10 +121,39 @@ VLAN's or one table's problem only goes away by not coming back, since the devic
 coming in. Such a device doesn't count as failing: the agent's health says "answer only in part"
 instead. A device that only sends traps isn't listed as silent when a minute passes without one.
 
+The Telemetry page and an agent's **Devices** tab show the same thing in the same way: one row per
+device with its state (**Sends nothing**, **Never heard**, **Partly**, **Waits for traps**, **Sends**),
+what needs a look first. Each problem sits in its device's row: the kind, where (the whole device, one
+VLAN or one table), when it started and how often, then what to check. **Collector's line** opens the
+line the collector printed. The Telemetry page filters by agent and by collector, and its
+**Need a look** card counts devices that never reported as well as those with an error.
+
 **Test now** collects from one device once, through the agent, and shows what came back or the exact
 error; **Raw data** shows the last lines Telegraf sent for it. On the agent machine,
 `docker compose exec agent telegraf --config /app/state/plugins/telemetry/own-telegraf/telegraf.conf --test`
 does the same for every device.
+
+## SNMPv3 trap users
+
+Traps come as v2c (the community isn't checked) or as an SNMPv3 user. The trap user is a credential
+like the others: **SNMP v3 trap user** in the inventory, set on the defaults, a group, a tag or a
+device, and inherited down. Its authentication and privacy passphrases are both optional, for
+`authNoPriv` and `noAuthNoPriv` users; a privacy passphrase needs an authentication one. A device with
+no trap user but an SNMP v3 polling login sends its traps as that user, as before.
+
+One Telegraf trap listener knows one v3 user, so each agent runs a listener for each distinct trap
+user among its devices:
+
+- The first user keeps the usual port, 162 (1162 in the container); v1 and v2c traps come in there
+  too, whatever user it has.
+- Each further user gets the next of 1163 to 1170. A user keeps its port while others come and go;
+  removing the credential frees it.
+- The device's Telemetry tab says where it sends, and **Device setup** puts the port and the user in
+  the lines to paste (`snmp-server host <agent> traps version 3 priv <user> udp-port 1163`).
+- More than nine different trap users: the devices left over get the problem "every trap listener
+  belongs to another trap user". Give them a user that already has a port.
+
+On Kubernetes, publish 1163–1170/udp next to 1162 when you use more than one trap user.
 
 ## Devices from the inventory
 
@@ -141,27 +176,35 @@ The **Telemetry** tab of a device, a group, a tag or All devices sets all of it 
 property names: on, off or inherit; **Automatic** or **Choose** the ways to collect; MAC tables,
 VLANs, the MDT node, the agent, the address and the ports. An empty field shows what applies and
 where it comes from. A device's tab also shows its last word, **Test now**, **Raw data** and
-**Device setup**. The tab writes these properties, which a type can set too:
+**Device setup**. The tab writes these properties, which a type can set too. They sit under
+`telemetry.` like the property levels (inventory.md, "Properties in three levels"); the older names
+without the namespace (`telemetry_vlans`, `telemetry_port_snmp`, ...) are moved once when Floorbit starts.
 
 | Property | What |
 | --- | --- |
-| `telemetry_drivers` | the ways to collect, like `snmp, traps, gnmi` (instead of the automatic ones) |
-| `telemetry_fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
-| `telemetry_vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs the switch lists, else the ones on its interfaces) |
-| `telemetry_agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
-| `telemetry_port_snmp`, `telemetry_port_gnmi`, `telemetry_port_api` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
-| `telemetry_address` | where the agent reaches the device, when not its management address |
-| `telemetry_url` | the API's full `https://` address |
-| `telemetry_mdt_node` | the node name a device sends model-driven telemetry as (default: its name) |
-| `telemetry_verify_tls` | `false` for an API with a self-signed certificate |
+| `telemetry.drivers` | the ways to collect, like `snmp, traps, gnmi` (instead of the automatic ones) |
+| `telemetry.snmp.fdb` | MAC tables: `qbridge`, `cisco_vlans` (Catalyst IOS, the default there), `bridge`, `off` |
+| `telemetry.snmp.vlans` | the VLANs to read MAC tables from per VLAN, like `10, 20` (default: the VLANs the switch lists, else the ones on its interfaces) |
+| `telemetry.agent` | the local agent that collects from it (its id; the Telemetry tab picks it by name) |
+| `telemetry.snmp.port`, `telemetry.gnmi.port`, `telemetry.api.port` | a port per way of asking, when not the usual one (161; 50051 on NX-OS, 9339 on IOS-XE; 443) |
+| `telemetry.address` | where the agent reaches the device, when not its management address |
+| `telemetry.api.url` | the API's full `https://` address |
+| `telemetry.mdt.node` | the node name a device sends model-driven telemetry as (default: its name) |
+| `telemetry.verify_tls` | `false` for an API with a self-signed certificate |
 
-Every five minutes SNMP polling also asks what the device is (sysDescr, sysLocation, the chassis
+SNMP polling also asks what the device is (sysDescr, sysLocation, the chassis
 model and serial and the optics from ENTITY-MIB, memory and disks from HOST-RESOURCES-MIB, the Cisco memory pool,
 which also gives the memory use), and per port its MAC, IPv4 addresses, VLAN and access or trunk
 mode, with the device's VLAN names. [Discovery](inventory.md#discovery) fills the inventory device
-from it.
+from it, and each part is read as often as the discovery action that uses it runs, for that kind of
+device: model, serial and software with **Model, serial and software** (hourly by default), the
+optics with **Transceivers** (hourly), addresses and VLANs with **VLANs and networks**, port MACs
+with **Interfaces** and routes with **Routes** (every `DISCOVERY_MINUTES`, 15). A table two actions
+share takes the shorter clock; an action that is off isn't read at all. Changing an action's schedule
+updates the agents' Telegraf config. (Without discovery's schedule, as on an older Floorbit, it all
+comes every five minutes.)
 
-Firewalls also say their **routes** every five minutes (IP-FORWARD-MIB ipCidrRouteTable: network,
+Firewalls also say their **routes** (on the **Routes** action's clock) (IP-FORWARD-MIB ipCidrRouteTable: network,
 next hop, interface and where it came from: connected, static, OSPF, BGP, ...), up to 2,000 per
 firewall. Routers aren't asked: an internet router's full table is far too big to walk.
 
@@ -255,7 +298,7 @@ Nothing comes in twice on the hosted side either:
 
 ## One agent per device
 
-A device with an agent (`telemetry_agent`, the Telemetry tab) is collected by that agent alone, even
+A device with an agent (`telemetry.agent`, the Telemetry tab) is collected by that agent alone, even
 when it stands by for another one, and calls about the device (its ports, its clients) go there.
 Give a hall's group its hall's agent, and each agent polls only its own switches. While that agent
 is away, its devices go back to the others like devices without an agent, so they aren't left
@@ -351,3 +394,25 @@ each device's last report.
 The **Telemetry devices** widget (a dashboard tile, from the plugin) lists each device as up when
 it reported in the last minutes, with a link to the Telemetry page. On a hosted Floorbit it asks
 the local agent.
+
+### In the agent's log
+
+Every telemetry line in the agent's log carries a topic after the plugin's tag, so you can keep one
+kind with `grep '\[telemetry\] \[traps\]'` (or `docker compose logs agent | grep ...`):
+
+| Topic | What it says |
+| --- | --- |
+| `[settings]` | the devices Floorbit sent (names only, never logins) and who polls the switches |
+| `[telegraf]` | Telegraf starting, stopping, reloading its config, and its own warnings |
+| `[devices]` | a device first heard, gone silent, and the summary every few minutes |
+| `[snmp]` | the poll line every minute: points per device, and the devices that sent nothing |
+| `[traps]` | each trap as it comes in: the device, the trap and its port |
+| `[stream]` | gNMI and Cisco MDT: one line a minute with the points per device |
+| `[api]` | the API pollers (firewalls, controllers) |
+| `[push]` | each send to Floorbit: the series and the IP and MAC sightings, with how many parts |
+| `[test]` | **Test now** runs |
+| `[role]` | the agent becoming the collector or standing by (VRRP) |
+| `[lookup]` | a check-in asking the switches for one PC, and what it found |
+
+These lines are at info level. `FLOORBIT_AGENT_LOG_LEVEL=debug` adds Telegraf's chatter and the
+details behind each line.

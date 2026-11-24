@@ -214,6 +214,14 @@ def action_minutes(data, action_id):
     return action(action_id)['minutes'] or every
 
 
+def facts_every(data, role):
+    """Seconds between reads of what each action needs, for a device of ``role``: {action: seconds},
+    0 when the action is off or isn't about such devices. The collector reads those SNMP tables on
+    that clock instead of its own (issue #967; telegraf.FACT_TABLES)."""
+    return {a['id']: (action_minutes(data, a['id']) * 60 if (role or 'switch') in a['roles'] else 0)
+            for a in ACTIONS if a['id'] != 'poe'}
+
+
 def actions(data):
     """Every action with its schedule and its last run, for the API."""
     saved = (data.get(SCHEDULES) or {}) if isinstance(data.get(SCHEDULES), dict) else {}
@@ -284,9 +292,13 @@ def run(only=None, device_ids=None):
         data = load_data()
         pairs = [(d, r) for d, r in match(inventory.devices(data), rows) if device_ids is None or d['id'] in device_ids]
         report['received'] = len(pairs)
+        from . import inventory_properties
         for dev, row in pairs:
             values = fields_of(row)
             found[dev['id']] = (values, row)
+            # What the source read, whatever the fill rules keep: the readings of the property view.
+            inventory_properties.record_readings(data, dev['id'], row.get('source') or getattr(mon, 'name', ''),
+                                                 values, row, report['at'])
             if not does('identity', dev):
                 continue
             report['actions']['identity']['devices'] += 1
@@ -370,11 +382,11 @@ def run(only=None, device_ids=None):
             else:
                 kept.pop(dev_id, None)
         data['inventory_discovered'] = kept
+        from . import inventory_properties
+        inventory_properties.forget(data, {d['id'] for d in data.get('inventory') or []})
         if ran & {'networks', 'optics'}:
             _entries(data, list(kept.values()), report)
         save_data(data)
-    from . import segments
-    report['segments'] = segments.take_proposals()
     return _keep(report)
 
 
@@ -493,8 +505,12 @@ def _entries(data, found, report):
     """Every VLAN, network and transceiver the devices know, as inventory entries (the same rules
     as a plugin's: hand changes win, nothing is deleted)."""
     from . import inventory_scope, inventory_types
-    vlans, networks, optics = {}, set(), {}
+    vlans, networks, optics, vlan_of = {}, set(), {}, {}
     for n in found:
+        for svi in n.get('svis') or []:
+            # A network on a VLAN interface: the range knows its VLAN, which makes it a lookup segment.
+            vlan_of.setdefault(svi['network'], svi['vlan'])
+            networks.add(svi['network'])
         for v in n.get('vlans') or []:
             if v['name'] or v['id'] not in vlans:
                 vlans[v['id']] = v['name'] or vlans.get(v['id']) or ''
@@ -505,7 +521,9 @@ def _entries(data, found, report):
         return
     feed = {'vlan': [{'ref': f'vlan-{vid}', 'name': name or f'VLAN {vid}', 'fields': {'vlan_id': vid}}
                      for vid, name in sorted(vlans.items())]
-            + [{'ref': f'prefix-{net}', 'name': net, 'fields': {'prefix': net}} for net in sorted(networks)]}
+            + [{'ref': f'prefix-{net}', 'name': net,
+                'fields': {'prefix': net, **({'vlan_id': vlan_of[net]} if net in vlan_of else {})}}
+               for net in sorted(networks)]}
     if optics:
         feed['transceiver'] = [
             {'ref': f'optic-{key}', 'name': f'{o["model"] or "Transceiver"} {o["serial"]}',
@@ -556,7 +574,7 @@ def drift(dev, values, row, port_source=None):
         out.append({'kind': 'hostname', 'field': 'name', 'configured': dev['name'],
                     'actual': str(sys_name)[:80]})
     ip = str(row.get('ip') or '').strip()
-    natted = (dev.get('properties') or {}).get('telemetry_address')     # reached elsewhere on purpose
+    natted = (dev.get('properties') or {}).get('telemetry.address')     # reached elsewhere on purpose
     if ip and dev.get('mgmt_ip') and ip != dev['mgmt_ip'] and not natted:
         out.append({'kind': 'address', 'field': 'mgmt_ip', 'configured': dev['mgmt_ip'], 'actual': ip})
     if port_source:

@@ -136,6 +136,13 @@ def reset():
         _since.clear()
 
 
+def forget():
+    """Drop the cached answer only: a plugin was turned on or off or its settings changed, and the
+    crew looks at the page right after (#1056). How long an AP has been busy stays."""
+    with _lock:
+        _cache.update(at=0.0, value=None)
+
+
 def mute_key(name):
     """The alert mute key of an AP, next to the switch ids (integrations/alerting.py)."""
     return f'wifi:{name.lower()}'

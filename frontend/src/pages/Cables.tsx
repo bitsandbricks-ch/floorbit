@@ -1,7 +1,7 @@
 import {
-  Alert, Anchor, Badge, Button, Group, Paper, Stack, Table, Text, TextInput,
+  Alert, Anchor, Badge, Button, Group, Menu, Stack, Text, TextInput,
 } from '@mantine/core'
-import { IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconChevronDown, IconCloudDownload, IconDownload, IconLayoutRows, IconPlugConnected, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +11,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { BlockPlan, CableImport, CableList } from '@/api/types'
+import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
@@ -52,18 +53,25 @@ export default function Cables() {
         actions={
           <Group gap="xs">
             {canEdit && <Button leftSection={<IconPlus size={16} />} component={Link} to="/cables/new">{t('cables.add')}</Button>}
-            {canEdit && <Button variant="default" leftSection={<IconLayoutRows size={16} />} onClick={() => setPatching(true)}>
-              {t('cables.patchBlock')}</Button>}
             {canEdit && <Button variant="default" component="a" href="/cables/walk" leftSection={<IconPlugConnected size={16} />}>
               {t('walk.title')}</Button>}
-            {canEdit && d && d.sources.length > 0 && (
-              <Button variant="default" leftSection={<IconCloudDownload size={16} />} loading={doImport.isPending}
-                onClick={() => doImport.mutate()}>{t('cables.import', { source: d.sources.join(', ') })}</Button>
-            )}
-            <Button variant="default" component="a" target="_blank" leftSection={<IconPrinter size={16} />}
-              href={`/api/cables/labels.pdf${q}`}>{t('cables.labels')}</Button>
-            <Button variant="default" component="a" leftSection={<IconDownload size={16} />}
-              href={`/api/cables.csv${q}`}>CSV</Button>
+            {/* The rest in a menu: six buttons pushed the bar past a laptop screen. */}
+            <Menu position="bottom-end" withinPortal>
+              <Menu.Target>
+                <Button variant="default" rightSection={<IconChevronDown size={14} />}>{t('cables.more')}</Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                {canEdit && <Menu.Item leftSection={<IconLayoutRows size={14} />} onClick={() => setPatching(true)}>{t('cables.patchBlock')}</Menu.Item>}
+                {canEdit && d && d.sources.length > 0 && (
+                  <Menu.Item leftSection={<IconCloudDownload size={14} />} disabled={doImport.isPending} onClick={() => doImport.mutate()}>
+                    {t('cables.import', { source: d.sources.join(', ') })}
+                  </Menu.Item>
+                )}
+                <Menu.Item component="a" target="_blank" href={`/api/cables/labels.pdf${q}`} leftSection={<IconPrinter size={14} />}>
+                  {t('cables.labels')}</Menu.Item>
+                <Menu.Item component="a" href={`/api/cables.csv${q}`} leftSection={<IconDownload size={14} />}>CSV</Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
           </Group>
         } />
       <Stack gap="md">
@@ -88,39 +96,23 @@ export default function Cables() {
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}
               value={search} onChange={(e) => setSearch(e.currentTarget.value)} />
-            <Paper withBorder radius="lg" p="md">
-              {rows.length === 0 ? <Text c="dimmed">{d.cables.length ? t('cables.noMatch') : t('cables.empty')}</Text> : (
-                <Table.ScrollContainer minWidth={640}>
-                  <Table striped highlightOnHover>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>{t('cables.label')}</Table.Th><Table.Th>{t('cables.switchPort')}</Table.Th>
-                        <Table.Th>{t('cables.panel')}</Table.Th><Table.Th>{t('cables.seat')}</Table.Th>
-                        <Table.Th>{t('cables.cable')}</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {rows.map((c) => (
-                        <Table.Tr key={c.id}>
-                          <Table.Td fw={600}><Anchor component={Link} to={`/cables/${c.id}`}>{c.label}</Anchor></Table.Td>
-                          <Table.Td ff="monospace">{c.switch} {c.port}</Table.Td>
-                          <Table.Td>{c.panel ? `${c.panel} ${c.panel_port}`.trim() : <Text span c="dimmed">{t('cables.direct')}</Text>}</Table.Td>
-                          <Table.Td>{c.seat || '–'}</Table.Td>
-                          <Table.Td>
-                            <Group gap={6} wrap="nowrap">
-                              <Text size="sm">{[c.color, c.length_m ? `${c.length_m} m` : '', c.type ? t(`topology.types.${c.type}`) : '',
-                                c.speed ? `${c.speed}G` : ''].filter(Boolean).join(' · ') || '–'}</Text>
-                              {c.source === 'import' && <Badge variant="light" color="info" tt="none">{c.plugin ?? 'NetBox'}</Badge>}
-                            </Group>
-                          </Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
-                </Table.ScrollContainer>
-              )}
-            </Paper>
-            <Text size="sm" c="dimmed">{t('cables.count', { count: rows.length })}</Text>
+            <DataTable label={t('cables.title')} rows={rows} rowKey={(c) => c.id} defaultSort={{ id: 'label' }} minWidth={640}
+              empty={<Text c="dimmed">{d.cables.length ? t('cables.noMatch') : t('cables.empty')}</Text>}
+              count={(n) => t('cables.count', { count: n })}
+              columns={[
+                { id: 'label', header: t('cables.label'), sort: (c) => c.label, cell: (c) => <Anchor component={Link} to={`/cables/${c.id}`} fw={600}>{c.label}</Anchor> },
+                { id: 'port', header: t('cables.switchPort'), sort: (c) => `${c.switch} ${c.port}`, cell: (c) => `${c.switch} ${c.port}`, mono: true },
+                { id: 'panel', header: t('cables.panel'), sort: (c) => (c.panel ? `${c.panel} ${c.panel_port}` : ''), hideOnPhone: true,
+                  cell: (c) => (c.panel ? `${c.panel} ${c.panel_port}`.trim() : <Text span c="dimmed">{t('cables.direct')}</Text>) },
+                { id: 'seat', header: t('cables.seat'), sort: (c) => c.seat ?? '', cell: (c) => c.seat || '–' },
+                { id: 'cable', header: t('cables.cable'), hideOnPhone: true, cell: (c) => (
+                  <Group gap={6} wrap="nowrap">
+                    <Text size="sm">{[c.color, c.length_m ? `${c.length_m} m` : '', c.type ? t(`topology.types.${c.type}`) : '',
+                      c.speed ? `${c.speed}G` : ''].filter(Boolean).join(' · ') || '–'}</Text>
+                    {c.source === 'import' && <Badge variant="light" color="info" tt="none">{c.plugin ?? 'NetBox'}</Badge>}
+                  </Group>
+                ) },
+              ]} />
           </>
         )}
       </Stack>

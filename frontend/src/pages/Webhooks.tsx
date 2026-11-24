@@ -10,8 +10,9 @@ import type { Webhook } from '@/api/types'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { dateTime } from '@/lib/time'
+import { IconWebhook } from '@tabler/icons-react'
 
 type Answer = { webhooks: Webhook[]; events: string[] }
 type WithSecret = { webhook: Webhook; secret: string }
@@ -167,7 +168,7 @@ export default function Webhooks() {
         )}
         {query.isPending ? <LoadingState /> : d && (
           <>
-            {d.webhooks.length === 0 && <Text size="sm" c="dimmed">{t('webhooks.none')}</Text>}
+            {d.webhooks.length === 0 && <Paper withBorder radius="lg"><EmptyState icon={<IconWebhook size={24} />} title={t('webhooks.none')} /></Paper>}
             {d.webhooks.map((h) => <Hook key={h.id} hook={h} events={d.events} onSecret={shown} onChanged={refresh} />)}
             <NewHook events={d.events} onMade={shown} />
             <Text size="sm" c="dimmed">{t('webhooks.docs')}</Text>

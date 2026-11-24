@@ -39,8 +39,14 @@ def _registry():
 
 
 def _feeders():
+    """The inventory plugins that are on and set up. One that isn't set up yet is no source."""
     registry = _registry()
-    return registry.feeders('inventory') if registry else []
+    return [s for s in registry.feeders('inventory') if registry.set_up(s)] if registry else []
+
+
+def _not_set_up():
+    registry = _registry()
+    return {s.id for s in registry.feeders('inventory') if not registry.set_up(s)} if registry else set()
 
 
 def run_sync():
@@ -113,8 +119,11 @@ def _sync_from_agent():
         _record(report)
         return [report]
     reports = []
+    skip = _not_set_up()
     for feed in feeds:
         base = {'name': feed['name'], 'via': 'agent', 'base': feed.get('base', feed['plugin'])}
+        if 'error' in feed and base['base'] in skip:
+            continue    # the agent asked a plugin that isn't set up (NetBox without a URL): not a fault
         try:
             if 'error' in feed:
                 raise inventory.InventoryError(feed['error'])
@@ -133,25 +142,39 @@ def _sync_from_agent():
     return reports
 
 
+def _set_up(spec):
+    """Whether an inventory plugin has what it needs to sync. NetBox needs its URL and token; the
+    plugin spec has no "configured" for inventory plugins, so the others count once they are on."""
+    if spec.id != 'netbox':
+        return True
+    settings = _registry().settings_of(spec)
+    return bool(settings.get('url') and settings.get('token'))
+
+
 def _sources(data):
     log = inventory.sync_log(data)
     out = []
     for spec in _feeders():
         last = next((r for r in log if r.get('plugin') == spec.id), None)
+        if last is None and not _set_up(spec):
+            continue        # NetBox without a URL: "not synced yet" would read as something to fix
         via = ' (local agent)' if last and last.get('via') == 'agent' else ''
         out.append({'id': spec.id, 'name': spec.name + via, 'last_sync': last})
     if agent_link.active():
-        known, via_agent = {o['id'] for o in out}, False
+        known, via_agent, skip = {o['id'] for o in out}, False, _not_set_up()
         for r in log:       # newest first: the agent's feeds as of its last sync
             if r.get('via') != 'agent' or r.get('plugin') == 'agent':
                 continue
             via_agent = True
+            if r.get('error') and (r.get('base') or r.get('plugin')) in skip:
+                continue
             if r.get('plugin') not in known:
                 known.add(r['plugin'])
                 out.append({'id': r['plugin'], 'name': f"{r.get('name') or r['plugin']} (local agent)", 'last_sync': r})
-        if not via_agent:   # nothing came from it yet: show it, with its last error if any
+        if not via_agent:   # nothing came from it yet: shown only when asking it failed
             last = next((r for r in log if r.get('plugin') == 'agent'), None)
-            out.append({'id': 'agent', 'name': 'Local agent', 'last_sync': last})
+            if last:
+                out.append({'id': 'agent', 'name': 'Local agent', 'last_sync': last})
     if inventory_discovery.available():
         out.append({'id': inventory_discovery.PLUGIN, 'name': inventory_discovery.NAME,
                     'last_sync': inventory_discovery.last(data)})
@@ -240,7 +263,7 @@ def delete_device(device_id):
 def sync_now():
     discover = inventory_discovery.available()
     if not _feeders() and not agent_link.active() and not discover:
-        return jsonify({'error': 'No inventory source is on. Turn one on under Settings > Plugins.'}), 400
+        return jsonify({'error': 'No inventory source is set up. Set one up under Settings > Plugins.'}), 400
     with inventory_schedule.running:   # a scheduled sync that's under way finishes first
         reports = run_sync()
     if discover:

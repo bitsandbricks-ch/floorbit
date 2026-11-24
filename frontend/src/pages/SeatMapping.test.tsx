@@ -21,10 +21,11 @@ const list: SeatMapList = {
       from: { ip: 'manual', nick: 'checkin' },
       manual: { seat: 'A-1', switch: '', port: '', ip: '192.0.2.99', mac: '', nick: '', note: 'console', updated_at: null, updated_by: null },
       sources: ['manual', 'checkin'],
+      on_plan: true,
     },
     {
       seat: 'A-2', switch: '', port: '', port_origin: '', ip: '192.0.2.2', mac: 'aa:bb:cc:dd:ee:02', nick: 'player2',
-      from: { ip: 'checkin', mac: 'checkin', nick: 'checkin' }, manual: null, sources: ['checkin'],
+      from: { ip: 'checkin', mac: 'checkin', nick: 'checkin' }, manual: null, sources: ['checkin'], on_plan: true,
     },
   ],
   sources: ['manual', 'checkin'],
@@ -39,6 +40,20 @@ describe('matches', () => {
     expect(matches(list.seats[1], 'ee:02', false)).toBe(true)
     expect(matches(list.seats[1], '', true)).toBe(false)
     expect(matches(list.seats[0], 'console', true)).toBe(true)
+  })
+})
+
+describe('seats not on the plan (#1036)', () => {
+  const offPlan = { ...list, seats: [...list.seats, { ...list.seats[1], seat: 'F-1', on_plan: false }] }
+
+  it('counts them apart and can show only them', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ ...me, 'GET /api/seat-map?read=1': offPlan }).fn)
+    renderWithApp(<SeatMapping />)
+    expect(await screen.findByText('3 seats: 2 on the plan, 1 not on any plan')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: 'F-1' }).closest('tr')!).getByText('not on the plan')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('switch', { name: 'Only seats not on the plan' }))
+    expect(await screen.findByText('1 seat')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'A-1' })).not.toBeInTheDocument()
   })
 })
 

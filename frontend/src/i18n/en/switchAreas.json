@@ -1,0 +1,51 @@
+{
+  "title": "Switch areas",
+  "intro": "Which seats each switch serves: pinned here, learned from the seats mapped to its ports (seat walk, check-in, patch plan), or from where the switch is drawn on the plan. Where they disagree it says so here. A check-in that has to ask the switches asks the seat's own switches first.",
+  "switch": "Switch",
+  "serves": "Serves",
+  "from": "From",
+  "check": "Check",
+  "block": "Block {{block}}",
+  "rows_one": "{{count}} row",
+  "rows_other": "{{count}} rows",
+  "seats_one": "{{count}} seat",
+  "seats_other": "{{count}} seats",
+  "how": {
+    "manual": "Pinned",
+    "learned": "Learned",
+    "plan": "Drawn in the block",
+    "todo": "To do",
+    "excluded": "Left out"
+  },
+  "drift": {
+    "learned_outside_pin": "Learned outside its pin: {{seats}}",
+    "learned_outside_plan": "Learned outside the block it is drawn in: {{seats}}",
+    "drawn_elsewhere": "Drawn in block {{block}}, pinned elsewhere",
+    "excluded_learned": "Left out, but seats are learned on it: {{seats}}"
+  },
+  "todoCount_one": "{{count}} switch serves no seats yet: pin it, draw it in its block, or walk its seats.",
+  "todoCount_other": "{{count}} switches serve no seats yet: pin them, draw them in their block, or walk their seats.",
+  "driftCount_one": "{{count}} switch has sources that disagree.",
+  "driftCount_other": "{{count}} switches have sources that disagree.",
+  "todo": "Not drawn in a block and no seats learned",
+  "agrees": "Everything agrees",
+  "pinRow": "Pin row {{row}}",
+  "edit": "Pin",
+  "editTitle": "Seats {{name}} serves",
+  "editHint": "A pin wins over what was learned and where the switch is drawn. Seats learned outside the pin are still shown.",
+  "exclude": "Leave this switch out",
+  "excludeHint": "For distribution and core switches that serve no seats.",
+  "blocks": "Blocks",
+  "rowsLabel": "Rows",
+  "seatsLabel": "Single seats",
+  "clear": "Remove the pin",
+  "save": "Save",
+  "none": "No switches in the inventory",
+  "noneHint": "Switches come from the inventory (NetBox, discovery or by hand).",
+  "found": {
+    "pin": "{{switch}} is pinned to {{area}}; this seat is in {{row}}.",
+    "plan": "{{switch}} is drawn in {{area}}; this seat is in {{row}}.",
+    "excluded": "{{switch}} is excluded from serving seats; this seat ({{row}}) is on it.",
+    "open": "Check it in Switch areas"
+  }
+}

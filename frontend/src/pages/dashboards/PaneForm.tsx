@@ -9,15 +9,17 @@ import type { SeatViewData, WidgetTile } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { VIEWS } from '@/widgets/views'
 import { KIND_PICKS, LEVEL_PINS, type KindPick, type LevelPin } from '@/widgets/level'
+import type { PaneFit } from '@/widgets/levelReport'
 import { LINE_STYLES, STACKS, TRENDS, kindsFor, looksFor, resolveKind } from '@/widgets/kinds/shape'
 import { CALCS, type Calc, MAX_SOURCES, groupKeys } from '@/widgets/kinds/combine'
 import { usePaneData } from '@/widgets/usePaneData'
 import { PRESET_KEYS } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
-import { type Area, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane } from './model'
+import { type Area, REFRESHES, type Refresh, TIME_RANGES, type TimeRange, MARKS_MODES, type MarksMode, PANE_KINDS, type Pane, type PaneKind, type PlanFilter, TEXT_MAX, TEXT_SIZES, type TextSize, areaView, blockText, findBlock, planPane, planRows } from './model'
 import { pluginName } from '@/lib/pluginName'
 import { DisplayFields } from './DisplayFields'
+import { followed, useSavedWidgets } from '../widgets/saved'
 
 const FILTERS: PlanFilter[] = ['all', 'problems', 'offline', 'recent', 'note', 'checked_in']
 
@@ -27,6 +29,7 @@ function blank(kind: PaneKind, title?: string, hide?: boolean): Pane {
   switch (kind) {
     case 'plan': return planPane(base)
     case 'tile': return { kind, tile: '', ...base }
+    case 'widget': return { kind, widget: '', ...base }
     case 'view': return { kind, view: VIEWS[0]?.id ?? '', ...base }
     case 'text': return { kind, text: '', size: 'l', align: 'start', ...base }
     default: return { kind: 'empty', ...base }
@@ -34,7 +37,19 @@ function blank(kind: PaneKind, title?: string, hide?: boolean): Pane {
 }
 
 /** The settings of the pane picked in the editor. */
-export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) => void }) {
+/** How the pane draws at its size now (#928): the level, a list's cut rows, or too small. */
+function Drawn({ fit }: { fit: PaneFit }) {
+  const { t } = useTranslation()
+  const cut = fit.rows && fit.rows[0] < fit.rows[1] ? fit.rows : null
+  return (
+    <Text size="xs" role="status" className={fit.tight || cut ? 'fb-tone-warn' : undefined} c={fit.tight || cut ? undefined : 'dimmed'}>
+      {fit.tight ? t('dashboards.form.drawnTooSmall') : t('dashboards.form.drawn', { level: t(`dashboards.level.${fit.level}`) })}
+      {!fit.tight && cut && ` ${t('dashboards.form.drawnRows', { shown: cut[0], total: cut[1] })}`}
+    </Text>
+  )
+}
+
+export function PaneForm({ pane, onChange, drawn }: { pane: Pane; onChange: (p: Pane) => void; drawn?: PaneFit | null }) {
   const { t } = useTranslation()
   return (
     <Stack gap="sm">
@@ -46,6 +61,7 @@ export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) =
         onChange={(e) => onChange({ ...pane, title: e.currentTarget.value || undefined })} />
       <Switch label={t('dashboards.form.hideTitle')} checked={!!pane.hide_title}
         onChange={(e) => onChange({ ...pane, hide_title: e.currentTarget.checked || undefined })} />
+      {drawn && <Drawn fit={drawn} />}
       {pane.kind === 'text' && <TextFields pane={pane} onChange={onChange} />}
       {pane.kind === 'plan' && <PlanFields pane={pane} onChange={onChange} />}
       {pane.kind === 'view' && (
@@ -59,6 +75,7 @@ export function PaneForm({ pane, onChange }: { pane: Pane; onChange: (p: Pane) =
           onChange={(e) => onChange({ ...pane, expanded: e.currentTarget.checked || undefined })} />
       )}
       {pane.kind === 'tile' && <TileField pane={pane} onChange={onChange} />}
+      {pane.kind === 'widget' && <WidgetField pane={pane} onChange={onChange} />}
     </Stack>
   )
 }
@@ -96,26 +113,35 @@ function PlanFields({ pane, onChange }: { pane: Extract<Pane, { kind: 'plan' }>;
   // Blocks named by row have no name of their own: list every block, by id, named by its rows.
   const blocks = (drawing?.shapes ?? []).filter((b) => b.id || b.name)
     .map((b) => ({ value: b.id ?? b.name, label: blockText(t, b) }))
+  // A block holds rows: a pane can show one of them too (#1078).
+  const rows = drawing ? planRows(drawing).map((r) => ({ value: r.id, label: r.name, group: blockText(t, r.block) })) : []
+  // Mantine reads an item with a ``group`` as a group: hand it plain value and label.
+  const rowData = [...new Set(rows.map((r) => r.group))].map((g) => ({
+    group: g, items: rows.filter((r) => r.group === g).map(({ value, label }) => ({ value, label })) }))
   const setArea = (area: Area) => onChange({ ...pane, area })
   return (
     <>
       <EntitySelect kind="halls" label={t('dashboards.form.hall')} description={t('dashboards.form.hallHint')} clearable
         value={pane.hall || null} onChange={(v) => onChange({ ...pane, hall: v ?? '', area: { kind: 'hall' } })} />
-      <div>
-        <Text size="sm" fw={500} mb={4}>{t('dashboards.form.area')}</Text>
-        <SegmentedControl fullWidth size="xs" value={pane.area.kind} aria-label={t('dashboards.form.area')}
-          data={(['hall', 'block', 'zone', 'box'] as const).map((k) => ({ value: k, label: t(`dashboards.area.${k}`) }))}
-          onChange={(v) => {
-            if (v === 'hall') setArea({ kind: 'hall' })
-            else if (v === 'block') setArea({ kind: 'block', id: blocks[0]?.value ?? '' })
-            else if (v === 'zone') setArea({ kind: 'zone', id: zones[0]?.id ?? '' })
-            else if (drawing) setArea({ kind: 'box', ...(areaView({ kind: 'hall' }, drawing) ?? { x: 0, y: 0, w: 1600, h: 1000 }) })
-          }} />
-      </div>
+      {/* Five parts: a list, not a segmented row that wraps in the side panel. */}
+      <Select label={t('dashboards.form.area')} allowDeselect={false} value={pane.area.kind}
+        data={(['hall', 'block', 'row', 'zone', 'box'] as const).map((k) => ({ value: k, label: t(`dashboards.area.${k}`) }))}
+        onChange={(v) => {
+          if (v === 'hall') setArea({ kind: 'hall' })
+          else if (v === 'block') setArea({ kind: 'block', id: blocks[0]?.value ?? '' })
+          else if (v === 'row') setArea({ kind: 'row', id: rows[0]?.value ?? '' })
+          else if (v === 'zone') setArea({ kind: 'zone', id: zones[0]?.id ?? '' })
+          else if (v === 'box' && drawing) setArea({ kind: 'box', ...(areaView({ kind: 'hall' }, drawing) ?? { x: 0, y: 0, w: 1600, h: 1000 }) })
+        }} />
       {pane.area.kind === 'block' && (
         <Select label={t('dashboards.area.block')} allowDeselect={false} searchable placeholder={t('ui.pickBlock')} value={(drawing && findBlock(drawing, pane.area.id)?.id) || pane.area.id || null}
           data={blocks} nothingFoundMessage={t('dashboards.form.noBlocks')}
           onChange={(v) => v && setArea({ kind: 'block', id: v })} />
+      )}
+      {pane.area.kind === 'row' && (
+        <Select label={t('dashboards.area.row')} allowDeselect={false} searchable placeholder={t('dashboards.form.pickRow')}
+          value={pane.area.id || null} data={rowData} nothingFoundMessage={t('dashboards.form.noRows')}
+          onChange={(v) => v && setArea({ kind: 'row', id: v })} />
       )}
       {pane.area.kind === 'zone' && (zones.length
         ? <Select label={t('dashboards.area.zone')} allowDeselect={false} value={pane.area.id || null}
@@ -170,7 +196,40 @@ function BoxPicker({ data, box, onPick }: { data: SeatViewData; box: View; onPic
   )
 }
 
-function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; onChange: (p: Pane) => void }) {
+/** Which saved widget the pane follows, and "Clone": a tile pane of its own with the same settings,
+ *  for this dashboard only (Mike, #1009). */
+function WidgetField({ pane, onChange }: { pane: Extract<Pane, { kind: 'widget' }>; onChange: (p: Pane) => void }) {
+  const { t } = useTranslation()
+  const { data, isPending } = useSavedWidgets()
+  const widgets = data?.widgets ?? []
+  const picked = widgets.find((w) => w.id === pane.widget)
+  const saved = picked ? { name: picked.name, pane: picked.pane } : pane.saved
+  return (
+    <>
+      <Select label={t('dashboards.form.widget')} allowDeselect={false} searchable value={pane.widget || null}
+        placeholder={isPending ? t('common.loading') : undefined} nothingFoundMessage={t('dashboards.form.noWidgets')}
+        data={widgets.map((w) => ({ value: w.id, label: w.name }))}
+        onChange={(v) => {
+          const w = widgets.find((x) => x.id === v)
+          if (w) onChange({ ...pane, widget: w.id, saved: { name: w.name, pane: w.pane } })
+        }} />
+      {!isPending && !widgets.length && (
+        <Text size="xs" c="dimmed">{t('dashboards.form.noWidgetsHint')} <a href="/widgets">{t('widgets.title')}</a></Text>
+      )}
+      {saved && (
+        <Stack gap={4}>
+          <Text size="xs" c="dimmed">{t('dashboards.form.widgetHint')}</Text>
+          <Button size="xs" variant="default" onClick={() => onChange(followed(saved, { title: pane.title, hide_title: pane.hide_title }))}>
+            {t('dashboards.form.clone')}
+          </Button>
+          <Text size="xs" c="dimmed">{t('dashboards.form.cloneHint')}</Text>
+        </Stack>
+      )}
+    </>
+  )
+}
+
+export function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; onChange: (p: Pane) => void }) {
   const { t } = useTranslation()
   const { data } = useDashboard()
   const tiles = (data?.tiles ?? []).filter((x) => x.kind !== 'action') as WidgetTile[]
@@ -187,7 +246,38 @@ function TileField({ pane, onChange }: { pane: Extract<Pane, { kind: 'tile' }>; 
           maxValues={MAX_SOURCES - 1} value={pane.also ?? []} data={options.filter((o) => o.value !== pane.tile)}
           onChange={(v) => onChange({ ...pane, also: v.length ? v : undefined })} />
       )}
+      {sources[0]?.ranges && (
+        <div>
+          <Text size="sm" fw={500} mb={4}>{t('dashboards.form.range')}</Text>
+          <SegmentedControl fullWidth size="xs" value={pane.range ?? 'auto'} aria-label={t('dashboards.form.range')}
+            data={['auto', ...TIME_RANGES].map((r) => ({ value: r, label: t(`dashboards.range.${r}`) }))}
+            onChange={(v) => onChange({ ...pane, range: v === 'auto' ? undefined : (v as TimeRange), ...(v === 'event' ? { compare: undefined } : {}) })} />
+          <Switch mt="xs" label={t('dashboards.form.compareDay')} description={t('dashboards.form.compareDayHint')}
+            disabled={pane.range === 'event'} checked={pane.compare === 'day'}
+            onChange={(e) => onChange({ ...pane, compare: e.currentTarget.checked ? 'day' : undefined })} />
+        </div>
+      )}
+      {sources[0]?.marks && (
+        <Switch label={t('dashboards.form.events')} description={t('dashboards.form.eventsHint')} checked={!!pane.events}
+          onChange={(e) => onChange({ ...pane, events: e.currentTarget.checked || undefined })} />
+      )}
       {sources[0]?.id && keyOf(sources[0]) === pane.tile && <WidgetLook pane={pane} tiles={sources} onChange={onChange} />}
+      {pane.tile && (
+        <div>
+          <Text size="sm" fw={500} mb={4}>{t('dashboards.form.textSize')}</Text>
+          <SegmentedControl fullWidth size="xs" value={pane.text_size ?? 'm'} aria-label={t('dashboards.form.textSize')}
+            data={['s', 'm', 'l'].map((v) => ({ value: v, label: t(`dashboards.textSize.${v}`) }))}
+            onChange={(v) => onChange({ ...pane, text_size: v === 'm' ? undefined : (v as 's' | 'l') })} />
+          <Text size="xs" c="dimmed" mt={4}>{t('dashboards.form.textSizeHint')}</Text>
+        </div>
+      )}
+      {pane.tile && (
+        <Select label={t('dashboards.form.refresh')} description={t('dashboards.form.refreshHint')} clearable
+          placeholder={t('dashboards.refresh.auto', { seconds: Math.max(10, sources[0]?.refresh ?? 30) })}
+          value={pane.refresh ? String(pane.refresh) : null}
+          data={REFRESHES.map((r) => ({ value: String(r), label: r < 60 ? t('dashboards.refresh.seconds', { count: r }) : t('dashboards.refresh.minutes', { count: r / 60 }) }))}
+          onChange={(v) => onChange({ ...pane, refresh: v ? (Number(v) as Refresh) : undefined })} />
+      )}
       <div>
         <Text size="sm" fw={500} mb={4}>{t('dashboards.form.level')}</Text>
         <SegmentedControl fullWidth size="xs" value={pane.level ?? 'auto'} aria-label={t('dashboards.form.level')}
@@ -232,7 +322,10 @@ function WidgetLook({ pane, tiles, onChange }: { pane: Extract<Pane, { kind: 'ti
           data={picks.map((k) => ({ value: k, label: k === 'auto' ? t('dashboards.widgetType.auto', { kind: t(`dashboards.widgetType.${ok[0]}`) }) : t(`dashboards.widgetType.${k}`) }))}
           onChange={(v) => onChange({ ...pane, type: !v || v === 'auto' ? undefined : (v as KindPick) })} />
       )}
-      {looks.map((key) => key === 'legend' ? (
+      {looks.map((key) => key === 'spark' || key === 'change' ? (
+        <Switch key={key} label={t(`dashboards.form.${key}`)} description={t(`dashboards.form.${key}Hint`)} checked={!!pane[key]}
+          onChange={(e) => onChange({ ...pane, [key]: e.currentTarget.checked || undefined })} />
+      ) : key === 'legend' ? (
         <MultiSelect key={key} label={t('dashboards.form.legend')} description={t('dashboards.form.legendHint')} clearable
           value={pane.legend ?? []} data={CALCS.map((c) => ({ value: c, label: t(`widgets.calc.${c}`) }))}
           onChange={(v) => onChange({ ...pane, legend: v.length ? (v as Calc[]) : undefined })} />

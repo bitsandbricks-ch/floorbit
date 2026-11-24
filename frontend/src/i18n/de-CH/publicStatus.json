@@ -13,7 +13,8 @@
     "degraded": "Einige Plätze haben kein Netzwerk. Die Crew ist dran.",
     "outage": "Grosse Teile des Netzwerks sind ausgefallen. Die Crew ist dran.",
     "maintenance": "Die Crew arbeitet am Netzwerk.",
-    "unknown": "Floorbit erreicht sein Monitoring gerade nicht und weiss es darum nicht."
+    "unknown": "Floorbit erreicht sein Monitoring gerade nicht und weiss es darum nicht.",
+    "services": "Einiges, was die Spieler brauchen, fällt aus. Die Crew ist dran."
   },
   "since": "Seit {{time}}",
   "areas": "Betroffene Bereiche",
@@ -27,5 +28,15 @@
   "recoveredAt": "Das Netzwerk hier läuft seit {{time}} wieder.",
   "updates": "Updates der Crew",
   "none": "Noch keine Updates.",
-  "updated": "Stand {{time}}. Die Seite aktualisiert sich jede Minute."
+  "updated": "Stand {{time}}. Die Seite aktualisiert sich jede Minute.",
+  "reason": {
+    "switches": "Einige Plätze haben kein Netzwerk.",
+    "firewall": "Einige Plätze hatten einen kurzen Unterbruch, weil ihr Verkehr auf eine andere Firewall umgezogen ist.",
+    "no_firewall": "Einige Plätze haben gerade kein Internet.",
+    "internet_slow": "Eine Internetleitung ist ausgefallen: das Internet kann langsamer sein.",
+    "internet_down": "Das Internet ist für alle ausgefallen. Das lokale Netzwerk funktioniert noch.",
+    "dns": "Einige Websites laden vielleicht nicht (Namensauflösung fällt aus).",
+    "dhcp": "Neue Geräte bekommen gerade vielleicht keine Netzwerkadresse."
+  },
+  "why": "Was die Spieler merken"
 }

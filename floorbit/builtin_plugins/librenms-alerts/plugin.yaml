@@ -1,0 +1,18 @@
+# LibreNMS alerts, pushed to the local agent and on to Floorbit (issue #951, docs/librenms-alerts.md).
+id: librenms-alerts
+name: LibreNMS alerts
+icon: bell
+version: "1.0.0"
+floorbit: ">=0.1,<2"
+description: "LibreNMS sends every alert to the local agent (its API transport), and the agent passes it on: a device down, a port down or flapping, temperature, optics, routing. Each one shows on the Problems page and wakes the status monitor at once, instead of waiting for the next poll. A recovery clears it."
+author: Floorbit
+uses: [agent, settings]
+default_enabled: true
+settings:
+  - {key: port, label: Port on the agent, type: int, default: 9530, min: 0, max: 65535,
+     help: "Where LibreNMS sends its alerts, on the agent machine (HTTP, or HTTPS when the agent has a certificate). 0: off."}
+agent:
+  module: agent.py
+  sends:
+    # One alert as LibreNMS sent it: device names and port names, never people.
+    alert: {privacy: device}

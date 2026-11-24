@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, Kbd, Loader, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Button, Group, Kbd, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure, useHotkeys, useMediaQuery } from '@mantine/hooks'
 import { IconDownload, IconFilter, IconHandGrab, IconPlus, IconQrcode } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -17,6 +17,7 @@ import { matchesFilter } from './incidents/filter'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
 import { nextToTake, openOrder } from './incidents/waiting'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 
 const COLUMNS: IncidentStatus[] = ['open', 'assigned', 'fixed']
 const FIXED_SHOWN = 20
@@ -71,6 +72,9 @@ export default function Incidents() {
     },
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
+
+  // With nobody on duty the button could only fail, so the cards don't offer it.
+  const anyoneOnDuty = !!crew.data?.crew.length
 
   // New incidents go to the nearest free tech by themselves while this is on (issue #358).
   const auto = useMutation({
@@ -132,7 +136,7 @@ export default function Incidents() {
       />
       <Group justify="space-between" mb="sm">
         <Group gap="md">
-          <TextInput ref={filterBox} aria-label={t('incidents.filter')} aria-keyshortcuts="/" placeholder={t('incidents.filterHint')} w={240} value={filter}
+          <TextInput ref={filterBox} aria-label={t('incidents.filter')} aria-keyshortcuts="/" placeholder={t('incidents.filterHint')} w={300} value={filter}
             leftSection={<IconFilter size={14} />} rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined}
             onChange={(e) => setFilter(e.currentTarget.value)} />
           <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
@@ -165,13 +169,9 @@ export default function Incidents() {
             onChange={(e) => auto.mutate(e.currentTarget.checked)} />
         </Group>
       )}
-      {board.error && (
-        <Alert color="down" role="alert" mb="md">
-          {t('common.error', { message: board.error.message })}
-        </Alert>
-      )}
+      <ErrorBanner error={board.error} mb="md" onRetry={() => void board.refetch()} />
       {board.isPending ? (
-        <Loader size="sm" />
+        <LoadingState />
       ) : (
         board.data && (
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
@@ -188,7 +188,8 @@ export default function Incidents() {
                   {shown.map((i) => (
                     <IncidentCard key={i.id} incident={i} board={board.data} people={people.data} me={me.data?.user?.username}
                       busy={(change.isPending && change.variables?.id === i.id) || (send.isPending && send.variables === i.id)}
-                      onChange={(c) => change.mutate({ id: i.id, change: c })} onDispatch={() => send.mutate(i.id)} />
+                      onChange={(c) => change.mutate({ id: i.id, change: c })}
+                      onDispatch={anyoneOnDuty ? () => send.mutate(i.id) : undefined} />
                   ))}
                 </Stack>
               )

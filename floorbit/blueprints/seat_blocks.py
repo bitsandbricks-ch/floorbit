@@ -7,18 +7,16 @@ import uuid
 
 from flask import Blueprint, jsonify, request
 
-from .. import block_merge, halls, seat_gaps, seat_layout, seat_names, stacking
+from .. import block_merge, halls, seat_layout, seat_names, seat_rows, stacking
 from ..plan_marks import on_plan
 from ..store import load_data, save_data
 from .inventory import data_lock
 
 bp = Blueprint('seat_blocks', __name__)
 
-# The fields a client may set. Seat names come from name, cols, rows, rotation and the naming ones.
-KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
-        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'seat_at',
-        'z')
-MAX_SIDE = 200      # seats along one side: far beyond any hall, small enough to draw
+# The fields a client may set. Seat names come from name, rows, rotation and the naming ones.
+KEYS = ('name', 'x', 'y', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
+        'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'seat_at', 'z')
 MAX_MANY = 30       # blocks in one "add several"
 # (field, smallest, default): the same bounds as the CSV import and layout templates.
 SIZES = (('seat_width', 0.1, 3), ('seat_height', 0.1, 3), ('spacing_x', 0, 0.5), ('spacing_y', 0, 1))
@@ -72,10 +70,12 @@ def _clean(block):
         block['rotation'] = int(block.get('rotation') or 0)
     except (OverflowError, TypeError, ValueError):
         raise BlockError('rotation is a whole number of degrees') from None
-    for side in ('cols', 'rows'):
-        if not 1 <= int(block[side]) <= MAX_SIDE:
-            raise BlockError(f'A block has 1 to {MAX_SIDE} rows and columns')
-        block[side] = int(block[side])
+    try:
+        block['rows'] = seat_rows.clean(block.get('rows'))
+    except seat_rows.RowError as exc:
+        raise BlockError(str(exc)) from None
+    for key in ('cols', 'col_gaps', 'row_gaps'):     # the grid shape's, gone with rows
+        block.pop(key, None)
     naming = block.get('naming') or 'block'
     if naming not in seat_names.NAMINGS:
         raise BlockError('Seat names are "block" or "rows"')
@@ -90,12 +90,7 @@ def _clean(block):
     block['row_labels'] = labels
     block['reverse_numbers'] = bool(block.get('reverse_numbers'))
     try:
-        block['col_gaps'] = seat_gaps.clean(block.get('col_gaps'), block['cols'])
-        block['row_gaps'] = seat_gaps.clean(block.get('row_gaps'), block['rows'])
-    except seat_gaps.GapError as exc:
-        raise BlockError(str(exc)) from None
-    try:
-        block['seat_at'] = seat_layout.clean(block.get('seat_at'), block['cols'], block['rows'])
+        block['seat_at'] = seat_layout.clean(block.get('seat_at'), block['rows'])
     except seat_layout.LayoutError as exc:
         raise BlockError(str(exc)) from None
     seat_layout.settle(block)
@@ -109,7 +104,7 @@ def _clean(block):
 def check(raw):
     """A stored block (a backup's, say) checked like an edit: a copy, with its id, hall and any
     fields from later versions kept. Raises BlockError, or KeyError, TypeError or ValueError."""
-    return _clean({**raw, 'id': str(raw['id'])})
+    return _clean(seat_rows.from_grid({**raw, 'id': str(raw['id'])}))
 
 
 def _clash(new_blocks, data, skip=(), had=()):
@@ -155,6 +150,17 @@ def get_seat_rows():
     return jsonify([{k: v for k, v in r.items() if k != 'seats'} | {'seat_count': len(r['seats'])} for r in rows])
 
 
+def _new_rows(body):
+    """A new block's rows: given as ``rows`` (a list), or as a rectangle of ``rows`` rows of ``cols``
+    seats, as the Block tool and the CSV import draw one."""
+    if isinstance(body.get('rows'), list):
+        return body['rows']
+    cols, count = int(body.get('cols', 1)), int(body.get('rows', 1))
+    if not (1 <= cols <= seat_rows.MAX_SEATS and 1 <= count <= seat_rows.MAX_ROWS):
+        raise BlockError(f'A block has 1 to {seat_rows.MAX_ROWS} rows of 1 to {seat_rows.MAX_SEATS} seats')
+    return seat_rows.grid(cols, count)
+
+
 def make_block(body, hall_id):
     """A new block from a request or a CSV row. Raises KeyError, TypeError or ValueError."""
     return _clean({
@@ -162,8 +168,7 @@ def make_block(body, hall_id):
         'name': body.get('name', ''),
         'x': float(body['x']),
         'y': float(body['y']),
-        'cols': int(body.get('cols', 1)),
-        'rows': int(body.get('rows', 1)),
+        'rows': _new_rows(body),
         'seat_width': float(body.get('seat_width', 3)),
         'seat_height': float(body.get('seat_height', 3)),
         'spacing_x': float(body.get('spacing_x', 0.5)),
@@ -173,8 +178,6 @@ def make_block(body, hall_id):
         'naming': body.get('naming', 'block'),
         'row_start': body.get('row_start', 'A'),
         'row_labels': body.get('row_labels', 'start'),
-        'col_gaps': body.get('col_gaps'),
-        'row_gaps': body.get('row_gaps'),
         'seat_at': body.get('seat_at'),
         'z': body.get('z'),
         'hall_id': hall_id,
@@ -238,7 +241,8 @@ def add_many_seat_blocks():
             b = {**first, 'id': str(uuid.uuid4()), 'x': first['x'] + i * dx, 'y': first['y'] + i * dy,
                  'name': _next_name(first['name'], i) if first['naming'] == 'block' else first['name']}
             if first['naming'] == 'rows':
-                b['row_start'] = seat_names.row_letter(seat_names.letter_index(first['row_start']) + i * first['rows'])
+                start = seat_names.letter_index(first['row_start']) + i * len(first['rows'])
+                b['row_start'] = seat_names.row_letter(start)
             blocks.append(_clean(b))
     except BlockError as exc:
         return jsonify({'error': str(exc)}), 400

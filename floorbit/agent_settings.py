@@ -271,6 +271,12 @@ def agent_block(agent_id):
     names = settings.get('cert_names') or []
     if names:
         out['cert'] = {'names': names, 'asked': record.get('cert_asked') or 0}
+    from . import public_cert
+    public = public_cert.block()
+    if public:
+        # The tenant's Let's Encrypt certificate (public_cert.py); an agent that can't take it
+        # ignores the key and keeps the CA's.
+        out['public_cert'] = public
     return out
 
 
@@ -334,13 +340,24 @@ def issue_cert(agent_id, csr_pem, now=None):
     return pem
 
 
+def mark_public_cert(agent_id, now):
+    """This agent now holds the tenant's certificate key: revoking it replaces the certificate."""
+    _change(agent_id, lambda a: a.__setitem__('public_cert_at', now))
+
+
 def state(agent_id):
     """Key and certificate state for the page."""
     from . import agent_identity
     record = _record(agent_id)
     return {'roll_asked': record.get('roll_asked'), 'renewed_at': record.get('renewed_at') or record.get('created_at'),
             'cert': record.get('cert'), 'cert_asked': record.get('cert_asked'),
-            'identity': agent_identity.public(record.get('identity'))}
+            'identity': agent_identity.public(record.get('identity')),
+            'public_cert_at': record.get('public_cert_at'), 'public_cert': _public_status()}
+
+
+def _public_status():
+    from . import public_cert
+    return public_cert.status()
 
 
 # ── what the agent reports about them ──────────────────────────────────────────────────────────
@@ -378,5 +395,5 @@ def clean_report(raw):
     if isinstance(cert, dict) and isinstance(cert.get('not_after'), (int, float)) and cert.get('source') in SOURCES:
         names = [str(n)[:100] for n in cert.get('names') or [] if isinstance(n, str)][:MAX_NAMES]
         result['cert'] = {'not_after': cert['not_after'], 'names': names, 'source': cert['source'],
-                          'floorbit_ca': cert.get('floorbit_ca') is True}
+                          'floorbit_ca': cert.get('floorbit_ca') is True, 'public': cert.get('public') is True}
     return result

@@ -2,6 +2,7 @@
 
 - The agent answers attendees, phones and the crew's seat walk-through on one port: the front door now answers the check-in note (`/.well-known/captive-portal`) and the seat walk-through's hello too. The front door is on by default on every agent, and the compose files and the Kubernetes manifest publish it on 443 and 80 (#986).
 - The seat walk-through needs no setting. Opened through an agent, it knows the laptop at once. Otherwise it goes once to the check-in name, or to where browsers last reached an agent, which each agent learns by itself (#999).
+- Through the front door, `/` opens the seat check-in for anyone not signed in, whatever name they typed; the short check-in address is no longer needed for that (#1097).
 - The check-in note on phones follows check-in. It shows only where the event DHCP hands out option 114.
 
 ### Removed

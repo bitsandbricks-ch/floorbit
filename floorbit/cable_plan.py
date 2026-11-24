@@ -84,7 +84,7 @@ def geometry(data, hall_id):
         rows = block_rows(block)
         if not rows:
             continue
-        at, width, height = seat_layout.places(block, len(rows[0]), len(rows))
+        at, width, height = seat_layout.places(block)
         rotation = int(block.get('rotation') or 0) % 360
         cx, cy = float(block['x']), float(block['y'])
         corners = []

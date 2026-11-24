@@ -246,12 +246,23 @@ def test_a_series_is_lines_of_time_and_value():
     assert len(out["series"]) == 4 and out["series"][0] == {"label": "DNS", "points": [[1, 12], [2, 14.5]]}
     for bad in ({"type": "series", "series": [{"label": "x", "points": [[1]]}]},
                 {"type": "series", "series": [{"label": "x", "points": [[1, float("nan")]]}]},
-                {"type": "series", "series": ["x"]}):
+                {"type": "series", "series": ["x"]},
+                {"type": "series", "series": [], "marks": ["x"]},
+                {"type": "series", "series": [], "marks": [{"t": 1, "label": "x", "tone": "pink"}]}):
         try:
             check_widget(bad, {"id": "t"})
         except WidgetError:
             continue
         raise AssertionError(bad)
+
+
+def test_a_series_may_have_a_ghost_line_and_marks():
+    from floorbit.plugins.widgets import check_widget
+    raw = {"type": "series", "series": [{"label": "Yesterday", "points": [[1, 2]], "ghost": 1}],
+           "marks": [{"t": 1, "label": "sw-01 down", "tone": "err", "extra": "dropped"}] * 60}
+    out = check_widget(raw, {"id": "t"})
+    assert out["series"][0]["ghost"] is True
+    assert len(out["marks"]) == 50 and out["marks"][0] == {"t": 1, "label": "sw-01 down", "tone": "err"}
 
 
 def test_gauge_and_bar_numbers_are_optional_and_checked():
