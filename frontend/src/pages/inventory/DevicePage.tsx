@@ -20,6 +20,8 @@ import { dateTime } from '@/lib/time'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
 import { DeviceForm } from './DeviceForm'
 import { DeviceIcon } from './icons'
+import { DeviceGraphs } from './DeviceGraphs'
+import { DeviceLogs } from './DeviceLogs'
 import { DriftPanel } from './DriftPanel'
 import { InterfacesPanel } from './InterfacesPanel'
 import { credentialBody, entryPath, roleIcon, scopePath, speedLabel, statusLabel, typeName, type Draft } from './model'
@@ -59,6 +61,8 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
   const canEdit = useCan('floorplan.edit')
   const canSetCreds = useCan('settings.manage')
   const canClear = useCan('ports.act')
+  // Syslog lines name MACs and IPs, so the device's log needs seats.view like the Logs page.
+  const canLogs = useCan('seats.view')
   const inventory = useInventory(false).data
   const sourceName = (sid: string) => inventory?.sources.find((s) => s.id === sid)?.name ?? sid
   // The agent list the Telemetry tab's picker shows (cached): an agent by its name.
@@ -115,13 +119,15 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
   const telemetry = useDeviceTelemetry(dev.id)
   // Raw data only where there is any to read: telemetry on, and admins (the API is theirs).
   const rawTab = telemetryOn && canSetCreds
-  const tabIds = ['overview', 'interfaces', 'telemetry', ...(rawTab ? ['raw'] : []), 'settings', ...(canEdit ? ['credentials'] : [])]
+  const tabIds = ['overview', 'interfaces', 'telemetry', ...(rawTab ? ['raw'] : []), 'graphs', ...(canLogs ? ['logs'] : []), 'settings', ...(canEdit ? ['credentials'] : [])]
   const [tab, setTab] = usePageTab(tabIds)
   const tabs = [
     { id: 'overview', label: t('inventory.tabs.overview') },
     { id: 'interfaces', label: t('inventory.tabs.interfaces'), count: visible.length },
     { id: 'telemetry', label: t('inventory.tabs.telemetry') },
     ...(rawTab ? [{ id: 'raw', label: t('inventory.tabs.raw') }] : []),
+    { id: 'graphs', label: t('deviceTabs.graphs.tab') },
+    ...(canLogs ? [{ id: 'logs', label: t('deviceTabs.logs.tab') }] : []),
     { id: 'settings', label: t('inventory.tabs.settings') },
     ...(canEdit ? [{ id: 'credentials', label: t('inventory.tabs.credentials'), alert: dev.blocks.length ? 'down' as const : null }] : []),
   ]
@@ -339,6 +345,10 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
             <DeviceRawData name={dev.name} />
           </Panel>
         )}
+
+        {tab === 'graphs' && <DeviceGraphs name={dev.name} interfaces={dev.interfaces} />}
+
+        {tab === 'logs' && canLogs && <Panel><DeviceLogs name={dev.name} /></Panel>}
 
         {tab === 'settings' && (
           <Stack gap="md">

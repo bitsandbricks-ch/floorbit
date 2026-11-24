@@ -1,0 +1,37 @@
+{
+  "graphs": {
+    "tab": "Grafiken",
+    "help": "Last und Erreichbarkeit, wie Floorbit sie gespeichert hat, dann der Verkehr eines Ports.",
+    "range": "Zeitraum",
+    "hours_one": "{{count}} Stunde",
+    "hours_other": "{{count}} Stunden",
+    "port": "Port",
+    "max": "höchstens {{value}}",
+    "stats": "min {{min}} · Ø {{avg}} · max {{max}}",
+    "upYes": "erreichbar",
+    "upNo": "ausgefallen",
+    "noPoints": "In diesem Zeitraum nichts gespeichert.",
+    "noneTitle": "Noch keine Grafiken",
+    "none": "Floorbit speichert die Werte eines Geräts, sobald Monitoring oder Telemetrie es liest. Schalte die Telemetrie im Tab Telemetrie ein, oder prüfe, ob die Monitoring-Quelle dieses Gerät unter seinem Namen kennt.",
+    "metric": {
+      "cpu": "CPU",
+      "mem": "Arbeitsspeicher",
+      "up": "Erreichbar",
+      "in_bps": "{{port}} eingehend",
+      "out_bps": "{{port}} ausgehend",
+      "errors": "{{port}} Fehler pro Sekunde"
+    },
+    "upShare": "{{pct}} % der Zeit erreichbar"
+  },
+  "logs": {
+    "tab": "Logs",
+    "search": "Zeilen durchsuchen",
+    "level": "Stufe",
+    "anyLevel": "Jede Stufe",
+    "open": "In Logs öffnen",
+    "none": "Keine Logzeilen von diesem Gerät",
+    "noneHelp": "Floorbit zeigt Syslog-Zeilen, deren Absender {{name}} ist. Richte das Syslog des Geräts auf den lokalen Agenten, um sie hier zu sehen.",
+    "noMatch": "Keine Zeilen passen",
+    "more": "Die neusten 200 Zeilen. In Logs öffnen, um weiter zurückzublättern."
+  }
+}
