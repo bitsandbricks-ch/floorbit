@@ -1,0 +1,9 @@
+{
+  "turn": "Turn the plan to fit",
+  "turnHint": "Turns a tall hall a quarter so it fills a wide box (and the other way round). Leaves out the background picture, power, Wi-Fi and cables while turned.",
+  "attention": "Needs attention",
+  "more_one": "+{{count}} more",
+  "more_other": "+{{count}} more",
+  "problems_one": "{{count}} problem",
+  "problems_other": "{{count}} problems"
+}
