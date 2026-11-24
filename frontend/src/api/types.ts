@@ -1916,6 +1916,8 @@ export interface AgentSettingsPage {
   renewed_at: number | null
   cert: { issued_at: number; not_after: number; names: string[] } | null
   cert_asked: number | null
+  /** The agent's own key, pinned by Floorbit; it signs every request (floorbit/agent_identity.py). */
+  identity?: { fingerprint: string; not_after: number; pinned_at: number; issued_at: number } | null
   /** The tenant's Let's Encrypt certificate, when the platform has a domain for the agents. */
   public_cert?: {
     name: string; not_after: number | null; issued_at: number | null; error: string | null; failed_at: number | null

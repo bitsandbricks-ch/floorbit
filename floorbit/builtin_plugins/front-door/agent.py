@@ -29,8 +29,9 @@ class AgentPlugin(Base):
         self.api = captive.Captive(self._ask, '', proxies, log=self.ctx.log,
                                    say_hello=agent.seat_walk_hello if agent else None,
                                    floorbit_url=agent.url if agent else '')
+        # Signed with the agent's own key (identity.py): Floorbit trusts the attendee's address only then.
         self.door = front_door.FrontDoor(agent.url if agent else '', agent.key if agent else '',
-                                         proxies=proxies, log=self.ctx.log)
+                                         proxies=proxies, log=self.ctx.log, auth=getattr(agent, 'signer', None))
         servers, where = [], []
         # A new certificate (Floorbit's or the hall's) restarts this plugin with it (PluginHost.restart_tls).
         self.ctx.tls_wanted = True

@@ -277,6 +277,36 @@ most, so an answer lost on the way doesn't lock the agent out. When Floorbit ref
 (the agent was revoked and enrolled again), the agent moves it aside and starts with the key in its
 environment. **New key** still makes a key to copy by hand, for an agent that is offline.
 
+### The agent's own key (identity)
+
+A key that can be copied out of a Compose file or a log is not enough to be the agent. So every
+agent also has a key pair of its own, and **signs every request** to Floorbit with it; the bearer
+key stays as the second factor (#1178).
+
+- **Enrolling:** the agent makes a P-256 key in its state folder (`tls/identity-key.pem`, readable
+  only by it; it never leaves the machine). At its first hello it sends a signing request
+  (`POST /api/agent/v1/identity`), and the agents CA signs a client certificate for the agent's id
+  (`urn:floorbit:agent:<id>`, 90 days, client use only). Floorbit **pins** the key on the agent. The
+  first key wins; after that only a request signed with the pinned key can replace it. The agent
+  renews the certificate 30 days before it ends.
+- **Every request** carries `Floorbit-Agent-Signature: t=<time>,n=<nonce>,s=<signature>`: ECDSA
+  over the method, path and query, the time, the nonce, the agent's id and the body's SHA-256.
+  Floorbit checks it in the app, not at the proxy, so it works the same behind Traefik, nginx or
+  nothing. A signature is good for 5 minutes around Floorbit's clock and only once. The agent takes
+  Floorbit's time from the `Date` of its answers, so a box without NTP signs in time anyway.
+- **Without a pinned key** Floorbit answers only hello and the enrolment; everything else gets
+  **401** with `"code": "enrol"`. An unsigned hello still answers (`identity.signed: false`) but
+  doesn't count as connected.
+- **The front door** signs each attendee request it passes on. Floorbit takes the attendee's
+  address from it only when the signature holds.
+- **Revoking** the agent drops the pin with it: its next request fails and its open link closes
+  within seconds. **Reset identity** on the agent's page forgets only the key, for a machine whose
+  state folder was lost (the agent logs the key it has and that Floorbit pinned another). If the
+  bearer key may have leaked too, remove the agent and enrol it again instead: a reset lets the next
+  agent with the bearer key enrol.
+
+The agent page shows the pinned key's fingerprint, since when, and until when the certificate runs.
+
 ### Certificates for the agent
 
 The front door and the telemetry listener answer HTTPS. Floorbit runs its own certificate authority
@@ -648,7 +678,8 @@ answering, but it names the agent: "The local agent is away", with when it was l
 
 ## The protocol
 
-The agent sends its key in the `Floorbit-Agent-Key` header, its version in
+The agent sends its key in the `Floorbit-Agent-Key` header, its signature in
+`Floorbit-Agent-Signature` ([its own key](#the-agents-own-key-identity)), its version in
 `Floorbit-Agent-Version` and the protocol it speaks in `Floorbit-Agent-Protocol` (`1` or `2`; no
 header counts as `1`). It needs no account and no session.
 

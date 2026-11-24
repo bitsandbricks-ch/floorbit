@@ -16,7 +16,11 @@ sequenceDiagram
   autonumber
   participant A as Agent
   participant F as Floorbit
-  A->>F: GET /api/agent/v1/hello<br/>Floorbit-Agent-Key, -Version, -Protocol
+  A->>F: GET /api/agent/v1/hello<br/>Floorbit-Agent-Key, -Signature, -Version, -Protocol
+  opt no key pinned yet, or its client cert ends within 30 days
+    A->>F: POST /api/agent/v1/identity (CSR of its own key)
+    F-->>A: client certificate; the key is pinned
+  end
   alt key wrong or revoked
     F-->>A: 401
     Note over A: stops with exit code 1<br/>(enrol again)
