@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { Attribution } from '@/components/Attribution'
 import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Cable, Circuit, PlanCable, PlanGroup, PlanMark, PowerMarkers, SeatViewData } from '@/api/types'
+import type { Cable, Circuit, PlanCable, PlanGroup, PlanMark, PlanShape, PowerMarkers, SeatViewData } from '@/api/types'
 import { CableModal, type CableDraft } from '@/components/CableModal'
 import { cablePath, useCablePlan } from '../cablePlan'
 import { followPlan } from '../cableRoute'
@@ -33,7 +33,9 @@ import { useSnapPrefs } from './snap'
 import { MarkHandles } from './MarkHandles'
 import { type BlockRow } from './rows'
 import { SeatHandles } from './SeatHandles'
-import { moveSeat, placedNow } from './seatPlace'
+import { RowGapHandles } from './RowGapHandles'
+import { keepTop, rowAt } from './rowGaps'
+import { moveSeat, placedNow, toBlock } from './seatPlace'
 import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
 import { SharedFields } from './SharedFields'
@@ -131,6 +133,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const refresh = useCallback(() => Promise.all([
     refreshPlan(), qc.invalidateQueries({ queryKey: qk.cablePlan(data.hall) }), qc.invalidateQueries({ queryKey: qk.optionsAll }),
     qc.invalidateQueries({ queryKey: qk.power }), qc.invalidateQueries({ queryKey: qk.powerMarkers }),
+    // A block's rows (the panel's list, the bars between rows) follow undo and redo too.
+    qc.invalidateQueries({ queryKey: qk.planBlocks(data.hall) }),
   ]), [refreshPlan, qc, data.hall])
   const groupsQ = useQuery({ queryKey: qk.planGroups(data.hall), queryFn: () => get<{ groups: PlanGroup[] }>(`/api/plan-groups?hall=${encodeURIComponent(data.hall)}`) })
   const groups = useMemo(() => groupsQ.data?.groups ?? [], [groupsQ.data])
@@ -163,6 +167,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // Selected items that are gone (deleted elsewhere, another hall) drop out of the selection.
   const present = useMemo(() => [...allItems(data), ...cables.map((c) => ({ kind: 'cable' as const, id: c.ref.cable! }))], [data, cables])
   const selected = useMemo(() => selection.filter((r) => present.some((p) => sameRef(p, r))), [selection, present])
+  // The row picked in a seat block's panel, kept here so a double-click on the plan can pick one.
+  const [pickedRow, setPickedRow] = useState<{ block: string; row: string } | null>(null)
+  const oneBlock = selected.length === 1 && selected[0].kind === 'block' ? selected[0].id : null
+  // The selected block as the server keeps it (its rows' spaces), shared with BlockFields.
+  const storedBlocks = useQuery({
+    queryKey: qk.planBlocks(data.hall), enabled: !!oneBlock,
+    queryFn: () => get<{ id: string; rows: BlockRow[]; seat_at?: unknown }[]>(`/api/seat-blocks?hall=${encodeURIComponent(data.hall)}`),
+  })
 
   const shown = useMemo(() => {
     let d = data
@@ -491,6 +503,26 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     await refresh()
   }, [send, history, t, refresh, fail])
 
+  /** The space above row ``i`` dragged to ``gap`` seats: the rows above stay where they are. */
+  const moveGap = (ref: ItemRef, shape: PlanShape, rows: BlockRow[], i: number, gap: number) => {
+    const cell = data.drawing?.cell ?? 32
+    setPickedRow({ block: ref.id, row: rows[i].id })
+    return change(ref, { rows, ...keepTop(shape, cell, data.size, 0) },
+      { rows: rows.map((r, k) => (k === i ? { ...r, gap } : r)), ...keepTop(shape, cell, data.size, gap - rows[i].gap) })
+  }
+
+  /** A double click on a seat block picks the row under the pointer in its panel. */
+  const pickRowAt = (ref: ItemRef, at: Point) => {
+    if (ref.kind !== 'block') return
+    const shape = data.drawing?.shapes.find((s) => s.id === ref.id)
+    const cell = data.drawing?.cell ?? 32
+    const i = shape ? rowAt(shape, cell, toBlock(shape, cell, at)) : null
+    const id = i != null ? shape?.row_list?.[i]?.row : undefined
+    if (!id) return
+    setSelection([ref])
+    setPickedRow({ block: ref.id, row: id })
+  }
+
   const pct = useCallback((p: Point) => { const v = toPct(data.size, p); return { x: Math.round(v.x * 100) / 100, y: Math.round(v.y * 100) / 100 } }, [data.size])
 
   /** New items from one request (a block, ``count`` blocks, a mark), with undo and redo. */
@@ -798,6 +830,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const one = selected.length === 1 ? selected[0] : null
   const oneCable = one?.kind === 'cable' ? cables.find((c) => c.ref.cable === one.id) ?? null : null
   const arrangedShape = one?.kind === 'block' && arranging === one.id && !isLocked(one) ? data.drawing?.shapes.find((s) => s.id === one.id) ?? null : null
+  // The bars between rows: a block in rows (not seats placed by hand), not locked, not being arranged.
+  const gapShape = one?.kind === 'block' && arranging !== one.id && !isLocked(one) ? data.drawing?.shapes.find((s) => s.id === one.id && !s.free) ?? null : null
+  const gapRows = gapShape ? storedBlocks.data?.find((b) => b.id === gapShape.id && !b.seat_at)?.rows ?? null : null
   const oneMark = one?.kind === 'mark' ? shown.drawing?.marks?.find((m) => m.id === one.id) ?? null : null
   const markBox = oneMark && one ? outlineOf(shown, one)?.box : null
   // From the saved plan: the handle turns round where the item is, not where a drag drew it.
@@ -831,6 +866,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             onLine={drawWall} onBox={(b) => void drawZone(b)} onMeasure={setMeasured}
             onPointer={(p) => { pointer.current = pct(p) }}
             onMenu={(item, x, y) => setMenu({ item, x, y, at: pointer.current })}
+            onDouble={pickRowAt}
             guides={guides}
             onDrag={(raw, snap, lead, px) => { const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
             onDrop={(raw, snap, lead, px) => { setDrag(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
@@ -859,6 +895,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                 const cell = data.drawing?.cell ?? 32
                 void change(one!, placedNow(arrangedShape, cell, data.size), moveSeat(arrangedShape, cell, data.size, rc, to))
               }} />
+          )}
+          {gapShape && gapRows && tool === 'select' && !drag && (
+            <RowGapHandles key={JSON.stringify(gapRows.map((r) => r.gap))} ctx={ctx} shape={gapShape} cell={data.drawing?.cell ?? 32}
+              gaps={gapRows.map((r) => r.gap)} snapGrid={snapping.grid}
+              picked={pickedRow?.block === one!.id ? gapRows.findIndex((r) => r.id === pickedRow.row) : null}
+              onPick={(i) => setPickedRow({ block: one!.id, row: gapRows[i].id })}
+              onDone={(i, gap) => void moveGap(one!, gapShape, gapRows, i, gap)} />
           )}
           {oneCable && tool === 'select' && (
             <BendHandles key={JSON.stringify(oneCable.points)} ctx={ctx} route={routeOf(oneCable)} cell={data.drawing?.cell ?? 32} path={pathOf}
@@ -959,7 +1002,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               </Menu>
             </Group>
           </Group>
-          {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} arranging={arranging === one.id} onArrange={(on) => setArranging(on ? one.id : null)} />}
+          {one && <ItemFields key={refKey(one)} data={data} item={one} onChange={change} arranging={arranging === one.id} onArrange={(on) => setArranging(on ? one.id : null)}
+            picked={pickedRow?.block === one.id ? pickedRow.row : null} onPick={(id) => setPickedRow(id ? { block: one.id, row: id } : null)} />}
           {one?.kind === 'switch' && (
             <Text size="sm" c="dimmed">{t(data.switches.find((w) => w.id === one.id)?.manual ? 'plan.edit.switch.manualNote' : 'plan.edit.switch.inventoryNote')}</Text>
           )}
@@ -1041,11 +1085,13 @@ function itemTitle(t: (k: string, o?: Record<string, unknown>) => string, data: 
 
 
 /** One item's fields. Each change is saved on its own (Enter or leaving a text field). */
-function ItemFields({ data, item, onChange, arranging, onArrange }: {
+function ItemFields({ data, item, onChange, arranging, onArrange, picked, onPick }: {
   data: SeatViewData; item: ItemRef
   onChange: (ref: ItemRef, before: Record<string, unknown>, after: Record<string, unknown>) => Promise<void>
   arranging?: boolean
   onArrange?: (on: boolean) => void
+  picked?: string | null
+  onPick?: (id: string | null) => void
 }) {
   const { t } = useTranslation()
   const shape = item.kind === 'block' ? data.drawing?.shapes.find((s) => s.id === item.id) : undefined
@@ -1071,7 +1117,7 @@ function ItemFields({ data, item, onChange, arranging, onArrange }: {
         <TextInput label={t('plan.edit.name')} value={name} maxLength={40} onChange={(e) => setName(e.currentTarget.value)} onBlur={() => set('name', shape.name, name)}
           onKeyDown={(e) => { if (e.key === 'Enter') set('name', shape.name, name) }} />
         {turn(shape.rotation)}
-        <BlockFields item={item} data={data} onChange={onChange} arranging={arranging} onArrange={onArrange} />
+        <BlockFields item={item} data={data} onChange={onChange} arranging={arranging} onArrange={onArrange} picked={picked} onPick={onPick} />
       </>
     )
   }

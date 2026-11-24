@@ -9,7 +9,7 @@ import { TOOL_GESTURE, type Tool } from './tools'
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
  *  The Hand tool, Space + drag or the middle button pans, as in drawing tools; the plan below handles that. */
-export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onMeasure, onBox, onPointer, onMenu, lines = [], guides = [], together = (r) => [r],
+export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onMeasure, onBox, onPointer, onMenu, onDouble, lines = [], guides = [], together = (r) => [r],
   snapping = { grid: true, items: true } }: {
   ctx: OverlayContext
   data: SeatViewData
@@ -33,6 +33,8 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   onPointer?: (at: Point) => void
   /** Right click on an item (null: on empty plan), at a screen point. */
   onMenu?: (item: ItemRef | null, clientX: number, clientY: number) => void
+  /** Double click on an item (a seat block: pick the row there), at a plan point. */
+  onDouble?: (item: ItemRef, at: Point) => void
   /** Items drawn as a path (cables): hit along the line, under the other items. */
   lines?: { ref: ItemRef; d: string }[]
   /** Alignment lines to show while dragging (an edge or middle meets another item's). */
@@ -146,11 +148,16 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   }
 
   // The hit areas don't change with zoom: steady handlers keep them from drawing again on every pan.
-  const live = useRef({ begin, menu, move, end })
-  useEffect(() => { live.current = { begin, menu, move, end } })
+  const double = (e: React.MouseEvent, ref: ItemRef) => {
+    if (!onDouble || gesture !== 'select' || panning) return
+    e.stopPropagation()
+    onDouble(ref, ctx.toPlan(e.clientX, e.clientY))
+  }
+  const live = useRef({ begin, menu, move, end, double })
+  useEffect(() => { live.current = { begin, menu, move, end, double } })
   const on = useMemo<HitHandlers>(() => ({
     begin: (e, r) => live.current.begin(e, r), menu: (e, r) => live.current.menu(e, r),
-    move: (e) => live.current.move(e), end: (e) => live.current.end(e),
+    move: (e) => live.current.move(e), end: (e) => live.current.end(e), double: (e, r) => live.current.double(e, r),
   }), [])
 
   const shown = ctx.shown
@@ -217,6 +224,7 @@ interface HitHandlers {
   menu: (e: React.MouseEvent, ref: ItemRef) => void
   move: (e: React.PointerEvent) => void
   end: (e: React.PointerEvent) => void
+  double: (e: React.MouseEvent, ref: ItemRef) => void
 }
 
 /** One hit area per item (switches on top, then blocks, then labels, walls and zones). */
@@ -239,7 +247,7 @@ const Hits = memo(function Hits({ data, on }: { data: SeatViewData; on: HitHandl
         return (
           <rect key={refKey(r)} className={`fb-edit-hit k-${r.kind}`} data-item={refKey(r)} x={box.x} y={box.y} width={box.w} height={box.h}
             transform={rotation ? `rotate(${rotation} ${centre.x} ${centre.y})` : undefined} onPointerDown={(e) => on.begin(e, r)}
-            onContextMenu={(e) => on.menu(e, r)}
+            onContextMenu={(e) => on.menu(e, r)} onDoubleClick={(e) => on.double(e, r)}
             onPointerMove={on.move} onPointerUp={on.end} onPointerCancel={on.end} />
         )
       })}
