@@ -3,7 +3,7 @@
   "settings": "Settings",
   "intro": "Floorbit reaches the event network only through a local agent, whether it is hosted or runs in the hall. The agent runs there, connects out to this Floorbit and answers its questions: switches, LibreNMS, NetBox and the rest. Nothing on the event network has to be reachable from outside.",
   "agents": "Agents",
-  "none": "No agent yet. Floorbit asks its own monitoring plugin.",
+  "none": "No agent yet. Nothing on the event network is read until one connects.",
   "inUse": "Without a connected agent, pages show the last known state and say so. The \"Local agent\" next to a self-hosted Floorbit enrols itself.",
   "connected": "Connected",
   "notConnected": "Not connected",
