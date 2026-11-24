@@ -11,6 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@bitsandbricks/tokens": "0.2.0",
+    "@bitsandbricks/ui": "0.2.0",
+    "@bitsandbricks/widgets": "0.2.0",
     "@mantine/core": "9.7.4",
     "@mantine/hooks": "9.7.4",
     "@mantine/notifications": "9.7.4",
