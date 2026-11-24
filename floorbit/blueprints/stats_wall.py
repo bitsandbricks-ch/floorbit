@@ -1,7 +1,8 @@
 """The event in numbers (issue #105). The facts come from floorbit/stats_wall.py; see docs/stats-wall.md.
 
 - ``GET /wall.json``: hall-wide numbers, no account: for the "Event in numbers" widget on a public
-  dashboard, the event website or a Discord bot. Off unless Settings > Attendee pages turns it on.
+  dashboard, the event website or a Discord bot. Off for anonymous callers unless Settings >
+  Attendee pages turns it on; signed-in crew always get it.
 
 Hall-wide and per seat block only: no nicks, IPs, MACs, seat numbers or switch names.
 """
@@ -52,9 +53,15 @@ def _facts(now=None):
     return stats_wall.facts(event, None if online is None else len(online & set(seats)), len(seats), insights, now=now)
 
 
+def _crew():
+    from auth import current_user
+    return not current_app.extensions['auth'].enabled or current_user() is not None
+
+
 @bp.route('/wall.json')
 def wall_json():
-    if not page_on():
+    # The setting gates the anonymous answer; a signed-in crew member always reads it (#1113).
+    if not page_on() and not _crew():
         return jsonify({'error': 'The stats wall is switched off.'}), 404
     return jsonify(_facts())
 
