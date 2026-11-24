@@ -1,5 +1,5 @@
-import { Alert, Badge, Button, Chip, Group, Loader, Menu, Modal, Paper, SimpleGrid, Stack, Tabs, Text, TextInput, Title } from '@mantine/core'
-import { IconCopy, IconDeviceFloppy, IconPencil, IconPlus, IconSearch } from '@tabler/icons-react'
+import { Badge, Button, Group, Menu, Modal, Paper, SimpleGrid, Stack, Tabs, Text, TextInput, Title } from '@mantine/core'
+import { IconCopy, IconDeviceFloppy, IconLayoutDashboard, IconPencil, IconPlus } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -19,7 +19,7 @@ import { PaneView } from '../dashboards/Panes'
 import { type SavedWidget, type TilePane, followed, useDeleteWidget, useSaveWidget, useSavedWidgets } from './saved'
 import '../dashboards/dashboards.css'
 import './widgets.css'
-import { ConfirmButton } from '@bitsandbricks/ui'
+import { CardTable, type CardFilter, ConfirmButton, EmptyState } from '@bitsandbricks/ui'
 
 const AREAS = ['network', 'services', 'traffic', 'power', 'plugins'] as const
 type AreaFilter = (typeof AREAS)[number] | 'all'
@@ -101,7 +101,6 @@ export default function Widgets() {
   const canEdit = useCan('floorplan.edit')
   const boards = useQuery({ queryKey: qk.boards, queryFn: () => get<{ layouts: Board[] }>('/api/dashboards'), enabled: canEdit })
   const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get('tab') === 'types' ? 'types' : 'saved'))
-  const [search, setSearch] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
   const pick = (v: string | null) => {
     const next = v === 'types' ? 'types' : 'saved'
@@ -112,15 +111,11 @@ export default function Widgets() {
   return (
     <Layout title={t('widgets.title')} back={{ href: '/dashboards', label: t('dashboards.title') }}>
       <PageHead title={t('widgets.title')} desc={t('widgets.intro')}
-        actions={<Group gap="sm">
-          <TextInput aria-label={t('widgets.search')} placeholder={t('widgets.search')} value={search} w={240}
-            leftSection={<IconSearch size={16} aria-hidden="true" />} onChange={(e) => setSearch(e.currentTarget.value)} />
-          {canEdit && (
-            <Button leftSection={<IconPlus size={16} />} onClick={() => setDraft({ name: '', pane: { kind: 'tile', tile: '' } })}>
-              {t('widgets.new')}
-            </Button>
-          )}
-        </Group>} />
+        actions={canEdit && (
+          <Button leftSection={<IconPlus size={16} />} onClick={() => setDraft({ name: '', pane: { kind: 'tile', tile: '' } })}>
+            {t('widgets.new')}
+          </Button>
+        )} />
       <Tabs value={tab} onChange={pick} mb="md">
         <Tabs.List>
           <Tabs.Tab value="saved" rightSection={saved.data && <Badge size="xs" variant="light">{saved.data.widgets.length}</Badge>}>
@@ -131,28 +126,33 @@ export default function Widgets() {
       </Tabs>
       <ErrorBanner error={boards.error} />
       {tab === 'saved'
-        ? <SavedList search={search} canEdit={canEdit} boards={boards.data?.layouts ?? []} onEdit={setDraft} />
-        : <Types search={search} canEdit={canEdit} boards={boards.data?.layouts ?? []} onSave={setDraft} />}
+        ? <SavedList canEdit={canEdit} boards={boards.data?.layouts ?? []} onEdit={setDraft} />
+        : <Types canEdit={canEdit} boards={boards.data?.layouts ?? []} onSave={setDraft} />}
       {draft && <Editor draft={draft} onClose={() => setDraft(null)} onSaved={() => { setDraft(null); pick('saved') }} />}
     </Layout>
   )
 }
 
-/** The saved widgets, drawn live as a dashboard shows them. */
-function SavedList({ search, canEdit, boards, onEdit }: { search: string; canEdit: boolean; boards: Board[]; onEdit: (d: Draft) => void }) {
+/** The saved widgets, drawn live as a dashboard shows them, in the shared card table (#1311):
+ *  search over the name and the dashboards it is on, a filter for where it is used, pages of 24. */
+function SavedList({ canEdit, boards, onEdit }: { canEdit: boolean; boards: Board[]; onEdit: (d: Draft) => void }) {
   const { t } = useTranslation()
   const { data, error, isPending } = useSavedWidgets()
   const remove = useDeleteWidget()
-  const needle = search.trim().toLowerCase()
-  const shown = (data?.widgets ?? []).filter((w) => !needle || w.name.toLowerCase().includes(needle))
-  if (isPending) return <Loader size="sm" aria-label={t('common.loading')} />
+  const used: CardFilter<SavedWidget> = {
+    key: 'used', label: t('widgets.usedFilter'), defaultValue: 'all',
+    options: (['all', 'used', 'unused'] as const).map((v) => ({ value: v, label: t(`widgets.used.${v}`) })),
+    match: (w, v) => (v === 'used') === w.used_on.length > 0,
+  }
   return (
     <Stack gap="lg">
       <ErrorBanner error={error ?? remove.error} />
-      {!shown.length && <Alert color="gray" variant="light">{needle ? t('widgets.none') : t('widgets.noSaved')}</Alert>}
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
-        {shown.map((w) => (
-          <Paper key={w.id} withBorder radius="lg" className="fb-widget-card" component="article" aria-label={w.name}>
+      <CardTable<SavedWidget> items={data?.widgets ?? []} itemKey={(w) => w.id} label={t('widgets.tabSaved')} loading={isPending}
+        searchText={(w) => `${w.name} ${w.used_on.join(' ')}`} searchLabel={t('widgets.search')} filters={[used]}
+        empty={<EmptyState icon={<IconLayoutDashboard size={24} />} title={t('widgets.noSaved')}
+          description={t('widgets.noSavedHint')} />}
+        renderCard={(w) => (
+          <Paper withBorder radius="lg" className="fb-widget-card" component="article" aria-label={w.name}>
             <SavedPreview widget={w} />
             <Group justify="space-between" wrap="wrap" p="md" gap="sm">
               <div style={{ minWidth: 0 }}>
@@ -174,8 +174,7 @@ function SavedList({ search, canEdit, boards, onEdit }: { search: string; canEdi
               )}
             </Group>
           </Paper>
-        ))}
-      </SimpleGrid>
+        )} />
     </Stack>
   )
 }
@@ -222,47 +221,37 @@ function Editor({ draft, onClose, onSaved }: { draft: Draft; onClose: () => void
   )
 }
 
-/** Every widget type Floorbit can show, live and small, by area: add it to a
- *  dashboard, or save it as a widget of your own. */
-function Types({ search, canEdit, boards, onSave }: { search: string; canEdit: boolean; boards: Board[]; onSave: (d: Draft) => void }) {
+/** Every widget type Floorbit can show, live and small, in the shared card table (#1311): search
+ *  over the name and the plugin, a filter by area. Add one to a dashboard, or save it as your own. */
+function Types({ canEdit, boards, onSave }: { canEdit: boolean; boards: Board[]; onSave: (d: Draft) => void }) {
   const { t } = useTranslation()
   const entries = useEntries()
-  const [area, setArea] = useState<AreaFilter>('all')
-  const needle = search.trim().toLowerCase()
-  const shown = entries.filter((e) => (area === 'all' || e.area === area) && (!needle || e.name.toLowerCase().includes(needle)))
-  const count = (a: AreaFilter) => entries.filter((e) => a === 'all' || e.area === a).length
+  const present = AREAS.filter((a) => entries.some((e) => e.area === a))
+  const area: CardFilter<Entry> = {
+    key: 'area', label: t('widgets.area'), defaultValue: 'all',
+    options: (['all', ...present] as AreaFilter[]).map((a) => ({ value: a, label: t(`dashboards.widgetArea.${a}`) })),
+    match: (e, v) => e.area === v,
+  }
   return (
-    <>
-      <Stack gap="lg">
-        <Chip.Group value={area} onChange={(v) => setArea(v as AreaFilter)}>
-          <Group gap="xs" role="group" aria-label={t('widgets.area')}>
-            {(['all', ...AREAS] as AreaFilter[]).filter((a) => a === 'all' || count(a)).map((a) => (
-              <Chip key={a} value={a} variant="outline">{t(`dashboards.widgetArea.${a}`)} {count(a)}</Chip>
-            ))}
+    <CardTable<Entry> items={entries} itemKey={(e) => e.key} label={t('widgets.tabTypes')}
+      searchText={(e) => `${e.name} ${e.from ?? ''}`} searchLabel={t('widgets.search')} filters={[area]}
+      renderCard={(e) => (
+        <Paper withBorder radius="lg" className="fb-widget-card" component="article" aria-label={e.name}>
+          <Preview entry={e} />
+          <Group justify="space-between" wrap="wrap" p="md" gap="sm">
+            <div style={{ minWidth: 0 }}>
+              <Title order={2} fz="md" lineClamp={2}>{e.name}</Title>
+              <Text size="xs" c="dimmed">{e.from ?? t(`dashboards.widgetArea.${e.area}`)}</Text>
+            </div>
+            <Group gap="xs" wrap="nowrap">
+              {canEdit && e.pane.kind === 'tile' && (
+                <Button size="xs" variant="subtle" leftSection={<IconDeviceFloppy size={14} />} aria-label={t('widgets.saveAsNamed', { name: e.name })}
+                  onClick={() => onSave({ name: e.name, pane: e.pane as TilePane })}>{t('widgets.saveAs')}</Button>
+              )}
+              {canEdit && <AddTo entry={e} boards={boards} />}
+            </Group>
           </Group>
-        </Chip.Group>
-        {!shown.length && <Alert color="gray" variant="light">{t('widgets.none')}</Alert>}
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
-          {shown.map((e) => (
-            <Paper key={e.key} withBorder radius="lg" className="fb-widget-card" component="article" aria-label={e.name}>
-              <Preview entry={e} />
-              <Group justify="space-between" wrap="wrap" p="md" gap="sm">
-                <div style={{ minWidth: 0 }}>
-                  <Title order={2} fz="md" lineClamp={2}>{e.name}</Title>
-                  <Text size="xs" c="dimmed">{e.from ?? t(`dashboards.widgetArea.${e.area}`)}</Text>
-                </div>
-                <Group gap="xs" wrap="nowrap">
-                  {canEdit && e.pane.kind === 'tile' && (
-                    <Button size="xs" variant="subtle" leftSection={<IconDeviceFloppy size={14} />} aria-label={t('widgets.saveAsNamed', { name: e.name })}
-                      onClick={() => onSave({ name: e.name, pane: e.pane as TilePane })}>{t('widgets.saveAs')}</Button>
-                  )}
-                  {canEdit && <AddTo entry={e} boards={boards} />}
-                </Group>
-              </Group>
-            </Paper>
-          ))}
-        </SimpleGrid>
-      </Stack>
-    </>
+        </Paper>
+      )} />
   )
 }

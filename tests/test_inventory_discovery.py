@@ -136,7 +136,15 @@ class Telemetry(sources.NoMonitoring):
         return self.ports.get(hostname, [])
 
 
-def test_sync_now_discovers_the_inventory_devices(client):
+def test_sync_now_discovers_the_inventory_devices(client, monkeypatch):
+    from floorbit.store import load_data, save_data
+    # The session's background sync loops run discovery too (#1222, #1283): keep them out and start
+    # from no discovery run, or one of them reports first and last_sync is already set.
+    monkeypatch.setattr(inventory_discovery, 'tick', lambda now=None: None)
+    with inventory_discovery.running:
+        data = load_data()
+        data.pop('inventory_discovery', None)
+        save_data(data)
     add(client, name='sw-a-01', serial='S-BY-HAND')
     add(client, name='hv-01', role='server', mgmt_ip='192.0.2.20')
     add(client, name='not-polled')
