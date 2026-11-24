@@ -1,0 +1,16 @@
+{
+ "Give a list.": "Gib eine Liste an.",
+ "No plugin settings for {} on an agent.": "{} hat keine Einstellungen für einen Agent.",
+ "plugins must map plugin ids to settings.": "plugins muss Plugin-IDs auf Einstellungen abbilden.",
+ "Unknown agent setting: {}": "Unbekannte Agent-Einstellung: {}",
+ "{} has no setting {} an agent can change.": "{} hat keine Einstellung {}, die ein Agent ändern kann.",
+ "{} is not valid.": "{} ist nicht gültig.",
+ "{} must be a network interface name.": "{} muss der Name einer Netzwerkschnittstelle sein.",
+ "{} must be a whole number.": "{} muss eine ganze Zahl sein.",
+ "{} must be an http:// or https:// address.": "{} muss eine http://- oder https://-Adresse sein.",
+ "{} must be between {} and {}.": "{} muss zwischen {} und {} liegen.",
+ "{} must be host:port or off.": "{} muss host:port oder off sein.",
+ "{} must be one of {}.": "{} muss eines davon sein: {}.",
+ "{} takes at most {} entries.": "{} nimmt höchstens {} Einträge.",
+ "{}: \"{}\" is not valid.": "{}: «{}» ist nicht gültig."
+}

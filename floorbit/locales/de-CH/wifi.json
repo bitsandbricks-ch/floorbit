@@ -1,0 +1,7 @@
+{
+ "No such hall.": "Diese Halle gibt es nicht.",
+ "Wi-Fi channel plan": "WLAN-Kanalplan",
+ "{} and {} share channel {} ({} GHz) close together": "{} und {} nutzen nah beieinander denselben Kanal {} ({} GHz)",
+ "{} is busy: {} % channel use, {} clients": "{} ist ausgelastet: {} % Kanalbelegung, {} Clients",
+ "{} is down": "{} ist ausgefallen"
+}

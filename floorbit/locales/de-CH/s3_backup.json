@@ -1,0 +1,16 @@
+{
+ "Another backup is being uploaded; try again shortly.": "Gerade wird schon eine Sicherung hochgeladen; bitte gleich nochmals versuchen.",
+ "Set the bucket, access key and secret key for S3 backups first.": "Für S3-Sicherungen zuerst Bucket, Access Key und Secret Key setzen.",
+ "That is not one of the backups in the bucket.": "Das ist keine der Sicherungen im Bucket.",
+ "The bucket answered {}: {}": "Der Bucket hat mit {} geantwortet: {}",
+ "The bucket name is 3 to 63 lower-case letters, digits, . and -.": "Der Bucket-Name besteht aus 3 bis 63 Kleinbuchstaben, Ziffern, . und -.",
+ "The folder in the bucket may only hold letters, digits, ., _, - and /.": "Der Ordner im Bucket darf nur Buchstaben, Ziffern, ., _, - und / enthalten.",
+ "The region is lower-case letters, digits and -, like eu-central-1.": "Die Region besteht aus Kleinbuchstaben, Ziffern und -, z. B. eu-central-1.",
+ "The S3 endpoint does not answer: {}": "Der S3-Endpunkt antwortet nicht: {}",
+ "The S3 endpoint is a URL like https://s3.example.com.": "Der S3-Endpunkt ist eine URL wie https://s3.example.com.",
+ "The S3 endpoint sent an answer Floorbit does not read.": "Der S3-Endpunkt hat eine Antwort geschickt, die Floorbit nicht liest.",
+ "This backup does not open with the passphrase set now.": "Diese Sicherung lässt sich mit der jetzt gesetzten Passphrase nicht öffnen.",
+ "This backup is encrypted: set the passphrase it was made with.": "Diese Sicherung ist verschlüsselt: die Passphrase setzen, mit der sie gemacht wurde.",
+ "This backup is larger than a backup can be.": "Diese Sicherung ist grösser, als eine Sicherung sein darf.",
+ "This file in the bucket is not a Floorbit backup.": "Diese Datei im Bucket ist keine Floorbit-Sicherung."
+}

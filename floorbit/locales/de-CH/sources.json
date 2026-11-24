@@ -1,0 +1,4 @@
+{
+ "No monitoring plugin is set up on the agent (LIBRENMS_URL and LIBRENMS_TOKEN?)": "Auf dem Agenten ist kein Überwachungs-Plugin eingerichtet (LIBRENMS_URL und LIBRENMS_TOKEN?)",
+ "{} has no MAC tables": "{} hat keine MAC-Tabellen"
+}

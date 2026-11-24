@@ -1,0 +1,4 @@
+{
+ "area must be one of: {}": "area muss eines von diesen sein: {}",
+ "limit and offset must be whole numbers": "limit und offset müssen ganze Zahlen sein"
+}

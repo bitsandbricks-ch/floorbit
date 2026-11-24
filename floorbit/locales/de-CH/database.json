@@ -1,0 +1,5 @@
+{
+ "Postgres needs the psycopg package (pip install \"psycopg[binary]\").": "Postgres braucht das Paket psycopg (pip install \"psycopg[binary]\").",
+ "{} must start with sqlite:/// or postgresql:// (got {}).": "{} muss mit sqlite:/// oder postgresql:// beginnen (erhalten: {}).",
+ "{}: all {} connections busy for {} s": "{}: alle {} Verbindungen sind seit {} s besetzt"
+}

@@ -93,10 +93,10 @@ happen. Add files, don't grow shared ones:
 
 | Instead of | Do this |
 | --- | --- |
-| adding to `floorbit/locales/de-CH.json` (or `log.de-CH.json`, `discord.de-CH.json`) | add to `floorbit/locales/de-CH/<area>.json` (`log.de-CH/`, `discord.de-CH/`), named after the module that sends the text |
+| one big translation file (`floorbit/locales/de-CH.json` is gone; `discord.de-CH.json` too should not grow) | add to `floorbit/locales/de-CH/<area>.json` (`log.de-CH/`, `discord.de-CH/`), named after the module that sends the text |
 | adding a blueprint to `ALL` in `floorbit/blueprints/__init__.py` | nothing: a module in `floorbit/blueprints/` with a `bp` registers itself |
 | adding a new area's types to `frontend/src/api/types.ts` | put them in `frontend/src/api/<area>.ts`, next to its queries (like `tenantEvents.ts`) |
-| adding a new page's styles to `frontend/src/app.css` | a `<Page>.css` next to the page, imported by it |
+| adding a new page's styles to `frontend/src/app.css` or `frontend/src/styles/` | a `<Page>.css` next to the page, imported by it |
 | one big test file for an area (`tests/test_cables.py`) | a new `tests/test_<area>_<topic>.py` for a new topic |
 | editing `docs/api-reference.md` by hand, or merging its conflict | run `python scripts/api_reference.py` after the merge; it writes the file from the routes |
 | a branch based on another open pull request | a branch from `master`; if it needs the other one, wait for it |
