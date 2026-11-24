@@ -46,17 +46,19 @@ export function labelPlan(cell: number, s: number, mode: LabelMode = 'auto'): La
 }
 
 /** The first and last seat of each row of a block (cells on the same line, in block coordinates). */
-export function rowEnds(cells: Pick<PlanCell, 'seat' | 'x' | 'y'>[]): Set<string> {
-  const rows = new Map<number, Pick<PlanCell, 'seat' | 'x'>[]>()
+export function rowEnds(cells: Pick<PlanCell, 'seat' | 'x' | 'y' | 'rc'>[]): Set<string> {
+  // A row is the cells with the same rc[0] (a bent row isn't one line across); older answers by height.
+  const rows = new Map<number, { seat: string; at: number }[]>()
   for (const c of cells) {
-    const key = Math.round(c.y)
+    const key = c.rc ? c.rc[0] : Math.round(c.y)
+    const at = c.rc ? c.rc[1] : c.x
     const row = rows.get(key)
-    if (row) row.push(c)
-    else rows.set(key, [c])
+    if (row) row.push({ seat: c.seat, at })
+    else rows.set(key, [{ seat: c.seat, at }])
   }
   const out = new Set<string>()
   for (const row of rows.values()) {
-    const sorted = [...row].sort((a, b) => a.x - b.x)
+    const sorted = [...row].sort((a, b) => a.at - b.at)
     out.add(sorted[0].seat)
     out.add(sorted[sorted.length - 1].seat)
   }

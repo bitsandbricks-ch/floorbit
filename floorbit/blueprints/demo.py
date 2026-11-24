@@ -13,7 +13,7 @@ import uuid
 
 from flask import Blueprint, current_app, jsonify
 
-from .. import cable_plan, halls, inventory, plan_groups, plan_marks, port_areas
+from .. import cable_plan, halls, inventory, plan_groups, plan_marks, port_areas, seat_rows
 from ..store import load_data, save_data
 from .inventory import data_lock, run_sync
 
@@ -64,8 +64,10 @@ def seed():
                 if pos and 'demo' in (dev.get('refs') or {}):
                     inventory.update(data, dev['id'], {'x': pos[0], 'y': pos[1], 'hall_id': hall_id})
                     placed += 1
-            blocks += [{'id': str(uuid.uuid4()), 'seat_width': 3, 'seat_height': 3, 'spacing_x': 0.5,
-                        'spacing_y': 1, 'rotation': 0, 'reverse_numbers': False, 'hall_id': hall_id, **b}
+            # The demo layout keeps its blocks as rectangles: rows of seats (floorbit/seat_rows.py).
+            blocks += [seat_rows.from_grid({'id': str(uuid.uuid4()), 'seat_width': 3, 'seat_height': 3,
+                                            'spacing_x': 0.5, 'spacing_y': 1, 'rotation': 0, 'reverse_numbers': False,
+                                            'hall_id': hall_id, **b})
                        for b in hall_blocks]
             data['seat_blocks'] = blocks
             for mark in marks:

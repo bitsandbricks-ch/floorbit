@@ -351,6 +351,7 @@ the left side of a mapping is what the devices send to.
 | --- | --- | --- | --- | --- |
 | 9520/tcp | `127.0.0.1:9520` | the agent itself | `/healthz`, `/metrics` for Prometheus | yes, this machine only |
 | 1162/udp | `162/udp` | Telemetry | SNMP traps from switches and firewalls | yes |
+| 1163–1170/udp | `1163–1170/udp` | Telemetry | SNMPv3 traps from devices with a further trap user, one port each ([telemetry.md](telemetry.md#snmpv3-trap-users)) | yes |
 | 57000/tcp | `57000` | Telemetry | Cisco model-driven telemetry, dial-out (gRPC) | yes |
 | 8186/tcp | `8186` | Telemetry | a firewall's own Telegraf (OPNsense, pfSense) | no |
 | 5514/udp | `514/udp` | Syslog from the hall | syslog from switches, firewalls, DHCP | no |
@@ -615,6 +616,16 @@ answer. They are stored with the telemetry series (Floorbit's database, a point 
 hours and every 15 minutes for `FLOORBIT_TELEMETRY_DAYS`; or VictoriaMetrics as `fb_agent_<name>`
 with an `agent` label when it is set up) and age out with them. A gap in a graph is a time the
 agent didn't report.
+
+The **Devices** tab on the agent's page lists the devices it collects, worst first: sends
+nothing, never heard, partly (a VLAN or a table fails), waits for traps, another agent collects
+(the standby of a pair), sends. Each row shows its drivers, when it was last heard, what came in
+(ports, MACs, ARP, neighbours) and, for a device that sends nothing, why, with **Test now** and
+**Raw data**. A device given to this agent by name says so; one that sends by itself (a firewall's
+own Telegraf) does too. **Needs a look** keeps only the devices with a problem, and the agent's
+"some devices send nothing" warning and a failed call about one device link there. While the
+agent is away the tab still lists what Floorbit gives it. `GET /api/agents/<id>/devices` (admins)
+has the same, asked from the agent's memory through its link; no logins.
 
 ## When the agent is away
 

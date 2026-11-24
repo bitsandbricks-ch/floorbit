@@ -73,6 +73,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | DELETE | `/api/agents/<agent_id>` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/cert` | `settings.manage` |  |
+| GET | `/api/agents/<agent_id>/devices` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/history` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/roll` | `settings.manage` |  |
 | POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
@@ -553,6 +554,18 @@ Source: [`floorbit/blueprints/layout_templates.py`](https://github.com/bitsandbr
 | POST | `/api/templates/<template_id>/versions` | `floorplan.edit` |  |
 | POST | `/api/templates/import` | `floorplan.edit` |  |
 
+## floorbit.blueprints.librenms_alerts
+
+LibreNMS alerts through the agent (issue #951, docs/librenms-alerts.md).
+
+Source: [`floorbit/blueprints/librenms_alerts.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/librenms_alerts.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| DELETE | `/api/alerts/librenms/<key>` | `incidents.work` |  |
+| GET | `/api/alerts/librenms/setup` | `settings.manage` |  |
+| POST | `/api/alerts/librenms/token` | `settings.manage` |  |
+
 ## floorbit.blueprints.logs
 
 Logs (issue #91): what switches, firewalls and DHCP servers sent by syslog. Receiving and keeping lives in floorbit/syslog.py.
@@ -994,6 +1007,17 @@ Source: [`floorbit/blueprints/status_page.py`](https://github.com/bitsandbricks-
 | PUT | `/api/status-page/override` | `incidents.assign` | `status_page` |
 | POST | `/api/status-page/updates` | `incidents.assign` | `status_page` |
 | DELETE | `/api/status-page/updates/<update_id>` | `incidents.assign` | `status_page` |
+
+## floorbit.blueprints.switch_areas
+
+Which seats each switch serves (issue #948): rules in floorbit/switch_areas.py, docs in docs/switch-areas.md.
+
+Source: [`floorbit/blueprints/switch_areas.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/switch_areas.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/switch-areas` | `seats.view` |  |
+| PUT | `/api/switch-areas/<switch>` | `seats.edit` |  |
 
 ## floorbit.blueprints.switch_swap
 

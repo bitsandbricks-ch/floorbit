@@ -17,16 +17,17 @@ import re
 import time
 import uuid
 
-from . import halls, inventory, plan_marks, seat_gaps, seat_layout, store
+from . import halls, inventory, plan_marks, seat_layout, seat_rows, store
 
 FORMAT = 'floorbit-template'
 FORMAT_VERSION = 1
 MAX_VERSIONS = 10
 MAX_TEMPLATES = 200
 NAME_MAX, DESCRIPTION_MAX = 80, 500
-BLOCK_KEYS = ('name', 'x', 'y', 'cols', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
-              'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'col_gaps', 'row_gaps', 'seat_at',
-              'hall_id')
+BLOCK_KEYS = ('name', 'x', 'y', 'rows', 'seat_width', 'seat_height', 'spacing_x', 'spacing_y',
+              'rotation', 'reverse_numbers', 'naming', 'row_start', 'row_labels', 'seat_at', 'hall_id')
+# What templates saved before blocks had rows (floorbit/seat_rows.py from_grid moves them).
+GRID_KEYS = ('cols', 'col_gaps', 'row_gaps')
 SWITCH_KEYS = ('name', 'role', 'model', 'x', 'y', 'hall_id')
 _ID = re.compile(r'[a-f0-9]{12}')
 
@@ -94,15 +95,14 @@ def _num(value, lo, hi, what, cast=float):
 
 
 def _places(b, what):
-    """A block's gaps and freely placed seats (floorbit/seat_gaps.py, seat_layout.py), checked."""
-    cols, rows = int(b.get('cols', 1)), int(b.get('rows', 1))
+    """A block's rows and freely placed seats (floorbit/seat_rows.py, seat_layout.py), checked. A
+    template saved before blocks had rows is read as its grid."""
+    b = seat_rows.from_grid(dict(b))
     try:
-        out = {'col_gaps': seat_gaps.clean(b.get('col_gaps'), cols),
-               'row_gaps': seat_gaps.clean(b.get('row_gaps'), rows),
-               'seat_at': seat_layout.clean(b.get('seat_at'), cols, rows)}
-    except (seat_gaps.GapError, seat_layout.LayoutError) as exc:
+        rows = seat_rows.clean(b.get('rows'))
+        return {'rows': rows, 'seat_at': seat_layout.clean(b.get('seat_at'), rows)}
+    except (seat_rows.RowError, seat_layout.LayoutError) as exc:
         raise TemplateError(f'{what}: {exc}') from None
-    return out
 
 
 def clean_layout(layout):
@@ -137,7 +137,7 @@ def clean_layout(layout):
     for b in layout.get('seat_blocks') or []:
         if not isinstance(b, dict):
             raise TemplateError('A seat block is not an object')
-        dropped |= set(b) - set(BLOCK_KEYS)
+        dropped |= set(b) - set(BLOCK_KEYS) - set(GRID_KEYS)
         name = str(b.get('name') or '')[:40]
         if name.upper() in names:
             raise TemplateError(f'Block "{name}" is in the template twice')
@@ -146,8 +146,6 @@ def clean_layout(layout):
         blocks.append({
             'name': name,
             'x': _num(b.get('x'), 0, 100, f'{what} x'), 'y': _num(b.get('y'), 0, 100, f'{what} y'),
-            'cols': _num(b.get('cols', 1), 1, 200, f'{what} cols', int),
-            'rows': _num(b.get('rows', 1), 1, 200, f'{what} rows', int),
             'seat_width': _num(b.get('seat_width', 3), 0.1, 50, f'{what} seat_width'),
             'seat_height': _num(b.get('seat_height', 3), 0.1, 50, f'{what} seat_height'),
             'spacing_x': _num(b.get('spacing_x', 0.5), 0, 50, f'{what} spacing_x'),

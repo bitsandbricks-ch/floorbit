@@ -438,7 +438,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
 
 /** One block's seats, in the block's coordinates. Memoised: panning and zooming don't draw them again. */
 const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, only, cursor, traffic, firewalls, marks, checkin, incidents, level, labels, ids, onEnter, onLeave, onClick, describe }: {
-  cells: { seat: string; x: number; y: number }[]; rotation: number; seats: SeatViewData['seats']; cell: number
+  cells: { seat: string; x: number; y: number; a?: number; side?: 'left' | 'right'; rc?: [number, number] }[]; rotation: number; seats: SeatViewData['seats']; cell: number
   filter: Filter; selected: string | null; only?: ReadonlySet<string>; cursor: string | null; traffic: boolean; firewalls?: FirewallSeats['seats']
   marks?: PluginLayerData['seats']
   checkin: boolean; incidents?: IncidentMarkers['seats']; level: Density; labels: SeatLabels; ids: string
@@ -454,7 +454,8 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
         const cls = ['cell', matches(seat, filter) && (!only || only.has(c.seat)) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : '',
           cursor === c.seat ? 'kb' : ''].join(' ').trim()
         return (
-          <g key={c.seat} id={`${ids}-${c.seat}`} className={cls} data-seat={c.seat} data-state={seat.state} transform={`translate(${c.x} ${c.y})`}
+          <g key={c.seat} id={`${ids}-${c.seat}`} className={cls} data-seat={c.seat} data-state={seat.state}
+            transform={c.a ? `translate(${c.x} ${c.y}) rotate(${c.a} ${cell / 2} ${cell / 2})` : `translate(${c.x} ${c.y})`}
             role="button" aria-label={`${c.seat}: ${describe(seat)}`}
             onPointerEnter={(e) => onEnter(c.seat, e.clientX, e.clientY)}
             onPointerLeave={onLeave}
@@ -462,9 +463,11 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
             <rect className="hit" width={cell} height={cell} />
             <SeatGlyph seat={seat} size={cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state}
               checkin={checkin} incidents={incidents?.[c.seat]} mark={marks?.[c.seat]?.tone} />
+            {/* The side people sit on (floorbit/seat_rows.py): left of the way the row runs is up. */}
+            {c.side && <rect className="side" x={cell * 0.2} y={c.side === 'left' ? 1 : cell - 4} width={cell * 0.6} height={3} rx={1.5} />}
             {(labels === 'all' || ends?.has(c.seat)) && (
               <text className={labels === 'ends' ? 'num end' : 'num'} x={cell / 2} y={cell / 2} dy="0.35em"
-                transform={rotation ? `rotate(${-rotation} ${cell / 2} ${cell / 2})` : undefined}>
+                transform={rotation || c.a ? `rotate(${-rotation - (c.a ?? 0)} ${cell / 2} ${cell / 2})` : undefined}>
                 {c.seat.split('-').pop()}
               </text>
             )}

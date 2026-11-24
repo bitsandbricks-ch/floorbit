@@ -22,7 +22,8 @@ that are down or need a look, muted ones (switches and services) left out, e.g. 
 - [Wi-Fi](wifi.md) access points that are down (red) or busy for 5 minutes (amber), and two placed
   access points near each other on one channel (amber);
 - plugins turned on that don't load (red), whose calls have all failed for 5 minutes (amber), and
-  installed versions the [Marketplace](marketplace.md) withdrew (amber).
+  installed versions the [Marketplace](marketplace.md) withdrew (amber);
+- [alerts LibreNMS pushed through the agent](librenms-alerts.md), until their recovery.
 
 It asks nothing new: it reads what the status monitor, the health wall, the security watch, the
 power layer, the link reader and the Wi-Fi view already know. Anyone with `floorplan.view` may see it. **Open** on an offline switch,

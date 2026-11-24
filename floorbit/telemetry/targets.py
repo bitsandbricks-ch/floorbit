@@ -20,7 +20,7 @@ import threading
 
 from .. import vault
 from ..store import load_data, save_data
-from .telegraf import PORT_KINDS
+from .telegraf import PORT_KINDS, TRAP_EXTRA, TRAP_PORT, sent_trap_port
 
 KEY = 'telemetry'
 DRIVERS = ('snmp', 'traps', 'gnmi', 'mdt', 'nxapi', 'restconf', 'opnsense', 'push')
@@ -28,7 +28,7 @@ KINDS = ('switch', 'router', 'firewall')
 PLATFORMS = ('nxos', 'iosxe', 'ios', 'opnsense', 'pfsense', 'other')
 FDB_MODES = ('qbridge', 'cisco_vlans', 'bridge', 'off')
 AGENT_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z')
-SECRETS = ('community', 'auth_password', 'priv_password', 'password', 'api_secret')
+SECRETS = ('community', 'auth_password', 'priv_password', 'password', 'api_secret', 'trap')
 _lock = threading.Lock()
 
 
@@ -60,12 +60,21 @@ def _agent(value):
 # A device in the inventory with the Telemetry feature on (on itself, a tag, its group or type) is
 # collected from like one set up here, with the logins stored in the inventory: SNMP v3 or v2c for
 # polling and traps, an API login for NX-API, RESTCONF or OPNsense. Its properties can say more:
-# telemetry_drivers, telemetry_fdb, telemetry_vlans, telemetry_port_snmp, telemetry_port_gnmi,
-# telemetry_port_api, telemetry_agent (the agent that collects), telemetry_address, telemetry_url, telemetry_mdt_node,
-# telemetry_verify_tls. Like every property they come from the device, its tags, group or type.
-# A device that sends by itself (push, mdt, traps in telemetry_drivers) needs no login.
+# telemetry.drivers, telemetry.agent (the agent that collects), telemetry.address, telemetry.verify_tls,
+# telemetry.snmp.{fdb,vlans,port}, telemetry.gnmi.port, telemetry.api.{port,url}, telemetry.mdt.node.
+# Like every property they come from the device, its tags, group or type.
+# A device that sends by itself (push, mdt, traps in telemetry.drivers) needs no login.
 
 FEATURE = 'telemetry'
+# What the properties were called before they got their namespace (floorbit/upgrades.py moves them).
+RENAMED = {
+    'telemetry_drivers': 'telemetry.drivers', 'telemetry_agent': 'telemetry.agent',
+    'telemetry_address': 'telemetry.address', 'telemetry_fdb': 'telemetry.snmp.fdb',
+    'telemetry_vlans': 'telemetry.snmp.vlans', 'telemetry_port_snmp': 'telemetry.snmp.port',
+    'telemetry_port_gnmi': 'telemetry.gnmi.port', 'telemetry_port_api': 'telemetry.api.port',
+    'telemetry_url': 'telemetry.api.url', 'telemetry_mdt_node': 'telemetry.mdt.node',
+    'telemetry_verify_tls': 'telemetry.verify_tls',
+}
 API_DRIVER = {'nxos': 'nxapi', 'iosxe': 'restconf', 'opnsense': 'opnsense'}
 # What a device does on its own: these need no stored login.
 SENDING = ('push', 'mdt', 'traps')
@@ -117,30 +126,30 @@ def _words(value):
     return [w for w in re.split(r'[,\s]+', str(value or '')) if w]
 
 
-def _from_device(dev, snmp, api):
+def _from_device(dev, snmp, api, trap=None):
     """One telemetry target (secrets open) from an inventory device and its opened logins. What its
     properties leave open comes from auto() and, for the VLANs, from its interfaces."""
     props = dev.get('properties') or {}
     platform = _platform(dev.get('platform'))
     kind = dev.get('role') if dev.get('role') in KINDS else 'switch'
     given = auto(platform, bool(snmp), bool(api))
-    drivers = [d for d in _words(props.get('telemetry_drivers')) if d in DRIVERS]
+    drivers = [d for d in _words(props.get('telemetry.drivers')) if d in DRIVERS]
     if not snmp and not api:
         drivers = [d for d in drivers if d in SENDING]
     drivers = drivers or given['drivers']
-    # telemetry_address: where the agent reaches it, when not its management address (a NAT, a lab).
-    address = str(props.get('telemetry_address') or '').strip()[:253] or dev['address']
-    vlans = {int(v) for v in _words(props.get('telemetry_vlans')) if v.isdigit() and 1 <= int(v) <= 4094}
+    # telemetry.address: where the agent reaches it, when not its management address (a NAT, a lab).
+    address = str(props.get('telemetry.address') or '').strip()[:253] or dev['address']
+    vlans = {int(v) for v in _words(props.get('telemetry.snmp.vlans')) if v.isdigit() and 1 <= int(v) <= 4094}
     t = {'id': f"inv-{dev['id']}", 'name': dev['name'], 'address': address, 'kind': kind,
          'platform': platform, 'drivers': drivers, 'source': 'inventory', 'inventory_id': dev['id'],
-         'fdb': props.get('telemetry_fdb') if props.get('telemetry_fdb') in FDB_MODES else given['fdb'],
+         'fdb': props.get('telemetry.snmp.fdb') if props.get('telemetry.snmp.fdb') in FDB_MODES else given['fdb'],
          'vlans': sorted(vlans) or list(dev.get('iface_vlans') or []),
-         'ports': _ports({k: props.get(f'telemetry_port_{k}') for k in PORT_KINDS}),
-         'agent': _agent(props.get('telemetry_agent')),
-         'url': str(props.get('telemetry_url') or '').strip() or None,
+         'ports': _ports({k: props.get(f'telemetry.{k}.port') for k in PORT_KINDS}),
+         'agent': _agent(props.get('telemetry.agent')),
+         'url': str(props.get('telemetry.api.url') or '').strip() or None,
          # Cisco names the stream after the switch unless it is set up otherwise.
-         'mdt_node': str(props.get('telemetry_mdt_node') or '').strip() or (dev['name'] if 'mdt' in drivers else None),
-         'verify_tls': str(props.get('telemetry_verify_tls', 'true')).lower() not in ('false', '0', 'no', 'off'),
+         'mdt_node': str(props.get('telemetry.mdt.node') or '').strip() or (dev['name'] if 'mdt' in drivers else None),
+         'verify_tls': str(props.get('telemetry.verify_tls', 'true')).lower() not in ('false', '0', 'no', 'off'),
          'wireless': bool(WLC_MODEL.search(str(dev.get('model') or ''))),
          'tables': True, 'snmp_version': '2c', 'logins': {}}
     if t['url'] and not t['url'].startswith('https://'):
@@ -155,12 +164,54 @@ def _from_device(dev, snmp, api):
                      auth_password=c.get('secret') or '', priv_password=c.get('priv_secret') or '')
         else:
             t['community'] = c.get('secret') or ''
+    # Traps: the device's own trap user (an snmp_trap credential) else its v3 polling user; v2c
+    # traps need no login. Each distinct user gets its own listener (_trap_ports).
+    if trap:
+        t['trap'] = _trap_login(trap, trap['id'])
+    elif snmp and snmp['kind'] == 'snmp_v3':
+        t['trap'] = _trap_login(snmp, f"v3:{snmp['id']}")
     if api:
         c = api
         t['logins']['api'] = {'device': dev['id'], 'credential': c['id'], 'rev': c.get('rev') or ''}
         t['username'] = c.get('username') or ''
         t['password' if platform != 'opnsense' else 'api_secret'] = c.get('secret') or ''
     return t if t['drivers'] else None
+
+
+def _trap_login(c, key):
+    auth, priv = c.get('secret') or '', c.get('priv_secret') or ''
+    return {'key': key, 'sec_name': c.get('username') or '',
+            'sec_level': 'authPriv' if auth and priv else 'authNoPriv' if auth else 'noAuthNoPriv',
+            'auth_protocol': c.get('auth_protocol') or 'SHA', 'auth_password': auth,
+            'priv_protocol': c.get('priv_protocol') or 'AES', 'priv_password': priv}
+
+
+def _trap_ports(out, data):
+    """Give each distinct SNMPv3 trap user its listener port (``trap_port``, in the agent's
+    container; ``trap_send_port``, where the device sends). One Telegraf trap listener knows one v3
+    user. The first user keeps the usual port (v2c traps come in there too); each further one gets
+    the next of TRAP_EXTRA ports. Kept in data.json so a device keeps its port while others come and
+    go; a user whose credential is gone frees its port."""
+    from .. import inventory_scope
+    keys = sorted({t['trap']['key'] for t in out if 'traps' in t['drivers'] and t.get('trap')})
+    known = _section(data).get('trap_ports') or {}
+    alive = {c['id'] for c in inventory_scope._creds(data)}
+    kept = {k: p for k, p in known.items() if k.removeprefix('v3:') in alive and isinstance(p, int)}
+    free = [p for p in range(TRAP_PORT, TRAP_PORT + TRAP_EXTRA + 1) if p not in kept.values()]
+    for key in keys:
+        if key not in kept and free:
+            kept[key] = free.pop(0)
+    if kept != known:
+        with _lock:
+            fresh = load_data()
+            fresh.setdefault(KEY, {})['trap_ports'] = kept
+            save_data(fresh)
+    for t in out:
+        if 'traps' not in t['drivers']:
+            continue
+        found = kept.get(t['trap']['key']) if t.get('trap') else TRAP_PORT
+        t['trap_port'] = found
+        t['trap_send_port'] = sent_trap_port(found) if found else None
 
 
 def from_inventory(data=None):
@@ -170,11 +221,13 @@ def from_inventory(data=None):
     data = load_data() if data is None else data
     try:
         snmp = {d['id']: d for d in inventory_scope.plugin_targets(FEATURE, ['snmp_v3', 'snmp_v2c'], data)}
+        trap = {d['id']: d for d in inventory_scope.plugin_targets(FEATURE, ['snmp_trap'], data)}
         api = {d['id']: d for d in inventory_scope.plugin_targets(FEATURE, ['api', 'http'], data)}
         # The ones without a login that send by themselves (a firewall's own Telegraf, MDT dial-out).
         bare = {}
         for dev in inventory.devices(data):
-            if dev['id'] in snmp or dev['id'] in api or not inventory_scope.feature_on(data, dev, FEATURE):
+            if dev['id'] in snmp or dev['id'] in api or dev['id'] in trap \
+                    or not inventory_scope.feature_on(data, dev, FEATURE):
                 continue
             stack = inventory_scope.layers(data, dev)
             bare[dev['id']] = {'id': dev['id'], 'name': dev['name'], 'address': dev.get('mgmt_ip') or dev['name'],
@@ -183,7 +236,7 @@ def from_inventory(data=None):
     except Exception as exc:  # noqa: BLE001  # no inventory devices is better than no telemetry
         print(f'[telemetry] inventory devices: {exc}')
         return []
-    found = {**bare, **api, **snmp}
+    found = {**bare, **trap, **api, **snmp}
     out = []
     from .. import inventory_discovery
     every = {}
@@ -191,7 +244,7 @@ def from_inventory(data=None):
         whole = inventory.find(data, dev_id) or {}
         found[dev_id].update(iface_vlans=iface_vlans(whole, data), model=whole.get('model') or '')
         t = _from_device(found[dev_id], (snmp.get(dev_id) or {}).get('credential'),
-                         (api.get(dev_id) or {}).get('credential'))
+                         (api.get(dev_id) or {}).get('credential'), (trap.get(dev_id) or {}).get('credential'))
         if t:
             # What the device is gets read as often as discovery uses it (issue #967).
             role = found[dev_id].get('role') or 'switch'
@@ -199,6 +252,7 @@ def from_inventory(data=None):
                 every[role] = inventory_discovery.facts_every(data, role)
             t['facts_every'] = every[role]
             out.append(t)
+    _trap_ports(out, data)
     return out
 
 
@@ -224,7 +278,16 @@ def for_device(device_id, data=None):
             'role': dev.get('role') or '', 'platform': dev.get('platform') or '',
             'properties': inventory_scope._properties(stack), 'iface_vlans': iface_vlans(dev, data),
             'model': dev.get('model') or ''}
-    target = _from_device(flat, logins.get('snmp'), logins.get('api')) if on else None
+    trap = inventory_scope._credential_for(data, dev, 'snmp_trap', stack)[0]
+    if trap is not None and inventory_scope._block(dev, trap) is None:
+        logins['trap'] = {'id': trap['id'], 'kind': 'snmp_trap', 'username': trap.get('username') or ''}
+    target = _from_device(flat, logins.get('snmp'), logins.get('api'), logins.get('trap')) if on else None
+    if target and 'traps' in target['drivers']:
+        # The port as the full listing gave it (_trap_ports), without opening any login.
+        key = target['trap']['key'] if target.get('trap') else None
+        found = (_section(data).get('trap_ports') or {}).get(key) if key else TRAP_PORT
+        target.update(trap_port=found, trap_send_port=sent_trap_port(found) if found else None,
+                      trap_user=(target.get('trap') or {}).get('sec_name') or None)
     if target:
         target = {k: v for k, v in target.items() if k not in SECRETS and k != 'logins'}
     return {'on': on, 'platform': platform, 'logins': {k: v['kind'] for k, v in logins.items()},
@@ -287,7 +350,7 @@ def token_ok(given):
 
 
 # ── which agent collects ──────────────────────────────────────────────────────────────────────
-# A device with an agent (telemetry_agent) is collected by that agent alone, even when it stands by
+# A device with an agent (telemetry.agent) is collected by that agent alone, even when it stands by
 # for another (VRRP): "mine" tells it to. While that agent is away, the device goes back to the
 # rest like one without an agent, so it isn't left unheard. Without an agent, every agent gets it
 # and the primary one polls (the agent's own rule).
@@ -319,8 +382,8 @@ def pinned(data=None):
         if not name or name in out:
             continue
         stack = inventory_scope.layers(data, dev)
-        agent = _agent(next((h['properties']['telemetry_agent'] for _k, h in stack
-                             if (h.get('properties') or {}).get('telemetry_agent')), ''))
+        agent = _agent(next((h['properties']['telemetry.agent'] for _k, h in stack
+                             if (h.get('properties') or {}).get('telemetry.agent')), ''))
         if agent:
             out[name] = agent
     return out

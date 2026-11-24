@@ -29,7 +29,8 @@
     "incident": "Incident",
     "portconfig": "Port config",
     "range": "IP range",
-    "shared": "Shared port"
+    "shared": "Shared port",
+    "librenms": "LibreNMS"
   },
   "since": "started {{ago}}",
   "open": "Open",
@@ -78,5 +79,6 @@
   "behindCause": "Behind {{name}}, which is down: start there",
   "showSeats": "Show the seats",
   "hideSeats": "Hide the seats",
-  "swap": "Swap"
+  "swap": "Swap",
+  "clear": "Clear"
 }

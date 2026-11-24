@@ -236,4 +236,18 @@ describe('Problems', () => {
     expect(text).toContain('Muted alerts:\n- sw-d-01, Muted until')
     expect(text).toContain('(Recabling)')
   })
+
+  it('clears a LibreNMS alert whose recovery got lost', async () => {
+    const alert = { id: 'librenms:abc', kind: 'librenms' as const, level: 'down' as const, title: 'Port down on sw-a-01',
+      where: 'sw-a-01: Gi1/0/5', since: now, link: '/plan?switch=sw-a-01', switch_id: 's1', clear_id: 'abc' }
+    const api = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems: [alert] }),
+      'DELETE /api/alerts/librenms/abc': { ok: true } })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Problems />)
+    const row = await screen.findByRole('article', { name: 'Port down on sw-a-01' })
+    expect(within(row).getByText('LibreNMS')).toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
+    fireEvent.click(within(row).getByRole('button', { name: 'Clear' }))
+    await vi.waitFor(() => expect(api.calls.some((c) => c.method === 'DELETE' && c.path === '/api/alerts/librenms/abc')).toBe(true))
+  })
 })

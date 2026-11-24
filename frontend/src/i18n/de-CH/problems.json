@@ -29,7 +29,8 @@
     "incident": "Störung",
     "portconfig": "Port-Konfig",
     "range": "IP-Bereich",
-    "shared": "Geteilter Port"
+    "shared": "Geteilter Port",
+    "librenms": "LibreNMS"
   },
   "since": "begonnen {{ago}}",
   "open": "Öffnen",
@@ -78,5 +79,6 @@
   "behindCause": "Hinter {{name}}, der down ist: dort anfangen",
   "showSeats": "Plätze zeigen",
   "hideSeats": "Plätze ausblenden",
-  "swap": "Tauschen"
+  "swap": "Tauschen",
+  "clear": "Schliessen"
 }

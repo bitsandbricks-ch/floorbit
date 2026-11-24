@@ -25,7 +25,7 @@ def test_blocks_side_by_side_become_one_and_numbers_carry_on(client):
     body = res.get_json()
     block = body["block"]
     assert body["removed"] == [b["id"]] and block["id"] == a["id"]
-    assert block["cols"] == 18 and block["rows"] == 2 and block["col_gaps"] == []
+    assert [r["seats"] for r in block["rows"]] == [18, 18] and all(r["col_gaps"] == [] for r in block["rows"])
     assert (block["x"], block["y"]) == (46, 40)
     assert block["seat_rows"][0][-1] == "A-18" and block["seat_rows"][1][0] == "A-19"
     assert [x["id"] for x in load_data()["seat_blocks"]] == [a["id"]]
@@ -35,27 +35,34 @@ def test_space_between_blocks_becomes_a_gap(client):
     a = _make(client, **A)
     b = _make(client, **{**A, "name": "B", "cols": 6, "x": 64})   # 3 seats of room
     block = _merge(client, a, b).get_json()["block"]
-    assert block["col_gaps"] == [{"after": 12, "size": 3.0}]
+    assert all(r["col_gaps"] == [{"after": 12, "size": 3.0}] for r in block["rows"])
     assert block["x"] == 49
 
 
 def test_stacked_rows_keep_their_row_letters(client):
     a = _make(client, **{**A, "naming": "rows", "row_start": "E"})
-    b = _make(client, **{**A, "rows": 1, "naming": "rows", "row_start": "G", "y": 44.8,
-                         "col_gaps": [{"after": 6, "size": 1}]})
-    bad = _merge(client, a, b)
-    assert bad.status_code == 400 and "columns" in bad.get_json()["error"]
-    client.put(f"/api/seat-blocks/{b['id']}", json={"col_gaps": []})
+    # Rows join whatever is in them: a gap in the lower block's row stays in that row.
+    b = _make(client, **{**A, "rows": [{"seats": 12, "col_gaps": [{"after": 6, "size": 1}]}], "naming": "rows",
+                         "row_start": "G", "y": 44.8})
     block = _merge(client, a, b).get_json()["block"]
-    assert block["rows"] == 3 and block["row_letters"] == ["E", "F", "G"]
+    assert len(block["rows"]) == 3 and block["row_letters"] == ["E", "F", "G"]
+    assert [r["id"] for r in block["rows"]] == ["1", "2", "3"]
+    assert block["rows"][2]["col_gaps"] == [{"after": 6, "size": 1.0}] and block["rows"][2]["gap"] == 0
     assert block["seat_rows"][2][0] == "G-1"
+
+
+def test_side_by_side_needs_the_same_straight_rows(client):
+    a = _make(client, **A)
+    b = _make(client, **{**A, "name": "B", "x": 66, "rows": [{"seats": 12, "shape": "u"}, {"seats": 12}]})
+    bad = _merge(client, a, b)
+    assert bad.status_code == 400 and "straight rows" in bad.get_json()["error"]
 
 
 def test_turned_blocks_merge_in_their_own_frame(client):
     a = _make(client, **{**A, "rows": 1, "rotation": 90})
     b = _make(client, **{**A, "name": "B", "rows": 1, "rotation": 90, "y": 78.4})   # below = to its right
     block = _merge(client, a, b).get_json()["block"]
-    assert block["cols"] == 24 and block["rotation"] == 90
+    assert [r["seats"] for r in block["rows"]] == [24] and block["rotation"] == 90
     assert block["x"] == pytest.approx(40) and block["y"] == pytest.approx(59.2)
 
 

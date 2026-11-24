@@ -57,7 +57,7 @@ def test_seat_block_lifecycle(client):
     resp = client.post("/api/seat-blocks", json={"name": "A", "x": 5, "y": 5, "cols": 8, "rows": 2})
     assert resp.status_code == 201
     block = resp.get_json()
-    assert (block["cols"], block["rows"]) == (8, 2)
+    assert [r["seats"] for r in block["rows"]] == [8, 8]
 
     resp = client.put(f"/api/seat-blocks/{block['id']}", json={"rotation": 90})
     assert resp.get_json()["rotation"] == 90

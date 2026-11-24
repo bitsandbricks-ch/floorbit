@@ -49,11 +49,32 @@
     "telemetry": "Telemetry",
     "services": "Services",
     "game-servers": "Game servers",
-    "firewalls": "Firewalls"
+    "firewalls": "Firewalls",
+    "librenms-alerts": "LibreNMS alerts"
   },
   "kicker": "What Floorbit talks to: sources, monitoring and add-ons",
   "docs": "How plugins work",
   "updates": "Updates",
+  "librenmsAlerts": {
+    "title": "Paste into LibreNMS",
+    "desc": "LibreNMS: Alerts > Alert transports, a new transport of type API. Turn off Verify SSL unless LibreNMS trusts the agent's certificate, and give the alert rules this transport with recoveries on.",
+    "show": "Show what to paste",
+    "method": "API method",
+    "url": "API URL ({{agent}})",
+    "headers": "Headers",
+    "token": "Auth: Bearer token",
+    "body": "Body",
+    "copy": "Copy",
+    "copied": "Copied",
+    "newToken": "New token",
+    "newTokenQuestion": "LibreNMS stops getting through until you paste the new token there. Make a new one?",
+    "addressUnknown": "No browser has reached this agent's front door yet: put in the agent's address in the hall.",
+    "off": "The port is 0: the agents don't take LibreNMS alerts.",
+    "noAgent": "No local agent yet: LibreNMS sends its alerts to one.",
+    "after_one": "{{count}} LibreNMS alert open right now.",
+    "after_other": "{{count}} LibreNMS alerts open right now.",
+    "notListening": "Not listening on this agent: {{why}}"
+  },
   "state": {
     "broken": {
       "title": "Not loaded",

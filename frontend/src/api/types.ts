@@ -704,13 +704,13 @@ export interface PowerOverview {
   last_poll: number | null
   plugins: number
   /** label: the name, or the row letters of a block named by its rows; row_names: each row, top first. */
-  blocks: { id: string; name: string; label: string; rows: number; row_names: string[] }[]
+  blocks: { id: string; name: string; label: string; rows: number; row_names: string[]; row_ids?: number[] }[]
   can_edit: boolean
   can_read: boolean
 }
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
-export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin'
+export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin' | 'librenms'
   | 'flapping' | 'errors' | 'duplex' | 'checkin' | 'mapping' | 'log' | 'forecast'   // ports that need a look (issue #15)
   | 'incident'   // an open incident on a seat (issue #1204)
 export interface AlertMute {
@@ -745,6 +745,20 @@ export interface Problem {
   behind?: string[]
   /** The down switch this one is behind: the place to start. */
   cause?: string
+  /** A LibreNMS alert: what DELETE /api/alerts/librenms/<id> takes when its recovery got lost (issue #951). */
+  clear_id?: string
+  ports?: string[]
+}
+/** What to paste into LibreNMS's API transport (GET /api/alerts/librenms/setup). */
+export interface LibreNMSAlertsSetup {
+  enabled: boolean
+  port: number
+  method: string
+  content_type: string
+  body: string
+  token: string
+  active: number
+  agents: { id: string; name: string; connected: boolean; url: string; address_known: boolean; status?: string | null; problem?: string }[]
 }
 export interface ProblemList {
   problems: Problem[]
@@ -880,8 +894,13 @@ export interface PlanCell {
   seat: string
   hit: boolean
   on: boolean | null
-  /** Row and column (from 0) in the block, for the editor's seat handles; missing on older answers. */
+  /** Row (its place in the block) and seat (its place in the row), from 0, for the editor's seat
+   *  handles; missing on older answers. */
   rc?: [number, number]
+  /** Degrees the seat is turned with its row (floorbit/seat_rows.py); missing on a straight row. */
+  a?: number
+  /** The side people sit on, of the way the row runs (left is up on a straight row); missing when not shown. */
+  side?: 'left' | 'right'
 }
 
 export interface PlanShape {
@@ -898,7 +917,7 @@ export interface PlanShape {
   rows?: { text: string; x: number; y: number }[]
   /** Each row, top first (a cell's rc[0]): its id and name as /api/options/rows has them. Ids are
    *  the server's: never build one. Missing on older answers. */
-  row_list?: { id: string; name: string }[]
+  row_list?: { id: string; name: string; row?: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
 }
@@ -1416,11 +1435,14 @@ export interface SeatLocated {
   ms: number; tries: number; stale: boolean; found: WalkPort | null
   steps: { step: 'mac' | 'switch' | 'snmp' | 'monitoring'; ok: boolean; how?: string | null }[]
   replaced?: string[]; plan_seat?: string | null
+  /** The switch's area doesn't hold this seat (issue #1094). */
+  area_drift?: AreaDrift | null
 }
+export interface AreaDrift { kind: 'pin' | 'plan' | 'excluded'; switch: string; area: string[]; row: string }
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 /** A switch login Floorbit keeps (issue #474): never the password. */
 /** label: what pickers show: the name, or the row letters (C–D) of a block named by its rows. */
-export interface SeatBlock { id: string; name: string; label: string; row_names: string[]; cols: number; rows: number; hall_id: string }
+export interface SeatBlock { id: string; name: string; label: string; row_names: string[]; rows: { id: string; seats: number }[]; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */
 export type WifiBand = '2.4' | '5' | '6'
@@ -2149,3 +2171,18 @@ export interface EndpointAnswer {
   rows: EndpointRow[]
   status: { store: 'database'; written: number; open: number; keep_days: number; error: string | null }
 }
+
+/** What one switch serves (GET /api/switch-areas, issue #948). */
+export interface SwitchArea {
+  name: string; id: string
+  /** Where ``serves`` comes from: a pin, learned seats, the switch's place on the plan, or nothing yet. */
+  how: 'manual' | 'learned' | 'plan' | 'todo' | 'excluded'
+  serves: { blocks: string[]; rows: string[]; seats: string[] }
+  manual: { blocks: string[]; rows: string[]; seats: string[]; exclude: boolean }
+  learned: { seat: string; source: string }[]
+  plan_blocks: string[]
+  todo: boolean
+  drift: { kind: 'learned_outside_pin' | 'learned_outside_plan' | 'drawn_elsewhere' | 'excluded_learned'; seats?: string[]; block?: string }[]
+  suggest: { id: string; name: string; block_label: string }[]
+}
+export interface SwitchAreas { switches: SwitchArea[]; blocks: { id: string; label: string }[] }

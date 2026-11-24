@@ -1,17 +1,18 @@
 import type { PlanShape } from '@/api/types'
 
-/** Seats placed freely inside a block (floorbit/seat_layout.py): ``{"row,col": [x, y]}``, each
- *  seat's top-left corner in seats, in the block's own frame before it is turned; the block's x/y
- *  is the middle of the seats' box. */
+/** Seats placed freely inside a block (floorbit/seat_layout.py): ``{"<row id>,<seat>": [x, y]}``,
+ *  each seat's top-left corner in seats, in the block's own frame before it is turned; the block's
+ *  x/y is the middle of the seats' box. */
 export type SeatAt = Record<string, [number, number]>
 
-const key = (rc: [number, number]) => `${rc[0]},${rc[1]}`
+// The row's own id (it stays when rows are reordered); older answers have none, so its place + 1.
+const key = (shape: PlanShape, rc: [number, number]) => `${shape.row_list?.[rc[0]]?.row ?? rc[0] + 1},${rc[1]}`
 
 /** Where every seat of a drawn block is now, in seats from the box's top-left corner. */
 export function seatPlaces(shape: PlanShape, cell: number): SeatAt {
   const out: SeatAt = {}
   for (const c of shape.cells) {
-    if (c.rc) out[key(c.rc)] = [round((c.x + shape.w / 2) / cell), round((c.y + shape.h / 2) / cell)]
+    if (c.rc) out[key(shape, c.rc)] = [round((c.x + shape.w / 2) / cell), round((c.y + shape.h / 2) / cell)]
   }
   return out
 }
@@ -20,7 +21,7 @@ export function seatPlaces(shape: PlanShape, cell: number): SeatAt {
  *  starting at 0,0 again and the block's x/y (in % of a plan ``size`` units big) moved so every
  *  other seat stays where it is on the plan. */
 export function moveSeat(shape: PlanShape, cell: number, size: { w: number; h: number }, rc: [number, number], to: [number, number]) {
-  const at = { ...seatPlaces(shape, cell), [key(rc)]: to }
+  const at = { ...seatPlaces(shape, cell), [key(shape, rc)]: to }
   const xs = Object.values(at).map((p) => p[0]), ys = Object.values(at).map((p) => p[1])
   const left = Math.min(...xs), top = Math.min(...ys)
   const w = Math.max(...xs) + 1 - left, h = Math.max(...ys) + 1 - top

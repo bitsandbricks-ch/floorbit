@@ -145,7 +145,8 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
                         "/api/telemetry/write",        # Telegraf, with the telemetry token (blueprints/telemetry.py)
                         "/api/telemetry/api/v2/write",
                         "/api/telemetry/test",         # collecting from a device now, through the agent
-                        "/api/telemetry/token")        # a new ingest token stops every sender
+                        "/api/telemetry/token",        # a new ingest token stops every sender
+                        "/api/alerts/librenms/token")  # a new token stops LibreNMS until it is pasted there
     loose = []
     for rule in app_module.app.url_map.iter_rules():
         writes = (rule.methods or set()) & {"POST", "PUT", "PATCH", "DELETE"}
