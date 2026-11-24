@@ -160,7 +160,7 @@ def _seed_power(data, layout):
 
 
 def _seed_firewalls(data, layout):
-    """The demo's seat ranges, each on its firewall with the next one as backup."""
+    """The demo's seat ranges, cut over their firewalls."""
     spec = layout.get('firewalls')
     if not spec or (data.get('firewalls') or {}).get('ranges'):
         return
