@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { Agent, AgentGroup, AgentSettingsPage, Hall, HostedState } from '@/api/types'
+import type { Agent, AgentGroup, AgentSettingsPage, HostedState } from '@/api/types'
+import { useInventoryGroups } from '@/pages/inventory/scope'
 import { problems, worst, type Problem, type Tone } from './model'
 
 export type AgentsAnswer = {
@@ -23,12 +24,12 @@ export function useAgents() {
   return { query, data: d, rows }
 }
 
-export function useHalls() {
-  const halls = useQuery({ queryKey: qk.halls, queryFn: () => get<{ halls: Hall[] }>('/api/halls') })
-  const list = halls.data?.halls ?? []
+/** The inventory tags an agent can answer for (issue #869: tags took the place of halls). */
+export function useAgentTags() {
+  const list = useInventoryGroups().data?.tags ?? []
   return {
-    names: Object.fromEntries(list.map((h) => [h.id, h.name])) as Record<string, string>,
-    options: list.map((h) => ({ value: h.id, label: h.name })),
+    names: Object.fromEntries(list.map((x) => [x.id, x.name])) as Record<string, string>,
+    options: list.map((x) => ({ value: x.id, label: x.name })),
   }
 }
 

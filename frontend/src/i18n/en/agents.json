@@ -18,9 +18,6 @@
   "statsNone": "No calls in the last hour",
   "statsFailed": "{{count}} failed",
   "lastError": "Last error, {{when}}: {{method}}: {{error}}",
-  "halls": "Answers for",
-  "allHalls": "Every hall",
-  "hallsHelp": "With an agent per hall, each answers for its own switches; the device list comes from all of them.",
   "revoke": "Revoke",
   "revokeQuestion": "Revoke {{name}}? It stops at its next request and needs a new key.",
   "new": "Enrol an agent",
@@ -110,8 +107,8 @@
     "redisOk": "Valkey answers.",
     "redisOff": "Valkey is not used or not answering: live updates stay on this instance.",
     "redisDown": "Valkey is not answering: the instances can't share live updates or agent calls.",
-    "groupsTitle": "Agents per hall",
-    "groupsHelp": "Agents that answer for the same halls back each other up. With VRRP on them (FLOORBIT_AGENT_VRRP_VIPS), the one holding the first address is the primary: only it polls devices and logs in, the others take over within seconds.",
+    "groupsTitle": "Agents per tag",
+    "groupsHelp": "Agents that answer for the same tags back each other up. With VRRP on them (FLOORBIT_AGENT_VRRP_VIPS), the one holding the first address is the primary: only it polls devices and logs in, the others take over within seconds.",
     "state": {
       "ok": "Failover ready",
       "single": "One agent",
@@ -133,12 +130,12 @@
     },
     "help": {
       "ok": "If the primary stops, a standby takes over its addresses.",
-      "single": "No failover: enrol a second agent for these halls and turn VRRP on for both.",
+      "single": "No failover: enrol a second agent for these tags and turn VRRP on for both.",
       "degraded": "The primary runs, but a backup agent is offline: there is no failover right now.",
       "no_primary": "The agents are connected, but none holds the first address. Check keepalived on them.",
-      "no_vrrp": "Several agents answer here without VRRP: each polls the devices. Turn VRRP on for all of them, or give them different halls.",
+      "no_vrrp": "Several agents answer here without VRRP: each polls the devices. Turn VRRP on for all of them, or give them different tags.",
       "split": "Two agents both think they are primary: they can't hear each other. Check the VLAN, or set FLOORBIT_AGENT_VRRP_PEERS.",
-      "down": "No agent for these halls is connected."
+      "down": "No agent for these tags is connected."
     },
     "noGroups": "No agent yet, so no failover to show."
   },
@@ -217,7 +214,7 @@
   },
   "tab": {
     "agents": "Agents ({{count}})",
-    "failover": "Failover per hall",
+    "failover": "Failover per tag",
     "server": "This Floorbit",
     "overview": "Overview",
     "devices": "Devices",
@@ -268,20 +265,24 @@
       "median_ms": "Call time (median)"
     },
     "unit": {
-      "points": "{{n}} per minute now",
-      "sent": "{{n}} per minute now",
-      "series": "{{n}} now",
-      "heard": "{{n}} now",
-      "failing": "{{n}} now",
-      "telegraf_restarts": "{{n}} since the agent started",
-      "reconnects": "{{n}} per minute now",
-      "syslog": "{{n}} per minute now",
-      "median_ms": "{{n}} ms now"
+      "perMinute": "/min",
+      "ms": "ms"
     },
     "noneTitle": "No numbers kept yet",
     "bigger": "Show {{name}} larger",
     "stats": "min {{min}} · avg {{avg}} · max {{max}}",
-    "close": "Close"
+    "close": "Close",
+    "note": {
+      "points": "Per minute",
+      "sent": "Per minute",
+      "series": "How many there are now",
+      "heard": "How many there are now",
+      "failing": "How many there are now",
+      "telegraf_restarts": "Since the agent started",
+      "reconnects": "Per minute",
+      "syslog": "Per minute",
+      "median_ms": "How long a call to Floorbit takes"
+    }
   },
   "cfg": {
     "title": "Agent settings",
@@ -294,6 +295,7 @@
     "secretSet": "Set (type to replace)",
     "atRestart": "at next start",
     "field": {
+      "hall_url": "Reached in the hall at",
       "metrics": "Metrics listener",
       "metrics_token": "Metrics token",
       "buffer_max_mb": "Buffer size (MB)",
@@ -309,6 +311,7 @@
       "log_summary": "Summary line (seconds)"
     },
     "help": {
+      "hall_url": "Where laptops in the hall open this agent, for the seat walk-through. Leave it empty: the agent learns it, with the ports compose publishes it on. Set it for a reverse proxy or port forwarding, such as https://checkin.lan:8443.",
       "metrics": "host:port for /metrics and /healthz, or off.",
       "metrics_token": "Scrapers then send \"Authorization: Bearer <token>\". Set it when the port is reachable from the LAN.",
       "buffer_max_mb": "How much the agent keeps while Floorbit is out of reach.",
@@ -423,5 +426,9 @@
     "notReported": "On, but this agent hasn't reported it yet",
     "turnOn": "Turn it on",
     "agentSettings": "This agent's settings"
-  }
+  },
+  "tags": "Answers for",
+  "allDevices": "Every device",
+  "tagsHelp": "Inventory tags: the agent answers for the devices with one of them, directly or through their group. Agents with the same tags back each other up. Empty: every device.",
+  "noTags": "No tags yet: make them under Inventory › Groups and tags."
 }

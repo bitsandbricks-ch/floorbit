@@ -1,0 +1,37 @@
+{
+  "graphs": {
+    "tab": "Graphs",
+    "help": "Load and reachability as Floorbit stored them, then one port's traffic.",
+    "range": "Time range",
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours",
+    "port": "Port",
+    "max": "highest {{value}}",
+    "stats": "min {{min}} · avg {{avg}} · max {{max}}",
+    "upYes": "reachable",
+    "upNo": "down",
+    "noPoints": "Nothing stored in this time range.",
+    "noneTitle": "No graphs yet",
+    "none": "Floorbit stores a device's numbers once monitoring or telemetry reads it. Turn on telemetry on the Telemetry tab, or check that the monitoring source knows this device by its name.",
+    "metric": {
+      "cpu": "CPU",
+      "mem": "Memory",
+      "up": "Reachable",
+      "in_bps": "{{port}} in",
+      "out_bps": "{{port}} out",
+      "errors": "{{port}} errors per second"
+    },
+    "upShare": "reachable {{pct}} % of the time"
+  },
+  "logs": {
+    "tab": "Logs",
+    "search": "Search the lines",
+    "level": "Level",
+    "anyLevel": "Any level",
+    "open": "Open in Logs",
+    "none": "No log lines from this device",
+    "noneHelp": "Floorbit shows syslog lines whose sender is {{name}}. Point the device's syslog at the local agent to see them here.",
+    "noMatch": "No lines match",
+    "more": "The newest 200 lines. Open in Logs to page further back."
+  }
+}

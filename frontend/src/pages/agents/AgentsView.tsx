@@ -5,14 +5,14 @@ import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { AgentCard } from './AgentCard'
-import { agentHref, useAgents, useHalls, type AgentRow } from './data'
+import { agentHref, useAgents, useAgentTags, type AgentRow } from './data'
 import { stateKey } from './model'
 
 /** The body of the Local agents page: the four figures, then a card per agent. */
 export default function AgentsView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const { query, data: d, rows } = useAgents()
-  const halls = useHalls()
+  const tags = useAgentTags()
   if (query.isPending) return <LoadingState lines />
   if (!d) return <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
   if (!rows.length) {
@@ -24,7 +24,7 @@ export default function AgentsView({ expanded }: ViewProps) {
       <Overview rows={rows} />
       {expanded ? (
         <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md" aria-label={t('agents.agents')}>
-          {rows.map((r) => <AgentCard key={r.agent.id} row={r} newest={d.newest_version} hallNames={halls.names} />)}
+          {rows.map((r) => <AgentCard key={r.agent.id} row={r} newest={d.newest_version} tagNames={tags.names} />)}
         </SimpleGrid>
       ) : look.length > 0 && (
         <Stack gap={6} aria-label={t('agents.needsLook')}>

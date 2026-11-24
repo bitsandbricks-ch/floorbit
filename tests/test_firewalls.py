@@ -228,47 +228,75 @@ def test_netbox_prefixes_become_ranges(app_module):
     assert http.calls[0][1]["cf_floorbit_firewalls__empty"] == "false"     # NetBox filters, not us
 
 
-def test_import_ranges_from_netbox(app_module, client, net, monkeypatch):
-    nb_class = app_module.app.extensions["floorbit_plugins"].specs["netbox"].plugin_class()
+def _sync(app_module):
+    """An inventory sync with NetBox set up (its devices left out: only the ranges matter here)."""
+    from floorbit.blueprints import inventory as inventory_bp
+    with app_module.app.app_context():
+        return inventory_bp.run_sync()
+
+
+def test_every_inventory_sync_brings_the_firewalls_netbox_names_on_prefixes(app_module, client, net, monkeypatch):
+    # Issue #1347: no import button; the sync reads ``floorbit_firewalls`` with the prefixes.
+    from floorbit.blueprints import inventory as inventory_bp
+    registry = app_module.app.extensions["floorbit_plugins"]
+    nb_class = registry.specs["netbox"].plugin_class()
     listed = [{"cidr": "192.0.2.0/27", "name": "Block A", "firewalls": ["fw-01", "fw-02"]},
               {"cidr": "198.51.100.0/24", "name": "", "firewalls": ["fw-02", "fw-03"]},
               {"cidr": "203.0.113.0/24", "name": "", "firewalls": ["fw-99"]},       # not in the inventory
               {"cidr": "192.0.2.64/27", "name": "", "firewalls": ["fw-03"]}]       # the crew planned it
     monkeypatch.setattr(nb_class, "firewall_ranges", lambda self: list(listed))
+    monkeypatch.setattr(type(registry), "set_up", lambda self, spec: True)
+    monkeypatch.setattr(inventory_bp, "_feeders", lambda: [])
     assert _add(client, "192.0.2.64/27", "fw-01").status_code == 201
-    assert client.get("/api/firewalls").get_json()["can_import"] is True
+    assert "can_import" not in client.get("/api/firewalls").get_json()
+    assert client.post("/api/firewalls/ranges/import").status_code in (404, 405)
 
-    r = client.post("/api/firewalls/ranges/import")
-    assert r.status_code == 200, r.get_json()
-    body = r.get_json()
-    assert body["added"] == 2 and len(body["errors"]) == 2
+    _sync(app_module)
     rows = {x["cidr"]: x for x in client.get("/api/firewalls").get_json()["ranges"]}
     assert rows["192.0.2.0/27"]["source"] == "import" and rows["192.0.2.0/27"]["plugin"] == "NetBox"
     assert rows["192.0.2.64/27"]["source"] == "floorbit" and rows["192.0.2.64/27"]["firewalls"] == ["fw-01"]
+    assert "203.0.113.0/24" not in rows
     imported = rows["198.51.100.0/24"]
     edit = client.put(f"/api/firewalls/ranges/{imported['id']}", json={"firewalls": ["fw-01"]})
     assert edit.status_code == 409 and "NetBox" in edit.get_json()["error"]
 
-    # Importing again replaces the last import; a prefix gone from NetBox goes here too.
+    # The next sync replaces the last one; a prefix gone from NetBox goes here too.
     listed.pop(0)
-    assert client.post("/api/firewalls/ranges/import").get_json()["added"] == 1
+    _sync(app_module)
     assert sorted(x["cidr"] for x in client.get("/api/firewalls").get_json()["ranges"]) == [
         "192.0.2.64/27", "198.51.100.0/24"]
 
-    # NetBox down: the last import stays.
+    # NetBox down: the last ranges stay, and the sync itself doesn't fail.
     def broken(self):
         from floorbit.plugins.base import PluginError
         raise PluginError("NetBox answered 503 for the prefix list")
     monkeypatch.setattr(nb_class, "firewall_ranges", broken)
-    r = client.post("/api/firewalls/ranges/import")
-    assert r.status_code == 502 and "503" in r.get_json()["error"]
+    _sync(app_module)
     assert len(client.get("/api/firewalls").get_json()["ranges"]) == 2
 
 
-def test_only_planners_import(app_module, client, net):
-    from tests.test_rbac import sign_in_as
-    viewer = sign_in_as(app_module, "vi1", "viewer")
-    assert viewer.post("/api/firewalls/ranges/import").status_code == 403
+def test_the_sync_report_says_how_many_ranges_came(app_module, monkeypatch, net):
+    from floorbit.blueprints import inventory as inventory_bp
+    registry = app_module.app.extensions["floorbit_plugins"]
+    monkeypatch.setattr(registry.specs["netbox"].plugin_class(), "firewall_ranges",
+                        lambda self: [{"cidr": "192.0.2.0/27", "name": "", "firewalls": ["fw-01"]}])
+    monkeypatch.setattr(type(registry), "set_up", lambda self, spec: True)
+    reports = [{"plugin": "netbox"}, {"plugin": "other"}, {"plugin": "netbox", "error": "down"}]
+    with app_module.app.app_context():
+        inventory_bp._sync_firewall_plans(registry, reports)
+    assert reports[0]["firewall_ranges"] == {"added": 1, "errors": []}
+    assert "firewall_ranges" not in reports[1] and "firewall_ranges" not in reports[2]
+
+
+def test_no_netbox_set_up_no_range_sync(app_module, monkeypatch):
+    from floorbit.blueprints import inventory as inventory_bp
+    registry = app_module.app.extensions["floorbit_plugins"]
+    called = []
+    monkeypatch.setattr(registry.specs["netbox"].plugin_class(), "firewall_ranges", lambda self: called.append(1) or [])
+    monkeypatch.setattr(type(registry), "set_up", lambda self, spec: False)
+    with app_module.app.app_context():
+        inventory_bp._sync_firewall_plans(registry, [])
+    assert called == []
 
 
 def test_with_the_status_monitor_polling_the_page_never_asks_the_source_itself(client, net):

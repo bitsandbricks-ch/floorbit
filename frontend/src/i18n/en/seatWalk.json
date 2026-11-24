@@ -54,7 +54,6 @@
   "port": "Port",
   "time": "Time",
   "doneList": "Seats located",
-  "agentAt": "Laptops are identified through the local agent at",
   "agentNone": "No local agent has said where laptops reach it.",
   "noAgent": "No laptop in the hall has reached a local agent yet. Open the check-in page once from a seat (or set the check-in address under Settings, Check-in), or type the laptop's MAC below.",
   "mac": "Laptop MAC (optional)",

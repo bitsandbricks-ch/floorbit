@@ -86,27 +86,15 @@ describe('Firewalls', () => {
     expect(await screen.findByText(`Range page ${imported.id}`)).toBeInTheDocument()
   })
 
-  it('imports ranges from NetBox and leaves imported ranges to NetBox', async () => {
+  it('leaves ranges from NetBox to NetBox, and has no import of its own (#1347)', async () => {
     const fromNetbox = { ...list.ranges[0], source: 'import' as const, plugin: 'NetBox' }
-    const api = fakeFetch({
-      'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [fromNetbox, { ...list.ranges[0], id: 'r2', cidr: '198.51.100.0/24', name: '' }], can_import: true },
-      'POST /api/firewalls/ranges/import': () => ({ status: 200, body: { added: 3, errors: ['1 prefix(es) skipped: planned in Floorbit already.'] } }),
-    })
-    vi.stubGlobal('fetch', api.fn)
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [fromNetbox, { ...list.ranges[0], id: 'r2', cidr: '198.51.100.0/24', name: '' }] },
+    }).fn)
     renderWithApp(<Firewalls />)
     expect(await screen.findByText('From NetBox')).toBeInTheDocument()
-    expect(screen.getByText('Change it in NetBox and import again.')).toBeInTheDocument()
+    expect(screen.getByText('Change it in NetBox: the next inventory sync brings it.')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Change' })).toHaveLength(1)   // only the range planned here
-    fireEvent.click(screen.getByRole('button', { name: 'Import from NetBox' }))
-    expect(await screen.findByText('3 ranges imported from NetBox.')).toBeInTheDocument()
-    expect(screen.getByText('1 prefix(es) skipped: planned in Floorbit already.')).toBeInTheDocument()
-    expect(api.calls.some((c) => c.method === 'POST' && c.path.endsWith('/api/firewalls/ranges/import'))).toBe(true)
-  })
-
-  it('has no import button without a NetBox to ask', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/firewalls': list }).fn)
-    renderWithApp(<Firewalls />)
-    await screen.findByRole('button', { name: 'Add range' })
     expect(screen.queryByRole('button', { name: 'Import from NetBox' })).not.toBeInTheDocument()
   })
 })

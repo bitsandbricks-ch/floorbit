@@ -6,11 +6,17 @@ the list: it works with no plugin at all, filled by hand on the **Inventory** pa
 or by placing switches on the floor plan. Plugins such as NetBox add to it.
 
 Every device, group and tag has its own page, with no side panel in between: a device opens at
-`/inventory/devices/<id>` with tabs for its overview, interfaces, telemetry, settings and
+`/inventory/devices/<id>` with tabs for its overview, interfaces, telemetry, graphs, logs, settings and
 credentials; a group at `/inventory/groups/<id>`, a tag at `/inventory/tags/<id>` and the
 defaults for all devices at `/inventory/defaults`, each with tabs for its details, telemetry,
 settings (properties and feature switches) and credentials. Other entries (cables, transceivers, ...) open at
 `/inventory/entries/<type>/<id>`. The links can be shared and bookmarked.
+
+**Graphs** on a device's page shows its CPU, memory and reachability over 1 to 48 hours, then
+one port's traffic in and out and its errors (pick the port), as Floorbit stored them from
+monitoring or telemetry; a number never stored is left out. **Logs** shows the syslog lines this
+device sent, newest first, with a search and a level filter, and **Open in Logs** for the rest.
+It needs **See seats** (`seats.view`) like the Logs page, since lines name MACs and IPs.
 
 The **Inventory** page is one list with a tab per type (Devices, then any other type that has
 entries) and a **Groups and tags** tab. The device list shows each device's live state (the status
@@ -177,6 +183,21 @@ Devices are one **type** of inventory entry. The others sit in tabs on the Inven
 | Prefix or range | The inventory (a network or a from-to range, VLAN ID, gateway, purpose, check-in lookups). A prefix with firewalls set is a [firewall range](firewalls.md): its plan is kept on the prefix. |
 | Item | The inventory, for anything else worth listing. |
 
+### IPAM
+
+VLANs and prefixes share one **IPAM** tab instead of a tab each, with **VLANs** and **Prefixes** as
+sub-tabs (issue #1346):
+
+- **VLANs**: VLAN ID, name, purpose, the prefixes with that VLAN ID, and where it comes from.
+- **Prefixes**: the network or range (with its name below when that differs), its VLAN, purpose,
+  the firewalls it is routed over with how the route is doing now (as planned, on its fallback,
+  none up), and where it comes from.
+- Filters: search, purpose, source (by hand, NetBox, discovery) and, for prefixes, **With firewalls**.
+  **Add VLAN** and **Add prefix** open the new entry's page.
+
+A prefix's page shows its parts and where each runs now, and its plan. On a prefix no firewall routes
+yet, the crew (`floorplan.edit`) starts the plan right there (**Route it over firewalls**).
+
 Admins add their own types under **Inventory > Types**, and give any type, built-in or their own,
 extra **fields**: text, number, choice, yes/no, or a link to a device or an entry of another type (the rack a
 switch sits in, the VLAN of a range).
@@ -304,7 +325,8 @@ The NetBox plugin also fills these types, with the same rules (hand edits lock a
 deleted, the first sync joins by name):
 
 - **Racks and locations** from racks and locations.
-- **VLANs and IP ranges** from VLANs and prefixes.
+- **VLANs and IP ranges** from VLANs and prefixes, and a prefix's firewalls from its custom field
+  `floorbit_firewalls` (see [Firewalls](firewalls.md#ranges-from-netbox)).
 - **Transceivers** from modules and from inventory items that look like optics (SFP, QSFP, ...).
 - **Power boards and circuits** from power panels and power feeds. They go onto the power page;
   a board that already exists there by name is joined, never overwritten.

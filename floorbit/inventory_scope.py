@@ -227,6 +227,14 @@ def chain(data, group_id):
     return out
 
 
+def device_tags(data, dev):
+    """A device's tags with the ones its groups give it: what an agent's tags match (issue #869)."""
+    out = set(dev.get('tags') or [])
+    for g in chain(data, dev.get('group_id')):
+        out.update(g.get('tags') or [])
+    return frozenset(out)
+
+
 def _check_tags(data, value):
     if value is None:
         return []

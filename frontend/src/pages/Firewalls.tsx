@@ -1,11 +1,11 @@
 import {
-  Alert, Anchor, Badge, Button, Group, Modal, Paper, SimpleGrid, Stack, Text, Title, Tooltip,
+  Alert, Anchor, Badge, Button, Group, Modal, Paper, SimpleGrid, Stack, Text, Title,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { del, get, post } from '@/api/client'
+import { del, get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { FirewallCard, FirewallList, FirewallRange } from '@/api/types'
@@ -29,11 +29,6 @@ export default function Firewalls() {
   const [adding, setAdding] = useState(false)
   const navigate = useNavigate()
   const scope = useSwitchScope()
-  const qc = useQueryClient()
-  const imported = useMutation({
-    mutationFn: () => post<{ added: number; errors: string[] }>('/api/firewalls/ranges/import'),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.firewalls }),
-  })
   const data = q.data
   const moved = data?.ranges.flatMap((r) => r.parts.filter((p) => p.state === 'failover' || p.state === 'down')
     .map((p) => ({ ...p, range: r }))) ?? []
@@ -42,23 +37,11 @@ export default function Firewalls() {
       <PageHead title={t('firewalls.title')} desc={t('firewalls.intro')}
         actions={canEdit && data && data.firewalls.length > 0 && (
           <Group gap="xs">
-            {data.can_import && (
-              <Tooltip label={t('firewalls.importHelp')} multiline w={280}>
-                <Button variant="default" loading={imported.isPending} onClick={() => imported.mutate()}>{t('firewalls.import')}</Button>
-              </Tooltip>
-            )}
             <Button onClick={() => setAdding(true)}>{t('firewalls.add')}</Button>
           </Group>
         )} />
       <Stack gap="md">
         {q.error && <Alert color="down" role="alert">{q.error.message}</Alert>}
-        {imported.error && <Alert color="down" role="alert">{imported.error.message}</Alert>}
-        {imported.data && (
-          <Alert color={imported.data.errors.length ? 'warn' : 'up'} role="status" withCloseButton onClose={() => imported.reset()}>
-            <Text size="sm">{t('firewalls.importDone', { count: imported.data.added })}</Text>
-            {imported.data.errors.map((e) => <Text key={e} size="xs">{e}</Text>)}
-          </Alert>
-        )}
         {data?.unread && <Alert color="warn">{t('firewalls.unread')}</Alert>}
         {data && data.monitoring === false && <Alert color="gray">{t('firewalls.noMonitoring')}</Alert>}
         {moved.length > 0 && (

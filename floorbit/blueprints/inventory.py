@@ -17,6 +17,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from .. import (
     agent_link,
+    firewalls,
     inventory,
     inventory_discovery,
     inventory_schedule,
@@ -78,7 +79,25 @@ def run_sync():
                               '{gone} gone, {locked} locked fields kept'.format(**report))
         report['entries'] = _sync_entries(registry, spec)
         reports.append(report)
+    _sync_firewall_plans(registry, reports)
     return reports
+
+
+def _sync_firewall_plans(registry, reports):
+    """After the prefixes came in: the firewalls NetBox names on them (custom field
+    ``floorbit_firewalls``) become their plans, so IPAM needs no import of its own (issue #1347).
+    The outcome goes on the reports of the sources that list ranges."""
+    ids = {s.id for s in firewalls.import_sources(registry) if registry.set_up(s)}
+    if not ids and not agent_link.active():
+        return
+    try:
+        added, errors = firewalls.import_from(registry, 'inventory sync')
+        outcome = {'added': added, 'errors': errors}
+    except firewalls.FirewallError as exc:
+        outcome = {'added': 0, 'errors': [str(exc)[:300]]}
+    for report in reports:
+        if not report.get('error') and (report.get('base') or report.get('plugin')) in ids:
+            report['firewall_ranges'] = outcome
 
 
 def _sync_entries(registry, spec):

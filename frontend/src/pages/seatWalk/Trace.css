@@ -1,0 +1,54 @@
+/* The seat walk's live trace, flow strip and laptop strip (issue #1359, #1358). */
+.walk-trace-lines {
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 12.5px;
+  line-height: 1.7;
+  max-height: 22rem;
+  overflow-y: auto;
+  color: var(--color-muted);
+}
+.walk-trace-line {
+  display: grid;
+  grid-template-columns: 7.5em 1.2em 1fr auto;
+  gap: 0.5em;
+  align-items: baseline;
+}
+.walk-trace-time, .walk-trace-ms { color: var(--color-faint); }
+.walk-trace-line[data-state='ok'] .walk-trace-mark { color: var(--color-up); }
+.walk-trace-line[data-state='no'] .walk-trace-mark { color: var(--color-down); }
+.walk-trace-line[data-state='warn'] .walk-trace-mark { color: var(--color-warn); }
+.walk-trace-line[data-state='run'] .walk-trace-mark { color: var(--color-trace); }
+.walk-trace-line[data-state='skip'] .walk-trace-mark { color: var(--color-faint); }
+.walk-trace-cursor { color: var(--color-fg); animation: walk-blink 1s steps(2) infinite; }
+@keyframes walk-blink { 50% { opacity: 0; } }
+@media (max-width: 36em) {
+  .walk-trace-line { grid-template-columns: 1.2em 1fr; }
+  .walk-trace-time, .walk-trace-ms { display: none; }
+}
+
+.walk-flow { display: flex; align-items: center; flex-wrap: wrap; row-gap: 8px; }
+.walk-flow-item { display: flex; align-items: center; flex: 1 1 7rem; min-width: 0; }
+.walk-flow-arrow { flex: 0 0 14px; height: 2px; background: var(--color-line); }
+.walk-flow-arrow[data-state='done'] { background: var(--color-up); }
+.walk-flow-arrow[data-state='now'] { background: var(--color-trace); }
+.walk-flow-node {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--color-line);
+  background: var(--color-raised);
+}
+.walk-flow-node[data-state='done'] { border-color: color-mix(in srgb, var(--color-up) 55%, transparent); }
+.walk-flow-node[data-state='now'] {
+  border-color: var(--color-trace);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-trace) 22%, transparent);
+}
+.walk-flow-node[data-state='no'] { border-color: color-mix(in srgb, var(--color-down) 50%, transparent); }
+.walk-flow-node[data-state='wait'], .walk-flow-node[data-state='skip'] { opacity: 0.5; }
+
+.walk-strip { display: grid; grid-template-columns: 1.4fr 1fr 0.7fr; gap: 10px; }
+.walk-strip-cell { min-width: 0; }
+@media (max-width: 48em) {
+  .walk-strip { grid-template-columns: 1fr; }
+}
