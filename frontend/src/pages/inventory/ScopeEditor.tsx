@@ -9,6 +9,8 @@ import type { CredentialInfo, InventoryGroup, InventoryOverview, InventoryTag } 
 import { PageTabs } from '@/components/PageTabs'
 import { usePageTab } from '@/components/pageTab'
 import { Panel } from '@/components/ui'
+import { useLeaveWarning } from '@/components/useLeaveWarning'
+import { SaveBar } from '@/pages/settings/editor'
 import { credentialBody } from './model'
 import { groupAndBelow, groupTree, useCredentials } from './scope'
 import { TelemetrySettings } from './TelemetrySettings'
@@ -81,6 +83,14 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
   const tabIds = [...(target.kind !== 'defaults' ? ['details'] : []), ...(current ? ['telemetry', 'settings', ...(canEdit ? ['credentials'] : [])] : [])]
   const [tab, setTab] = usePageTab(tabIds)
 
+  // What the details form would change on a saved group or tag; a new one has its Create button instead.
+  const was = { name: item?.name ?? '', icon: item?.icon ?? '', color: item?.color ?? '', parent: group?.parent_id ?? null,
+    tags: group?.tags ?? [], text: group?.notes ?? tag?.description ?? '' }
+  const now = { name, icon, color, parent, tags, text }
+  const count = item ? (Object.keys(was) as (keyof typeof was)[]).filter((key) => JSON.stringify(was[key]) !== JSON.stringify(now[key])).length : 0
+  useLeaveWarning(count > 0)
+  const discard = () => { setName(was.name); setIcon(was.icon); setColor(was.color); setParent(was.parent); setTags(was.tags); setText(was.text) }
+
   function basics() {
     const body: Record<string, unknown> = { name, icon, color }
     if (target.kind === 'group') Object.assign(body, { parent_id: parent, tags, notes: text })
@@ -116,9 +126,10 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
                       question={t(target.kind === 'group' ? 'inventory.groups.deleteQ' : 'inventory.tags.deleteQ', { name: item.name })}
                       onConfirm={() => remove.mutate()} />
                   ) : <span />}
-                  <Button type="submit" loading={save.isPending} disabled={!name.trim()}>{item ? t('inventory.save') : t('inventory.groups.create')}</Button>
+                  {!item && <Button type="submit" loading={save.isPending} disabled={!name.trim()}>{t('inventory.groups.create')}</Button>}
                 </Group>
               )}
+              {canEdit && item && <SaveBar count={count} bad={!name.trim()} saving={save.isPending} onDiscard={discard} />}
             </Stack>
           </form>
         </Panel>
@@ -136,7 +147,7 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
               busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
           </Panel>
           <Panel title={t('inventory.features.title')}>
-            <FeaturesEditor catalog={overview.features} value={current.features} canEdit={canEdit} busy={save.isPending}
+            <FeaturesEditor key={JSON.stringify(current.features)} catalog={overview.features} value={current.features} canEdit={canEdit} busy={save.isPending}
               onSave={(features) => save.mutate({ features })} />
           </Panel>
         </>

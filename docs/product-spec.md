@@ -191,7 +191,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Settings rows:** name and help on the left, the control on the right at one width; changes
   collect in the save bar until Save.
   Values only whoever runs the server needs are marked `advanced` and fold under Advanced. An agent's
-  settings use the same rows and save bar. Pages name a value in words; an env var's name only
+  settings use the same rows and save bar, and so do inventory's properties, feature switches,
+  telemetry setup and an existing group's, tag's or entry's details (`SaveBar`): nothing saves on
+  its own, and closing the tab with unsaved changes asks first (`useLeaveWarning`). Dialogs keep
+  their Cancel and Save. Pages name a value in words; an env var's name only
   shows in a tooltip. A plugin's settings have one home, its plugin page, including the values that
   differ per agent (its Per agent tab); Settings search and the agent's page link there.
 - **Deletes ask first** (`ConfirmButton`), never `window.confirm`, `alert` or `prompt`.

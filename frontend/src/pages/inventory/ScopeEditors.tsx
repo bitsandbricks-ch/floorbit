@@ -1,6 +1,8 @@
 import { ActionIcon, Badge, Button, ColorInput, Group, MultiSelect, PasswordInput, SegmentedControl, Select, Stack, Table, Text, TextInput } from '@mantine/core'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
+import { useLeaveWarning } from '@/components/useLeaveWarning'
+import { SaveBar } from '@/pages/settings/editor'
 import { useTranslation } from 'react-i18next'
 import type { CredentialInfo, FeatureInfo, InventoryOverview, InventoryTag, Origin } from '@/api/types'
 import { DEVICE_ICONS, DeviceIcon } from './icons'
@@ -95,7 +97,11 @@ export function PropertiesEditor({ value, inherited, busy, canEdit, onSave }: {
 }) {
   const { t } = useTranslation()
   const [rows, setRows] = useState<[string, string][]>(() => Object.entries(value))
-  const dirty = JSON.stringify(rows) !== JSON.stringify(Object.entries(value))
+  const clean = (r: [string, string][]) => Object.fromEntries(r.filter(([k]) => k.trim()).map(([k, v]) => [k.trim().toLowerCase(), v]))
+  const next = clean(rows)
+  // Count names, not rows: a row added and left empty changes nothing.
+  const count = [...new Set([...Object.keys(value), ...Object.keys(next)])].filter((k) => value[k] !== next[k]).length
+  useLeaveWarning(count > 0)
   const others = Object.entries(inherited ?? {}).filter(([, v]) => v.from.type !== 'device')
   return (
     <Stack gap="xs">
@@ -116,16 +122,13 @@ export function PropertiesEditor({ value, inherited, busy, canEdit, onSave }: {
         </Group>
       ))}
       {canEdit && (
-        <Group justify="space-between">
+        <Group>
           <Button size="xs" variant="subtle" leftSection={<IconPlus size={14} />} onClick={() => setRows((r) => [...r, ['', '']])}>
             {t('inventory.props.add')}
           </Button>
-          <Button size="xs" disabled={!dirty} loading={busy}
-            onClick={() => onSave(Object.fromEntries(rows.filter(([k]) => k.trim()).map(([k, v]) => [k.trim().toLowerCase(), v])))}>
-            {t('inventory.save')}
-          </Button>
         </Group>
       )}
+      {canEdit && <SaveBar count={count} saving={busy} onDiscard={() => setRows(Object.entries(value))} onSave={() => onSave(next)} />}
       {others.length > 0 && (
         <Table fz="sm" verticalSpacing={4}>
           <Table.Tbody>
@@ -155,7 +158,17 @@ export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave
   onSave: (features: Record<string, boolean | null>) => void
 }) {
   const { t } = useTranslation()
-  const choice = (id: string): Choice => (id in value ? (value[id] ? 'on' : 'off') : 'inherit')
+  // Switches collect like every other setting and go in with Save, instead of each saving on its own (#993).
+  const [draft, setDraft] = useState<Record<string, Choice>>({})
+  const saved = (id: string): Choice => (id in value ? (value[id] ? 'on' : 'off') : 'inherit')
+  const choice = (id: string): Choice => draft[id] ?? saved(id)
+  const changed = Object.keys(draft).filter((id) => draft[id] !== saved(id))
+  useLeaveWarning(changed.length > 0)
+  const save = () => {
+    const next: Record<string, boolean | null> = { ...value }
+    for (const id of changed) next[id] = draft[id] === 'inherit' ? null : draft[id] === 'on'
+    onSave(next)
+  }
   const section = (core: boolean) => catalog.filter((f) => f.core === core)
   const row = (f: FeatureInfo) => {
     const now = resolved?.[f.id]
@@ -176,7 +189,7 @@ export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave
             aria-label={f.core ? t(`inventory.feature.${f.id}`) : f.name}
             data={[{ value: 'inherit', label: t('inventory.features.inherit') }, { value: 'on', label: t('inventory.features.on') },
               { value: 'off', label: t('inventory.features.off') }]}
-            onChange={(v) => onSave({ ...value, [f.id]: v === 'inherit' ? null : v === 'on' })} />
+            onChange={(v) => setDraft((d) => ({ ...d, [f.id]: v as Choice }))} />
         </Table.Td>
       </Table.Tr>
     )
@@ -188,6 +201,7 @@ export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave
       <Text size="xs" fw={600} c="dimmed" tt="uppercase">{t('inventory.features.plugins')}</Text>
       <Text size="xs" c="dimmed">{t('inventory.features.pluginsHint')}</Text>
       <Table verticalSpacing={6}><Table.Tbody>{section(false).map(row)}</Table.Tbody></Table>
+      {canEdit && <SaveBar count={changed.length} saving={busy} onDiscard={() => setDraft({})} onSave={save} />}
     </Stack>
   )
 }

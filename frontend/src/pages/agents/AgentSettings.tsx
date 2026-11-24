@@ -7,6 +7,7 @@ import { patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent, AgentSettingField, AgentSettingsPage, SettingSource } from '@/api/types'
 import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { useLeaveWarning } from '@/components/useLeaveWarning'
 import { Advanced, SaveBar } from '@/pages/settings/editor'
 import { useAgentSettings, useAgents } from './data'
 import { Input, Row, Source } from './fields'
@@ -29,6 +30,8 @@ export function AgentSettingsForm({ agent }: { agent: Agent }) {
   const others = useAgents().data?.agents.filter((a) => a.id !== agent.id).length ?? 0
   const [draft, setDraft] = useState<Record<string, Value>>({})
   const [saved, setSaved] = useState(false)
+  const count = Object.keys(draft).length
+  useLeaveWarning(count > 0)
   const save = useMutation({
     mutationFn: () => patch<AgentSettingsPage>(`/api/agents/${agent.id}/settings`, { settings: draft }),
     onSuccess: (page) => {
@@ -42,7 +45,6 @@ export function AgentSettingsForm({ agent }: { agent: Agent }) {
   const page = q.data
   const reported = agent.report?.settings
   const pending = new Set(reported?.pending ?? [])
-  const count = Object.keys(draft).length
   const set = (key: string, v: Value) => { setSaved(false); setDraft((d) => ({ ...d, [key]: v })) }
   const undo = (key: string) => setDraft((d) => Object.fromEntries(Object.entries(d).filter(([k]) => k !== key)))
 

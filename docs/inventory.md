@@ -109,6 +109,10 @@ Per device, tag, group or for all devices, Floorbit's own per-device features ca
 switched on. A plugin with a part on the [local agent](agent.md) works on a device only
 where it is switched on **and** a credential for it resolves.
 
+Switches, properties and telemetry settings don't save on their own: changes collect in the bar at
+the bottom ("2 unsaved changes") until **Save**, and **Discard changes** puts them back, as on
+Settings.
+
 ### Credentials
 
 SSH logins, SNMP v2c communities, SNMP v3 users, SNMP v3 trap users ([telemetry.md](telemetry.md#snmpv3-trap-users)),
