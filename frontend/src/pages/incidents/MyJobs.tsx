@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Paper, Select, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Button, Group, Paper, Select, SimpleGrid, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,13 +6,10 @@ import { get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { DutyStatus, Job, JobsData } from '@/api/types'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { JobPlan } from './jobs/JobPlan'
-import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { JobPlan } from '../jobs/JobPlan'
+import { ErrorBanner } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
-import { IconChecklist } from '@tabler/icons-react'
 import { toastDone } from '@bitsandbricks/ui'
 
 function since(ts: number) {
@@ -64,8 +61,9 @@ function JobCard({ job, busy, onAnswer }: { job: Job; busy: boolean; onAnswer: (
   )
 }
 
-/** The tech's phone: on duty or not, where they are, and the jobs sent to them. */
-export default function Jobs() {
+/** The tech's side of the incident board (issue #887, was My jobs): on duty or not, where they
+ *  are, and the incidents sent to them, above the board. */
+export function MyJobs() {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const jobs = useQuery({ queryKey: qk.jobs, queryFn: () => get<JobsData>('/api/jobs'), refetchInterval: 15_000 })
@@ -84,38 +82,34 @@ export default function Jobs() {
   })
   const data = jobs.data
   const error = jobs.error ?? duty.error ?? answer.error
-
+  if (!data) return <ErrorBanner error={error} mb="md" />
   return (
-    // Jobs nobody has said "On my way" to go in the tab title, so a phone with the tab in the background shows them (issue #346).
-    <Layout title={t('jobs.title')} back={{ href: '/incidents', label: t('incidents.title') }}
-      count={(data?.jobs ?? []).filter((j) => !j.taken_at).length}>
-      <PageHead title={t('jobs.title')} desc={t('jobs.intro')} />
-      <Stack gap="md">
-        <ErrorBanner error={error} />
-        {jobs.isPending ? <LoadingState rows={3} /> : data && (
-          <>
-            <Paper withBorder radius="lg" p="sm">
-              <Stack gap="sm">
-                <Switch size="md" label={t('jobs.onDuty')} description={t('jobs.onDutyHelp')} checked={data.me.on_duty}
-                  onChange={(e) => duty.mutate({ on_duty: e.currentTarget.checked })} />
-                <Select label={t('jobs.whereAmI')} description={t('jobs.whereHelp')} placeholder={t('jobs.pickSeat')} searchable clearable
-                  data={data.seats} value={data.me.at && data.seats.includes(data.me.at) ? data.me.at : null}
-                  onChange={(v) => duty.mutate({ at: v ?? '' })} limit={50} />
-              </Stack>
-            </Paper>
-            {!data.me.on_duty && <Text size="sm" c="dimmed">{t('jobs.offDuty')}</Text>}
-            {/* So a tech knows jobs can arrive without a lead sending them (issue #360). */}
-            {data.me.on_duty && data.auto && <Text size="sm" c="dimmed">{t('jobs.autoOn')}</Text>}
-            {(data.done ?? 0) > 0 && <Text size="sm" c="up" role="status">{t('jobs.doneLately', { count: data.done })}</Text>}
-            {data.jobs.length === 0 ? (
-              <Paper withBorder radius="lg"><EmptyState icon={<IconChecklist size={24} />} title={t('jobs.none')} /></Paper>
-            ) : data.jobs.map((job) => (
+    <Stack gap="sm" mb="md">
+      <ErrorBanner error={error} />
+      <Paper withBorder radius="lg" p="sm" role="group" aria-label={t('jobs.title')}>
+        <Group gap="lg" align="flex-end" wrap="wrap">
+          <Switch size="md" label={t('jobs.onDuty')} description={t('jobs.onDutyHelp')} checked={data.me.on_duty}
+            onChange={(e) => duty.mutate({ on_duty: e.currentTarget.checked })} />
+          <Select w={220} label={t('jobs.whereAmI')} placeholder={t('jobs.pickSeat')} searchable clearable
+            data={data.seats} value={data.me.at && data.seats.includes(data.me.at) ? data.me.at : null}
+            onChange={(v) => duty.mutate({ at: v ?? '' })} limit={50} />
+          <Text size="sm" c="dimmed" style={{ flex: '1 1 16em' }}>
+            {!data.me.on_duty ? t('jobs.offDuty') : data.auto ? t('jobs.autoOn') : t('jobs.whereHelp')}
+          </Text>
+          {(data.done ?? 0) > 0 && <Text size="sm" c="up" role="status">{t('jobs.doneLately', { count: data.done })}</Text>}
+        </Group>
+      </Paper>
+      {data.jobs.length > 0 && (
+        <section aria-labelledby="fb-jobs-sent">
+          <Title order={2} size="h4" id="fb-jobs-sent" mb="xs">{t('jobs.sentToYou', { count: data.jobs.length })}</Title>
+          <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md">
+            {data.jobs.map((job) => (
               <JobCard key={job.id} job={job} busy={answer.isPending && answer.variables?.id === job.id}
                 onAnswer={(kind, note) => answer.mutate({ id: job.id, kind, note })} />
             ))}
-          </>
-        )}
-      </Stack>
-    </Layout>
+          </SimpleGrid>
+        </section>
+      )}
+    </Stack>
   )
 }

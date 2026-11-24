@@ -36,7 +36,6 @@ const Configs = lazy(() => import('@/pages/Configs'))
 const Templates = lazy(() => import('@/pages/Templates'))
 const Replay = lazy(() => import('@/pages/Replay'))
 const Report = lazy(() => import('@/pages/Report'))
-const Jobs = lazy(() => import('@/pages/Jobs'))
 const Handover = lazy(() => import('@/pages/Handover'))
 const Cables = lazy(() => import('@/pages/Cables'))
 const WalkRow = lazy(() => import('@/pages/WalkRow'))
@@ -126,7 +125,6 @@ export default function App() {
             <Route path="/templates" element={<Templates />} />
             <Route path="/replay" element={<Replay />} />
             <Route path="/report" element={<Report />} />
-            <Route path="/jobs" element={<Jobs />} />
             <Route path="/handover" element={<Handover />} />
             <Route path="/cables" element={<Cables />} />
             <Route path="/cables/walk" element={<WalkRow />} />

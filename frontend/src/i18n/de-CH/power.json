@@ -38,6 +38,7 @@
   "readBy": "{{who}}, {{ago}}",
   "readFrom": "{{plugin}}, {{ago}}",
   "tripped": "Ausgelöst",
+  "markTripped": "Als ausgelöst melden",
   "backOn": "Wieder an",
   "remove": "Entfernen",
   "board": "Verteiler",

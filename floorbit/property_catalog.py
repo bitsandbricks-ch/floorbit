@@ -37,7 +37,10 @@ def _builtin():
     return [
         _def('telemetry.drivers', 'Telemetry drivers', 'list', choices=targets.DRIVERS,
              hint='What the agent collects with; empty: what fits the platform.'),
-        _def('telemetry.agent', 'Collected by agent', hint='The local agent that collects; empty: any.'),
+        _def('telemetry.agent', 'Collected by',
+             hint='An agent id, or tag:<tag id> for the agents with that tag; empty: any.'),
+        _def('telemetry.failover', 'Other agents take over', 'bool',
+             hint='Off: while the agent (or every agent with the tag) is away, nobody collects.'),
         _def('telemetry.address', 'Telemetry address',
              hint='Where the agent reaches it, when not the management address.'),
         _def('telemetry.verify_tls', 'Check the TLS certificate', 'bool'),

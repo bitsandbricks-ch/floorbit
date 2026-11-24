@@ -59,6 +59,21 @@ export function IpamView({ types, sub, onSub, canEdit, sourceName }: {
       ))}
     </Group>
   )
+  // Where discovery read it: the first few devices, then how many more (issue #1347).
+  const seenOn = (e: InventoryEntry) => {
+    const devs = e.seen_on ?? []
+    if (!devs.length) return <Text size="sm" c="dimmed">–</Text>
+    return (
+      <Group gap={8}>
+        {devs.slice(0, 3).map((d) => (
+          <Anchor key={d.id} component={Link} to={`/inventory/devices/${encodeURIComponent(d.id)}`} size="sm" ff="monospace">{d.name}</Anchor>
+        ))}
+        {devs.length > 3 && <Text size="sm" c="dimmed">{t('ipam.seenMore', { count: devs.length - 3 })}</Text>}
+      </Group>
+    )
+  }
+  const seenCol = { id: 'seen', header: t('ipam.col.seenOn'), wrap: true, hideOnPhone: true,
+    sort: (e: InventoryEntry) => e.seen_on?.length ?? 0, descFirst: true, cell: seenOn }
   const addType = sub === 'vlans' ? vlanType : prefixType
   const pending = vlans.isPending || prefixes.isPending
   const error = vlans.error ?? prefixes.error
@@ -107,6 +122,7 @@ export function IpamView({ types, sub, onSub, canEdit, sourceName }: {
                   ))}
                 </Group>
               ) },
+            seenCol,
             { id: 'source', header: t('ipam.col.source'), hideOnPhone: true, cell: sources },
           ]} />
       )}
@@ -139,6 +155,7 @@ export function IpamView({ types, sub, onSub, canEdit, sourceName }: {
                   </Group>
                 )
               } },
+            seenCol,
             { id: 'source', header: t('ipam.col.source'), hideOnPhone: true, cell: sources },
           ]} />
       )}

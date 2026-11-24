@@ -147,7 +147,7 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   Pre-flight, Logs · **Screens:** Dashboards. Settings is the gear at the foot. Events holds the
   event's own pages (schedule, changelog, replay, report) as tabs; the picker at the top only
   switches the event. A row holds its
-  pages as tabs (Helpdesk: Problems, Incidents, My jobs, Handover, Status updates); a new page
+  pages as tabs (Helpdesk: Problems, Incidents, Handover, Status updates); a new page
   becomes a tab of a row, not a row of its own. Sidebar text is 15px, a step above page text.
 - **Simple first, technical below.** The first layer of every page answers "is it fine, and what
   needs me?" in plain words. Details (raw values, protocols, logs, configs) sit one click further

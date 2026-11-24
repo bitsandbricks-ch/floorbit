@@ -11,14 +11,17 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { BlockPlan, CableImport, CableList } from '@/api/types'
-import { DataTable, ErrorBanner, LoadingState, PageHead } from '@bitsandbricks/ui'
+import { DataTable, ErrorBanner, LoadingState, PageHead, PageTabs } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
+import { usePageTab } from '@/components/pageTab'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
 import { PatchCheck } from '@/components/PatchCheck'
 import { PortAreas } from '@/components/PortAreas'
 import { PortClients } from '@/components/PortClients'
 
-/** Which switch port goes to which patch panel port and seat, with labels for both ends (issue #97). */
+/** Which switch port goes to which patch panel port and seat, with labels for both ends (issue #97).
+ *  The list is the page; checking the cables against the network and the rough port areas are
+ *  tabs of their own, so the list isn't buried under them (issue #880). */
 export default function Cables() {
   const { t } = useTranslation()
   const qc = useQueryClient()
@@ -35,6 +38,7 @@ export default function Cables() {
   const [search, setSearch] = useState(params.get('q') ?? '')
   const [patching, setPatching] = useState(false)
   const [patched, setPatched] = useState<BlockPlan | null>(null)
+  const [tab, setTab] = usePageTab(['list', 'check', 'areas'])
   const doImport = useMutation({ mutationFn: () => post<CableImport>('/api/cables/import'), onSuccess: refresh })
 
   const d = query.data
@@ -62,7 +66,8 @@ export default function Cables() {
                 {canEdit && <Menu.Item leftSection={<IconLayoutRows size={14} />} onClick={() => setPatching(true)}>{t('cables.patchBlock')}</Menu.Item>}
                 {canEdit && d && d.sources.length > 0 && (
                   <Menu.Item leftSection={<IconCloudDownload size={14} />} disabled={doImport.isPending} onClick={() => doImport.mutate()}>
-                    {t('cables.import', { source: d.sources.join(', ') })}
+                    {t('cables.importAll')}
+                    <Text size="xs" c="dimmed">{t('cables.importFrom', { source: d.sources.join(', ') })}</Text>
                   </Menu.Item>
                 )}
                 <Menu.Item component="a" target="_blank" href={`/api/cables/labels.pdf${q}`} leftSection={<IconPrinter size={14} />}>
@@ -86,11 +91,22 @@ export default function Cables() {
             {doImport.data.errors.map((e) => <Text key={e} size="sm">{e}</Text>)}
           </Alert>
         )}
-        <PatchCheck />
-        <PortAreas canEdit={canEdit}
-          switches={[...new Set([...(switches.data ?? []).map((s) => s.name), ...(d?.cables ?? []).map((c) => c.switch)])].sort()} />
-        {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => navigate(`/cables/new?${new URLSearchParams({ switch: c.switch, port: c.port, seat: c.ip_seat })}`)} />}
-        {query.isPending ? <LoadingState rows={3} /> : d && (
+        <PageTabs label={t('cables.title')} active={tab} onChange={setTab} tabs={[
+          { id: 'list', label: t('cables.tabs.list'), count: d?.cables.length },
+          { id: 'check', label: t('cables.tabs.check') },
+          { id: 'areas', label: t('cables.tabs.areas') },
+        ]} />
+        {tab === 'check' && (
+          <>
+            <PatchCheck empty={<Text c="dimmed">{t('cables.checkNothing')}</Text>} />
+            {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => navigate(`/cables/new?${new URLSearchParams({ switch: c.switch, port: c.port, seat: c.ip_seat })}`)} />}
+          </>
+        )}
+        {tab === 'areas' && (
+          <PortAreas canEdit={canEdit} empty={<Text c="dimmed">{t('cables.areasNone')}</Text>}
+            switches={[...new Set([...(switches.data ?? []).map((s) => s.name), ...(d?.cables ?? []).map((c) => c.switch)])].sort()} />
+        )}
+        {tab === 'list' && (query.isPending ? <LoadingState rows={3} /> : d && (
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}
               value={search} onChange={(e) => setSearch(e.currentTarget.value)} />
@@ -112,7 +128,7 @@ export default function Cables() {
                 ) },
               ]} />
           </>
-        )}
+        ))}
       </Stack>
       {patching && d && (
         <PatchBlockModal

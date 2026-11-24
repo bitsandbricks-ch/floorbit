@@ -68,7 +68,7 @@ describe('Electrics', () => {
     fireEvent.change(screen.getByLabelText(/Load/), { target: { value: '2900' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.path.endsWith('/reading'))?.body).toEqual({ watts: 2900 }))
-    fireEvent.click(screen.getByRole('button', { name: 'Tripped' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as tripped' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.path.endsWith('/trip'))?.body).toEqual({ tripped: true }))
     // Without floor plan rights there is no form to change the circuit.
     expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull()

@@ -2,7 +2,6 @@
   "title": "Kabel",
   "intro": "Welcher Switch-Port auf welchen Patchpanel-Port und welchen Platz geht. Jedes Kabel bekommt ein Etikett für beide Enden mit einem QR-Code, der es hier öffnet. Kabel aus NetBox kommen mit dem Import und bleiben bei NetBox.",
   "add": "Kabel hinzufügen",
-  "import": "Aus {{source}} importieren",
   "more": "Mehr",
   "labels": "Etiketten drucken",
   "printOne": "Seine Etiketten drucken",
@@ -116,5 +115,14 @@
   "clientsIgnored_other": "{{count}} Geräte ignoriert (Drucker, Crew-PCs)",
   "back": "Alle Kabel",
   "notFound": "Dieses Kabel gibt es nicht mehr.",
-  "noRights": "Nur wer den Hallenplan bearbeiten darf, erfasst Kabel."
+  "noRights": "Nur wer den Hallenplan bearbeiten darf, erfasst Kabel.",
+  "importAll": "Kabel importieren",
+  "importFrom": "Aus {{source}}",
+  "checkNothing": "Noch nichts zu prüfen: Die Portüberwachung hat die Sitzplatz-Switches noch nicht gelesen, oder jeder geplante Port stimmt.",
+  "areasNone": "Noch keine Port-Bereiche.",
+  "tabs": {
+    "list": "Kabel",
+    "check": "Prüfen",
+    "areas": "Port-Bereiche"
+  }
 }

@@ -7,8 +7,9 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Origin } from '@/api/types'
-import { EntitySelect, type EntityOption } from '@/components/EntitySelect'
+import type { EntityOption } from '@/components/EntitySelect'
 import { FromLabel } from './ScopeEditors'
+import { useInventoryGroups } from './scope'
 import type { DeviceTelemetryInfo } from './telemetry'
 
 const DRIVERS = ['snmp', 'traps', 'nxapi', 'restconf', 'opnsense', 'gnmi', 'mdt', 'push'] as const
@@ -18,7 +19,7 @@ const FDB = ['qbridge', 'cisco_vlans', 'bridge', 'off'] as const
 const PROP = {
   drivers: 'telemetry.drivers', fdb: 'telemetry.snmp.fdb', vlans: 'telemetry.snmp.vlans', mdt_node: 'telemetry.mdt.node',
   address: 'telemetry.address', agent: 'telemetry.agent', port_snmp: 'telemetry.snmp.port', port_gnmi: 'telemetry.gnmi.port',
-  port_api: 'telemetry.api.port', url: 'telemetry.api.url', verify_tls: 'telemetry.verify_tls',
+  port_api: 'telemetry.api.port', url: 'telemetry.api.url', verify_tls: 'telemetry.verify_tls', failover: 'telemetry.failover',
 } as const
 type Key = keyof typeof PROP
 const KEYS = Object.keys(PROP) as Key[]
@@ -56,7 +57,17 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
     return v && v.from.type !== 'device' ? v : null
   }
   const agents = useQuery({ queryKey: qk.options('agents', ''), queryFn: () => get<{ options: EntityOption[] }>('/api/options/agents') })
-  const agentName = (id: string) => agents.data?.options.find((o) => o.value === id)?.label ?? id
+  const tags = useInventoryGroups().data?.tags ?? []
+  // "Collected by" (issue #869): any agent, the agents with a tag (tag:<id>), or one agent.
+  const collectorName = (v: string) => (v.startsWith('tag:')
+    ? t('inventory.telemetry.byTag', { tag: tags.find((x) => x.id === v.slice(4))?.name ?? v.slice(4) })
+    : agents.data?.options.find((o) => o.value === v)?.label ?? v)
+  const collectors = [
+    ...(tags.length ? [{ group: t('inventory.telemetry.tagsGroup'),
+      items: tags.map((x) => ({ value: `tag:${x.id}`, label: t('inventory.telemetry.byTag', { tag: x.name }) })) }] : []),
+    { group: t('inventory.telemetry.agentsGroup'), items: (agents.data?.options ?? []).map((o) => ({ value: o.value, label: o.label })) },
+  ]
+  const collectorNow = form.agent || above('agent')?.value || ''
   const driverName = (d: string) => t(`telemetry.driver.${d}`, { defaultValue: d })
   const fdbName = (f: string) => t(`inventory.telemetry.fdb.${f}`, { defaultValue: f })
   const list = (ds: string[]) => (ds.length ? ds.map(driverName).join(', ') : t('inventory.telemetry.nothing'))
@@ -158,10 +169,10 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
             <Text size="sm" fw={600}>{t('inventory.telemetry.where')}</Text>
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
               <Inherited from={!form.agent ? above('agent')?.from : null}>
-                <EntitySelect kind="agents" label={t('inventory.telemetry.agent')} clearable disabled={disabled}
+                <Select label={t('inventory.telemetry.agent')} clearable searchable disabled={disabled} data={collectors}
                   description={t('inventory.telemetry.agentHint')} inputWrapperOrder={['label', 'input', 'description']}
-                  placeholder={above('agent') ? agentName(above('agent')!.value) : t('inventory.telemetry.anyAgent')}
-                  value={form.agent} onChange={(v) => set('agent', v ?? '')} />
+                  placeholder={above('agent') ? collectorName(above('agent')!.value) : t('inventory.telemetry.anyAgent')}
+                  value={form.agent || null} onChange={(v) => set('agent', v ?? '')} />
               </Inherited>
               <Inherited from={!form.address ? above('address')?.from : null}>
                 <TextInput label={t('inventory.telemetry.address')} disabled={disabled} value={form.address}
@@ -170,6 +181,14 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
                   onChange={(e) => set('address', e.currentTarget.value.trim())} />
               </Inherited>
             </SimpleGrid>
+            {collectorNow && (
+              <Inherited from={!form.failover ? above('failover')?.from : null}>
+                <Select label={t('inventory.telemetry.failover')} disabled={disabled} allowDeselect={false} maw={420}
+                  value={form.failover === 'false' ? 'false' : ''} onChange={(v) => set('failover', v ?? '')}
+                  data={[{ value: '', label: above('failover')?.value === 'false' ? t('inventory.telemetry.failoverOffAbove')
+                    : t('inventory.telemetry.failoverOn') }, { value: 'false', label: t('inventory.telemetry.failoverOff') }]} />
+              </Inherited>
+            )}
             <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
               {PORTS.map(([k, usual]) => (
                 <Inherited key={k} from={!form[k] ? above(k)?.from : null}>

@@ -1,6 +1,7 @@
 import { Alert, Group, Paper, Progress, Stack, Text, Title } from '@mantine/core'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import type { ReactNode } from 'react'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -18,7 +19,7 @@ function Rows({ rows, count, line }: { rows: PatchRow[]; count: number; line: (r
 }
 
 /** The patch plan against the port watch's last read (issue #473): seat ports up, typos, surprises. */
-export function PatchCheck() {
+export function PatchCheck({ empty = null }: { empty?: ReactNode }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const query = useQuery({ queryKey: qk.cableCheck, queryFn: () => get<Check>('/api/cables/check') })
@@ -26,7 +27,8 @@ export function PatchCheck() {
   useLiveEvent('attention.changed', refresh)
   useLiveEvent('cables.changed', refresh)
   const c = query.data
-  if (!c || (!c.rows.length && !c.unplanned.count)) return null
+  if (!c) return null
+  if (!c.rows.length && !c.unplanned.count) return <>{empty}</>
   const port = (r: PatchRow) => `${r.switch} ${r.port}`
   return (
     <Paper withBorder radius="lg" p="md">
