@@ -1,0 +1,13 @@
+{
+ "{} is an IP address.": "{} ist eine IP-Adresse.",
+ "{} is an address starting with http:// or https://.": "{} ist eine Adresse, die mit http:// oder https:// beginnt.",
+ "{} takes: {}.": "{} nimmt: {}.",
+ "{}: names starting with system., auto. or telemetry. are Floorbit's own.": "{}: Namen, die mit system., auto. oder telemetry. beginnen, gehören Floorbit.",
+ "A property's type is one of: {}.": "Der Typ einer Eigenschaft ist einer von: {}.",
+ "Send the allowed values as a list.": "Schicke die erlaubten Werte als Liste.",
+ "A choice has 1 to {} allowed values.": "Eine Auswahl hat 1 bis {} erlaubte Werte.",
+ "Roles are some of: {}.": "Rollen sind einige von: {}.",
+ "No such property.": "Diese Eigenschaft gibt es nicht.",
+ "{} is defined already.": "{} ist schon festgelegt.",
+ "At most {} properties of your own.": "Höchstens {} eigene Eigenschaften."
+}

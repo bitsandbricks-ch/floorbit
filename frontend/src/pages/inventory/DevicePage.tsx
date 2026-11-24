@@ -342,7 +342,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
         {tab === 'settings' && (
           <Stack gap="md">
             <Panel title={t('inventory.props.title')}>
-              <PropertiesEditor key={JSON.stringify(dev.properties)} value={dev.properties ?? {}} inherited={dev.resolved.properties}
+              <PropertiesEditor key={JSON.stringify(dev.properties)} value={dev.properties ?? {}} inherited={dev.resolved.properties} role={dev.role}
                 canEdit={canEdit} busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
             </Panel>
             <Panel title={t('inventory.features.title')}>
