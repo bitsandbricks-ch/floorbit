@@ -96,6 +96,7 @@ def _public(a, now):
             'last_seen': seen, 'version': a.get('version'), 'address': a.get('address'), 'protocol': a.get('protocol'),
             'connected': bool(seen and now - seen < CONNECTED_FOR), 'halls': list(a.get('halls') or []),
             'plugins_off': list(a.get('plugins_off') or []), 'local': bool(a.get('local')),
+            'demo': bool(a.get('demo')),
             'renewed_at': a.get('renewed_at') or a['created_at'],
             'old_works_until': a['prev_until'] if a.get('prev_hash') and (a.get('prev_until') or 0) > now else None}
 
@@ -112,8 +113,16 @@ def all_agents(data=None, now=None):
     data = load_data() if data is None else data
     now = time.time() if now is None else now
     out = []
+    demo = None
     for a in data.get(KEY) or []:
         row = _public(a, now)
+        if a.get('demo'):
+            # The demo's made-up agents (agent_demo.py): shown only while the demo is on.
+            demo = _demo_on() if demo is None else demo
+            if demo:
+                from . import agent_demo
+                out.append(agent_demo.live(row, now, PROTOCOL))
+            continue
         # last_seen is written only every TOUCH_EVERY: an agent whose link just closed (killed,
         # line cut) is gone now, as the tunnel knows, not up to a minute later.
         row['connected'] = row['connected'] and tunnel.connected(now, a['id'])
@@ -174,7 +183,8 @@ def _enrolled():
     if stamp[1] is None and stamp[2] is None:
         return False
     if _active is None or _active[0] != stamp:
-        _active = (stamp, bool(load_data().get(KEY)))
+        # The demo's made-up agents take no calls: the demo plugin keeps answering.
+        _active = (stamp, any(not a.get('demo') for a in load_data().get(KEY) or []))
     return _active[1]
 
 
@@ -201,7 +211,7 @@ def _routing():
         return {}, [], {}
     if _routes is None or _routes[0] != stamp:
         data = load_data()
-        agents = data.get(KEY) or []
+        agents = [a for a in data.get(KEY) or [] if not a.get('demo')]
         scoped = {a['id']: frozenset(a['halls']) for a in agents if a.get('halls')}
         by_name = {}
         if scoped:
@@ -511,6 +521,9 @@ def rotate(agent_id, now=None):
     secret = secrets.token_urlsafe(32)
 
     def swap(a):
+        if a.get('demo'):
+            # A key would let anyone in as the made-up agent.
+            raise AgentError('A demo agent has no key.')
         a.update(prev_hash=a['hash'], prev_until=now + ROTATE_GRACE, hash=_hash(secret), renewed_at=now)
     found = _change(agent_id, swap)
     key = f'{PREFIX}{agent_id}_{secret}'

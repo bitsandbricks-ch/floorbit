@@ -90,6 +90,16 @@ def seed():
     return {'placed': placed, 'blocks': len(blocks)}
 
 
+def _seed_agents():
+    """Two made-up local agents, so their pages can be seen (agent_demo.py, issue #998)."""
+    from .. import agent_demo, agent_link
+    with data_lock:
+        data = load_data()
+        if agent_demo.seed(data):
+            save_data(data)
+            agent_link._forget_cache()
+
+
 def _import_cables():
     """The demo's patching, as an import from NetBox would bring it (block A through its panel)."""
     from .. import cables
@@ -449,6 +459,10 @@ def seed_on_start(app):
             print(f"[demo] {result}")
         except Exception as exc:  # noqa: BLE001  # a demo hiccup must not stop the app
             print(f"[demo] could not lay out the demo hall: {exc}")
+        try:
+            _seed_agents()
+        except Exception as exc:  # noqa: BLE001  # the demo works without its agents
+            print(f"[demo] could not add the demo agents: {exc}")
         stats = app.extensions.get('floorbit_stats')
         if stats is not None:
             history = demo_history()
