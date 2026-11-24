@@ -6,6 +6,9 @@ import Problems from './Problems'
 
 afterEach(() => vi.unstubAllGlobals())
 
+/** The problem rows, without the header. */
+const bodyRows = () => screen.queryAllByRole('row').filter((r) => r.closest('tbody'))
+
 const now = Date.now() / 1000
 const list = (over: Partial<ProblemList> = {}): ProblemList => ({
   problems: [
@@ -24,7 +27,7 @@ describe('Problems', () => {
   it('lists what is wrong, worst first, with mutes', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
     renderWithApp(<Problems />)
-    const sw = await screen.findByRole('article', { name: 'sw-c-02 is offline' })
+    const sw = await screen.findByRole('row', { name: 'sw-c-02 is offline' })
     expect(within(sw).getByText('Switch')).toBeInTheDocument()
     // The counts are cards now (issue #103): label, then the number.
     const card = (label: string) => screen.getByText(label, { selector: 'dt > span' }).closest('dl')
@@ -32,7 +35,7 @@ describe('Problems', () => {
     expect(card('Muted')).toHaveTextContent('Muted1')
     // Down and warn show in a background tab; the muted switch doesn't (issue #214).
     expect(document.title).toBe('(2) Problems · Floorbit')
-    const muted = screen.getByRole('article', { name: 'sw-d-01 is offline' })
+    const muted = screen.getByRole('row', { name: 'sw-d-01 is offline' })
     expect(within(muted).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
     expect(within(muted).getByText(/Recabling/)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Muted alerts' })).toBeInTheDocument()
@@ -50,15 +53,15 @@ describe('Problems', () => {
       ],
     }) }).fn)
     renderWithApp(<Problems />)
-    const first = await screen.findByRole('article', { name: 'sw-a-01 is offline' })
+    const first = await screen.findByRole('row', { name: 'sw-a-01 is offline' })
     expect(within(first).getByText('3 seats affected · 1 switch behind it')).toBeInTheDocument()
     fireEvent.click(within(first).getByRole('button', { name: 'Show the seats' }))
     expect(within(first).getByText('A-1, A-2, A-3')).toBeInTheDocument()
-    const second = screen.getByRole('article', { name: 'sw-a-02 is offline' })
+    const second = screen.getByRole('row', { name: 'sw-a-02 is offline' })
     expect(within(second).getByText('Behind sw-a-01, which is down: start there')).toBeInTheDocument()
   })
 
-  it('lists seat and port trouble with the rest, after it, with a Seats filter (issue #1204)', async () => {
+  it('lists seat and port trouble with the rest, worst first, with a Seats filter (issue #1204)', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({
       counts: { down: 1, warn: 1, muted: 1, seats: 2 },
       attention: [
@@ -71,13 +74,14 @@ describe('Problems', () => {
       ],
     }) }).fn)
     renderWithApp(<Problems />)
-    await screen.findByRole('article', { name: 'No internet at the seat' })
-    const names = () => screen.getAllByRole('article').map((a) => a.getAttribute('aria-label'))
-    expect(names()).toEqual(['sw-c-02 is offline', 'Circuit B row 2 getting close (86.9 %)', 'sw-d-01 is offline',
-      'No internet at the seat', 'Seat A-12 is online without a check-in', 'Port flapping: 4 link changes in 10 minutes'])
+    await screen.findByRole('row', { name: 'No internet at the seat' })
+    const names = () => bodyRows().map((a) => a.getAttribute('aria-label'))
+    // Worst first (issue #883): down, then to look at, longest standing first, muted last.
+    expect(names()).toEqual(['sw-c-02 is offline', 'Port flapping: 4 link changes in 10 minutes', 'Circuit B row 2 getting close (86.9 %)',
+      'No internet at the seat', 'Seat A-12 is online without a check-in', 'sw-d-01 is offline'])
     const card = (label: string) => screen.getByText(label, { selector: 'dt > span' }).closest('dl')
     expect(card('Seats with trouble')).toHaveTextContent('Seats with trouble2')
-    const incident = screen.getByRole('article', { name: 'No internet at the seat' })
+    const incident = screen.getByRole('row', { name: 'No internet at the seat' })
     expect(within(incident).getByText('Incident')).toBeInTheDocument()
     expect(within(incident).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/incidents?q=seat%3AB-4')
     expect(within(incident).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
@@ -91,20 +95,20 @@ describe('Problems', () => {
       where: `sw-a-01 Gi1/0/${i + 1}`, since: now - i, link: '/plan?switch=sw-a-01', switch_id: 's1' }))
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ attention: many }) }).fn)
     renderWithApp(<Problems />)
-    await screen.findByRole('article', { name: 'sw-c-02 is offline' })
-    expect(screen.getAllByRole('article')).toHaveLength(25)
-    expect(screen.getByText('1–25 of 33')).toBeInTheDocument()
+    await screen.findByRole('row', { name: 'sw-c-02 is offline' })
+    expect(bodyRows()).toHaveLength(25)
+    expect(screen.getByText('33 problems')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '2' }))
-    await screen.findByText('26–33 of 33')
-    expect(screen.getAllByRole('article')).toHaveLength(8)
-    expect(screen.getByRole('article', { name: 'Errors rising on Gi1/0/30' })).toBeInTheDocument()
+    await vi.waitFor(() => expect(bodyRows()).toHaveLength(8))
+    expect(screen.getByRole('row', { name: 'Errors rising on Gi1/0/1' })).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: 'sw-d-01 is offline' })).toBeInTheDocument()
   })
 
   it('mutes a switch for the chosen time', async () => {
     const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list(), 'POST /api/alerts/mutes': { status: 201, body: {} } })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Problems />)
-    const sw = await screen.findByRole('article', { name: 'sw-c-02 is offline' })
+    const sw = await screen.findByRole('row', { name: 'sw-c-02 is offline' })
     fireEvent.click(within(sw).getByRole('button', { name: 'Mute' }))
     const dialog = await screen.findByRole('dialog')
     fireEvent.change(within(dialog).getByLabelText(/Why/), { target: { value: 'Swapping the PSU' } })
@@ -124,13 +128,13 @@ describe('Problems', () => {
   it('shows one kind at a time, with counts, and keeps it in the link', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
     renderWithApp(<Problems />, '/problems?kind=power')
-    expect(await screen.findByRole('article', { name: /Circuit B row 2/ })).toBeInTheDocument()
-    expect(screen.queryByRole('article', { name: 'sw-c-02 is offline' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByText('Switch'))
-    expect(await screen.findAllByRole('article')).toHaveLength(2)
-    expect(screen.queryByRole('article', { name: /Circuit B row 2/ })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByText('All'))
-    expect(await screen.findAllByRole('article')).toHaveLength(3)
+    expect(await screen.findByRole('row', { name: /Circuit B row 2/ })).toBeInTheDocument()
+    expect(screen.queryByRole('row', { name: 'sw-c-02 is offline' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', { name: /^Switch/ }))
+    await vi.waitFor(() => expect(bodyRows()).toHaveLength(2))
+    expect(screen.queryByRole('row', { name: /Circuit B row 2/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', { name: /^All/ }))
+    await vi.waitFor(() => expect(bodyRows()).toHaveLength(3))
   })
 
   it('makes an incident from an offline switch, or links the open one', async () => {
@@ -140,9 +144,9 @@ describe('Problems', () => {
       'POST /api/incidents': { status: 201, body: {} } })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Problems />)
-    const open = await screen.findByRole('article', { name: 'sw-d-01 is offline' })
+    const open = await screen.findByRole('row', { name: 'sw-d-01 is offline' })
     expect(within(open).getByRole('link', { name: 'Incident open' })).toHaveAttribute('href', '/incidents?q=switch%3Asw-d-01')
-    const down = screen.getByRole('article', { name: 'sw-c-02 is offline' })
+    const down = screen.getByRole('row', { name: 'sw-c-02 is offline' })
     fireEvent.click(within(down).getByRole('button', { name: 'Make an incident' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'POST' && c.path === '/api/incidents')?.body)
       .toEqual({ switch_id: 's1', title: 'sw-c-02 is offline' }))
@@ -169,7 +173,7 @@ describe('Problems', () => {
     })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Problems />)
-    const row = await screen.findByRole('article', { name: 'Game server 1: down' })
+    const row = await screen.findByRole('row', { name: 'Game server 1: down' })
     expect(screen.getByRole('link', { name: 'DNS' })).toHaveAttribute('href', '/services')
     fireEvent.click(within(row).getByRole('button', { name: 'Mute' }))
     const dialog = await screen.findByRole('dialog', { name: 'Mute alerts for Game server 1' })
@@ -202,7 +206,7 @@ describe('Problems', () => {
     })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Problems />)
-    const row = await screen.findByRole('article', { name: 'ap-stage is down' })
+    const row = await screen.findByRole('row', { name: 'ap-stage is down' })
     expect(within(row).getByText('Wi-Fi')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'ap-crew' })).toHaveAttribute('href', '/dashboards/view/network')
     fireEvent.click(within(row).getByRole('button', { name: 'Mute' }))
@@ -244,10 +248,30 @@ describe('Problems', () => {
       'DELETE /api/alerts/librenms/abc': { ok: true } })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Problems />)
-    const row = await screen.findByRole('article', { name: 'Port down on sw-a-01' })
+    const row = await screen.findByRole('row', { name: 'Port down on sw-a-01' })
     expect(within(row).getByText('LibreNMS')).toBeInTheDocument()
     expect(within(row).queryByRole('button', { name: 'Mute' })).not.toBeInTheDocument()
     fireEvent.click(within(row).getByRole('button', { name: 'Clear' }))
     await vi.waitFor(() => expect(api.calls.some((c) => c.method === 'DELETE' && c.path === '/api/alerts/librenms/abc')).toBe(true))
+  })
+
+  it('filters by severity and muted, and groups by switch, all in the address (issue #883)', async () => {
+    const attention = [
+      { id: 'attention:errors:s1:Gi1/0/9', kind: 'errors' as const, level: 'warn' as const, title: 'Errors rising on Gi1/0/9',
+        where: 'sw-c-02 Gi1/0/9', since: now, link: '/plan?switch=sw-c-02', switch_id: 's1', device: 'sw-c-02' },
+    ]
+    const problems = list().problems.map((p) => ({ ...p, device: p.kind === 'switch' ? p.where : null }))
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems, attention }) }).fn)
+    renderWithApp(<Problems />, '/problems?level=down&muted=hide')
+    await screen.findByRole('row', { name: 'sw-c-02 is offline' })
+    expect(bodyRows().map((r) => r.getAttribute('aria-label'))).toEqual(['sw-c-02 is offline'])
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Hide muted' }))
+    await vi.waitFor(() => expect(bodyRows()).toHaveLength(2))
+    const grouped = renderWithApp(<Problems />, '/problems?group=device')
+    const sw = await within(grouped.container).findByRole('region', { name: 'sw-c-02' })
+    expect(within(sw).getAllByRole('row').filter((r) => r.closest('tbody')).map((r) => r.getAttribute('aria-label')))
+      .toEqual(['sw-c-02 is offline', 'Errors rising on Gi1/0/9'])
+    const loose = within(grouped.container).getByRole('region', { name: 'Not on a switch' })
+    expect(within(loose).getByRole('row', { name: /Circuit B row 2/ })).toBeInTheDocument()
   })
 })

@@ -71,8 +71,6 @@
   "copy": "Liste kopieren",
   "copied": "Kopiert",
   "seats": "Plätze",
-  "range": "{{from}}–{{to}} von {{count}}",
-  "pages": "Seiten",
   "seatsAffected_one": "1 Platz betroffen",
   "seatsAffected_other": "{{count}} Plätze betroffen",
   "switchesBehind_one": "1 Switch dahinter",
@@ -81,5 +79,29 @@
   "showSeats": "Plätze zeigen",
   "hideSeats": "Plätze ausblenden",
   "swap": "Tauschen",
-  "clear": "Schliessen"
+  "clear": "Schliessen",
+  "col": {
+    "level": "Typ",
+    "what": "Problem",
+    "since": "Seit"
+  },
+  "shown_one": "{{count}} Problem",
+  "shown_other": "{{count}} Probleme",
+  "noneShown": "Kein Problem passt zu diesen Filtern.",
+  "noDevice": "Nicht an einem Switch",
+  "filter": {
+    "level": "Schweregrad",
+    "group": "Gruppieren nach",
+    "hideMuted": "Stumme ausblenden",
+    "levels": {
+      "all": "Alle",
+      "down": "Down",
+      "warn": "Anzuschauen"
+    },
+    "groups": {
+      "none": "Nichts",
+      "kind": "Typ",
+      "device": "Switch"
+    }
+  }
 }
