@@ -58,5 +58,22 @@
   "takenOver": "Took over {{list}}",
   "cutInto_one": "The range stays whole.",
   "cutInto_other": "Cut into {{count}} equal parts, one per firewall in this order.",
-  "parts": "Firewall now"
+  "parts": "Firewall now",
+  "lookup": {
+    "title": "Which firewall?",
+    "placeholder": "192.0.2.40 or A-12",
+    "help": "Type an IP address or a seat to see the part of its range and the firewall it goes through.",
+    "seat": "Seat {{seat}}",
+    "none": "{{who}} is in no planned range.",
+    "goes": "{{who}} goes through {{now}}",
+    "down": "{{who}} has no firewall up (planned {{intended}})",
+    "inPart": "{{range}}, part {{part}}",
+    "fallback": "Fallback: {{list}}",
+    "state": {
+      "primary": "planned",
+      "failover": "failed over from {{intended}}",
+      "unknown": "state unknown",
+      "down": "down"
+    }
+  }
 }

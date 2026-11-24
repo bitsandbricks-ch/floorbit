@@ -1668,7 +1668,7 @@ export interface SeatDetails {
   mac?: string | null
 }
 
-export interface SeatFirewall { intended: string | null; now: string | null; state: FirewallRouteState; range: string }
+export interface SeatFirewall { intended: string | null; now: string | null; state: FirewallRouteState; range: string; fallback?: string[] }
 export type FirewallRouteState = 'primary' | 'failover' | 'unknown' | 'down'
 
 /** GET /api/firewalls (issue #470): the firewalls with their health, and each seat range's route now. */

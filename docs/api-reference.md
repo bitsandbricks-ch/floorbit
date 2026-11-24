@@ -329,6 +329,7 @@ Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/firewalls` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/firewalls/lookup` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | POST | `/api/firewalls/ranges` | `floorplan.edit` |  |
 | DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
