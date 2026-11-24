@@ -56,7 +56,7 @@ export default function CircuitPage() {
             eyebrow={circuit && board ? <><Anchor component={Link} to={boardPath(board.id)} inherit>{board.name}</Anchor> · {circuit.phase} · {circuit.rating_a} A</> : undefined}
             actions={circuit && data.can_read && (circuit.tripped
               ? <Button color="up" loading={trip.isPending} onClick={() => trip.mutate(false)}>{t('power.backOn')}</Button>
-              : <Button color="down" variant="light" loading={trip.isPending} onClick={() => trip.mutate(true)}>{t('power.tripped')}</Button>)} />
+              : <Button variant="default" loading={trip.isPending} onClick={() => trip.mutate(true)}>{t('power.markTripped')}</Button>)} />
           <Stack gap="md">
             {circuit && (
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">

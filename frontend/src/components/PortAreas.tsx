@@ -4,6 +4,7 @@ import { IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { ReactNode } from 'react'
 import { del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { PortArea } from '@/api/types'
@@ -13,14 +14,14 @@ type Draft = Omit<PortArea, 'id' | 'label'>
 
 /** Rough port areas (floorbit/port_areas.py): "ports 1-10 go to A-1..A-10", per switch. The crew
  *  knows the layout in batches long before it knows each seat's port. */
-export function PortAreas({ canEdit, switches }: { canEdit: boolean; switches: string[] }) {
+export function PortAreas({ canEdit, switches, empty = null }: { canEdit: boolean; switches: string[]; empty?: ReactNode }) {
   const { t } = useTranslation()
   const query = useQuery({ queryKey: qk.portAreas, queryFn: () => get<{ areas: PortArea[] }>('/api/port-areas') })
   const [editing, setEditing] = useState<string | null>(null)   // '' for a new switch
   const remove = useMutation({ mutationFn: (id: string) => del(`/api/port-areas/${id}`), onSuccess: () => void query.refetch() })
   const areas = query.data?.areas ?? []
   const bySwitch = [...new Set(areas.map((a) => a.switch))]
-  if (!canEdit && !areas.length) return null
+  if (!canEdit && !areas.length) return <>{empty}</>
   return (
     <Paper withBorder radius="lg" p="md">
       <Group justify="space-between" mb="xs" wrap="wrap">

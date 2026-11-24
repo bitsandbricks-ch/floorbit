@@ -2,7 +2,6 @@
   "title": "Cables",
   "intro": "Which switch port goes to which patch panel port and seat. Each cable gets a label for both ends with a QR code that opens it here. Cables in NetBox come in with the import and stay NetBox's.",
   "add": "Add cable",
-  "import": "Import from {{source}}",
   "more": "More",
   "labels": "Print labels",
   "printOne": "Print its labels",
@@ -116,5 +115,14 @@
   "clientsIgnored_other": "{{count}} machines ignored (printers, crew PCs)",
   "back": "All cables",
   "notFound": "This cable is gone.",
-  "noRights": "Only crew who may edit the floor plan add cables."
+  "noRights": "Only crew who may edit the floor plan add cables.",
+  "importAll": "Import cables",
+  "importFrom": "From {{source}}",
+  "checkNothing": "Nothing to check yet: the port watch hasn't read the seat switches, or every planned port matches.",
+  "areasNone": "No port areas yet.",
+  "tabs": {
+    "list": "Cables",
+    "check": "Check",
+    "areas": "Port areas"
+  }
 }
