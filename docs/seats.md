@@ -7,7 +7,7 @@ everywhere, and the same page is where the plan is built. `/` opens it too; old 
 ## One map editor
 
 The plan fills the whole page next to the sidebar, like a map editor. One slim bar on top holds the
-hall, the online count, the filters (each with its count), Map/List, **Layers**, the find
+hall, the online count, the filters (each with its count), Map/List/Topology, **Layers**, the find
 box, **Export** and **?** (help and keys). The plan takes everything below it, with a panel docked on
 the right, as in a map editor. Its tabs are **Layers** (the layer switches), **Problems** (switches
 that are down, seats with problems, seats offline) and **Items** (every block and switch); click a row
@@ -257,6 +257,9 @@ notes start with the most), and the
 **Show** filter applies here too, so "every offline seat" is two clicks. Click a seat to open the
 inspector. **CSV** downloads what the list shows. `/plan?view=list` opens the page as a list; it is
 also the plain way through the hall for screen readers and small phones.
+
+**Topology** shows the links between the switches, routers and firewalls in the same frame: see
+[Topology](topology.md). `/plan?view=topology` opens the page on it.
 
 ## The inspector
 

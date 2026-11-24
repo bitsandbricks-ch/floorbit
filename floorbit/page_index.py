@@ -24,7 +24,7 @@ PAGES = (
      lambda c, can: c['feature_on']('incidents') and c.get('incidents_board')),
     ('/jobs', 'jobs', 'My jobs', lambda c, can: c['feature_on']('dispatch') and can('incidents.work')),
     ('/handover', 'handover', 'Shift handover', lambda c, can: c['feature_on']('handover') and can('incidents.work')),
-    ('/topology', 'topology', 'Topology', None),
+    ('/plan?view=topology', 'topology', 'Topology', None),
     ('/firewalls', 'firewalls', 'Firewalls', None),
     ('/services', 'services', 'Services', None),
     ('/health', 'health', 'Service health', lambda c, can: c['feature_on']('health')),

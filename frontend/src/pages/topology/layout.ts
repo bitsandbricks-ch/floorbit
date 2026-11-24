@@ -1,15 +1,23 @@
 import type { SwitchLink, TopologyNode, TopologyUplink } from '@/api/types'
 
-export const NODE_W = 120
-export const NODE_H = 36
-const GAP_X = 18
-const GAP_Y = 84
-const GAP_LEAF = 28 // between rows of end boxes under one parent
-const GAP_TREE = 48 // between the blocks of two parents side by side
-const LEAF_COLS = 3
+/** One device's slot: the floor plan's 24x16 glyph on top, its 11px name under it (#1331). */
+export const NODE_W = 64
+export const NODE_H = 34
+/** Where the glyph sits in its slot: centred, its middle this far down. */
+export const GLYPH_Y = 9
+const GLYPH_HALF = 8
+const GAP_X = 8
+const GAP_Y = 40
+const GAP_LEAF = 26 // between rows of end boxes under one parent: room for their own bus
+const GAP_TREE = 24 // between the blocks of two parents side by side
+const LEAF_COLS = 5
 
 export interface Placed { node: TopologyNode; x: number; y: number; level: number }
-export interface Layout { placed: Map<string, Placed>; width: number; height: number; loose: TopologyNode[] }
+export interface Layout {
+  placed: Map<string, Placed>; width: number; height: number; loose: TopologyNode[]
+  /** Each box's parent in the tree, by lower-case name: the links the routing draws as a bus. */
+  parent: Map<string, string>
+}
 
 /** A tree from the top of the network down (#1050): routers first (firewalls when there is no
  *  router, else the switch with the most links), then whatever hangs off them, breadth first. Each
@@ -102,7 +110,7 @@ export function layout(nodes: TopologyNode[], links: SwitchLink[]): Layout {
     x += w + GAP_TREE
     height = Math.max(height, h)
   }
-  return { placed, width: Math.max(x - GAP_TREE, NODE_W), height: Math.max(height, NODE_H), loose: loose.sort(byName2) }
+  return { placed, width: Math.max(x - GAP_TREE, NODE_W), height: Math.max(height, NODE_H), loose: loose.sort(byName2), parent }
 }
 
 export interface UplinkBox { uplink: TopologyUplink; x: number; y: number; to: Placed }
@@ -151,5 +159,60 @@ export function arranged(laid: Layout, saved: Record<string, Spot> | undefined):
   const minX = Math.min(...all.map((p) => p.x)), minY = Math.min(...all.map((p) => p.y))
   for (const p of all) { p.x -= minX; p.y -= minY }
   const width = Math.max(...all.map((p) => p.x)) + NODE_W, height = Math.max(...all.map((p) => p.y)) + NODE_H
-  return { placed, width, height, loose: laid.loose }
+  return { placed, width, height, loose: laid.loose, parent: laid.parent }
+}
+
+export interface Spot2 { x: number; y: number }
+export interface Route { id: string; d: string }
+export interface RunCount { x: number; y: number; count: number }
+
+/** Lines as the floor plan draws cable runs (#1335): out of the bottom of the upper glyph, along a
+ *  bus just above the row it goes to, and a short drop into the lower glyph. Children of one parent
+ *  share the trunk and the bus, so ten firewalls read as one run with ten drops, not ten crossing
+ *  diagonals; a second row under the same parent is reached down a spine left of the rows. Links
+ *  outside the tree take the same elbow halfway between the two. Where three or more links share a
+ *  trunk it gets a count, like the plan's cable bundles. ``at`` is where each box is drawn now. */
+export function routes(links: SwitchLink[], parent: Map<string, string>, at: (key: string) => Spot2 | undefined): { lines: Route[]; counts: RunCount[] } {
+  const top = (p: Spot2) => ({ x: p.x + NODE_W / 2, y: p.y + GLYPH_Y - GLYPH_HALF })
+  const bottom = (p: Spot2) => ({ x: p.x + NODE_W / 2, y: p.y + GLYPH_Y + GLYPH_HALF })
+  const kids = new Map<string, string[]>()
+  for (const [k, p] of parent) kids.set(p, [...(kids.get(p) ?? []), k])
+  const lines: Route[] = []
+  const trunks = new Map<string, { x: number; y1: number; y2: number; count: number }>()
+  for (const l of links) {
+    const a = l.a.toLowerCase(), b = l.b.toLowerCase()
+    const pa = at(a), pb = at(b)
+    if (!pa || !pb || a === b) continue
+    const tree = parent.get(b) === a ? [a, b] : parent.get(a) === b ? [b, a] : null
+    const [up, down] = pa.y <= pb.y ? [pa, pb] : [pb, pa]
+    const upKey = pa.y <= pb.y ? a : b
+    if (Math.abs(pa.y - pb.y) < NODE_H) {
+      // Side by side: over the top of both, clear of their names.
+      const s = top(pa), e = top(pb), y = Math.min(s.y, e.y) - GAP_Y / 3
+      lines.push({ id: l.id, d: `M${s.x} ${s.y}V${y}H${e.x}V${e.y}` })
+      continue
+    }
+    const s = bottom(up), e = top(down)
+    if (tree && tree[0] === upKey) {
+      const siblings = (kids.get(tree[0]) ?? []).map(at).filter((p): p is Spot2 => !!p && p.y > up.y)
+      const firstRow = Math.min(...siblings.map((p) => p.y))
+      const bus1 = top({ x: 0, y: firstRow }).y - GAP_LEAF / 3
+      const busHere = e.y - GAP_LEAF / 3
+      if (down.y - firstRow < NODE_H / 2) {
+        lines.push({ id: l.id, d: `M${s.x} ${s.y}V${bus1}H${e.x}V${e.y}` })
+      } else {
+        // Left of the lower rows only: further left would run down through a sibling branch.
+        const spine = Math.min(...siblings.filter((p) => p.y - firstRow >= NODE_H / 2).map((p) => p.x)) - GAP_X / 2
+        lines.push({ id: l.id, d: `M${s.x} ${s.y}V${bus1}H${spine}V${busHere}H${e.x}V${e.y}` })
+      }
+      const t = trunks.get(tree[0]) ?? { x: s.x, y1: s.y, y2: bus1, count: 0 }
+      t.count++
+      trunks.set(tree[0], t)
+    } else {
+      const mid = (s.y + e.y) / 2
+      lines.push({ id: l.id, d: `M${s.x} ${s.y}V${mid}H${e.x}V${e.y}` })
+    }
+  }
+  const counts = [...trunks.values()].filter((t) => t.count >= 3).map((t) => ({ x: t.x, y: (t.y1 + t.y2) / 2, count: t.count }))
+  return { lines, counts }
 }
