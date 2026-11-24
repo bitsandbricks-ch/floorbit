@@ -1,0 +1,5 @@
+/* The dashboards list (#897): a small preview in the first column, tags you can click to filter. */
+.fb-board-row-thumb { width: 116px; padding: 3px; border-radius: 6px; }
+.fb-board-row-thumb .fb-thumb-grid, .fb-board-row-thumb .fb-thumb-section, .fb-board-row-thumb .fb-split { gap: 2px; }
+.fb-board-row-thumb .fb-thumb-pane { border-radius: 2px; }
+.fb-board-tag { cursor: pointer; }

@@ -112,17 +112,26 @@ export interface Board {
   by?: string | null
   /** Ready-made (the Kiosk): saving under its id keeps your own version instead. */
   builtin?: boolean
+  /** A ready-made dashboard a plugin ships (#938): the plugin's id and name. */
+  plugin?: string
+  plugin_name?: string
   /** A ready-made dashboard someone edited: deleting the saved one resets it. */
   changed?: boolean
   /** Opens without signing in, showing only what anyone may see. */
   public?: boolean
+  /** For finding it in the list (#897): short tags and one group heading. */
+  tags?: string[]
+  group?: string
+  /** How many screen accounts are limited to it (Settings > Users); missing is none. */
+  screens?: number
 }
 
 /** A dashboard's own settings as PUT wants them, defaults left out: the one place that lists them,
  *  so a save from anywhere (editor, copy, "Add to", "Make it a Screen") keeps every one. */
-export const boardSettings = (b: Pick<Board, 'cycle' | 'range' | 'frame' | 'sound'>) => ({
+export const boardSettings = (b: Pick<Board, 'cycle' | 'range' | 'frame' | 'sound' | 'tags' | 'group'>) => ({
   ...(b.cycle ? { cycle: b.cycle } : {}), ...(b.range ? { range: b.range } : {}),
   ...(b.frame === false ? { frame: false as const } : {}), ...(b.sound ? { sound: true as const } : {}),
+  ...(b.tags?.length ? { tags: b.tags } : {}), ...(b.group ? { group: b.group } : {}),
 })
 
 /** A dashboard's name to show: the ready-made ones have theirs in every language. */
