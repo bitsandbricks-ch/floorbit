@@ -177,3 +177,5 @@ def test_rows_say_whether_the_seat_is_on_the_plan(client, seats_file):
     rows = {r['seat']: r for r in client.get('/api/seat-map').get_json()['seats']}
     assert rows['A-1']['on_plan'] is True
     assert rows['A-2']['on_plan'] is False
+    # The block a seat is in, for the page's filter (issue #872); off the plan, none.
+    assert rows['A-1']['block'] == 'A' and rows['A-2']['block'] == ''

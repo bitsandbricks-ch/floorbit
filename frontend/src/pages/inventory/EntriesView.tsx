@@ -7,7 +7,7 @@ import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { InventoryEntry, InventoryOverview, InventoryType } from '@/api/types'
 import { DataTable } from '@/components/DataTable'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import type { GroupFilter } from './GroupTree'
 import { BoolCell } from './BoolCell'
 import { DeviceIcon } from './icons'
@@ -47,7 +47,7 @@ export function EntriesView({ type, overview, group, tags, canEdit, onOpen, sour
         )}
       </Group>
       {type.sort === 'linked' && <Text size="sm" c="dimmed" mb="xs">{t(`inventory.entries.linkedHint.${type.id}`)}</Text>}
-      {isPending && <LoadingState />}
+      {isPending && <LoadingState rows={3} />}
       {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
       {data && (
           <DataTable label={typeName(t, type)} rows={entries} rowKey={(e) => e.id} defaultSort={{ id: 'name' }} minWidth={640}

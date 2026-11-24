@@ -7,7 +7,7 @@ import type { ViewProps } from '@/pages/monitoring/pages'
 import { DataTable } from '@/components/DataTable'
 import { bytes, CATEGORIES, mostly, total } from './format'
 import { onPlan } from '../plan/links'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 
 

@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { get, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 type Need = { id: string; ok: boolean | null; href: string | null }
 type Part = { kind: 'setting' | 'feature' | 'plugin'; id: string; on: boolean }

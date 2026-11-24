@@ -15,7 +15,7 @@ import type { ScheduleData, ScheduleItem, ScheduleKind } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { fromInput, toInput } from './schedule/time'
-import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { revealForm } from '@/lib/revealForm'
 import { clock, dateOnly } from '@/lib/time'
 import { ConfirmIcon, toastDone } from '@bitsandbricks/ui'
@@ -134,7 +134,7 @@ export default function Schedule() {
         ) : undefined} />
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
       {err && <Alert color="down" role="alert" mb="sm">{err.message}</Alert>}
-      {query.isPending || !d ? <LoadingState /> : (
+      {query.isPending || !d ? <LoadingState rows={3} /> : (
         <Stack gap="md">
           <EventTimes key={`${d.event.start}-${d.event.end}`} data={d} canEdit={canEdit} />
           {editing && (
@@ -143,7 +143,7 @@ export default function Schedule() {
           )}
           {days.length === 0 ? (
             <Paper withBorder radius="lg">
-              <EmptyState icon={<IconCalendarPlus size={24} />} title={t('schedule.emptyTitle')} desc={t('schedule.empty')} />
+              <EmptyState icon={<IconCalendarPlus size={24} />} title={t('schedule.emptyTitle')} description={t('schedule.empty')} />
             </Paper>
           ) : days.map(([label, items]) => (
             <Paper key={label} withBorder radius="lg" p="md">

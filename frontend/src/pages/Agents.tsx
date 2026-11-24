@@ -8,7 +8,7 @@ import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import AgentsView from './agents/AgentsView'
 import { GroupsCard, HostedCard } from './agents/Availability'
 import { useAgents } from './agents/data'
@@ -46,7 +46,7 @@ export default function Agents() {
       <Stack gap="md">
         <ErrorBanner error={query.error} />
         {made && <KeyAlert made={made} onClose={() => setMade(null)} />}
-        {query.isPending ? <LoadingState /> : d && (
+        {query.isPending ? <LoadingState rows={3} /> : d && (
           <>
             <Tabs value={tab} onChange={setTab} keepMounted={false}>
               <Tabs.List>

@@ -1,7 +1,13 @@
 import type { SeatRow } from '@/api/types'
 
-export function matches(row: SeatRow, query: string, onlyManual: boolean, onlyOffPlan = false) {
+/** The block, switch and source filters above the table (issue #872); empty lets everything through. */
+export type SeatFilters = { block?: string | null; switch?: string | null; source?: string | null }
+
+export function matches(row: SeatRow, query: string, onlyManual: boolean, onlyOffPlan = false, f: SeatFilters = {}) {
   if (onlyManual && !row.manual) return false
+  if (f.block && (row.block ?? '') !== f.block) return false
+  if (f.switch && row.switch !== f.switch) return false
+  if (f.source && !row.sources.includes(f.source)) return false
   if (onlyOffPlan && row.on_plan !== false) return false
   const q = query.trim().toLowerCase()
   if (!q) return true
@@ -18,3 +24,7 @@ export function readText(file: File): Promise<string> {
     reader.readAsText(file)
   })
 }
+
+/** The distinct non-empty values, in natural order (sw-2 before sw-10), for a filter's choices. */
+export const choices = (values: string[]) =>
+  [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))

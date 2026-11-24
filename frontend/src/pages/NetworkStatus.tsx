@@ -12,7 +12,8 @@ import { useCan } from '@/api/queries'
 import type { StatusArea, StatusPageData, StatusState } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { COLOR } from './status/state'
 import { ConfirmIcon } from '@bitsandbricks/ui'
@@ -86,7 +87,7 @@ export default function NetworkStatus() {
       <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {error && <Alert color="down" role="alert">{error.message}</Alert>}
-        {query.isPending || !d ? <LoadingState /> : (
+        {query.isPending || !d ? <LoadingState rows={3} /> : (
           <>
             {!d.public && <Alert color="gray" variant="light">{t('status.publicOff')}</Alert>}
             <SimpleGrid cols={{ base: 1, md: 2 }}>

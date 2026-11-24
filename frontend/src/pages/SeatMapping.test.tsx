@@ -57,13 +57,36 @@ describe('seats not on the plan (#1036)', () => {
   })
 })
 
+describe('filters (#872)', () => {
+  it('narrows by block, switch and source', () => {
+    const [a1, a2] = [{ ...list.seats[0], block: 'A' }, { ...list.seats[1], block: 'B' }]
+    expect(matches(a1, '', false, false, { block: 'A' })).toBe(true)
+    expect(matches(a2, '', false, false, { block: 'A' })).toBe(false)
+    expect(matches(a1, '', false, false, { switch: 'sw-a-01' })).toBe(true)
+    expect(matches(a2, '', false, false, { switch: 'sw-a-01' })).toBe(false)
+    expect(matches(a2, '', false, false, { source: 'manual' })).toBe(false)
+    expect(matches(a1, '', false, false, { source: 'manual' })).toBe(true)
+  })
+
+  it('offers a source filter when there is more than one', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ ...me, 'GET /api/seat-map?read=1': list }).fn)
+    renderWithApp(<SeatMapping />)
+    await screen.findByRole('button', { name: 'A-1' })
+    expect(screen.getAllByLabelText('Source', { selector: 'input' })).toHaveLength(1)
+    // One switch only: no switch filter.
+    expect(screen.queryAllByLabelText('Switch', { selector: 'input' })).toHaveLength(0)
+  })
+})
+
 describe('Seat mapping page', () => {
   it('marks hand-entered fields and lists the sources', async () => {
     vi.stubGlobal('fetch', fakeFetch({ ...me, 'GET /api/seat-map?read=1': list }).fn)
     renderWithApp(<SeatMapping />)
     const row = (await screen.findByRole('button', { name: 'A-1' })).closest('tr')!
     expect(within(row).getAllByLabelText('By hand')).toHaveLength(1)   // only the IP
-    expect(within(row).getByText('Seat check-in page')).toBeInTheDocument()
+    // One compact source cell (issue #872): the first source, "+1" naming the rest.
+    expect(within(row).getByText('By hand')).toBeInTheDocument()
+    expect(within(row).getByLabelText('By hand, Seat check-in page')).toHaveTextContent('+1')
     expect(within(row).getByText('console')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute('href', '/api/seat-map.csv')
   })

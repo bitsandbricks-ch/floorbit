@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAgentDevices } from '@/components/telemetry/api'
 import { DeviceStateTable, type DeviceFilter } from '@/components/telemetry/DeviceStateTable'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 /** The devices one agent collects: their state, what came in and why one sends nothing (issue #1013). */
 export function AgentDevices({ agentId }: { agentId: string }) {
@@ -17,7 +18,7 @@ export function AgentDevices({ agentId }: { agentId: string }) {
     else next.delete('show')
     setParams(next, { replace: true })
   }
-  if (q.isPending) return <LoadingState />
+  if (q.isPending) return <LoadingState rows={3} />
   if (q.error) return <ErrorBanner error={q.error} />
   const d = q.data
   return (

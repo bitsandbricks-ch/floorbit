@@ -2,7 +2,6 @@
   "title": "IP- und MAC-Verlauf",
   "intro": "Wo jedes Gerät gesehen wurde: seine MAC, die IPs, die es hatte, der Switch-Port, an dem es eingesteckt war, und der Platz an diesem Port. Suche nach IP oder MAC; den Verlauf eines Ports oder Platzes öffnest du vom Hallenplan aus.",
   "placeholder": "IP oder MAC, oder ihr Anfang",
-  "start": "Gib eine IP oder eine MAC ein",
   "startDesc": "Für eine MAC geht jede Schreibweise (aa:bb:cc, aabb.cc, AA-BB-CC). Eine IP wird nach ihrem Anfang gesucht, 10.4.12 findet also den ganzen Bereich.",
   "none": "Nicht gesehen",
   "noneDesc": "Nichts Passendes in den letzten {{days}} Tagen.",
@@ -22,5 +21,7 @@
     "vlan": "VLAN",
     "seen": "Zuletzt gesehen"
   },
-  "find": "Suchen"
+  "find": "Suchen",
+  "latest": "Die neusten Sichtungen. Eine IP oder MAC eingeben, um den ganzen Verlauf zu durchsuchen.",
+  "nothingYet": "Noch nichts gesehen"
 }

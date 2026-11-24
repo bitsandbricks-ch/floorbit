@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import type { TimePoint } from '@bitsandbricks/widgets'
 import { HoverTimeChart } from '@/components/HoverTimeChart'
 
@@ -33,7 +33,7 @@ export function WifiHistory() {
           data={RANGES.map((h) => ({ value: h, label: t('wifi.historyHours', { count: Number(h) }) }))} />
       </Group>
       <ErrorBanner error={q.error} />
-      {q.isPending ? <LoadingState /> : !q.data || q.data.points.length === 0 ? (
+      {q.isPending ? <LoadingState rows={3} /> : !q.data || q.data.points.length === 0 ? (
         <Text size="sm" c="dimmed">{t('wifi.historyNone')}</Text>
       ) : (
         <>

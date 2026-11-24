@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { del, post } from '@/api/client'
 import type { CheckinLookup, LookupWindow as Window } from '@/api/types'
-import { ErrorBanner, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner } from '@bitsandbricks/ui'
 import { dayClock } from '@/lib/time'
 
 /** When check-ins may ask the switches for their PC (docs/segments.md): open from doors open for a

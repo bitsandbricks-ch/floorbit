@@ -33,6 +33,7 @@ import { useIdle } from './plan/idle'
 import { useReloadOnUpdate } from './plan/update'
 import { findPlace } from './plan/find'
 import { ScreenLink } from './plan/ScreenLink'
+import { ViewMenu } from './plan/views/ViewMenu'
 import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
@@ -44,7 +45,7 @@ import { ToolRail } from './plan/edit/ToolRail'
 import { PlanKey } from './plan/PlanKey'
 import { TOOL_KEYS, TOOLS, type Tool } from './plan/edit/tools'
 import { revealActive } from './plan/reveal'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 
 const PANELS = ['seat', 'block', 'switch']
@@ -394,7 +395,7 @@ export default function FloorPlan() {
   }
   return (
     <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }} count={problems + elsewhere} full>
-      {q.isPending && <div className="fb-ws-pad"><LoadingState /></div>}
+      {q.isPending && <div className="fb-ws-pad"><LoadingState rows={3} /></div>}
       {q.error && <div className="fb-ws-pad"><ErrorBanner error={q.error} onRetry={() => void q.refetch()} /></div>}
       {data && (
         <div className="fb-ws">
@@ -430,6 +431,7 @@ export default function FloorPlan() {
                   onChange={(e) => setSearch(e.currentTarget.value)}
                   onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
               </form>
+              {!list && <ViewMenu hall={data.hall} view={view} params={params} setParams={setParams} setView={setView} canEdit={canEdit} />}
               <ScreenLink hall={data.hall} params={params} />
               {editing && <PlanMenu onOpen={setPlanDialog} />}
               <ExportMenu hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall} filter={filter} />

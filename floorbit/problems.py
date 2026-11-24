@@ -337,3 +337,9 @@ def current(may_see_people):
              for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
     return {'problems': items, 'attention': attention, 'counts': counts, 'mutes': mutes,
             'quiet_hours': alerting.quiet_now(), 'checked_at': now}
+
+
+def find(may_see_people, problem_id):
+    """One problem as the list shows it, or None once it is over (issue #882)."""
+    body = current(may_see_people)
+    return next((p for p in body['problems'] + body['attention'] if p['id'] == problem_id), None)

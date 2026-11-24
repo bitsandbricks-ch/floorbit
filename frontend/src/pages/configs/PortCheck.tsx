@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { dateTime } from '@/lib/time'
 
 export type PortCheckFinding = { rule: string; label: string; ports: string[]; count: number; fix: string[]; vlan?: number }

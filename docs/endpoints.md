@@ -3,7 +3,8 @@
 **Network > IP and MAC history** (`/endpoints`) says where each machine was seen: its MAC, the IPs
 it had, the switch port it was plugged into, the seat on that port, and when. Search by an IP (or
 its start: `10.4.12` finds the range) or a MAC in any notation (`aa:bb:cc`, `aabb.cc`, `AA-BB-CC`,
-or a part of one). **Go to** (Ctrl K) finds IPs and MACs too.
+or a part of one). **Go to** (Ctrl K) finds IPs and MACs too. Before you search, the page shows the
+newest sightings anywhere (`GET /api/endpoints` with nothing asked).
 
 A port's history (`/endpoints?device=sw-a-01&port=Gi1/0/1`) and a seat's
 (`/endpoints?seat=A-1`) show who was plugged in there over the event.

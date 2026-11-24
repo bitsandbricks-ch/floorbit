@@ -1,11 +1,11 @@
 import { fireEvent, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { renderWithApp } from '@/test/render'
-import { ErrorBanner, LoadingState } from './ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 describe('loading and error states (#1017)', () => {
   it('loads as the shape of the content: page blocks, or text lines for a panel or pane', () => {
-    const { container, unmount } = renderWithApp(<LoadingState />)
+    const { container, unmount } = renderWithApp(<LoadingState rows={3} />)
     expect(screen.getByRole('status', { name: 'Loading…' })).toHaveAttribute('aria-busy', 'true')
     expect(container.querySelectorAll('.mantine-Skeleton-root')).toHaveLength(3)
     unmount()

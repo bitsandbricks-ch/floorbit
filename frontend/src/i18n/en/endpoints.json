@@ -2,7 +2,6 @@
   "title": "IP and MAC history",
   "intro": "Where each machine was seen: its MAC, the IPs it had, the switch port it was plugged into and the seat on that port. Searched by IP or MAC; a port's or a seat's history from the floor plan.",
   "placeholder": "IP or MAC, or the start of one",
-  "start": "Type an IP or a MAC",
   "startDesc": "Any notation works for a MAC (aa:bb:cc, aabb.cc, AA-BB-CC). An IP is searched by its start, so 10.4.12 finds the whole range.",
   "none": "Not seen",
   "noneDesc": "Nothing like it in the last {{days}} days.",
@@ -22,5 +21,7 @@
     "vlan": "VLAN",
     "seen": "Last seen"
   },
-  "find": "Find"
+  "find": "Find",
+  "latest": "The newest sightings. Type an IP or a MAC to search the whole history.",
+  "nothingYet": "Nothing seen yet"
 }

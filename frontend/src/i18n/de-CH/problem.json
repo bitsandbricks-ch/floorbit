@@ -1,0 +1,27 @@
+{
+  "title": "Problem",
+  "back": "Probleme",
+  "over": "Dieses Problem ist vorbei",
+  "overDesc": "Floorbit sieht es nicht mehr. Eine Störung daraus bleibt auf dem Board.",
+  "what": "Was und wo",
+  "next": "Wo weiterschauen",
+  "level": "Zustand",
+  "levels": {
+    "down": "Down",
+    "warn": "Anzuschauen",
+    "muted": "Stumm"
+  },
+  "since": "Seit",
+  "sinceUnknown": "Unbekannt",
+  "switch": "Switch",
+  "seat": "Platz",
+  "cutOff": "Abgeschnittene Plätze",
+  "behind": "Switches dahinter",
+  "source": "Wo es gesehen wurde",
+  "device": "{{name}} im Inventar",
+  "seatOnPlan": "Platz {{seat}} im Hallenplan",
+  "onPlan": "{{name}} im Hallenplan",
+  "logs": "Seine Logs",
+  "machines": "Geräte am Platz",
+  "nowhere": "Hier gibt es nichts weiter zu öffnen."
+}

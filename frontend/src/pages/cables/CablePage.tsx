@@ -11,7 +11,7 @@ import type { CableList } from '@/api/types'
 import { CableForm, type CableDraft } from '@/components/CableModal'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 const START: (keyof CableDraft)[] = ['switch', 'port', 'panel', 'panel_port', 'seat']
 

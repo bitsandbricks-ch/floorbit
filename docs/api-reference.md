@@ -755,6 +755,19 @@ Source: [`floorbit/blueprints/plan_presets.py`](https://github.com/bitsandbricks
 | POST | `/api/plan-presets` | `floorplan.edit` |  |
 | DELETE | `/api/plan-presets/<preset_id>` | `floorplan.edit` |  |
 
+## floorbit.blueprints.plan_views
+
+Saved floor plan views (floorbit/plan_views.py).
+
+Source: [`floorbit/blueprints/plan_views.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/plan_views.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/plan-views` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/plan-views` | `floorplan.edit` |  |
+| DELETE | `/api/plan-views/<view_id>` | `floorplan.edit` |  |
+| PUT | `/api/plan-views/<view_id>` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.platform
 
 The platform's tenants, for its admins (issue #466, docs/tenancy.md).
@@ -851,6 +864,7 @@ Source: [`floorbit/blueprints/problems.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
 | PATCH | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
 | GET | `/api/problems` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/problems/<path:problem_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.property_catalog
 

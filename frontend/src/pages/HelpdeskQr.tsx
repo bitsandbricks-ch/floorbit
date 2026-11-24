@@ -7,7 +7,7 @@ import { useHelpdeskQr } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { parseSeats, seatBlock } from './incidents/qrFilter'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 /** A printable sheet: one QR code per seat, each opening that seat's signed help page. */
 export default function HelpdeskQr() {

@@ -6,7 +6,7 @@ import { del, get, post } from '@/api/client'
 import { PluginIcon } from './icon'
 import { MARKET_KEY as KEY, useMarketplace } from './market'
 import { qk } from '@/api/keys'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** One version a source offers (floorbit/marketplace.py, ``catalog``). */
@@ -244,7 +244,7 @@ export default function Marketplace({ updates = false }: { updates?: boolean }) 
       <Text size="sm" c="dimmed">
         {t(updates ? 'marketplace.updatesIntro' : 'marketplace.intro')}
       </Text>
-      {isPending && <LoadingState />}
+      {isPending && <LoadingState rows={3} />}
       {error && (
         <Alert color="down" role="alert">
           {t('common.error', { message: error.message })}
