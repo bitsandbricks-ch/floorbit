@@ -15,7 +15,7 @@ import { PageHead } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText, rank } from './problems/format'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, clock } from '@/lib/time'
 import { StatusBadge } from '@bitsandbricks/ui'
 import './Problems.css'
@@ -287,7 +287,7 @@ export default function Problems() {
       )} />
       <ErrorBanner error={error} mb="md" />
       {list.isPending || !data ? (
-        <LoadingState />
+        <LoadingState rows={3} />
       ) : (
         <Stack gap="md">
           {data.quiet_hours && <Alert color="gray" variant="light">{t('problems.quiet')}</Alert>}

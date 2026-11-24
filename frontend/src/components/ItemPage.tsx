@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Layout } from './Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { EmptyState, LoadingState, Panel } from './ui'
+import { Panel } from './ui'
+import { EmptyState, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** One thing on its own page (#1018): a link back to its list, its name with an icon and a line
@@ -29,7 +30,7 @@ export function ItemPage({ title, fallbackTitle, back, loading, missing, icon, k
   return (
     <Layout title={(!missing && title) || fallbackTitle} back={back}>
       {missing ? (
-        <EmptyState title={missing.title} desc={missing.desc}
+        <EmptyState title={missing.title} description={missing.desc}
           action={<Button component={Link} to={back.href} variant="default" leftSection={<IconArrowLeft size={16} />}>{back.label}</Button>} />
       ) : loading || !title ? <LoadingState rows={6} /> : (
         <>

@@ -6,8 +6,9 @@ import { Link } from 'react-router-dom'
 import { patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent, AgentSettingField, AgentSettingsPage, SettingSource } from '@/api/types'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { Advanced, SaveBar } from '@/pages/settings/editor'
 import { useAgentSettings, useAgents } from './data'
 import { Input, Row, Source } from './fields'
@@ -40,7 +41,7 @@ export function AgentSettingsForm({ agent }: { agent: Agent }) {
       void qc.invalidateQueries({ queryKey: qk.agents, exact: true })
     },
   })
-  if (q.isPending) return <LoadingState />
+  if (q.isPending) return <LoadingState rows={3} />
   if (!q.data) return <ErrorBanner error={q.error} />
   const page = q.data
   const reported = agent.report?.settings

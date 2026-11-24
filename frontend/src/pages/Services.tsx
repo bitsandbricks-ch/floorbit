@@ -26,7 +26,7 @@ import { ServicePanel } from './services/ServicePanel'
 import './services/Services.css'
 import { FilterBar } from '@/components/FilterBar'
 import { useFilters } from '@/components/useFilters'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton, StatGrid, StatTile } from '@bitsandbricks/ui'
 
 

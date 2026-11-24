@@ -26,7 +26,7 @@ import { TypesEditor } from './inventory/TypesEditor'
 import { DeviceIcon } from './inventory/icons'
 import { devicePath, effectiveLook, entryPath, matches, roleIcon, scopePath, typeName, type Draft } from './inventory/model'
 import { groupAndBelow, groupTree, useInventoryGroups, useInventoryTypes } from './inventory/scope'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import { dateTime } from '@/lib/time'
 
 const BIT: Record<string, string> = { online: '', offline: 'is-down', unknown: 'is-off' }
@@ -266,7 +266,7 @@ export default function Inventory() {
           </Group>
         </Chip.Group>
       )}
-      {isPending && <LoadingState />}
+      {isPending && <LoadingState rows={3} />}
       {error && (
         <Alert color="down" role="alert">
           {t('common.error', { message: error.message })}

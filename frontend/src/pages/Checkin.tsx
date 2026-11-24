@@ -8,7 +8,7 @@ import { qk } from '@/api/keys'
 import type { CheckinInfo } from '@/api/types'
 import { PublicPage } from '@/components/PublicPage'
 import { formatWhen } from '@/lib/time'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 
 type Wired = 'pending' | 'verified' | 'not_wired' | 'unverified'
 type Done = { seat: string; username: string; wired?: Wired | null }

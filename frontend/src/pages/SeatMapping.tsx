@@ -14,7 +14,7 @@ import { PageHead } from '@bitsandbricks/ui'
 import { ImportDialog } from './seatmap/ImportDialog'
 import { matches } from './seatmap/model'
 import { SeatForm, type SeatDraft } from './seatmap/SeatForm'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
 function Cell({ value, source, label, mono }: { value: string; source?: string; label: (s: string) => string; mono?: boolean }) {
@@ -177,7 +177,7 @@ export default function SeatMapping() {
           </Button>
         )}
       </Group>
-      {isPending && <LoadingState />}
+      {isPending && <LoadingState rows={3} />}
       {error && (
         <Alert color="down" role="alert">
           {t('common.error', { message: error.message })}

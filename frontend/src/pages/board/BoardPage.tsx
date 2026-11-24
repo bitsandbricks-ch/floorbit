@@ -10,7 +10,7 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { readBoot, useNavPrefs } from '@/nav/boot'
 import { type Board, TIME_RANGES, type TimeRange, boardName } from '../dashboards/model'
 import { ScreenContext } from '../dashboards/screen'
@@ -66,7 +66,7 @@ export function BoardPage({ id, title, kicker }: { id: string; title?: string; k
           </Button>
         </>}
       />
-      {q.isPending && <LoadingState />}
+      {q.isPending && <LoadingState rows={3} />}
       <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
       {q.data && (
         <div ref={setArea} className={`fb-board-inline${fit ? ' fit' : ''}`} style={fit && height ? { height } : undefined}>

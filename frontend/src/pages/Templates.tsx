@@ -10,7 +10,7 @@ import type { Hall, LayoutTemplate } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { ApplyDialog, EditDialog, ImportDialog, SaveDialog } from './templates/Dialogs'
-import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton, toastDone } from '@bitsandbricks/ui'
 
 type Open =
@@ -107,9 +107,9 @@ export default function Templates() {
       <Stack gap="md">
         <ErrorBanner error={error} />
         {list.isPending ? (
-          <LoadingState />
+          <LoadingState rows={3} />
         ) : !list.data?.templates.length ? (
-          <Paper withBorder radius="lg"><EmptyState icon={<IconTemplate size={24} />} title={t('templates.emptyTitle')} desc={t('templates.empty')} /></Paper>
+          <Paper withBorder radius="lg"><EmptyState icon={<IconTemplate size={24} />} title={t('templates.emptyTitle')} description={t('templates.empty')} /></Paper>
         ) : (
           list.data.templates.map((tpl) => (
             <TemplateCard key={tpl.id} tpl={tpl} canEdit={canEdit} onOpen={setOpen}

@@ -1,8 +1,8 @@
 // The building blocks every crew page uses, so pages look and behave like one app: the panel a
-// list or form sits in, the side panel for one item, and the loading, error and empty states.
+// list or form sits in, and the side panel for one item. Loading, error and empty states come from @bitsandbricks/ui.
 // From Hubra (by Mike): packages/ui/src/feedback.tsx, with Floorbit's tokens and texts.
-import { ActionIcon, Alert, Button, Center, Drawer, Group, Paper, Skeleton, Stack, Text, ThemeIcon, Title, useMatches } from '@mantine/core'
-import { IconAlertTriangle, IconInbox, IconRefresh, IconX } from '@tabler/icons-react'
+import { ActionIcon, Drawer, Group, Paper, Text, Title, useMatches } from '@mantine/core'
+import { IconX } from '@tabler/icons-react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -28,55 +28,6 @@ export function Panel({ title, desc, actions, children, padding = 'md', style, c
       )}
       {children}
     </Paper>
-  )
-}
-
-/** While a page's data loads: the shape of a page, not a spinner in a corner. ``lines`` is the
- *  small version for a side panel or a dashboard pane: a few text-high bars that fit any size.
- *  Spinners stay inside buttons only (#1017). */
-export function LoadingState({ rows = 3, lines = false }: { rows?: number; lines?: boolean }) {
-  const { t } = useTranslation()
-  return (
-    <Stack gap={lines ? 8 : 'sm'} aria-busy="true" aria-label={t('common.loading')} role="status">
-      {Array.from({ length: rows }, (_, i) => lines
-        ? <Skeleton key={i} h={12} w={`${[90, 70, 80][i % 3]}%`} radius="sm" />
-        : <Skeleton key={i} h={i === 0 ? 120 : 64} radius="lg" />)}
-    </Stack>
-  )
-}
-
-/** A request that failed: what the server said, and a way to try again. */
-export function ErrorBanner({ error, onRetry, mb }: { error: Error | string | null | undefined; onRetry?: () => void; mb?: string }) {
-  const { t } = useTranslation()
-  if (!error) return null
-  const message = typeof error === 'string' ? error : error.message
-  return (
-    <Alert color="down" variant="light" role="alert" mb={mb} icon={<IconAlertTriangle size={16} />}>
-      <Group gap="xs" align="center" wrap="nowrap">
-        <Text size="sm" flex={1}>{t('common.error', { message })}</Text>
-        {onRetry && (
-          <Button variant="subtle" size="xs" color="down" leftSection={<IconRefresh size={16} />} onClick={onRetry}>
-            {t('common.retry')}
-          </Button>
-        )}
-      </Group>
-    </Alert>
-  )
-}
-
-/** Nothing here yet: say so, say why or what to do, and offer the one action that helps. */
-export function EmptyState({ icon, title, desc, action }: {
-  icon?: ReactNode; title: ReactNode; desc?: ReactNode; action?: ReactNode
-}) {
-  return (
-    <Center py={48} px="md">
-      <Stack align="center" gap={6}>
-        <ThemeIcon size={52} radius="xl" variant="light" color="gray" mb={6}>{icon ?? <IconInbox size={24} />}</ThemeIcon>
-        <Text fw={650} ta="center">{title}</Text>
-        {desc && <Text size="sm" c="dimmed" maw={420} ta="center">{desc}</Text>}
-        {action && <div style={{ marginTop: 8 }}>{action}</div>}
-      </Stack>
-    </Center>
   )
 }
 

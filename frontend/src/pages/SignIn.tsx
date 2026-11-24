@@ -11,7 +11,7 @@ import type { OidcProvider, OidcTestResult } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { ProviderForm, type ProviderDraft } from './signin/ProviderForm'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** Settings > Sign-in providers: OpenID Connect providers next to local accounts and Discord. Admins only. */

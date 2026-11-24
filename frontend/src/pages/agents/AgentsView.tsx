@@ -1,7 +1,7 @@
 import { Anchor, Badge, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { AgentCard } from './AgentCard'
