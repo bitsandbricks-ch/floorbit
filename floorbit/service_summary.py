@@ -5,7 +5,7 @@ The rows are the service health wall's checks (floorbit/health.py: DHCP, DNS, th
 servers, internet lines, firewalls and what plugins add), with one change: the wall shows the
 internet sites as one tile, the Services page as one row each, so here each site is a row too.
 
-    {"rows": [{"id", "name", "kind", "status", "summary", "link"}], "total": 30,
+    {"rows": [{"id", "name", "kind", "status", "summary", "link", "tags"}], "total": 30,
      "counts": {"up": 26, "warn": 2, "down": 2, "unknown": 0},
      "by_kind": {"firewall": {"up": 9, "warn": 0, "down": 1, "unknown": 0, "total": 10}, ...}}
 """
@@ -18,9 +18,10 @@ def _count(rows):
     return {s: sum(r['status'] == s for r in rows) for s in STATES}
 
 
-def summary(checks, sites=None):
+def summary(checks, sites=None, tags=None):
     """``checks``: the wall's checks; ``sites``: the Services page's sites with their status, or
-    None to keep the wall's one sites tile."""
+    None to keep the wall's one sites tile; ``tags``: {service id: [tag, ...]} (issue #1337)."""
+    tags = tags or {}
     rows = []
     for check in checks or []:
         if check.get('kind') == 'web' and sites is not None and check.get('id') == 'sites':
@@ -31,6 +32,8 @@ def summary(checks, sites=None):
         row = {k: check.get(k) for k in FIELDS}
         row['status'] = row['status'] if row['status'] in STATES else 'unknown'
         rows.append(row)
+    for row in rows:
+        row['tags'] = list(tags.get(row['id']) or [])
     kinds = {}
     for row in rows:
         kinds.setdefault(row['kind'], []).append(row)

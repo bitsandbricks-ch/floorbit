@@ -10,7 +10,8 @@ import { useRoles } from '@/api/queries'
 import type { ApiToken } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { dateOnly } from '@/lib/time'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
@@ -85,7 +86,7 @@ export default function ApiTokens() {
             </Stack>
           </Alert>
         )}
-        {query.isPending ? <LoadingState /> : d && (
+        {query.isPending ? <LoadingState rows={3} /> : d && (
           <>
             <Panel title={t('api.tokens')}>
               {d.tokens.length === 0 ? <Text size="sm" c="dimmed">{t('api.none')}</Text> : (

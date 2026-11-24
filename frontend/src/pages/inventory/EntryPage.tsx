@@ -9,6 +9,7 @@ import { qk } from '@/api/keys'
 import type { EntryDetail, InventoryOverview, InventoryType } from '@/api/types'
 import { DangerZone, ItemPage } from '@/components/ItemPage'
 import { Field, Panel } from '@/components/ui'
+import { RangePanel } from '@/pages/firewalls/RangePanel'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
 import { SaveBar } from '@/pages/settings/editor'
 import { useCan } from '@/api/queries'
@@ -97,6 +98,7 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
           </Stack>
         </Panel>
       )}
+      {type.id === 'prefix' && <RangePanel id={entry.id} canEdit={canEdit} />}
       <Panel title={t('inventory.entries.details')}>
         <Stack gap="sm">
           {stored && <TextInput label={t('inventory.field.name')} value={name} onChange={(e) => setName(e.currentTarget.value)} disabled={!canEdit} maxLength={80} />}

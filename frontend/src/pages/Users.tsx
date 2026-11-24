@@ -7,8 +7,9 @@ import { qk } from '@/api/keys'
 import type { Account, AccountsList } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, Panel } from '@/components/ui'
-import { ConfirmButton } from '@/components/ConfirmButton'
+import { Panel } from '@/components/ui'
+import { ErrorBanner } from '@bitsandbricks/ui'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 const CREW_ROLES = ['admin', 'lead', 'tech']
 

@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { useChecklist, type ChecklistStep } from './checklist'
 
 const ICON = { done: IconCircleCheck, look: IconAlertTriangle, todo: IconCircleDashed, skipped: IconPlayerSkipForward }

@@ -1,16 +1,49 @@
 # Services
 
-Monitoring › Services (`/services`, issues #471, #889): the internet lines, the DNS resolvers, the
-internet sites players need, the LAN cache and the [game servers](game-servers.md), with whether they
-answer, how full the lines are and how fast. Lines and resolvers also show on the
-[service health](health.md) widget and so in its alerts; the sites show there as one tile.
+Monitoring › Services (`/services`, issues #471, #889, #1337): every service the event depends on,
+in one list. The internet lines, the DNS resolvers, the internet sites players need, the LAN cache,
+the [game servers](game-servers.md) and the crew's [own checks](#own-checks) are set up here; DHCP,
+the [firewalls](firewalls.md) and what health plugins watch are listed too, set up where they come
+from. Each also shows on the [service health](health.md) widget and so in its alerts (the sites as one tile).
 
-The page is one list, one row per service: its state, name and address, the number that matters
-(how full, how fast, how many players), the last half hour as a line, and what can be done with it.
-Rows are grouped by type, or by state (down first). A search box and **All / Not up / Up** narrow the
-list. **Add service** asks which kind first: an internet line, a DNS resolver or an internet site
-(`floorplan.edit`), or a game server (`settings.manage`). The LAN cache comes from its log, so it
-isn't added here.
+The page is one list, one row per service: its state, name and address, its tags, the number that
+matters (how full, how fast, how many players), the last half hour as a line, and what can be done
+with it. Four tiles on top count down, look, up and all. Rows are grouped by **type**, **tag** or
+**state** (down first). A search box (names, addresses and tags) and **All / Not up / Up** narrow
+the list. **Add service** asks which kind first: an internet line, a DNS resolver, an internet site
+or an own check (`floorplan.edit`), or a game server (`settings.manage`). **Check now** checks
+everything at once, the health plugins' services too (`floorplan.edit`).
+
+Clicking a row opens its **panel** (beside the list on a wide screen, from the side on a phone):
+what the old Service health page showed (the numbers, "full in about 40 minutes" for a pool that
+fills, since when it is like this, until when its alerts are muted), its tags, and **Change**,
+**RCON console**, **Mute alerts 1 h** (`incidents.work`) and a link to Problems.
+
+## Tags
+
+Any service can have up to 8 tags of up to 24 characters, also one a plugin watches: a stage, a hall,
+"Sponsor". Type them in the panel (`floorplan.edit`); **Group by: Tag** then lists each tag's
+services, a service with two tags under both and one without under **No tag**. Tags are kept in
+data.json under `service_tags`, by the service's id (`uplink:<id>`, `check:<id>`, `dhcp-players`,
+...); removing a service set up here removes its tags.
+
+## Own checks
+
+For anything else the event needs: a stream encoder, a tournament site, a voice server. Each is
+run by the [local agent](agent.md) from the event network, every check:
+
+| Check | What the agent does | Down when |
+| --- | --- | --- |
+| **Ping** | Three ICMP echoes, with the unprivileged ping socket Linux and Docker allow (`net.ipv4.ping_group_range`), no root | none comes back |
+| **TCP port** | Three connects to any port; nothing is sent | none gets through |
+| **UDP port** | One question: a DNS query, an NTP time request, a Steam/Source server query, or an empty datagram | the port is closed (ICMP unreachable), or a question gets no answer. With an empty datagram silence counts as up: UDP gives nothing more |
+| **HTTP(S)** | One plain `GET`, no headers or body of yours; reads up to 64 kB only to look for **Page contains** | the status is outside **Expected status** (default 200-399), the text is missing, the certificate is not valid, or no answer |
+
+Each turns amber (look) when slower than **Look when slower than** (100 ms for ping, 200 ms for
+TCP and UDP, 1 s for HTTP), at 20 % loss, or for HTTPS when the certificate ends within **Look when
+the certificate ends in** days (14). Only the status, the time and the certificate's end come back
+from the agent, never a page. **Test** in the form runs it once before it is saved. The addresses
+the agent may reach follow its own `FLOORBIT_AGENT_PROBE_NETS`, never this machine or link-local.
 
 ## Internet lines
 
@@ -58,18 +91,22 @@ crew before downloads start to miss.
 ## Checks
 
 Every `SERVICES_INTERVAL` seconds (default 30, at least 10), in the background. A line or resolver
-just added is checked when the page next loads. With a local agent enrolled the agent sends the
-probes from the event network, so a hosted Floorbit measures the event's lines, not its own.
-**Check now** on the page checks everything at once (`floorplan.edit`).
+just added is checked when the page next loads. The local agent sends every probe from the event
+network, so a hosted Floorbit measures the event's lines, not its own. **Check now** on the page
+checks everything at once, the plugins' services too (`floorplan.edit`).
 
-### What the server itself may reach
+### Without an agent
 
-Without an agent, the Floorbit server sends the probes, game server queries and RCON commands
-itself. It never sends them to link-local addresses (`169.254.0.0/16`, `fe80::/10`, where clouds keep
-their metadata service), to `0.0.0.0` or to multicast, also not through IPv6 that carries one of
-those inside (`::ffff:`, NAT64 `64:ff9b::`, 6to4 `2002::`). Set `PROBE_NETS` to a comma-separated list of
-networks (for example `192.0.2.0/24,198.51.100.0/24`) and it reaches only those: set it on a hosted
-Floorbit so that nobody can point a probe at the hosting network. Host names are resolved first and
+The Floorbit server never sends a probe, game server query or RCON command itself: the agent is the
+only way it reaches the event network. Without a connected agent, lines, resolvers, sites, own checks
+and game servers show grey, "not checked", not red. Only demo mode answers with made-up values.
+
+### What the agent may reach
+
+The agent never sends a probe to link-local addresses (`169.254.0.0/16`, `fe80::/10`), to `0.0.0.0`
+or to multicast, also not through IPv6 that carries one of those inside (`::ffff:`, NAT64
+`64:ff9b::`, 6to4 `2002::`). Set `FLOORBIT_AGENT_PROBE_NETS` on the agent to a comma-separated list of networks (for
+example `192.0.2.0/24,198.51.100.0/24`) and it reaches only those. Host names are resolved first and
 the address is checked, so a name can't get around the list.
 
 Adding and changing lines, resolvers and sites needs `floorplan.edit`; each change is in the audit log.

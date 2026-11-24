@@ -5,7 +5,7 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { SwitchDetails } from '@/api/types'
 import { SeatGlyph } from './SeatMap'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { dayClock } from '@/lib/time'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
 

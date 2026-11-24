@@ -8,7 +8,8 @@ import { qk } from '@/api/keys'
 import { EntitySelect } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { CUSTOM_ICONS } from '@/nav/sections'
 
 type Kind = 'dashboard' | 'page' | 'url'
@@ -65,10 +66,10 @@ export default function SidebarSections() {
       />
       <Stack gap="md">
         <ErrorBanner error={query.error ?? save.error} />
-        {query.isPending ? <LoadingState /> : (
+        {query.isPending ? <LoadingState rows={3} /> : (
           <>
             {sections.length === 0 && (
-              <EmptyState title={t('sidebarSections.emptyTitle')} desc={t('sidebarSections.emptyDesc')} />
+              <EmptyState title={t('sidebarSections.emptyTitle')} description={t('sidebarSections.emptyDesc')} />
             )}
             {sections.map((s, i) => (
               <Panel

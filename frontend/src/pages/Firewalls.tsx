@@ -1,22 +1,23 @@
 import {
-  Alert, Anchor, Badge, Button, Group, Modal, MultiSelect, Paper, SimpleGrid, Stack, Text, TextInput, Title, Tooltip,
+  Alert, Anchor, Badge, Button, Group, Modal, Paper, SimpleGrid, Stack, Text, Title, Tooltip,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { del, get, post, put } from '@/api/client'
+import { useNavigate } from 'react-router-dom'
+import { del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useCan, useInventory } from '@/api/queries'
-import { useInventoryGroups } from '@/pages/inventory/scope'
+import { useCan } from '@/api/queries'
 import type { FirewallCard, FirewallList, FirewallRange } from '@/api/types'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 import { FirewallLookup } from './firewalls/Lookup'
+import { RangeForm } from './firewalls/RangeForm'
+import { rangePage, ROUTE_TONE, useSwitchScope, type SwitchScope } from './firewalls/scope'
 
 const STATUS_TONE = { online: 'up', offline: 'down', unknown: 'gray' } as const
-const ROUTE_TONE = { primary: 'up', failover: 'warn', unknown: 'gray', down: 'down' } as const
 
 /** The firewalls and the seat ranges the core policy-routes to them (issues #470, #866): health, what
  *  each one serves now, and which parts of a range are off their firewall. A range over several
@@ -25,7 +26,8 @@ export default function Firewalls() {
   const { t } = useTranslation()
   const canEdit = useCan('floorplan.edit')
   const q = useQuery({ queryKey: qk.firewalls, queryFn: () => get<FirewallList>('/api/firewalls'), refetchInterval: 15_000 })
-  const [editing, setEditing] = useState<FirewallRange | 'new' | null>(null)
+  const [adding, setAdding] = useState(false)
+  const navigate = useNavigate()
   const scope = useSwitchScope()
   const qc = useQueryClient()
   const imported = useMutation({
@@ -45,7 +47,7 @@ export default function Firewalls() {
                 <Button variant="default" loading={imported.isPending} onClick={() => imported.mutate()}>{t('firewalls.import')}</Button>
               </Tooltip>
             )}
-            <Button onClick={() => setEditing('new')}>{t('firewalls.add')}</Button>
+            <Button onClick={() => setAdding(true)}>{t('firewalls.add')}</Button>
           </Group>
         )} />
       <Stack gap="md">
@@ -84,17 +86,17 @@ export default function Firewalls() {
             <Group justify="space-between" align="baseline" mb="sm" wrap="wrap">
               <Title order={2} size="h4">{t('firewalls.ranges', { count: data.ranges.length })}</Title>
               {data.ranges.length > 0 && (
-                <Anchor href="/inventory?type=firewall-range" size="sm">{t('firewalls.inInventory')}</Anchor>
+                <Anchor href="/inventory?type=prefix" size="sm">{t('firewalls.inInventory')}</Anchor>
               )}
             </Group>
             {data.ranges.length === 0
               ? <Text c="dimmed">{t(canEdit ? 'firewalls.noRangesEdit' : 'firewalls.noRanges')}</Text>
-              : <Ranges ranges={data.ranges} scope={scope} canEdit={canEdit} onEdit={setEditing} />}
+              : <Ranges ranges={data.ranges} scope={scope} canEdit={canEdit} onEdit={(r) => navigate(rangePage(r.id))} />}
           </Paper>
         )}
       </Stack>
-      {editing && data && (
-        <RangeModal range={editing === 'new' ? null : editing} names={data.firewalls.map((f) => f.name)} scope={scope} onClose={() => setEditing(null)} />
+      {adding && data && (
+        <AddRange names={data.firewalls.map((f) => f.name)} scope={scope} onClose={() => setAdding(false)} />
       )}
     </Layout>
   )
@@ -176,63 +178,11 @@ function Ranges({ ranges, scope, canEdit, onEdit }: {
   )
 }
 
-function RangeModal({ range, names, scope, onClose }: {
-  range: FirewallRange | null; names: string[]; scope: SwitchScope; onClose: () => void
-}) {
+function AddRange({ names, scope, onClose }: { names: string[]; scope: SwitchScope; onClose: () => void }) {
   const { t } = useTranslation()
-  const qc = useQueryClient()
-  const imported = range?.source === 'import'
-  const [form, setForm] = useState({
-    cidr: range?.cidr ?? '', name: range?.name ?? '', firewalls: range?.firewalls ?? [] as string[],
-    fallback: range?.fallback ?? [] as string[], switches: range?.switches ?? [],
-  })
-  const body = { cidr: form.cidr, name: form.name, switches: form.switches, firewalls: form.firewalls,
-    fallback: form.fallback.filter((n) => !form.firewalls.includes(n)) }
-  const save = useMutation({
-    mutationFn: () => (range ? put(`/api/firewalls/ranges/${range.id}`, imported ? { switches: form.switches } : body)
-      : post('/api/firewalls/ranges', body)),
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: qk.firewalls }); onClose() },
-  })
   return (
-    <Modal opened onClose={onClose} title={range ? t('firewalls.editTitle') : t('firewalls.add')}>
-      <Stack gap="sm">
-        <TextInput label={t('firewalls.range')} placeholder={t('firewalls.rangePlaceholder')} value={form.cidr} disabled={imported}
-          onChange={(e) => setForm({ ...form, cidr: e.currentTarget.value })} />
-        <TextInput label={t('firewalls.name')} placeholder={t('firewalls.namePlaceholder')} value={form.name} disabled={imported}
-          onChange={(e) => setForm({ ...form, name: e.currentTarget.value })} />
-        <MultiSelect label={t('firewalls.line')} description={t('firewalls.lineHelp')} data={names} value={form.firewalls}
-          onChange={(v) => setForm({ ...form, firewalls: v })} searchable disabled={imported} />
-        {form.firewalls.length > 1 && <Text size="xs" c="dimmed">{t('firewalls.cutInto', { count: form.firewalls.length })}</Text>}
-        <MultiSelect label={t('firewalls.fallback')} description={t('firewalls.fallbackHelp')}
-          data={names.filter((n) => !form.firewalls.includes(n))} value={form.fallback}
-          onChange={(v) => setForm({ ...form, fallback: v })} searchable clearable disabled={imported} />
-        <MultiSelect label={t('firewalls.switches')} description={t('firewalls.switchesHelp')}
-          data={scope.options} value={form.switches}
-          onChange={(v) => setForm({ ...form, switches: v })} searchable clearable />
-        {save.error && <Alert color="down" role="alert">{save.error.message}</Alert>}
-        <Group justify="flex-end">
-          <Button loading={save.isPending} disabled={!form.cidr.trim() || form.firewalls.length === 0}
-            onClick={() => save.mutate()}>{t('firewalls.save')}</Button>
-        </Group>
-      </Stack>
+    <Modal opened onClose={onClose} title={t('firewalls.add')}>
+      <RangeForm range={null} names={names} scope={scope} onSaved={onClose} />
     </Modal>
   )
-}
-
-interface SwitchScope {
-  names: Map<string, string>
-  options: { group: string; items: { value: string; label: string }[] }[]
-}
-
-/** What a range can be for (issue #1062): the inventory's switch groups (a colour, a switch type) and switches. */
-function useSwitchScope(): SwitchScope {
-  const { t } = useTranslation()
-  const groups = useInventoryGroups().data?.groups ?? []
-  const switches = (useInventory(false).data?.devices ?? []).filter((d) => d.role === 'switch')
-  const names = new Map<string, string>([...groups.map((g) => [g.id, g.name] as const), ...switches.map((d) => [d.id, d.name] as const)])
-  const options = [
-    { group: t('firewalls.switchGroups'), items: groups.map((g) => ({ value: g.id, label: g.name })) },
-    { group: t('firewalls.switchList'), items: switches.map((d) => ({ value: d.id, label: d.name })) },
-  ].filter((o) => o.items.length > 0)
-  return { names, options }
 }

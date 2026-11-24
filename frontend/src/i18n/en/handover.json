@@ -50,5 +50,9 @@
   "nobodyNamed": "nobody named",
   "comingUp": "Coming up this shift",
   "tournament": "Tournament",
-  "fullSchedule": "Whole programme"
+  "fullSchedule": "Whole programme",
+  "colIncident": "Incident",
+  "colAge": "Open for",
+  "colTook": "Took",
+  "colStatus": "Status"
 }

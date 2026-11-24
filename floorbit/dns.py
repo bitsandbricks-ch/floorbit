@@ -31,6 +31,8 @@ FILE = 'dns.json'
 MAX_PER_POLL = 50000
 NEW_WINDOW = 6 * 3600          # a site first seen this recently is "new" ...
 NEW_HISTORY = 24 * 3600        # ... when there are this many hours of history before it
+SITES_MAX = 1000               # named sites in one answer; the page pages them
+LIST_MAX = 200                 # most blocked and new sites
 LOCAL_SUFFIXES = ('lan', 'local', 'localdomain', 'home', 'home.arpa', 'internal', 'intranet', 'corp', 'arpa',
                   'invalid', 'localhost', 'test')
 # Second-level suffixes where the site is three labels (example.co.uk).
@@ -371,11 +373,13 @@ class DnsStats:
         return {
             'hours': series, 'lookups': lookups, 'blocked': blocked,
             'block_share': round(blocked / lookups, 4) if lookups else None,
-            'sites': ranked[:50],
+            # The page sorts and pages these; the caps only keep a long event's answer small.
+            'sites': ranked[:SITES_MAX], 'named': len(ranked),
             'categories': [{'id': c, 'lookups': cats[c]} for c in CATEGORY_IDS],
             'unnamed_lookups': max(0, lookups - named),
-            'new': sorted(new, key=lambda r: -r['first_seen'])[:20],
-            'blocked_sites': sorted((r for r in sites.values() if r['blocked']), key=lambda r: -r['blocked'])[:10],
+            'new': sorted(new, key=lambda r: -r['first_seen'])[:LIST_MAX],
+            'blocked_sites': sorted((r for r in sites.values() if r['blocked']),
+                                   key=lambda r: -r['blocked'])[:LIST_MAX],
             'min_clients': floor, 'plugins': len(dns_plugins(self.registry)) + (1 if _agent_active() else 0),
             'last_poll': self.last_poll, 'error': self.last_error,
         }

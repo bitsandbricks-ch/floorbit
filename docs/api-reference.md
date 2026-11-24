@@ -852,6 +852,19 @@ Source: [`floorbit/blueprints/problems.py`](https://github.com/bitsandbricks-ch/
 | PATCH | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
 | GET | `/api/problems` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.property_catalog
+
+Known inventory properties and their types (floorbit/property_catalog.py, issue #879).
+
+Source: [`floorbit/blueprints/property_catalog.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/property_catalog.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/inventory/properties` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/properties` | `settings.manage` |  |
+| DELETE | `/api/inventory/properties/<key>` | `settings.manage` |  |
+| PATCH | `/api/inventory/properties/<key>` | `settings.manage` |  |
+
 ## floorbit.blueprints.replay
 
 Event replay (issues #21, #104): the whole event on the floor plan, with a time slider. See docs/replay.md.
@@ -982,8 +995,10 @@ Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | POST | `/api/services/check` | `floorplan.edit` |  |
+| POST | `/api/services/checks/test` | `floorplan.edit` |  |
 | POST | `/api/services/sites/common` | `floorplan.edit` |  |
 | GET | `/api/services/summary` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/services/tags` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.setup
 

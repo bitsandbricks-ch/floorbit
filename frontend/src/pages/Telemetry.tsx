@@ -17,7 +17,8 @@ import { DeviceStateTable, type DeviceFilter } from '@/components/telemetry/Devi
 import { NEEDS_LOOK, deviceRows } from '@/components/telemetry/state'
 import type { DeviceSeen } from '@/components/telemetry/api'
 import { TelemetryAgentNumbersList, type TelemetryAgentNumbers } from '@/components/telemetry/AgentNumbers'
-import { EmptyState, Field, Panel } from '@/components/ui'
+import { Field, Panel } from '@/components/ui'
+import { EmptyState } from '@bitsandbricks/ui'
 import { telemetryPath } from './inventory/model'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
@@ -98,7 +99,7 @@ function Devices({ d, isAdmin }: { d?: TelemetryOverview; isAdmin: boolean }) {
   const agent = params.get('agent'), driver = params.get('driver')
   const label = (ns: string, v: string) => t(`telemetry.${ns}.${v}`, { defaultValue: v })
   if (d && !d.devices.length && !Object.keys(d.seen).length) {
-    return <Panel><EmptyState title={t('telemetry.emptyTitle')} desc={t('telemetry.empty')}
+    return <Panel><EmptyState title={t('telemetry.emptyTitle')} description={t('telemetry.empty')}
       action={canEdit ? <Button component={Link} to="/inventory/defaults" variant="default">{t('telemetry.turnOn')}</Button> : undefined} /></Panel>
   }
   const all = d ? deviceRows(d) : []

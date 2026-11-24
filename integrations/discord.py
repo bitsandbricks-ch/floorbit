@@ -185,7 +185,7 @@ class DiscordNotifier:
             embed['description'] = (f'Muted because: {reason}' if reason
                                     else 'The mute ran out and it has not come back.')
             if public_url:
-                embed['url'] = public_url + ('/health' if service else '/problems')
+                embed['url'] = public_url + ('/services' if service else '/problems')
             embeds.append(embed)
         payload = {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': embeds,
                    'allowed_mentions': {'parse': ['roles', 'everyone', 'users']}}
@@ -247,7 +247,7 @@ class DiscordNotifier:
             if c.get('summary'):
                 embed['description'] = str(c['summary'])[:200]
             if public_url:
-                embed['url'] = public_url + '/health'
+                embed['url'] = public_url + '/services'
             embeds.append(embed)
         payload = {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': embeds,
                    'allowed_mentions': {'parse': ['roles', 'everyone', 'users']}}

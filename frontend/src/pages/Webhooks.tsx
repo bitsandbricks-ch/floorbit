@@ -9,7 +9,7 @@ import { qk } from '@/api/keys'
 import type { Webhook } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { dateTime } from '@/lib/time'
 import { IconWebhook } from '@tabler/icons-react'
 import { ConfirmButton } from '@bitsandbricks/ui'
@@ -166,7 +166,7 @@ export default function Webhooks() {
             </Stack>
           </Alert>
         )}
-        {query.isPending ? <LoadingState /> : d && (
+        {query.isPending ? <LoadingState rows={3} /> : d && (
           <>
             {d.webhooks.length === 0 && <Paper withBorder radius="lg"><EmptyState icon={<IconWebhook size={24} />} title={t('webhooks.none')} /></Paper>}
             {d.webhooks.map((h) => <Hook key={h.id} hook={h} events={d.events} onSecret={shown} onChanged={refresh} />)}

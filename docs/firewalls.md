@@ -27,9 +27,11 @@ are off their firewall and which firewall a seat's traffic takes.
 
 ## The plan
 
-A range is an inventory item (Mike, 2026-11-24): it has its own tab under **Inventory** (Firewall
-range), where it gets a group, tags, fields and notes like any other entry. It is planned, changed and
-removed here, or imported from NetBox here; the inventory links back to it.
+A firewall range is an inventory **prefix** with firewalls set (Mike, 2026-11-24): a network is
+written down once, under **Inventory** (type *Prefix or range*), with its VLAN, gateway, group, tags and
+notes, and the firewall plan on top. Planning a range here for a network the inventory has already puts
+the plan on that prefix; otherwise a prefix is made for it, and it goes again when its plan is removed.
+A prefix NetBox or discovery keeps stays when its plan goes.
 
 | Field | Meaning |
 | --- | --- |
@@ -41,7 +43,7 @@ removed here, or imported from NetBox here; the inventory links back to it.
 
 The firewalls are the inventory's devices with the role **Firewall** (from NetBox, or added by
 hand). A seat's range is the narrowest one its IP is in, the way the core picks it. Ranges may sit inside
-each other, but two that only cross are refused: the addresses in between would be ambiguous. Changing ranges needs `floorplan.edit`; every change is in the audit log.
+each other, but two that only cross are refused: the addresses in between would be ambiguous. A range is an inventory item: **Change** (or **Switches** on an imported one) opens its page in the inventory, with its parts, where each runs now, and its plan, saved with the save bar. **Add range** stays a dialog here. Changing ranges needs `floorplan.edit`; every change is in the audit log.
 
 ### Importing from NetBox
 

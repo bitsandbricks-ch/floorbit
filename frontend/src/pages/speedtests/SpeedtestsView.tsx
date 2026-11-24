@@ -7,7 +7,7 @@ import { useLiveEvent } from '@/api/live'
 import type { SpeedSeat, SpeedtestSummary } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { StatTile } from '@bitsandbricks/ui'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 function SeatList({ seats }: { seats: SpeedSeat[] }) {
   const { t, i18n } = useTranslation()
@@ -42,7 +42,7 @@ export default function SpeedtestsView({ expanded }: ViewProps) {
   return (
     <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
-        {query.isPending || !d ? <LoadingState /> : d.hall.tests === 0 ? (
+        {query.isPending || !d ? <LoadingState rows={3} /> : d.hall.tests === 0 ? (
           <Alert color="gray" variant="light">{t('speedtests.none', { hours: d.hours })}</Alert>
         ) : (
           <>

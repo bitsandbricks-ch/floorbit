@@ -7,7 +7,8 @@ import { useLiveEvent } from '@/api/live'
 import type { FeatureState } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { LoadingState, ErrorBanner, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { Capabilities } from './features/Capabilities'
 
 type Answer = { features: FeatureState[]; env: string }
@@ -44,7 +45,7 @@ export default function Features() {
         <Panel title={t('features.others')} desc={t('features.othersIntro')}>
           <ErrorBanner error={error} />
           <Stack gap={0} className="fb-setting-rows">
-            {query.isPending ? <LoadingState /> : d && d.features.filter((f) => !IN_CAPABILITIES.has(f.id)).map((f) => {
+            {query.isPending ? <LoadingState rows={3} /> : d && d.features.filter((f) => !IN_CAPABILITIES.has(f.id)).map((f) => {
               const blockedBy = f.needs.filter((n) => !d.features.find((o) => o.id === n)?.on)
               return (
                 <div key={f.id} className="fb-setting-row" data-feature={f.id}>

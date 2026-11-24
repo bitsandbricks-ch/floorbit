@@ -6,7 +6,8 @@ import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
 type Tenant = { id: string; name: string; url: string; status: 'active' | 'suspended' }
@@ -169,7 +170,7 @@ export default function Tenants() {
             </Stack>
           </Alert>
         )}
-        {query.isPending ? <LoadingState /> : d && (
+        {query.isPending ? <LoadingState rows={3} /> : d && (
           <>
             <Panel title={t('tenants.list', { count: d.tenants.length })}>
               <Stack gap="sm">

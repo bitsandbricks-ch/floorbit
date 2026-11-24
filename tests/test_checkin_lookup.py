@@ -75,7 +75,7 @@ def test_a_known_mac_skips_the_core_and_a_dead_switch_is_not_the_end():
 
 def _segment(client, on=True):
     """VLAN 110 with 192.0.2.0/24 in the inventory, found by discovery on core-01's Vlan110."""
-    r = client.post('/api/inventory/entries/vlan', json={
+    r = client.post('/api/inventory/entries/prefix', json={
         'name': 'Seats', 'fields': {'vlan_id': 110, 'prefix': '192.0.2.0/24', 'lookups': on}})
     assert r.status_code == 201, r.get_json()
     from floorbit.store import load_data, save_data

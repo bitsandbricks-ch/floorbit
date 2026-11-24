@@ -115,7 +115,9 @@ def clean_name(value, what='name'):
     return value
 
 
-def clean_properties(value):
+def clean_properties(value, data=None):
+    """Property names and values, checked; with ``data``, known properties are checked against their
+    type too (floorbit/property_catalog.py)."""
     if value is None:
         return {}
     if not isinstance(value, dict):
@@ -134,6 +136,9 @@ def clean_properties(value):
         if '\n' in v or len(v) > 200:
             raise ScopeError(f'The value of {k} must be one line, up to 200 characters.')
         out[k] = v
+    if data is not None:
+        from . import property_catalog
+        out = property_catalog.check_all(data, out)
     return out
 
 
@@ -258,7 +263,7 @@ def _common(data, body, target, changed, registry=None):
             target['tags'] = value
             changed.append('tags')
     if 'properties' in body:
-        value = clean_properties(body['properties'])
+        value = clean_properties(body['properties'], data)
         if value != (target.get('properties') or {}):
             target['properties'] = value
             changed.append('properties')
@@ -409,7 +414,7 @@ def save_defaults(data, body, registry=None):
         current = defaults(data)
         changed = []
         if 'properties' in body:
-            value = clean_properties(body['properties'])
+            value = clean_properties(body['properties'], data)
             if value != current['properties']:
                 current['properties'] = value
                 changed.append('properties')

@@ -2,7 +2,7 @@ import { Badge, Switch, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { usePluginLog } from '@/api/queries'
 import type { PluginInfo } from '@/api/types'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import { pluginName } from '@/lib/pluginName'
 import type { useToggle } from './toggle'
 
@@ -19,7 +19,7 @@ export function DataSchema({ plugin }: { plugin: PluginInfo }) {
 export function PluginLog({ id }: { id: string }) {
   const { t } = useTranslation()
   const { data, error, isPending } = usePluginLog(id, true)
-  if (isPending) return <LoadingState />
+  if (isPending) return <LoadingState rows={3} />
   if (error) return <Text className="fb-tone-err">✕ {error.message}</Text>
   return <pre className="fb-log">{data.lines.length ? data.lines.map((l) => `${l.time}  ${l.line}`).join('\n') : t('plugins.emptyLog')}</pre>
 }

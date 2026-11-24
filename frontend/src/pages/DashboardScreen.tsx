@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { get, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { useTenantEvents } from '@/api/tenantEvents'
 import { useCan, useProblems } from '@/api/queries'
 import type { Problem } from '@/api/types'
@@ -109,7 +109,7 @@ export default function DashboardScreen() {
         <Button className="fb-board-sound" size="xs" variant="default" leftSection={<IconVolume size={14} />}
           onClick={sound.allow}>{t('dashboards.soundAllow')}</Button>
       )}
-      {(open.isPending || q.isPending) && <LoadingState />}
+      {(open.isPending || q.isPending) && <LoadingState rows={3} />}
       {/* A big screen that read the board once keeps showing it while the server is away (a restart,
           the Wi-Fi): a small note instead of a banner that pushed the panes aside. */}
       {q.error && !q.data && <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />}

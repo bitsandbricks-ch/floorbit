@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, CopyButton, Group, Modal, Pagination, Paper, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Checkbox, CopyButton, Group, Modal, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconBellOff, IconCheck, IconCopy, IconReplace } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -9,17 +9,19 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useProblems } from '@/api/queries'
 import type { Problem } from '@/api/types'
+import { DataTable, type DataColumn } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
-import { problemsText } from './problems/format'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { problemsText, rank } from './problems/format'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, clock } from '@/lib/time'
 import { StatusBadge } from '@bitsandbricks/ui'
+import './Problems.css'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
-/** Cards per page: a big event can have dozens of seats with port trouble (issue #1204). */
+/** Rows per page: a big event can have dozens of seats with port trouble (issue #1204). */
 export const PAGE_SIZE = 25
 /** The chip that shows everything about a seat, whatever its kind. */
 const SEATS = 'seats'
@@ -28,59 +30,81 @@ const SEATS = 'seats'
 const ENDING_SOON = 10 * 60
 
 
-function Row({ p, canMute, canSwap, busy, onMute, onReport, onClear }: {
-  p: Problem; canMute: boolean; canSwap?: boolean; busy: boolean; onMute: () => void; onReport?: () => void; onClear?: () => void
-}) {
+type Actions = {
+  canMute: boolean; canSwap?: boolean; busy: boolean
+  onMute: (p: Problem) => void; onReport?: (p: Problem) => void; onClear: (p: Problem) => void
+}
+
+/** What a problem is: its title, where, what it cuts off and its mute. */
+function What({ p }: { p: Problem }) {
   const { t } = useTranslation()
   return (
-    <Paper withBorder radius="md" p="sm" component="article" aria-label={p.title}
-      className={`fb-problem ${p.muted ? 'muted' : p.level}`}>
-      {/* Wraps on a phone: a switch problem has up to four actions, wider than the screen. */}
-      <Group justify="space-between" align="flex-start" gap="xs">
-        <Stack gap={2} style={{ minWidth: 0, flex: '1 1 240px' }}>
-          <Group gap="xs">
-            <StatusBadge size="md" state={p.level === 'down' ? 'down' : 'warn'} label={t(`problems.kind.${p.kind}`)} />
-            <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{p.title}</Text>
-          </Group>
-          {p.where && <Text size="sm" c="dimmed">{p.where}</Text>}
-          {p.cause
-            ? <Text size="sm" c="down">{t('problems.behindCause', { name: p.cause })}</Text>
-            : <Reach p={p} />}
-          {p.muted && (
-            <Text size="xs" c="dimmed">
-              <IconBellOff size={12} style={{ verticalAlign: '-1px' }} aria-hidden="true" />{' '}
-              {t('problems.mutedUntil', { time: clock(p.muted.until), who: p.muted.by ?? '?' })}
-              {p.muted.reason ? ` · ${p.muted.reason}` : ''}
-            </Text>
-          )}
-        </Stack>
-        <Group gap="xs">
-          {p.since && <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>{t('problems.since', { ago: ago(p.since) })}</Text>}
-          {p.link && <Button size="xs" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
-          {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
-          {p.incident && (
-            <Button size="xs" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(p.kind === 'switch' && p.name ? `switch:${p.name}` : p.name ?? p.where)}`}>
-              {t('problems.incidentOpen')}
-            </Button>
-          )}
-          {onReport && p.kind === 'switch' && p.incident === null && (
-            <Button size="xs" variant="subtle" onClick={onReport} disabled={busy}>{t('problems.report')}</Button>
-          )}
-          {/* A switch that stays down is swapped for a spare, step by step (issue #1060). */}
-          {canSwap && p.kind === 'switch' && p.level === 'down' && p.switch_id && (
-            <Button size="xs" variant="subtle" leftSection={<IconReplace size={14} />} component="a"
-              href={`/switch-swap/${encodeURIComponent(p.switch_id)}`}>{t('problems.swap')}</Button>
-          )}
-          {canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted && (
-            <Button size="xs" variant="subtle" leftSection={<IconBellOff size={14} />} onClick={onMute} disabled={busy}>{t('problems.mute')}</Button>
-          )}
-          {/* A LibreNMS alert whose recovery never came (issue #951). */}
-          {canMute && onClear && p.clear_id && (
-            <Button size="xs" variant="subtle" onClick={onClear} disabled={busy}>{t('problems.clear')}</Button>
-          )}
-        </Group>
-      </Group>
-    </Paper>
+    <Stack gap={2} style={{ minWidth: 0 }}>
+      <Text fw={600} size="sm" style={{ overflowWrap: 'anywhere' }}>{p.title}</Text>
+      {p.where && <Text size="sm" c="dimmed">{p.where}</Text>}
+      {p.cause
+        ? <Text size="sm" c="down">{t('problems.behindCause', { name: p.cause })}</Text>
+        : <Reach p={p} />}
+      {p.muted && (
+        <Text size="xs" c="dimmed">
+          <IconBellOff size={12} style={{ verticalAlign: '-1px' }} aria-hidden="true" />{' '}
+          {t('problems.mutedUntil', { time: clock(p.muted.until), who: p.muted.by ?? '?' })}
+          {p.muted.reason ? ` · ${p.muted.reason}` : ''}
+        </Text>
+      )}
+    </Stack>
+  )
+}
+
+function RowActions({ p, a }: { p: Problem; a: Actions }) {
+  const { t } = useTranslation()
+  return (
+    // Wraps on a phone: a switch problem has up to four actions, wider than the screen.
+    <Group gap={4} justify="flex-end" wrap="wrap">
+      {p.link && <Button size="compact-sm" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
+      {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
+      {p.incident && (
+        <Button size="compact-sm" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(p.kind === 'switch' && p.name ? `switch:${p.name}` : p.name ?? p.where)}`}>
+          {t('problems.incidentOpen')}
+        </Button>
+      )}
+      {a.onReport && p.kind === 'switch' && p.incident === null && (
+        <Button size="compact-sm" variant="subtle" onClick={() => a.onReport?.(p)} disabled={a.busy}>{t('problems.report')}</Button>
+      )}
+      {/* A switch that stays down is swapped for a spare, step by step (issue #1060). */}
+      {a.canSwap && p.kind === 'switch' && p.level === 'down' && p.switch_id && (
+        <Button size="compact-sm" variant="subtle" leftSection={<IconReplace size={14} />} component="a"
+          href={`/switch-swap/${encodeURIComponent(p.switch_id)}`}>{t('problems.swap')}</Button>
+      )}
+      {a.canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted && (
+        <Button size="compact-sm" variant="subtle" leftSection={<IconBellOff size={14} />} onClick={() => a.onMute(p)} disabled={a.busy}>{t('problems.mute')}</Button>
+      )}
+      {/* A LibreNMS alert whose recovery never came (issue #951). */}
+      {a.canMute && p.clear_id && (
+        <Button size="compact-sm" variant="subtle" onClick={() => a.onClear(p)} disabled={a.busy}>{t('problems.clear')}</Button>
+      )}
+    </Group>
+  )
+}
+
+const GROUPS = ['none', 'kind', 'device'] as const
+type GroupBy = typeof GROUPS[number]
+
+function ProblemTable({ rows, actions, now, label, urlState }: { rows: Problem[]; actions: Actions; now: number; label: string; urlState: boolean }) {
+  const { t } = useTranslation()
+  const columns: DataColumn<Problem>[] = [
+    { id: 'level', header: t('problems.col.level'), width: 130, card: 'inline', sort: (p) => rank(p, now),
+      cell: (p) => <StatusBadge size="sm" state={p.muted ? 'unknown' : p.level === 'down' ? 'down' : 'warn'} label={t(`problems.kind.${p.kind}`)} /> },
+    { id: 'what', header: t('problems.col.what'), wrap: true, card: 'inline', sort: (p) => p.title, cell: (p) => <What p={p} /> },
+    { id: 'since', header: t('problems.col.since'), width: 140, card: 'label', descFirst: true, sort: (p) => p.since ?? 0,
+      cell: (p) => p.since ? <Text size="sm" c="dimmed">{ago(p.since)}</Text> : '' },
+    { id: 'actions', header: '', width: 260, card: 'actions', cell: (p) => <RowActions p={p} a={actions} /> },
+  ]
+  return (
+    <DataTable rows={rows} columns={columns} rowKey={(p) => p.id} label={label} cards urlState={urlState}
+      defaultSort={{ id: 'level' }} pageSize={PAGE_SIZE} minWidth={720}
+      rowProps={(p) => ({ 'aria-label': p.title, className: `fb-problem-row ${p.muted ? 'muted' : p.level}` })}
+      count={urlState ? (n) => t('problems.shown', { count: n }) : undefined} />
   )
 }
 
@@ -221,16 +245,29 @@ export default function Problems() {
   const kinds: string[] = [...new Set(all.map((p) => p.kind))]
   const seatCount = all.filter((p) => p.seat).length
   const chips = seatCount && kinds.length > 1 ? ['all', SEATS, ...kinds] : ['all', ...kinds]
-  const matches = (p: Problem) => shown === SEATS ? !!p.seat : !kinds.includes(shown) || p.kind === shown
-  const visible = all.filter(matches)
-  const pages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
-  const page = Math.min(pages, Math.max(1, Number(params.get('page')) || 1))
-  const onPage = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const setPage = (n: number) => setParams((prev) => {
+  // The filters live in the address, so a reload or a shared link keeps them (issues #276, #883).
+  const level = params.get('level') ?? 'all'
+  const hideMuted = params.get('muted') === 'hide'
+  const groupBy: GroupBy = (GROUPS as readonly string[]).includes(params.get('group') ?? '') ? params.get('group') as GroupBy : 'none'
+  const setParam = (key: string, value: string | null) => setParams((prev) => {
     const next = new URLSearchParams(prev)
-    if (n > 1) next.set('page', String(n)); else next.delete('page')
+    if (value) next.set(key, value); else next.delete(key)
+    next.delete('page')
     return next
   }, { replace: true })
+  const matches = (p: Problem) => (shown === SEATS ? !!p.seat : !kinds.includes(shown) || p.kind === shown)
+    && (level === 'all' || (level === 'down' ? p.level === 'down' : p.level !== 'down'))
+    && !(hideMuted && p.muted)
+  const visible = all.filter(matches).sort((x, y) => rank(x, now) - rank(y, now))
+  const groupKey = (p: Problem) => groupBy === 'kind' ? t(`problems.kind.${p.kind}`) : p.device ?? ''
+  const groups = groupBy === 'none' ? [] : [...new Set(visible.map(groupKey))]
+    .sort((x, y) => (x === '' ? 1 : 0) - (y === '' ? 1 : 0) || x.localeCompare(y, undefined, { numeric: true }))
+  const actions: Actions = {
+    canMute: !!data?.can_mute, canSwap, busy: mute.isPending || report.isPending || clearAlert.isPending,
+    onReport: data?.can_report ? (p) => report.mutate(p) : undefined,
+    onClear: (p) => clearAlert.mutate(p.clear_id ?? ''),
+    onMute: (p) => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: muteKind(p.kind) }) },
+  }
   const error = list.error ?? unmute.error ?? extend.error ?? report.error ?? clearAlert.error
 
   return (
@@ -250,7 +287,7 @@ export default function Problems() {
       )} />
       <ErrorBanner error={error} mb="md" />
       {list.isPending || !data ? (
-        <LoadingState />
+        <LoadingState rows={3} />
       ) : (
         <Stack gap="md">
           {data.quiet_hours && <Alert color="gray" variant="light">{t('problems.quiet')}</Alert>}
@@ -269,23 +306,35 @@ export default function Problems() {
                   <span className="fb-filter-count">{k === 'all' ? all.length : k === SEATS ? seatCount : all.filter((p) => p.kind === k).length}</span></span>,
               }))} />
           )}
+          {all.length > 0 && (
+            <div className="fb-problem-filters">
+              <Select size="xs" w={150} label={t('problems.filter.level')} allowDeselect={false} value={level}
+                onChange={(v) => setParam('level', v === 'all' ? null : v)}
+                data={['all', 'down', 'warn'].map((v) => ({ value: v, label: t(`problems.filter.levels.${v}`) }))} />
+              <Select size="xs" w={170} label={t('problems.filter.group')} allowDeselect={false} value={groupBy}
+                onChange={(v) => setParam('group', v === 'none' ? null : v)}
+                data={GROUPS.map((v) => ({ value: v, label: t(`problems.filter.groups.${v}`) }))} />
+              <Checkbox size="xs" mb={6} label={t('problems.filter.hideMuted')} checked={hideMuted}
+                onChange={(e) => setParam('muted', e.currentTarget.checked ? 'hide' : null)} />
+            </div>
+          )}
           {!all.length ? (
             <Text c="dimmed">{t('problems.none')}</Text>
+          ) : !visible.length ? (
+            <Text c="dimmed">{t('problems.noneShown')}</Text>
+          ) : groupBy === 'none' ? (
+            <ProblemTable rows={visible} actions={actions} now={now} label={t('problems.title')} urlState />
           ) : (
-            <Stack gap="xs">
-              {onPage.map((p) => (
-                <Row key={p.id} p={p} canMute={data.can_mute} canSwap={canSwap} busy={mute.isPending || report.isPending || clearAlert.isPending}
-                  onReport={data.can_report ? () => report.mutate(p) : undefined}
-                  onClear={p.clear_id ? () => clearAlert.mutate(p.clear_id ?? '') : undefined}
-                  onMute={() => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: muteKind(p.kind) }) }} />
-              ))}
-            </Stack>
-          )}
-          {pages > 1 && (
-            <Group justify="space-between" wrap="wrap">
-              <Text size="sm" c="dimmed">{t('problems.range', { from: (page - 1) * PAGE_SIZE + 1, to: Math.min(page * PAGE_SIZE, visible.length), count: visible.length })}</Text>
-              <Pagination size="sm" total={pages} value={page} onChange={setPage} aria-label={t('problems.pages')} />
-            </Group>
+            groups.map((g) => {
+              const rows = visible.filter((p) => groupKey(p) === g)
+              const name = g || t(groupBy === 'device' ? 'problems.noDevice' : 'problems.all')
+              return (
+                <section key={g || '-'} aria-label={name}>
+                  <Title order={2} size="h5" mb={6}>{name} <Text span c="dimmed" size="sm">{rows.length}</Text></Title>
+                  <ProblemTable rows={rows} actions={actions} now={now} label={name} urlState={false} />
+                </section>
+              )
+            })
           )}
           {data.mutes.length > 0 && (
             <section aria-labelledby="muted-switches">

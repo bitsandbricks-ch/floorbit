@@ -16,7 +16,7 @@ import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { when } from './handover/format'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { PortCheckPanel } from './configs/PortCheck'
 
 /** Switch config backups and what changed during the event (issue #96). A typed switch login lives
@@ -50,7 +50,7 @@ export default function Configs() {
       <PageHead title={t('configs.title')} desc={t('configs.intro', { keep: info?.keep ?? 50 })} />
       <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
-        {query.isPending ? <LoadingState /> : info && (
+        {query.isPending ? <LoadingState rows={3} /> : info && (
           <>
             {info.available && <Nightly n={info.nightly} />}
             {!info.available ? <Alert color="warn">{t('configs.noPlugin')}</Alert> : (

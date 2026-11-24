@@ -18,7 +18,7 @@ import { PatchBlockModal } from '@/components/PatchBlockModal'
 import { PatchCheck } from '@/components/PatchCheck'
 import { PortAreas } from '@/components/PortAreas'
 import { PortClients } from '@/components/PortClients'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 /** Which switch port goes to which patch panel port and seat, with labels for both ends (issue #97). */
 export default function Cables() {
@@ -92,7 +92,7 @@ export default function Cables() {
         <PortAreas canEdit={canEdit}
           switches={[...new Set([...(switches.data ?? []).map((s) => s.name), ...(d?.cables ?? []).map((c) => c.switch)])].sort()} />
         {canSeeSeats && <PortClients canEdit={canEdit} onPatch={(c) => navigate(`/cables/new?${new URLSearchParams({ switch: c.switch, port: c.port, seat: c.ip_seat })}`)} />}
-        {query.isPending ? <LoadingState /> : d && (
+        {query.isPending ? <LoadingState rows={3} /> : d && (
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}
               value={search} onChange={(e) => setSearch(e.currentTarget.value)} />

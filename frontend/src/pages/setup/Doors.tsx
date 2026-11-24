@@ -7,7 +7,8 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { PreflightBoard, PreflightGroupId, PreflightStatus } from '@/api/types'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { when } from '../handover/format'
 
 const COLOR: Record<PreflightStatus, string> = { pass: 'up', warn: 'warn', fail: 'down', skip: 'gray' }

@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Agent } from '@/api/types'
@@ -106,6 +106,18 @@ describe('AgentDetail', () => {
     expect(screen.getByText('1,202 per minute now')).toBeInTheDocument()
     expect(screen.getByText('6 now')).toBeInTheDocument()
     expect(screen.queryByText('Sends to Floorbit')).not.toBeInTheDocument()       // never sent: left out
+    // Lowest, average and highest under each chart, and the value at a point on hover or arrow key (issue #868).
+    expect(screen.getByText('min 1,200 · avg 1,201 · max 1,202')).toBeInTheDocument()
+    const chart = screen.getByRole('group', { name: 'Telemetry points' })
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' })
+    expect(within(chart).getByRole('status')).toHaveTextContent(/· 1,202$/)
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' })
+    expect(within(chart).getByRole('status')).toHaveTextContent(/· 1,200$/)
+    // One chart large.
+    fireEvent.click(screen.getByRole('button', { name: 'Show Telemetry points larger' }))
+    expect(await screen.findByRole('dialog', { name: 'Telemetry points' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     fireEvent.click(screen.getByText('24 h'))
     expect(await screen.findByText(/No numbers kept yet/)).toBeInTheDocument()
     expect(api.calls.some((c) => c.path.endsWith('hours=24'))).toBe(true)

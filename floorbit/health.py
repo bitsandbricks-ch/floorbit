@@ -5,7 +5,7 @@ Floorbit checks nothing itself: every check comes from a plugin with ``uses: [he
 ``health_checks()`` returns a list like::
 
     [{"id": "dhcp-players", "name": "DHCP players", "kind": "dhcp", "status": "warn",
-      "summary": "38 leases left", "link": "/health",
+      "summary": "38 leases left", "link": "/services",
       "metrics": [{"label": "Leases left", "value": 38, "unit": "", "tone": "warn"}]}]
 
 The checks are data, cleaned here like widgets (text stays text, links stay on this site). A
@@ -23,7 +23,7 @@ from . import capacity, features, firewalls, game_servers, services
 from .plugins import PluginError
 from .store import load_data
 
-KINDS = ('dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other')
+KINDS = ('dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'check', 'other')
 STATES = ('up', 'warn', 'down', 'unknown')
 TONES = ('', 'ok', 'warn', 'err')
 MAX_CHECKS = 50        # per plugin

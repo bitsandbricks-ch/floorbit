@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import { ErrorBanner, LoadingState } from '@/components/ui'
-import { TimeChart, type TimePoint } from '@bitsandbricks/widgets'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import type { TimePoint } from '@bitsandbricks/widgets'
+import { HoverTimeChart } from '@/components/HoverTimeChart'
 
 /** GET /api/wifi/history: clients on the controllers that stream to Telemetry (floorbit/wifi.py). */
 export interface WifiHistoryData { controllers: string[]; points: TimePoint[]; hours: number }
@@ -32,12 +33,12 @@ export function WifiHistory() {
           data={RANGES.map((h) => ({ value: h, label: t('wifi.historyHours', { count: Number(h) }) }))} />
       </Group>
       <ErrorBanner error={q.error} />
-      {q.isPending ? <LoadingState /> : !q.data || q.data.points.length === 0 ? (
+      {q.isPending ? <LoadingState rows={3} /> : !q.data || q.data.points.length === 0 ? (
         <Text size="sm" c="dimmed">{t('wifi.historyNone')}</Text>
       ) : (
         <>
-          <TimeChart points={q.data.points} since={since} until={until} label={t('wifi.history')}
-            format={(v) => t('wifi.historyMax', { n: num(v) })} />
+          <HoverTimeChart points={q.data.points} since={since} until={until} label={t('wifi.history')}
+            format={(v) => t('wifi.historyMax', { n: num(v) })} value={num} />
           <Text size="xs" c="dimmed" mt="xs">{t('wifi.historyFrom', { controllers: q.data.controllers.join(', ') })}</Text>
         </>
       )}
