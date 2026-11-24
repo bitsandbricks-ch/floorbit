@@ -75,7 +75,8 @@ def test_only_admins_set_up(app_module, client, built):
     assert viewer.get("/plan").status_code == 200          # not sent to setup
     assert viewer.get("/api/setup").get_json() == {"needs_account": False, "done": False}
     assert viewer.post("/api/setup/finish").status_code == 403
-    assert viewer.get("/setup").status_code == 302
+    assert viewer.get("/setup").status_code == 200        # for the checks before doors open (#1049)
+    assert viewer.get("/api/setup/checklist").status_code == 403
 
 
 def test_an_install_with_content_counts_as_set_up(client, built):

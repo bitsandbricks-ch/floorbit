@@ -2,7 +2,7 @@ import { ActionIcon, Button, Group, NumberInput, Select, SegmentedControl, Stack
 import { IconPlus, IconX } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import type { Tone, Widget } from '@/api/types'
-import { type Mapping, SORTS, type Sort, type Threshold, displaysFor } from '@/widgets/kinds/display'
+import { type Mapping, SORTS, type Sort, type Threshold, displaysFor } from '@bitsandbricks/widgets'
 import type { Pane } from './model'
 import { AxisFields, OverrideFields } from './SeriesFields'
 

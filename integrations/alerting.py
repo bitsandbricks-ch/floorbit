@@ -32,10 +32,10 @@ def _store():
     return store
 
 
-def mutes(now=None):
+def mutes(now=None, data=None):
     """The mutes still running: {switch id: {...}}."""
     now = now or time.time()
-    raw = _store().load_data().get(KEY) or {}
+    raw = (_store().load_data() if data is None else data).get(KEY) or {}
     return {k: v for k, v in raw.items() if isinstance(v, dict) and float(v.get('until') or 0) > now}
 
 

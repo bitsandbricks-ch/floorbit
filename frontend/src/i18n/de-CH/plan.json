@@ -392,7 +392,7 @@
     },
     "delete_one": "Löschen",
     "delete_other": "{{count}} löschen",
-    "help": "Klicken zum Auswählen, Shift-Klick oder ein Rahmen für mehr. Ziehen verschiebt auf dem Raster. Änderungen werden sofort gespeichert.",
+    "help": "Klicken zum Auswählen, Shift-Klick oder ein Rahmen für mehr, Ctrl-Klick für ein einzelnes Element einer Gruppe. Ziehen verschiebt auf dem Raster. Änderungen werden sofort gespeichert.",
     "keys": {
       "delete": "löschen",
       "nudge": "verschieben",

@@ -170,13 +170,22 @@ def test_sync_now_discovers_the_inventory_devices(client):
 
 
 def test_the_schedule_runs_discovery_on_its_own_clock(client, monkeypatch):
+    from floorbit.store import load_data, save_data
+    tick = inventory_discovery.tick
+    # The session's background inventory-sync loops call tick() too (#1222): keep them out and
+    # start from an empty schedule, or one of them takes the first run and ours returns None.
+    monkeypatch.setattr(inventory_discovery, 'tick', lambda now=None: None)
+    with inventory_discovery.running:
+        data = load_data()
+        data.pop(inventory_discovery.RUNS, None)
+        save_data(data)
     before = sources.use(Telemetry([], {}))
     try:
         assert inventory_discovery.every_minutes() == 15
-        first = inventory_discovery.tick()
+        first = tick()
         assert first is not None and first['received'] == 0
-        assert inventory_discovery.tick(now=time.time() + 60) is None        # not due yet
-        assert inventory_discovery.tick(now=time.time() + 15 * 60 + 5) is not None
+        assert tick(now=time.time() + 60) is None        # not due yet
+        assert tick(now=time.time() + 15 * 60 + 5) is not None
         monkeypatch.setenv('DISCOVERY_MINUTES', '0')
         assert inventory_discovery.every_minutes() == 0
     finally:

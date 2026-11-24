@@ -6,13 +6,23 @@ docs/firewalls.md.
   and the firewall each takes now.
 - ``POST /api/firewalls/ranges``, ``PUT/DELETE /api/firewalls/ranges/<id>``: ``floorplan.edit``.
 - ``GET /api/firewalls/seats``: the seats not on their planned firewall, for the plan's layer.
+- ``GET /api/firewalls/lookup?q=<IP or seat>``: which part and firewall that address or seat goes through.
 - ``POST /api/firewalls/ranges/import``: read the ranges from NetBox prefixes again.
 """
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from .. import audit, firewalls, sources, spa
 
 bp = Blueprint('firewalls', __name__)
+
+
+def _can(permission):
+    from auth import current_user, roles  # late: auth imports floorbit while it loads
+    auth = current_app.extensions.get('auth')
+    if not (auth and auth.enabled):
+        return True
+    user = current_user()
+    return bool(user and roles.can(user, permission))
 
 
 @bp.route('/firewalls')
@@ -28,6 +38,14 @@ def get_firewalls():
 @bp.route('/api/firewalls/seats', methods=['GET'])
 def seat_routes():
     return jsonify(firewalls.seat_routes())
+
+
+@bp.route('/api/firewalls/lookup', methods=['GET'])
+def lookup():
+    try:
+        return jsonify(firewalls.lookup(request.args.get('q'), spans=_can('seats.view')))
+    except firewalls.FirewallError as exc:
+        return jsonify({'error': str(exc)}), exc.status
 
 
 @bp.route('/api/firewalls/ranges', methods=['POST'])

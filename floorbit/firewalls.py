@@ -538,19 +538,53 @@ def health_checks(now=None):
     return out
 
 
-def for_seat(seat, data=None, now=None):
-    """Which firewall a seat's traffic should take and which it takes now, or None when no range
-    covers its IP. Firewall names only: for the crew's seat panel."""
-    now = time.time() if now is None else now
-    data = load_data() if data is None else data
-    every = _parts(data)
-    if not every:
-        return None
-    ip = _seat_ips().get(str(seat or '').upper())
-    found = _part_of(ip, every) if ip is not None else None
+def _route_of(ip, data, now):
+    """The part ``ip`` falls in and the firewall it takes, or None when no range covers it."""
+    found = _part_of(ip, _parts(data))
     if found is None:
         return None
-    row, _part, fw = found
-    line = [fw, *(row.get('fallback') or [])]
+    row, part, fw = found
+    fallback = list(row.get('fallback') or [])
+    line = [fw, *fallback]
     now_on, state = _route(line, {n: health.status(n, now) for n in line})
-    return {'intended': fw, 'now': now_on, 'state': state, 'range': row.get('name') or ''}
+    return {'intended': fw, 'now': now_on, 'state': state, 'range': row.get('name') or '',
+            'range_id': row['id'], 'cidr': row['cidr'], 'part': str(part), 'fallback': fallback}
+
+
+SEAT_KEYS = ('intended', 'now', 'state', 'range', 'fallback')   # what a seat's answer may say: no address
+
+
+def for_seat(seat, data=None, now=None):
+    """Which firewall a seat's traffic should take and which it takes now, or None when no range
+    covers its IP. Firewall names and address spans only, never the seat's IP: for the crew's seat panel."""
+    now = time.time() if now is None else now
+    data = load_data() if data is None else data
+    if not _nets(data):
+        return None
+    ip = _seat_ips().get(str(seat or '').upper())
+    found = _route_of(ip, data, now) if ip is not None else None
+    return {k: found[k] for k in SEAT_KEYS} if found else None
+
+
+def lookup(query, data=None, now=None, spans=True):
+    """Which firewall an IP address or a seat goes through (Mike, 2026-11-24). A seat answers
+    through its IP, which stays out of the answer; with ``spans`` False (no seats.view) so do the
+    range and part it falls in, since a small part narrows it down. Raises FirewallError when the
+    query is neither."""
+    now = time.time() if now is None else now
+    data = load_data() if data is None else data
+    text = str(query or '').strip()
+    if not text:
+        raise FirewallError('Type an IP address or a seat.')
+    try:
+        ip, seat = ipaddress.ip_address(text), None
+    except ValueError:
+        seat = text.upper()
+        ip = _seat_ips().get(seat)
+        if ip is None:
+            raise FirewallError(f'{text} is neither an IP address nor a seat with an IP address.', 404) from None
+    found = _route_of(ip, data, now)
+    if found and seat and not spans:
+        found = {k: found[k] for k in (*SEAT_KEYS, 'range_id')}
+    return {'query': text, 'kind': 'seat' if seat else 'ip', 'seat': seat, 'found': found is not None,
+            **(found or {})}

@@ -57,5 +57,6 @@
   "mirror": "Mirror",
   "flip": "Flip",
   "mirrorBlock": "Mirror block",
-  "flipBlock": "Flip block"
+  "flipBlock": "Flip block",
+  "uMiddle": "Middle: {{count}} seats, what the row's {{total}} leave over"
 }

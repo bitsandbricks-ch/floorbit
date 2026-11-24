@@ -18,6 +18,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from .. import audit, i18n, spa
 from .. import dashboard_core as core
+from ..batch_share import once_per_batch
 from ..plugins import PANEL_TARGET_MAX, PANEL_TARGETS, SETTING_TYPES, PluginError
 from ..plugins.widgets import check_widget
 
@@ -530,10 +531,12 @@ def _traffic_tile(user):
     return widget
 
 
+@once_per_batch
 def _snapshot():
     return current_app.extensions['floorbit_stats'].snapshot()
 
 
+@once_per_batch
 def _flows(user):
     """The flow summary as /api/flows gives it to this account, anomalies in its language."""
     from .. import i18n
@@ -550,37 +553,44 @@ def _flows(user):
     return out
 
 
+@once_per_batch
 def _health():
     from .health import _wall, _with_mutes
     return _with_mutes(_wall().fresh())
 
 
+@once_per_batch
 def _services():
     from .. import services
     return services.overview()
 
 
+@once_per_batch
 def _lancache():
     from .. import agent_plugins
     from ..lancache import overview
     return overview(current_app.extensions.get('floorbit_lancache'), agent_plugins.health_of('lancache'))
 
 
+@once_per_batch
 def _power():
     from .power import _watch
     return _watch().snapshot()
 
 
+@once_per_batch
 def _agents():
     from .. import agent_link
     return [{**a, 'outdated': agent_link.outdated(a.get('protocol'))} for a in agent_link.all_agents()]
 
 
+@once_per_batch
 def _dns():
     dns = current_app.extensions.get('floorbit_dns')
     return dns.snapshot(core.DNS_HOURS) if dns else None
 
 
+@once_per_batch
 def _games():
     from .. import features, games
     from .flows import current
@@ -589,6 +599,7 @@ def _games():
                           current() if features.on('traffic') else None, ext.get('floorbit_lancache'), core.DNS_HOURS)
 
 
+@once_per_batch
 def _wifi():
     from .. import wifi
     from ..store import load_data

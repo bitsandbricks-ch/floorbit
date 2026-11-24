@@ -82,6 +82,10 @@ pull request.
 - **No secrets** in code, commits, screenshots, logs or docs. Use example values (`example.com`).
   Real seat names, usernames and IPs are personal data: keep them out of screenshots and fixtures.
 - **Names:** the brand is written "BitsAndBricks". Public text names the author as "Mike" only.
+- **Commits and PR titles** follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+  (handbook decision 0009): `<type>(<scope>): <subject>`, types `feat`, `fix`, `docs`, `refactor`, `perf`,
+  `test`, `build`, `ci`, `chore`, `revert`; `!` and a `BREAKING CHANGE:` footer for a breaking change.
+  The scope is the area, e.g. `plan`, `agent`, `inventory`. CI's `pr-title` job checks the title.
 - **Releases:** don't edit `VERSION` or the changelog headings by hand; `mason bump` does that.
   Describe your change in a new `changelog.d/<topic>.md` fragment, not in `CHANGELOG.md`
   (see `changelog.d/README.md`).

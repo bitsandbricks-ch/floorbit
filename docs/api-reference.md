@@ -329,6 +329,7 @@ Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | GET | `/api/firewalls` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/firewalls/lookup` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | POST | `/api/firewalls/ranges` | `floorplan.edit` |  |
 | DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
@@ -835,6 +836,7 @@ Source: [`floorbit/blueprints/preflight.py`](https://github.com/bitsandbricks-ch
 | --- | --- | --- | --- |
 | GET | `/api/preflight` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `preflight` |
 | GET | `/api/preflight.pdf` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `preflight` |
+| POST | `/api/preflight/refresh` | `floorplan.view` | `preflight` |
 | POST | `/api/preflight/run` | `incidents.work` | `preflight` |
 
 ## floorbit.blueprints.problems
@@ -1173,6 +1175,16 @@ Source: [`floorbit/blueprints/webhooks.py`](https://github.com/bitsandbricks-ch/
 | PATCH | `/api/settings/webhooks/<hook_id>` | `settings.manage` |  |
 | POST | `/api/settings/webhooks/<hook_id>/secret` | `settings.manage` |  |
 | POST | `/api/settings/webhooks/<hook_id>/test` | `settings.manage` |  |
+
+## floorbit.blueprints.widget_batch
+
+Several dashboard tiles in one request (issue #1300).
+
+Source: [`floorbit/blueprints/widget_batch.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/widget_batch.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/dashboard/widgets` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
 
 ## floorbit.blueprints.wifi
 

@@ -38,7 +38,7 @@ def assets(entry=ENTRY):
 
 def _collect(manifest, entry):
     item = manifest.get(entry) or {}
-    css, seen, todo = [], set(), [entry]
+    css, preload, seen, todo = [], [], set(), [entry]
     # Shared chunks bring their own styles (the sidebar's sit in a chunk both entries import).
     while todo:
         name = todo.pop(0)
@@ -47,10 +47,15 @@ def _collect(manifest, entry):
         seen.add(name)
         chunk = manifest.get(name, {})
         css += [c for c in chunk.get('css', []) if c not in css]
+        if name != entry and chunk.get('file') and chunk['file'] not in preload:
+            preload.append(chunk['file'])
         todo += chunk.get('imports', [])
     return {
         'js': [f"/static/app/{item['file']}"] if item.get('file') else [],
         'css': [f'/static/app/{c}' for c in css],
+        # The chunks the entry imports, asked for at once: without these the browser found them
+        # only after the entry had arrived and been read, a whole extra round trip.
+        'preload': [f'/static/app/{f}' for f in preload],
     }
 
 

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { PlanGroup, SeatViewData } from '@/api/types'
 import { useCustomIcons } from '../../inventory/scope'
 import { type ItemRef, allItems, refKey, sameRef } from './geometry'
+import { blockName } from './blockName'
 
 const ORDER: Record<string, number> = { block: 0, switch: 1, panel: 2, board: 3, text: 4, icon: 5, zone: 6, wall: 7 }
 
@@ -104,7 +105,7 @@ function GroupName({ group, onSelect, onRename }: { group: PlanGroup; onSelect: 
 }
 
 function itemName(t: (k: string, o?: Record<string, unknown>) => string, data: SeatViewData, r: ItemRef, uploaded?: { id: string; name: string }[]): string {
-  if (r.kind === 'block') return t('plan.edit.kind.block', { name: data.drawing?.shapes.find((s) => s.id === r.id)?.name || '—' })
+  if (r.kind === 'block') return t('plan.edit.kind.block', { name: blockName(data.drawing?.shapes.find((s) => s.id === r.id)) })
   if (r.kind === 'switch') return t('plan.edit.kind.switch', { name: data.switches.find((w) => w.id === r.id)?.name ?? '' })
   if (r.kind === 'panel') return t('plan.edit.kind.panel', { name: r.id })
   if (r.kind === 'board') return t('plan.edit.kind.board', { name: data.boards?.find((b) => b.id === r.id)?.name ?? '' })

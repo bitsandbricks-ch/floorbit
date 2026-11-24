@@ -4,11 +4,12 @@ import { type ChangeEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useSetup } from '@/api/queries'
+import { useFeature, useSetup } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { SetupChecklist } from './setup/Checklist'
+import { DoorsCheck } from './setup/Doors'
 
 function AccountStep() {
   const { t } = useTranslation()
@@ -65,13 +66,22 @@ function Finish() {
 export default function Setup() {
   const { t } = useTranslation()
   const setup = useSetup()
+  const doors = useFeature('preflight')
   const data = setup.data
 
   let body
   if (setup.isPending || !data) body = <LoadingState />
   else if (data.needs_account) body = <AccountStep />
-  else if (!data.can_set_up) body = <Alert color="gray">{data.done ? t('setup.alreadyDone') : t('setup.adminOnly')}</Alert>
-  else body = <Stack gap="md"><SetupChecklist />{!data.done && <Finish />}</Stack>
+  // The crew comes here for the checks before doors open (#1049); the checklist is the admins'.
+  else if (!data.can_set_up) {
+    body = (
+      <Stack gap="md">
+        {(!data.done || !doors) && <Alert color="gray">{data.done ? t('setup.alreadyDone') : t('setup.adminOnly')}</Alert>}
+        {doors && <DoorsCheck />}
+      </Stack>
+    )
+  }
+  else body = <Stack gap="md"><SetupChecklist />{doors && <DoorsCheck />}{!data.done && <Finish />}</Stack>
 
   return (
     <Layout title={t('setup.title')} back={{ href: '/', label: t('common.floorPlan') }}>

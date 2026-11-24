@@ -357,12 +357,13 @@ def details(seat, people, crew=False):
         'people': bool(people),
         'crew': bool(crew),
     }
+    # Which firewall the core sends this seat to (issue #470), for everyone who sees the plan, when
+    # a range covers it (Mike, 2026-11-24): names only, never the IP.
+    out['firewall'] = firewalls.for_seat(seat, data, now)
     if crew:
         out['note'] = seat_notes.get(seat, data)
         # The player's own tests from the help page (issue #182), newest first.
         out['speedtests'] = speedtest.results(seat, data)[:SPEEDTESTS]
-        # Which firewall the core sends this seat to (issue #470): names only, never the IP.
-        out['firewall'] = firewalls.for_seat(seat, data, now)
         # Where the background port lookup of this seat's check-in stands (integrations/checkin.py).
         if checked is not None and seat in checked:
             out['checkin_wired'] = (checkin.load_all().get(seat) or {}).get('wired') or 'pending'
