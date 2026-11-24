@@ -6,8 +6,19 @@ Code: [`floorbit/incidents.py`](../floorbit/incidents.py) and
 
 ## The board
 
-Three columns: **Open**, **Being worked** and **Fixed**. Each incident shows where it is, its team,
-who has it, its notes and, for reports from a seat, what the network said about that seat's port.
+Three columns: **Open**, **Being worked** and **Fixed**. A card keeps to what you need to pick one:
+its title, where it is, how old it is, its tags, who has it and one main action (**Take it**, **Fixed**,
+**Reopen**, or **Send to nearest tech** for leads while nobody has it). The title opens the
+incident's own page.
+
+### One incident's page
+
+`/incidents/<id>` has everything the card leaves out: what the network said about the seat's port
+when the report came in, the speed test from the seat, the crew note on the seat, the problem it was
+made from, every note with who wrote it, and every action this account may take: take it, mark it
+fixed or reopen it, bounce the seat's port, send it to the nearest tech, give it to someone or
+another team, and add a note. **Incident open** on the Problems page and on a problem's page links
+here. An incident that is no longer on the board says so.
 The board refreshes on its own and as soon as anything changes. Open incidents also show on the
 floor plan as a red ring on the seat or switch, and listed under **Incidents** in the sidebar.
 The board's browser tab starts with the number of open incidents, e.g. "(2) Incidents · Floorbit".
@@ -25,7 +36,7 @@ notes contain the text, ignoring case. `seat:D-2` matches that seat only (not D-
 open the board filtered, and it works together with **Only what I can work**. **/** anywhere on the
 board puts the cursor in it, as on the [Seats page](seats.md#keyboard-and-screen-readers).
 
-An open incident at a seat has **Bounce port** next to **Fixed**, for
+An open incident at a seat has **Bounce port** on its page, for
 accounts that may work it and have `ports.act` while a [port actions plugin](ports.md) is on. It asks
 for your switch login like the floor plan does (and says so when the seat's port isn't known yet), and what it did ("Gi1/0/3 on sw-a-01 bounced.") goes
 into the incident's notes, so whoever looks next sees it was tried.

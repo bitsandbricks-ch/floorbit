@@ -198,6 +198,13 @@
 .fb-plan.traffic .cell[data-state="online"] .num { fill: #fff; }
 .fb-plan.traffic .cell.bright[data-state="online"] .num { fill: #1a1a1a; }
 .fb-plan .seat.heat { stroke: color-mix(in srgb, var(--color-fg) 35%, transparent); fill-opacity: var(--op-status, 1); }
+/* The open-problems heatmap (issue #875): over traffic, and the seat's number dark on the light step. */
+.fb-plan .seat.pheat { stroke: var(--color-fg); stroke-width: 1.5; fill-opacity: var(--op-problems, 1); }
+.fb-plan .seat.pheat ~ .num { fill: #1a1a1a; }
+.fb-plan .seat.pheat-2 ~ .num, .fb-plan .seat.pheat-3 ~ .num { fill: #fff; }
+.fb-plan-legend .pheat-scale { gap: 8px; }
+.fb-plan-legend .pheat-scale .pscale { display: inline-flex; gap: 6px; align-items: center; }
+.fb-plan-legend .pheat-scale .pscale i { display: inline-block; width: 18px; height: 12px; border-radius: 3px; }
 /* Layers drawn inside the seats fade with their layer's opacity (pages/plan/layers.ts). */
 .fb-plan .fwr { opacity: var(--op-firewalls, 1); }
 .fb-plan .chk { opacity: var(--op-checkin, 1); }

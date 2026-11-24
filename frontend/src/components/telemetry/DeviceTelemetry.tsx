@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import { DataTable } from '@/components/DataTable'
+import { DataTable } from '@bitsandbricks/ui'
 import { ago, dateTime } from '@/lib/time'
 import { useTelemetryDevices, type DeviceProblem, type TestResult } from './api'
 

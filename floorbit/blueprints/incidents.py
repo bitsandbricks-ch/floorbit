@@ -119,6 +119,13 @@ def qr_page():
     return spa.render('Helpdesk QR codes')
 
 
+@bp.route('/incidents/<incident_id>')
+def incident_page(incident_id):
+    # One incident: its history, notes and every action, so the board's cards stay small (issue #887).
+    _board_user()
+    return spa.render('Incident')
+
+
 # ── The board ──────────────────────────────────────────────────────────────────
 @bp.route('/api/incidents', methods=['GET'])
 def list_incidents():

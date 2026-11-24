@@ -5,7 +5,7 @@ import { fakeFetch, renderWithApp } from '@/test/render'
 import { useLocation } from 'react-router-dom'
 import FloorPlan from './FloorPlan'
 import axe from 'axe-core'
-import { density, findSeat, heatColor, heatLevel, linkSpans, matches, nearestSeat, seatOrder, nextSeat, parseBox, reveal, seatCenter, zoom } from './plan/model'
+import { density, findSeat, heatColor, heatLevel, PROBLEM_COLORS, linkSpans, matches, nearestSeat, seatOrder, nextSeat, parseBox, reveal, seatCenter, zoom } from './plan/model'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -145,7 +145,7 @@ describe('traffic overlay', () => {
     renderWithApp(<FloorPlan />, '/plan')
     await waitFor(() => expect(api.calls.some((c) => c.path === '/api/firewalls/seats')).toBe(true))
     fireEvent.click(await screen.findByRole('tab', { name: /Layers/ }))
-    await screen.findByRole('switch', { name: 'Status: traffic per seat' })
+    await screen.findByRole('switch', { name: 'Heatmap: traffic per seat' })
     // Listed, so the layer is known, but off until ranges are planned.
     await waitFor(() => expect(screen.getByRole('switch', { name: /^Firewall per seat/, hidden: true })).toBeDisabled())
   })
@@ -154,13 +154,28 @@ describe('traffic overlay', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
     fireEvent.click(await screen.findByRole('tab', { name: /Layers/ }))
-    const toggle = await screen.findByRole('switch', { name: 'Status: traffic per seat' })
+    const toggle = await screen.findByRole('switch', { name: 'Heatmap: traffic per seat' })
     expect(container.querySelector('.seat.heat')).toBeNull()
     fireEvent.click(toggle)
     await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveClass('heat'))
     expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveStyle({ fill: heatColor(heatLevel(6_000_000)) })
     expect(container.querySelector('[data-seat="D-2"] .slash')).not.toBeNull()
     expect(legendText()).toContain('100 kbit/s')
+  })
+
+  it('fills seats by their open problems, over traffic (issue #875)', async () => {
+    const hot = { ...data, seats: { ...data.seats, 'D-1': { ...data.seats['D-1'], problems: 2 }, 'D-3': { state: 'offline' as const, behind: 'sw-d-01' } } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': hot }).fn)
+    const { container } = renderWithApp(<FloorPlan />, '/plan?layers=status,problems')
+    await waitFor(() => expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveClass('pheat-2'))
+    expect(container.querySelector('[data-seat="D-1"] .seat')).not.toHaveClass('heat')
+    expect(container.querySelector('[data-seat="D-1"] .seat')).toHaveStyle({ fill: PROBLEM_COLORS[2] })
+    expect(container.querySelector('[data-seat="D-2"] .seat')).toHaveClass('pheat-1')
+    // Cut off by a down switch counts as one.
+    expect(container.querySelector('[data-seat="D-3"] .seat')).toHaveClass('pheat-1')
+    expect(container.querySelector('[data-seat="D-4"] .seat')).not.toHaveClass('pheat')
+    fireEvent.click(await screen.findByRole('tab', { name: /Layers/ }))
+    expect(await screen.findByRole('list', { name: 'Legend: Heatmap: open problems per seat' })).toHaveTextContent('Open problems per seat123+')
   })
 })
 

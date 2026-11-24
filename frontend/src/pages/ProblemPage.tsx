@@ -11,9 +11,10 @@ import type { ProblemDetail } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { Panel } from '@/components/ui'
 import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
-import { ago, dateTime } from '@/lib/time'
-import { PageHead, StatusBadge } from '@bitsandbricks/ui'
+import { PageHead } from '@bitsandbricks/ui'
 import { canReport, reportBody } from './problems/format'
+import { ProblemFacts } from './problems/facts'
+import { problemPlaces } from './problems/places'
 import { FindingPanel } from './problems/FindingPanel'
 import { MuteDialog } from './problems/MuteDialog'
 import { muteBody, muteTarget, type MuteTarget } from './problems/mute'
@@ -54,18 +55,9 @@ export default function ProblemPage() {
       </Layout>
     )
   }
-  const { problem: p, device } = q.data
+  const { problem: p } = q.data
   const muteable = q.data.can_mute && (!!p.mute_id || p.kind === 'switch') && !p.muted
-  // Where to look next: what the problem points at, then its device, seat, logs and machines.
-  const places: { label: string; href: string }[] = [
-    ...(p.link ? [{ label: t('problem.source'), href: p.link }] : []),
-    ...(device ? [{ label: t('problem.device', { name: device.name }), href: `/inventory/devices/${encodeURIComponent(device.id)}` }] : []),
-    ...(p.seat ? [{ label: t('problem.seatOnPlan', { seat: p.seat }), href: `/plan?seat=${encodeURIComponent(p.seat)}` }] : []),
-    ...(p.device && !p.seat ? [{ label: t('problem.onPlan', { name: p.device }), href: `/plan?switch=${encodeURIComponent(p.device)}` }] : []),
-    ...(q.data.may_see_people && (p.seat || p.device) ? [{
-      label: t('problem.logs'), href: p.seat ? `/logs?seat=${encodeURIComponent(p.seat)}` : `/logs?device=${encodeURIComponent(p.device ?? '')}` }] : []),
-    ...(q.data.may_see_people && p.seat ? [{ label: t('problem.machines'), href: `/endpoints?seat=${encodeURIComponent(p.seat)}` }] : []),
-  ]
+  const places = problemPlaces(q.data, t)
   return (
     <Layout title={p.title}>
       <PageHead back={back} title={p.title}
@@ -73,7 +65,7 @@ export default function ProblemPage() {
         desc={p.where}
         actions={<>
           {p.incident && (
-            <Button variant="default" component="a" href={`/incidents?q=${encodeURIComponent(`id:${p.incident}`)}`}>{t('problems.incidentOpen')}</Button>
+            <Button variant="default" component="a" href={`/incidents/${encodeURIComponent(p.incident)}`}>{t('problems.incidentOpen')}</Button>
           )}
           {q.data.can_report && canReport(p) && !p.incident && (
             <Button onClick={() => report.mutate()} loading={report.isPending}>{t('problems.report')}</Button>
@@ -88,19 +80,7 @@ export default function ProblemPage() {
       <ErrorBanner error={report.error} mb="md" />
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
         <Panel title={t('problem.what')}>
-          <Stack gap={6}>
-            <Group gap="sm" wrap="nowrap">
-              <Text size="sm" c="dimmed" w={150} style={{ flexShrink: 0 }}>{t('problem.level')}</Text>
-              <StatusBadge size="sm" state={p.muted ? 'unknown' : p.level === 'down' ? 'down' : 'warn'} label={t(`problem.levels.${p.muted ? 'muted' : p.level}`)} />
-            </Group>
-            <Row label={t('problem.since')} value={p.since ? `${dateTime(p.since)} (${ago(p.since)})` : t('problem.sinceUnknown')} />
-            {p.device && <Row label={t('problem.switch')} value={p.device} />}
-            {p.seat && <Row label={t('problem.seat')} value={p.seat} />}
-            {p.cause && <Text size="sm" c="down">{t('problems.behindCause', { name: p.cause })}</Text>}
-            {(p.seats?.length ?? 0) > 0 && <Row label={t('problem.cutOff')} value={p.seats!.join(', ')} />}
-            {(p.behind?.length ?? 0) > 0 && <Row label={t('problem.behind')} value={p.behind!.join(', ')} />}
-            {p.muted && <Text size="sm" c="dimmed">{t('problems.mutedUntil', { time: dateTime(p.muted.until), who: p.muted.by ?? '?' })}{p.muted.reason ? ` · ${p.muted.reason}` : ''}</Text>}
-          </Stack>
+          <ProblemFacts p={p} />
         </Panel>
         <Panel title={t('problem.next')}>
           {places.length ? (
@@ -123,11 +103,3 @@ export default function ProblemPage() {
   )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <Group gap="sm" wrap="nowrap" align="flex-start">
-      <Text size="sm" c="dimmed" w={150} style={{ flexShrink: 0 }}>{label}</Text>
-      <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{value}</Text>
-    </Group>
-  )
-}

@@ -4,10 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { useFlows } from '@/api/queries'
 import type { FlowMix, FlowsData } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
-import { DataTable } from '@/components/DataTable'
+import { DataTable, ErrorBanner } from '@bitsandbricks/ui'
 import { bytes, CATEGORIES, mostly, total } from './format'
 import { onPlan } from '../plan/links'
-import { ErrorBanner } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 
 

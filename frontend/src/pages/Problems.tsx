@@ -9,18 +9,14 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useProblems } from '@/api/queries'
 import type { Problem } from '@/api/types'
-import { DataTable, type DataColumn } from '@/components/DataTable'
+import { type DataColumn, DataTable, ErrorBanner, LoadingState, PageHead, StatTile, StatusBadge } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { StatTile } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { canReport, problemsText, rank, reportBody } from './problems/format'
 import { MuteDialog } from './problems/MuteDialog'
 import { ShutPorts } from './problems/ShutPorts'
 import { muteBody, muteHref, muteTarget, type MuteTarget } from './problems/mute'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, clock } from '@/lib/time'
-import { StatusBadge } from '@bitsandbricks/ui'
 import './Problems.css'
 
 /** Rows per page: a big event can have dozens of seats with port trouble (issue #1204). */
@@ -67,7 +63,7 @@ function RowActions({ p, a }: { p: Problem; a: Actions }) {
       {p.link && <Button size="compact-sm" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
       {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
       {p.incident && (
-        <Button size="compact-sm" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(`id:${p.incident}`)}`}>
+        <Button size="compact-sm" variant="subtle" component="a" href={`/incidents/${encodeURIComponent(p.incident)}`}>
           {t('problems.incidentOpen')}
         </Button>
       )}

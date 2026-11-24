@@ -1,0 +1,15 @@
+{
+  "eyebrow_one": "Checked {{ago}} · {{count}} open",
+  "eyebrow_other": "Checked {{ago}} · {{count}} open",
+  "show": "Show",
+  "filter": {
+    "all": "All",
+    "down": "Down",
+    "warn": "Warnings",
+    "seats": "Seats and ports"
+  },
+  "search": "Search",
+  "noMatch": "Nothing matches this filter.",
+  "openProblem": "Open problem",
+  "back": "Back to the list"
+}
