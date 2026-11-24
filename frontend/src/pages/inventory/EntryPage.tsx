@@ -8,7 +8,8 @@ import { del, patch } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { EntryDetail, InventoryOverview, InventoryType } from '@/api/types'
 import { DangerZone, ItemPage } from '@/components/ItemPage'
-import { Field, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { PanelField } from '@bitsandbricks/ui'
 import { RangePanel } from '@/pages/firewalls/RangePanel'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
 import { SaveBar } from '@/pages/settings/editor'
@@ -88,7 +89,7 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
       {(entry.summary || entry.link) && (
         <Panel title={t('inventory.tabs.overview')}>
           <Stack gap={4}>
-            {entry.summary && <Field label={t('inventory.entries.what')}>{entry.summary}</Field>}
+            {entry.summary && <PanelField label={t('inventory.entries.what')}>{entry.summary}</PanelField>}
             {entry.detail && <Text size="sm" c="dimmed">{entry.detail}</Text>}
             {entry.link && (
               <Anchor href={entry.link} size="sm">

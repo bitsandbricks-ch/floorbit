@@ -2,8 +2,8 @@ import { Anchor, Badge, Group, Text } from '@mantine/core'
 import { IconNote } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import type { Incident, IncidentBoard } from '@/api/types'
-import { ago } from '@/lib/time'
-import { fixedAfter, isWaiting, unseenFor, waitedFor } from './waiting'
+import { ago, clock } from '@/lib/time'
+import { fixedAfter, isSnoozed, isWaiting, unseenFor, waitedFor } from './waiting'
 import { mbit, notSeenFor, planLinkOf, whereOf } from './where'
 
 /** What an incident's badges say. ``full`` adds the team, where it came from and how often the
@@ -33,6 +33,10 @@ export function IncidentBadges({ i, board, now, full = false }: { i: Incident; b
         <Badge component="a" href={`/incidents?q=${encodeURIComponent(`seat:${i.seat}`)}`} variant="outline" color="warn" tt="none"
           title={t('incidents.againHint')} style={{ cursor: 'pointer' }}>{t('incidents.again', { n: atSeat })}</Badge>
       )}
+      {isSnoozed(i, now) && (
+        <Badge variant="light" color="gray" tt="none">{t('incident.snoozedUntil', { time: clock(i.snoozed_until!) })}</Badge>
+      )}
+      {i.dismissed && <Badge variant="light" color="gray" tt="none">{t('incident.notAProblem')}</Badge>}
       {isWaiting(i, now) && <Badge variant="filled" color="warn" tt="none">{waitedFor(now - i.created_at, t)}</Badge>}
       {/* Part of an outage, not a cable: look at the switch first (issue #386). */}
       {i.outage && (

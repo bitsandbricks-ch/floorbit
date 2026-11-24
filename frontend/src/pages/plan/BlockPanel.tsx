@@ -23,7 +23,7 @@ export function BlockPanel({ name, onSeat, onSwitch, onClose }: {
   return (
     <Stack gap="sm" className="fb-inspector" aria-live="polite">
       <Group justify="space-between" wrap="nowrap">
-        <Title order={2} size="h3">{t('plan.blockPanel.title', { name })}</Title>
+        <Title order={2} size="h3">{t('plan.blockPanel.title', { name: b?.label || b?.name || name })}</Title>
         <Button variant="subtle" size="compact-sm" onClick={onClose}>{t('plan.close')}</Button>
       </Group>
       {q.isPending && <LoadingState lines />}

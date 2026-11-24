@@ -12,5 +12,14 @@
   "notes_one": "{{count}} Notiz",
   "notes_other": "{{count}} Notizen",
   "noNotes": "Noch keine Notizen.",
-  "addNote": "Notiz hinzufügen"
+  "addNote": "Notiz hinzufügen",
+  "dismiss": "Abweisen",
+  "notAProblem": "Kein Problem",
+  "snooze": "Zurückstellen",
+  "snoozeFor_minutes_one": "Für {{count}} Minute",
+  "snoozeFor_minutes_other": "Für {{count}} Minuten",
+  "snoozeFor_hours_one": "Für {{count}} Stunde",
+  "snoozeFor_hours_other": "Für {{count}} Stunden",
+  "unsnooze": "Jetzt wieder in die Warteschlange",
+  "snoozedUntil": "Zurückgestellt bis {{time}}"
 }

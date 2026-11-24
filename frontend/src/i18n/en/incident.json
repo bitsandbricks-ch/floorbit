@@ -12,5 +12,14 @@
   "notes_one": "{{count}} note",
   "notes_other": "{{count}} notes",
   "noNotes": "No notes yet.",
-  "addNote": "Add note"
+  "addNote": "Add note",
+  "dismiss": "Dismiss",
+  "notAProblem": "Not a problem",
+  "snooze": "Snooze",
+  "snoozeFor_minutes_one": "For {{count}} minute",
+  "snoozeFor_minutes_other": "For {{count}} minutes",
+  "snoozeFor_hours_one": "For {{count}} hour",
+  "snoozeFor_hours_other": "For {{count}} hours",
+  "unsnooze": "Back in the queue now",
+  "snoozedUntil": "Snoozed until {{time}}"
 }

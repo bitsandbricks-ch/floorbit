@@ -6,7 +6,10 @@
 
 <!-- Required on every pull request. UI changes: desktop and phone, before and after.
      The CI `screenshots` job takes them for you: download the "screenshots" artifact from
-     the workflow run's summary and drag them in here. Not a UI change? Show the page, API answer
+     the workflow run's summary and drag them in here. Images committed under .pr-screenshots/
+     (and otherwise CI's own shots) show up in a comment CI writes on this pull request; linking
+     a file by hand? Use raw.githubusercontent.com/<repo>/<sha>/<path>, never
+     github.com/.../blob/...?raw=true, which github.com throttles (#1400). Not a UI change? Show the page, API answer
      or pipeline output it touches. Remove personal data (names, IPs, tokens) first. -->
 
 ## How it was tested
