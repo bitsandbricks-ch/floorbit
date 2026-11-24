@@ -627,8 +627,10 @@ def _event_tile(tile):
     def build(user):
         from .. import dashboard_event
         from .stats_wall import _facts, page_on
-        # Off with the stats wall (Settings > Attendee pages), as /wall.json is.
-        if not page_on():
+        # The setting is about the public side (#1113): crew always read the facts; a public
+        # dashboard shows them only while Settings > Attendee pages turns the stats wall on.
+        public = (request.endpoint or '').endswith('.public_tile')
+        if public and not page_on():
             return dashboard_event.off(tile, _lang())
         return dashboard_event.widget(tile, _lang(), _facts())
     return build
