@@ -303,13 +303,3 @@ def init_app(app):
                 data['error'] = german
                 response.set_data(json.dumps(data, ensure_ascii=False))
         return response
-        lang = language(request.headers.get('Accept-Language'))
-        if lang == 'en':
-            return response
-        data = response.get_json(silent=True)
-        if isinstance(data, dict) and isinstance(data.get('error'), str):
-            german = translate(data['error'], lang)
-            if german != data['error']:
-                data['error'] = german
-                response.set_data(json.dumps(data, ensure_ascii=False))
-        return response
