@@ -30,7 +30,7 @@ FEATURES = (
     {'id': 'dispatch', 'paths': ('/jobs', '/api/jobs', '/api/dispatch'), 'needs': ('incidents',)},
     {'id': 'handover', 'paths': ('/handover', '/api/handover'), 'needs': ('incidents',)},
     {'id': 'cables', 'paths': ('/cables', '/api/cables', '/api/cables.csv'), 'needs': ()},
-    {'id': 'health', 'paths': ('/health', '/api/health'), 'needs': ()},
+    {'id': 'health', 'paths': ('/api/health',), 'needs': ()},
     {'id': 'dashboard', 'paths': ('/api/dashboard',), 'needs': ()},
     {'id': 'traffic', 'paths': ('/traffic', '/api/flows'), 'needs': ()},
     {'id': 'dns', 'paths': ('/dns', '/api/dns'), 'needs': ()},

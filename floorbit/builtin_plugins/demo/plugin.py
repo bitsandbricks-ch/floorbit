@@ -820,7 +820,7 @@ class Plugin(Plugin):
         hit = round(62 + 28 * _wave(1, now, period=600))
         saved = round(40 + (now % 86400) / 86400 * 900 * _wave(2, now, period=3600), 1)
         return [
-            {'id': 'dhcp-players', 'name': 'DHCP players', 'kind': 'dhcp', 'link': '/health',
+            {'id': 'dhcp-players', 'name': 'DHCP players', 'kind': 'dhcp', 'link': '/services',
              'status': _level(left / DHCP_POOL, warn=0.25, down=0.05, higher_is_better=True),
              'summary': f'{left} of {DHCP_POOL} leases left',
              'metrics': [{'label': 'Leases left', 'value': left}, {'label': 'In use', 'value': players}],
@@ -886,6 +886,31 @@ class Plugin(Plugin):
             avg = round(170 + 30 * _wave(99, now, period=60), 1)
         return {'sent': 3, 'lost': 0, 'avg_ms': avg}
 
+    @staticmethod
+    def _check_answer(spec, now):
+        """An own check (issue #1338) at a documentation address or an example.com URL: a made-up
+        answer, so the demo shows own checks without an agent. Any other target: not answered."""
+        import ipaddress
+        from urllib.parse import urlsplit
+        kind = spec.get('kind')
+        host = urlsplit(str(spec.get('url') or '')).hostname if kind == 'http' else spec.get('host')
+        host = str(host or '').lower()
+        try:
+            ip = ipaddress.ip_address(host)
+            ours = any(ip in ipaddress.ip_network(n) for n in ('192.0.2.0/24', '198.51.100.0/24', '203.0.113.0/24'))
+        except ValueError:
+            ours = host == 'example.com' or host.endswith('.example.com')
+        if not ours:
+            return None
+        k = sum(map(ord, host)) % 7
+        ms = round(1 + 3 * _wave(110 + k, now, period=120), 1)
+        if kind == 'http':
+            return {'kind': kind, 'code': 200, 'ms': round(40 + 60 * _wave(120 + k, now, period=300), 1),
+                    'cert_days': 9 if k % 2 else 61, 'found': True}
+        if kind == 'udp':
+            return {'kind': kind, 'answered': spec.get('ask') != 'none', 'ms': ms, 'closed': False}
+        return {'kind': kind, 'sent': 3, 'lost': 0, 'ms': ms}
+
     def answer(self, method, args):
         """What the demo's made-up servers answer to a probe, a game query or an RCON command, so the
         services and game servers pages work without sending anything out. None for any other host:
@@ -907,6 +932,8 @@ class Plugin(Plugin):
             k = LAYOUT['uplinks'].index(line)
             avg = round(8 + 4 * k + 6 * _wave(60 + k, now, period=240), 1)
             return {'sent': 5, 'lost': 1 if k == 1 and int(now // 60) % 9 == 0 else 0, 'avg_ms': avg}
+        if method == 'check_probe':
+            return self._check_answer(args[0] if args else {}, now)
         if method == 'game_query':
             host, port = args[1], int(args[2])
             server = next((s for s in GAME_SERVERS if (s['host'], s['port']) == (host, port)), None)

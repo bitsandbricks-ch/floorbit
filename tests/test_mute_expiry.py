@@ -49,7 +49,7 @@ def test_a_service_still_down_when_its_mute_ends(app_module, client, wall, fake_
     embed = msg["embeds"][0]
     assert embed["title"] == "🔔 Mute on Game server 1 ended: still down"
     assert embed["description"] == "The mute ran out and it has not come back."
-    assert embed["url"] == "https://floor.example.com/health" and msg["allowed_mentions"] == {"parse": []}
+    assert embed["url"] == "https://floor.example.com/services" and msg["allowed_mentions"] == {"parse": []}
 
     client.post("/api/alerts/mutes", json={"service_id": "demo:game-1", "minutes": 30})
     monkeypatch.setenv("DISCORD_HEALTH_ALERTS", "0")

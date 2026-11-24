@@ -1,3 +1,4 @@
+import type { OwnCheck, ServiceTags } from './serviceChecks'
 // Shapes the Flask API returns. Keep in step with floorbit/plugins and auth.
 
 /** A permission from auth/roles.py PERMISSIONS, e.g. 'floorplan.edit'. */
@@ -564,7 +565,7 @@ export interface QrSeat {
 }
 
 // The service health wall (floorbit/health.py).
-export type HealthKind = 'dhcp' | 'dns' | 'cache' | 'game' | 'uplink' | 'firewall' | 'web' | 'other'
+export type HealthKind = 'dhcp' | 'dns' | 'cache' | 'game' | 'uplink' | 'firewall' | 'web' | 'check' | 'other'
 export interface HealthMetric {
   label: string
   value: number | string
@@ -1155,6 +1156,8 @@ export interface DnsData {
   blocked: number
   block_share: number | null
   sites: DnsSite[]
+  /** How many sites are named; `sites` holds the busiest of them. */
+  named: number
   categories: { id: DnsCategory; lookups: number }[]
   unnamed_lookups: number
   new: DnsSite[]
@@ -1486,10 +1489,12 @@ export interface StatusUpdate {
 
 /** One count of every service (issue #1037): the health wall's checks, each internet site a row. */
 export interface ServiceSummaryRow {
-  id: string; name: string; kind: string; status: ServiceStatus; summary: string; link: string
+  id: string; name: string; kind: string; status: ServiceStatus; summary: string; link: string; tags?: string[]
 }
 export interface ServiceSummary {
   rows: ServiceSummaryRow[]
+  /** Every service's tags by id (issue #1337), also of one the wall hasn't polled yet. */
+  tags?: ServiceTags
   total: number
   counts: Record<ServiceStatus, number>
   by_kind: Record<string, Record<ServiceStatus | 'total', number>>
@@ -1726,7 +1731,7 @@ export interface LanCacheState {
   disk: { used: number; total: number; ratio: number } | null; error: string; demo: boolean
 }
 export interface Services {
-  uplinks: IspUplink[]; resolvers: DnsResolver[]; sites: InternetSite[]; lan_cache: LanCacheState | null
+  uplinks: IspUplink[]; resolvers: DnsResolver[]; sites: InternetSite[]; checks?: OwnCheck[]; lan_cache: LanCacheState | null
   interval: number; last_poll: number | null; via_agent: boolean; probe_ports: number[]; devices: string[]
 }
 

@@ -59,8 +59,8 @@ still caught:
 
 A refused request fails like an unreachable server, with "Refused: ..." in the error. Through an HTTP
 proxy (`HTTPS_PROXY`) the server connects to the proxy, so only the proxy's address is checked: let the
-proxy refuse the hosting network too. The server's own probes, game server queries and RCON follow
-`PROBE_NETS` ([services](services.md#what-the-server-itself-may-reach)).
+proxy refuse the hosting network too. Probes, game server queries and RCON go only through the agent
+([services](services.md#without-an-agent)), within `FLOORBIT_AGENT_PROBE_NETS` and `_GAME_NETS`.
 
 ## The agent next to a self-hosted Floorbit
 
