@@ -344,6 +344,15 @@ class Sql:
     def get_text(self, key):
         """The document as stored (JSON text), or _MISSING."""
         try:
+            # data.json is read several times per request (hundreds of KB each): when its update
+            # time (asked once a second) says nothing changed, the copy we hold is the same text.
+            stamp = self._stamp(key)
+            held = self._docs.get(key)
+            if stamp is None:
+                self._docs.pop(key, None)
+                return _MISSING
+            if held is not None and held[1] == stamp:
+                return held[0]
             rows = self.run('SELECT body, updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
         except DatabaseUnavailable:
             if key in self._docs:
@@ -359,15 +368,19 @@ class Sql:
         # Caches ask this on every call (who is signed in, which agent, which plugins): at a
         # 1,000-switch event that was a query per request and most of the pool's time. Asked once
         # a second; this process's own writes show at once (put and delete set it).
+        try:
+            return self._stamp(key)
+        except DatabaseUnavailable:
+            # The copy's time: caches that compare it see no change, which is true for what they can read.
+            return self._docs[key][1] if key in self._docs else None
+
+    def _stamp(self, key):
+        """``updated_at`` that raises when the database is away."""
         now = time.monotonic()
         hit = self._stamps.get(key)
         if hit is not None and now - hit[0] < STAMP_RECHECK:
             return hit[1]
-        try:
-            rows = self.run('SELECT updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
-        except DatabaseUnavailable:
-            # The copy's time: caches that compare it see no change, which is true for what they can read.
-            return self._docs[key][1] if key in self._docs else None
+        rows = self.run('SELECT updated_at FROM floorbit_documents WHERE doc_key = ?', (key,), fetch=True)
         found = rows[0][0] if rows else None
         if len(self._stamps) > 4096:
             self._stamps.clear()
@@ -416,6 +429,7 @@ class Sql:
         if not rows:
             return False
         self._docs[key] = (body, now)
+        self._stamps[key] = (time.monotonic(), now)
         for prefix, known in self._keys.items():
             if key.startswith(prefix) and key not in known:
                 known.append(key)
