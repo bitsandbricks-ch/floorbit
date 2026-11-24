@@ -147,7 +147,7 @@ Devices are one **type** of inventory entry. The others sit in tabs on the Inven
 
 | Type | Where its entries live |
 | --- | --- |
-| Cable, Circuit, Power board, Patch panel | The cables, power and floor plan pages, as before. The inventory shows them and adds fields, tags, a group and properties; name and route stay on their own page. |
+| Cable, Circuit, Power board, Patch panel, Firewall range | The cables, power, floor plan and Firewalls pages, as before. The inventory shows them and adds fields, tags, a group and properties; name and route stay on their own page. |
 | Rack or location | The inventory (height in U, hall). |
 | Transceiver | The inventory (device, port, form factor, media, speed, serial). |
 | VLAN or IP range | The inventory (VLAN ID, prefix, gateway, purpose). |

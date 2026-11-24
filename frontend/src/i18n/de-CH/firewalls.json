@@ -75,5 +75,6 @@
       "unknown": "Zustand unbekannt",
       "down": "down"
     }
-  }
+  },
+  "inInventory": "Gruppen, Tags und Notizen im Inventar"
 }

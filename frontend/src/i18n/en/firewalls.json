@@ -75,5 +75,6 @@
       "unknown": "state unknown",
       "down": "down"
     }
-  }
+  },
+  "inInventory": "Groups, tags and notes in the inventory"
 }

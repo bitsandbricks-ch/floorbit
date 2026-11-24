@@ -27,6 +27,10 @@ are off their firewall and which firewall a seat's traffic takes.
 
 ## The plan
 
+A range is an inventory item (Mike, 2026-11-24): it has its own tab under **Inventory** (Firewall
+range), where it gets a group, tags, fields and notes like any other entry. It is planned, changed and
+removed here, or imported from NetBox here; the inventory links back to it.
+
 | Field | Meaning |
 | --- | --- |
 | Range | A network, like `192.0.2.0/27`, or from-to, like `192.0.2.0-192.0.2.128`. A from-to that is exactly one network is written as that network. A host address is turned into its network. IPv4 and IPv6. |
