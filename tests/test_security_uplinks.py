@@ -1,7 +1,7 @@
 """No Shut port on uplinks (#886): the Security page and the port actions refuse a port that leads to more seats."""
 import pytest
 
-from floorbit import links, sources, uplink_guard
+from floorbit import links, ports, sources, uplink_guard
 
 pytestmark = pytest.mark.usefixtures("lan_here")
 
@@ -47,7 +47,7 @@ def test_a_source_that_fails_does_not_block_the_check(monkeypatch):
     assert uplink_guard.reason("sw-a-01", "Gi1/0/3", {}) is None
 
 
-def test_the_port_actions_refuse_an_uplink_but_turn_it_on(client, no_neighbours):
+def test_the_port_actions_refuse_an_uplink_but_turn_it_on(client, no_neighbours, watch):
     assert client.post("/api/inventory", json={"name": "sw-a-01", "mgmt_ip": "198.51.100.4"}).status_code in (200, 201)
     client.put("/api/settings/plugins/demo", json={"enabled": True})
     no_neighbours["sw-a-01"] = [{"port": "Gi1/0/48", "remote": "core-01"}]
@@ -58,7 +58,19 @@ def test_the_port_actions_refuse_an_uplink_but_turn_it_on(client, no_neighbours)
     assert client.post("/api/ports/enable", json={"switch": "sw-a-01", "port": "Gi1/0/48"}).status_code == 200
 
 
-def test_the_demo_storm_on_an_uplink_offers_no_shut_port(client):
+@pytest.fixture
+def watch(app_module):
+    # The findings stay in the shared watch: reset it, or later tests count the demo's (test_service_mutes).
+    w = app_module.app.extensions["floorbit_security"]
+    w.stop()
+    w.reset()
+    yield w
+    w.reset()
+    for state in (ports._last, ports._failures, ports._busy):
+        state.clear()
+
+
+def test_the_demo_storm_on_an_uplink_offers_no_shut_port(client, watch):
     client.put("/api/settings/plugins/demo", json={"enabled": True})
     found = {f["kind"]: f for f in client.post("/api/security/check").get_json()["findings"]}
     assert found["storm"]["uplink"] == "neighbour"
