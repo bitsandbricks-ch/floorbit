@@ -10,6 +10,7 @@
  "No switch status until it does": "Kein Switch-Status, solange keine Antwort kommt",
  "Rogue DHCP server": "Fremder DHCP-Server",
  "Seat {} ({})": "Platz {} ({})",
+ "Seat {}, on the incident board": "Platz {}, bei den Störungen",
  "Security finding": "Sicherheitsfund",
  "Switch status is frozen at the last good data": "Der Switch-Status steht auf den letzten guten Daten",
  "That switch is not muted.": "Dieser Switch ist nicht stummgeschaltet.",
