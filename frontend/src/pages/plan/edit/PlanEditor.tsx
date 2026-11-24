@@ -2,7 +2,7 @@ import { ActionIcon, Anchor, Button, ColorSwatch, Group, Kbd, Menu, NumberInput,
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
-  IconArrowBackUp, IconArrowForwardUp, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
+  IconArrowBackUp, IconArrowForwardUp, IconBookmark, IconBookmarks, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
   IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
@@ -40,6 +40,7 @@ import { SharedFields } from './SharedFields'
 import { TintField } from './TintField'
 import { hallIsEmpty } from './emptyHall'
 import { EmptyHall, PlanDialogs, type PlanDialog } from './PlanMenu'
+import { type PlanPreset, SavePresetDialog } from './Presets'
 import { LAYER_IDS, type SharedField, ZONE_COLORS, sharedEdits, sharedFields } from './shared'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
@@ -366,6 +367,29 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     const d = to ? deltaTo(clip, to) : { x: 2, y: 3.2 }
     await addRaws(copies(clip, d, await blocksInUse(), await panelsInUse()), t('plan.edit.step.paste', { count: clip.length }))
   }, [addRaws, blocksInUse, panelsInUse, t])
+
+  // A preset placed from the right-click menu goes where it was opened, from the Plan menu where the pointer last was.
+  const presetAt = useRef<Point | null>(null)
+  const [presetDraft, setPresetDraft] = useState<Raw[] | null>(null)
+  const saveAsPreset = useCallback(async (items: ItemRef[]) => {
+    try {
+      // As copy: a switch is one device and a switch port has one cable.
+      const saved = (await snapshot(items)).filter((s) => s.ref.kind !== 'cable' && s.ref.kind !== 'switch')
+      if (saved.length) setPresetDraft(saved.map((s) => s.raw))
+    } catch (err) {
+      fail(err)
+    }
+  }, [snapshot, fail])
+  const placePreset = useCallback(async (p: PlanPreset) => {
+    const to = presetAt.current ?? pointer.current
+    presetAt.current = null
+    const d = to ? deltaTo(p.items, to) : { x: 0, y: 0 }
+    try {
+      await addRaws(copies(p.items, d, await blocksInUse(), await panelsInUse()), t('presets.step', { name: p.name }))
+    } catch (err) {
+      fail(err)
+    }
+  }, [addRaws, blocksInUse, panelsInUse, t, fail])
 
   const duplicate = useCallback(async (items: ItemRef[]) => {
     try {
@@ -852,10 +876,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                 <Menu.Item leftSection={<IconCopy size={14} />} rightSection={<Kbd size="xs">Ctrl D</Kbd>} onClick={() => void duplicate(selected)}>{t('plan.edit.menu.duplicate')}</Menu.Item>
                 <Menu.Item leftSection={<IconCopy size={14} />} rightSection={<Kbd size="xs">Ctrl C</Kbd>} onClick={() => void copy(selected)}>{t('plan.edit.menu.copy')}</Menu.Item>
                 <Menu.Item leftSection={<IconCut size={14} />} rightSection={<Kbd size="xs">Ctrl X</Kbd>} onClick={() => void copy(selected, true)}>{t('plan.edit.menu.cut')}</Menu.Item>
+                <Menu.Item leftSection={<IconBookmark size={14} />} onClick={() => void saveAsPreset(selected)}>{t('presets.menuSave')}</Menu.Item>
               </>
             )}
             <Menu.Item leftSection={<IconClipboard size={14} />} rightSection={<Kbd size="xs">Ctrl V</Kbd>} disabled={!readClip()?.length}
               onClick={() => void paste(menu.at ?? undefined)}>{t('plan.edit.menu.paste')}</Menu.Item>
+            {!menu.item && (
+              <Menu.Item leftSection={<IconBookmarks size={14} />} onClick={() => { presetAt.current = menu.at; onDialog('presets') }}>{t('presets.menuPlace')}</Menu.Item>
+            )}
             {menu.item && (
               <>
                 {(canGroup || grouped) && <Menu.Divider />}
@@ -892,7 +920,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
       <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
       <PlanDialogs open={dialog} data={data} onClose={() => onDialog(null)} onHall={onHall} onChanged={refresh}
-        onReplaced={() => { history.clear(); return refresh() }} />
+        onReplaced={() => { history.clear(); return refresh() }} onPlace={(p) => void placePreset(p)} />
+      <SavePresetDialog items={presetDraft} onClose={() => setPresetDraft(null)} />
       <PlaceSwitchDialog opened={placing?.kind === 'switch'} onClose={() => setPlacing(null)} onPlace={placeSwitches} />
       <PlaceBoardDialog opened={placing?.kind === 'board'} names={(markers.data?.boards ?? []).map((b) => b.name)} onClose={() => setPlacing(null)} onCreate={placeBoard} />
       {cableForm && <CableModal key={cableForm.cable?.id ?? 'new'} cable={cableForm.cable} canEdit initial={cableForm.initial}

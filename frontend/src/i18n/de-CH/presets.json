@@ -1,0 +1,29 @@
+{
+  "saveTitle": "Als Baustein speichern",
+  "name": "Name",
+  "saveHelp_one": "Speichert dieses Element, um es in jeder Halle oder jedem Event wieder einzufügen.",
+  "saveHelp_other": "Speichert diese {{count}} Elemente zusammen, um sie in jeder Halle oder jedem Event wieder einzufügen. Switches und Kabel bleiben draussen.",
+  "save": "Baustein speichern",
+  "saved": "Baustein «{{name}}» gespeichert",
+  "placeTitle": "Baustein einfügen",
+  "none": "Noch keine Bausteine. Wähle Elemente auf dem Plan, Rechtsklick und Als Baustein speichern.",
+  "list": "Bausteine",
+  "place": "Einfügen",
+  "placeOne": "«{{name}}» einfügen",
+  "delete": "Baustein löschen",
+  "deleteOne": "«{{name}}» löschen",
+  "help": "Ein Baustein kommt dorthin, wo du rechts geklickt hast oder wo der Zeiger zuletzt war, mit freien Reihenbuchstaben und Namen, und ist ausgewählt, damit du ihn verschieben kannst.",
+  "kind": {
+    "block_one": "{{count}} Sitzblock",
+    "block_other": "{{count}} Sitzblöcke",
+    "mark_one": "{{count}} Markierung",
+    "mark_other": "{{count}} Markierungen",
+    "panel_one": "{{count}} Patchpanel",
+    "panel_other": "{{count}} Patchpanels",
+    "board_one": "{{count}} Stromverteiler",
+    "board_other": "{{count}} Stromverteiler"
+  },
+  "menuSave": "Als Baustein speichern…",
+  "menuPlace": "Baustein einfügen…",
+  "step": "«{{name}}» einfügen"
+}

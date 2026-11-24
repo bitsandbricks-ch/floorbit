@@ -19,7 +19,7 @@ const tpl = {
 
 describe('the editor Plan menu', () => {
   it('opens each dialog', async () => {
-    for (const [item, dialog] of [['Save as template…', 'save'], ['Start from a template…', 'start'], ['Versions of this hall…', 'versions'], ['Halls…', 'halls']]) {
+    for (const [item, dialog] of [['Save as template…', 'save'], ['Start from a template…', 'start'], ['Place a preset…', 'presets'], ['Versions of this hall…', 'versions'], ['Halls…', 'halls']]) {
       const onOpen = vi.fn()
       const { unmount } = renderWithApp(<PlanMenu onOpen={onOpen} />)
       fireEvent.click(screen.getByRole('button', { name: 'Plan' }))
@@ -33,7 +33,7 @@ describe('the editor Plan menu', () => {
     const api = fakeFetch({ 'POST /api/templates': { ...tpl, id: 'new' } })
     vi.stubGlobal('fetch', api.fn)
     const onClose = vi.fn()
-    renderWithApp(<PlanDialogs open="save" data={plan} onClose={onClose} onHall={() => {}} onChanged={() => Promise.resolve()} onReplaced={() => Promise.resolve()} />)
+    renderWithApp(<PlanDialogs open="save" data={plan} onClose={onClose} onHall={() => {}} onChanged={() => Promise.resolve()} onReplaced={() => Promise.resolve()} onPlace={() => {}} />)
     fireEvent.change(await screen.findByLabelText(/Name/), { target: { value: 'Club LAN' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(onClose).toHaveBeenCalled())
@@ -47,7 +47,7 @@ describe('the editor Plan menu', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     const onReplaced = vi.fn(() => Promise.resolve())
-    renderWithApp(<PlanDialogs open="start" data={plan} onClose={() => {}} onHall={() => {}} onChanged={() => Promise.resolve()} onReplaced={onReplaced} />)
+    renderWithApp(<PlanDialogs open="start" data={plan} onClose={() => {}} onHall={() => {}} onChanged={() => Promise.resolve()} onReplaced={onReplaced} onPlace={() => {}} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Start from “Club LAN”' }))
     expect(await screen.findByRole('radio', { name: 'Side hall' })).toBeChecked()
     fireEvent.click(screen.getByRole('button', { name: 'Replace the floor plan' }))

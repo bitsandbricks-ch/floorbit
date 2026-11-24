@@ -32,10 +32,28 @@ The **Plan ▾** menu in the editor's top bar works on the plan as a whole:
 - **Start from a template…** lists the library; picking one asks for the version and, for a one-hall
   template, which hall it goes into (the one on screen at first), then replaces it. The undo history
   starts over.
+- **Place a preset…** puts a saved preset on the plan (below).
 - **Versions of this hall…** and **Halls…** open the dialogs below and in [halls.md](halls.md).
 - **Template library** opens this page.
 
 A hall with nothing on it yet offers **Start from a template** in the editor's panel.
+
+## Presets
+
+A template is a whole plan; a **preset** is a piece of one to place again, any number of times: an
+admin zone with its seat blocks, walls and labels, a U of tables, a stage with its marks.
+
+- Select the items, right-click and pick **Save as preset…**, and give it a name. Seat blocks (with
+  their rows), walls, zones, text, icons, patch panels and power boards go in; switches and cables
+  don't (a switch is one device, a switch port has one cable).
+- **Plan ▾ → Place a preset…**, or right-click an empty spot and **Place a preset…**, lists them with
+  what each holds. **Place** puts it where you right-clicked or where the pointer last was, like a
+  paste: seat blocks get the next free row letters or block names, panels and boards the next free
+  names, and the new items are selected so you can move them. Undo takes them away again.
+- The bin deletes a preset; what was placed from it stays.
+
+Presets belong to the whole installation (or tenant), not one event, in `plan-presets.json` next to the
+templates.
 
 **Versions of this hall** is a shortcut for one hall: **Save this version** keeps
 the hall as it is now under a name (the hall and the time if none is given), and **Restore** puts a

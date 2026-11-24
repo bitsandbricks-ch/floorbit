@@ -1,5 +1,5 @@
 import { Anchor, Badge, Button, Group, Menu, Modal, Paper, Stack, Text } from '@mantine/core'
-import { IconBuildingWarehouse, IconChevronDown, IconDeviceFloppy, IconHistoryToggle, IconTemplate } from '@tabler/icons-react'
+import { IconBookmarks, IconBuildingWarehouse, IconChevronDown, IconDeviceFloppy, IconHistoryToggle, IconTemplate } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,10 +9,11 @@ import type { LayoutTemplate, SeatViewData } from '@/api/types'
 import { toastDone } from '@/components/toast'
 import { ApplyDialog, SaveDialog } from '../../templates/Dialogs'
 import { HallsDialog } from './HallsDialog'
+import { type PlanPreset, PresetsDialog } from './Presets'
 import { VersionsDialog } from './VersionsDialog'
 
 /** What the editor's Plan menu opens (issue #1210). */
-export type PlanDialog = 'save' | 'start' | 'versions' | 'halls'
+export type PlanDialog = 'save' | 'start' | 'presets' | 'versions' | 'halls'
 
 /** The editor's Plan ▾ menu in the top bar: the plan as a whole, next to the tools for its parts. */
 export function PlanMenu({ onOpen }: { onOpen: (d: PlanDialog) => void }) {
@@ -25,6 +26,7 @@ export function PlanMenu({ onOpen }: { onOpen: (d: PlanDialog) => void }) {
       <Menu.Dropdown>
         <Menu.Item leftSection={<IconDeviceFloppy size={14} />} onClick={() => onOpen('save')}>{t('planMenu.save')}</Menu.Item>
         <Menu.Item leftSection={<IconTemplate size={14} />} onClick={() => onOpen('start')}>{t('planMenu.start')}</Menu.Item>
+        <Menu.Item leftSection={<IconBookmarks size={14} />} onClick={() => onOpen('presets')}>{t('presets.menuPlace')}</Menu.Item>
         <Menu.Divider />
         <Menu.Item leftSection={<IconHistoryToggle size={14} />} onClick={() => onOpen('versions')}>{t('planMenu.versions')}</Menu.Item>
         <Menu.Item leftSection={<IconBuildingWarehouse size={14} />} onClick={() => onOpen('halls')}>{t('planMenu.halls')}</Menu.Item>
@@ -79,7 +81,7 @@ function StartDialog({ data, onClose, onApplied }: { data: SeatViewData; onClose
 }
 
 /** The dialogs the Plan menu opens, inside the editor so a restored plan also clears its undo. */
-export function PlanDialogs({ open, data, onClose, onHall, onChanged, onReplaced }: {
+export function PlanDialogs({ open, data, onClose, onHall, onChanged, onReplaced, onPlace }: {
   open: PlanDialog | null
   data: SeatViewData
   onClose: () => void
@@ -87,6 +89,8 @@ export function PlanDialogs({ open, data, onClose, onHall, onChanged, onReplaced
   onChanged: () => Promise<unknown>
   /** The plan was replaced by a template or a version: what could be undone is gone. */
   onReplaced: () => Promise<unknown>
+  /** Puts a preset's items on the plan, like a paste. */
+  onPlace: (p: PlanPreset) => void
 }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
@@ -98,6 +102,7 @@ export function PlanDialogs({ open, data, onClose, onHall, onChanged, onReplaced
           onDone={(tpl) => { toastDone(t('templates.saved', { name: tpl.name })); void qc.invalidateQueries({ queryKey: qk.templates }); onClose() }} />
       )}
       {open === 'start' && <StartDialog data={data} onClose={onClose} onApplied={onReplaced} />}
+      <PresetsDialog opened={open === 'presets'} onClose={onClose} onPlace={onPlace} />
       <VersionsDialog opened={open === 'versions'} hall={data.hall} hallName={hallName} onClose={onClose} onRestored={onReplaced} />
       <HallsDialog opened={open === 'halls'} current={data.hall} onClose={onClose} onOpen={onHall} onChanged={onChanged} />
     </>
