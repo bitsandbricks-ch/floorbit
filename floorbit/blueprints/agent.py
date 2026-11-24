@@ -97,8 +97,10 @@ def history(agent_id):
         hours = max(0.25, min(float(request.args.get('hours') or 6), 48.0))
     except ValueError:
         hours = 6
-    from .. import agent_history
+    from .. import agent_demo, agent_history
     from ..database import DatabaseUnavailable
+    if any(a['id'] == agent_id and a.get('demo') for a in agent_link.all_agents()):
+        return jsonify({'hours': hours, 'series': agent_demo.history(agent_id, hours)})
     try:
         series = agent_history.history(agent_id, hours)
     except DatabaseUnavailable:

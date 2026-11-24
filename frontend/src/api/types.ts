@@ -1826,6 +1826,8 @@ export interface Agent {
   /** When its key was made, and until when the key before still works (after "New key"). */
   renewed_at?: number
   old_works_until?: number | null
+  /** One of the demo's made-up agents (floorbit/agent_demo.py): connected, but takes no calls. */
+  demo?: boolean
 }
 
 /** An agent's plugin updates (docs/agent-plugins.md, "Updates"). */

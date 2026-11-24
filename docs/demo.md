@@ -91,6 +91,11 @@ only added while its page has nothing yet:
   so the review tab has a port clash to look at. Two players moved seats during the night.
 - **Status page:** two updates, with the public status page turned on.
 - **Dashboards:** a "NOC wall" and an "Ops desk" layout.
+- **Local agents:** two made-up agents, "Hall agent A" (the primary, holding the hall's VRRP address)
+  and "Hall agent B" (its standby), with their reports, graphs, devices and settings, added only when
+  there are no agents yet. They take no calls: the demo plugin keeps answering, so enrolling a real
+  agent next to them switches the hall to that agent as usual. Nobody can sign in as one, and they
+  are hidden while the demo is off.
 - **Schedule:** the event from yesterday to tonight, with talks, meals, a tournament and quiet hours,
   shown on the public schedule.
 
