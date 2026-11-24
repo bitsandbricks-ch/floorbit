@@ -5,7 +5,8 @@ Gathered from what is already watched, without asking anything new:
 - the monitoring source (LibreNMS) not answering;
 - placed switches that are offline (from the status monitor), marked when their alerts are muted;
 - red and amber services on the health wall;
-- high and medium security findings (where only, unless the account has ``seats.view``);
+- high and medium security findings (where only, unless the account has ``seats.view``); low ones
+  go under ``attention``;
 - power circuits that tripped, are about to, or are getting close;
 - the bandwidth forecast reaching the line's capacity within the next hours (floorbit/forecast.py);
 - links between switches that are down or slower than planned (floorbit/links.py);
@@ -114,11 +115,13 @@ def _health(muted):
     return out
 
 
-def _security(may_see_people):
+def _security(may_see_people, low=False):
+    """High and medium findings are problems; low ones go with the seat and port trouble (``low``).
+    The finding itself (evidence, shutting its port) is on the problem's page (issue #885)."""
     watch = current_app.extensions.get('floorbit_security')
     out = []
     for f in (watch.snapshot()['findings'] if watch else []):
-        if f['severity'] == 'low':
+        if (f['severity'] == 'low') != low:
             continue
         port = ' '.join(x for x in (f.get('switch'), f.get('port')) if x)
         # Titles and seats can point at a person (IPs, MACs): only for seats.view.
@@ -126,8 +129,7 @@ def _security(may_see_people):
         out.append({'id': f"security:{f['id']}", 'kind': 'security',
                     'level': 'down' if f['severity'] == 'high' else 'warn',
                     'title': f['title'] if may_see_people else SECURITY_KINDS.get(f['kind'], 'Security finding'),
-                    'where': where, 'since': f.get('first_seen'),
-                    'link': '/security' if may_see_people else '',
+                    'where': where, 'since': f.get('first_seen'), 'link': '',
                     'seat': f.get('seat') if may_see_people else None, 'device': f.get('switch') or None})
     return out
 
@@ -320,7 +322,7 @@ def current(may_see_people):
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
     attention = sorted(_attention() + _logs(may_see_people, data) + _ranges(data) + _port_check(data)
-                       + _shared_ports() + _seat_incidents(),
+                       + _shared_ports() + _seat_incidents() + _security(may_see_people, low=True),
                        key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)
     # The switch each one is on, so the page can group by it (issue #883).

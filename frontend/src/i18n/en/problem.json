@@ -23,5 +23,13 @@
   "onPlan": "{{name}} on the floor plan",
   "logs": "Its logs",
   "machines": "Machines seen at the seat",
-  "nowhere": "Nothing more to open for this one."
+  "nowhere": "Nothing more to open for this one.",
+  "finding": {
+    "title": "What the security plugin saw",
+    "evidence": "Evidence"
+  },
+  "shut": {
+    "noPlugins": "No security plugin is on yet. Turn one on under Settings > Plugins.",
+    "none": "No port is shut."
+  }
 }

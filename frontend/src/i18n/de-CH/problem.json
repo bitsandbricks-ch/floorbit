@@ -23,5 +23,13 @@
   "onPlan": "{{name}} im Hallenplan",
   "logs": "Seine Logs",
   "machines": "Geräte am Platz",
-  "nowhere": "Hier gibt es nichts weiter zu öffnen."
+  "nowhere": "Hier gibt es nichts weiter zu öffnen.",
+  "finding": {
+    "title": "Was das Sicherheits-Plugin gesehen hat",
+    "evidence": "Belege"
+  },
+  "shut": {
+    "noPlugins": "Noch ist kein Sicherheits-Plugin eingeschaltet. Schalte eines unter Einstellungen > Plugins ein.",
+    "none": "Kein Port ist abgeschaltet."
+  }
 }

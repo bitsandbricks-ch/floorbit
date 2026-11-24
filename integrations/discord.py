@@ -12,6 +12,7 @@ import re
 import threading
 import time
 from datetime import UTC, datetime
+from urllib.parse import quote
 
 import requests
 
@@ -289,7 +290,8 @@ class DiscordNotifier:
                  'fields': fields, 'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat()}
         public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
         if public_url:
-            embed['url'] = public_url + '/security'
+            # The finding's own problem page (issue #885).
+            embed['url'] = f"{public_url}/problems/{quote('security:' + str(finding.get('id')), safe=':')}"
         payload = {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': [embed],
                    'allowed_mentions': {'parse': []}}
         mention = config.get('DISCORD_MENTION', '') or ''

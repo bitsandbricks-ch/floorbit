@@ -14,6 +14,7 @@ import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, dateTime } from '@/lib/time'
 import { PageHead, StatusBadge } from '@bitsandbricks/ui'
 import { canReport, reportBody } from './problems/format'
+import { FindingPanel } from './problems/FindingPanel'
 import { MuteDialog } from './problems/MuteDialog'
 import { muteBody, muteKind, type MuteTarget } from './problems/mute'
 
@@ -111,6 +112,11 @@ export default function ProblemPage() {
           ) : <Text size="sm" c="dimmed">{t('problem.nowhere')}</Text>}
         </Panel>
       </SimpleGrid>
+      {q.data.finding && (
+        <div style={{ marginTop: 'var(--mantine-spacing-md)' }}>
+          <FindingPanel f={q.data.finding} canShut={!!q.data.can_shut} needsLogin={!!q.data.needs_login} />
+        </div>
+      )}
       <MuteDialog target={target} busy={mute.isPending} error={muteError} onClose={() => setTarget(null)}
         onSave={(minutes, reason) => target && mute.mutate({ ...target, minutes, reason })} />
     </Layout>
