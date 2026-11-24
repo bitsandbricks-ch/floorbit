@@ -1,0 +1,7 @@
+{
+ "Give a MAC or an IP to look for.": "Gib eine MAC oder eine IP an, nach der gesucht wird.",
+ "No switch sees this machine right now.": "Kein Switch sieht dieses Gerät gerade.",
+ "Send {\"csv\": \"<file contents>\"}": "Schick {\"csv\": \"<Dateiinhalt>\"}",
+ "This seat has no hand entry": "Dieser Platz hat keinen Eintrag von Hand",
+ "{} line(s) have problems; nothing was imported": "{} Zeile(n) haben Probleme; nichts wurde importiert"
+}

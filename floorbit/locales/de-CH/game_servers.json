@@ -1,0 +1,20 @@
+{
+ "Does not answer.": "Antwortet nicht.",
+ "Floorbit keeps at most {} game servers.": "Floorbit speichert höchstens {} Gameserver.",
+ "Give the server a name (up to 60 characters).": "Gib dem Server einen Namen (bis 60 Zeichen).",
+ "No such game server.": "Diesen Gameserver gibt es nicht.",
+ "Not asked yet.": "Noch nicht gefragt.",
+ "Pick the server or VM it runs on from the inventory.": "Wähle den Server oder die VM aus dem Inventar, auf dem er läuft.",
+ "Players": "Spieler",
+ "RCON is not set up for this server. An admin adds the RCON port and password.": "RCON ist für diesen Server nicht eingerichtet. Ein Admin trägt RCON-Port und -Passwort ein.",
+ "The host is an IP address or a host name.": "Der Host ist eine IP-Adresse oder ein Hostname.",
+ "The port is a number from 1 to 65535.": "Der Port ist eine Zahl von 1 bis 65535.",
+ "The query is a2s, minecraft or tcp.": "Die Abfrage ist a2s, minecraft oder tcp.",
+ "The RCON password is one line of up to 256 characters.": "Das RCON-Passwort ist eine Zeile mit bis zu 256 Zeichen.",
+ "The RCON port is a number from 1 to 65535.": "Der RCON-Port ist eine Zahl von 1 bis 65535.",
+ "The server answered something Floorbit cannot read.": "Der Server hat etwas geantwortet, das Floorbit nicht lesen kann.",
+ "There is already a game server called {}.": "Es gibt schon einen Gameserver namens {}.",
+ "This command can stop the server, change the map or throw players out. Confirm to send it.": "Dieser Befehl kann den Server stoppen, die Map wechseln oder Spieler rauswerfen. Bestätige, um ihn zu senden.",
+ "Type one command (up to {} characters, one line).": "Gib einen Befehl ein (bis {} Zeichen, eine Zeile).",
+ "{}/{} players": "{}/{} Spieler"
+}

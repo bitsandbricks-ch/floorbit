@@ -1,0 +1,10 @@
+{
+ "Admin token required": "Admin-Token nötig",
+ "Check-in is disabled": "Check-in ist ausgeschaltet",
+ "Live updates are disabled": "Live-Updates sind ausgeschaltet",
+ "No check-in for that seat": "Kein Check-in für diesen Platz",
+ "Set a webhook URL or the crew channel bot first": "Richte zuerst eine Webhook-URL oder den Crew-Kanal-Bot ein",
+ "Status monitor is disabled or LibreNMS is not configured": "Der Statusmonitor ist aus oder LibreNMS ist nicht eingerichtet",
+ "Too many open pages are getting live updates right now. This one will update again in a moment.": "Gerade bekommen zu viele offene Seiten Live-Updates. Diese Seite aktualisiert sich gleich wieder.",
+ "view must be \"sessions\" or \"events\".": "view muss «sessions» oder «events» sein."
+}

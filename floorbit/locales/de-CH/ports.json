@@ -1,0 +1,15 @@
+{
+ "Another port action on {} is still running.": "Eine andere Port-Aktion auf {} läuft noch.",
+ "No port actions plugin is on. An admin turns one on under Settings > Plugins.": "Kein Plugin für Port-Aktionen ist eingeschaltet. Ein Admin schaltet eines unter Einstellungen > Plugins ein.",
+ "No such port action.": "Diese Port-Aktion gibt es nicht.",
+ "Seat {} has no switch port in the seat mapping.": "Platz {} hat keinen Switch-Port in der Platzzuordnung.",
+ "Seat {} was not found on any switch port.": "Platz {} wurde an keinem Switch-Port gefunden.",
+ "That finding has no switch port Floorbit can act on.": "Dieser Befund hat keinen Switch-Port, an dem Floorbit etwas tun kann.",
+ "That is not a port name Floorbit will send to a switch.": "Das ist kein Portname, den Floorbit an einen Switch schickt.",
+ "Too many failed switch logins. Wait a few minutes before trying again.": "Zu viele fehlgeschlagene Switch-Logins. Warte ein paar Minuten, bevor du es nochmals versuchst.",
+ "Type your switch password.": "Gib dein Switch-Passwort ein.",
+ "Type your switch username.": "Gib deinen Switch-Benutzernamen ein.",
+ "{} has no management IP in the inventory.": "{} hat keine Management-IP im Inventar.",
+ "{} is not in the inventory, so Floorbit has no address for it.": "{} ist nicht im Inventar, darum hat Floorbit keine Adresse dafür.",
+ "{} on {} was just bounced. Give it {} seconds.": "{} auf {} wurde gerade neu gestartet. Gib ihm {} Sekunden."
+}

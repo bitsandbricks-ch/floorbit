@@ -1,0 +1,15 @@
+{
+ "Database unavailable": "Datenbank nicht erreichbar",
+ "Floorbit's disk is full, so this change was not saved. What was saved before is safe. Free some space on the server (or give the volume more), then try again.": "Floorbits Speicher ist voll, darum wurde diese Änderung nicht gespeichert. Was vorher gespeichert wurde, ist sicher. Mach auf dem Server Platz (oder gib dem Volume mehr), dann versuch es nochmals.",
+ "Floorbit's state folder is read-only, so this change was not saved. Mount it writable (docs/install.md), then try again.": "Floorbits Ordner für den Zustand ist schreibgeschützt, darum wurde diese Änderung nicht gespeichert. Häng ihn beschreibbar ein (docs/install.md), dann versuch es nochmals.",
+ "Full in about {} min": "In etwa {} Min. voll",
+ "That is too much data for one request.": "Das sind zu viele Daten für eine Anfrage.",
+ "The check failed on the local agent.": "Die Prüfung ist auf dem lokalen Agenten fehlgeschlagen.",
+ "The check failed; details are in the plugin log.": "Die Prüfung ist fehlgeschlagen; Details stehen im Plugin-Log.",
+ "The database is busy with another program right now, so this was not saved. Try again in a moment.": "Die Datenbank ist gerade mit einem anderen Programm beschäftigt, darum wurde das nicht gespeichert. Versuche es gleich nochmals.",
+ "The database isn't answering right now. Floorbit keeps trying; until it's back, pages show what was last read and changes can't be saved.": "Die Datenbank antwortet gerade nicht. Floorbit versucht es weiter; bis sie zurück ist, zeigen die Seiten den zuletzt gelesenen Stand und Änderungen können nicht gespeichert werden.",
+ "The local agent did not answer, so its checks are unknown.": "Der lokale Agent hat nicht geantwortet, darum sind seine Prüfungen unbekannt.",
+ "Trying again by itself…": "Versucht es von selbst wieder …",
+ "{} returned health checks Floorbit can't read (not a list)": "{} lieferte Health-Checks, die Floorbit nicht lesen kann (keine Liste)",
+ "{}, full in about {} min": "{}, in etwa {} Min. voll"
+}

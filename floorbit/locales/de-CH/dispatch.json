@@ -1,0 +1,8 @@
+{
+ "Needs the \"assign incidents\" permission.": "Braucht das Recht «Störungen zuweisen».",
+ "No free tech on duty can take this incident.": "Kein freier Tech im Dienst kann diese Störung übernehmen.",
+ "No such incident.": "Diese Störung gibt es nicht.",
+ "Sending incidents to a tech needs the \"assign incidents\" permission.": "Störungen einem Tech schicken braucht die Berechtigung «Störungen jedem Team zuweisen».",
+ "This incident is fixed already.": "Diese Störung ist schon behoben.",
+ "This job is not yours.": "Dieser Job gehört nicht dir."
+}

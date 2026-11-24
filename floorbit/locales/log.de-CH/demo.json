@@ -1,0 +1,8 @@
+{
+ "arp-spoof": "ARP-Spoofing",
+ "mac-flap": "MAC-Flapping",
+ "No internet at the seat": "Kein Internet am Platz",
+ "No power at the seat": "Kein Strom am Platz",
+ "Slow connection": "Langsame Verbindung",
+ "storm": "Broadcast-Sturm"
+}

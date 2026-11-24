@@ -1,0 +1,11 @@
+{
+ "Check which ranges the switch is for, under Firewalls": "Prüfe unter Firewalls, für welche Bereiche der Switch gilt",
+ "most of {} is in {}": "der Grossteil von {} ist in {}",
+ "Seat {} has an address outside every planned range": "Platz {} hat eine Adresse ausserhalb aller geplanten Bereiche",
+ "Seat {} is in the range {}": "Platz {} ist im Bereich {}",
+ "Seat {} is in the range {} of {}": "Platz {} ist im Bereich {} von {}",
+ "Seats {}: check the switch's VLAN": "Plätze {}: prüfe das VLAN des Switches",
+ "{} seats on {} are outside its range": "{} Plätze an {} sind ausserhalb seines Bereichs",
+ "{} uses {}": "{} nutzt {}",
+ "{}: {} of {} seats are outside its ranges": "{}: {} von {} Plätzen sind ausserhalb seiner Bereiche"
+}

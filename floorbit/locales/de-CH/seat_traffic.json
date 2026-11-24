@@ -1,0 +1,6 @@
+{
+ "Could not resolve": "Nicht gefunden",
+ "Could not resolve port stats": "Port-Statistik nicht gefunden",
+ "Lookup failed: {}": "Abfrage fehlgeschlagen: {}",
+ "No switch port or IP address": "Kein Switch-Port und keine IP-Adresse"
+}

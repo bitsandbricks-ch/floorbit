@@ -1,0 +1,15 @@
+{
+ "A label has 1 to {} characters": "Eine Beschriftung hat 1 bis {} Zeichen",
+ "A mark is text, icon, wall or zone": "Eine Markierung ist Text, Symbol, Wand oder Zone",
+ "A wall has at most {} bends, each [x, y]": "Eine Wand hat höchstens {} Knicke, jeder als [x, y]",
+ "A wall needs two different ends": "Eine Wand braucht zwei verschiedene Enden",
+ "A zone label has at most {} characters": "Der Name einer Zone hat höchstens {} Zeichen",
+ "A zone needs a width and a height": "Eine Zone braucht eine Breite und eine Höhe",
+ "At most {} marks on the plan": "Höchstens {} Markierungen auf dem Plan",
+ "No such mark on the plan": "Diese Markierung gibt es auf dem Plan nicht",
+ "scale is a number from {} to {}": "scale ist eine Zahl von {} bis {}",
+ "tint is a colour like #3fb950": "tint ist eine Farbe wie #3fb950",
+ "{} is a number from -10000 to 10000": "{} ist eine Zahl von -10000 bis 10000",
+ "{} is missing": "{} fehlt",
+ "{} is one of: {}": "{} ist eines von: {}"
+}

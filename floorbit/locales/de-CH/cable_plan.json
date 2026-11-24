@@ -1,0 +1,11 @@
+{
+ "A bend is a point on the plan: [x, y] in percent.": "Ein Knick ist ein Punkt auf dem Plan: [x, y] in Prozent.",
+ "A cable has at most {} bends.": "Ein Kabel hat höchstens {} Knicke.",
+ "A patch panel has 1 to {} ports.": "Ein Patchpanel hat 1 bis {} Ports.",
+ "Floorbit keeps at most {} patch panels on the plan.": "Floorbit speichert höchstens {} Patchpanels auf dem Plan.",
+ "Floorbit keeps the drawing of at most {} cables.": "Floorbit speichert die Zeichnung von höchstens {} Kabeln.",
+ "No such patch panel on the plan": "Kein solches Patchpanel auf dem Plan",
+ "Port {} of {} has a cable: the panel needs at least {} ports.": "Port {} von {} hat ein Kabel: Das Panel braucht mindestens {} Ports.",
+ "Say which cables to change.": "Gib an, welche Kabel du ändern willst.",
+ "There is a patch panel called {} already.": "Es gibt schon ein Patchpanel namens {}."
+}

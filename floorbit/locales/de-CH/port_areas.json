@@ -1,0 +1,10 @@
+{
+ "\"{}\" is not a seat number like A-11.": "\"{}\" ist keine Platznummer wie A-11.",
+ "A batch is 1 to {} ports.": "Eine Gruppe hat 1 bis {} Ports.",
+ "Batch size, first port and seats per batch are numbers.": "Ports pro Gruppe, erster Port und Plätze pro Gruppe sind Zahlen.",
+ "Floorbit keeps at most {} port areas.": "Floorbit speichert höchstens {} Port-Bereiche.",
+ "Give a first seat for at least one batch.": "Gib für mindestens eine Gruppe einen ersten Platz an.",
+ "One switch has at most {} ports here.": "Ein Switch hat hier höchstens {} Ports.",
+ "{} are not on the plan.": "{} sind nicht im Plan.",
+ "{} is not on the plan.": "{} ist nicht im Plan."
+}

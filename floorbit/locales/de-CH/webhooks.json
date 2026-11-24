@@ -1,0 +1,7 @@
+{
+ "Give the webhook a name (up to 60 characters).": "Gib dem Webhook einen Namen (bis 60 Zeichen).",
+ "No such webhook.": "Diesen Webhook gibt es nicht.",
+ "Pick at least one event: {}.": "Wähle mindestens ein Ereignis: {}.",
+ "The URL must start with https:// (or http://) and name a host.": "Die URL muss mit https:// (oder http://) beginnen und einen Host nennen.",
+ "There are already {} webhooks. Remove one you no longer use.": "Es gibt schon {} Webhooks. Entferne einen, den du nicht mehr brauchst."
+}

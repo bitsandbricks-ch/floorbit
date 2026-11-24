@@ -1,0 +1,6 @@
+{
+ "Installed plugin {} {}": "Plugin {} {} installiert",
+ "Removed plugin {} {}": "Plugin {} {} entfernt",
+ "Rolled back plugin {} from {} to {}": "Plugin {} von {} auf {} zurückgesetzt",
+ "Updated plugin {} from {} to {}": "Plugin {} von {} auf {} aktualisiert"
+}

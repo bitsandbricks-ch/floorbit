@@ -1,0 +1,8 @@
+{
+ "The probe port is one of {}.": "Der Prüfport ist einer von {}.",
+ "The resolver did not answer.": "Der Resolver hat nicht geantwortet.",
+ "The resolver did not answer: {}": "Der Resolver hat nicht geantwortet: {}",
+ "The test name is not a domain name.": "Der Testname ist kein Domainname.",
+ "{} cannot be resolved.": "{} lässt sich nicht auflösen.",
+ "{} is not an address Floorbit may probe.": "{} ist keine Adresse, die Floorbit prüfen darf."
+}

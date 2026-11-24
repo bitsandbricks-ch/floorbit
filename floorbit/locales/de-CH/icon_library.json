@@ -1,0 +1,14 @@
+{
+ "An icon is at most {} KB once cleaned.": "Ein Icon ist bereinigt höchstens {} KB gross.",
+ "An icon is at most {} KB.": "Ein Icon ist höchstens {} KB gross.",
+ "Choose an SVG file.": "Wähle eine SVG-Datei.",
+ "Give the icon a name.": "Gib dem Icon einen Namen.",
+ "The file is not a valid SVG.": "Die Datei ist kein gültiges SVG.",
+ "The file is not an SVG (UTF-8 text).": "Die Datei ist kein SVG (UTF-8-Text).",
+ "The library holds at most {} icons; remove one first.": "Die Bibliothek fasst höchstens {} Icons; entferne zuerst eines.",
+ "The SVG has a DOCTYPE or entities; save it as plain SVG.": "Das SVG enthält einen DOCTYPE oder Entities; speichere es als einfaches SVG.",
+ "The SVG has nothing to draw once cleaned.": "Nach dem Bereinigen bleibt im SVG nichts zum Zeichnen.",
+ "The SVG has too many parts for an icon.": "Das SVG hat zu viele Teile für ein Icon.",
+ "The SVG is nested too deeply for an icon.": "Das SVG ist für ein Icon zu tief verschachtelt.",
+ "The SVG needs a viewBox (or a width and height).": "Das SVG braucht eine viewBox (oder Breite und Höhe)."
+}

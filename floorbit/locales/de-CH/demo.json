@@ -1,0 +1,15 @@
+{
+ "DHCP offers from a server that is not ours": "DHCP-Angebote von einem fremden Server",
+ "Hit rate": "Trefferquote",
+ "In use": "Belegt",
+ "Leases left": "Leases frei",
+ "No answer to the server query.": "Keine Antwort auf die Serverabfrage.",
+ "Saved": "Gespart",
+ "Turn on the demo data plugin first (Settings > Plugins).": "Schalte zuerst das Plugin für Demodaten ein (Einstellungen > Plugins).",
+ "{} % hit rate, {} GB saved": "{} % Trefferquote, {} GB gespart",
+ "{} is answered by two MACs": "{} wird von zwei MACs beantwortet",
+ "{} is not a demo switch.": "{} ist kein Demo-Switch.",
+ "{} is not answering": "{} antwortet nicht",
+ "{} moves between two ports": "{} wechselt zwischen zwei Ports",
+ "{} of {} leases left": "{} von {} Leases frei"
+}

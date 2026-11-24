@@ -1,0 +1,15 @@
+{
+ "An incident is about one seat, one switch or one power circuit.": "Eine Störung betrifft einen Platz, einen Switch oder einen Stromkreis.",
+ "Giving incidents to someone else needs the \"assign incidents\" permission.": "Störungen jemand anderem geben braucht die Berechtigung «Störungen jedem Team zuweisen».",
+ "Moving incidents between teams needs the \"assign incidents\" permission.": "Störungen zwischen Teams verschieben braucht die Berechtigung «Störungen jedem Team zuweisen».",
+ "No switch port, IP or MAC known for this seat": "Für diesen Platz ist kein Switch-Port, keine IP und keine MAC bekannt",
+ "Pick one of the problems on the page.": "Wähle eines der Probleme auf der Seite.",
+ "Say in a few words what is wrong.": "Sag in ein paar Worten, was los ist.",
+ "Status must be one of: {}.": "Der Status muss einer von diesen sein: {}.",
+ "There is no such power circuit.": "Diesen Stromkreis gibt es nicht.",
+ "This help link is not valid.": "Dieser Hilfe-Link ist ungültig.",
+ "Too many reports from here. Please wait a few minutes.": "Zu viele Meldungen von hier. Warte bitte ein paar Minuten.",
+ "You can't file incidents for that team.": "Du kannst für dieses Team keine Störungen erfassen.",
+ "You can't work incidents for this team.": "Du kannst Störungen dieses Teams nicht bearbeiten.",
+ "{} can't work incidents for this team.": "{} kann Störungen dieses Teams nicht bearbeiten."
+}

@@ -1,0 +1,17 @@
+{
+ "Bandwidth forecast: {} of the line expected": "Bandbreitenprognose: {} der Leitung erwartet",
+ "Floorbit started (version {})": "Floorbit gestartet (Version {})",
+ "Floorbit updated from {} to {}": "Floorbit von {} auf {} aktualisiert",
+ "Incident fixed: {}": "Störung behoben: {}",
+ "Incident opened: {}": "Störung eröffnet: {}",
+ "Local agent away": "Lokaler Agent weg",
+ "Local agent back": "Lokaler Agent zurück",
+ "Log alert: {}": "Log-Alarm: {}",
+ "Monitoring source back": "Monitoring-Quelle zurück",
+ "Monitoring source unreachable": "Monitoring-Quelle nicht erreichbar",
+ "no answers from the event network": "keine Antworten aus dem Eventnetz",
+ "Power: {} at {} ({})": "Strom: {} bei {} ({})",
+ "Service health: {}": "Dienstzustand: {}",
+ "Switch back online": "Switch wieder online",
+ "Switch went offline": "Switch offline gegangen"
+}

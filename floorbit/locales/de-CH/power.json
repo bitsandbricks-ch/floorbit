@@ -1,0 +1,18 @@
+{
+ "A board position is a percentage of the floor plan.": "Die Position eines Verteilers ist ein Prozentwert des Hallenplans.",
+ "Breaker tripped: {}": "Sicherung ausgelöst: {}",
+ "Floorbit keeps up to {} boards.": "Floorbit speichert bis zu {} Verteiler.",
+ "Floorbit keeps up to {} circuits.": "Floorbit speichert bis zu {} Stromkreise.",
+ "Give the board a name, like DB-1.": "Gib dem Verteiler einen Namen, etwa DB-1.",
+ "Give the circuit a name, like \"A row 1\".": "Gib dem Stromkreis einen Namen, etwa «A Reihe 1».",
+ "Move or remove its circuits first.": "Verschiebe oder entferne zuerst seine Stromkreise.",
+ "No such board.": "Diesen Verteiler gibt es nicht.",
+ "No such circuit.": "Diesen Stromkreis gibt es nicht.",
+ "One of the seat blocks is not on the floor plan any more.": "Einer der Sitzblöcke ist nicht mehr auf dem Hallenplan.",
+ "Phase must be one of: {}.": "Die Phase muss eine von diesen sein: {}.",
+ "Pick the board this circuit comes from.": "Wähle den Verteiler, von dem dieser Stromkreis kommt.",
+ "The fuse rating is a number of amps.": "Die Absicherung ist eine Zahl in Ampere.",
+ "The fuse rating must be between 1 and {} A.": "Die Absicherung muss zwischen 1 und {} A liegen.",
+ "The meter id has characters Floorbit does not accept.": "Die Zähler-ID hat Zeichen, die Floorbit nicht annimmt.",
+ "Type the load in amps (or watts).": "Gib die Last in Ampere (oder Watt) ein."
+}

@@ -1,3 +1,4 @@
 {
+ "A seat is at most {} seats from its block": "Ein Platz ist höchstens {} Plätze von seinem Block entfernt",
  "Seat places are {\"row,seat\": [x, y]}": "Platzpositionen sind {\"Reihe,Platz\": [x, y]}"
 }

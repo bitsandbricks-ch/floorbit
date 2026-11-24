@@ -1,0 +1,13 @@
+{
+ "Added board": "Verteiler hinzugefügt",
+ "Added circuit": "Stromkreis hinzugefügt",
+ "Breaker back on": "Sicherung wieder an",
+ "Breaker tripped": "Sicherung ausgelöst",
+ "Breaker tripped: {}": "Sicherung ausgelöst: {}",
+ "Changed board": "Verteiler geändert",
+ "Changed circuit": "Stromkreis geändert",
+ "Circuit {} at {} % of {} A": "Stromkreis {} bei {} % von {} A",
+ "Entered reading": "Messwert eingetragen",
+ "Removed board": "Verteiler entfernt",
+ "Removed circuit": "Stromkreis entfernt"
+}

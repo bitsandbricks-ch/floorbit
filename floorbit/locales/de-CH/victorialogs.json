@@ -1,0 +1,6 @@
+{
+ "Set the VictoriaLogs URL under Settings > Plugins.": "Setze die VictoriaLogs-URL unter Einstellungen > Plugins.",
+ "VictoriaLogs can't read that query.": "VictoriaLogs kann diese Abfrage nicht lesen.",
+ "VictoriaLogs refused the username or password.": "VictoriaLogs hat Benutzername oder Passwort abgelehnt.",
+ "VictoriaLogs' answer isn't JSON lines. Is the URL its HTTP address?": "Die Antwort von VictoriaLogs sind keine JSON-Zeilen. Ist die URL seine HTTP-Adresse?"
+}
