@@ -2,7 +2,10 @@
 
 - ``GET /problems``: everything wrong right now.
 - ``GET /api/problems``: the list (floorbit/problems.py), with the running mutes. For people who
-  see the incident board, an offline switch carries the id of its open incident (issue #278).
+  see the incident board, a problem carries the id of its open incident (issue #278): one made from
+  it (issue #882), or for an offline switch any open one on that switch.
+- ``GET /problems/<id>``, ``GET /api/problems/<id>``: one problem's page (issue #882): the problem,
+  its open incident and where to look next. 404 once it is over.
 - ``POST /api/alerts/mutes``: ``{"switch_id", "minutes", "reason"}`` mutes a switch's alerts;
   ``{"service_id", ...}`` mutes a service on the health wall instead (issue #256), ``{"ap", ...}``
   a Wi-Fi access point (issue #1064).
@@ -49,14 +52,49 @@ def list_problems():
     # An offline switch can become an incident in one click, or links the one already open (issue #278).
     body['can_report'] = not current_app.extensions['auth'].enabled or incidents.can_see_board(_user())
     if body['can_report']:
-        open_for = {}
-        for incident in incidents.list_all():
-            if incident.get('status') != 'fixed' and incident.get('switch_id'):
-                open_for.setdefault(incident['switch_id'], incident['id'])
-        for p in body['problems']:
-            if p.get('kind') == 'switch':
-                p['incident'] = open_for.get(p.get('switch_id'))
+        _incidents(body['problems'] + body['attention'])
     return jsonify(body)
+
+
+def _incidents(items):
+    """Each problem's open incident: one made from it, or for an offline switch any on the switch."""
+    open_for, made_from = {}, {}
+    for incident in incidents.list_all():
+        if incident.get('status') == 'fixed':
+            continue
+        if incident.get('switch_id'):
+            open_for.setdefault(incident['switch_id'], incident['id'])
+        if incident.get('from_problem'):
+            made_from.setdefault(incident['from_problem'], incident['id'])
+    for p in items:
+        found = made_from.get(p['id']) or (open_for.get(p.get('switch_id')) if p.get('kind') == 'switch' else None)
+        p['incident'] = found
+
+
+@bp.route('/problems/<path:problem_id>')
+def problem_page(problem_id):
+    return spa.render('Problem')
+
+
+@bp.route('/api/problems/<path:problem_id>', methods=['GET'])
+def one_problem(problem_id):
+    may_see_people = _can('seats.view')
+    found = problems.find(may_see_people, problem_id)
+    if found is None:
+        return jsonify({'error': 'This problem is over.'}), 404
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    found = {**found, 'title': i18n.translate(found.get('title'), lang),
+             'where': i18n.translate(found.get('where'), lang)}
+    can_report = not current_app.extensions['auth'].enabled or incidents.can_see_board(_user())
+    if can_report:
+        _incidents([found])
+    # Where to look next: the device's page, the seat on the plan, its logs and machines.
+    device = None
+    if found.get('device'):
+        device = next(({'id': d['id'], 'name': d['name']} for d in inventory.devices(load_data(), include_hidden=True)
+                       if d['name'] == found['device']), None)
+    return jsonify({'problem': found, 'device': device, 'can_mute': _can('incidents.work'),
+                    'can_report': can_report, 'may_see_people': may_see_people})
 
 
 @bp.route('/api/alerts/mutes', methods=['POST'])

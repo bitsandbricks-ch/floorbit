@@ -54,6 +54,14 @@ For people who see the [incident board](incidents.md), an offline switch has **M
 one click puts it on the board with the switch and the problem's title. Once an incident for that
 switch is open, the button becomes **Incident open**, which opens the board filtered to the switch (`/incidents?q=switch:sw-a-01`).
 
+Each problem's title opens **its own page** (`/problems/<id>`): what it is and where, since when,
+the seats it cuts off, and links to look further (where it was seen, the device in the inventory,
+the seat or switch on the floor plan, and for `seats.view` its logs and the machines seen at the
+seat). **Make an incident** works there and in the list for every problem on a seat or a switch:
+the incident remembers the problem it came from and links back to it, and the problem shows
+**Incident open** while it is. A problem that is over says so; its incident stays on the board.
+A problem is what Floorbit sees and ends by itself; an incident is the work someone does about it.
+
 **Copy list** in the page header copies the problems shown (after the filters) as plain text,
 with the time, the counts and the mutes, for pasting into the crew chat or a ticket.
 

@@ -132,5 +132,6 @@
     "seat": "Platz {{seat}}",
     "switches": "Switches {{names}}",
     "and": " und "
-  }
+  },
+  "fromProblem": "Aus einem Problem erfasst"
 }

@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Paper, Select, Stack, Text, TextInput } from '@mantine/core'
+import { Anchor, Badge, Button, Group, Paper, Select, Stack, Text, TextInput } from '@mantine/core'
 import { IconNote } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -110,6 +110,9 @@ export function IncidentCard({
                 })
               : t('incidents.snapshotUnknown', { reason: snap.reason })}
           </Text>
+        )}
+        {i.from_problem && (
+          <Anchor size="sm" href={`/problems/${encodeURIComponent(i.from_problem)}`}>{t('incidents.fromProblem')}</Anchor>
         )}
         {i.speedtest && (
           <Text size="sm" c="dimmed" data-speedtest>

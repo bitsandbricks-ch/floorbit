@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Button, Checkbox, CopyButton, Group, Modal, SegmentedControl, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Checkbox, CopyButton, Group, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
 import { IconBellOff, IconCheck, IconCopy, IconReplace } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -14,13 +14,14 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
-import { problemsText, rank } from './problems/format'
+import { canReport, problemsText, rank, reportBody } from './problems/format'
+import { MuteDialog } from './problems/MuteDialog'
+import { muteBody, muteKind, type MuteTarget } from './problems/mute'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, clock } from '@/lib/time'
 import { StatusBadge } from '@bitsandbricks/ui'
 import './Problems.css'
 
-const MINUTES = ['30', '60', '240', '720', '1440']
 /** Rows per page: a big event can have dozens of seats with port trouble (issue #1204). */
 export const PAGE_SIZE = 25
 /** The chip that shows everything about a seat, whatever its kind. */
@@ -40,7 +41,8 @@ function What({ p }: { p: Problem }) {
   const { t } = useTranslation()
   return (
     <Stack gap={2} style={{ minWidth: 0 }}>
-      <Text fw={600} size="sm" style={{ overflowWrap: 'anywhere' }}>{p.title}</Text>
+      {/* Its own page: where it is, its incident and where to look next (issue #882). */}
+      <Anchor fw={600} size="sm" c="inherit" href={`/problems/${encodeURIComponent(p.id)}`} style={{ overflowWrap: 'anywhere' }}>{p.title}</Anchor>
       {p.where && <Text size="sm" c="dimmed">{p.where}</Text>}
       {p.cause
         ? <Text size="sm" c="down">{t('problems.behindCause', { name: p.cause })}</Text>
@@ -64,11 +66,11 @@ function RowActions({ p, a }: { p: Problem; a: Actions }) {
       {p.link && <Button size="compact-sm" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
       {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
       {p.incident && (
-        <Button size="compact-sm" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(p.kind === 'switch' && p.name ? `switch:${p.name}` : p.name ?? p.where)}`}>
+        <Button size="compact-sm" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(`id:${p.incident}`)}`}>
           {t('problems.incidentOpen')}
         </Button>
       )}
-      {a.onReport && p.kind === 'switch' && p.incident === null && (
+      {a.onReport && canReport(p) && p.incident === null && (
         <Button size="compact-sm" variant="subtle" onClick={() => a.onReport?.(p)} disabled={a.busy}>{t('problems.report')}</Button>
       )}
       {/* A switch that stays down is swapped for a spare, step by step (issue #1060). */}
@@ -138,57 +140,6 @@ function Reach({ p }: { p: Problem }) {
 /** The ready-made dashboard with the Wi-Fi view (floorbit/dashboards.py). */
 const WIFI_LINK = '/dashboards/view/network'
 
-type MuteTarget = { id: string; name: string; kind: 'switch' | 'health' | 'wifi' }
-
-/** What /api/alerts/mutes takes for each kind: a service and an access point by name, a switch by its id. */
-const muteBody = (v: MuteTarget) => v.kind === 'health' ? { service_id: v.id.replace(/^health:/, '') }
-  : v.kind === 'wifi' ? { ap: v.name } : { switch_id: v.id }
-const MUTE_KINDS = ['health', 'wifi'] as const
-const muteKind = (kind: string): MuteTarget['kind'] => (MUTE_KINDS as readonly string[]).includes(kind) ? kind as MuteTarget['kind'] : 'switch'
-
-function MuteDialog({ target, busy, error, onClose, onSave }: {
-  target: MuteTarget | null
-  busy: boolean
-  error: string | null
-  onClose: () => void
-  onSave: (minutes: number, reason: string) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <Modal opened={!!target} onClose={onClose} title={t('problems.muteTitle', { name: target?.name })} closeButtonProps={{ 'aria-label': t('problems.cancel') }}>
-      <MuteForm text={t(target?.kind === 'health' ? 'problems.muteTextService' : target?.kind === 'wifi' ? 'problems.muteTextAp' : 'problems.muteText')}
-        busy={busy} error={error} onClose={onClose} onSave={onSave} />
-    </Modal>
-  )
-}
-
-function MuteForm({ text, busy, error, onClose, onSave }: {
-  text: string
-  busy: boolean
-  error: string | null
-  onClose: () => void
-  onSave: (minutes: number, reason: string) => void
-}) {
-  const { t } = useTranslation()
-  const [minutes, setMinutes] = useState<string | null>('60')
-  const [reason, setReason] = useState('')
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(Number(minutes), reason.trim()) }}>
-      <Stack gap="sm">
-        <Text size="sm">{text}</Text>
-        <Select label={t('problems.for')} data={MINUTES.map((m) => ({ value: m, label: t(`problems.minutes.${m}`) }))}
-          value={minutes} onChange={setMinutes} allowDeselect={false} />
-        <TextInput label={t('problems.reason')} value={reason} maxLength={200} onChange={(e) => setReason(e.currentTarget.value)} />
-        {error && <Alert color="down" role="alert">{error}</Alert>}
-        <Group justify="flex-end">
-          <Button variant="default" onClick={onClose}>{t('problems.cancel')}</Button>
-          <Button type="submit" loading={busy} leftSection={<IconBellOff size={16} />}>{t('problems.mute')}</Button>
-        </Group>
-      </Stack>
-    </form>
-  )
-}
-
 /** Everything wrong right now, in one list, with mutes for switches and services someone is working on (issues #10, #256). */
 export default function Problems() {
   const { t } = useTranslation()
@@ -220,7 +171,7 @@ export default function Problems() {
     onError: (e) => setDialogError(e.message),
   })
   const report = useMutation({
-    mutationFn: (p: Problem) => post('/api/incidents', { switch_id: p.switch_id, title: p.title }),
+    mutationFn: (p: Problem) => post('/api/incidents', reportBody(p)),
     onSuccess: refresh,
   })
   const clearAlert = useMutation({

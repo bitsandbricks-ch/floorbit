@@ -29,3 +29,11 @@ export function problemsText(problems: Problem[], mutes: AlertMute[], t: T, ago:
 /** Worst first (issue #883): down, then to look at, then muted; within each the longest standing first. */
 export const rank = (p: Problem, now: number) =>
   (p.muted ? 2 : p.level === 'down' ? 0 : 1) * 1e11 + (p.since ?? now)
+
+/** An incident is about one seat or one switch: a problem on neither can't become one. */
+export const canReport = (p: Problem) => !!(p.seat || p.switch_id)
+
+/** What POST /api/incidents takes for a problem, linked back to it (issue #882). */
+export const reportBody = (p: Problem) => ({
+  ...(p.seat ? { seat: p.seat } : { switch_id: p.switch_id }), title: p.title, from_problem: p.id,
+})

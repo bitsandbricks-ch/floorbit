@@ -213,6 +213,8 @@ def create(user, body, snapshot=None, source='board', speedtest=None):
         now = time.time()
         incident = {
             'id': uuid.uuid4().hex[:12], **where, 'title': title, 'problem': body.get('problem'),
+            # The problem on the Problems page it was made from (issue #882), so each links the other.
+            'from_problem': _clean_text(body.get('from_problem'), 160) or None,
             'team': team, 'status': 'open', 'assignee': None, 'source': source,
             'reported_by': user['username'] if user else None, 'reports': 1,
             'notes': [], 'snapshot': snapshot, 'created_at': now, 'updated_at': now,
