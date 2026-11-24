@@ -1,4 +1,4 @@
-import { Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core'
+import { Badge, Button, Group, Paper, Stack, Text, Title, UnstyledButton } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
@@ -16,7 +16,11 @@ const BIT: Record<ServiceStatus, string> = { up: '', warn: 'is-warn', down: 'is-
 
 /** One service on one line: state, name and where it is, the number that matters, its recent
  *  history and what can be done with it. */
-export function ServiceRow({ row: r, showType = false, canRcon = false, onConsole }: { row: ServiceRowData; showType?: boolean; canRcon?: boolean; onConsole?: () => void }) {
+export function ServiceRow({ row: r, showType = false, canRcon = false, onConsole, onSelect, selected = false }: {
+  row: ServiceRowData; showType?: boolean; canRcon?: boolean; onConsole?: () => void
+  /** Opens the service's details (issue #1337); the whole row is the target, the name the keyboard's. */
+  onSelect?: () => void; selected?: boolean
+}) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   // Ask this one game server now instead of waiting for the next poll (after a restart, say).
@@ -26,13 +30,19 @@ export function ServiceRow({ row: r, showType = false, canRcon = false, onConsol
   })
   const bad = r.status === 'down' || r.status === 'unknown'
   return (
-    <div className="fb-service-row" role="group" aria-label={r.name} data-status={r.status}>
+    <div className="fb-service-row" role="group" aria-label={r.name} data-status={r.status} data-selected={selected || undefined}
+      onClick={onSelect ? (e) => { if (!(e.target as HTMLElement).closest('button, a, input')) onSelect() } : undefined}>
       <div className="fb-service-name">
         <span className={`fb-bit ${BIT[r.status]}`} aria-hidden="true" />
         <div style={{ minWidth: 0 }}>
           <Group gap={8} wrap="nowrap">
-            <Text fw={600} truncate>{r.name}</Text>
+            {onSelect
+              ? <UnstyledButton onClick={onSelect} aria-expanded={selected} aria-label={t('services.details', { name: r.name })} style={{ minWidth: 0 }}>
+                  <Text fw={600} truncate>{r.name}</Text>
+                </UnstyledButton>
+              : <Text fw={600} truncate>{r.name}</Text>}
             <Badge size="sm" variant="light" color={TONE[r.status]}>{t(`services.status.${r.status}`)}</Badge>
+            {r.tags?.map((tag) => <Badge key={tag} size="sm" variant="outline" color="gray" tt="none">{tag}</Badge>)}
           </Group>
           <Text size="sm" c="dimmed" ff="monospace" truncate>{showType ? `${t(`services.types.${r.type}`)} · ${r.target}` : r.target}</Text>
         </div>
@@ -56,14 +66,16 @@ export function ServiceRow({ row: r, showType = false, canRcon = false, onConsol
           </>
         )}
         {r.edit && <Button size="compact-sm" variant="subtle" onClick={r.edit}>{t('services.edit')}</Button>}
+        {r.elsewhere && <Text size="xs" c="dimmed" ta="right">{r.elsewhere}</Text>}
       </Group>
     </div>
   )
 }
 
 /** A titled group of rows, like "Internet lines 2". */
-export function ServiceGroup({ title, rows, showType, canRcon, onConsole }: {
+export function ServiceGroup({ title, rows, showType, canRcon, onConsole, onSelect, selected }: {
   title?: string; rows: ServiceRowData[]; showType?: boolean; canRcon?: boolean; onConsole?: (s: GameServer) => void
+  onSelect?: (r: ServiceRowData) => void; selected?: string | null
 }) {
   return (
     <Stack gap="xs" component="section" aria-label={title}>
@@ -75,7 +87,8 @@ export function ServiceGroup({ title, rows, showType, canRcon, onConsole }: {
       )}
       <Paper withBorder className="fb-service-list">
         {rows.map((r) => (
-          <ServiceRow key={r.key} row={r} showType={showType} canRcon={canRcon} onConsole={r.game && onConsole ? () => onConsole(r.game!) : undefined} />
+          <ServiceRow key={r.key} row={r} showType={showType} canRcon={canRcon} onConsole={r.game && onConsole ? () => onConsole(r.game!) : undefined}
+            onSelect={onSelect ? () => onSelect(r) : undefined} selected={selected === r.key} />
         ))}
       </Paper>
     </Stack>

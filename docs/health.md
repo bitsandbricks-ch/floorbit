@@ -3,7 +3,9 @@
 One screen for the services a LAN lives on: DHCP (leases left per scope), DNS, the LAN cache (hit
 rate, traffic saved), game servers and the internet uplink, each **green** (up), **amber**
 (degraded), **red** (down) or grey (unknown). It is the **Service health** widget ([widget gallery](dashboards.md#the-widget-gallery)) and the
-ready-made **Service health** dashboard (`/dashboards/health`).
+ready-made **Service health** dashboard (`/dashboards/health`). On a crew screen, every check is a
+row on the [Services](services.md) page, with its numbers, forecast and mute in the row's panel (the
+separate Service health page went into it, issue #1337).
 Code: [`floorbit/health.py`](../floorbit/health.py) and
 [`floorbit/blueprints/health.py`](../floorbit/blueprints/health.py).
 
@@ -15,8 +17,8 @@ refreshes on its own and as soon as a service changes colour.
 
 ## Where the checks come from
 
-Floorbit checks nothing itself, except the [game servers](game-servers.md), the internet lines and
-resolvers on the [Services](services.md) page, the LAN cache Floorbit reads and the [firewalls](firewalls.md), each set
+Floorbit checks nothing itself, except the [game servers](game-servers.md), the internet lines,
+resolvers, sites and own checks (ping, TCP, UDP, HTTP(S)) on the [Services](services.md) page, the LAN cache Floorbit reads and the [firewalls](firewalls.md), each set
 up on its own page.
 Every other service on the wall comes from a plugin with `uses: [health]` (see [plugins.md](plugins.md)):
 
@@ -83,7 +85,7 @@ Turn health messages off with **Health wall alerts** (`DISCORD_HEALTH_ALERTS=0`)
 
 | | Needs |
 | --- | --- |
-| See the wall (`GET /health`, `GET /api/health`) | `floorplan.view` (every role, kiosk included) |
+| See the wall (`GET /api/health`, the Services page) | `floorplan.view` (every role, kiosk included) |
 | **Check now** (`POST /api/health/check`) | `plugins.run`: it sends the plugins' requests out right away |
 
 On a hosted Floorbit, the health plugins can run on the [local agent](agent.md#health-checks-through-the-agent) instead, so services inside the hall are checked from inside the hall.

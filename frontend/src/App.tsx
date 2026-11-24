@@ -145,7 +145,6 @@ export default function App() {
             <Route path="/settings/agents/:id" element={<AgentDetail />} />
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/endpoints" element={<Endpoints />} />
-            <Route path="/health" element={<ViewPage key="health" view="health" />} />
             <Route path="/wifi" element={<ViewPage key="wifi" view="wifi" />} />
             <Route path="/dns" element={<ViewPage key="dns" view="dns" />} />
             <Route path="/lancache" element={<ViewPage key="lancache" view="lancache" />} />

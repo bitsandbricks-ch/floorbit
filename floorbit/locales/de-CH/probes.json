@@ -1,8 +1,14 @@
 {
+ "No answer: {}": "Keine Antwort: {}",
+ "The address has no spaces or control characters.": "Die Adresse enthält keine Leerzeichen oder Steuerzeichen.",
+ "The address is a URL starting with http:// or https://.": "Die Adresse ist eine URL, die mit http:// oder https:// beginnt.",
+ "The certificate is not valid: {}": "Das Zertifikat ist nicht gültig: {}",
+ "The check is ping, tcp, udp or http.": "Der Check ist ping, tcp, udp oder http.",
  "The probe port is one of {}.": "Der Prüfport ist einer von {}.",
  "The resolver did not answer.": "Der Resolver hat nicht geantwortet.",
  "The resolver did not answer: {}": "Der Resolver hat nicht geantwortet: {}",
  "The test name is not a domain name.": "Der Testname ist kein Domainname.",
+ "This machine does not allow ping without root (net.ipv4.ping_group_range). Check a TCP port instead.": "Diese Maschine erlaubt Ping nicht ohne root (net.ipv4.ping_group_range). Prüfe stattdessen einen TCP-Port.",
  "{} cannot be resolved.": "{} lässt sich nicht auflösen.",
  "{} is not an address Floorbit may probe.": "{} ist keine Adresse, die Floorbit prüfen darf."
 }

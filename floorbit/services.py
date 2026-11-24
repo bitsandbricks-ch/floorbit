@@ -24,6 +24,7 @@ import threading
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlsplit
 
 from flask import current_app, has_app_context
 
@@ -33,7 +34,15 @@ from . import inventory, lancache, links, probes
 from .store import load_data, save_data
 
 KEY = 'services'
-KINDS = ('uplinks', 'resolvers', 'sites')
+KINDS = ('uplinks', 'resolvers', 'sites', 'checks')
+TAGS = 'service_tags'           # {service id: [tag, ...]}, for every service the page lists
+MAX_TAGS = 8
+TAG_LEN = 24
+SERVICE_ID_RE = re.compile(r'^[A-Za-z0-9_.:*-]{1,100}\Z')
+# Where each kind shows on the health wall and in the summary: the id there is prefix + item id.
+PREFIX = {'uplinks': 'uplink', 'resolvers': 'dns', 'sites': 'site', 'checks': 'check'}
+CHECK_SLOW_MS = {'ping': 100, 'tcp': 200, 'udp': 200, 'http': 1000}
+CERT_WARN_DAYS = 14
 MAX = 30                       # of each kind
 HISTORY = 60                   # latency samples kept (30 minutes at the default interval)
 HOST_RE = re.compile(r'^[A-Za-z0-9]([A-Za-z0-9.-]{0,252}|[0-9a-fA-F:.]{0,44})\Z')
@@ -145,7 +154,70 @@ def _clean_site(body, _data, old):
     return {'name': name, 'host': host, 'port': port}
 
 
-CLEAN = {'uplinks': _clean_uplink, 'resolvers': _clean_resolver, 'sites': _clean_site}
+def _int(value, default, low, high, message):
+    try:
+        number = int(value if value not in (None, '') else default)
+    except (TypeError, ValueError):
+        raise ServiceError(message) from None
+    if not low <= number <= high:
+        raise ServiceError(message)
+    return number
+
+
+def _expect(value):
+    """"200-399" or "200" as (low, high)."""
+    text = str(value or '200-399').replace(' ', '').replace('\u2013', '-')
+    try:
+        low, _, high = text.partition('-')
+        low, high = int(low), int(high or low)
+    except ValueError:
+        raise ServiceError('The expected status is a code like 200, or a range like 200-399.') from None
+    if not 100 <= low <= high <= 599:
+        raise ServiceError('The expected status is a code like 200, or a range like 200-399.')
+    return f'{low}-{high}' if high != low else str(low)
+
+
+def _clean_check(body, _data, old):
+    """An own check (issue #1338): ping, a TCP port, a UDP port or an HTTP(S) address."""
+    name = _text(body.get('name', old.get('name')), 60)
+    if not name:
+        raise ServiceError('Name the check, like what it watches.')
+    kind = body.get('kind', old.get('kind'))
+    if kind not in probes.CHECK_KINDS:
+        raise ServiceError('The check is a ping, a TCP port, a UDP port or HTTP(S).')
+    out = {'name': name, 'kind': kind, 'host': '', 'port': None, 'ask': '', 'url': '', 'expect': '',
+           'contains': '', 'cert_warn_days': None,
+           'slow_ms': _int(body.get('slow_ms', old.get('slow_ms')), CHECK_SLOW_MS[kind], 1, 60_000,
+                           'Slow above is a number of milliseconds, up to 60000.')}
+    if kind == 'http':
+        url = str(body.get('url', old.get('url')) or '').strip()
+        parts = urlsplit(url)
+        if len(url) > 300 or parts.scheme not in ('http', 'https') or not parts.hostname \
+                or any(ord(c) < 33 or ord(c) == 127 for c in url) or not HOST_RE.match(parts.hostname):
+            raise ServiceError('The address is a URL like https://www.example.com/health.')
+        try:
+            parts.port   # noqa: B018 - raises on a port that is no number
+        except ValueError:
+            raise ServiceError('The address is a URL like https://www.example.com/health.') from None
+        out.update(url=url, expect=_expect(body.get('expect', old.get('expect'))),
+                   contains=_text(body.get('contains', old.get('contains')), 100),
+                   cert_warn_days=_int(body.get('cert_warn_days', old.get('cert_warn_days')), CERT_WARN_DAYS, 0, 365,
+                                       'Warn days before the certificate ends: a number from 0 to 365.')
+                   if parts.scheme == 'https' else None)
+        return out
+    out['host'] = _host(str(body.get('host', old.get('host')) or '').strip().strip('.').lower(),
+                        'The address is a host name or an IP address, like 192.0.2.40.')
+    if kind in ('tcp', 'udp'):
+        out['port'] = _int(body.get('port', old.get('port')), 0, 1, 65535, 'The port is a number from 1 to 65535.')
+    if kind == 'udp':
+        ask = body.get('ask', old.get('ask')) or 'none'
+        if ask not in probes.UDP_ASKS:
+            raise ServiceError('Ask with DNS, NTP, a Steam query or nothing.')
+        out['ask'] = ask
+    return out
+
+
+CLEAN = {'uplinks': _clean_uplink, 'resolvers': _clean_resolver, 'sites': _clean_site, 'checks': _clean_check}
 
 
 def add_common_sites(by):
@@ -191,9 +263,56 @@ def delete(kind, item_id):
             return None
         stored[kind] = [r for r in stored[kind] if r is not gone]
         data[KEY] = stored
+        (data.get(TAGS) or {}).pop(f"{PREFIX[kind]}:{item_id}", None)
         save_data(data)
     poller.forget(item_id)
     return gone
+
+
+def own_ids(data=None):
+    """{service id: name} of what this page sets up itself, also before the health wall polled it."""
+    data = load_data() if data is None else data
+    stored = _stored(data)
+    out = {f"{PREFIX[kind]}:{item['id']}": item.get('name') or '' for kind in KINDS for item in stored[kind]}
+    from . import game_servers
+    out.update({f"game:{s['id']}": s.get('name') or '' for s in game_servers.listing(data)})
+    return out
+
+
+def tags(data=None):
+    """Every service's tags: {service id: [tag, ...]}."""
+    raw = (load_data() if data is None else data).get(TAGS)
+    return {k: v for k, v in raw.items() if isinstance(v, list)} if isinstance(raw, dict) else {}
+
+
+def set_tags(service_id, values):
+    """Replace one service's tags; returns them cleaned. ``service_id`` is its id in the summary."""
+    if not SERVICE_ID_RE.match(str(service_id or '')):
+        raise ServiceError('There is no such service.', 404)
+    if not isinstance(values, list):
+        raise ServiceError('Tags are a list of words.')
+    clean, seen = [], set()
+    for value in values:
+        tag = _text(value, TAG_LEN + 1)
+        if not tag:
+            continue
+        if len(tag) > TAG_LEN:
+            raise ServiceError(f'A tag is at most {TAG_LEN} characters.')
+        if tag.lower() not in seen:
+            seen.add(tag.lower())
+            clean.append(tag)
+    if len(clean) > MAX_TAGS:
+        raise ServiceError(f'A service has at most {MAX_TAGS} tags.')
+    with _lock:
+        data = load_data()
+        stored = tags(data)
+        if clean:
+            stored[service_id] = clean
+        else:
+            stored.pop(service_id, None)
+        data[TAGS] = stored
+        save_data(data)
+    return clean
 
 
 # ── checking ────────────────────────────────────────────────────────────────
@@ -202,17 +321,33 @@ def _via_agent():
     return agent_link.active()
 
 
+class NoAgent(probes.ProbeError):
+    pass
+
+
+NO_AGENT = 'No local agent is connected, so this is not checked.'
+
+
 def _ask(method, *args):
-    """Run a probe here, or on the local agent when one is enrolled (it is on the event network)."""
+    """Run a probe on the local agent (it is on the event network), or here when this is the agent.
+    Demo data without an agent sends nothing from the server (issue #1339)."""
     demo = probes.stood_in(method, args)
     if demo is not None:
         return demo
-    if not _via_agent():
-        return {'dns_probe': probes.dns, 'tcp_probe': probes.tcp}[method](probes.target(args[0]), *args[1:])
     from . import agent_link
+    if not _via_agent():
+        if not agent_link.lan_here():
+            raise NoAgent(NO_AGENT)
+        local = {'dns_probe': probes.dns, 'tcp_probe': probes.tcp, 'check_probe': None}[method]
+        if local is None:
+            return probes.check(*args)
+        return local(probes.target(args[0]), *args[1:])
     try:
         return agent_link.tunnel.call(method, args, timeout=20)
-    except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
+    except agent_link.AgentUnavailable:
+        # Grey "not checked", not red: nothing is known to be down.
+        raise NoAgent(NO_AGENT) from None
+    except agent_link.AgentError as exc:
         raise probes.ProbeError(str(exc)) from None
 
 
@@ -260,6 +395,8 @@ def check_uplink(uplink, now):
 def check_resolver(resolver, _now):
     try:
         got = _ask('dns_probe', resolver['address'], resolver['lookup'])
+    except NoAgent as exc:
+        return 'unknown', {'latency_ms': None, 'rcode': None, 'answers': None, 'error': str(exc)}
     except probes.ProbeError as exc:
         return 'down', {'latency_ms': None, 'rcode': None, 'answers': None, 'error': str(exc)}
     out = {'latency_ms': _num(got.get('ms')), 'rcode': str(got.get('rcode') or '')[:10],
@@ -274,6 +411,8 @@ def check_site(site, _now):
         got = _ask('tcp_probe', site['host'], site['port'], SITE_TRIES)
         sent = max(1, int(got.get('sent') or 1))
         loss = round(min(int(got.get('lost') or 0), sent) / sent, 2)
+    except NoAgent as exc:
+        return 'unknown', {'latency_ms': None, 'loss': None, 'error': str(exc)}
     except (probes.ProbeError, ValueError, TypeError) as exc:
         return 'down', {'latency_ms': None, 'loss': None, 'error': str(exc)}
     out = {'latency_ms': _num(got.get('avg_ms')), 'loss': loss, 'error': ''}
@@ -283,7 +422,62 @@ def check_site(site, _now):
     return ('warn' if slow else 'up'), out
 
 
-CHECK = {'uplinks': check_uplink, 'resolvers': check_resolver, 'sites': check_site}
+def _spec(item):
+    """What the agent needs to run an own check, and nothing else."""
+    return {k: item.get(k) for k in ('kind', 'host', 'port', 'ask', 'url', 'contains')}
+
+
+def check_own(item, _now=None):
+    """An own check (issue #1338), run once on the agent: its status and what it saw."""
+    out = {'latency_ms': None, 'loss': None, 'code': None, 'cert_days': None, 'error': '', 'note': ''}
+    try:
+        got = _ask('check_probe', _spec(item))
+    except NoAgent as exc:
+        return 'unknown', {**out, 'error': str(exc)}
+    except probes.ProbeError as exc:
+        return 'down', {**out, 'error': str(exc)}
+    if not isinstance(got, dict):
+        return 'down', {**out, 'error': 'The agent gave no answer.'}
+    out['latency_ms'] = _num(got.get('ms'))
+    slow = (out['latency_ms'] or 0) >= item.get('slow_ms', CHECK_SLOW_MS.get(item.get('kind'), 500))
+    kind = item.get('kind')
+    if kind in ('ping', 'tcp'):
+        sent = max(1, int(got.get('sent') or 1))
+        out['loss'] = round(min(int(got.get('lost') or 0), sent) / sent, 2)
+        if out['loss'] == 1:
+            what = 'No answer to ping.' if kind == 'ping' else f"Port {item.get('port')} does not answer."
+            return 'down', {**out, 'error': what}
+        return ('warn' if slow or out['loss'] >= WARN_LOSS else 'up'), out
+    if kind == 'udp':
+        if got.get('closed'):
+            return 'down', {**out, 'error': f"Port {item.get('port')} is closed."}
+        if not got.get('answered'):
+            if item.get('ask') == 'none':
+                # Silence is all UDP gives an empty question: the port is not closed, that's all we know.
+                return 'up', {**out, 'note': 'No answer, the port is not closed.'}
+            return 'down', {**out, 'error': 'No answer.'}
+        return ('warn' if slow else 'up'), out
+    out['code'] = got.get('code') if isinstance(got.get('code'), int) else None
+    out['cert_days'] = got.get('cert_days') if isinstance(got.get('cert_days'), int) else None
+    low, _, high = (item.get('expect') or '200-399').partition('-')
+    if out['code'] is None or not int(low) <= out['code'] <= int(high or low):
+        return 'down', {**out, 'error': f"Answered {out['code']}, expected {item.get('expect') or '200-399'}."}
+    if item.get('contains') and got.get('found') is False:
+        return 'down', {**out, 'error': f"The page does not contain \"{item['contains']}\"."}
+    warn_days = item.get('cert_warn_days')
+    if out['cert_days'] is not None and warn_days is not None and out['cert_days'] < warn_days:
+        return 'warn', {**out, 'note': f"The certificate ends in {max(out['cert_days'], 0)} days."}
+    return ('warn' if slow else 'up'), out
+
+
+def test_check(body):
+    """"Test" in the form: clean what was typed, run it once, keep nothing."""
+    item = _clean_check(body, None, {})
+    status, values = check_own(item)
+    return {'status': status, **values}
+
+
+CHECK = {'uplinks': check_uplink, 'resolvers': check_resolver, 'sites': check_site, 'checks': check_own}
 
 
 class Poller:
@@ -443,6 +637,8 @@ def health_checks(data=None):
         out.append({'id': f"dns:{res['id']}", 'name': res['name'], 'kind': 'dns', 'status': s['status'],
                     'summary': summary, 'metrics': metrics, 'link': '/services',
                     'plugin': 'services', 'plugin_name': 'Services'})
+    for item in stored['checks']:
+        out.append(_check_tile(item, poller.state(item['id'])))
     sites = [poller.state(site['id']) for site in stored['sites']]
     if sites:
         out.append(_sites_tile(stored['sites'], sites))
@@ -474,6 +670,31 @@ def _sites_tile(sites, states):
         metrics.append({'label': 'Median', 'value': sorted(times)[len(times) // 2], 'unit': 'ms', 'tone': ''})
     return {'id': 'sites', 'name': 'Internet sites', 'kind': 'web', 'status': status, 'summary': summary,
             'metrics': metrics, 'link': '/services', 'plugin': 'services', 'plugin_name': 'Services'}
+
+
+def _check_tile(item, s):
+    if s['status'] == 'unknown':
+        summary = s.get('error') or 'Not checked yet.'
+    elif s.get('error'):
+        summary = s['error']
+    elif s.get('note'):
+        summary = s['note']
+    elif s.get('code') is not None:
+        summary = f"{s['code']} in {s.get('latency_ms')} ms"
+    else:
+        summary = f"Answers in {s.get('latency_ms')} ms" if s.get('latency_ms') is not None else 'Answers.'
+    metrics = [m for m in (
+        {'label': 'Time', 'value': s.get('latency_ms'), 'unit': 'ms', 'tone': ''}
+        if s.get('latency_ms') is not None else None,
+        {'label': 'Loss', 'value': round(s['loss'] * 100), 'unit': '%', 'tone': 'warn' if s['loss'] else ''}
+        if s.get('loss') is not None else None,
+        {'label': 'Status', 'value': s['code'], 'unit': '', 'tone': ''} if s.get('code') is not None else None,
+        {'label': 'Certificate', 'value': s['cert_days'], 'unit': 'days',
+         'tone': 'warn' if item.get('cert_warn_days') is not None and s['cert_days'] < item['cert_warn_days'] else ''}
+        if s.get('cert_days') is not None else None) if m]
+    return {'id': f"check:{item['id']}", 'name': item['name'], 'kind': 'check', 'status': s['status'],
+            'summary': summary, 'metrics': metrics, 'link': '/services', 'plugin': 'services',
+            'plugin_name': 'Services'}
 
 
 def _cache_tile(cache):

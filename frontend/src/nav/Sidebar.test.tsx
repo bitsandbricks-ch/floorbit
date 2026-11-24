@@ -59,12 +59,10 @@ describe('sections', () => {
       { href: '/services', id: 'services', label: 'Services' }, { href: '/dns', id: 'dns', label: 'DNS' },
       { href: '/traffic', id: 'traffic', label: 'Traffic' }, { href: '/games', id: 'games', label: 'Games' },
       { href: '/topology', id: 'topology', label: 'Topology' }, { href: '/wifi', id: 'wifi', label: 'Wi-Fi' },
-      { href: '/health', id: 'health', label: 'Service health' },
     ]
     expect(hubTabs(mon, '/dns')?.tabs.map((p) => p.id)).toEqual(['services', 'dns'])
     expect(hubTabs(mon, '/games')?.tabs.map((p) => p.id)).toEqual(['traffic', 'games'])
     expect(hubTabs(mon, '/wifi')?.tabs.map((p) => p.id)).toEqual(['topology', 'wifi'])
-    expect(hubTabs(mon, '/health')).toBeNull()
   })
 
   it('lights one row: the longest page that holds the path', () => {
