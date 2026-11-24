@@ -19,6 +19,20 @@ made from, every note with who wrote it, and every action this account may take:
 fixed or reopen it, bounce the seat's port, send it to the nearest tech, give it to someone or
 another team, and add a note. **Incident open** on the Problems page and on a problem's page links
 here. An incident that is no longer on the board says so.
+
+### Dismiss
+
+**Dismiss** on an incident's page closes it or puts it aside (issue #887):
+
+- **Not a problem** closes it like **Fixed**, with a **Not a problem** tag, for reports that turn out
+  to be nothing (the player unplugged the cable). **Reopen** brings it back and drops the tag.
+- **Snooze** for 15 minutes, 1 hour or 4 hours keeps it open but out of the queue: no **Waiting** tag,
+  last in the **Open** column with **Snoozed until 23:40**, not in the tab's count and skipped by
+  **Take the next one**. When the time is up it is back by itself; **Back in the queue now** ends it
+  early, and taking it, giving it to someone or marking it fixed ends it too. A snooze lasts at most a day.
+
+The API takes `{"dismiss": "not_a_problem"}` and `{"snooze": <minutes>}` (0 ends it) on
+`PATCH /api/incidents/<id>`.
 The board refreshes on its own and as soon as anything changes. Open incidents also show on the
 floor plan as a red ring on the seat or switch, and listed under **Incidents** in the sidebar.
 The board's browser tab starts with the number of open incidents, e.g. "(2) Incidents · Floorbit".

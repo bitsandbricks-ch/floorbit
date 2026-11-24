@@ -539,6 +539,10 @@ export interface Incident {
   created_at: number
   updated_at: number
   /** When it was marked fixed; null while not fixed. */
+  /** Dismissed as not a problem (issue #887): closed like a fixed one, with the reason. */
+  dismissed?: { reason: 'not_a_problem'; by: string; at: number } | null
+  /** Put aside until then (issue #887): out of the waiting queue, back by itself after. */
+  snoozed_until?: number | null
   fixed_at?: number | null
   dispatched_at?: number | null
   taken_at?: number | null

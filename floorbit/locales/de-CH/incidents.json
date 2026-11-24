@@ -13,5 +13,8 @@
  "Too many reports from here. Please wait a few minutes.": "Zu viele Meldungen von hier. Warte bitte ein paar Minuten.",
  "You can't file incidents for that team.": "Du kannst für dieses Team keine Störungen erfassen.",
  "You can't work incidents for this team.": "Du kannst Störungen dieses Teams nicht bearbeiten.",
- "{} can't work incidents for this team.": "{} kann Störungen dieses Teams nicht bearbeiten."
+ "{} can't work incidents for this team.": "{} kann Störungen dieses Teams nicht bearbeiten.",
+ "Dismiss must be one of: {}.": "Abweisen geht nur so: {}.",
+ "A snooze lasts at most a day.": "Zurückstellen geht höchstens einen Tag.",
+ "A fixed incident cannot be snoozed.": "Eine behobene Störung kann nicht zurückgestellt werden."
 }

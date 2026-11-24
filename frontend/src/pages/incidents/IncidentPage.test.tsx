@@ -110,6 +110,33 @@ describe('Incident page (#887)', () => {
     expect(screen.getByRole('combobox', { name: 'Give to' })).toBeInTheDocument()
   })
 
+  it('dismisses as not a problem (issue #887)', async () => {
+    const api = fakeFetch({ ...routes, 'PATCH /api/incidents/i1': { ...board.incidents[0] } })
+    vi.stubGlobal('fetch', api.fn)
+    open('i1')
+    fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Not a problem' }))
+    await waitFor(() => expect(api.calls).toContainEqual({ method: 'PATCH', path: '/api/incidents/i1', body: { dismiss: 'not_a_problem' } }))
+  })
+
+  it('snoozes for a while (issue #887)', async () => {
+    const api = fakeFetch({ ...routes, 'PATCH /api/incidents/i1': { ...board.incidents[0] } })
+    vi.stubGlobal('fetch', api.fn)
+    open('i1')
+    fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'For 1 hour' }))
+    await waitFor(() => expect(api.calls).toContainEqual({ method: 'PATCH', path: '/api/incidents/i1', body: { snooze: 60 } }))
+  })
+
+  it('marks a snoozed incident and offers to end the snooze', async () => {
+    const snoozed: IncidentBoard = { ...board, incidents: [{ ...board.incidents[0], snoozed_until: now + 3600 }] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': snoozed }).fn)
+    open('i1')
+    expect(await screen.findByText(/^Snoozed until/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(await screen.findByRole('menuitem', { name: 'Back in the queue now' })).toBeInTheDocument()
+  })
+
   it('says when the incident is gone', async () => {
     vi.stubGlobal('fetch', fakeFetch(routes).fn)
     open('nope')
