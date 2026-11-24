@@ -78,7 +78,7 @@ describe('Firewalls', () => {
     renderWithApp(
       <Routes>
         <Route path="/" element={<Firewalls />} />
-        <Route path="/inventory/entries/firewall-range/:id" element={<p>Range page {imported.id}</p>} />
+        <Route path="/inventory/entries/prefix/:id" element={<p>Range page {imported.id}</p>} />
       </Routes>,
     )
     expect(await screen.findByText('For: Green')).toBeInTheDocument()
