@@ -41,5 +41,11 @@
   "clear": "Remove the pin",
   "save": "Save",
   "none": "No switches in the inventory",
-  "noneHint": "Switches come from the inventory (NetBox, discovery or by hand)."
+  "noneHint": "Switches come from the inventory (NetBox, discovery or by hand).",
+  "found": {
+    "pin": "{{switch}} is pinned to {{area}}; this seat is in {{row}}.",
+    "plan": "{{switch}} is drawn in {{area}}; this seat is in {{row}}.",
+    "excluded": "{{switch}} is excluded from serving seats; this seat ({{row}}) is on it.",
+    "open": "Check it in Switch areas"
+  }
 }

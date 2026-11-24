@@ -65,3 +65,20 @@ def test_bad_pins_are_refused(client, kiosk_client):
     assert client.put('/api/switch-areas/sw-1', json={'seats': 'A-1'}).status_code == 400
     assert client.put('/api/switch-areas/sw-1', json={'seats': ['a-1'], 'exclude': True}).get_json()['seats'] == ['A-1']
     assert kiosk_client.put('/api/switch-areas/sw-1', json={}).status_code == 403
+
+
+def test_a_port_found_outside_the_switch_area_says_so_where_it_is_found(client):
+    data = _hall({'sw-1': {}, 'sw-in': {'x': 50, 'y': 50}, 'sw-off': {}})
+    first, second = switch_areas.seat_names.hall_rows(data)[:2]
+    assert client.put('/api/switch-areas/sw-1', json={'rows': [first['id']]}).status_code == 200
+    assert client.put('/api/switch-areas/sw-off', json={'exclude': True}).status_code == 200
+    data = load_data()
+    assert switch_areas.drift_for(first['seats'][0], 'sw-1', data) is None
+    pinned = switch_areas.drift_for(second['seats'][0], 'SW-1', data)
+    assert pinned == {'kind': 'pin', 'switch': 'sw-1', 'area': [f"A {first['name']}"], 'row': f"A {second['name']}"}
+    assert switch_areas.drift_for(second['seats'][0], 'sw-in', data) is None          # drawn in this block
+    data['seat_blocks'].append({**BLOCK, 'id': 'b2', 'name': 'B', 'x': 10, 'y': 10})
+    other = next(r for r in switch_areas.seat_names.hall_rows(data) if r['block'] == 'b2')
+    assert switch_areas.drift_for(other['seats'][0], 'sw-in', data)['kind'] == 'plan'
+    assert switch_areas.drift_for(first['seats'][0], 'sw-off', data)['kind'] == 'excluded'
+    assert switch_areas.drift_for('Z-99', 'sw-1', data) is None
