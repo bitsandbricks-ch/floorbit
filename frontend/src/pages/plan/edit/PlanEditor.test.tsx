@@ -18,7 +18,8 @@ const data = {
   drawing: { shapes: [shape('A', 400), shape('B', 800)], marks: [], box: '0 0 1600 1000', cell: 32 },
 } as unknown as SeatViewData
 const layers: LayerState = { on: new Set(), fade: {} }
-const blockRow = (id: string, x: number) => ({ id, name: id, x, y: 50, rotation: 0, rows: 1, cols: 4, hall_id: 'main' })
+const blockRow = (id: string, x: number) => ({ id, name: id, x, y: 50, rotation: 0, hall_id: 'main',
+  rows: [{ id: '1', seats: 4, shape: 'line', gap: 0, align: 'start', shift: 0, side: '', reverse: false, col_gaps: [] }] })
 
 function editor(routes: Record<string, unknown> = {}) {
   const api = fakeFetch({
@@ -325,7 +326,7 @@ describe('Plan editor: background and scale', () => {
     fireEvent.pointerUp(seat, { pointerId: 2, clientX: 448, clientY: 564 })
     const put = () => api.calls.filter((c) => c.method === 'PUT')
     await waitFor(() => expect(put()).toHaveLength(1))
-    expect(put()[0].body).toEqual({ seat_at: { '0,0': [0, 0], '0,1': [1, 0], '0,2': [2, 0], '0,3': [3, 2] }, x: 25, y: 53.2 })
+    expect(put()[0].body).toEqual({ seat_at: { '1,0': [0, 0], '1,1': [1, 0], '1,2': [2, 0], '1,3': [3, 2] }, x: 25, y: 53.2 })
     fireEvent.keyDown(r.container.querySelector('.fb-plan-editor')!, { key: 'z', ctrlKey: true })
     await waitFor(() => expect(put()).toHaveLength(2))
     expect(put()[1].body).toEqual({ seat_at: null, x: 25, y: 50 })

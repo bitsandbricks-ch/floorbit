@@ -704,7 +704,7 @@ export interface PowerOverview {
   last_poll: number | null
   plugins: number
   /** label: the name, or the row letters of a block named by its rows; row_names: each row, top first. */
-  blocks: { id: string; name: string; label: string; rows: number; row_names: string[] }[]
+  blocks: { id: string; name: string; label: string; rows: number; row_names: string[]; row_ids?: number[] }[]
   can_edit: boolean
   can_read: boolean
 }
@@ -877,8 +877,13 @@ export interface PlanCell {
   seat: string
   hit: boolean
   on: boolean | null
-  /** Row and column (from 0) in the block, for the editor's seat handles; missing on older answers. */
+  /** Row (its place in the block) and seat (its place in the row), from 0, for the editor's seat
+   *  handles; missing on older answers. */
   rc?: [number, number]
+  /** Degrees the seat is turned with its row (floorbit/seat_rows.py); missing on a straight row. */
+  a?: number
+  /** The side people sit on, of the way the row runs (left is up on a straight row); missing when not shown. */
+  side?: 'left' | 'right'
 }
 
 export interface PlanShape {
@@ -895,7 +900,7 @@ export interface PlanShape {
   rows?: { text: string; x: number; y: number }[]
   /** Each row, top first (a cell's rc[0]): its id and name as /api/options/rows has them. Ids are
    *  the server's: never build one. Missing on older answers. */
-  row_list?: { id: string; name: string }[]
+  row_list?: { id: string; name: string; row?: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
 }
@@ -1417,7 +1422,7 @@ export interface SeatLocated {
 export interface SeatAssigned { cable: Cable; changed: string[]; other_seat: string }
 /** A switch login Floorbit keeps (issue #474): never the password. */
 /** label: what pickers show: the name, or the row letters (C–D) of a block named by its rows. */
-export interface SeatBlock { id: string; name: string; label: string; row_names: string[]; cols: number; rows: number; hall_id: string }
+export interface SeatBlock { id: string; name: string; label: string; row_names: string[]; rows: { id: string; seats: number }[]; hall_id: string }
 
 /** Wi-Fi view (issue #98). Client counts only. */
 export type WifiBand = '2.4' | '5' | '6'

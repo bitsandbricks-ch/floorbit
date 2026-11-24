@@ -19,7 +19,7 @@ Stored per event in its data as ``switch_areas``: ``{switch name: {blocks, rows,
 """
 import math
 
-from . import seat_gaps, seat_names
+from . import seat_layout, seat_names
 
 KEY = 'switch_areas'
 MAX_SEATS = 500          # single seats pinned to one switch
@@ -36,8 +36,7 @@ def _inside(block, x, y):
     """Whether a point (plan %) lies in the block's area, turned like the block, aisles included."""
     from .block_merge import PLAN_SEATS_H, PLAN_SEATS_W
     try:
-        _, w = seat_gaps.offsets(block.get('col_gaps'), int(block['cols']))
-        _, h = seat_gaps.offsets(block.get('row_gaps'), int(block['rows']))
+        _, w, h = seat_layout.places(block)
         cx, cy = float(block['x']) / 100 * PLAN_SEATS_W, float(block['y']) / 100 * PLAN_SEATS_H
     except (KeyError, TypeError, ValueError):
         return False

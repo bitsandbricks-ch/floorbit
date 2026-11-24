@@ -14,14 +14,14 @@ const shape: PlanShape = {
 
 describe('seats placed freely', () => {
   it('reads where the seats are and moves one, keeping the others on the plan', () => {
-    expect(seatPlaces(shape, CELL)).toEqual({ '0,0': [0, 0], '0,1': [1, 0] })
+    expect(seatPlaces(shape, CELL)).toEqual({ '1,0': [0, 0], '1,1': [1, 0] })
     // Seat 2 goes under seat 1: the box is one seat wide and two high, its middle half a seat left and down.
     const moved = moveSeat(shape, CELL, { w: 1600, h: 1000 }, [0, 1], [0, 1])
-    expect(moved.seat_at).toEqual({ '0,0': [0, 0], '0,1': [0, 1] })
+    expect(moved.seat_at).toEqual({ '1,0': [0, 0], '1,1': [0, 1] })
     expect(moved.x).toBeCloseTo(((800 - CELL / 2) / 1600) * 100)
     expect(moved.y).toBeCloseTo(((500 + CELL / 2) / 1000) * 100)
     // Seat 1 out to the left: the places start at 0,0 again.
-    expect(moveSeat(shape, CELL, { w: 1600, h: 1000 }, [0, 0], [-2, 0]).seat_at).toEqual({ '0,0': [0, 0], '0,1': [3, 0] })
+    expect(moveSeat(shape, CELL, { w: 1600, h: 1000 }, [0, 0], [-2, 0]).seat_at).toEqual({ '1,0': [0, 0], '1,1': [3, 0] })
   })
 
   it('turns plan points into the block frame and back, for a turned block too', () => {

@@ -1,0 +1,48 @@
+{
+  "title_one": "{{count}} row",
+  "title_other": "{{count}} rows",
+  "add": "Add row",
+  "pick": "Row {{name}}: change it",
+  "summary_one": "{{count}} seat · {{shape}}",
+  "summary_other": "{{count}} seats · {{shape}}",
+  "gapAbove": "Space above {{name}}",
+  "gapAboveLabel": "Space above row {{name}}, in seats",
+  "seatsUnit": "seats",
+  "up": "Move row {{name}} up",
+  "down": "Move row {{name}} down",
+  "remove": "Take out row {{name}}",
+  "rowTitle": "Row {{name}}",
+  "shape": "Shape",
+  "shapes": {
+    "line": "Straight",
+    "arc": "Arc",
+    "u": "U",
+    "l": "L",
+    "path": "Path"
+  },
+  "bend": "Bend",
+  "bendHint": "How far the row turns from its first seat to its last. Negative bends the other way.",
+  "side_u_0": "First side",
+  "side_u_1": "Middle",
+  "side_u_2": "Last side",
+  "side_l_0": "First arm",
+  "side_l_1": "Second arm",
+  "sidesHint": "Seats on each side, {{count}} in all. A change takes the seats from the middle or the other arm.",
+  "pathHint": "The seats follow the path's points. It starts as an L; drawing the path on the plan comes next.",
+  "align": "Line up with the other rows",
+  "aligns": {
+    "start": "Start",
+    "middle": "Middle",
+    "end": "End"
+  },
+  "shift": "Shift (seats)",
+  "side": "People sit",
+  "sides": {
+    "auto": "Shape default",
+    "left": "Left of the row",
+    "right": "Right of the row"
+  },
+  "firstGap": "The first row has no space above it: move the block instead.",
+  "reverse": "Number this row the other way",
+  "seats": "Seats"
+}

@@ -1,0 +1,18 @@
+{
+ "A block has 1 to {} rows": "Ein Block hat 1 bis {} Reihen",
+ "A path has 2 to {} points": "Ein Pfad hat 2 bis {} Punkte",
+ "A path is a list of [x, y] points in seats": "Ein Pfad ist eine Liste von [x, y]-Punkten in Plätzen",
+ "A path needs two different points": "Ein Pfad braucht zwei verschiedene Punkte",
+ "A path point is at most {} seats out": "Ein Pfadpunkt liegt höchstens {} Plätze draussen",
+ "A row has 1 to {} seats": "Eine Reihe hat 1 bis {} Plätze",
+ "A row has a number of seats": "Eine Reihe hat eine Anzahl Plätze",
+ "A row is a line, an arc, a U, an L or a path": "Eine Reihe ist eine Gerade, ein Bogen, ein U, ein L oder ein Pfad",
+ "A row lines up at the start, the middle or the end": "Eine Reihe richtet sich am Anfang, in der Mitte oder am Ende aus",
+ "A U has 3 sides of seats": "Ein U hat 3 Seiten mit Plätzen",
+ "An L has 2 sides of seats": "Ein L hat 2 Seiten mit Plätzen",
+ "Each row is an object with at least \"seats\"": "Jede Reihe ist ein Objekt mit mindestens \"seats\"",
+ "Each side is a number of seats": "Jede Seite ist eine Anzahl Plätze",
+ "People sit left or right of a row": "Leute sitzen links oder rechts einer Reihe",
+ "The sides add up to the row's {} seats": "Die Seiten ergeben zusammen die {} Plätze der Reihe",
+ "{} is a number": "{} ist eine Zahl"
+}
