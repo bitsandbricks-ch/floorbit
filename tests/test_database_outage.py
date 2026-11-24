@@ -74,6 +74,7 @@ def test_while_it_is_away_only_one_try_per_wait_and_the_waits_grow(db, tmp_path,
         raise sqlite3.OperationalError("unable to open database file")
     db._connect = refuse
     db.close()
+    db._stamps.clear()                        # the write's stamp would answer without asking
     for _ in range(20):                       # a burst of requests: one try, the rest give up at once
         assert store.read_json(str(tmp_path / "data.json")) == {"a": 1}
     assert len(tries) == 1 and db.down["wait"] == database.RETRY_FIRST

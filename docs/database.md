@@ -81,6 +81,13 @@ merged with; otherwise it merges again with the newer one (up to 8 times, then t
 with an error instead of being lost). SQLite is one file on one server: for several replicas on
 several nodes, use Postgres.
 
+## Reading
+
+Each document's update time is asked at most once a second. While it hasn't changed, Floorbit
+reads the copy it already holds instead of fetching the whole document again, so a request that
+looks at the floor plan several times costs no extra queries. Saves from this process show at
+once; with several replicas, another one's save shows within that second.
+
 ## When the database is away
 
 Floorbit keeps running without its database, whether it went away while running or wasn't there at
