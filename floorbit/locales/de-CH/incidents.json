@@ -1,4 +1,5 @@
 {
+ "Needs the \"work incidents\" permission, in your role or a team.": "Braucht das Recht «Störungen bearbeiten», in deiner Rolle oder einem Team.",
  "An incident is about one seat, one switch or one power circuit.": "Eine Störung betrifft einen Platz, einen Switch oder einen Stromkreis.",
  "Giving incidents to someone else needs the \"assign incidents\" permission.": "Störungen jemand anderem geben braucht die Berechtigung «Störungen jedem Team zuweisen».",
  "Moving incidents between teams needs the \"assign incidents\" permission.": "Störungen zwischen Teams verschieben braucht die Berechtigung «Störungen jedem Team zuweisen».",

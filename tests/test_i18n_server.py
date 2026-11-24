@@ -40,6 +40,9 @@ def messages_in_code():
             if isinstance(node, ast.Dict):
                 candidates = [v for k, v in zip(node.keys, node.values, strict=True)
                               if isinstance(k, ast.Constant) and k.value == 'error']
+            elif (isinstance(node, ast.Call) and ast.unparse(node.func).split('.')[-1] == 'abort'):
+                # abort(403, description=...) answers {"error": description} on the API (floorbit/not_found.py)
+                candidates = [k.value for k in node.keywords if k.arg == 'description']
             elif (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call) and node.exc.args
                   and ast.unparse(node.exc.func).split('.')[-1].endswith(ERROR_ENDINGS)):
                 candidates = [node.exc.args[0]]

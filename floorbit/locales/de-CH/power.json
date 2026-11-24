@@ -1,4 +1,6 @@
 {
+ "Needs the \"power\" permission, or working incidents in the Electrics team.": "Braucht das Recht «Strom» oder das Bearbeiten von Störungen im Team Elektrik.",
+ "The power layer is off (Settings > Electrics).": "Die Stromebene ist aus (Einstellungen > Elektrik).",
  "A board position is a percentage of the floor plan.": "Die Position eines Verteilers ist ein Prozentwert des Hallenplans.",
  "Breaker tripped: {}": "Sicherung ausgelöst: {}",
  "Floorbit keeps up to {} boards.": "Floorbit speichert bis zu {} Verteiler.",

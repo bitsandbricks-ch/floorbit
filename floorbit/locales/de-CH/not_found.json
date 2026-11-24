@@ -1,3 +1,8 @@
 {
+ "The request is not valid.": "Die Anfrage ist ungültig.",
+ "This address does not take that method.": "Diese Adresse nimmt diese Methode nicht an.",
+ "That can't be done right now.": "Das geht gerade nicht.",
+ "The request is too large.": "Die Anfrage ist zu gross.",
+ "Too many requests. Wait a moment and try again.": "Zu viele Anfragen. Warte einen Moment und versuche es nochmals.",
  "Not found": "Nicht gefunden"
 }
