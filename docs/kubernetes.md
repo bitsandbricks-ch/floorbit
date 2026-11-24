@@ -115,6 +115,9 @@ With `FLOORBIT_CLUSTER` set the pods share three things through Valkey:
   sent by the pod that took the request. If Valkey can't be reached, every pod acts as the leader,
   because a duplicate alert is better than a missing one.
 
+The [switch terminal](terminal.md) keeps its sessions in the pod that opened them, so behind several
+pods it needs sticky sessions on the Ingress (or one pod).
+
 Each pod logs `[cluster] pod … joined (Redis)` at start, and the leader logs `… is now the leader`.
 Sign-in cookies work on every pod as long as they all have the same `SECRET_KEY` (the Secret above).
 

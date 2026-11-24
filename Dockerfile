@@ -68,7 +68,6 @@ EXPOSE 2055/udp
 # The syslog receiver, when SYSLOG_ENABLED is on (docs/syslog.md). Not 514, so no root is needed.
 EXPOSE 5514/udp 5514/tcp
 
-# One worker: the status monitor, watchers and live updates live in the process. Threads serve the
-# open live-update streams (one per browser tab); raise them with GUNICORN_CMD_ARGS="--threads 200".
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--worker-class", "gthread", "--threads", "64", \
-     "--access-logfile", "-", "app:app"]
+# Workers, threads and the address are in gunicorn.conf.py, so GUNICORN_CMD_ARGS can change them
+# (for example GUNICORN_CMD_ARGS="--threads 200" for more open tabs, docs/install.md).
+CMD ["gunicorn", "app:app"]
