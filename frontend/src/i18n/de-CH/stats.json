@@ -1,6 +1,6 @@
 {
   "title": "Statistik",
-  "intro": "Die Zahlen, nach denen während des Events gefragt wird: Bandbreite jetzt und am Höchststand, Uplinks, Plätze online und die aktivsten Ports. Alle paar Minuten von den Switches gelesen.",
+  "intro": "Die Zahlen, nach denen während des Events gefragt wird: Bandbreite jetzt und am Höchststand, Uplinks, Plätze online und die aktivsten Plätze. Alle paar Minuten von den Switches gelesen.",
   "resetPeak": "Höchststand zurücksetzen",
   "resetConfirm": "Den Höchststand des Events ab jetzt neu zählen? Nach Lasttests, bevor die Türen öffnen.",
   "updated": "Aktualisiert {{time}}",
@@ -33,7 +33,7 @@
   "noUplinks": "Keine Uplinks gefunden: In der Port-Beschreibung benennen (\"Uplink to dist-01\").",
   "moreUplinks_one": "und {{count}} weiterer Uplink",
   "moreUplinks_other": "und {{count}} weitere Uplinks",
-  "top": "Die aktivsten Ports",
+  "top": "Die aktivsten Plätze",
   "noTop": "Gerade kein Verkehr.",
   "seat": "Platz {{seat}}",
   "report": "Event-Bericht",

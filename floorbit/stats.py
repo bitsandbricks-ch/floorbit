@@ -8,7 +8,7 @@ the placed, online switches each ``ATTENTION_INTERVAL``, and hands them here. Fr
 - **ports:** up, down and with errors;
 - **uplinks:** per switch, its busiest up port whose description says ``uplink`` or ``trunk``
   (``STATS_UPLINK_PATTERN``) or names another switch;
-- **top talkers:** the ports with the most traffic right now, by seat where the port has one.
+- **top talkers:** the seats with the most traffic right now; ports without a seat are left out.
 
 One sample per read is kept for 24 hours, plus the event's peak, in memory and in the event's
 ``stats.json`` document in Floorbit's database (saved at most once a minute, and right away when
@@ -176,7 +176,9 @@ class Stats:
             if seat and state in ('up', 'errors'):
                 online += 1
                 seat_bps[seat] = round(d + u)
-            if d + u > 0:
+            # A port without a seat (a server, an access point) is not a seat: it counts in the
+            # hall's total but not among the busiest seats (issue #1409).
+            if seat and d + u > 0:
                 talkers.append({'seat': seat, 'switch_id': dev['id'], 'switch': dev['name'], 'port': port['name'],
                                 'download_bps': round(d), 'upload_bps': round(u), 'bps': round(d + u)})
         sample = {'t': now, 'down': round(down), 'up': round(up), 'online': online,
