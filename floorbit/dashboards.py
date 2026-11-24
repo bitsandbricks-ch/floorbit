@@ -507,6 +507,10 @@ def clean(body):
     # Full screen shows a header and the status line unless the dashboard switches them off (#927).
     if body.get('frame') is False:
         out['frame'] = False
+    # A tone on full screen when something goes down and nobody has taken it (#1137): for the NOC
+    # screen, so off unless the dashboard asks for it.
+    if body.get('sound'):
+        out['sound'] = True
     return out
 
 

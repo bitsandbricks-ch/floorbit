@@ -342,5 +342,8 @@
     "circuits_other": "{{count}} Stromkreise",
     "uplinks_one": "{{count}} Internetleitung",
     "uplinks_other": "{{count}} Internetleitungen"
-  }
+  },
+  "sound": "Ton bei neuen Problemen",
+  "soundHint": "Ein kurzer Ton im Vollbild, wenn etwas ausfällt und sich niemand darum kümmert. Für den NOC-Bildschirm.",
+  "soundAllow": "Ton einschalten"
 }

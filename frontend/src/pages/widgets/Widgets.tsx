@@ -14,7 +14,7 @@ import { ConfirmButton } from '@/components/ConfirmButton'
 import { pluginName } from '@/lib/pluginName'
 import { WidgetCard } from '@/widgets/TileCard'
 import { add } from '../dashboards/grid'
-import { type Board, type Pane, boardName } from '../dashboards/model'
+import { type Board, type Pane, boardName, boardSettings } from '../dashboards/model'
 import { TileField } from '../dashboards/PaneForm'
 import { PaneView } from '../dashboards/Panes'
 import { type SavedWidget, type TilePane, followed, useDeleteWidget, useSaveWidget, useSavedWidgets } from './saved'
@@ -66,7 +66,7 @@ function AddTo({ entry, boards }: { entry: { name: string; pane: Pane }; boards:
       const last = sections.length - 1
       const next = sections.map((s, i) => (i === last ? { ...s, panels: add(s.panels, { pane: entry.pane }, 8, 6) } : s))
       return put<Board>(`/api/dashboards/${encodeURIComponent(b.id)}`, {
-        name: b.name, sections: next, fit: b.fit, public: !!b.public, ...(b.cycle ? { cycle: b.cycle } : {}),
+        name: b.name, sections: next, fit: b.fit, public: !!b.public, ...boardSettings(b),
       })
     },
     onSuccess: (b) => { setDone(b.name); void qc.invalidateQueries({ queryKey: qk.boards }) },

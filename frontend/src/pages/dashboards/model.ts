@@ -96,6 +96,8 @@ export interface Board {
   range?: TimeRange
   /** Full screen shows a header (name, event, day, next, clock) and the status line; false hides both. */
   frame?: false
+  /** A tone on full screen when something goes down and nobody has taken it (#1137); off when missing. */
+  sound?: true
   updated_at?: number
   by?: string | null
   /** Ready-made (the Kiosk): saving under its id keeps your own version instead. */
@@ -105,6 +107,13 @@ export interface Board {
   /** Opens without signing in, showing only what anyone may see. */
   public?: boolean
 }
+
+/** A dashboard's own settings as PUT wants them, defaults left out: the one place that lists them,
+ *  so a save from anywhere (editor, copy, "Add to", "Make it a Screen") keeps every one. */
+export const boardSettings = (b: Pick<Board, 'cycle' | 'range' | 'frame' | 'sound'>) => ({
+  ...(b.cycle ? { cycle: b.cycle } : {}), ...(b.range ? { range: b.range } : {}),
+  ...(b.frame === false ? { frame: false as const } : {}), ...(b.sound ? { sound: true as const } : {}),
+})
 
 /** A dashboard's name to show: the ready-made ones have theirs in every language. */
 export const boardName = (t: (key: string, opts?: Record<string, unknown>) => string, b: Pick<Board, 'id' | 'name' | 'builtin'>) =>

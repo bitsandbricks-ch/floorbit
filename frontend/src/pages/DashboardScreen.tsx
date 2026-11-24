@@ -1,4 +1,5 @@
 import { Button, Group, Text } from '@mantine/core'
+import { IconVolume } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,9 +12,10 @@ import { useCan, useProblems } from '@/api/queries'
 import type { Problem } from '@/api/types'
 import { StatusLine } from '@/components/StatusLine'
 import { ago, clock, formatWhen } from '@/lib/time'
-import { type Board, TIME_RANGES, type TimeRange, boardName } from './dashboards/model'
+import { type Board, TIME_RANGES, type TimeRange, boardName, boardSettings } from './dashboards/model'
 import { nextInRotation, publicUrl, rotation, ScreenContext } from './dashboards/screen'
 import { GridView } from './dashboards/GridView'
+import { useProblemSound } from './dashboards/sound'
 import { AutoPage, WALL_PAGE_SECONDS } from '@/widgets/autoPage'
 import { useIdle } from './plan/idle'
 import { updated, useReloadOnUpdate } from './plan/update'
@@ -59,6 +61,7 @@ export default function DashboardScreen() {
   const [pulses, setPulses] = useState(0)
   const pulsing = useCallback((on: boolean) => setPulses((n) => Math.max(0, n + (on ? 1 : -1))), [])
   const problemKey = unhandled.map((p) => p.id).join(',')
+  const sound = useProblemSound(!!q.data?.sound && !anonymous, problems ? unhandled.map((p) => p.id) : undefined)
   // The dashboards looked at for this set of problems, as "a,b" (a string, so the timer below keeps).
   const [looked, setLooked] = useState({ key: '', ids: '' })
   const lookedHere = looked.key === problemKey ? looked.ids : ''
@@ -102,6 +105,10 @@ export default function DashboardScreen() {
     <main className={`fb-board-show${idle ? ' idle' : ''}${q.data && !q.data.fit ? ' scroll' : ''}${frame ? ' framed' : ''}`}>
       {q.data && frame && <ScreenHead name={boardName(t, q.data)} next={next} now={now} account={!anonymous} held={hold} />}
       {q.data && unhandled.length > 0 && <Attention problems={unhandled} now={now} />}
+      {sound.blocked && (
+        <Button className="fb-board-sound" size="xs" variant="default" leftSection={<IconVolume size={14} />}
+          onClick={sound.allow}>{t('dashboards.soundAllow')}</Button>
+      )}
       {(open.isPending || q.isPending) && <LoadingState />}
       {/* A big screen that read the board once keeps showing it while the server is away (a restart,
           the Wi-Fi): a small note instead of a banner that pushed the panes aside. */}
@@ -134,7 +141,7 @@ function SuggestScreen({ board }: { board: Board }) {
   const save = useMutation({
     mutationFn: () => put<Board>(`/api/dashboards/${encodeURIComponent(board.id)}`, {
       name: board.name, sections: board.sections, fit: true, public: board.public,
-      ...(board.cycle ? { cycle: board.cycle } : {}), ...(board.range ? { range: board.range } : {}), ...(board.frame === false ? { frame: false } : {}),
+      ...boardSettings(board),
     }),
     onSuccess: (saved) => { qc.setQueryData(qk.board(board.id), saved); void qc.invalidateQueries({ queryKey: qk.boards }) },
   })
