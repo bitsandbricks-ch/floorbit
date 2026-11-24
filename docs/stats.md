@@ -67,8 +67,8 @@ far" outage count. The same comparison is on the [report](report.md).
 
 ## On a big screen
 
-Small on a dashboard, the widget shows the numbers readable from across the hall and the last hour;
-**Show it big** adds replay, the report and resetting the peak. It refreshes on its own after every read.
+On a dashboard, the stats tiles (seats online, bandwidth, the peak, seats by block) show the numbers
+readable from across the hall. Replay, the report and resetting the peak are on the Stats page.
 
 ## Who sees what
 

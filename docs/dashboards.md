@@ -7,7 +7,6 @@ can be split into panes side by side or stacked. Each pane shows one thing:
 | Pane | What it shows |
 | --- | --- |
 | **Plan** | A hall's floor plan: the whole hall, one seat block, one row, a zone you drew on the plan, or a view you zoomed to. With a layer preset (Overview, Network, Electrical, Ops), a seat filter, how seats are numbered and which plan marks it draws. |
-| **Widget** | A rich widget from the [widget gallery](#the-widget-gallery): service health, stats, traffic, DNS, games, Wi-Fi, speed tests, power load, network status, endpoints, the LAN cache and the event in numbers. Small by default; **Show it big** draws it with everything its page used to show. |
 | **Saved widget** | A widget saved on the Widgets page, see [Saved widgets](#saved-widgets). The pane follows it: change the widget and every dashboard that shows it changes too. **Clone into this dashboard** in the pane's settings turns it into a tile of its own with the same settings, for this dashboard only. |
 | **Tile** | One data widget that fits its box: Floorbit's own (problems, incidents, open incidents, switches, switch states, seats, seats by block, switches down, traffic, bandwidth, peak, ports, uplinks, busiest seats, internet uplinks, LAN cache, agents, and with their feature on: service health, power load, DNS lookups, top and blocked sites, game launchers, Wi-Fi clients and access points, and traffic by kind, top services, traffic by area, and what looks odd) or a plugin's. See [Tiles that fit their box](#tiles-that-fit-their-box). |
 | **Text** | Your own words: a welcome, the schedule, the Wi-Fi name. A small Markdown (`# heading`, `- list`, `**bold**`, `[link](https://example.com)`); every line stays its own line. Four sizes (S to XL) that grow with the pane, aligned left or centred. |
@@ -172,15 +171,16 @@ gets the widget's tile itself, under the same rules as a tile pane. API: `GET/PO
 ## The widget gallery
 
 The **Types** tab shows every widget there is, live, with your data: Floorbit's own and the tiles of the plugins that are on. Filter them by area (Network,
-Services, Traffic, Power, Plugins) or search by name. **Open** shows one big in a window; **Add to**
-puts it at the end of a dashboard you pick. A widget whose feature is off says so instead of its
-content.
+Services, Traffic, Power, Plugins) or search by name. **Add to** puts it at the end of a dashboard
+you pick. A widget whose feature is off says so instead of its content.
 
-A rich widget and its Monitoring page are one component: service health, Wi-Fi, DNS, the LAN cache,
-traffic, games, stats and speed tests are widgets here and pages under Monitoring in the sidebar
-(Health; Network > Wi-Fi; Services > DNS, LAN cache; Traffic > Games, Stats, Speed tests), the page
-showing the widget at its big size. Pages where you change something (Services, Power, Network
-status, Endpoints) keep their page and add a widget for their read-only part.
+Every widget is a tile that fits its box. What needs more room than a box, like the health checks'
+numbers and mutes, IP and MAC search, forecasts and comparisons, resetting the peak or posting a
+network status update, is on its page (Health, IP and MAC, Stats, Network status, ...). The rich
+widgets that drew a whole page inside a pane are gone: a dashboard saved with one shows the tile
+that matches it (service health, the LAN cache, seats by block, Wi-Fi clients, agents, traffic, DNS
+lookups, game launchers, downloaded, power circuits), or an empty pane where there is none
+(endpoints, network status, speed tests).
 
 ## Ready-made dashboards
 
@@ -283,11 +283,10 @@ A dashboard is `sections` (each with an optional `title`, `folded` and its `pane
 `x`, `y`, `w`, `h` on the 24-column grid plus a `node` (a pane or a split of panes). Layouts saved
 as one split tree (`root`) are read as one panel filling the screen. How panels make room is in
 `frontend/src/pages/dashboards/grid.ts`.
-A rich widget is a React component registered with one line in `frontend/src/widgets/views.ts`; it
-gets `expanded`; a Monitoring page shows it big through `pages/monitoring/ViewPage.tsx` (one route in
-`App.tsx`, one entry in `floorbit/page_index.py`, a tab in `nav/sections.ts`). Its `area` groups it in the gallery, `feature`
-names the feature that turns it off, and `permission` who sees it. A view pane's `expanded: true`
-draws it big on the dashboard too. `GET /api/dashboard` lists the tiles this account may see. Floorbit's own tiles are one line in
+A Monitoring page (Health, Wi-Fi, DNS, ...) is one line in `frontend/src/pages/monitoring/pages.ts`
+and is drawn by `pages/monitoring/ViewPage.tsx` (one route in `App.tsx`, one entry in
+`floorbit/page_index.py`, a tab in `nav/sections.ts`). `RETIRED_VIEWS` in `floorbit/dashboards.py`
+says which tile a saved `view` pane is read as. `GET /api/dashboard` lists the tiles this account may see. Floorbit's own tiles are one line in
 `TILES` (`floorbit/dashboard_core.py`) plus their builder in `CORE_TILES`
-(`floorbit/blueprints/plugins.py`). What a public dashboard may show is `PUBLIC_TILES`, `PUBLIC_VIEWS` and
+(`floorbit/blueprints/plugins.py`). What a public dashboard may show is `PUBLIC_TILES` and
 `public_board()` in `floorbit/dashboards.py`.

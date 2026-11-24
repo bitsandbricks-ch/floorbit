@@ -7,7 +7,6 @@ import { qk } from '@/api/keys'
 import { useDashboard, useWidgets } from '@/api/queries'
 import type { SeatViewData, WidgetTile } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
-import { VIEWS } from '@/widgets/views'
 import { KIND_PICKS, LEVEL_PINS, type KindPick, type LevelPin } from '@/widgets/level'
 import type { PaneFit } from '@/widgets/levelReport'
 import { LINE_STYLES, STACKS, TRENDS, kindsFor, looksFor, resolveKind } from '@/widgets/kinds/shape'
@@ -30,7 +29,6 @@ function blank(kind: PaneKind, title?: string, hide?: boolean): Pane {
     case 'plan': return planPane(base)
     case 'tile': return { kind, tile: '', ...base }
     case 'widget': return { kind, widget: '', ...base }
-    case 'view': return { kind, view: VIEWS[0]?.id ?? '', ...base }
     case 'text': return { kind, text: '', size: 'l', align: 'start', ...base }
     default: return { kind: 'empty', ...base }
   }
@@ -64,16 +62,6 @@ export function PaneForm({ pane, onChange, drawn }: { pane: Pane; onChange: (p: 
       {drawn && <Drawn fit={drawn} />}
       {pane.kind === 'text' && <TextFields pane={pane} onChange={onChange} />}
       {pane.kind === 'plan' && <PlanFields pane={pane} onChange={onChange} />}
-      {pane.kind === 'view' && (
-        <Select label={t('dashboards.form.view')} allowDeselect={false} searchable value={pane.view || null}
-          nothingFoundMessage={t('dashboards.form.noViews')}
-          data={VIEWS.map((v) => ({ value: v.id, label: t(v.label), group: t(`dashboards.widgetArea.${v.area}`) }))}
-          onChange={(v) => v && onChange({ ...pane, view: v })} />
-      )}
-      {pane.kind === 'view' && (
-        <Switch label={t('dashboards.form.expanded')} description={t('dashboards.form.expandedHint')} checked={!!pane.expanded}
-          onChange={(e) => onChange({ ...pane, expanded: e.currentTarget.checked || undefined })} />
-      )}
       {pane.kind === 'tile' && <TileField pane={pane} onChange={onChange} />}
       {pane.kind === 'widget' && <WidgetField pane={pane} onChange={onChange} />}
     </Stack>

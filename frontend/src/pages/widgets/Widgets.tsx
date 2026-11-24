@@ -1,19 +1,18 @@
 import { Alert, Badge, Button, Chip, Group, Loader, Menu, Modal, Paper, SimpleGrid, Stack, Tabs, Text, TextInput, Title } from '@mantine/core'
-import { IconArrowsMaximize, IconCopy, IconDeviceFloppy, IconPencil, IconPlus, IconSearch } from '@tabler/icons-react'
+import { IconCopy, IconDeviceFloppy, IconPencil, IconPlus, IconSearch } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Suspense, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useCan, useDashboard, useFeaturesOff, useMe } from '@/api/queries'
+import { useCan, useDashboard } from '@/api/queries'
 import type { WidgetTile } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner } from '@/components/ui'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { pluginName } from '@/lib/pluginName'
 import { WidgetCard } from '@/widgets/TileCard'
-import { VIEWS, VIEW_COMPONENTS, type ViewDef } from '@/widgets/views'
 import { add } from '../dashboards/grid'
 import { type Board, type Pane, boardName } from '../dashboards/model'
 import { TileField } from '../dashboards/PaneForm'
@@ -25,33 +24,33 @@ import './widgets.css'
 const AREAS = ['network', 'services', 'traffic', 'power', 'plugins'] as const
 type AreaFilter = (typeof AREAS)[number] | 'all'
 
-/** One entry in the gallery: a rich widget or a plugin's data tile, with what a pane needs to hold it. */
-interface Entry { key: string; area: string; name: string; from?: string; pane: Pane; view?: ViewDef; tile?: WidgetTile }
+/** Where Floorbit's own tiles sit in the gallery; the rest are network. */
+const CORE_AREAS: Record<string, AreaFilter> = Object.fromEntries([
+  ...['service_health', 'lancache', 'agents', 'incidents', 'open_incidents', 'problems'].map((id) => [id, 'services']),
+  ...['bandwidth', 'peak', 'traffic', 'traffic_areas', 'traffic_mix', 'flow_services', 'top_ports', 'anomalies',
+    'dns_lookups', 'dns_sites', 'dns_blocked', 'launchers'].map((id) => [id, 'traffic']),
+  ['power_circuits', 'power'],
+])
+
+/** One entry in the gallery: a data tile, with what a pane needs to hold it. */
+interface Entry { key: string; area: string; name: string; from?: string; pane: Pane; tile: WidgetTile }
 
 /** The widgets this account may see, with the features that are on. */
 function useEntries(): Entry[] {
   const { t } = useTranslation()
-  const off = useFeaturesOff()
-  const me = useMe().data
   const tiles = useDashboard().data?.tiles ?? []
-  const allowed = (p?: string) => !p || !me?.enabled || !!me.user?.permissions?.includes(p as never)
-  const views: Entry[] = VIEWS.filter((v) => (!v.feature || !off.includes(v.feature)) && allowed(v.permission))
-    .map((v) => ({ key: `view:${v.id}`, area: v.area, name: t(v.label), pane: { kind: 'view', view: v.id }, view: v }))
-  const plugin: Entry[] = tiles.filter((x): x is WidgetTile => x.kind !== 'action').map((x) => ({
-    key: `tile:${x.plugin}/${x.id}`, area: x.plugin === 'floorbit' ? 'network' : 'plugins', name: x.label,
+  return tiles.filter((x): x is WidgetTile => x.kind !== 'action').map((x) => ({
+    key: `tile:${x.plugin}/${x.id}`, area: x.plugin === 'floorbit' ? CORE_AREAS[x.id] ?? 'network' : 'plugins', name: x.label,
     from: x.plugin === 'floorbit' ? undefined : pluginName(t, x.plugin, x.plugin_name),
     pane: { kind: 'tile', tile: `${x.plugin}/w/${x.id}` }, tile: x,
   }))
-  return [...views, ...plugin]
 }
 
 /** A widget drawn small and live, as it shows on a dashboard. ``inert``: a preview, not a control. */
 function Preview({ entry }: { entry: Entry }) {
-  const View = entry.view ? VIEW_COMPONENTS[entry.view.id] : null
   return (
     <div className="fb-widget-preview" inert>
-      {View ? <Suspense fallback={<LoadingState lines />}><View expanded={false} /></Suspense>
-        : entry.tile ? <WidgetCard tile={entry.tile} /> : null}
+      <WidgetCard tile={entry.tile} />
     </div>
   )
 }
@@ -223,17 +222,15 @@ function Editor({ draft, onClose, onSaved }: { draft: Draft; onClose: () => void
   )
 }
 
-/** Every widget type Floorbit can show, live and small, by area: open one big, add it to a
+/** Every widget type Floorbit can show, live and small, by area: add it to a
  *  dashboard, or save it as a widget of your own. */
 function Types({ search, canEdit, boards, onSave }: { search: string; canEdit: boolean; boards: Board[]; onSave: (d: Draft) => void }) {
   const { t } = useTranslation()
   const entries = useEntries()
   const [area, setArea] = useState<AreaFilter>('all')
-  const [big, setBig] = useState<Entry | null>(null)
   const needle = search.trim().toLowerCase()
   const shown = entries.filter((e) => (area === 'all' || e.area === area) && (!needle || e.name.toLowerCase().includes(needle)))
   const count = (a: AreaFilter) => entries.filter((e) => a === 'all' || e.area === a).length
-  const BigView = big?.view ? VIEW_COMPONENTS[big.view.id] : null
   return (
     <>
       <Stack gap="lg">
@@ -255,10 +252,6 @@ function Types({ search, canEdit, boards, onSave }: { search: string; canEdit: b
                   <Text size="xs" c="dimmed">{e.from ?? t(`dashboards.widgetArea.${e.area}`)}</Text>
                 </div>
                 <Group gap="xs" wrap="nowrap">
-                  {e.view && (
-                    <Button size="xs" variant="subtle" leftSection={<IconArrowsMaximize size={14} />} onClick={() => setBig(e)}
-                      aria-label={t('dashboards.pane.openBigNamed', { name: e.name })}>{t('widgets.open')}</Button>
-                  )}
                   {canEdit && e.pane.kind === 'tile' && (
                     <Button size="xs" variant="subtle" leftSection={<IconDeviceFloppy size={14} />} aria-label={t('widgets.saveAsNamed', { name: e.name })}
                       onClick={() => onSave({ name: e.name, pane: e.pane as TilePane })}>{t('widgets.saveAs')}</Button>
@@ -270,17 +263,6 @@ function Types({ search, canEdit, boards, onSave }: { search: string; canEdit: b
           ))}
         </SimpleGrid>
       </Stack>
-      {big && BigView && (
-        <BigModal title={big.name} onClose={() => setBig(null)}>
-          <Suspense fallback={<LoadingState />}><BigView expanded /></Suspense>
-        </BigModal>
-      )}
     </>
-  )
-}
-
-function BigModal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <Modal opened onClose={onClose} title={title} size="90%" centered classNames={{ body: 'fb-view-big' }}>{children}</Modal>
   )
 }

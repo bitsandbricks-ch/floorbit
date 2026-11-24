@@ -11,7 +11,7 @@ import { DataTable } from '@/components/DataTable'
 import { StatTile } from '@/components/StatTile'
 import { ErrorBanner } from '@/components/ui'
 import { ago, dayClock } from '@/lib/time'
-import type { ViewProps } from '@/widgets/views'
+import type { ViewProps } from '@/pages/monitoring/pages'
 import { bytes } from '../traffic/format'
 
 const W = 1000

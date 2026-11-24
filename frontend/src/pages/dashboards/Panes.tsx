@@ -1,14 +1,13 @@
 import { ActionIcon, Loader, Stack, Text, Tooltip } from '@mantine/core'
 import { IconArrowsMaximize, IconExternalLink } from '@tabler/icons-react'
-import { Suspense, useContext, useEffect } from 'react'
+import { useContext, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDashboard, useFeaturesOff, useWidgets } from '@/api/queries'
+import { useDashboard, useWidgets } from '@/api/queries'
 import type { Tile, Widget, WidgetTile } from '@/api/types'
 import { FitWidget } from '@/widgets/FitWidget'
 import { usePaneData } from '@/widgets/usePaneData'
 import { type Pane, displayOf, paneRange, rangedUrl } from './model'
 import { PlanPane } from './PlanPane'
-import { VIEWS, VIEW_COMPONENTS } from '@/widgets/views'
 import { Markdown } from '@/components/Markdown'
 import { publicUrl, useScreen } from './screen'
 import { followed } from '../widgets/saved'
@@ -121,32 +120,6 @@ function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>
   )
 }
 
-/** A rich widget. Small on the grid unless the pane is set to show it big; the button opens it large
- *  in the dashboard's area, with its filters and actions, without leaving the screen. */
-function ViewPane({ pane }: { pane: Extract<Pane, { kind: 'view' }> }) {
-  const { t } = useTranslation()
-  const makeLarge = useMakeLarge()
-  const large = useContext(LargeContext)
-  const off = useFeaturesOff()
-  const def = VIEWS.find((v) => v.id === pane.view)
-  // A feature switched off (Settings > Features) has no data to show: say so instead of an error.
-  const View = def && !(def.feature && off.includes(def.feature)) ? VIEW_COMPONENTS[def.id] : null
-  const title = pane.title ?? (def ? t(def.label) : undefined)
-  const big = !!pane.expanded || large
-  const loading = <Loader size="sm" aria-label={t('common.loading')} />
-  return (
-    <Framed title={title} hide={pane.hide_title} actions={View && !big && makeLarge && (
-      <Tooltip label={t('dashboards.pane.openBig')}>
-        <ActionIcon variant="subtle" color="gray" aria-label={t('dashboards.pane.openBigNamed', { name: title ?? '' })}
-          onClick={makeLarge}><IconArrowsMaximize size={16} /></ActionIcon>
-      </Tooltip>
-    )}>
-      {View ? <Suspense fallback={loading}><View expanded={big} /></Suspense>
-        : <Note>{def ? t('dashboards.pane.viewOff') : t('dashboards.pane.viewGone')}</Note>}
-    </Framed>
-  )
-}
-
 /** A saved widget: drawn as its tile pane, so a change on the Widgets page shows here too. */
 function WidgetPane({ pane }: { pane: Extract<Pane, { kind: 'widget' }> }) {
   const { t } = useTranslation()
@@ -171,7 +144,6 @@ export function PaneView({ pane, cycle }: { pane: Pane; cycle?: number }) {
     case 'plan': return <PlanPane pane={pane} cycle={cycle} />
     case 'tile': return <TilePane pane={pane} />
     case 'widget': return <WidgetPane pane={pane} />
-    case 'view': return <ViewPane pane={pane} />
     case 'text': return <TextPane pane={pane} />
     case 'private': return <Framed title={pane.title} hide={pane.hide_title}><Stack h="100%" justify="center" align="center"><Note>{t('dashboards.pane.private')}</Note></Stack></Framed>
     default: return <Framed title={pane.title} hide={pane.hide_title}><Stack h="100%" justify="center" align="center"><Note>{t('dashboards.pane.empty')}</Note></Stack></Framed>

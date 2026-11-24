@@ -21,8 +21,6 @@ A node is a tree: a node is either a split (``split`` "row" puts its children si
   and the plugins'), drawn as a widget ``type`` (:data:`WIDGET_TYPES`; ``auto`` picks one from the
   data's shape) at a ``level`` (``auto`` picks small, medium or large from the box it gets, or one of
   ``s``, ``m``, ``l`` pinned). See frontend/src/widgets/kinds/.
-- ``view``: a widget by id (frontend/src/widgets/views.ts), small unless ``expanded`` (its big size
-  right on the grid, for a pane that fills a screen); unknown ids show a note;
 - ``text``: your own words (``text``, the Markdown subset of frontend/src/components/Markdown.tsx),
   in a ``size`` that reads from across the hall and ``align``-ed left or centred;
 - ``empty``: nothing yet.
@@ -31,7 +29,7 @@ Every pane may have a ``title``; ``hide_title`` leaves its head off for a cleane
 
 A ``public`` dashboard opens without signing in, for a screen in the hall or the event website. It
 then shows only what is safe for anyone (:func:`public_board`): plan panes with the public marks,
-Floorbit's switch, seat and down-switch tiles, the "Event in numbers" widget, and texts. Other panes
+Floorbit's switch, seat and down-switch tiles, the "Event in numbers" tiles, and texts. Other panes
 say they need an account.
 
 Kept in data.json under ``dashboards``. Panes that name something gone (a hall, a tile, a widget)
@@ -56,7 +54,7 @@ MAX_DEPTH = 4
 ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,31}\Z')
 TILE_RE = re.compile(r'^[\w.-]{1,64}/w/[\w.-]{1,64}\Z')
 REF_RE = re.compile(r'^[\w .:-]{1,120}\Z')
-KINDS = ('plan', 'tile', 'widget', 'view', 'text', 'empty')
+KINDS = ('plan', 'tile', 'widget', 'text', 'empty')
 # What a tile pane may calculate (issue #959); the browser does the maths on the widgets' data.
 CALCS = ('count', 'sum', 'avg', 'min', 'max', 'first', 'last')
 MAX_ALSO = 3
@@ -90,8 +88,12 @@ PUBLIC_TILES = ('floorbit/w/switches', 'floorbit/w/seats', 'floorbit/w/down',
                 *(f'floorbit/w/{t}' for t in ('event_downloaded', 'event_peak', 'event_online_max',
                                              'event_busiest_hour', 'event_loyal_block', 'event_cache_saved',
                                              'event_games')))
-# The widgets a public dashboard may show: they read only public feeds (/wall.json).
-PUBLIC_VIEWS = ('event-numbers',)
+# The rich widgets ("views") are gone (#1045). A dashboard saved with one gets the tile that
+# shows the same thing, or an empty pane where the view's job moved to a page.
+RETIRED_VIEWS = {'health': 'service_health', 'services': 'service_health', 'lancache': 'lancache',
+                 'stats': 'seats_by_block', 'wifi': 'wifi_clients', 'agents': 'agents', 'traffic': 'traffic',
+                 'dns': 'dns_lookups', 'games': 'launchers', 'event-numbers': 'event_downloaded',
+                 'power-load': 'power_circuits'}
 _lock = threading.Lock()
 
 
@@ -104,10 +106,6 @@ class LayoutError(ValueError):
 def _plan(**over):
     return {'pane': {'kind': 'plan', 'hall': '', 'area': {'kind': 'hall'}, 'preset': 'overview', 'show': 'all',
                      'labels': 'auto', 'marks': 'all', **over}}
-
-
-def _view(view, expanded=False):
-    return {'pane': {'kind': 'view', 'view': view, **({'expanded': True} if expanded else {})}}
 
 
 def _tile(tile, **look):
@@ -256,6 +254,10 @@ def _with_widgets(layout, widgets):
         if 'pane' not in n:
             return {**n, 'children': [node(c) for c in n['children']]}
         pane = n['pane']
+        if pane.get('kind') == 'view':
+            head = {k: pane[k] for k in ('title', 'hide_title') if k in pane}
+            tile = RETIRED_VIEWS.get(pane.get('view'))
+            return {'pane': {**(_tile(tile)['pane'] if tile else {'kind': 'empty'}), **head}}
         if pane.get('kind') != 'widget':
             return n
         found = widgets.get(pane['widget'])
@@ -392,13 +394,6 @@ def _pane(raw):
         if not ID_RE.match(widget):
             raise LayoutError('Pick a saved widget.')
         pane['widget'] = widget
-    elif kind == 'view':
-        view = str(raw.get('view') or '')
-        if not ID_RE.match(view):
-            raise LayoutError('Pick a widget.')
-        pane['view'] = view
-        if raw.get('expanded'):
-            pane['expanded'] = True
     elif kind == 'text':
         # Keep line breaks (they are the Markdown), drop other control characters.
         text = ''.join(c for c in str(raw.get('text') or '').replace('\r\n', '\n') if c == '\n' or c >= ' ').strip()
@@ -736,8 +731,7 @@ def _public_node(node):
             return {'pane': {**saved['pane'], 'title': pane.get('title') or saved['name'],
                              **{k: pane[k] for k in ('hide_title',) if k in pane}}}
         return {'pane': {'kind': 'private', **head}}
-    if kind in ('text', 'empty') or (kind == 'tile' and all(t in PUBLIC_TILES for t in pane_tiles(pane))) or (
-            kind == 'view' and pane['view'] in PUBLIC_VIEWS):
+    if kind in ('text', 'empty') or (kind == 'tile' and all(t in PUBLIC_TILES for t in pane_tiles(pane))):
         return {'pane': pane}
     return {'pane': {'kind': 'private', **head}}
 
