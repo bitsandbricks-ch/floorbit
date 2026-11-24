@@ -16,7 +16,8 @@ export function MuteDialog({ target, busy, error, onClose, onSave }: {
   const { t } = useTranslation()
   return (
     <Modal opened={!!target} onClose={onClose} title={t('problems.muteTitle', { name: target?.name })} closeButtonProps={{ 'aria-label': t('problems.cancel') }}>
-      <MuteForm text={t(target?.kind === 'health' ? 'problems.muteTextService' : target?.kind === 'wifi' ? 'problems.muteTextAp' : 'problems.muteText')}
+      <MuteForm text={t(target?.kind === 'health' ? 'problems.muteTextService' : target?.kind === 'wifi' ? 'problems.muteTextAp'
+        : target?.kind === 'problem' ? 'problems.muteTextProblem' : 'problems.muteText')}
         busy={busy} error={error} onClose={onClose} onSave={onSave} />
     </Modal>
   )

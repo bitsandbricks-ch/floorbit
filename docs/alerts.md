@@ -9,7 +9,7 @@ and [`floorbit/blueprints/problems.py`](../floorbit/blueprints/problems.py).
 
 **Problems** in the sidebar (`/problems`, with the number of switches down next to it) lists everything wrong right now, worst and oldest first,
 with a count of what is down next to the link. Its browser tab starts with the number of problems
-that are down or need a look, muted ones (switches and services) left out, e.g. "(2) Problems · Floorbit":
+that are down or need a look, muted ones left out, e.g. "(2) Problems · Floorbit":
 
 - the monitoring source (LibreNMS) not answering;
 - placed switches that are offline;
@@ -127,6 +127,12 @@ floor plan (crew with `incidents.work`).
 
 A Wi-Fi access point that is down or busy has a **Mute** too: muted, it stays on the list and in the
 Wi-Fi view but out of the counts. Its mute key is `wifi:<name>`.
+
+Every other problem on the list (a link, a power circuit, port trouble, a log alert, a plugin, …) has
+**Mute** too, with the same time limit (issue #887): muted, it stays on the list, marked, and leaves
+the counts (sidebar, tab title, bell, handover) until the mute ends; under **Muted alerts** its name
+opens its page. Its mute key is `problem:<problem id>`, and the API takes `{"problem_id", "minutes",
+"reason"}`. These problems send no Discord messages of their own, so a mute only quiets the counts.
 
 A service on the [health wall](health.md) that is red or amber has the same **Mute**: while muted, Discord
 gets no "is down" or "is back" message for it, and it stays out of the counts in the browser tab.

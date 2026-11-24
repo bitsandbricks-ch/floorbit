@@ -293,7 +293,22 @@ def _plugins():
 
 
 def _mute_kind(key):
+    if key.startswith(PROBLEM_MUTE):
+        return 'problem'
     return 'health' if key.startswith(alerting.service_key('')) else 'wifi' if key.startswith('wifi:') else 'switch'
+
+
+# Every other problem is muted by its own id (issue #887): it stays on the list, marked, and leaves
+# the counts until the mute ends. Switches, services and access points keep their own keys, which
+# also quiet their Discord messages.
+PROBLEM_MUTE = 'problem:'
+
+
+def _mute_rest(items, muted):
+    for p in items:
+        if not p.get('mute_id') and p['kind'] != 'switch':
+            p['mute_id'] = PROBLEM_MUTE + p['id']
+            p['muted'] = _muted(muted.get(p['mute_id']))
 
 
 def _wifi(muted, data):
@@ -314,6 +329,7 @@ def current(may_see_people):
     items = (_monitoring() + _switches(muted) + _health(muted) + _security(may_see_people) + _power() + _forecast()
              + links.problems(data) + _wifi(muted, data) + _plugins() + librenms_alerts.problems(data))
     _reach(items, data)
+    _mute_rest(items, muted)
     now = time.time()
     items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),
@@ -324,7 +340,10 @@ def current(may_see_people):
     attention = sorted(_attention() + _logs(may_see_people, data) + _ranges(data) + _port_check(data)
                        + _shared_ports() + _seat_incidents() + _security(may_see_people, low=True),
                        key=lambda p: -(p['since'] or 0))
-    counts['attention'] = len(attention)
+    _mute_rest(attention, muted)
+    attention.sort(key=lambda p: bool(p.get('muted')))
+    counts['attention'] = sum(not p.get('muted') for p in attention)
+    counts['muted'] += len(attention) - counts['attention']
     # The switch each one is on, so the page can group by it (issue #883).
     from . import inventory
     names = {d['id']: d['name'] for d in inventory.devices(data, include_hidden=True)}
@@ -332,9 +351,10 @@ def current(may_see_people):
         p.setdefault('device', p.get('name') if p['kind'] == 'switch' else names.get(p.get('switch_id')))
     # One count for every place that shows one (#884): the sidebar shows `down`, the footer `down`
     # and `look`, the bell, tab titles and the handover `total`; seat and port trouble is a look too.
-    counts['look'] = counts['warn'] + len(attention)
+    counts['look'] = counts['warn'] + counts['attention']
     counts['total'] = counts['down'] + counts['look']
-    counts['seats'] = len({p['seat'] for p in items + attention if p.get('seat') and p['kind'] != 'checkin'})
+    counts['seats'] = len({p['seat'] for p in items + attention
+                           if p.get('seat') and p['kind'] != 'checkin' and not p.get('muted')})
     mutes = [{'switch_id': k, 'kind': _mute_kind(k), **v}
              for k, v in sorted(muted.items(), key=lambda kv: kv[1]['until'])]
     return {'problems': items, 'attention': attention, 'counts': counts, 'mutes': mutes,

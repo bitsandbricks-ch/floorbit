@@ -17,7 +17,7 @@ import { ProblemFacts } from './problems/facts'
 import { problemPlaces } from './problems/places'
 import { FindingPanel } from './problems/FindingPanel'
 import { MuteDialog } from './problems/MuteDialog'
-import { muteBody, muteKind, type MuteTarget } from './problems/mute'
+import { muteBody, muteTarget, type MuteTarget } from './problems/mute'
 
 /** One problem (issue #882): what and where, since when, its incident, and where to look next. A
  *  problem is what Floorbit sees; an incident is the work someone does about it, made from here. */
@@ -72,7 +72,7 @@ export default function ProblemPage() {
           )}
           {muteable && (
             <Button variant="default" leftSection={<IconBellOff size={16} />}
-              onClick={() => { setMuteError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: muteKind(p.kind) }) }}>
+              onClick={() => { setMuteError(null); setTarget(muteTarget(p)) }}>
               {t('problems.mute')}
             </Button>
           )}
