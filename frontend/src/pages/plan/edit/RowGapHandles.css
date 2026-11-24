@@ -1,0 +1,5 @@
+.fb-row-gap-bar { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; cursor: ns-resize; }
+.fb-row-gap-bar:hover, .fb-row-gap-bar.moving { fill: color-mix(in srgb, var(--color-bit) 28%, transparent); stroke-dasharray: none; }
+.fb-row-gap-grip { stroke: var(--color-bit); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+.fb-row-gap-label { fill: var(--color-bit); font-weight: 600; pointer-events: none; paint-order: stroke; stroke: var(--mantine-color-body); stroke-width: 3px; }
+.fb-row-picked { fill: none; stroke: var(--color-trace); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
