@@ -73,7 +73,7 @@ export default function ProblemPage() {
         desc={p.where}
         actions={<>
           {p.incident && (
-            <Button variant="default" component="a" href={`/incidents?q=${encodeURIComponent(`id:${p.incident}`)}`}>{t('problems.incidentOpen')}</Button>
+            <Button variant="default" component="a" href={`/incidents/${encodeURIComponent(p.incident)}`}>{t('problems.incidentOpen')}</Button>
           )}
           {q.data.can_report && canReport(p) && !p.incident && (
             <Button onClick={() => report.mutate()} loading={report.isPending}>{t('problems.report')}</Button>

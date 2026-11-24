@@ -67,7 +67,7 @@ function RowActions({ p, a }: { p: Problem; a: Actions }) {
       {p.link && <Button size="compact-sm" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
       {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
       {p.incident && (
-        <Button size="compact-sm" variant="subtle" component="a" href={`/incidents?q=${encodeURIComponent(`id:${p.incident}`)}`}>
+        <Button size="compact-sm" variant="subtle" component="a" href={`/incidents/${encodeURIComponent(p.incident)}`}>
           {t('problems.incidentOpen')}
         </Button>
       )}

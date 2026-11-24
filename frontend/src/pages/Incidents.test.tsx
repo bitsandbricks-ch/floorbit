@@ -37,25 +37,6 @@ const routes = {
 }
 
 describe('Incident board', () => {
-  it('bounces the seat\'s port from its incident and notes what it did', async () => {
-    const tech = { enabled: true, user: { username: 'sam', display_name: 'Sam', role: 'tech', permissions: ['incidents.work', 'ports.act'] } }
-    const api = fakeFetch({
-      ...routes, 'GET /api/auth/me': tech,
-      'GET /api/ports': { available: true, needs_login: false, plugin: 'SSH' },
-      'POST /api/ports/bounce': { ok: true, message: 'Gi1/0/3 on sw-a-01 bounced.' },
-      'PATCH /api/incidents/i1': { ...board.incidents[0] },
-    })
-    vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Incidents />)
-    const card = (await screen.findByText('No internet at the seat')).closest('[data-incident]') as HTMLElement
-    fireEvent.click(await within(card).findByRole('button', { name: 'Bounce port' }))
-    const fixed = screen.getByText('Cable swapped').closest('[data-incident]') as HTMLElement
-    expect(within(fixed).queryByRole('button', { name: 'Bounce port' })).toBeNull()
-    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Bounce port' }))
-    await waitFor(() => expect(api.calls).toContainEqual({ method: 'POST', path: '/api/ports/bounce', body: { seat: 'A-1' } }))
-    await waitFor(() => expect(api.calls).toContainEqual({ method: 'PATCH', path: '/api/incidents/i1', body: { note: 'Gi1/0/3 on sw-a-01 bounced.' } }))
-  })
-
   it('offers "Send to nearest tech" only while someone is on duty', async () => {
     const lead: IncidentBoard = { ...board, can_assign_any: true,
       incidents: [{ ...base, id: 'd1', title: 'Needs a tech', status: 'open', can_assign: true }] }
@@ -115,13 +96,14 @@ describe('Incident board', () => {
     const open = await screen.findByRole('region', { name: 'Open' })
     expect(within(open).getByText('No internet at the seat')).toBeInTheDocument()
     expect(document.title).toBe('(1) Incidents · Floorbit')
-    expect(within(open).getByText('From the seat')).toBeInTheDocument()
     expect(within(open).getByText('2 reports')).toBeInTheDocument()
-    expect(within(open).getByText('sw-a-01 Gi1/0/3: link down, no device seen')).toBeInTheDocument()
-    expect(within(open).getByText('Speed test at the seat, 2 minutes ago: 12.5 down, 9.1 up Mbit/s, 3.2 ms')).toBeInTheDocument()
     expect(within(open).getAllByRole('link', { name: 'Seat A-1' })[0]).toHaveAttribute('href', '/plan?seat=A-1')
-    expect(open.querySelector('[data-seat-note]')).toHaveTextContent('Crew note: Cable swapped, watch it ana · 10 minutes ago')
-    expect(screen.getByRole('region', { name: 'Being worked' }).querySelector('[data-seat-note]')).toBeNull()
+    // Issue #887: a card is title, where, age, owner and one action; the details are on its page.
+    const card = within(open).getByText('No internet at the seat').closest('[data-incident]') as HTMLElement
+    expect(within(card).getByRole('link', { name: 'No internet at the seat' })).toHaveAttribute('href', '/incidents/i1')
+    expect(within(card).getAllByRole('button').map((b) => b.textContent)).toEqual(['Take it'])
+    expect(within(card).queryByText('sw-a-01 Gi1/0/3: link down, no device seen')).toBeNull()
+    expect(within(card).queryByRole('textbox')).toBeNull()
     const worked = screen.getByRole('region', { name: 'Being worked' })
     expect(within(worked).getByText('With kim')).toBeInTheDocument()
     // Another team's incident: visible, but no buttons.
@@ -226,25 +208,6 @@ describe('Incident board', () => {
     const take = await screen.findByRole('button', { name: 'Take the next one' })
     expect(take).toBeDisabled()
     expect(take).toHaveAttribute('title', 'Nothing open that you can work')
-  })
-  it('says when a seat has had incidents before', async () => {
-    const now = Date.now() / 1000
-    const repeats: IncidentBoard = { ...board, incidents: [
-      { ...base, id: 'r1', title: 'Third time', seat: 'B-7', status: 'open', created_at: now - 60 },
-      { ...base, id: 'r2', title: 'Second time', seat: 'B-7', status: 'fixed', created_at: now - 3600 },
-      { ...base, id: 'r3', title: 'First time', seat: 'B-7', status: 'fixed', created_at: now - 7200 },
-      { ...base, id: 'r4', title: 'Elsewhere', seat: 'C-1', status: 'open', created_at: now - 120 },
-    ] }
-    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': repeats }).fn)
-    renderWithApp(<Incidents />)
-    const third = (await screen.findByText('Third time')).closest('[data-incident]') as HTMLElement
-    expect(within(third).getByRole('link', { name: 'Incident no. 3 at this seat' })).toHaveAttribute('href', '/incidents?q=seat%3AB-7')
-    const second = screen.getByText('Second time').closest('[data-incident]') as HTMLElement
-    expect(within(second).getByText('Incident no. 2 at this seat')).toBeInTheDocument()
-    for (const title of ['First time', 'Elsewhere']) {
-      const card = screen.getByText(title).closest('[data-incident]') as HTMLElement
-      expect(within(card).queryByText(/at this seat/)).toBeNull()
-    }
   })
   it('says what is already open at a seat before filing another (issue #328)', async () => {
     vi.stubGlobal('fetch', fakeFetch(routes).fn)

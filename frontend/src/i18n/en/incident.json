@@ -1,0 +1,16 @@
+{
+  "title": "Incident",
+  "back": "All incidents",
+  "gone": "This incident is gone",
+  "goneDesc": "It is no longer on the board: fixed long ago, or removed.",
+  "filed": "filed {{ago}} ({{at}})",
+  "what": "What and where",
+  "who": "Who has it",
+  "sent": "Sent to the tech",
+  "takenAt": "on the way since {{at}}",
+  "fixedAt": "Fixed",
+  "notes_one": "{{count}} note",
+  "notes_other": "{{count}} notes",
+  "noNotes": "No notes yet.",
+  "addNote": "Add note"
+}

@@ -145,7 +145,7 @@ describe('Problems', () => {
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Problems />)
     const open = await screen.findByRole('row', { name: 'sw-d-01 is offline' })
-    expect(within(open).getByRole('link', { name: 'Incident open' })).toHaveAttribute('href', '/incidents?q=id%3Aabc123')
+    expect(within(open).getByRole('link', { name: 'Incident open' })).toHaveAttribute('href', '/incidents/abc123')
     const down = screen.getByRole('row', { name: 'sw-c-02 is offline' })
     fireEvent.click(within(down).getByRole('button', { name: 'Make an incident' }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'POST' && c.path === '/api/incidents')?.body)

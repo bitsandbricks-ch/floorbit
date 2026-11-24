@@ -1,0 +1,16 @@
+{
+  "title": "Störung",
+  "back": "Alle Störungen",
+  "gone": "Diese Störung gibt es nicht mehr",
+  "goneDesc": "Sie ist nicht mehr auf dem Board: längst behoben oder entfernt.",
+  "filed": "gemeldet {{ago}} ({{at}})",
+  "what": "Was und wo",
+  "who": "Wer sie hat",
+  "sent": "An den Techniker geschickt",
+  "takenAt": "unterwegs seit {{at}}",
+  "fixedAt": "Behoben",
+  "notes_one": "{{count}} Notiz",
+  "notes_other": "{{count}} Notizen",
+  "noNotes": "Noch keine Notizen.",
+  "addNote": "Notiz hinzufügen"
+}
