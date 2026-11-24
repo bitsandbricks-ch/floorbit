@@ -9,7 +9,7 @@ import { qk } from '@/api/keys'
 import type { EndpointAnswer, EndpointRow } from '@/api/types'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { ago, dateTime } from '@/lib/time'
 

@@ -125,20 +125,6 @@ a.fb-status-item:hover { color: var(--color-fg); }
 .fb-notify-when { flex: none; font-family: var(--font-mono); font-size: 11.5px; color: var(--color-faint); margin-top: 2px; }
 .fb-notify-empty { padding: 8px 0; }
 
-/* A page's tabs (components/PageTabs.tsx): one row under the header, scrolling sideways when full. */
-.fb-ptabs {
-  display: flex; gap: 2px; margin: 0 0 18px; border-bottom: 1px solid var(--color-line);
-  overflow-x: auto; scrollbar-width: none;
-}
-.fb-ptabs::-webkit-scrollbar { display: none; }
-.fb-ptab {
-  flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 9px 12px; margin-bottom: -1px;
-  border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--color-muted);
-  font: inherit; font-size: var(--ui-font); font-weight: 500; cursor: pointer; white-space: nowrap;
-}
-.fb-ptab:hover { color: var(--color-fg); }
-.fb-ptab[aria-selected="true"] { color: var(--color-fg); font-weight: 600; border-bottom-color: var(--color-bit); }
-.fb-ptab-count { font-size: 11px; color: var(--color-faint); font-family: var(--font-mono); }
 /* A sidebar row's pages as tabs under the top bar (components/HubTabs.tsx): links, one row that
    wraps on phones instead of scrolling sideways. */
 .fb-hubtabs { display: flex; flex-wrap: wrap; gap: 4px 20px; padding: 0 28px; border-bottom: 1px solid var(--color-line); background: var(--color-ink); }
@@ -149,13 +135,6 @@ a.fb-status-item:hover { color: var(--color-fg); }
 .fb-hubtab:hover { color: var(--color-fg); }
 .fb-hubtab[aria-current="page"] { color: var(--color-fg); font-weight: 600; border-bottom-color: var(--color-bit); }
 @media (max-width: 767.98px) { .fb-hubtabs { padding: 0 16px; gap: 2px 16px; } }
-
-/* The page header (components/PageHead.tsx). */
-.fb-pagehead-kicker { font-size: 12.5px; }
-.fb-pagehead-icon {
-  flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
-  border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-muted);
-}
 
 /* The page title as a bar of its own on phones; desktops show the page's PageHead, so the
    heading stays for screen readers only. */
@@ -205,15 +184,6 @@ a.fb-status-item:hover { color: var(--color-fg); }
 .fb-reveal { scroll-margin-top: 64px; scroll-margin-bottom: calc(var(--fb-tabbar-h, 0px) + 12px); }
 @media (max-width: 767.98px) {
   .fb-main { padding: 16px 16px 32px; }
-}
-
-@media (max-width: 767.98px) {
-  .fb-pagehead-actions {
-    flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
-    width: calc(100% + 32px); margin: 0 -16px; padding: 2px 16px;
-  }
-  .fb-pagehead-actions::-webkit-scrollbar { display: none; }
-  .fb-pagehead-actions > * { flex: none; }
 }
 
 /* A row of filters wider than the screen (German labels on a phone) wraps onto a second line

@@ -11,7 +11,7 @@ import { useInventoryGroups } from '@/pages/inventory/scope'
 import type { FirewallCard, FirewallList, FirewallRange } from '@/api/types'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 import { FirewallLookup } from './firewalls/Lookup'
 

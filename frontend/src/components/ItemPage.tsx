@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Layout } from './Layout'
-import { PageHead } from './PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { EmptyState, LoadingState, Panel } from './ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
@@ -33,7 +33,7 @@ export function ItemPage({ title, fallbackTitle, back, loading, missing, icon, k
           action={<Button component={Link} to={back.href} variant="default" leftSection={<IconArrowLeft size={16} />}>{back.label}</Button>} />
       ) : loading || !title ? <LoadingState rows={6} /> : (
         <>
-          <PageHead icon={icon} kicker={kicker} title={title} actions={actions} />
+          <PageHead icon={icon} eyebrow={kicker} title={title} actions={actions} />
           {children}
         </>
       )}

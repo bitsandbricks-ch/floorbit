@@ -1,7 +1,7 @@
 import { Anchor } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 
 export default function NotFound() {
   const { t } = useTranslation()

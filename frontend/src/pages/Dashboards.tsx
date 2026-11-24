@@ -9,7 +9,7 @@ import { del, get, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 import {

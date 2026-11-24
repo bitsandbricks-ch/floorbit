@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { crumbsFor } from '@/nav/crumbs'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import { Layout } from './Layout'
-import { PageTabs } from './PageTabs'
+import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from './pageTab'
 import { SidePanel } from './SidePanel'
 import { TopBar } from './TopBar'
@@ -71,7 +71,7 @@ function Tabs() {
   const [tab, setTab] = usePageTab(['agents', 'failover'])
   return (
     <>
-      <PageTabs label="Agents" value={tab} onChange={setTab}
+      <PageTabs label="Agents" active={tab} onChange={setTab}
         tabs={[{ id: 'agents', label: 'Agents', count: 3 }, { id: 'failover', label: 'Failover', alert: 'warn' }]} />
       <p>on {tab}</p>
     </>
