@@ -15,10 +15,28 @@
 
 /* Stat */
 .fb-w-stat { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-height: 0; }
+/* A figure inside list and graph widgets. */
 .fb-w-stat-main { display: flex; align-items: baseline; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; }
 .fb-w-stat-value { font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
   font-size: calc(clamp(22px, min(26cqh, 18cqw), 120px) * var(--fb-w-text, 1)); }
 .fb-w-stat-unit { color: var(--color-muted); font-weight: 500; font-size: calc(clamp(12px, min(9cqh, 6cqw), 32px) * var(--fb-w-text, 1)); }
+/* The stat widget is the shared StatTile (#1154) at size fit: the pane is the card, so no box of its
+   own, and the figure grows with the pane. The tone colours the figure instead of an edge. */
+.fb-stat-fit { background: none; border: 0; border-radius: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.fb-stat-fit dd:not(.fb-stat-more) { margin: 0; line-height: 1; white-space: nowrap; overflow: hidden; display: flex; align-items: baseline; gap: 6px;
+  font-size: calc(clamp(22px, min(26cqh, 18cqw), 120px) * var(--fb-w-text, 1)); }
+.fb-stat-fit .fb-stat-unit { font-size: calc(clamp(12px, min(9cqh, 6cqw), 32px) * var(--fb-w-text, 1)); }
+.fb-stat-fit.fb-stat-up dd:not(.fb-stat-more) { color: var(--color-up); }
+.fb-stat-fit.fb-stat-warn dd:not(.fb-stat-more) { color: var(--color-warn); }
+.fb-stat-fit.fb-stat-down dd:not(.fb-stat-more) { color: var(--color-down); }
+.fb-stat-fit dd.fb-stat-more { display: flex; flex-direction: column; gap: 6px; color: var(--color-muted);
+  font-size: clamp(12px, min(7cqh, 5cqw), 22px); }
+.fb-stat-fit dd.fb-stat-more span:not(.fb-w-counts):not(.fb-stat-spark) { display: inline; font-size: inherit; }
+.fb-stat-fit .fb-w-counts { font-size: inherit; }
+.fb-stat-fit .fb-stat-change { white-space: nowrap; overflow: hidden; }
+.fb-stat-fit .fb-stat-change b { font-weight: 600; color: var(--color-fg); }
+.fb-stat-fit .fb-stat-change.fb-tone-up b, .fb-stat-fit .fb-stat-change.fb-tone-down b { color: inherit; }
+.fb-stat-fit .fb-stat-spark { display: block; height: clamp(16px, 25cqh, 60px); margin-top: 0; }
 .fb-w-counts { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--color-muted); font-size: clamp(12px, 6cqh, 18px);
   font-variant-numeric: tabular-nums; }
 .fb-w-counts .fb-dot { vertical-align: 0; }
@@ -127,9 +145,6 @@ button.fb-w-more:hover { text-decoration: underline; }
 /* What happened when: a thin line across the graph in its tone, named in the hover card. */
 .fb-w-tip-mark { font-size: 12px; }
 /* Under a stat: its history as a sparkline, and how it moved (issue #960). */
-.fb-w-change { color: var(--color-muted); font-size: clamp(12px, min(7cqh, 5cqw), 22px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
-.fb-w-change b { font-weight: 600; color: var(--color-fg); }
-.fb-w-spark { flex: none; color: var(--color-bit); }
 .fb-w-tip-trend { color: var(--color-muted); }
 .fb-w-hist { gap: 2px; }
 .fb-w-hist .fb-w-col { max-width: none; }
