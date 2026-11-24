@@ -37,9 +37,9 @@ def test_a_plugin_whose_calls_keep_failing(client, registry, monkeypatch):
 
     def broken(self):
         raise PluginError('the controller refused the login')
-    # Every call fails, the seat mapping too (Problems reads the seat sources, which ask the plugin).
-    for method in ('wifi_aps', 'seat_mapping'):
-        monkeypatch.setattr(spec.plugin_class(), method, broken)
+    # Failures are kept per method (#1225): only the Wi-Fi APs fail, and only they are called again.
+    monkeypatch.setattr(spec.plugin_class(), 'wifi_aps', broken)
+    registry._failing.clear()     # the app's registry: other tests' failures stay in it
     with pytest.raises(PluginError):
         registry.call(spec, 'wifi_aps')
     assert plugin_problems(client) == {}      # one failure isn't a problem yet
