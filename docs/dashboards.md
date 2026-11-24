@@ -250,7 +250,16 @@ While something is down and nobody has taken it (no incident open for it, not mu
 under the header names it and how long it has been down. A rotating screen goes to the dashboard
 whose pane shows it and waits there ([Rotating dashboards](#rotating-dashboards)).
 A list pane that shows it as down pulses red with the bar, so the eye finds it. Open an incident or mute it, and the bar goes away. A public screen nobody signed in to shows no
-bar: it can't read the problem list. The pointer hides
+bar: it can't read the problem list.
+
+For the NOC screen, switch on **Sound for new problems** in the dashboard's settings (off by
+default). Its full screen then plays a short tone once for each new problem the bar shows. What is
+already down when the screen opens stays quiet, so a reload doesn't ring again. Browsers play sound
+only after a click on the page: the screen shows **Turn on sound** until someone clicks it. On a
+kiosk PC nobody clicks, so start Chromium with `--autoplay-policy=no-user-gesture-required`. A
+public screen nobody signed in to plays nothing.
+
+The pointer hides
 after three seconds, and the page reloads itself after a Floorbit update. Saved changes reach the
 screen within a minute. Someone at the screen can drag and zoom a plan pane; it goes back to its
 area after a minute. On a phone the panes are stacked.

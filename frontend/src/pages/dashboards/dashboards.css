@@ -116,6 +116,8 @@
 .fb-screen-name { color: var(--color-fg); font-size: 1.25em; overflow: hidden; text-overflow: ellipsis; }
 .fb-screen-grow { flex: 1; }
 .fb-board-show.framed .fb-board-stale { bottom: 5vh; }
+/* The browser wants one click before a wall may play its tone (#1137): bottom left, small. */
+.fb-board-sound { position: fixed; left: 16px; bottom: 6vh; z-index: 6; }
 /* The offer to make a scrolling dashboard fit (#923): bottom right, out of the panes' way. */
 .fb-board-suggest { position: fixed; right: 16px; bottom: 6vh; z-index: 6; max-width: 380px; display: flex; flex-direction: column;
   gap: 8px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--color-line);

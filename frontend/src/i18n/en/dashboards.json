@@ -342,5 +342,8 @@
     "circuits_other": "{{count}} circuits",
     "uplinks_one": "{{count}} internet line",
     "uplinks_other": "{{count}} internet lines"
-  }
+  },
+  "sound": "Sound for new problems",
+  "soundHint": "A short tone on full screen when something goes down and nobody has taken it. For the NOC screen.",
+  "soundAllow": "Turn on sound"
 }

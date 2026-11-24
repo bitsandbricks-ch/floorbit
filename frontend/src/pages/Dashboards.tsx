@@ -16,7 +16,7 @@ import {
   COLS, MAX_PANELS, MAX_SECTIONS, type Panel, type Section, type Spot, add, paneCount, place, rows, starterSections, total,
 } from './dashboards/grid'
 import { GridView } from './dashboards/GridView'
-import { type Board, type Node, MAX_PANES, TIME_RANGES, type TimeRange, boardName, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
+import { type Board, type Node, MAX_PANES, TIME_RANGES, type TimeRange, boardName, boardSettings, at, isPane, remove, resize, setPane, slug, split } from './dashboards/model'
 import { PaneForm } from './dashboards/PaneForm'
 import type { PaneFit } from '@/widgets/levelReport'
 import './dashboards/dashboards.css'
@@ -121,6 +121,7 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
   const [range, setRange] = useState<TimeRange | undefined>(board?.range)
   const [open, setOpen] = useState(board?.public ?? false)
   const [frame, setFrame] = useState(board?.frame !== false)
+  const [sound, setSound] = useState(!!board?.sound)
   const [selected, setSelected] = useState<Spot | null>({ section: 0, panel: 0, path: [] })
   // How the picked pane draws now, from the pane itself (#928).
   const [drawn, setDrawn] = useState<PaneFit | null>(null)
@@ -129,7 +130,8 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
   const done = () => { void qc.invalidateQueries({ queryKey: qk.boards }); onDone() }
   const id = board?.id ?? slug(name)
   const save = useMutation({
-    mutationFn: () => put<Board>(`/api/dashboards/${id}`, { name, sections, fit, public: open, ...(cycle ? { cycle } : {}), ...(range ? { range } : {}), ...(frame ? {} : { frame: false }) }),
+    mutationFn: () => put<Board>(`/api/dashboards/${id}`, { name, sections, fit, public: open,
+      ...boardSettings({ cycle: cycle || undefined, range, frame: frame ? undefined : false, sound: sound || undefined }) }),
     onSuccess: done,
   })
   const drop = useMutation({ mutationFn: () => del(`/api/dashboards/${board!.id}`), onSuccess: done })
@@ -143,7 +145,7 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
       const free = [base, ...Array.from({ length: 98 }, (_, i) => `${base}-${i + 2}`)].find((x) => !taken.includes(x)) ?? `${base}-${Date.now() % 1000}`
       return put<Board>(`/api/dashboards/${free}`, {
         name: copyName, sections: board!.sections, fit: !!board!.fit, public: false,
-        ...(board!.cycle ? { cycle: board!.cycle } : {}), ...(board!.range ? { range: board!.range } : {}), ...(board!.frame === false ? { frame: false } : {}),
+        ...boardSettings(board!),
       })
     },
     onSuccess: (made) => { void qc.invalidateQueries({ queryKey: qk.boards }); onOpen(made.id) },
@@ -199,6 +201,8 @@ function Editor({ board, onDone, onOpen, taken }: { board: Board | null; onDone:
         <SegmentedControl size="xs" aria-label={t('dashboards.layout')} value={fit ? 'screen' : 'page'} onChange={(v) => setFit(v === 'screen')}
           data={[{ value: 'page', label: t('dashboards.layoutPage') }, { value: 'screen', label: t('dashboards.layoutScreen') }]} />
         <Switch size="sm" label={t('dashboards.frame')} checked={frame} onChange={(e) => setFrame(e.currentTarget.checked)} />
+        <Switch size="sm" label={t('dashboards.sound')} description={t('dashboards.soundHint')} checked={sound}
+          onChange={(e) => setSound(e.currentTarget.checked)} style={{ maxWidth: 300 }} />
         <Switch size="sm" label={t('dashboards.public')} description={t('dashboards.publicHint')} checked={open}
           onChange={(e) => setOpen(e.currentTarget.checked)} style={{ maxWidth: 360 }} />
         <Text size="xs" c="dimmed" style={{ flex: 1, minWidth: 200 }}>{t('dashboards.canvasHint', { max: MAX_PANELS, cols: COLS })}</Text>
