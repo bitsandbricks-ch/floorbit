@@ -68,9 +68,9 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # services' DNS and TCP probes (floorbit/probes.py), and switch SSH: port actions, commands and the
 # terminal (floorbit/switch_link.py).
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
-           'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
+           'port_clients', 'inventory_feeds', 'cable_feeds', 'firewall_feeds', 'health_feeds', 'dns_feeds',
            'wifi_feeds', 'game_query', 'game_rcon', 'neighbours', 'device_facts', 'active_alerts',
-           'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload',
+           'dns_probe', 'tcp_probe', 'check_probe', 'plugin', 'plugins_reload',
            'switch_call', 'shell_open', 'shell_io', 'shell_close', 'plugin_test')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}\Z')
 
@@ -338,7 +338,10 @@ def agent_for(hostname):
             connected = {a for a in connected if _serves(scoped, a, tags)}
     if not connected:
         raise AgentUnavailable(f'No local agent that reaches {hostname} is connected.')
-    return sorted(connected)[0]
+    # Two agents sharing VIPs: only the primary logs in to switches (the agent's docs/vrrp.md), so
+    # an SSH shell or port action from the standby would be the second login the primary avoids.
+    from . import agent_ha
+    return sorted(agent_ha.action_targets(connected) or connected)[0]
 
 
 HEDGE_AFTER = 3.0      # seconds: a lookup burst answers in under 2; longer means that agent hangs
