@@ -336,11 +336,16 @@ describe('Inventory page', () => {
     expect(screen.getByLabelText('MDT node name')).toHaveAttribute('placeholder', 'Stage switch')
     fireEvent.change(screen.getByLabelText('API port (NX-API, RESTCONF, OPNsense)'), { target: { value: '84x43' } })
     fireEvent.change(screen.getByLabelText('gNMI port'), { target: { value: '' } })
-    fireEvent.click(screen.getByRole('combobox', { name: 'Agent' }))
-    fireEvent.click(await screen.findByRole('option', { name: /Rack A/, hidden: true }))
+    // Collected by (issue #869): one agent, or the agents with a tag, with or without failover.
+    fireEvent.click(screen.getByRole('combobox', { name: 'Collected by' }))
+    expect(await screen.findByRole('option', { name: /Rack A/, hidden: true })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('option', { name: 'Agents tagged core', hidden: true }))
+    fireEvent.click(screen.getByRole('combobox', { name: 'While it is away' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Nobody collects (no failover)', hidden: true }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({
-      properties: { 'telemetry.agent': 'a1', 'telemetry.api.port': '8443', 'telemetry.drivers': 'snmp traps mdt' },
+      properties: { 'telemetry.agent': 'tag:t1', 'telemetry.failover': 'false', 'telemetry.api.port': '8443',
+        'telemetry.drivers': 'snmp traps mdt' },
       features: { ...detail.features, telemetry: null },
     }))
   })

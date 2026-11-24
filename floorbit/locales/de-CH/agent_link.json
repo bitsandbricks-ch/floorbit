@@ -4,6 +4,7 @@
  "Give the agent a name of up to 60 characters, such as the event or the site.": "Gib dem Agent einen Namen mit bis zu 60 Zeichen, etwa das Event oder den Ort.",
  "No local agent for this device is connected.": "Für dieses Gerät ist kein lokaler Agent verbunden.",
  "No local agent is connected.": "Kein lokaler Agent ist verbunden.",
+ "The local agent that collects {} is not connected.": "Der lokale Agent, der {} sammelt, ist nicht verbunden.",
  "No local agent that reaches {} is connected.": "Kein lokaler Agent, der {} erreicht, ist verbunden.",
  "No such agent.": "Diesen Agent gibt es nicht.",
  "The local agent did not answer {} within {} s.": "Der lokale Agent hat {} nicht innert {} s beantwortet.",

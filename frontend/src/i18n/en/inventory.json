@@ -392,8 +392,8 @@
   "telemetry": {
     "now": "Now",
     "off": "The Telemetry feature is off for this device. Turn it on under Settings (here, or on its group or a tag) to collect from it.",
-    "agent": "Agent",
-    "agentHint": "The local agent that collects from it. While that agent is away, the others take over.",
+    "agent": "Collected by",
+    "agentHint": "An agent, or the agents with a tag (one at a time, the next takes over when it goes).",
     "anyAgent": "Any agent (the primary one)",
     "port_snmp": "SNMP port",
     "port_gnmi": "gNMI port",
@@ -441,7 +441,14 @@
     "verifyDefault": "Yes (usual)",
     "verifyYes": "Yes",
     "verifyNo": "No, it has its own certificate",
-    "setup": "Setup"
+    "setup": "Setup",
+    "byTag": "Agents tagged {{tag}}",
+    "tagsGroup": "Agents with a tag",
+    "agentsGroup": "One agent",
+    "failover": "While it is away",
+    "failoverOn": "Another agent takes over",
+    "failoverOff": "Nobody collects (no failover)",
+    "failoverOffAbove": "As above: nobody collects"
   },
   "page": {
     "onPlan": "On the plan",
@@ -508,8 +515,8 @@
       "hint": "What the agent collects with; empty: what fits the platform."
     },
     "telemetry_agent": {
-      "label": "Collected by agent",
-      "hint": "The local agent that collects; empty: any."
+      "label": "Collected by",
+      "hint": "An agent id, or tag:<tag id> for the agents with that tag; empty: any."
     },
     "telemetry_address": {
       "label": "Telemetry address",
@@ -540,6 +547,10 @@
     "telemetry_mdt_node": {
       "label": "MDT node name",
       "hint": "Cisco's model-driven telemetry; empty: the device name."
+    },
+    "telemetry_failover": {
+      "label": "Other agents take over",
+      "hint": "Off: while the agent (or every agent with the tag) is away, nobody collects."
     }
   }
 }
