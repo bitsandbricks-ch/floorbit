@@ -474,6 +474,16 @@ Source: [`floorbit/blueprints/inventory_agent.py`](https://github.com/bitsandbri
 | GET | `/api/agent/v1/inventory/<plugin_id>` | anyone |  |
 | POST | `/api/agent/v1/inventory/auth-failed` | anyone |  |
 
+## floorbit.blueprints.inventory_drift
+
+Fix drift from the device page (issue #918): take what the device reports into the inventory.
+
+Source: [`floorbit/blueprints/inventory_drift.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_drift.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/inventory/<device_id>/drift/take` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.inventory_groups
 
 Inventory groups, tags, defaults, credentials and login blocks (floorbit/inventory_scope.py).

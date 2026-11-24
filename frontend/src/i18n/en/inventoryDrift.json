@@ -1,0 +1,24 @@
+{
+  "title": "Differs from the device",
+  "intro": "What discovery read from the device doesn't match the inventory. Take the device's value, or fix the device.",
+  "col": {
+    "what": "What",
+    "inventory": "Inventory",
+    "device": "Device says",
+    "since": "Since"
+  },
+  "kind": {
+    "hostname": "Hostname",
+    "address": "Management address",
+    "interface": "Interface {{name}}"
+  },
+  "value": {
+    "present": "there",
+    "missing": "not there",
+    "hidden": "hidden"
+  },
+  "take": "Take",
+  "takeLabel": "Take the device's {{what}}",
+  "taken": "Taken from the device.",
+  "hostnameHint": "Rename it in the inventory or on the device: a new name moves its seats and links too."
+}

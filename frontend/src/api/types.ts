@@ -317,7 +317,9 @@ export interface LoginBlock {
   device: string
 }
 
-export interface DeviceDetail extends Device {
+export interface DeviceDetail extends Omit<Device, 'drift'> {
+  /** The list here; the inventory list has only the count. */
+  drift?: import('./inventoryDrift').DriftRow[]
   interfaces: DeviceInterface[]
   own_credentials: CredentialInfo[]
   blocks: LoginBlock[]

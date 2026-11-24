@@ -259,9 +259,16 @@ where the inventory and the device disagree (the serial typed by hand against th
 memory and disk only when more than 10% apart), a different hostname (sysName), a different
 management address (not when the device has a `telemetry.address`), and interfaces: in the
 inventory but not on the device, on the device but hidden here, or with a locked value the device
-reports differently. Each row says what is configured, what is actual and since when.
+reports differently. A platform written with or without its vendor ("NX-OS", "Cisco NX-OS") is the
+same. Each row says what is configured, what is actual and since when.
 `GET /api/inventory/<id>` has the device's `drift`, `GET /api/inventory` a count per device, and
 `GET /api/inventory/drift` all of it.
+
+The device page lists it under **Differs from the device**. For a field or the management address,
+**Take** puts the device's value into the inventory like a hand edit (so a value NetBox feeds is then
+locked against it), and the row goes at once (`POST /api/inventory/<id>/drift/take` with `{field}`,
+`floorplan.edit`, in the audit log). A different hostname is shown but never taken in one click: a
+new name moves the device's seats, links and history too.
 
 ### What NetBox sends besides devices
 
