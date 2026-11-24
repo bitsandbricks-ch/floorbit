@@ -5,7 +5,7 @@ import { patch } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { InventoryEntry, InventoryType } from '@/api/types'
 
-/** A yes/no field in an entry list: a switch for who may edit (the check-in lookups of a VLAN or IP
+/** A yes/no field in an entry list: a switch for who may edit (the check-in lookups of a prefix or
  *  range, docs/segments.md), else Yes or No. */
 export function BoolCell({ type, entry, field, canEdit }: {
   type: InventoryType; entry: InventoryEntry; field: { key: string; label: string; default: string }; canEdit: boolean

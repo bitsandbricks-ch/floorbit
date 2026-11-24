@@ -38,7 +38,7 @@ describe('Firewalls', () => {
     expect(screen.queryByRole('button', { name: 'Add range' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Change' })).not.toBeInTheDocument()
     // A range is an inventory item: its groups and tags live in the inventory's tab for ranges.
-    expect(screen.getByRole('link', { name: 'Groups, tags and notes in the inventory' })).toHaveAttribute('href', '/inventory?type=firewall-range')
+    expect(screen.getByRole('link', { name: 'The prefixes in the inventory' })).toHaveAttribute('href', '/inventory?type=prefix')
   })
 
   it('lets the crew add a range over several firewalls, in order, with a fallback', async () => {

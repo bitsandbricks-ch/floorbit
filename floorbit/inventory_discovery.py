@@ -520,10 +520,10 @@ def _entries(data, found, report):
     if not vlans and not networks and not optics:
         return
     feed = {'vlan': [{'ref': f'vlan-{vid}', 'name': name or f'VLAN {vid}', 'fields': {'vlan_id': vid}}
-                     for vid, name in sorted(vlans.items())]
-            + [{'ref': f'prefix-{net}', 'name': net,
-                'fields': {'prefix': net, **({'vlan_id': vlan_of[net]} if net in vlan_of else {})}}
-               for net in sorted(networks)]}
+                     for vid, name in sorted(vlans.items())],
+            'prefix': [{'ref': f'prefix-{net}', 'name': net,
+                        'fields': {'prefix': net, **({'vlan_id': vlan_of[net]} if net in vlan_of else {})}}
+                       for net in sorted(networks)]}
     if optics:
         feed['transceiver'] = [
             {'ref': f'optic-{key}', 'name': f'{o["model"] or "Transceiver"} {o["serial"]}',

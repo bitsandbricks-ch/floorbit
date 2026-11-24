@@ -146,9 +146,9 @@
       "patch-panel": "Patchpanel",
       "rack": "Rack oder Standort",
       "transceiver": "Transceiver",
-      "vlan": "VLAN oder IP-Bereich",
-      "item": "Gegenstand",
-      "firewall-range": "Firewall-Bereich"
+      "vlan": "VLAN",
+      "prefix": "Präfix oder Bereich",
+      "item": "Gegenstand"
     },
     "fieldLabel": {
       "height_u": "Höhe (HE)",
@@ -196,8 +196,7 @@
       "cable": "In Kabel öffnen",
       "circuit": "In Strom öffnen",
       "power-board": "In Strom öffnen",
-      "patch-panel": "In Kabel öffnen",
-      "firewall-range": "In Firewalls öffnen"
+      "patch-panel": "In Kabel öffnen"
     },
     "details": "Details",
     "add": "{{type}} hinzufügen",
@@ -205,8 +204,7 @@
       "cable": "Kabel werden auf der Seite Kabel erfasst und geändert; hier bekommen sie Gruppen, Tags, Felder und Notizen.",
       "circuit": "Stromkreise werden auf der Seite Strom erfasst und geändert; hier bekommen sie Gruppen, Tags, Felder und Notizen.",
       "power-board": "Verteiler werden auf der Seite Strom erfasst und geändert; hier bekommen sie Gruppen, Tags, Felder und Notizen.",
-      "patch-panel": "Patchpanels werden im Hallenplan platziert; hier bekommen sie Gruppen, Tags, Felder und Notizen.",
-      "firewall-range": "Firewall-Bereiche werden auf der Seite Firewalls geplant oder dort aus NetBox importiert; hier bekommen sie Gruppen, Tags, Felder und Notizen."
+      "patch-panel": "Patchpanels werden im Hallenplan platziert; hier bekommen sie Gruppen, Tags, Felder und Notizen."
     },
     "count_one": "{{count}} Eintrag",
     "count_other": "{{count}} Einträge",
