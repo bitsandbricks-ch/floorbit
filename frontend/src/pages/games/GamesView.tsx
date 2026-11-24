@@ -6,10 +6,8 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { CacheRow, GamesData, LancacheData } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
-import { DataTable } from '@/components/DataTable'
+import { DataTable, ErrorBanner, StatTile } from '@bitsandbricks/ui'
 import { bytes } from '../traffic/format'
-import { ErrorBanner } from '@bitsandbricks/ui'
-import { StatTile } from '@bitsandbricks/ui'
 import { dayClock } from '@/lib/time'
 
 const W = 1000

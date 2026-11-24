@@ -78,7 +78,7 @@ describe('Logs', () => {
     await screen.findByText('line 400')
     // Only on the last page, where the lines run out.
     expect(screen.queryByRole('button', { name: 'Older lines' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '4' }))
+    fireEvent.click(screen.getAllByRole('button', { name: '4' }).at(-1)!)
     fireEvent.click(await screen.findByRole('button', { name: 'Older lines' }))
     expect(await screen.findByText('an older one')).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Older lines' })).not.toBeInTheDocument())

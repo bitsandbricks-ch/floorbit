@@ -25,7 +25,7 @@ describe('DNS page (#1343)', () => {
     expect(within(top).getAllByRole('row')).toHaveLength(51)
     expect(within(top).getAllByRole('row')[1]).toHaveTextContent('site1.example.com')
     const region = screen.getByRole('region', { name: 'Top sites' })
-    fireEvent.click(within(region).getByRole('button', { name: '2' }))
+    fireEvent.click(within(region).getAllByRole('button', { name: '2' }).at(-1)!)
     expect(await within(top).findByText('site60.example.com')).toBeInTheDocument()
     expect(within(screen.getByRole('table', { name: 'Categories' })).getAllByRole('row')).toHaveLength(3)
     expect(screen.getByText('Nothing blocked.')).toBeInTheDocument()

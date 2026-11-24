@@ -98,7 +98,7 @@ describe('Problems', () => {
     await screen.findByRole('row', { name: 'sw-c-02 is offline' })
     expect(bodyRows()).toHaveLength(25)
     expect(screen.getByText('33 problems')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '2' }))
+    fireEvent.click(screen.getAllByRole('button', { name: '2' }).at(-1)!)
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(8))
     expect(screen.getByRole('row', { name: 'Errors rising on Gi1/0/1' })).toBeInTheDocument()
     expect(screen.getByRole('row', { name: 'sw-d-01 is offline' })).toBeInTheDocument()

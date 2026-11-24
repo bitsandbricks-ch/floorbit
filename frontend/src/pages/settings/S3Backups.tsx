@@ -4,7 +4,7 @@ import { IconCloudUpload, IconDownload, IconLock, IconRestore } from '@tabler/ic
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
-import { DataTable } from '@/components/DataTable'
+import { DataTable } from '@bitsandbricks/ui'
 import { Panel } from '@/components/ui'
 import { ago, dateTime } from '@/lib/time'
 import { bytes } from '@/pages/traffic/format'

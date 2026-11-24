@@ -3,7 +3,7 @@ import { IconDownload } from '@tabler/icons-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanSeat, SeatViewData } from '@/api/types'
-import { DataTable, type DataColumn } from '@/components/DataTable'
+import { DataTable, type DataColumn } from '@bitsandbricks/ui'
 import { type Filter, matches, minutesAgo, rate, seatOrder } from './model'
 import { SeatGlyph } from './SeatMap'
 

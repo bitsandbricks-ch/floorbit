@@ -8,14 +8,11 @@ import { del, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan, useSeatMap } from '@/api/queries'
 import type { ResolvePortsResult, SeatRow } from '@/api/types'
-import { DataTable } from '@/components/DataTable'
+import { ConfirmButton, DataTable, LoadingState, PageHead } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
 import { ImportDialog } from './seatmap/ImportDialog'
 import { choices, matches } from './seatmap/model'
 import { SeatForm, type SeatDraft } from './seatmap/SeatForm'
-import { LoadingState } from '@bitsandbricks/ui'
-import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** Where a row came from, in one compact cell (issue #872): the first source, "+n" for the rest,
  *  all of them in the tooltip, and the hand entry's note under it. */

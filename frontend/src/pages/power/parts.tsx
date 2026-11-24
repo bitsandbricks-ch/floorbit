@@ -2,7 +2,7 @@ import { Anchor, Badge, Group, Progress, Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { Circuit } from '@/api/types'
-import { DataTable } from '@/components/DataTable'
+import { DataTable } from '@bitsandbricks/ui'
 import { ago } from '@/lib/time'
 import { circuitPath, TONE } from './state'
 

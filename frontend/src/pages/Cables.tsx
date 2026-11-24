@@ -11,15 +11,13 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { BlockPlan, CableImport, CableList } from '@/api/types'
-import { DataTable } from '@/components/DataTable'
+import { DataTable, ErrorBanner, LoadingState, PageHead, PageTabs } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
-import { PageHead, PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { PatchBlockModal } from '@/components/PatchBlockModal'
 import { PatchCheck } from '@/components/PatchCheck'
 import { PortAreas } from '@/components/PortAreas'
 import { PortClients } from '@/components/PortClients'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 /** Which switch port goes to which patch panel port and seat, with labels for both ends (issue #97).
  *  The list is the page; checking the cables against the network and the rough port areas are

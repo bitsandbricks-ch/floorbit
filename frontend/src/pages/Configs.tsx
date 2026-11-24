@@ -12,11 +12,9 @@ import { qk } from '@/api/keys'
 import type {
   ConfigBackupResult, ConfigDiff, ConfigHistory, ConfigNightly, ConfigOverview, ConfigRow,
 } from '@/api/types'
-import { DataTable } from '@/components/DataTable'
+import { DataTable, ErrorBanner, LoadingState, PageHead } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
 import { when } from './handover/format'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { PortCheckPanel } from './configs/PortCheck'
 
 /** Switch config backups and what changed during the event (issue #96). A typed switch login lives

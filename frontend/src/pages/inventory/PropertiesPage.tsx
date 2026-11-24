@@ -6,10 +6,9 @@ import { useTranslation } from 'react-i18next'
 import { del, patch, post } from '@/api/client'
 import { propertiesKey, usePropertyCatalog, type PropertyDef, type PropertyType } from '@/api/properties'
 import { useCan } from '@/api/queries'
-import { DataTable } from '@/components/DataTable'
+import { ConfirmIcon, DataTable } from '@bitsandbricks/ui'
 import { propHint, propLabel } from './propertyText'
 import { ItemPage } from '@/components/ItemPage'
-import { ConfirmIcon } from '@bitsandbricks/ui'
 
 const ROLES = ['switch', 'router', 'firewall', 'access-point', 'server', 'vm', 'pdu', 'other']
 const TYPES: PropertyType[] = ['text', 'number', 'bool', 'ip', 'url', 'choice', 'list']
