@@ -553,11 +553,11 @@ def agents_widget(lang, agents):
     """How many local agents are connected; ``agents`` is agent_link.all_agents() with ``outdated``."""
     text = TEXTS.get(lang, TEXTS['en'])
     if not agents:
-        return {'type': 'stat', 'value': 0, 'unit': '', 'sub': text['no_agents'], 'link': '/agents'}
+        return {'type': 'stat', 'value': 0, 'unit': '', 'sub': text['no_agents'], 'link': '/settings/agents'}
     online = sum(1 for a in agents if a.get('connected'))
     outdated = sum(1 for a in agents if a.get('outdated'))
     return {'type': 'stat', 'value': online, 'unit': text['agents_unit'].format(n=len(agents)),
-            'tone': 'err' if online < len(agents) else 'ok', 'min': 0, 'max': len(agents), 'link': '/agents',
+            'tone': 'err' if online < len(agents) else 'ok', 'min': 0, 'max': len(agents), 'link': '/settings/agents',
             'sub': text['agents_sub'].format(outdated=outdated) if outdated else ''}
 
 
