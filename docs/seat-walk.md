@@ -74,6 +74,11 @@ Nothing has to be set up for it. Floorbit works out how the laptop reaches an ag
 - **No check-in name set:** the address browsers in the hall last reached an agent at. Each agent's
   front door learns it from the requests it answers and reports it.
 
+When the agent's host publishes the front door on another port than 443/80 (`HTTPS_PUBLISH_PORT`,
+`HTTP_PUBLISH_PORT` in the agent's compose), the agent says so and the check-in name gets that
+port. **Reached in the hall at** on an agent's page names the address outright, for a reverse proxy
+or port forwarding; it comes first. The address shows at the top of the walk, with a copy button.
+
 A code is good for ten minutes, is used once, and only a signed-in page with `seats.edit` makes one.
 The agent sends the browser back only to the Floorbit it is enrolled with.
 

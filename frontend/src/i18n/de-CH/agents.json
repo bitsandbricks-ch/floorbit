@@ -294,6 +294,7 @@
     "secretSet": "Gesetzt (zum Ersetzen tippen)",
     "atRestart": "beim nächsten Start",
     "field": {
+      "hall_url": "In der Halle erreichbar unter",
       "metrics": "Metrics-Port",
       "metrics_token": "Metrics-Token",
       "buffer_max_mb": "Puffergrösse (MB)",
@@ -309,6 +310,7 @@
       "log_summary": "Zusammenfassung (Sekunden)"
     },
     "help": {
+      "hall_url": "Wo Laptops in der Halle diesen Agent öffnen, für den Platz-Rundgang. Leer lassen: Der Agent lernt es selbst, mit den Ports, auf denen Compose ihn veröffentlicht. Setzen für einen Reverse Proxy oder eine Portweiterleitung, etwa https://checkin.lan:8443.",
       "metrics": "host:port für /metrics und /healthz, oder off.",
       "metrics_token": "Scraper senden dann \"Authorization: Bearer <token>\". Setzen, wenn der Port aus dem LAN erreichbar ist.",
       "buffer_max_mb": "Wie viel der Agent behält, solange Floorbit nicht erreichbar ist.",

@@ -1022,6 +1022,13 @@ class Tunnel:
         lan_url = raw.get('lan_url')
         if isinstance(lan_url, str) and re.match(r'^https?://[A-Za-z0-9.:\[\]-]{1,120}(/[^\s]{0,60})?$', lan_url):
             clean['lan_url'] = lan_url
+        # The ports the host publishes its front door on, when not 443/80 (compose.yml, issue #1361).
+        ports = raw.get('front_door_ports')
+        if isinstance(ports, dict):
+            ports = {k: ports[k] for k in ('https', 'http')
+                     if isinstance(ports.get(k), int) and not isinstance(ports[k], bool) and 0 < ports[k] < 65536}
+            if ports:
+                clean['front_door_ports'] = ports
         clean['at'] = time.time() if now is None else now
         with self._cond:
             before = self._reports.get(agent)

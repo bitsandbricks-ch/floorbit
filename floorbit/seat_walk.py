@@ -32,6 +32,7 @@ import re
 import secrets
 import threading
 import time
+from urllib.parse import urlsplit, urlunsplit
 
 from integrations import checkin
 
@@ -373,23 +374,49 @@ def private_ip(ip):
     return addr.is_private and not addr.is_loopback
 
 
+def _with_port(url, ports):
+    """``url`` with the port the agent's host publishes its front door on, when the URL names none
+    and it isn't the scheme's own (compose.yml's HTTPS_PUBLISH_PORT, issue #1361)."""
+    parts = urlsplit(url)
+    port = (ports or {}).get(parts.scheme)
+    if not port or parts.port or port == {'https': 443, 'http': 80}.get(parts.scheme) or not parts.hostname:
+        return url
+    return urlunsplit(parts._replace(netloc=f'{parts.netloc}:{port}'))
+
+
 def agent_url():
-    """Where laptops on the event network reach a local agent, worked out, never typed in: the
-    check-in name (CHECKIN_ADDRESS, already on every seat card, and every agent's front door answers
-    it), else where browsers in the hall last reached an agent (each front door learns it from the
-    requests it answers). '' while neither is known."""
+    """Where laptops on the event network reach a local agent, worked out, rarely typed in: a
+    connected agent's "Reached in the hall at" (its page, or FLOORBIT_AGENT_HALL_URL in the hall),
+    else the check-in name (CHECKIN_ADDRESS, already on every seat card, and every agent's front door
+    answers it) on the port the agent is published on, else where browsers in the hall last reached
+    an agent (each front door learns it from the requests it answers). '' while none is known."""
     from integrations import checkin
 
-    from . import agent_link
-    if checkin.hall_url():
-        return checkin.hall_url()
+    from . import agent_link, agent_settings
     try:
-        for a in agent_link.all_agents():
-            url = ((a.get('report') or {}).get('lan_url') or '').rstrip('/')
-            if a.get('connected') and url:
-                return url
+        agents = [a for a in agent_link.all_agents() if a.get('connected')]
     except Exception as exc:  # noqa: BLE001  # no agents: the page says so
         print(f'[seat-walk] could not read the agents: {exc}')
+        agents = []
+    for a in agents:
+        report = a.get('report') or {}
+        said = ((report.get('settings') or {}).get('values') or {}).get('hall_url') or {}
+        # The hall's own setting wins, as on the agent; else Floorbit's, also for an agent too old to know it.
+        try:
+            named = said.get('value') if said.get('source') == 'env' else (
+                agent_settings.values(a['id']).get('hall_url') if a.get('id') else None)
+        except agent_settings.AgentError:
+            named = None
+        if named:
+            return str(named).rstrip('/')
+    if checkin.hall_url():
+        ports = next(((a.get('report') or {}).get('front_door_ports') for a in agents
+                      if (a.get('report') or {}).get('front_door_ports')), None)
+        return _with_port(checkin.hall_url(), ports)
+    for a in agents:
+        url = ((a.get('report') or {}).get('lan_url') or '').rstrip('/')
+        if url:
+            return url
     return ''
 
 
