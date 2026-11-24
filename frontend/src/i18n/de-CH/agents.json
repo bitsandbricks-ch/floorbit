@@ -268,20 +268,24 @@
       "median_ms": "Antwortzeit (Median)"
     },
     "unit": {
-      "points": "{{n}} pro Minute jetzt",
-      "sent": "{{n}} pro Minute jetzt",
-      "series": "{{n}} jetzt",
-      "heard": "{{n}} jetzt",
-      "failing": "{{n}} jetzt",
-      "telegraf_restarts": "{{n}} seit dem Start des Agents",
-      "reconnects": "{{n}} pro Minute jetzt",
-      "syslog": "{{n}} pro Minute jetzt",
-      "median_ms": "{{n}} ms jetzt"
+      "perMinute": "/min",
+      "ms": "ms"
     },
     "noneTitle": "Noch keine Zahlen gespeichert",
     "bigger": "{{name}} gross anzeigen",
     "stats": "min {{min}} · Mittel {{avg}} · max {{max}}",
-    "close": "Schliessen"
+    "close": "Schliessen",
+    "note": {
+      "points": "Pro Minute",
+      "sent": "Pro Minute",
+      "series": "Wie viele es jetzt sind",
+      "heard": "Wie viele es jetzt sind",
+      "failing": "Wie viele es jetzt sind",
+      "telegraf_restarts": "Seit dem Start des Agents",
+      "reconnects": "Pro Minute",
+      "syslog": "Pro Minute",
+      "median_ms": "Wie lange ein Aufruf an Floorbit dauert"
+    }
   },
   "cfg": {
     "title": "Agent-Einstellungen",

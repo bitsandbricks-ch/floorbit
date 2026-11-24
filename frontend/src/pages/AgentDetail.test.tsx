@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { Agent } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import AgentDetail from './AgentDetail'
@@ -96,6 +96,10 @@ describe('AgentDetail', () => {
   })
 
   it('draws its numbers over time and changes the range', async () => {
+    // jsdom lays nothing out: give the stat widgets a box, or they draw nothing.
+    const w = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(320)
+    const h = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(64)
+    onTestFinished(() => { w.mockRestore(); h.mockRestore() })
     const now = Math.floor(Date.now() / 1000)
     const pts = (v: number) => [[now - 180, v], [now - 120, v], [now - 60, v + 2]]
     const api = open(busyAgent(), 'graphs', {
@@ -103,8 +107,10 @@ describe('AgentDetail', () => {
       'GET /api/agents/a1b2c3d4/history?hours=24': { hours: 24, series: {} },
     })
     expect(await screen.findByRole('img', { name: 'Telemetry points' })).toBeInTheDocument()
-    expect(screen.getByText('1,202 per minute now')).toBeInTheDocument()
-    expect(screen.getByText('6 now')).toBeInTheDocument()
+    // The latest value is the shared stat widget, with its unit (#1321).
+    expect(screen.getByText('1,202')).toBeInTheDocument()
+    expect(screen.getAllByText('/min').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Per minute').length).toBeGreaterThan(0)
     expect(screen.queryByText('Sends to Floorbit')).not.toBeInTheDocument()       // never sent: left out
     // Lowest, average and highest under each chart, and the value at a point on hover or arrow key (issue #868).
     expect(screen.getByText('min 1,200 · avg 1,201 · max 1,202')).toBeInTheDocument()
