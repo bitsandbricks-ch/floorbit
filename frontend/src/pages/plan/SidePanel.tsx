@@ -68,7 +68,7 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
             <Stack gap="md">
               <Section title={t('plan.side.blocks', { count: data.blocks.length })}>
                 {data.blocks.map((b) => (
-                  <Row key={b.name} onClick={() => onBlock(b.name)} name={t('plan.side.block', { name: b.name })}
+                  <Row key={b.id ?? b.name} onClick={() => onBlock(b.id ?? b.name)} name={t('plan.side.block', { name: b.label || b.name })}
                     detail={`${b.online}/${b.seats}${b.problems ? ` · ! ${b.problems}` : ''}`} bad={b.problems > 0} />
                 ))}
               </Section>

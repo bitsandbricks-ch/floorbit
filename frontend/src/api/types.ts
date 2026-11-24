@@ -1604,6 +1604,8 @@ export interface PlanBlock {
   /** The seat block's id, the same as its shape's; missing on older answers. */
   id?: string
   name: string
+  /** What people call it: its name, else its row letters ("C–D"); missing on older answers. */
+  label?: string
   seats: number
   online: number
   problems: number
@@ -1767,7 +1769,10 @@ export interface SeatNote { text: string; by: string | null; at: number }
 
 /** One seat block for the Seats view's block panel (issue #174). */
 export interface BlockDetails {
+  id?: string
   name: string
+  /** Its name, else its row letters (issue #1030). */
+  label?: string
   hall: string
   seats: number
   online: number

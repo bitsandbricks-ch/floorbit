@@ -274,7 +274,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
       const shape = drawing.shapes.find((s) => s.cells.some((c) => c.seat === seat))
       if (shape?.name) {
         e.preventDefault()
-        onBlock(shape.name)
+        onBlock(shape.id ?? shape.name)
         return
       }
     }
@@ -397,7 +397,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             {level !== 'far' && blockLabels[bi] && (() => {
               const l = blockLabels[bi]!
               return (
-                <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.name) : undefined} x={l.x} y={l.y + l.size * 0.9} fontSize={l.size}>
+                <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.id ?? b.name) : undefined} x={l.x} y={l.y + l.size * 0.9} fontSize={l.size}>
                   {l.name}
                   {sum?.problems ? <tspan className="name-bad" dx="0.4em">! {sum.problems}</tspan> : null}
                 </text>
@@ -410,7 +410,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
           const l = blockLabels[bi]
           if (!l) return null
           return (
-            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.name) : undefined} transform={`translate(${l.x} ${l.y})`} fontSize={l.size}>
+            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.id ?? b.name) : undefined} transform={`translate(${l.x} ${l.y})`} fontSize={l.size}>
               <text y={l.size * 0.95}>{l.name}</text>
               <text y={l.size * 2.05} className="sub">{l.sub}</text>
             </g>
