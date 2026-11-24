@@ -312,9 +312,15 @@ The agent page shows the pinned key's fingerprint, since when, and until when th
 The front door and the telemetry listener answer HTTPS. Floorbit runs its own certificate authority
 for its agents: each agent makes its own key (it never leaves the agent) and sends a signing request;
 Floorbit signs it for the names listed under **Names on the certificate** on the agent's page, and
-only those, whatever the request asks for. A certificate lasts 397 days, the longest phones and
-browsers accept, and the agent asks for a new one 30 days before the end, when the names change, or
-when someone presses **New certificate**. It keeps it in `tls/` in its state folder.
+only those, whatever the request asks for. A certificate lasts 90 days, and the agent asks for a
+new one 30 days before the end, when the names change, or when someone presses **New certificate**.
+It keeps it in `tls/` in its state folder.
+
+When an agent is revoked, every certificate it still holds goes on the CA's revocation list,
+`GET /api/agents/ca.crl` (DER, open to everyone: it holds only serial numbers and dates, and a
+device's TLS check fetches it without signing in). When Floorbit's **Public URL** is set, each
+certificate names that list as its CRL Distribution Point. Not every device checks it, so the short
+life is what really ends a lost agent's certificate: at most 90 days.
 
 Crew devices install the CA once (**Download CA** on the agent's page, `GET /api/agents/ca.pem`)
 and then trust every agent of this Floorbit. The CA's key is sealed with the vault. A certificate set
@@ -739,6 +745,7 @@ For admins (**Manage settings**):
 | `GET /api/agents` | the enrolled agents (name, when made and by whom, last seen, version, connected, `protocol` (the one it spoke last), `outdated` (that protocol is older than this Floorbit's), and `stats`: the last hour's `calls`, `failed`, `median_ms` and `last_error`, and `relays`: what it sent in the last ten minutes, `syslog` and `flows` with `at` and `count`), `server_version` and `protocol` |
 | `POST /api/agents` | `{"name"}`: enrol one. The answer holds `key`, this once |
 | `PATCH /api/agents/<id>` | `{"halls": [ids]}`: the halls it answers for, empty for every hall |
-| `DELETE /api/agents/<id>` | revoke it |
+| `DELETE /api/agents/<id>` | revoke it, and put its certificates on the revocation list |
+| `GET /api/agents/ca.pem`, `GET /api/agents/ca.crl` | the agents CA (crew), its revocation list (everyone) |
 
 API tokens can't reach `/api/agents`, so a leaked token can't enrol an agent.

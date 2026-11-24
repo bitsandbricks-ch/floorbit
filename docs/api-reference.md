@@ -81,6 +81,7 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | POST | `/api/agents/<agent_id>/rotate` | `settings.manage` |  |
 | GET | `/api/agents/<agent_id>/settings` | `settings.manage` |  |
 | PATCH | `/api/agents/<agent_id>/settings` | `settings.manage` |  |
+| GET | `/api/agents/ca.crl` | anyone |  |
 | GET | `/api/agents/ca.pem` | `settings.manage` |  |
 | POST | `/api/agents/roll` | `settings.manage` |  |
 

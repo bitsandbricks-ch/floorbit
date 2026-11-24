@@ -180,6 +180,23 @@ def ca_certificate():
     return resp
 
 
+@bp.route('/api/agents/ca.crl', methods=['GET'])
+def ca_revocations():
+    """The CA's revocation list (agent_ca.py): open to everyone, since a crew device's TLS stack
+    fetches it without signing in, and it holds only serial numbers."""
+    from .. import agent_ca
+    try:
+        der = agent_ca.crl_der()
+    except agent_ca.CAError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    resp = current_app.response_class(der, mimetype='application/pkix-crl')
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
+ca_revocations._auth_public = True
+
+
 @bp.route('/api/agents/<agent_id>/settings', methods=['GET'])
 def settings_page(agent_id):
     """The agent's Settings tab: its settings, this agent's plugin settings, key and certificate."""
