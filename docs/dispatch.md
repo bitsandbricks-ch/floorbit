@@ -2,23 +2,24 @@
 
 Send an incident to the nearest free tech, and let techs work their jobs from their phone.
 
-## For techs: My jobs
+## For techs: on the incident board
 
-**My jobs** (`/jobs`, linked from the incident board) is made for a phone:
+The tech's side sits at the top of the **Incidents** board (Helpdesk, issue #887), made for a phone
+too; there is no separate My jobs page any more. **Assigned to me** next to the filter narrows the
+board to your incidents (`/incidents?mine=1`, where Discord's `/jobs` links).
 
 - **On duty:** only techs on duty get jobs sent to them. Turn it off for your break.
 - **Where I am:** the seat you're next to. Each job you finish moves you to its seat (or switch), so
   you rarely need to set it by hand.
-- Each job shows the hall plan with the seat marked in red, and a dashed line from where you are.
+- **Sent to you** lists the incidents sent to you, above the board. Each job shows the hall plan with the seat marked in red, and a dashed line from where you are.
   The plan has no walls or aisles, so the line is the straight way, not a walking route.
 - **On my way** tells the board you saw the job. **Done** marks the incident fixed (with an optional
   note). **Give back** puts it back on the board, unassigned, for someone else.
 - When the attendee taps **It works again** on the seat's [help page](incidents.md#the-helpdesk-on-each-seat),
   the job says so ("The seat said at 10:42 that it works again"): ask there before you fix anything.
 
-The page refreshes by itself when a job comes in, and the browser tab shows how many jobs you haven't
-answered with **On my way** yet, like "(2) My jobs". Once you have fixed something, it also says how many
-jobs you fixed in the last 12 hours, about one shift.
+The board refreshes by itself when a job comes in. Once you have fixed something, it also says how
+many jobs you fixed in the last 12 hours, about one shift.
 
 ## For leads: Send to nearest tech
 
@@ -42,7 +43,7 @@ By default nothing is sent by itself: a lead decides. A lead (`incidents.assign`
 **Send new ones to the nearest free tech by themselves** next to the crew. Then every new incident
 (from the board, a seat's help page or a power alert) goes to the nearest free tech the moment it is
 filed, by the same rules. If nobody is free it stays on the board; incidents filed earlier are left
-alone, so a tech coming back on duty is not flooded with old jobs at once. While it is on, My jobs tells
+alone, so a tech coming back on duty is not flooded with old jobs at once. While it is on, the board tells
 techs on duty that jobs come by themselves.
 
 Everything goes to the audit log (sent by hand or by itself, taken, finished, given back, and the

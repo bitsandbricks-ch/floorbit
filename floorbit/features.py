@@ -27,7 +27,7 @@ FEATURES = (
     {'id': 'helpdesk', 'paths': ('/help', '/api/helpdesk', '/incidents/qr', '/api/speedtests',
                                  '/speedtests'),
      'needs': ('incidents',)},
-    {'id': 'dispatch', 'paths': ('/jobs', '/api/jobs', '/api/dispatch'), 'needs': ('incidents',)},
+    {'id': 'dispatch', 'paths': ('/api/jobs', '/api/dispatch'), 'needs': ('incidents',)},
     {'id': 'handover', 'paths': ('/handover', '/api/handover'), 'needs': ('incidents',)},
     {'id': 'cables', 'paths': ('/cables', '/api/cables', '/api/cables.csv'), 'needs': ()},
     {'id': 'health', 'paths': ('/api/health',), 'needs': ()},

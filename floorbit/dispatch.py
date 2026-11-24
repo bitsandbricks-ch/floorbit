@@ -1,8 +1,9 @@
 """Tech dispatch (issue #30): send an incident to the nearest free tech. See docs/dispatch.md.
 
-Techs say on their phone (``/jobs``) that they are on duty and where they are: a seat, or the seat or
-switch of the job they finished last. "Nearest" is the straight line on the floor plan, in the same
-hall first; the plan has no walls or aisles, so that is as good as it gets without a map of the hall.
+Techs say on the incident board (``/incidents``, on their phone) that they are on duty and where
+they are: a seat, or the seat or switch of the job they finished last. "Nearest" is the straight
+line on the floor plan, in the same hall first; the plan has no walls or aisles, so that is as good
+as it gets without a map of the hall.
 A free tech is on duty, may work the incident's team and has no job they haven't finished.
 
 Kept in data.json under ``dispatch``: per account, on duty or not, where, and since when. Nothing

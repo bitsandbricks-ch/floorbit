@@ -47,7 +47,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
  *  The tabs show under the top bar (HubTabs); Settings draws its own. "Go to" still finds every
  *  page. */
 export const HUBS: Record<string, string[]> = {
-  helpdesk: ['problems', 'incidents', 'jobs', 'handover', 'networkStatus'],
+  helpdesk: ['problems', 'incidents', 'handover', 'networkStatus'],
   network: ['firewalls', 'wifi', 'telemetry', 'security'],
   services: ['dns', 'lancache'],
   traffic: ['games', 'stats', 'speedtests'],
