@@ -90,6 +90,7 @@ export const qk = {
   power: ['power'] as const,
   powerMarkers: ['power', 'markers'] as const,
   firewallSeats: ['firewalls', 'seats'] as const,
+  firewallLookup: (q: string) => ['firewalls', 'lookup', q] as const,
   problems: ['problems'] as const,
   statsAll: ['stats'] as const,
   flows: ['flows'] as const,

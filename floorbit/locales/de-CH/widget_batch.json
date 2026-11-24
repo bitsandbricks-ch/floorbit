@@ -1,0 +1,6 @@
+{
+ "At most {} tiles at once.": "Höchstens {} Kacheln aufs Mal.",
+ "Name at least one tile.": "Nenne mindestens eine Kachel.",
+ "Not a tile address.": "Keine Adresse einer Kachel.",
+ "This tile failed; the server log has why.": "Diese Kachel ging nicht; das Server-Log sagt, warum."
+}

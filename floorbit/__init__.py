@@ -53,6 +53,8 @@ def create_app(start_background=True):
     outbound.install()   # before anything can make a request (issue #505)
     app = Flask(__name__, root_path=str(ROOT))
     app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
+    from .static_files import init_static_files
+    init_static_files(app)   # first, so its after_request runs last (floorbit/static_files.py)
 
     from . import database
     # Before waiting for it: SQLite in a folder this process can't write never comes up.

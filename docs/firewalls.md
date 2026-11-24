@@ -16,9 +16,14 @@ are off their firewall and which firewall a seat's traffic takes.
 - **The ranges**: each range with its parts, the firewall each takes now and whether that is as
   planned, on its fallback, or no firewall up at all, and the fallback if any. Parts not on their
   planned firewall are listed at the top.
+- **Which firewall?**: once a range is planned, type an IP address or a seat at the top of the
+  page. It answers with the range and the part the address is in, the firewall it goes through
+  now, whether that is as planned, and the fallback (`GET /api/firewalls/lookup?q=`). A seat is
+  looked up through its IP, which the answer never shows; without **See seats** (`seats.view`) a
+  seat's answer leaves out the range and part too, since a small part narrows the IP down.
 - **On the floor plan**: the seat panel says which firewall the seat takes, and when it failed over,
-  which one it should take (crew only, from `incidents.work`). The seat's IP is never shown there
-  for this.
+  which one it should take, for everyone who sees the plan, whenever a range covers the seat. It
+  links to **Which firewall?** for that seat. The seat's IP is never shown there for this.
 
 ## The plan
 

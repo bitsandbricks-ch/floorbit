@@ -57,3 +57,18 @@ def test_viewers_look_but_dont_run(app_module, client):
     viewer = sign_in_as(app_module, "vi1", "viewer")
     assert viewer.get("/api/preflight").status_code == 200
     assert viewer.post("/api/preflight/run", json={}).status_code == 403
+    assert viewer.post("/api/preflight/refresh").status_code == 200   # only reads the sources
+
+
+def test_the_board_refreshes_only_what_is_old(lan_here, client):
+    first = client.post("/api/preflight/refresh").get_json()
+    assert first["complete"] is True
+    assert {g["by"] for g in first["groups"].values()} == {None}       # Floorbit ran them, no one pressed
+    at = first["groups"]["switches"]["at"]
+    assert client.post("/api/preflight/refresh").get_json()["groups"]["switches"]["at"] == at   # still fresh
+
+    from floorbit import preflight
+    assert preflight.stale(now=at + 30) == []
+    assert preflight.stale(now=at + preflight.FRESH + 1) == list(preflight.GROUPS)
+    later, ran = preflight.refresh(None, now=at + preflight.FRESH + 1)
+    assert ran and later["groups"]["switches"]["at"] == at + preflight.FRESH + 1

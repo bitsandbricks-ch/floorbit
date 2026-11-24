@@ -137,7 +137,8 @@ def test_the_seat_panel_says_which_firewall_and_never_the_ip(client, net):
     client.post("/api/seat-blocks", json={"name": "A", "x": 40, "y": 50, "cols": 3, "rows": 1})
     net.up["fw-01"] = False
     seat = client.get("/api/plan/seats/A-1").get_json()
-    assert seat["firewall"] == {"intended": "fw-01", "now": "fw-02", "state": "failover", "range": "Block A"}
+    assert seat["firewall"] == {"intended": "fw-01", "now": "fw-02", "state": "failover", "range": "Block A",
+                                "fallback": ["fw-02"]}
     assert client.get("/api/plan/seats/A-2").get_json()["firewall"] is None       # no range covers it
     assert "192.0.2" not in str(firewalls.for_seat("A-1"))
 

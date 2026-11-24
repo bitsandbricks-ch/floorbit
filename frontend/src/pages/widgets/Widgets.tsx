@@ -11,7 +11,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner } from '@/components/ui'
 import { pluginName } from '@/lib/pluginName'
-import { WidgetCard } from '@/widgets/TileCard'
+import { PluginWidgetCard } from '@/widgets/PluginTiles'
 import { add } from '../dashboards/grid'
 import { type Board, type Pane, boardName, boardSettings } from '../dashboards/model'
 import { TileField } from '../dashboards/PaneForm'
@@ -50,7 +50,7 @@ function useEntries(): Entry[] {
 function Preview({ entry }: { entry: Entry }) {
   return (
     <div className="fb-widget-preview" inert>
-      <WidgetCard tile={entry.tile} />
+      <PluginWidgetCard tile={entry.tile} />
     </div>
   )
 }

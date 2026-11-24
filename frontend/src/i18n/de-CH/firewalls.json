@@ -59,5 +59,22 @@
   "cutInto_one": "Der Bereich bleibt ganz.",
   "cutInto_other": "In {{count}} gleiche Teile geschnitten, einer pro Firewall in dieser Reihenfolge.",
   "parts": "Firewall jetzt",
+  "lookup": {
+    "title": "Welche Firewall?",
+    "placeholder": "192.0.2.40 oder A-12",
+    "help": "Gib eine IP-Adresse oder einen Platz ein: du siehst den Teil des Bereichs und die Firewall, über die er geht.",
+    "seat": "Platz {{seat}}",
+    "none": "{{who}} liegt in keinem geplanten Bereich.",
+    "goes": "{{who}} geht über {{now}}",
+    "down": "{{who}} hat keine Firewall oben (geplant {{intended}})",
+    "inPart": "{{range}}, Teil {{part}}",
+    "fallback": "Ausweich-Firewall: {{list}}",
+    "state": {
+      "primary": "wie geplant",
+      "failover": "ausgewichen von {{intended}}",
+      "unknown": "Zustand unbekannt",
+      "down": "down"
+    }
+  },
   "inInventory": "Gruppen, Tags und Notizen im Inventar"
 }

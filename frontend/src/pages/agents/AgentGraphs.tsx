@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
-import { TimeChart, type TimePoint } from '@/widgets/TimeChart'
+import { TimeChart, type TimePoint } from '@bitsandbricks/widgets'
 import { IconChartLine } from '@tabler/icons-react'
 
 /** GET /api/agents/<id>/history (floorbit/agent_history.py): rates are per minute. */

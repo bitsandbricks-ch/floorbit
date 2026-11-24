@@ -1,6 +1,7 @@
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { get } from './client'
 import { qk } from './keys'
+import { getWidget } from './widgetBatch'
 import type { CustomSection } from '@/nav/sections'
 import type {
   PageLink,
@@ -98,7 +99,7 @@ export function useWidgets(tiles: WidgetTile[]) {
   return useQueries({
     queries: tiles.map((tile) => ({
       queryKey: qk.widget(tile.url),
-      queryFn: () => get<Widget>(tile.url),
+      queryFn: () => getWidget<Widget>(tile.url),
       refetchInterval: Math.max(10, tile.refresh) * 1000,
       refetchIntervalInBackground: false,
     })),

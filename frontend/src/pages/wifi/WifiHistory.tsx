@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { ErrorBanner, LoadingState } from '@/components/ui'
-import { TimeChart, type TimePoint } from '@/widgets/TimeChart'
+import { TimeChart, type TimePoint } from '@bitsandbricks/widgets'
 
 /** GET /api/wifi/history: clients on the controllers that stream to Telemetry (floorbit/wifi.py). */
 export interface WifiHistoryData { controllers: string[]; points: TimePoint[]; hours: number }

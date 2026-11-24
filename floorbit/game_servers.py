@@ -105,8 +105,8 @@ def public(server):
         'rcon': bool(server.get('rcon_port') and server.get('rcon_password'))}
 
 
-def listing():
-    return [public(s) for s in sorted(_all(), key=lambda s: s['name'].lower())]
+def listing(data=None):
+    return [public(s) for s in sorted(_all(data), key=lambda s: s['name'].lower())]
 
 
 def get(server_id):

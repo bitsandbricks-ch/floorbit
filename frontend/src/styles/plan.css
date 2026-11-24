@@ -266,3 +266,5 @@
 /* On a phone the filter row is wider than the screen: it scrolls sideways instead of cutting off the last filter. */
 .fb-filter-scroll { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .fb-filter-scroll::-webkit-scrollbar { display: none; }
+.fb-edit-rulers .mark line { stroke: var(--color-bit); stroke-width: 1.5; }
+.fb-edit-rulers .mark text { fill: var(--color-bit); font-weight: 600; paint-order: stroke; stroke: var(--color-surface); stroke-width: 4px; stroke-linejoin: round; }

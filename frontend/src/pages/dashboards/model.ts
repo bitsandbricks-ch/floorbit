@@ -3,10 +3,7 @@ import type { View } from '../plan/model'
 import type { PresetId } from '../plan/layers'
 import type { LabelMode } from '../plan/labels'
 import type { Section } from './grid'
-import type { KindPick, LevelPin } from '@/widgets/level'
-import type { LineStyle, Stack, Trend } from '@/widgets/kinds/shape'
-import type { Calc } from '@/widgets/kinds/combine'
-import type { Display } from '@/widgets/kinds/display'
+import type { Calc, Display, KindPick, LevelPin, LineStyle, Stack, Trend } from '@bitsandbricks/widgets'
 
 /** Dashboards (floorbit/dashboards.py): widgets on a grid (grid.ts), each one pane or panes split
  *  side by side or stacked, saved under a name. */
@@ -313,7 +310,7 @@ export function seatsIn(drawing: PlanDrawing, view: View): string[] {
   return out
 }
 
-/** The display part of a tile pane, for widgets/kinds/display.ts. */
+/** The display part of a tile pane, for the widgets kit's display.ts (@bitsandbricks/widgets). */
 export function displayOf(p: Extract<Pane, { kind: 'tile' }>): Display {
   const { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero, overrides } = p
   return { thresholds, threshold_mode, mappings, unit, decimals, short, sort, limit, hide_zero, overrides }

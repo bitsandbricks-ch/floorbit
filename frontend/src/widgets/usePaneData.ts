@@ -2,8 +2,7 @@ import type { UseQueryResult } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Widget } from '@/api/types'
-import { type Shaping, shapeData } from './kinds/combine'
-import { type Display, applyDisplay } from './kinds/display'
+import { applyDisplay, type Display, shapeData, type Shaping } from '@bitsandbricks/widgets'
 
 /** A pane's sources, merged, grouped and calculated (issue #959). It waits for the first source
  *  only: the others join as they arrive, and one that fails is left out. ``labels`` name the

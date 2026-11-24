@@ -125,6 +125,11 @@ class StatusMonitor:
                 events.publish('monitoring.offline', data)
             raise
         down_for = sources.mark_ok(source.name, source.label)
+        try:
+            from floorbit import librenms_alerts
+            librenms_alerts.maybe_reconcile(source)   # an alert whose recovery got lost (#951)
+        except Exception as exc:  # noqa: BLE001  # never let this stop the status poll
+            print(f'[monitor] checking LibreNMS alerts failed: {exc}')
         if down_for is not None:
             # Switches may have changed while the source was down: start over from a fresh baseline
             # instead of announcing every difference at once.

@@ -238,6 +238,19 @@ class PluginMonitoring(NoMonitoring):
             return []
         return self._call('neighbours', hostname) or []
 
+    def active_alerts(self):
+        """The alerts the source still has open (librenms_alerts.reconcile), or None when it can't
+        say: offline, no such call, or the read failed. Never [] for "don't know"."""
+        from ..plugins.base import PluginError
+        if offline() or not hasattr(self._spec.plugin_class() or object, 'active_alerts'):
+            return None
+        try:
+            rows = self._call('active_alerts')
+        except PluginError as exc:
+            print(f'[sources] {self.name} active_alerts failed: {exc}')
+            return None
+        return rows if isinstance(rows, list) else None
+
     def device_facts(self, hostname):
         """What a device is (VLANs, networks, optics, ...), shaped like telemetry's Device.summary(),
         for discovery. Every monitoring plugin that is on and knows facts answers; telemetry's facts

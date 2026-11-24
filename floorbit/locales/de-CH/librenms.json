@@ -4,5 +4,6 @@
  "LibreNMS did not list the ports of {}": "LibreNMS hat die Ports von {} nicht aufgelistet",
  "LibreNMS does not know {}": "LibreNMS kennt {} nicht",
  "LibreNMS redirects to {}: put that address in Settings > LibreNMS.": "LibreNMS leitet weiter nach {}: Trag diese Adresse unter Einstellungen > LibreNMS ein.",
+ "LibreNMS sent no list of alerts": "LibreNMS hat keine Liste der Alarme geschickt",
  "Set the LibreNMS URL and API token under Settings > LibreNMS first.": "Setze zuerst die LibreNMS-URL und das API-Token unter Einstellungen > LibreNMS."
 }

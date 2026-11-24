@@ -124,8 +124,8 @@ top first, with the space above each:
 - Pick a row to change it on its own:
   - **Seats per row**: rows in a block can differ, for a block that narrows towards a pillar or the stage.
   - **Shape**: **Straight**; **Arc** (how far the row turns from its first seat to its last, in degrees,
-    negative for the other way); **U** round a table (seats on the first side, the middle and the last
-    side); **L** (two arms); **Path** (seats follow points; it starts as an L). Seats stand one seat
+    negative for the other way); **U** round a table (you set the seats on the first and the last side; the
+    middle takes the rest of the row); **L** (two arms); **Path** (seats follow points; it starts as an L). Seats stand one seat
     apart along the shape and turn with it.
   - **Line up with the other rows**: at the start, the middle or the end of the widest row, plus a
     **Shift** in seats.
@@ -166,12 +166,17 @@ its middle or its rows of seats line up with another block, and a red line shows
 blocks, it also snaps where the space on both sides is the same, and shows that space in seats. The guides
 win over the grid on the axis they snap. Hold <kbd>Alt</kbd> while dragging to place freely.
 
+**Snapping and rulers:** the four buttons right of **Layers** show the grid, snap to the grid, snap to other
+items (the guides above) and show the rulers; a green button is on. The rulers mark where the pointer is,
+in seats from the plan's corner, and while you drag, the middle of what moves.
+
 **Groups** keep several blocks together while you lay out the hall. Select the blocks (<kbd>Shift</kbd>+click
 or a box with <kbd>Shift</kbd>+drag) and press <kbd>Ctrl</kbd>+<kbd>G</kbd>, or use **Group** in the selection
 panel or the right-click menu. From then on a click on any of them selects the whole group (a dashed frame
 shows it), and the group moves, turns (<kbd>R</kbd>, <kbd>Shift</kbd>+<kbd>R</kbd>) and copies
 (<kbd>Ctrl</kbd>+<kbd>D</kbd>) as one. Each block keeps its own seat names. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>
-or **Ungroup** splits it again; <kbd>Shift</kbd>+click still picks a single block out of a group.
+or **Ungroup** splits it again. <kbd>Ctrl</kbd>+click (<kbd>Cmd</kbd> on a Mac) picks one item out of its group, so you
+can drag it on its own; the group stays.
 
 **Merge** makes one block of blocks next to each other, as if it had been made that size:
 
