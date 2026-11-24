@@ -132,7 +132,11 @@ where it lines up, where people sit and its gaps; see [Rows in a seat block](hal
 **Place seats freely** (in the same panel) puts a handle on every seat of the block: drag a seat
 anywhere, for a U round a table or any other shape. The seat keeps its name and number, the other
 seats stay where they are, and each move is one step to undo. Seats land on half-seat steps (Alt, or
-snapping off, places them freely). A block with seats placed freely has no row letters beside it, can't
+snapping off, places them freely), and a seat that comes within a quarter seat of another seat's
+column or row lines up with it while an orange guide shows. Shift- or Ctrl-click picks more seats, and
+dragging one of them moves them all. With two seats picked, **⇄ Swap** between them makes them trade
+places: each keeps its name, number and switch port, so it is the two seats that move, not the
+numbers. A seat's number itself comes from the block's naming. A block with seats placed freely has no row letters beside it, can't
 be merged with another block, and moves and turns as one like any block; **Back to rows** lines its
 seats up again. Templates and plan versions keep where each seat stands, and the kiosk shows it too.
 

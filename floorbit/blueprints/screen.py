@@ -27,16 +27,28 @@ def _row_labels(block, at, angles, w, h):
     rows = seat_rows.rows_of(block)
     out = []
     for r, letter in enumerate(letters):
-        n = int(rows[r]['seats'])
+        row = rows[r]
+        n = int(row['seats'])
+        own = row.get('label') or where
+        if own in ('hidden', 'none'):
+            continue
+        if own == 'moved' and row.get('label_at'):
+            # Moved by hand: kept in the row's own frame (seat_rows.row_seats), so it moves with the row.
+            sx, sy, _ = seat_rows.row_seats(row)[0]
+            x0, y0 = at[r, 0]
+            lx, ly = row['label_at']
+            out.append({'text': letter, 'r': r,
+                        'x': (x0 + 0.5 + lx - sx) * CELL - w / 2, 'y': (y0 + 0.5 + ly - sy) * CELL - h / 2})
+            continue
         # (seat, -1 before it or +1 past it): seat 1 is the row's first seat or its last.
-        first = one_first != bool(rows[r].get('reverse'))
+        first = one_first != bool(row.get('reverse'))
         before, after = ((0, -1), (n - 1, 1)) if first else ((n - 1, 1), (0, -1))
-        ends = {'start': [before], 'end': [after], 'both': [before, after]}[where]
+        ends = {'start': [before], 'end': [after], 'both': [before, after], 'moved': [before]}[own]
         for c, out_dir in ends:
             x, y = at[r, c]
             a = math.radians(angles[r, c])
             cx, cy = x + 0.5 + out_dir * math.cos(a), y + 0.5 + out_dir * math.sin(a)
-            out.append({'text': letter, 'x': cx * CELL - w / 2, 'y': cy * CELL - h / 2})
+            out.append({'text': letter, 'r': r, 'x': cx * CELL - w / 2, 'y': cy * CELL - h / 2})
     return out
 
 

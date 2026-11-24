@@ -1,0 +1,5 @@
+{
+  "handle": "Seat {{seat}}: drag to move, Shift-click to pick more",
+  "swap": "Swap seats {{a}} and {{b}}",
+  "swapShort": "⇄ Swap"
+}

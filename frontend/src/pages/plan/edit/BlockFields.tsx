@@ -9,7 +9,9 @@ import type { SeatViewData } from '@/api/types'
 import { type Gap, GAP_MAX, GAP_MIN, cleanGaps, freeGapSpot } from './gaps'
 import type { ItemRef } from './geometry'
 import { mirrorBlock } from './rowShapes'
-import { type BlockRow, MAX_ROWS, MAX_SEATS, type RowShape, SHAPES, moveRow, newRow, withSeats, withShape, withUSide } from './rows'
+import { type BlockRow, MAX_ROWS, MAX_SEATS, ROW_LABELS, type RowLabel, type RowShape, SHAPES, moveRow, newRow, withLabel, withSeats, withShape, withUSide } from './rows'
+import { PieceFields } from './PieceFields'
+import { RowTabs } from './RowTabs'
 import './BlockFields.css'
 
 interface StoredBlock {
@@ -21,8 +23,10 @@ type Change = (ref: ItemRef, before: Record<string, unknown>, after: Record<stri
 /** A seat block's naming and its rows (floorbit/seat_rows.py): a block is a list of rows, each with
  *  its own seats, shape and space above it, from the block as the server keeps it (the drawing has
  *  only cells). Each change is saved on its own, as one step to undo. */
-export function BlockFields({ data, item, onChange, arranging = false, onArrange, picked: pickedProp, onPick }: {
+export function BlockFields({ data, item, onChange, arranging = false, onArrange, picked: pickedProp, onPick, section }: {
   data: SeatViewData; item: ItemRef; onChange: Change
+  /** One of the panel's tabs (Block, Rows, Seats); all of them when left out. */
+  section?: 'block' | 'rows' | 'seats'
   /** The picked row's id, when the editor keeps it (a double-click on the plan picks one). */
   picked?: string | null
   onPick?: (id: string | null) => void
@@ -56,31 +60,46 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
     { rows: block.rows, seat_at: block.seat_at ?? null, ...(flip ? { rotation } : {}) },
     { ...mirrorBlock(block), ...(flip ? { rotation: (rotation + 180) % 360 } : {}) },
   )
+  const show = (part: 'block' | 'rows' | 'seats') => !section || section === part
+  // In the Rows tab a row is always open: the first one until another is picked.
+  const shown = section === 'rows' && open < 0 ? 0 : open
   return (
     <>
-      <Select label={t('plan.edit.block.naming')} allowDeselect={false} value={naming} onChange={(v) => v && save({ naming }, { naming: v })}
-        data={[{ value: 'rows', label: t('plan.edit.block.namingRows') }, { value: 'block', label: t('plan.edit.block.namingBlock') }]} />
-      {naming === 'rows' && (
-        <SimpleGrid cols={2}>
-          <TextInput label={t('plan.edit.block.rowStart')} value={rowStart ?? start} maxLength={2}
-            onChange={(e) => setRowStart(e.currentTarget.value.replace(/[^a-z]/gi, ''))}
-            onBlur={saveStart} onKeyDown={(e) => { if (e.key === 'Enter') saveStart() }} />
-          <Select label={t('plan.edit.block.rowLabels')} allowDeselect={false} value={block.row_labels || 'start'}
-            onChange={(v) => v && save({ row_labels: block.row_labels || 'start' }, { row_labels: v })}
-            data={['start', 'end', 'both', 'none'].map((x) => ({ value: x, label: t(`plan.edit.block.labels.${x}`) }))} />
-        </SimpleGrid>
+      {show('seats') && (
+        <>
+          <Select label={t('plan.edit.block.naming')} allowDeselect={false} value={naming} onChange={(v) => v && save({ naming }, { naming: v })}
+            data={[{ value: 'rows', label: t('plan.edit.block.namingRows') }, { value: 'block', label: t('plan.edit.block.namingBlock') }]} />
+          {naming === 'rows' && (
+            <SimpleGrid cols={2}>
+              <TextInput label={t('plan.edit.block.rowStart')} value={rowStart ?? start} maxLength={2}
+                onChange={(e) => setRowStart(e.currentTarget.value.replace(/[^a-z]/gi, ''))}
+                onBlur={saveStart} onKeyDown={(e) => { if (e.key === 'Enter') saveStart() }} />
+              <Select label={t('plan.edit.block.rowLabels')} allowDeselect={false} value={block.row_labels || 'start'}
+                onChange={(v) => v && save({ row_labels: block.row_labels || 'start' }, { row_labels: v })}
+                data={['start', 'end', 'both', 'none'].map((x) => ({ value: x, label: t(`plan.edit.block.labels.${x}`) }))} />
+            </SimpleGrid>
+          )}
+        </>
       )}
-      <Group gap="xs" wrap="nowrap">
-        <Button size="xs" variant="default" leftSection={<IconFlipVertical size={14} />} onClick={() => turnBlock(false)}>{t('blockRows.mirrorBlock')}</Button>
-        <Button size="xs" variant="default" leftSection={<IconFlipHorizontal size={14} />} onClick={() => turnBlock(true)}>{t('blockRows.flipBlock')}</Button>
-      </Group>
-      <RowList rows={block.rows} name={rowName} picked={picked} onPick={setPicked} onSave={saveRows} />
-      {block.rows.length > 1 && !block.seat_at && <Text size="xs" c="dimmed">{t('blockRows.planHint')}</Text>}
-      {open >= 0 && (
-        <RowFields key={block.rows[open].id} row={block.rows[open]} name={rowName(open)} first={open === 0}
-          onSave={(row) => saveRows(block.rows.map((r, i) => (i === open ? row : r)))} />
+      {show('block') && (
+        <Group gap="xs" wrap="nowrap">
+          <Button size="xs" variant="default" leftSection={<IconFlipVertical size={14} />} onClick={() => turnBlock(false)}>{t('blockRows.mirrorBlock')}</Button>
+          <Button size="xs" variant="default" leftSection={<IconFlipHorizontal size={14} />} onClick={() => turnBlock(true)}>{t('blockRows.flipBlock')}</Button>
+        </Group>
       )}
-      {onArrange && (
+      {show('rows') && (
+        <>
+          {section === 'rows'
+            ? <RowTabs rows={block.rows} name={rowName} picked={block.rows[shown]?.id ?? null} onPick={setPicked} onSave={saveRows} />
+            : <RowList rows={block.rows} name={rowName} picked={picked} onPick={setPicked} onSave={saveRows} />}
+          {block.rows.length > 1 && !block.seat_at && <Text size="xs" c="dimmed">{t('blockRows.planHint')}</Text>}
+          {shown >= 0 && (
+            <RowFields key={block.rows[shown].id} row={block.rows[shown]} name={rowName(shown)} first={shown === 0} letters={naming === 'rows'}
+              onSave={(row) => saveRows(block.rows.map((r, i) => (i === shown ? row : r)))} />
+          )}
+        </>
+      )}
+      {show('seats') && onArrange && (
         <div>
           <Group gap="xs" wrap="nowrap">
             <Button size="xs" variant={arranging ? 'filled' : 'default'} leftSection={<IconArrowsMove size={14} />} aria-pressed={arranging}
@@ -93,8 +112,10 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
           <Text size="xs" c="dimmed" mt={4}>{t(arranging ? 'plan.edit.seats.hint' : block.seat_at ? 'plan.edit.seats.free' : 'plan.edit.seats.intro')}</Text>
         </div>
       )}
-      <Checkbox label={t('plan.edit.block.reverse')} checked={!!block.reverse_numbers}
-        onChange={(e) => save({ reverse_numbers: !!block.reverse_numbers }, { reverse_numbers: e.currentTarget.checked })} />
+      {show('seats') && (
+        <Checkbox label={t('plan.edit.block.reverse')} checked={!!block.reverse_numbers}
+          onChange={(e) => save({ reverse_numbers: !!block.reverse_numbers }, { reverse_numbers: e.currentTarget.checked })} />
+      )}
     </>
   )
 }
@@ -148,7 +169,12 @@ function RowList({ rows, name, picked, onPick, onSave }: {
 }
 
 /** One row: its seats, shape, where it sits sideways, where people sit, numbering and gaps. */
-function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; first: boolean; onSave: (row: BlockRow) => void }) {
+function RowFields({ row, name, first, letters, onSave }: {
+  row: BlockRow; name: string; first: boolean
+  /** The block names its rows, so each has a letter on the plan. */
+  letters: boolean
+  onSave: (row: BlockRow) => void
+}) {
   const { t } = useTranslation()
   const [seats, setSeats] = useState<number | null>(null)
   const saveSeats = () => { if (seats && seats !== row.seats) onSave(withSeats(row, seats)) }
@@ -199,7 +225,7 @@ function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; 
           <Text size="xs" c="dimmed" mt={4}>{t('blockRows.sidesHint', { count: row.seats })}</Text>
         </div>
       )}
-      {row.shape === 'path' && <Text size="xs" c="dimmed">{t('blockRows.pathHint')}</Text>}
+      {row.shape === 'path' && <PieceFields row={row} onSave={onSave} />}
       <Group gap="xs" wrap="nowrap">
         <Button size="xs" variant={row.mirror ? 'light' : 'default'} aria-pressed={!!row.mirror} leftSection={<IconFlipVertical size={14} />}
           onClick={() => onSave({ ...row, mirror: !row.mirror })}>{t('blockRows.mirror')}</Button>
@@ -219,6 +245,11 @@ function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; 
           data={['auto', 'left', 'right'].map((v) => ({ value: v, label: t(`blockRows.sides.${v}`) }))} />
       </SimpleGrid>
       {first && <Text size="xs" c="dimmed">{t('blockRows.firstGap')}</Text>}
+      {letters && (
+        <Select size="xs" label={t('blockRows.rowLabel')} description={t('blockRows.rowLabelHint')} allowDeselect={false} value={row.label || 'block'}
+          onChange={(v) => v && v !== (row.label || 'block') && onSave(withLabel(row, v === 'block' ? '' : (v as RowLabel)))}
+          data={['block', ...ROW_LABELS, ...(row.label === 'moved' ? ['moved'] : [])].map((v) => ({ value: v, label: t(`blockRows.rowLabels.${v}`) }))} />
+      )}
       <Checkbox label={t('blockRows.reverse')} checked={row.reverse} onChange={(e) => onSave({ ...row, reverse: e.currentTarget.checked })} />
       <GapList kind="col" gaps={row.col_gaps} count={row.seats} onSave={(next) => onSave({ ...row, col_gaps: cleanGaps(next, row.seats) })} />
     </Stack>

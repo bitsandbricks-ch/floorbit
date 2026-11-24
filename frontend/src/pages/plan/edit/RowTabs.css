@@ -1,0 +1,10 @@
+/* A block's rows as small tabs in the editor's Rows tab (RowTabs.tsx). */
+.fb-row-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.fb-row-tabs [role='tab'] {
+  min-width: 36px; height: 28px; padding: 0 8px; border: 1px solid var(--color-line); border-radius: var(--mantine-radius-sm);
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--mantine-font-size-sm); text-align: center;
+  color: var(--color-muted);
+}
+.fb-row-tabs [role='tab']:hover { color: var(--color-fg); }
+.fb-row-tabs [role='tab'].on { background: var(--color-bit); border-color: var(--color-bit); color: var(--bnb-on-accent, #0b0b0f); font-weight: 600; }
+.fb-row-tabs .fb-row-tabs-add { width: 28px; height: 28px; border-style: dashed; }

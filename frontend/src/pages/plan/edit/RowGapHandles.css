@@ -9,3 +9,10 @@
 .fb-row-add-point circle { fill: var(--mantine-color-body); stroke: var(--color-trace); stroke-width: 1.5; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; cursor: copy; }
 .fb-row-add-point path { stroke: var(--color-trace); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
 .fb-row-ghost { fill: color-mix(in srgb, var(--color-trace) 18%, transparent); stroke: var(--color-trace); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+/* A path row's later pieces (pieces.ts), each in its own colour so the pieces tell apart. */
+.fb-row-path.fb-row-piece-1, .fb-row-shape-handle.fb-row-piece-1 { stroke: var(--color-bit); }
+.fb-row-path.fb-row-piece-2, .fb-row-shape-handle.fb-row-piece-2 { stroke: var(--color-warn, #f59e0b); }
+.fb-row-path.fb-row-piece-3, .fb-row-shape-handle.fb-row-piece-3 { stroke: var(--color-muted); }
+/* The picked row's letter, to drag anywhere (RowLabelHandle.tsx). */
+.fb-row-label-handle { fill: color-mix(in srgb, var(--color-trace) 10%, transparent); stroke: var(--color-trace); stroke-width: 1.5; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; cursor: move; }
+.fb-row-label-handle:hover { fill: color-mix(in srgb, var(--color-trace) 28%, transparent); stroke-dasharray: none; }
