@@ -322,7 +322,7 @@ describe('Plan editor: background and scale', () => {
     fireEvent.click(await screen.findByRole('tab', { name: 'Seats' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Place seats freely' }))
     // Seat 4 two seats down: the box grows a seat below the row, so the block's middle moves a seat down.
-    const seat = await screen.findByRole('button', { name: 'Seat ADM-4: drag to move' })
+    const seat = await screen.findByRole('button', { name: 'Seat ADM-4: drag to move, Shift-click to pick more' })
     fireEvent.pointerDown(seat, { button: 0, pointerId: 2, clientX: 448, clientY: 500 })
     fireEvent.pointerMove(seat, { pointerId: 2, clientX: 448, clientY: 564 })
     fireEvent.pointerUp(seat, { pointerId: 2, clientX: 448, clientY: 564 })

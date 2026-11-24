@@ -615,7 +615,7 @@
       "done": "Done placing seats",
       "rows": "Back to rows",
       "intro": "Seats stand in rows. Place them freely for a U round a table or any other shape; names stay with the seats.",
-      "hint": "Drag a seat to move it. Seats land on half-seat steps; Alt places freely. Each move is one undo step.",
+      "hint": "Drag a seat to move it. Shift- or Ctrl-click picks more seats to move together; with two picked, ⇄ Swap trades their places. Seats land on half-seat steps and line up with the others (a guide shows); Alt places freely. Each move is one undo step.",
       "free": "These seats are placed freely. Back to rows lines them up again.",
       "handle": "Seat {{seat}}: drag to move"
     },

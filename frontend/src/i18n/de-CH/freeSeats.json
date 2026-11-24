@@ -1,0 +1,5 @@
+{
+  "handle": "Platz {{seat}}: zum Verschieben ziehen, Shift-Klick wählt weitere",
+  "swap": "Plätze {{a}} und {{b}} tauschen",
+  "swapShort": "⇄ Tauschen"
+}

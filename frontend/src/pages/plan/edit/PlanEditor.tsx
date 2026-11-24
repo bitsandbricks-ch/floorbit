@@ -37,7 +37,7 @@ import { RowGapHandles } from './RowGapHandles'
 import { RowLabelHandle } from './RowLabelHandle'
 import { RowShapeHandles } from './RowShapeHandles'
 import { keepTop, rowAt } from './rowGaps'
-import { moveSeat, placedNow, toBlock } from './seatPlace'
+import { moveSeats, placedNow, toBlock } from './seatPlace'
 import { RotateHandle } from './RotateHandle'
 import { shapeBody } from './reshape'
 import { SharedFields } from './SharedFields'
@@ -1083,9 +1083,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           )}
           {arrangedShape && tool === 'select' && !drag && (
             <SeatHandles ctx={ctx} shape={arrangedShape} cell={data.drawing?.cell ?? 32} snapGrid={snapping.grid}
-              onDone={(rc, to) => {
+              onDone={(moves) => {
                 const cell = data.drawing?.cell ?? 32
-                void change(one!, placedNow(arrangedShape, cell, data.size), moveSeat(arrangedShape, cell, data.size, rc, to))
+                void change(one!, placedNow(arrangedShape, cell, data.size), moveSeats(arrangedShape, cell, data.size, moves))
               }} />
           )}
           {gapShape && gapRows && tool === 'select' && !drag && (

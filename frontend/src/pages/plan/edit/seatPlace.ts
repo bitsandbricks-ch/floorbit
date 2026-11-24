@@ -21,7 +21,13 @@ export function seatPlaces(shape: PlanShape, cell: number): SeatAt {
  *  starting at 0,0 again and the block's x/y (in % of a plan ``size`` units big) moved so every
  *  other seat stays where it is on the plan. */
 export function moveSeat(shape: PlanShape, cell: number, size: { w: number; h: number }, rc: [number, number], to: [number, number]) {
-  const at = { ...seatPlaces(shape, cell), [key(shape, rc)]: to }
+  return moveSeats(shape, cell, size, [{ rc, to }])
+}
+
+/** Several seats moved at once (a multi-selection dragged, or two seats swapped), like ``moveSeat``. */
+export function moveSeats(shape: PlanShape, cell: number, size: { w: number; h: number }, moves: { rc: [number, number]; to: [number, number] }[]) {
+  const at = { ...seatPlaces(shape, cell) }
+  for (const m of moves) at[key(shape, m.rc)] = m.to
   const xs = Object.values(at).map((p) => p[0]), ys = Object.values(at).map((p) => p[1])
   const left = Math.min(...xs), top = Math.min(...ys)
   const w = Math.max(...xs) + 1 - left, h = Math.max(...ys) + 1 - top
