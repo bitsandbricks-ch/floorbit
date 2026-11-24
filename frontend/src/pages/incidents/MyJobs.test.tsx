@@ -2,8 +2,8 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Incident, IncidentBoard, Job, JobsData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
-import Incidents from './Incidents'
-import Jobs from './Jobs'
+import Incidents from '../Incidents'
+import { MyJobs } from './MyJobs'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -18,7 +18,7 @@ const job: Job = {
 }
 const data: JobsData = { me: { on_duty: true, at: 'A-1', since: now - 3600 }, seats: ['A-1', 'B-5', 'B-6', 'B-7'], jobs: [job], can_dispatch: false }
 
-describe('My jobs', () => {
+describe('My jobs, on the incident board (issue #887)', () => {
   it('shows the job on the plan with a line from the tech, and answers it', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': me, 'GET /api/jobs': data,
@@ -26,9 +26,9 @@ describe('My jobs', () => {
       'POST /api/jobs/j1/done': { id: 'j1', status: 'fixed', taken_at: now },
     })
     vi.stubGlobal('fetch', api.fn)
-    const { container } = renderWithApp(<Jobs />)
+    const { container } = renderWithApp(<MyJobs />)
     const card = await screen.findByRole('article', { name: 'No internet at the seat' })
-    expect(document.title).toBe('(1) My jobs · Floorbit')
+    expect(screen.getByRole('heading', { name: 'Sent to you: 1 incident' })).toBeInTheDocument()
     expect(screen.queryByText(/by themselves/)).toBeNull()
     expect(within(card).getByRole('img', { name: 'Floor plan with the job at Seat B-6' })).toBeInTheDocument()
     expect(container.querySelector('.cell.hit')).not.toBeNull()
@@ -44,7 +44,7 @@ describe('My jobs', () => {
   it('says when the seat says it works again (issue #382)', async () => {
     const ok = { ...data, jobs: [{ ...job, seat_ok_at: now - 120 }] }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/jobs': ok }).fn)
-    const { container } = renderWithApp(<Jobs />)
+    const { container } = renderWithApp(<MyJobs />)
     await screen.findByRole('article', { name: job.title })
     expect(container.querySelector('[data-seat-ok]')?.textContent).toMatch(/^The seat said at .+ that it works again\. Ask there/)
   })
@@ -55,10 +55,9 @@ describe('My jobs', () => {
       'PUT /api/jobs/me': { on_duty: false, at: 'A-1', since: now },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Jobs />)
-    expect(await screen.findByText('No jobs for you right now.')).toBeInTheDocument()
-    expect(screen.getByText('You fixed 3 jobs in the last 12 hours.')).toBeInTheDocument()
-    expect(document.title).toBe('My jobs · Floorbit')
+    renderWithApp(<MyJobs />)
+    expect(await screen.findByText('You fixed 3 jobs in the last 12 hours.')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Sent to you/ })).toBeNull()
     expect(screen.getByText(/New incidents come to the nearest free tech by themselves/)).toBeInTheDocument()   // issue #360
     fireEvent.click(screen.getByRole('switch', { name: /On duty/ }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ on_duty: false }))
@@ -82,6 +81,7 @@ describe('Board dispatch', () => {
       'GET /api/dispatch/crew': { crew: [{ username: 'ben', display_name: 'Ben', at: 'A-1', since: now, jobs: 0, done: 2 }] },
       'POST /api/incidents/i1/dispatch': { id: 'i1', assignee: 'ben', display_name: 'Ben' },
       'PUT /api/dispatch/auto': { auto: true },
+      'GET /api/jobs': { ...data, jobs: [] },
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Incidents />)
@@ -96,5 +96,25 @@ describe('Board dispatch', () => {
     // Issue #358: a lead can let new incidents go out by themselves.
     fireEvent.click(screen.getByRole('switch', { name: 'Send new ones to the nearest free tech by themselves' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT' && c.path === '/api/dispatch/auto')?.body).toEqual({ on: true }))
+  })
+})
+
+describe('the board for one tech (issue #887)', () => {
+  it('has the duty switch on the board and shows only what is assigned to me', async () => {
+    const base: Omit<Incident, 'id' | 'seat' | 'title' | 'assignee'> = { switch_id: null, problem: null, team: 'access', source: 'board',
+      reported_by: 'lea', reports: 1, notes: [], snapshot: null, created_at: now - 60, updated_at: now, status: 'assigned',
+      can_work: true, can_assign: false }
+    const board: IncidentBoard = {
+      incidents: [{ ...base, id: 'a', seat: 'A-1', title: 'Mine', assignee: 'ben' }, { ...base, id: 'b', seat: 'A-2', title: 'Lea\'s', assignee: 'lea' }],
+      teams: [{ id: 'access', name: 'Access', depth: 1 }], workable_teams: ['access'], assign_teams: [], can_assign_any: false, problems: [],
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/incidents': board, 'GET /api/incidents/people': {},
+      'GET /api/switches': [], 'GET /api/jobs': { ...data, jobs: [] } }).fn)
+    renderWithApp(<Incidents />, '/incidents?mine=1')
+    expect(await screen.findByRole('switch', { name: /On duty/ })).toBeChecked()
+    expect(await screen.findByText('Mine')).toBeInTheDocument()
+    expect(screen.queryByText("Lea's")).toBeNull()
+    fireEvent.click(screen.getByRole('switch', { name: 'Assigned to me' }))
+    expect(await screen.findByText("Lea's")).toBeInTheDocument()
   })
 })

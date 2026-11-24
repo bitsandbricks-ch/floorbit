@@ -67,7 +67,7 @@ status on `/status`.
 | `/incident report <seat> <problem>` | files an incident for a seat, like the incident board does. It shows up there marked *From Discord*, and automatic dispatch applies. |
 | `/incident take <incident>` | takes an open incident. Start typing a seat or a few words, and Discord lists the open incidents you may work. |
 | `/incident fixed <incident> [note]` | marks it fixed, with an optional note on what you did. |
-| `/jobs` | the incidents you have, oldest first. |
+| `/jobs` | the incidents you have, oldest first, with a link to the board's **Assigned to me**. |
 | `/statusupdate <text> [area]` | posts an update on the public [status page](status-page.md), as from the Network status page. Needs `incidents.assign` (lead or admin). |
 
 The incident commands follow the account's permissions exactly as on the board, and every change is

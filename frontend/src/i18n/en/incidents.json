@@ -133,5 +133,6 @@
     "switches": "switches {{names}}",
     "and": " and "
   },
-  "fromProblem": "From a problem"
+  "fromProblem": "From a problem",
+  "assignedToMe": "Assigned to me"
 }

@@ -1,6 +1,5 @@
 """Tech dispatch (issue #30). Rules live in floorbit/dispatch.py; see docs/dispatch.md.
 
-- ``GET /jobs``: the tech's phone page (React).
 - ``GET /api/jobs``: my status, my jobs with the hall plan, where the job is and where I am, and how many
   I fixed in the last 12 hours (``done``), and whether automatic dispatch is on (``auto``).
 - ``PUT /api/jobs/me``: go on or off duty, say where I am (``{"on_duty": true, "at": "B-7"}``).
@@ -11,14 +10,15 @@
 - ``GET /api/dispatch/crew``: who is on duty, where, with how many jobs, and how many they fixed in the last
   12 hours (``incidents.assign``).
 
-All of it needs ``incidents.work`` somewhere, like the incident board.
+All of it needs ``incidents.work`` somewhere, like the incident board. There is no page of its own:
+the duty switch and the jobs sent to a tech sit on the incident board (issue #887).
 """
 from flask import Blueprint, jsonify, request
 
 from auth import roles
 from integrations import events
 
-from .. import dispatch, halls, incidents, spa
+from .. import dispatch, halls, incidents
 from ..store import load_data
 from .incidents import _board_user
 from .screen import plan
@@ -50,12 +50,6 @@ def _job(incident, data, seats, switches, me_at):
         if me_at and me_at[0] == hall_id:
             out['from'] = [round(me_at[1], 1), round(me_at[2], 1)]
     return out
-
-
-@bp.route('/jobs')
-def jobs_page():
-    _board_user()
-    return spa.render('My jobs')
 
 
 @bp.route('/api/jobs', methods=['GET'])
