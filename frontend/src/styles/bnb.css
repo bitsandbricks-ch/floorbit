@@ -1,0 +1,31 @@
+/* The shared @bitsandbricks tokens, fed from Floorbit's own (static/css/brand/tokens.css), so the
+   admin's colours, the presets (ops, kiosk) and light/dark keep working on the shared components.
+   The selectors match the package's light and dark blocks, and this file loads after them. */
+:root,
+:root[data-theme],
+:root[data-mantine-color-scheme] {
+  --bnb-accent-light: var(--color-bit);
+  --bnb-accent-dark: var(--color-bit);
+  --bnb-on-accent-light: var(--color-on-bit);
+  --bnb-on-accent-dark: var(--color-on-bit);
+  --bnb-accent-hover: var(--color-bit-hover);
+
+  --bnb-bg: var(--color-ink);
+  --bnb-surface: var(--color-surface);
+  --bnb-raised: var(--color-raised);
+  --bnb-line: var(--color-line);
+  --bnb-fg: var(--color-fg);
+  --bnb-muted: var(--color-muted);
+  --bnb-faint: var(--color-faint);
+
+  /* Floorbit names states after links: up, down, warn; trace is its info colour. */
+  --bnb-ok: var(--color-up);
+  --bnb-err: var(--color-down);
+  --bnb-warn: var(--color-warn);
+  --bnb-info: var(--color-trace);
+  --bnb-off: var(--color-unknown);
+  --bnb-on-status: var(--color-ink);
+
+  --bnb-font-sans: var(--font-sans);
+  --bnb-font-mono: var(--font-mono);
+}

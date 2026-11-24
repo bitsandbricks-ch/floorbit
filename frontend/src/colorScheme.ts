@@ -1,3 +1,4 @@
+import type { MantineColorSchemeManager } from '@mantine/core'
 import { useSyncExternalStore } from 'react'
 
 // static/js/theme.js owns light/dark (saved choice, OS setting, a preset's lock) and sets
@@ -27,4 +28,22 @@ export function useScheme(): Scheme {
 export function toggleScheme(): (() => void) | null {
   if (document.documentElement.dataset.themeLock || !window.floorTheme) return null
   return () => window.floorTheme?.toggle()
+}
+
+/** Mantine's colour scheme, read from static/js/theme.js instead of Mantine's own storage. */
+export function floorbitSchemeManager(): MantineColorSchemeManager {
+  let listener: (() => void) | null = null
+  return {
+    get: () => currentScheme(),
+    set: () => {},
+    subscribe: (onUpdate) => {
+      listener = () => onUpdate(currentScheme())
+      document.addEventListener('themechange', listener)
+    },
+    unsubscribe: () => {
+      if (listener) document.removeEventListener('themechange', listener)
+      listener = null
+    },
+    clear: () => {},
+  }
 }
