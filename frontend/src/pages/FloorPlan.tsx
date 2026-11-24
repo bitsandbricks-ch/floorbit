@@ -385,12 +385,13 @@ export default function FloorPlan() {
     electrical: power && <Legend checkin={false} seats={false} power label={legendOf(t('plan.layers.item.electrical'))} />,
     firewalls: firewalls && <Legend checkin={false} seats={false} firewalls label={legendOf(t('plan.layers.item.firewalls'))} />,
     status: traffic && <Legend checkin={false} seats={false} traffic label={legendOf(t('plan.layers.item.status'))} />,
+    problems: layers.on.has('problems') && <Legend checkin={false} seats={false} problems label={legendOf(t('plan.layers.item.problems'))} />,
     checkin: data.checkin && <Legend checkin seats={false} samples={['checkedIn']} label={legendOf(t('plan.layers.item.checkin'))} />,
     network: layers.on.has('network') && !!cablePlan?.cables.length && <CableLegend cables={cablePlan.cables} links={data.links} />,
   } : {}
   const keyShown = !(tabsShown && side.tab === 'layers')
   const available: Record<LayerId, boolean> = {
-    grid: true, marks: true, network: true, safety: true, services: true, status: !!data?.monitoring, checkin: !!data?.checkin,
+    grid: true, marks: true, network: true, safety: true, services: true, status: !!data?.monitoring, problems: true, checkin: !!data?.checkin,
     electrical: !!markers.data?.enabled, firewalls: !!fwSeats.data?.enabled, wifi: wifiPlaced, crew: !!incidentQ.data,
   }
   return (

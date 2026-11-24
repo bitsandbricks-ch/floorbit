@@ -5,7 +5,7 @@ import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from '
 import { useTranslation } from 'react-i18next'
 import type { FirewallSeats, IncidentMarkers, PlanCable, PlanSeat, PluginLayerData, PluginLayerTone, PowerMarkers, SeatViewData, WifiData } from '@/api/types'
 import {
-  type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, matches, minutesAgo, nearestSeat, nextSeat, pan,
+  type Density, type Direction, type Filter, type View, density, heatColor, heatLevel, PROBLEM_COLORS, problemLevel, matches, minutesAgo, nearestSeat, nextSeat, pan,
   parseBox, rate, reveal, scale, seatCenter, zoom,
 } from './model'
 import { DEFAULT_LAYERS, type LayerState, layerStyle, opacity } from './layers'
@@ -23,8 +23,10 @@ import { UPLINK_WIDTH } from './linkLook'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
-export function SeatGlyph({ seat, size, detail, traffic = false, route, checkin = true, incidents = 0, mark }: {
+export function SeatGlyph({ seat, size, detail, traffic = false, problems = false, route, checkin = true, incidents = 0, mark }: {
   seat: PlanSeat; size: number; detail: boolean; traffic?: boolean
+  /** The open-problems heatmap: a seat with problems is filled by how many, over its traffic. */
+  problems?: boolean
   /** A plugin layer's tone for this seat (./PluginLayer.tsx): a coloured ring. */
   mark?: PluginLayerTone
   /** Draw the check-in corner (the check-in layer). */
@@ -37,13 +39,15 @@ export function SeatGlyph({ seat, size, detail, traffic = false, route, checkin 
   const i = size * 0.08
   const s = size - 2 * i
   // With the traffic overlay an online seat is filled by its traffic; the shapes stay the same.
-  const heat = traffic && seat.state === 'online' ? heatColor(heatLevel(seat.bps)) : undefined
+  const trouble = problems ? problemLevel(seat) : 0
+  const heat = trouble ? undefined : traffic && seat.state === 'online' ? heatColor(heatLevel(seat.bps)) : undefined
   return (
     <>
       {seat.changed && <rect className="recent" x={i - 5} y={i - 5} width={s + 10} height={s + 10} rx={7} />}
       {mark && <rect className={`pl pl-${mark}`} x={i - 3.5} y={i - 3.5} width={s + 7} height={s + 7} rx={6} />}
       {route && <rect className={`fwr fw-${route}`} x={i - 3.5} y={i - 3.5} width={s + 7} height={s + 7} rx={6} />}
-      <rect className={`seat s-${seat.state}${heat ? ' heat' : ''}`} x={i} y={i} width={s} height={s} rx={3} style={heat ? { fill: heat } : undefined} />
+      <rect className={`seat s-${seat.state}${heat ? ' heat' : ''}${trouble ? ` pheat pheat-${trouble}` : ''}`} x={i} y={i} width={s} height={s} rx={3}
+        style={trouble ? { fill: PROBLEM_COLORS[trouble] } : heat ? { fill: heat } : undefined} />
       {seat.state === 'offline' && <line className="slash" x1={i + 4} y1={i + s - 4} x2={i + s - 4} y2={i + 4} />}
       {detail && seat.note && <polygon className="note" points={`${i},${i + s * 0.58} ${i + s * 0.42},${i + s} ${i},${i + s}`} />}
       {detail && checkin && seat.checked_in && <polygon className="chk" points={`${i + s * 0.42},${i} ${i + s},${i} ${i + s},${i + s * 0.58}`} />}
@@ -341,7 +345,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   const cursorSeat = cursor ? data.seats[cursor] ?? { state: 'unknown' as const } : null
   return (
     <div ref={wrap} className={`fb-plan-wrap d-${level}`}>
-      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className={traffic ? 'fb-plan traffic' : 'fb-plan'} style={{ ...layerStyle(layers), ...labelStyle(named) }} tabIndex={0} role="application"
+      <svg ref={svg} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className={['fb-plan', traffic && 'traffic', layers.on.has('problems') && 'pheatmap'].filter(Boolean).join(' ')} style={{ ...layerStyle(layers), ...labelStyle(named) }} tabIndex={0} role="application"
         aria-label={t('plan.mapLabel')} aria-roledescription={t('plan.mapRole')} aria-describedby={`${ids}-keys ${ids}-blocks`}
         aria-activedescendant={cursor ? `${ids}-${cursor}` : undefined} onKeyDown={onKey}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
@@ -387,7 +391,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                   transform={b.rotation ? `rotate(${-b.rotation} ${r.x} ${r.y})` : undefined}>{r.text}</text>
               ))}
               <BlockSeats cells={b.cells} rotation={b.rotation} seats={data.seats} cell={drawing.cell} filter={filter} selected={selected} only={focus?.seats}
-                cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} firewalls={firewalls} marks={pluginSeats}
+                cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} problems={layers.on.has('problems')} firewalls={firewalls} marks={pluginSeats}
                 checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} labels={seatLabels} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
             </g>
             {level !== 'far' && blockLabels[bi] && (() => {
@@ -457,9 +461,9 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
 }
 
 /** One block's seats, in the block's coordinates. Memoised: panning and zooming don't draw them again. */
-const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, only, cursor, traffic, firewalls, marks, checkin, incidents, level, labels, ids, onEnter, onLeave, onClick, describe }: {
+const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filter, selected, only, cursor, traffic, problems, firewalls, marks, checkin, incidents, level, labels, ids, onEnter, onLeave, onClick, describe }: {
   cells: { seat: string; x: number; y: number; a?: number; side?: 'left' | 'right'; rc?: [number, number] }[]; rotation: number; seats: SeatViewData['seats']; cell: number
-  filter: Filter; selected: string | null; only?: ReadonlySet<string>; cursor: string | null; traffic: boolean; firewalls?: FirewallSeats['seats']
+  filter: Filter; selected: string | null; only?: ReadonlySet<string>; cursor: string | null; traffic: boolean; problems: boolean; firewalls?: FirewallSeats['seats']
   marks?: PluginLayerData['seats']
   checkin: boolean; incidents?: IncidentMarkers['seats']; level: Density; labels: SeatLabels; ids: string
   onEnter: (seat: string, clientX: number, clientY: number) => void; onLeave: () => void; onClick: (seat: string) => void
@@ -470,7 +474,7 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
     <>
       {cells.map((c) => {
         const seat = seats[c.seat] ?? { state: 'unknown' as const }
-        const bright = traffic && seat.state === 'online' && heatLevel(seat.bps) > 0.6
+        const bright = !(problems && problemLevel(seat)) && traffic && seat.state === 'online' && heatLevel(seat.bps) > 0.6
         const cls = ['cell', matches(seat, filter) && (!only || only.has(c.seat)) ? '' : 'dim', selected === c.seat ? 'sel' : '', bright ? 'bright' : '',
           cursor === c.seat ? 'kb' : ''].join(' ').trim()
         return (
@@ -481,7 +485,7 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
             onPointerLeave={onLeave}
             onClick={() => onClick(c.seat)}>
             <rect className="hit" width={cell} height={cell} />
-            <SeatGlyph seat={seat} size={cell} detail={level !== 'far'} traffic={traffic} route={firewalls?.[c.seat]?.state}
+            <SeatGlyph seat={seat} size={cell} detail={level !== 'far'} traffic={traffic} problems={problems} route={firewalls?.[c.seat]?.state}
               checkin={checkin} incidents={incidents?.[c.seat]} mark={marks?.[c.seat]?.tone} />
             {/* The chair, on the side people sit (floorbit/seat_rows.py): left of the way the row runs is up.
                 Just outside the seat, so it never covers its number or state (Mike, issue #1342). */}

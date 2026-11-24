@@ -16,14 +16,28 @@ the tabs back. The panel button in the top bar, or **]**, hides the panel for mo
 remembers whether it was open and which tab. On a phone the open item shows below the plan instead,
 and Layers stays in the top bar. Each layer's key sits under its switch in **Layers**: what the
 seats' shapes mean under the seats line, the power colours under Electrical, the traffic scale under
-Status, the cable colours and dashes under Network (once the hall has cables), and so on. While Layers isn't in
+the traffic heatmap, the problem steps under the problems heatmap, the cable colours and dashes under Network (once the hall has cables), and so on. While Layers isn't in
 view (another tab, an open item, the panel hidden), the same key floats over the plan's bottom-left
 corner: click **Legend** to fold it away.
 
 There are no modes: the plan is always live (seat states, status, incidents), and what else shows
 is the layers' choice. The **Layers** presets (keys **1** to **4**) are the old views: **Overview**
 (labels and check-ins), **Network** (switches, uplinks, seat cables and Wi-Fi), **Electrical** and
-**Ops** (network, traffic, firewalls, incidents and check-ins). The **Checked in** filter shows the
+**Ops** (network, both heatmaps, firewalls, incidents and check-ins).
+
+### Heatmaps
+
+Two layers fill the seats by a number, each with its scale under its switch (issue #875):
+
+- **Heatmap: traffic per seat** fills an online seat by its traffic now, on a fixed log scale from
+  100 kbit/s to 1 Gbit/s (viridis), so the same colour means the same traffic in every hall.
+- **Heatmap: open problems per seat** fills a seat by its open incidents and port trouble, plus one
+  when a down switch or uplink cuts it off: orange for 1, red for 2, wine for 3 and more, past the
+  traffic scale's yellow end. With both
+  on, a seat with problems shows its problems and the rest show their traffic, so trouble stands out
+  in a busy hall.
+
+Hover or open a seat for its numbers. The **Checked in** filter shows the
 seats that checked in. Old links with `?mode=live`, `checkin`, `network` or `edit` still open what
 they showed.
 

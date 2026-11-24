@@ -186,6 +186,15 @@ export function heatColor(level: number) {
   return `rgb(${c[0]}, ${c[1]}, ${c[2]})`
 }
 
+/** The open-problems heatmap (issue #875): open incidents and port trouble at the seat, and one more
+ *  when a down switch or uplink cuts it off. 3 and more look the same: that seat needs a visit. */
+export function problemLevel(seat: { problems?: number; behind?: string }) {
+  return Math.min(3, (seat.problems ?? 0) + (seat.behind ? 1 : 0))
+}
+
+/** Orange to red to wine: past viridis' yellow end, so the two heatmaps never read as one. */
+export const PROBLEM_COLORS = ['', '#ff7a1a', '#e0362c', '#a3125a'] as const
+
 export const HEAT_GRADIENT = `linear-gradient(90deg, ${VIRIDIS.map((c) => `rgb(${c.join(', ')})`).join(', ')})`
 
 export interface LinkSpan { from: number; to: number; on: boolean | null }
