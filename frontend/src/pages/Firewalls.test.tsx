@@ -10,8 +10,8 @@ const lead = { enabled: true, user: { username: 'le', display_name: 'Le', role: 
 const viewer = { enabled: true, user: { username: 'vi', display_name: 'Vi', role: 'viewer', permissions: ['floorplan.view'] } }
 const list: FirewallList = {
   firewalls: [
-    { id: 'f1', name: 'fw-01', model: 'Example FW', hall: '', status: 'online', serving: ['192.0.2.0/27', '192.0.2.32/27'], planned: ['192.0.2.0/27'], backup_for: ['192.0.2.32/27'], seats: 40 },
-    { id: 'f2', name: 'fw-02', model: '', hall: '', status: 'offline', serving: [], planned: ['192.0.2.32/27'], backup_for: [], seats: 0 },
+    { id: 'f1', name: 'fw-01', model: 'Example FW', hall: '', status: 'online', serving: ['192.0.2.0/27', '192.0.2.32/27'], planned: ['192.0.2.0/27'], taken_over: ['192.0.2.32/27'], seats: 40 },
+    { id: 'f2', name: 'fw-02', model: '', hall: '', status: 'offline', serving: [], planned: ['192.0.2.32/27'], taken_over: [], seats: 0 },
   ],
   ranges: [
     { id: 'r1', cidr: '192.0.2.0/27', name: 'Block A', firewalls: ['fw-01', 'fw-02'], intended: 'fw-01', now: 'fw-01', state: 'primary', seats: 22 },
@@ -29,12 +29,14 @@ describe('Firewalls', () => {
     expect(within(down).getByText('Planned for 192.0.2.32/27')).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'fw-01' })).getByText('Serves 2 ranges, 40 seats')).toBeInTheDocument()
     expect(screen.getByText('192.0.2.32/27 runs over fw-01, planned fw-02')).toBeInTheDocument()
-    expect(screen.getByText('fw-02 → fw-01')).toBeInTheDocument()
+    expect(screen.getAllByText('then fw-01').length).toBeGreaterThan(0)
+    expect(within(screen.getByRole('region', { name: 'fw-01' })).getByText('Took over 192.0.2.32/27')).toBeInTheDocument()
+    expect(screen.queryByText(/Backup for/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add range' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Change' })).not.toBeInTheDocument()
   })
 
-  it('lets the crew add a range with its firewalls in order', async () => {
+  it('lets the crew add a from-to range with its firewall and a fallback (#866)', async () => {
     const api = fakeFetch({
       'GET /api/auth/me': lead, 'GET /api/firewalls': { ...list, ranges: [] },
       'POST /api/firewalls/ranges': () => ({ status: 201, body: list.ranges[0] }),
@@ -42,14 +44,21 @@ describe('Firewalls', () => {
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Firewalls />)
     fireEvent.click(await screen.findByRole('button', { name: 'Add range' }))
-    fireEvent.change(await screen.findByRole('textbox', { name: 'Range' }), { target: { value: '192.0.2.0/27' } })
-    const [line] = screen.getAllByLabelText('Firewalls in order').filter((el) => el.tagName === 'INPUT' && el.getAttribute('type') !== 'hidden')
-    fireEvent.click(line)
-    fireEvent.click(await screen.findByRole('option', { name: 'fw-02', hidden: true }))
-    fireEvent.click(await screen.findByRole('option', { name: 'fw-01', hidden: true }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Range' }), { target: { value: '192.0.2.0-192.0.2.128' } })
+    const input = (label: string) => screen.getAllByLabelText(label).filter((el) => el.tagName === 'INPUT' && el.getAttribute('type') !== 'hidden')[0]
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    // Both pickers keep their options in the page: pick from the one that was opened.
+    const pick = async (label: string, name: string) => {
+      const el = input(label)
+      fireEvent.click(el)
+      const list = await waitFor(() => document.getElementById(el.getAttribute('aria-controls') ?? '') as HTMLElement)
+      fireEvent.click(within(list).getByRole('option', { name, hidden: true }))
+    }
+    await pick('Firewall', 'fw-02')
+    await pick('Fallback', 'fw-01')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({
-      cidr: '192.0.2.0/27', name: '', firewalls: ['fw-02', 'fw-01'], switches: [],
+      cidr: '192.0.2.0-192.0.2.128', name: '', firewalls: ['fw-02', 'fw-01'], switches: [],
     }))
   })
 
@@ -86,7 +95,7 @@ describe('Firewalls', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Hall' } })
     fireEvent.click(screen.getByRole('button', { name: 'Split' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toEqual({
-      cidr: '198.51.100.0/22', size: 24, name: 'Hall', firewalls: ['fw-01', 'fw-02'],
+      cidr: '198.51.100.0/22', size: 24, name: 'Hall', firewalls: ['fw-01', 'fw-02'], fallback: false,
     }))
   })
 

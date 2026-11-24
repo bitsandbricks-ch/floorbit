@@ -79,8 +79,10 @@ def test_a_range_fails_over_to_the_next_firewall_that_is_up(client, net):
     by_cidr = {r["cidr"]: r for r in body["ranges"]}
     assert (by_cidr["192.0.2.32/27"]["now"], by_cidr["192.0.2.32/27"]["state"]) == ("fw-03", "failover")
     fw2 = next(f for f in body["firewalls"] if f["name"] == "fw-02")
-    assert (fw2["status"], fw2["serving"], fw2["planned"], fw2["backup_for"]) == (
-        "offline", [], ["192.0.2.32/27"], ["192.0.2.0/27"])
+    assert (fw2["status"], fw2["serving"], fw2["planned"], fw2["taken_over"]) == (
+        "offline", [], ["192.0.2.32/27"], [])
+    fw3 = next(f for f in body["firewalls"] if f["name"] == "fw-03")
+    assert fw3["taken_over"] == ["192.0.2.32/27"]
 
 
 def test_an_unreadable_source_is_unknown_not_down(client, net):
@@ -138,15 +140,53 @@ def test_a_network_splits_into_ranges_shared_over_the_firewalls(client, net):
     out = r.get_json()
     assert (out["added"], out["skipped"]) == (7, 1)
     got = {x["cidr"]: (x["name"], x["firewalls"]) for x in out["ranges"]}
-    assert got["192.0.2.0/27"] == ("Hall 1", ["fw-01", "fw-02", "fw-03"])
-    assert got["192.0.2.64/27"] == ("Hall 3", ["fw-03", "fw-01", "fw-02"])
-    assert got["192.0.2.96/27"] == ("Hall 4", ["fw-01", "fw-02", "fw-03"])
+    # One firewall each: a core that fails ranges over is the exception (#866).
+    assert got["192.0.2.0/27"] == ("Hall 1", ["fw-01"])
+    assert got["192.0.2.64/27"] == ("Hall 3", ["fw-03"])
+    assert got["192.0.2.96/27"] == ("Hall 4", ["fw-01"])
     # The range planned before keeps its own line.
     kept = [x for x in client.get("/api/firewalls").get_json()["ranges"] if x["cidr"] == "192.0.2.32/27"]
     assert kept[0]["firewalls"] == ["fw-03"]
     again = client.post("/api/firewalls/ranges/split",
                         json={"cidr": "192.0.2.0/24", "size": 27, "firewalls": ["fw-01"]})
     assert again.status_code == 200 and again.get_json()["added"] == 0
+
+
+def test_a_split_can_give_each_range_the_next_firewall_as_fallback(client, net):
+    out = client.post("/api/firewalls/ranges/split", json={
+        "cidr": "192.0.2.0/25", "size": 27, "firewalls": ["fw-01", "fw-02", "fw-03"], "fallback": True}).get_json()
+    got = {x["cidr"]: x["firewalls"] for x in out["ranges"]}
+    assert got["192.0.2.0/27"] == ["fw-01", "fw-02"] and got["192.0.2.64/27"] == ["fw-03", "fw-01"]
+
+
+def test_a_range_can_be_any_span_of_addresses(client, net):
+    # The core routes .0 to .128 to one firewall and the rest to another: not CIDR blocks (#866).
+    assert _add(client, "192.0.2.0 - 192.0.2.128", "fw-01").status_code == 201
+    assert _add(client, "192.0.2.129-192.0.2.255", "fw-03").status_code == 201
+    # A span that is one network is written as that network.
+    assert _add(client, "198.51.100.0-198.51.100.255", "fw-03").get_json()["cidr"] == "198.51.100.0/24"
+    body = client.get("/api/firewalls").get_json()
+    assert [r["cidr"] for r in body["ranges"]] == [
+        "192.0.2.0-192.0.2.128", "192.0.2.129-192.0.2.255", "198.51.100.0/24"]
+    seats = {r["cidr"]: r["seats"] for r in body["ranges"]}
+    assert seats["192.0.2.0-192.0.2.128"] == 3 and seats["198.51.100.0/24"] == 1
+    # A narrower range inside one wins, like a longer prefix.
+    assert _add(client, "192.0.2.32/27", "fw-03").status_code == 201
+    assert firewalls.for_seat("A-2")["intended"] == "fw-03"
+    assert firewalls.for_seat("A-1")["intended"] == "fw-01"
+
+
+@pytest.mark.parametrize("text", ["192.0.2.9-192.0.2.1", "192.0.2.1-2001:db8::1", "192.0.2.1-5", "192.0.2.1-"])
+def test_a_span_must_run_forwards_in_one_family(client, net, text):
+    r = _add(client, text, "fw-01")
+    assert r.status_code == 400 and "from-to" in r.get_json()["error"]
+
+
+def test_ranges_that_only_cross_are_refused(client, net):
+    assert _add(client, "192.0.2.0-192.0.2.100", "fw-01").status_code == 201
+    r = _add(client, "192.0.2.50-192.0.2.150", "fw-03")
+    assert r.status_code == 409 and "in part" in r.get_json()["error"]
+    assert _add(client, "192.0.2.10-192.0.2.20", "fw-03").status_code == 201   # inside: fine
 
 
 @pytest.mark.parametrize("body", [

@@ -1,6 +1,6 @@
 import {
-  Alert, Badge, Button, Group, Modal, MultiSelect, NumberInput, Paper, SimpleGrid, Stack, Text, TextInput, Title,
-  Tooltip,
+  Alert, Badge, Button, Checkbox, Group, Modal, MultiSelect, NumberInput, Paper, Select, SimpleGrid, Stack, Text, TextInput,
+  Title, Tooltip,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -18,8 +18,8 @@ import { PageHead } from '@/components/PageHead'
 const STATUS_TONE = { online: 'up', offline: 'down', unknown: 'gray' } as const
 const ROUTE_TONE = { primary: 'up', failover: 'warn', unknown: 'gray', down: 'down' } as const
 
-/** The firewalls and the seat ranges the core routes to them (issue #470): health, what each one
- *  serves now, and which ranges have failed over to a backup. */
+/** The firewalls and the seat ranges the core policy-routes to them (issues #470, #866): health, what
+ *  each one serves now, and which ranges are off their firewall. */
 export default function Firewalls() {
   const { t } = useTranslation()
   const canEdit = useCan('floorplan.edit')
@@ -115,7 +115,7 @@ function Card({ card: f }: { card: FirewallCard }) {
       {f.status === 'offline' && f.planned.length > 0 && (
         <Text size="xs" c="down" mt={4}>{t('firewalls.plannedFor', { list: f.planned.join(', ') })}</Text>
       )}
-      {f.backup_for.length > 0 && <Text size="xs" c="dimmed" mt={4}>{t('firewalls.backupFor', { list: f.backup_for.join(', ') })}</Text>}
+      {f.taken_over.length > 0 && <Text size="xs" c="warn" mt={4}>{t('firewalls.takenOver', { list: f.taken_over.join(', ') })}</Text>}
     </Paper>
   )
 }
@@ -149,7 +149,12 @@ function Ranges({ ranges, scope, canEdit, onEdit }: {
             <Badge size="sm" color={ROUTE_TONE[r.state]} variant="light">{t(`firewalls.route.${r.state}`)}</Badge>
           </Group>
         ) },
-        { id: 'line', header: t('firewalls.line'), card: 'label', wrap: true, cell: (r) => r.firewalls.join(' → ') },
+        { id: 'line', header: t('firewalls.line'), card: 'label', wrap: true, sort: (r) => r.intended ?? '', cell: (r) => (
+          <>
+            <Text size="sm" ff="monospace">{r.intended}</Text>
+            {r.firewalls.length > 1 && <Text size="xs" c="dimmed">{t('firewalls.fallsBack', { list: r.firewalls.slice(1).join(', ') })}</Text>}
+          </>
+        ) },
         { id: 'seats', header: t('firewalls.seats'), card: 'label', numeric: true, sort: (r) => r.seats, cell: (r) => r.seats },
         ...(canEdit ? [{ id: 'actions', header: null, cell: (r: FirewallRange) => (
           <Group gap={4} justify="flex-end" wrap="nowrap">
@@ -172,27 +177,36 @@ function RangeModal({ range, names, scope, onClose }: {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const imported = range?.source === 'import'
-  const [form, setForm] = useState({ cidr: range?.cidr ?? '', name: range?.name ?? '', firewalls: range?.firewalls ?? [], switches: range?.switches ?? [] })
+  const [form, setForm] = useState({
+    cidr: range?.cidr ?? '', name: range?.name ?? '', firewall: range?.firewalls[0] ?? null as string | null,
+    fallback: range?.firewalls.slice(1) ?? [], switches: range?.switches ?? [],
+  })
+  // The API keeps one ordered list: the range's firewall, then its fallbacks.
+  const body = { cidr: form.cidr, name: form.name, switches: form.switches,
+    firewalls: form.firewall ? [form.firewall, ...form.fallback.filter((n) => n !== form.firewall)] : [] }
   const save = useMutation({
-    mutationFn: () => (range ? put(`/api/firewalls/ranges/${range.id}`, imported ? { switches: form.switches } : form)
-      : post('/api/firewalls/ranges', form)),
+    mutationFn: () => (range ? put(`/api/firewalls/ranges/${range.id}`, imported ? { switches: form.switches } : body)
+      : post('/api/firewalls/ranges', body)),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: qk.firewalls }); onClose() },
   })
   return (
     <Modal opened onClose={onClose} title={range ? t('firewalls.editTitle') : t('firewalls.add')}>
       <Stack gap="sm">
-        <TextInput label={t('firewalls.range')} placeholder="192.0.2.0/27" value={form.cidr} disabled={imported}
+        <TextInput label={t('firewalls.range')} placeholder={t('firewalls.rangePlaceholder')} value={form.cidr} disabled={imported}
           onChange={(e) => setForm({ ...form, cidr: e.currentTarget.value })} />
         <TextInput label={t('firewalls.name')} placeholder={t('firewalls.namePlaceholder')} value={form.name} disabled={imported}
           onChange={(e) => setForm({ ...form, name: e.currentTarget.value })} />
-        <MultiSelect label={t('firewalls.line')} description={t('firewalls.lineHelp')} data={names} value={form.firewalls}
-          onChange={(v) => setForm({ ...form, firewalls: v })} searchable disabled={imported} />
+        <Select label={t('firewalls.line')} description={t('firewalls.lineHelp')} data={names} value={form.firewall}
+          onChange={(v) => setForm({ ...form, firewall: v })} searchable disabled={imported} />
+        <MultiSelect label={t('firewalls.fallback')} description={t('firewalls.fallbackHelp')}
+          data={names.filter((n) => n !== form.firewall)} value={form.fallback}
+          onChange={(v) => setForm({ ...form, fallback: v })} searchable clearable disabled={imported} />
         <MultiSelect label={t('firewalls.switches')} description={t('firewalls.switchesHelp')}
           data={scope.options} value={form.switches}
           onChange={(v) => setForm({ ...form, switches: v })} searchable clearable />
         {save.error && <Alert color="down" role="alert">{save.error.message}</Alert>}
         <Group justify="flex-end">
-          <Button loading={save.isPending} disabled={!form.cidr.trim() || form.firewalls.length === 0}
+          <Button loading={save.isPending} disabled={!form.cidr.trim() || !form.firewall}
             onClick={() => save.mutate()}>{t('firewalls.save')}</Button>
         </Group>
       </Stack>
@@ -212,7 +226,7 @@ function splitCount(cidr: string, size: number | string) {
 function SplitModal({ names, onClose }: { names: string[]; onClose: () => void }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
-  const [form, setForm] = useState({ cidr: '', size: 24 as number | string, name: '', firewalls: names })
+  const [form, setForm] = useState({ cidr: '', size: 24 as number | string, name: '', firewalls: names, fallback: false })
   const count = splitCount(form.cidr, form.size)
   const save = useMutation({
     mutationFn: () => post('/api/firewalls/ranges/split', { ...form, size: Number(form.size) }),
@@ -228,8 +242,10 @@ function SplitModal({ names, onClose }: { names: string[]; onClose: () => void }
           prefix="/" value={form.size} onChange={(v) => setForm({ ...form, size: v })} />
         <TextInput label={t('firewalls.name')} description={t('firewalls.splitNameHelp')} placeholder={t('firewalls.splitNamePlaceholder')}
           value={form.name} onChange={(e) => setForm({ ...form, name: e.currentTarget.value })} />
-        <MultiSelect label={t('firewalls.splitLine')} description={t('firewalls.lineHelp')} data={names} value={form.firewalls}
+        <MultiSelect label={t('firewalls.splitLine')} data={names} value={form.firewalls}
           onChange={(v) => setForm({ ...form, firewalls: v })} searchable />
+        <Checkbox label={t('firewalls.splitFallback')} checked={form.fallback}
+          onChange={(e) => setForm({ ...form, fallback: e.currentTarget.checked })} />
         {count === Infinity
           ? <Text size="sm" c="down">{t('firewalls.splitTooMany')}</Text>
           : count !== null && <Text size="sm">{t('firewalls.splitCount', { count })}</Text>}

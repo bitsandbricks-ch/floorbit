@@ -1701,7 +1701,7 @@ export interface FirewallRange {
 }
 export interface FirewallCard {
   id: string; name: string; model: string; hall: string; status: 'online' | 'offline' | 'unknown'
-  serving: string[]; planned: string[]; backup_for: string[]; seats: number
+  serving: string[]; planned: string[]; taken_over: string[]; seats: number
 }
 export interface FirewallList {
   firewalls: FirewallCard[]; ranges: FirewallRange[]; unread: boolean; monitoring?: boolean; can_import?: boolean

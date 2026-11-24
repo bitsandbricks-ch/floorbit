@@ -1,14 +1,16 @@
 """Firewalls and the ranges they serve (issue #470).
 
-The core policy-routes each seat range to its firewall while that one is up, and to the next in
-line when it isn't. Floorbit keeps that plan and shows it against the firewalls' health:
+The core policy-routes each seat range to its firewall, and (only where it is set up to) to a
+fallback while that one is down. Floorbit keeps that plan and shows it against the firewalls' health:
 
 - **The firewalls** are the inventory's devices with the role ``firewall``.
-- **A range** is a network (``192.0.2.0/27``) with its firewalls in order: the first is the one its
-  traffic should take, the rest the failover order. Kept in data.json under ``firewalls``; the crew
+- **A range** is a network (``192.0.2.0/27``) or any span of addresses (``192.0.2.0-192.0.2.128``:
+  the core policy-routes by address, not by CIDR block, issue #866) with its firewall, and optionally
+  where it goes when that one is down. Most events have no fallback.
+  Kept in data.json under ``firewalls``; the crew
   changes them (``floorplan.edit``), or imports them from NetBox prefixes that have the custom field
   ``floorbit_firewalls`` (``source: import``; each import replaces the last).
-- **Now**: the first firewall in a range's line that the monitoring source doesn't report down. A
+- **Now**: the range's firewall, or its first fallback, that the monitoring source doesn't report down. A
   firewall the source can't tell about counts as up (the core would still route to it), but the
   range says so (``unknown``).
 
@@ -50,11 +52,52 @@ def _firewall_names(data):
             if d.get('role') == 'firewall' and d.get('name')}
 
 
+class Span:
+    """Addresses from ``first`` to ``last``: a network or any range the core routes by policy."""
+
+    def __init__(self, first, last):
+        self.first, self.last = first, last
+        self.version = first.version
+
+    def __contains__(self, ip):
+        return ip.version == self.version and self.first <= ip <= self.last
+
+    @property
+    def size(self):
+        return int(self.last) - int(self.first) + 1
+
+    def overlaps(self, other):
+        return self.version == other.version and self.first <= other.last and other.first <= self.last
+
+    def __str__(self):
+        # A span that is exactly one network is written as one, so imports and splits still compare.
+        nets = list(ipaddress.summarize_address_range(self.first, self.last))
+        return str(nets[0]) if len(nets) == 1 else f'{self.first}-{self.last}'
+
+    def sort_key(self):
+        return (self.version, int(self.first), -self.size)
+
+
+def _parse(value):
+    text = str(value or '').strip()
+    if '-' in text:
+        a, b = (part.strip() for part in text.split('-', 1))
+        first, last = ipaddress.ip_address(a), ipaddress.ip_address(b)
+        if '.' not in b and ':' not in b:
+            raise ValueError(text)
+        if first.version != last.version or first > last:
+            raise ValueError(text)
+        return Span(first, last)
+    net = ipaddress.ip_network(text, strict=False)
+    return Span(net.network_address, net.broadcast_address)
+
+
 def _network(value):
     try:
-        return ipaddress.ip_network(str(value or '').strip(), strict=False)
+        return _parse(value)
     except ValueError:
-        raise FirewallError('Write the range as a network, like 192.0.2.0/27.') from None
+        raise FirewallError('Write the range as a network (192.0.2.0/27) or from-to '
+                            '(192.0.2.0-192.0.2.128).') from None
 
 
 def _clean(body, data, current=None):
@@ -116,6 +159,10 @@ def save(body, by, range_id=None):
         fields = _clean(body, data, row)
         if any(r is not row and r.get('cidr') == fields['cidr'] for r in rows):
             raise FirewallError(f"{fields['cidr']} is planned already.", 409)
+        clash = _partly_over(_parse(fields['cidr']), [r for r in rows if r is not row])
+        if clash:
+            raise FirewallError(f"{fields['cidr']} overlaps {clash} only in part: make one range inside the other, "
+                                'or split them where they meet.', 409)
         if row is None:
             if len(rows) >= MAX_RANGES:
                 raise FirewallError(f'Floorbit keeps at most {MAX_RANGES} ranges.')
@@ -127,15 +174,33 @@ def save(body, by, range_id=None):
     return dict(row)
 
 
+def _partly_over(span, rows):
+    """The first range that overlaps ``span`` without one holding the other. Nested ranges are fine
+    (the narrower one wins); two that only cross would leave the addresses between them ambiguous."""
+    for r in rows:
+        try:
+            other = _parse(r.get('cidr'))
+        except ValueError:
+            continue
+        inside = (other.first <= span.first and span.last <= other.last) or \
+                 (span.first <= other.first and other.last <= span.last)
+        if span.overlaps(other) and not inside:
+            return r.get('cidr')
+    return None
+
+
 MAX_SPLIT = 256          # ranges one split may make
 
 
 def split(body, by):
     """Cut a network into equal ranges and hand them to the firewalls in turn: range 1 to the first
-    firewall with the others as backups in order, range 2 to the second, and so on. This is how a
-    core usually spreads seats over a firewall cluster, so a whole hall is planned in one go.
-    Ranges planned already are left as they are."""
-    net = _network(body.get('cidr'))
+    firewall, range 2 to the second, and so on, so a whole hall is planned in one go. With
+    ``fallback`` each range falls back to the next firewall in turn (off by default: most cores
+    don't fail a range over). Ranges planned already are left as they are."""
+    try:
+        net = ipaddress.ip_network(str(body.get('cidr') or '').strip(), strict=False)
+    except ValueError:
+        raise FirewallError('Write the network to split like 198.51.100.0/22.') from None
     try:
         size = int(body.get('size'))
     except (TypeError, ValueError):
@@ -160,8 +225,10 @@ def split(body, by):
             if len(rows) >= MAX_RANGES:
                 raise FirewallError(f'Floorbit keeps at most {MAX_RANGES} ranges.')
             turn = i % len(line)
+            order = line[turn:] + line[:turn]
             row = {'id': uuid.uuid4().hex[:12], 'cidr': str(sub), 'name': f'{label} {i + 1}' if label else '',
-                   'firewalls': line[turn:] + line[:turn], 'updated_at': time.time(), 'by': by}
+                   'firewalls': order[:2] if body.get('fallback') and len(order) > 1 else order[:1],
+                   'updated_at': time.time(), 'by': by}
             rows.append(row)
             added.append(row)
         data[KEY] = stored
@@ -330,10 +397,10 @@ def _seat_ips():
 
 
 def _match(ip, nets):
-    """The most specific range ``ip`` is in, like the core's routing table."""
+    """The narrowest range ``ip`` is in, like the core's routing table."""
     best = None
     for row, net in nets:
-        if ip.version == net.version and ip in net and (best is None or net.prefixlen > best[1].prefixlen):
+        if ip in net and (best is None or net.size < best[1].size):
             best = (row, net)
     return best[0] if best else None
 
@@ -342,7 +409,7 @@ def _nets(data):
     out = []
     for row in _ranges(data):
         try:
-            out.append((row, ipaddress.ip_network(row['cidr'], strict=False)))
+            out.append((row, _parse(row['cidr'])))
         except ValueError:
             continue
     return out
@@ -371,7 +438,7 @@ def overview(now=None):
                        'seats': seats.get(row['id'], 0), 'source': row.get('source') or 'floorbit',
                        'switches': list(row.get('switches') or []),
                        'plugin': row.get('plugin') or ''})
-    ranges.sort(key=lambda r: (ipaddress.ip_network(r['cidr']).version, ipaddress.ip_network(r['cidr'])))
+    ranges.sort(key=lambda r: _parse(r['cidr']).sort_key())
     cards = []
     for d in firewalls:
         name = d['name']
@@ -379,7 +446,8 @@ def overview(now=None):
                       'status': status.get(name, 'unknown'),
                       'serving': [r['cidr'] for r in ranges if r['now'] == name],
                       'planned': [r['cidr'] for r in ranges if r['intended'] == name],
-                      'backup_for': [r['cidr'] for r in ranges if name in r['firewalls'][1:]],
+                      # Ranges that fell back to it from their own firewall, not a standing "backup" role.
+                      'taken_over': [r['cidr'] for r in ranges if r['now'] == name and r['intended'] != name],
                       'seats': sum(r['seats'] for r in ranges if r['now'] == name)})
     cards.sort(key=lambda c: c['name'].lower())
     return {'firewalls': cards, 'ranges': ranges,
