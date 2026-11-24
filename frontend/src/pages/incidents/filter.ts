@@ -12,6 +12,8 @@ export function matchesFilter(i: Incident, filter: string, teamNames: Record<str
     const want = q.slice(7).trim()
     return [i.switch_name, i.switch_id].some((f) => typeof f === 'string' && f.toLowerCase() === want)
   }
+  // ``id:<id>``: one incident, for links from a problem's page (issue #882).
+  if (q.startsWith('id:')) return i.id.toLowerCase() === q.slice(3).trim()
   if (q.startsWith('with:')) return (i.assignee ?? '').toLowerCase() === q.slice(5).trim()
   const fields = [i.title, i.seat, i.switch_name, i.switch_id, i.circuit_name, i.assignee, i.team, teamNames[i.team ?? ''],
     ...i.notes.map((n) => n.text)]

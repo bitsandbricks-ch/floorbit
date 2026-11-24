@@ -851,6 +851,7 @@ Source: [`floorbit/blueprints/problems.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
 | PATCH | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
 | GET | `/api/problems` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| GET | `/api/problems/<path:problem_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.property_catalog
 

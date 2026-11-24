@@ -26,6 +26,7 @@ const Power = lazy(() => import('@/pages/Power'))
 const BoardPage = lazy(() => import('@/pages/power/BoardPage'))
 const CircuitPage = lazy(() => import('@/pages/power/CircuitPage'))
 const Problems = lazy(() => import('@/pages/Problems'))
+const ProblemPage = lazy(() => import('@/pages/ProblemPage'))
 const Setup = lazy(() => import('@/pages/Setup'))
 const Firewalls = lazy(() => import('@/pages/Firewalls'))
 const Services = lazy(() => import('@/pages/Services'))
@@ -116,6 +117,7 @@ export default function App() {
             <Route path="/power/boards/:id" element={<BoardPage />} />
             <Route path="/power/circuits/:id" element={<CircuitPage />} />
             <Route path="/problems" element={<Problems />} />
+            <Route path="/problems/:id" element={<ProblemPage />} />
             <Route path="/setup" element={<Setup />} />
             <Route path="/firewalls" element={<Firewalls />} />
             <Route path="/services" element={<Services />} />

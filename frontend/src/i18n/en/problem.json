@@ -1,0 +1,27 @@
+{
+  "title": "Problem",
+  "back": "Problems",
+  "over": "This problem is over",
+  "overDesc": "Floorbit no longer sees it. An incident made from it stays on the board.",
+  "what": "What and where",
+  "next": "Where to look next",
+  "level": "State",
+  "levels": {
+    "down": "Down",
+    "warn": "To look at",
+    "muted": "Muted"
+  },
+  "since": "Started",
+  "sinceUnknown": "Not known",
+  "switch": "Switch",
+  "seat": "Seat",
+  "cutOff": "Seats cut off",
+  "behind": "Switches behind it",
+  "source": "Where it was seen",
+  "device": "{{name}} in the inventory",
+  "seatOnPlan": "Seat {{seat}} on the floor plan",
+  "onPlan": "{{name}} on the floor plan",
+  "logs": "Its logs",
+  "machines": "Machines seen at the seat",
+  "nowhere": "Nothing more to open for this one."
+}

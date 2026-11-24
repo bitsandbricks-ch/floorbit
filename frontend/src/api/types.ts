@@ -519,6 +519,8 @@ export interface Incident {
   circuit_name?: string
   title: string
   problem: string | null
+  /** The problem on the Problems page it was made from (issue #882). */
+  from_problem?: string | null
   team: string | null
   status: IncidentStatus
   assignee: string | null
@@ -734,6 +736,15 @@ export interface Problem {
   ports?: string[]
   /** The switch it is on, when it is on one: what the page groups by (issue #883). */
   device?: string | null
+}
+
+/** GET /api/problems/<id> (issue #882): one problem, and the device it is on. */
+export interface ProblemDetail {
+  problem: Problem
+  device: { id: string; name: string } | null
+  can_mute: boolean
+  can_report: boolean
+  may_see_people: boolean
 }
 /** What to paste into LibreNMS's API transport (GET /api/alerts/librenms/setup). */
 export interface LibreNMSAlertsSetup {
