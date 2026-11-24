@@ -9,7 +9,7 @@ import { useLiveEvent } from '@/api/live'
 import { usePower } from '@/api/queries'
 import type { PowerBoard } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { BoardForm } from './Forms'
 import { CircuitTable } from './parts'
@@ -45,7 +45,7 @@ export default function BoardPage() {
         <EmptyState title={isNew ? t('power.noRights') : t('power.boardGone')} action={backButton} />
       ) : (
         <>
-          <PageHead title={title} kicker={board?.location || undefined}
+          <PageHead title={title} eyebrow={board?.location || undefined}
             actions={board && data.can_edit && (
               <Button leftSection={<IconPlus size={16} />} component={Link} to={`/power/circuits/new?board=${encodeURIComponent(board.id)}`}>
                 {t('power.addCircuit')}

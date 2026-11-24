@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useFeature, usePageList, usePageListSettled } from '@/api/queries'
 import { Layout, PageSkeleton } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { SetupNudge } from './setup/Checklist'
-import { PageTabs } from '@/components/PageTabs'
-import { InPanel } from '@/components/panel'
+import { PageTabs } from '@bitsandbricks/ui'
+import { InPanel } from '@bitsandbricks/ui'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { readBoot } from '@/nav/boot'
 import { BackupPanel, Connections, SectionPanel, SettingsForm } from './settings/editor'
@@ -181,7 +181,7 @@ export default function Settings() {
   const title = active && active.id !== entries[0]?.id ? label(active.id) : t('settings.title')
   return (
     <Layout title={title}>
-      <PageHead title={t('settings.title')} kicker={t('settings.kicker')} actions={search} />
+      <PageHead title={t('settings.title')} eyebrow={t('settings.kicker')} actions={search} />
       <ErrorBanner error={mayEdit ? ed.query.error : null} onRetry={() => void ed.query.refetch()} mb="md" />
       {!results && <SetupNudge enabled={mayEdit} />}
       {!list.settled || (mayEdit && ed.query.isPending) ? <LoadingState rows={4} /> : !active ? null : results ? (
@@ -197,7 +197,7 @@ export default function Settings() {
         </SettingsForm>
       ) : (
         <>
-          <PageTabs label={t('settings.title')} value={active.tab} onChange={(id) => {
+          <PageTabs label={t('settings.title')} active={active.tab} onChange={(id) => {
             const first = tabs.find((x) => x.id === id)?.groups[0]?.items[0]
             if (first) go(first)
           }} tabs={tabs.map((x) => ({ id: x.id, label: t(`settings.tabs.${x.id}`), alert: unsavedTab(x.id) ? 'warn' : null }))} />

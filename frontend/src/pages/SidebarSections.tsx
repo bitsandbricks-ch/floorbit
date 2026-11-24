@@ -7,7 +7,7 @@ import { get, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { EntitySelect } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { CUSTOM_ICONS } from '@/nav/sections'
 

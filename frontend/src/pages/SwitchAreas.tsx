@@ -8,7 +8,7 @@ import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { SwitchArea, SwitchAreas as Areas } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
 import { AreaEditor } from './switchAreas/AreaEditor'
 
