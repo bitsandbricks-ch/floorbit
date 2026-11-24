@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Group, Modal, MultiSelect, Paper, SimpleGrid, Stack, Text, TextInput, Title, Tooltip,
+  Alert, Anchor, Badge, Button, Group, Modal, MultiSelect, Paper, SimpleGrid, Stack, Text, TextInput, Title, Tooltip,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -79,7 +79,12 @@ export default function Firewalls() {
         </SimpleGrid>
         {data && data.firewalls.length > 0 && (
           <Paper withBorder radius="lg" p="md">
-            <Title order={2} size="h4" mb="sm">{t('firewalls.ranges', { count: data.ranges.length })}</Title>
+            <Group justify="space-between" align="baseline" mb="sm" wrap="wrap">
+              <Title order={2} size="h4">{t('firewalls.ranges', { count: data.ranges.length })}</Title>
+              {data.ranges.length > 0 && (
+                <Anchor href="/inventory?type=firewall-range" size="sm">{t('firewalls.inInventory')}</Anchor>
+              )}
+            </Group>
             {data.ranges.length === 0
               ? <Text c="dimmed">{t(canEdit ? 'firewalls.noRangesEdit' : 'firewalls.noRanges')}</Text>
               : <Ranges ranges={data.ranges} scope={scope} canEdit={canEdit} onEdit={setEditing} />}

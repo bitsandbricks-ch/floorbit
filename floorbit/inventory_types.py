@@ -9,8 +9,9 @@ all entries (floorbit/inventory_scope.py ``layers``).
 Three sorts of type:
 
 - ``device``: the inventory devices (floorbit/inventory.py), as before.
-- **linked**: cables, circuits, power boards and patch panels. Their records stay where their pages
-  keep them (``cables``, ``power``, ``patch_panels``), so those pages work as before; the inventory
+- **linked**: cables, circuits, power boards, patch panels and firewall ranges. Their records stay
+  where their pages keep them (``cables``, ``power``, ``patch_panels``, ``firewalls``), so those pages
+  work as before; the inventory
   adds a group, tags, properties, icon, colour, notes and field values, kept in ``inventory_items``
   keyed ``<type>:<id>``. An entry whose record is gone stops being listed. Patch panels have no id,
   so they are keyed by their name in lower case.
@@ -54,6 +55,9 @@ BUILTIN = {
     'circuit': {'name': 'Circuit', 'sort': 'linked', 'icon': 'circuit', 'fields': []},
     'power-board': {'name': 'Power board', 'sort': 'linked', 'icon': 'power-board', 'fields': []},
     'patch-panel': {'name': 'Patch panel', 'sort': 'linked', 'icon': 'patch-panel', 'fields': []},
+    # A range is an inventory item (Mike, 2026-11-24): planned on the Firewalls page, or imported
+    # from NetBox there; the inventory gives it a group, tags, fields and notes.
+    'firewall-range': {'name': 'Firewall range', 'sort': 'linked', 'icon': 'vlan', 'fields': []},
     'rack': {'name': 'Rack or location', 'sort': 'stored', 'icon': 'rack', 'fields': [
         _f('height_u', 'Height (U)', 'number', default='42'),
         _f('hall', 'Hall or site'),
@@ -308,9 +312,18 @@ def _cable(c):
             'link': f"/cables/{c['id']}"}
 
 
+def _range(r):
+    line = list(r.get('firewalls') or [])
+    return {'id': r['id'], 'name': r.get('name') or r['cidr'],
+            'summary': f"{r['cidr']} → {', '.join(line)}" if line else r['cidr'], 'detail': '',
+            'link': f"/firewalls?q={r['cidr'].split('/')[0].split('-')[0]}"}
+
+
 def _records(data, type_id):
     """A linked type's records as the inventory lists them."""
-    from . import cable_plan, cables, power
+    from . import cable_plan, cables, firewalls, power
+    if type_id == 'firewall-range':
+        return [_range(r) for r in firewalls._ranges(data)]
     if type_id == 'cable':
         return [_cable(c) for c in cables.all_cables(data) if c.get('id')]
     if type_id == 'patch-panel':

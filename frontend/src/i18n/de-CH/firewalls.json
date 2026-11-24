@@ -58,5 +58,6 @@
   "takenOver": "Übernommen: {{list}}",
   "cutInto_one": "Der Bereich bleibt ganz.",
   "cutInto_other": "In {{count}} gleiche Teile geschnitten, einer pro Firewall in dieser Reihenfolge.",
-  "parts": "Firewall jetzt"
+  "parts": "Firewall jetzt",
+  "inInventory": "Gruppen, Tags und Notizen im Inventar"
 }

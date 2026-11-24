@@ -309,6 +309,10 @@ def delete(range_id):
         if gone is None:
             return None
         data[KEY] = {**data[KEY], 'ranges': [r for r in rows if r is not gone]}
+        # Its group, tags and notes in the inventory go with it (floorbit/inventory_types.py).
+        attached = data.get('inventory_items')
+        if isinstance(attached, dict):
+            attached.pop(f'firewall-range:{range_id}', None)
         save_data(data)
     return gone
 

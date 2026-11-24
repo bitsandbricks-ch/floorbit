@@ -58,5 +58,6 @@
   "takenOver": "Took over {{list}}",
   "cutInto_one": "The range stays whole.",
   "cutInto_other": "Cut into {{count}} equal parts, one per firewall in this order.",
-  "parts": "Firewall now"
+  "parts": "Firewall now",
+  "inInventory": "Groups, tags and notes in the inventory"
 }
