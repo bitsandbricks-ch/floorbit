@@ -258,7 +258,9 @@ def http_get(url, resolve, contains='', timeout=HTTP_TIMEOUT):
     try:
         sock = socket.create_connection((ip, port), timeout=timeout)
         if secure:
-            sock = ssl.create_default_context().wrap_socket(sock, server_hostname=parts.hostname)
+            context = ssl.create_default_context()
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
+            sock = context.wrap_socket(sock, server_hostname=parts.hostname)
             ends = (sock.getpeercert() or {}).get('notAfter')
             if ends:
                 cert_days = int((ssl.cert_time_to_seconds(ends) - time.time()) // 86400)

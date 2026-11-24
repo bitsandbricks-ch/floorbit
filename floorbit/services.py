@@ -66,6 +66,8 @@ _lock = threading.Lock()
 class ServiceError(ValueError):
     def __init__(self, message, status=400):
         super().__init__(message)
+        # Our own text, written for the person: what the API sends back, never a trace.
+        self.message = str(message)
         self.status = status
 
 

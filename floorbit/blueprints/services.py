@@ -74,7 +74,7 @@ def test_check():
     try:
         got = services.test_check(request.get_json(silent=True) or {})
     except services.ServiceError as exc:
-        return jsonify({'error': str(exc)}), exc.status
+        return jsonify({'error': exc.message}), exc.status
     lang = i18n.language(request.headers.get('Accept-Language'))
     return jsonify(i18n.translate_fields(got, lang))
 
@@ -89,7 +89,7 @@ def save_tags():
     try:
         tags = services.set_tags(row['id'], body.get('tags'))
     except services.ServiceError as exc:
-        return jsonify({'error': str(exc)}), exc.status
+        return jsonify({'error': exc.message}), exc.status
     audit.record('floor plan', 'Changed service tags', g.get('audit_user'), f"{row['name']}: {', '.join(tags) or '-'}")
     return jsonify({'id': row['id'], 'tags': tags})
 
@@ -102,7 +102,7 @@ def save_service(kind, item_id=None):
     try:
         item = services.save(kind, request.get_json(silent=True) or {}, g.get('audit_user'), item_id)
     except services.ServiceError as exc:
-        return jsonify({'error': str(exc)}), exc.status
+        return jsonify({'error': exc.message}), exc.status
     audit.record('floor plan', f"{'Changed' if item_id else 'Added'} {WHAT[kind]}", g.get('audit_user'), item['name'])
     return jsonify(item), 200 if item_id else 201
 
