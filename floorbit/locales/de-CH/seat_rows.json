@@ -14,5 +14,13 @@
  "Each side is a number of seats": "Jede Seite ist eine Anzahl Plätze",
  "People sit left or right of a row": "Leute sitzen links oder rechts einer Reihe",
  "The sides add up to the row's {} seats": "Die Seiten ergeben zusammen die {} Plätze der Reihe",
- "{} is a number": "{} ist eine Zahl"
+ "{} is a number": "{} ist eine Zahl",
+ "A path row has 1 to {} pieces": "Eine Pfad-Reihe hat 1 bis {} Teile",
+ "A piece is an object with \"path\" and \"seats\"": "Ein Teil ist ein Objekt mit \"path\" und \"seats\"",
+ "A piece has a number of seats": "Ein Teil hat eine Anzahl Plätze",
+ "A piece has at least one seat": "Ein Teil hat mindestens einen Platz",
+ "The first piece keeps at least one seat": "Das erste Teil behält mindestens einen Platz",
+ "A row label is at the start, the end, both, hidden or moved": "Eine Reihenbezeichnung steht am Anfang, am Ende, an beiden Enden, ist versteckt oder verschoben",
+ "{} is at an [x, y] point in seats": "{} liegt an einem [x, y]-Punkt in Plätzen",
+ "{} is at most {} seats out": "{} liegt höchstens {} Plätze draussen"
 }

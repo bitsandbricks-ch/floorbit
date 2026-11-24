@@ -58,5 +58,24 @@
   "flip": "Kippen",
   "mirrorBlock": "Block spiegeln",
   "flipBlock": "Block kippen",
-  "uMiddle": "Mitte: {{count}} Plätze, der Rest der {{total}} Plätze der Reihe"
+  "uMiddle": "Mitte: {{count}} Plätze, der Rest der {{total}} Plätze der Reihe",
+  "piece": "Teil {{n}}",
+  "addPiece": "Ein Teil anfügen: die Plätze gehen darauf weiter",
+  "pieceFirst": "Plätze {{from}} bis {{to}}: die {{count}}, die die anderen Teile übrig lassen",
+  "pieceSeats": "Plätze auf Teil {{n}}",
+  "pieceRange": "Plätze {{from}} bis {{to}} der Reihe",
+  "dropPiece": "Teil {{n}} entfernen; seine Plätze gehen an Teil 1 zurück",
+  "piecesHint": "Die Plätze laufen der Reihe nach durch die Teile, so behält die Reihe eine durchgehende Nummerierung. Auf dem Plan die Punkte eines Teils ziehen; + fügt einen Punkt an, Doppelklick nimmt einen weg.",
+  "piecePointHandle": "Punkt {{n}} von Teil {{piece}} der Reihe {{name}}: ziehen zum Verschieben, Doppelklick zum Entfernen",
+  "rowLabel": "Reihenbuchstabe",
+  "rowLabels": {
+    "block": "Wie im Block",
+    "start": "Neben Platz 1",
+    "end": "Nach dem letzten Platz",
+    "both": "Beide Seiten",
+    "hidden": "Versteckt",
+    "moved": "Wo ich ihn hinsetze"
+  },
+  "rowLabelHint": "Den Buchstaben im Plan ziehen, um ihn zu verschieben.",
+  "labelHandle": "Buchstaben der Reihe {{name}} verschieben"
 }

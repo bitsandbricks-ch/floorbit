@@ -2,12 +2,13 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PlanShape } from '@/api/types'
 import type { OverlayContext } from '../SeatMap'
+import { piecesOf, withPiecePath } from './pieces'
 import type { BlockRow } from './rows'
 import { type Pt, addPoint, armEnds, bendThrough, drawnSeats, dropPoint, movePoint, reshaped, rowOffset, turnOver, turnedOnce, withArm } from './rowShapes'
 import { toBlock } from './seatPlace'
 import './RowGapHandles.css'
 
-type Grab = { kind: 'bend' } | { kind: 'arm'; arm: number; from: Pt; grow: Pt } | { kind: 'point'; i: number }
+type Grab = { kind: 'bend' } | { kind: 'arm'; arm: number; from: Pt; grow: Pt } | { kind: 'point'; i: number; k: number }
 
 /** Handles to shape the picked row of the selected block on the plan: an arc's middle (drag to bend
  *  it), a U's or L's arm ends (drag to make an arm longer, the others give the seats), and a path's
@@ -38,19 +39,21 @@ export function RowShapeHandles({ ctx, shape, cell, size, rows, r, snapGrid = tr
     const { x, y } = reshaped(shape, cell, size, rows, r, next, first)
     onDone(next, { x, y })
   }
-  const firstMoves = (g: Grab) => g.kind === 'point' && g.i === 0
+  // The row's anchor is its first seat, on the first point of the first piece.
+  const firstMoves = (g: Grab) => g.kind === 'point' && g.k === 0 && g.i === 0
+  const pathOf = (k: number): Pt[] => piecesOf(row)[k]?.path ?? []
   const shaped = (g: Grab, e: React.PointerEvent): BlockRow => {
     const p = pointer(e), free = e.altKey || !snapGrid
     // Turned over once, the row bows the other way from how its seats now read.
     if (g.kind === 'bend') return { ...row, bend: (turnedOnce(row) ? -1 : 1) * bendThrough(drawn[0], drawn[drawn.length - 1], p, free) || 0 }
     if (g.kind === 'arm') return withArm(row, g.arm, (p[0] - g.from[0]) * g.grow[0] + (p[1] - g.from[1]) * g.grow[1])
-    return { ...row, path: movePoint(row.path ?? [], g.i, turnOver(row, toRow(p)), free) }
+    return withPiecePath(row, g.k, movePoint(pathOf(g.k), g.i, turnOver(row, toRow(p)), free))
   }
   const start = (e: React.PointerEvent, grab: Grab) => {
     if (e.button !== 0) return
     e.stopPropagation()
     e.preventDefault()
-    if (grab.kind === 'point' && e.altKey) { done({ ...row, path: dropPoint(row.path ?? [], grab.i) }, grab.i === 0); return }
+    if (grab.kind === 'point' && e.altKey) { done(withPiecePath(row, grab.k, dropPoint(pathOf(grab.k), grab.i)), firstMoves(grab)); return }
     ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
     drag.current = { grab, id: e.pointerId, moved: false }
   }
@@ -100,29 +103,33 @@ export function RowShapeHandles({ ctx, shape, cell, size, rows, r, snapGrid = tr
     if (draft?.row.sides) handles.push(<text key="arm-label" className="fb-row-gap-label" x={at(drawn[0]).x} y={at(drawn[0]).y - 22 / ctx.scale} fontSize={14 / ctx.scale}>{draft.row.sides.join(' · ')}</text>)
   }
   if (row.shape === 'path' && row.path?.length) {
-    // While dragging, the path where the new layout puts it.
+    // While dragging, the paths where the new layout puts them; each piece in its own colour.
     const o = draft && preview ? rowOffset(draft.row, preview) : off
-    const path = (draft?.row.path ?? row.path).map((q): Pt => { const u = turnOver(row, q); return [u[0] + o[0], u[1] + o[1]] })
-    handles.push(<polyline key="path" className="fb-row-path" points={path.map((q) => { const p = at(q); return `${p.x},${p.y}` }).join(' ')} />)
-    if (!draft) {
-      path.slice(1).forEach((q, i) => {
-        const m = at([(path[i][0] + q[0]) / 2, (path[i][1] + q[1]) / 2])
+    piecesOf(draft?.row ?? row).forEach((piece, k) => {
+      const path = piece.path.map((q): Pt => { const u = turnOver(row, q); return [u[0] + o[0], u[1] + o[1]] })
+      const of = (base: string) => (k ? `${base} fb-row-piece-${Math.min(k, 3)}` : base)
+      handles.push(<polyline key={`path-${k}`} className={of('fb-row-path')} points={path.map((q) => { const p = at(q); return `${p.x},${p.y}` }).join(' ')} />)
+      if (!draft) {
+        path.slice(1).forEach((q, i) => {
+          const m = at([(path[i][0] + q[0]) / 2, (path[i][1] + q[1]) / 2])
+          handles.push(
+            <g key={`add-${k}-${i}`} className="fb-row-add-point" data-handle="add-point" data-piece={k} data-leg={i} role="button" aria-label={t('blockRows.addPoint', { name })}
+              onPointerDown={(e) => { if (e.button !== 0) return; e.stopPropagation(); e.preventDefault(); done(withPiecePath(row, k, addPoint(pathOf(k), i))) }}>
+              <circle cx={m.x} cy={m.y} r={r6} />
+              <path d={`M${m.x - r6 * 0.55},${m.y}H${m.x + r6 * 0.55}M${m.x},${m.y - r6 * 0.55}V${m.y + r6 * 0.55}`} />
+            </g>,
+          )
+        })
+      }
+      path.forEach((q, i) => {
+        const p = at(q)
         handles.push(
-          <g key={`add-${i}`} className="fb-row-add-point" data-handle="add-point" data-leg={i} role="button" aria-label={t('blockRows.addPoint', { name })}
-            onPointerDown={(e) => { if (e.button !== 0) return; e.stopPropagation(); e.preventDefault(); done({ ...row, path: addPoint(row.path ?? [], i) }) }}>
-            <circle cx={m.x} cy={m.y} r={r6} />
-            <path d={`M${m.x - r6 * 0.55},${m.y}H${m.x + r6 * 0.55}M${m.x},${m.y - r6 * 0.55}V${m.y + r6 * 0.55}`} />
-          </g>,
+          <circle key={`pt-${k}-${i}`} className={of('fb-row-shape-handle')} data-handle="point" data-piece={k} data-point={i} cx={p.x} cy={p.y} r={r6} role="button"
+            aria-label={k ? t('blockRows.piecePointHandle', { name, piece: k + 1, n: i + 1 }) : t('blockRows.pointHandle', { name, n: i + 1 })}
+            onPointerDown={(e) => start(e, { kind: 'point', i, k })} {...handlers}
+            onDoubleClick={(e) => { e.stopPropagation(); done(withPiecePath(row, k, dropPoint(pathOf(k), i)), k === 0 && i === 0) }} />,
         )
       })
-    }
-    path.forEach((q, i) => {
-      const p = at(q)
-      handles.push(
-        <circle key={`pt-${i}`} className="fb-row-shape-handle" data-handle="point" data-point={i} cx={p.x} cy={p.y} r={r6} role="button"
-          aria-label={t('blockRows.pointHandle', { name, n: i + 1 })} onPointerDown={(e) => start(e, { kind: 'point', i })} {...handlers}
-          onDoubleClick={(e) => { e.stopPropagation(); done({ ...row, path: dropPoint(row.path ?? [], i) }, i === 0) }} />,
-      )
     })
   }
   if (!handles.length) return null

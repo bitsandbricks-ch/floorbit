@@ -58,5 +58,24 @@
   "flip": "Flip",
   "mirrorBlock": "Mirror block",
   "flipBlock": "Flip block",
-  "uMiddle": "Middle: {{count}} seats, what the row's {{total}} leave over"
+  "uMiddle": "Middle: {{count}} seats, what the row's {{total}} leave over",
+  "piece": "Piece {{n}}",
+  "addPiece": "Add a piece: the seats carry on along it",
+  "pieceFirst": "Seats {{from}} to {{to}}: the {{count}} the other pieces leave",
+  "pieceSeats": "Seats on piece {{n}}",
+  "pieceRange": "Seats {{from}} to {{to}} of the row",
+  "dropPiece": "Take out piece {{n}}; its seats go back to piece 1",
+  "piecesHint": "The seats run through the pieces in order, so the row keeps one run of names. On the plan, drag a piece's points; + adds a point, double-click takes one out.",
+  "piecePointHandle": "Point {{n}} of piece {{piece}} of row {{name}}: drag to move, double-click to take out",
+  "rowLabel": "Row letter",
+  "rowLabels": {
+    "block": "As the block says",
+    "start": "Beside seat 1",
+    "end": "After the last seat",
+    "both": "Both sides",
+    "hidden": "Hidden",
+    "moved": "Where I put it"
+  },
+  "rowLabelHint": "Drag the letter on the plan to move it.",
+  "labelHandle": "Move the letter of row {{name}}"
 }

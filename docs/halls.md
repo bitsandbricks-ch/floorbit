@@ -140,6 +140,12 @@ its tab. The picked row shows the space above it and its fields:
   - **Mirror** turns the row over left to right, **Flip** upside down: an L that turns the other way,
     a U that opens downwards. The seats keep their numbers and the people stay on the same side of the
     shape; the shape's handles work as before.
+  - **Pieces** (Path): a path row can be in up to 8 pieces, each its own tab with a colour on the plan.
+    The seats run through the first piece, then each later one in turn, so the row keeps one run of
+    numbers: a U of 34 seats with a straight piece of 10 inside it is still row Z, seats 1 to 44. A
+    later piece has its own seat count; the first piece takes the rest and keeps at least one seat.
+  - **Row letter** (with a letter per row): as the block says, beside seat 1, after the last seat, both
+    or hidden. Drag the letter on the plan to put it anywhere; it then moves with its row.
   - **Number this row the other way**, and **gaps in this row**: an empty space after a seat, for a
     fiber roll or a post (0.25 to 20 seats). Seat names and numbers carry on across a gap.
 - **A picked row's shape has handles on the plan**, and faint seats show where they will go while you drag:
@@ -147,7 +153,9 @@ its tab. The picked row shows the space above it and its fields:
   - **U** and **L**: drag the square handle past an arm's end to make the arm longer or shorter; the
     middle (U) or the other arm (L) gives or takes the seats, so the row keeps its count.
   - **Path**: drag a point to move it (quarter seats), click a **+** halfway along a line to add a point
-    (up to 50), and Alt-click or double-click a point to remove it (a path keeps two).
+    (up to 50), and Alt-click or double-click a point to remove it (a path keeps two). Each piece has its
+    own points.
+  - **Row letter**: drag the dashed circle round the picked row's letter (half seats).
   - Hold Alt, or turn snapping off, to place freely. The block stays where it is: a U's middle, an L's
     corner or the row's first seat keeps its place (the last seat when the path's first point moves).
 
@@ -162,7 +170,9 @@ same way.
 
 **In the API** a block has `rows`, top first, each
 `{"id", "seats", "shape", "gap", "align", "shift", "side", "reverse", "col_gaps", "mirror", "flip"}` plus `bend` (arc), `sides`
-(U and L) or `path` (`[[x, y], ...]` in seats). A new block can still be given as `cols` and `rows` numbers
+(U and L) or `path` (`[[x, y], ...]` in seats) with optional `pieces` (`[{"path", "seats"}]`, the
+pieces after the first), and optional `label` (`start`, `end`, `both`, `hidden` or `moved` with
+`label_at`, a point in the row's own frame). A new block can still be given as `cols` and `rows` numbers
 (a rectangle, as the Block tool and the CSV import make it). Rules: `floorbit/seat_rows.py`.
 
 ## Alignment guides, groups and merging

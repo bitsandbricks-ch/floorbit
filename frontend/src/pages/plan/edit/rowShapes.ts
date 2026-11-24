@@ -1,4 +1,5 @@
 import type { PlanShape } from '@/api/types'
+import { piecesOf } from './pieces'
 import { type BlockRow, defaultSides } from './rows'
 
 /** A point in seats. */
@@ -72,8 +73,15 @@ function shapeSeats(row: BlockRow): Pt[] {
     ]
   }
   if (row.shape === 'path') {
-    const path = row.path?.length ? row.path : [[0, 0], [row.seats, 0]] as Pt[]
-    return at.map((d) => pointAlong(path, d))
+    // The seats run through the pieces in turn, each piece from its own first point.
+    const out: Pt[] = []
+    let i = 0
+    for (const piece of piecesOf(row)) {
+      const base = i < at.length ? at[i] - 0.5 : 0
+      for (const d of at.slice(i, i + piece.seats)) out.push(pointAlong(piece.path, d - base))
+      i += piece.seats
+    }
+    return out
   }
   return at.map((d): Pt => [d, 0.5])
 }

@@ -34,6 +34,7 @@ import { MarkHandles } from './MarkHandles'
 import { type BlockRow } from './rows'
 import { SeatHandles } from './SeatHandles'
 import { RowGapHandles } from './RowGapHandles'
+import { RowLabelHandle } from './RowLabelHandle'
 import { RowShapeHandles } from './RowShapeHandles'
 import { keepTop, rowAt } from './rowGaps'
 import { moveSeat, placedNow, toBlock } from './seatPlace'
@@ -861,7 +862,11 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const gapShape = one?.kind === 'block' && arranging !== one.id && !isLocked(one) ? data.drawing?.shapes.find((s) => s.id === one.id && !s.free) ?? null : null
   const gapRows = gapShape ? storedBlocks.data?.find((b) => b.id === gapShape.id && !b.seat_at)?.rows ?? null : null
   // The picked row, when it has a shape to change on the plan (RowShapeHandles.tsx).
-  const shapedRow = gapRows && pickedRow?.block === gapShape?.id ? gapRows.findIndex((r) => r.id === pickedRow?.row && r.shape !== 'line') : -1
+  // The Rows tab always has a row open (the first until another is picked), so the plan shows its handles too.
+  const rowPicked = gapShape && gapRows ? (pickedRow?.block === gapShape.id ? pickedRow!.row : tab === 'rows' ? gapRows[0]?.id ?? null : null) : null
+  const shapedRow = gapRows && rowPicked ? gapRows.findIndex((r) => r.id === rowPicked && r.shape !== 'line') : -1
+  // The picked row of any shape, for its letter (RowLabelHandle.tsx).
+  const labelRow = gapRows && rowPicked ? gapRows.findIndex((r) => r.id === rowPicked) : -1
   const oneMark = one?.kind === 'mark' ? shown.drawing?.marks?.find((m) => m.id === one.id) ?? null : null
   const markBox = oneMark && one ? outlineOf(shown, one)?.box : null
   // From the saved plan: the handle turns round where the item is, not where a drag drew it.
@@ -1086,9 +1091,15 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           {gapShape && gapRows && tool === 'select' && !drag && (
             <RowGapHandles key={JSON.stringify(gapRows.map((r) => r.gap))} ctx={ctx} shape={gapShape} cell={data.drawing?.cell ?? 32}
               gaps={gapRows.map((r) => r.gap)} snapGrid={snapping.grid}
-              picked={pickedRow?.block === one!.id ? gapRows.findIndex((r) => r.id === pickedRow.row) : null}
+              picked={rowPicked ? gapRows.findIndex((r) => r.id === rowPicked) : null}
               onPick={(i) => setPickedRow({ block: one!.id, row: gapRows[i].id })}
               onDone={(i, gap) => void moveGap(one!, gapShape, gapRows, i, gap)} />
+          )}
+          {/* Under the shape handles, so a path point beside the letter can still be grabbed. */}
+          {gapShape && gapRows && labelRow >= 0 && tool === 'select' && !drag && (
+            <RowLabelHandle key={JSON.stringify([gapRows[labelRow], gapShape.rows])} ctx={ctx} shape={gapShape} cell={data.drawing?.cell ?? 32}
+              row={gapRows[labelRow]} r={labelRow} snapGrid={snapping.grid}
+              onDone={(row) => void reshapeRow(one!, gapShape, gapRows, labelRow, row, keepTop(gapShape, data.drawing?.cell ?? 32, data.size, 0))} />
           )}
           {gapShape && gapRows && shapedRow >= 0 && tool === 'select' && !drag && (
             <RowShapeHandles key={JSON.stringify(gapRows[shapedRow])} ctx={ctx} shape={gapShape} cell={data.drawing?.cell ?? 32} size={data.size}

@@ -10,7 +10,8 @@ A block keeps ``rows``, top first, each a dict:
   everything that named its rows by position before still names the same rows.
 - ``seats``: how many seats the row has. Rows in a block may differ.
 - ``shape``: ``line``, ``arc`` (``bend``: the turn from first to last seat in degrees), ``u`` and
-  ``l`` (``sides``: seats on each side, first side first) or ``path`` (``path``: points in seats).
+  ``l`` (``sides``: seats on each side, first side first) or ``path`` (``path``: points in seats;
+  ``pieces``: further paths the seats carry on along, each with its own seats).
 - ``gap``: empty space above the row in seats (the aisle, room for the switch). The first row's
   is ignored.
 - ``align`` (``start``, ``middle``, ``end``) and ``shift`` (seats): where a row sits sideways
@@ -32,6 +33,8 @@ import math
 from . import seat_gaps
 
 SHAPES = ('line', 'arc', 'u', 'l', 'path')
+# A row's own letter: as the block says (''), at one end or both, hidden, or moved by hand (``label_at``).
+LABELS = ('', 'start', 'end', 'both', 'hidden', 'moved')
 ALIGNS = ('start', 'middle', 'end')
 SIDES = ('', 'left', 'right')
 MAX_ROWS = 50
@@ -40,6 +43,7 @@ MAX_GAP = 20         # seats between two rows
 MAX_SHIFT = 200
 MAX_BEND = 330       # degrees: a little short of a full circle
 MAX_POINTS = 50
+MAX_PIECES = 8      # a path row in pieces (Mike's row Z: a U with a line inside)
 
 
 class RowError(ValueError):
@@ -111,8 +115,17 @@ def clean_row(raw, used=()):
         row['bend'] = _num(raw.get('bend') if raw.get('bend') is not None else 60, -MAX_BEND, MAX_BEND, 'The bend')
     if shape in ('u', 'l'):
         row['sides'] = _sides(raw.get('sides'), shape, seats)
+    label = raw.get('label') or ''
+    if label not in LABELS:
+        raise RowError('A row label is at the start, the end, both, hidden or moved')
+    if label:
+        row['label'] = label
+    if label == 'moved':
+        row['label_at'] = _point(raw.get('label_at'), 'The row label')
     if shape == 'path':
         row['path'] = _path(raw.get('path'), seats)
+        if raw.get('pieces'):
+            row['pieces'] = _pieces(raw.get('pieces'), seats)
     return row
 
 
@@ -131,6 +144,16 @@ def _sides(raw, shape, seats):
     return sides
 
 
+def _point(raw, what):
+    try:
+        x, y = float(raw[0]), float(raw[1])
+    except (TypeError, ValueError, IndexError, KeyError):
+        raise RowError(f'{what} is at an [x, y] point in seats') from None
+    if not (math.isfinite(x) and math.isfinite(y)) or abs(x) > MAX_SHIFT or abs(y) > MAX_SHIFT:
+        raise RowError(f'{what} is at most {MAX_SHIFT} seats out')
+    return [round(x, 2), round(y, 2)]
+
+
 def _path(raw, seats):
     if raw in (None, '', []):
         return [[0, 0], [seats, 0]]
@@ -147,6 +170,28 @@ def _path(raw, seats):
         out.append([round(x, 2), round(y, 2)])
     if sum(math.dist(a, b) for a, b in itertools.pairwise(out)) <= 0:
         raise RowError('A path needs two different points')
+    return out
+
+
+def _pieces(raw, seats):
+    """A path row's further pieces: ``[{"path": points, "seats": n}]``. The seats run through the
+    first piece (``path``), then each of these in turn, so the row keeps one run of names; the first
+    piece takes what these leave over and keeps at least one seat."""
+    if not isinstance(raw, list) or len(raw) > MAX_PIECES - 1:
+        raise RowError(f'A path row has 1 to {MAX_PIECES} pieces')
+    out = []
+    for piece in raw:
+        if not isinstance(piece, dict):
+            raise RowError('A piece is an object with "path" and "seats"')
+        try:
+            n = int(piece.get('seats'))
+        except (TypeError, ValueError):
+            raise RowError('A piece has a number of seats') from None
+        if n < 1:
+            raise RowError('A piece has at least one seat')
+        out.append({'path': _path(piece.get('path'), n), 'seats': n})
+    if sum(p['seats'] for p in out) >= seats:
+        raise RowError('The first piece keeps at least one seat')
     return out
 
 
@@ -286,20 +331,32 @@ def _l(row):
     return out
 
 
+def _point_along(legs, d):
+    """The point ``d`` seats along ``legs`` and the way they run there; past the end it carries on
+    along the last leg."""
+    walked = 0.0
+    for i, (p, q, n) in enumerate(legs):
+        if d <= walked + n or i == len(legs) - 1:
+            t = (d - walked) / n
+            way = math.degrees(math.atan2(q[1] - p[1], q[0] - p[0]))
+            return p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t, way
+        walked += n
+    return 0.0, 0.0, 0.0
+
+
 def _on_path(row):
-    points = row.get('path') or [[0, 0], [int(row['seats']), 0]]
-    legs = [(p, q, math.dist(p, q)) for p, q in itertools.pairwise(points) if math.dist(p, q) > 0]
+    seats = int(row['seats'])
+    later = row.get('pieces') or []
+    first = seats - sum(int(p['seats']) for p in later)
+    pieces = [(row.get('path') or [[0, 0], [first, 0]], first)] + [(p['path'], int(p['seats'])) for p in later]
     at, _ = _along(row)
-    out = []
-    for d in at:
-        walked = 0.0
-        for i, (p, q, n) in enumerate(legs):
-            if d <= walked + n or i == len(legs) - 1:     # past the end: carry on along the last leg
-                t = (d - walked) / n
-                x, y = p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t
-                out.append((x, y, math.degrees(math.atan2(q[1] - p[1], q[0] - p[0]))))
-                break
-            walked += n
+    out, i = [], 0
+    for points, n in pieces:
+        legs = [(p, q, math.dist(p, q)) for p, q in itertools.pairwise(points) if math.dist(p, q) > 0]
+        # Each piece starts at its own first point; gaps between its seats still count.
+        base = at[i] - 0.5 if i < len(at) else 0.0
+        out += [_point_along(legs, d - base) for d in at[i:i + n]]
+        i += n
     return out
 
 

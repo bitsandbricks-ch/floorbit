@@ -20,12 +20,30 @@ export interface BlockRow {
   sides?: number[]
   /** path: points in seats. */
   path?: [number, number][]
+  /** path: further pieces the seats carry on along, each with its seats; the first piece (``path``)
+   *  takes the rest (floorbit/seat_rows.py, Mike's row Z). */
+  pieces?: { path: [number, number][]; seats: number }[]
+  /** The row's own letter: as the block says (unset), at an end, hidden, or moved by hand to
+   *  ``label_at`` (in the row's own frame, like ``path``, so it moves with the row). */
+  label?: RowLabel
+  label_at?: [number, number]
   /** The shape turned over left to right, or upside down; seats keep their order. */
   mirror?: boolean
   flip?: boolean
 }
 
 export type RowShape = 'line' | 'arc' | 'u' | 'l' | 'path'
+export type RowLabel = 'start' | 'end' | 'both' | 'hidden' | 'moved'
+export const ROW_LABELS: RowLabel[] = ['start', 'end', 'both', 'hidden']
+
+/** The row with its letter set to ``label`` ('' = as the block says); only a moved one keeps a point. */
+export function withLabel(row: BlockRow, label: RowLabel | '', at?: [number, number]): BlockRow {
+  const rest = { ...row }
+  delete rest.label
+  delete rest.label_at
+  if (!label) return rest
+  return label === 'moved' && at ? { ...rest, label, label_at: at } : { ...rest, label }
+}
 export const SHAPES: RowShape[] = ['line', 'arc', 'u', 'l', 'path']
 export const MAX_ROWS = 50, MAX_SEATS = 200
 
@@ -61,6 +79,7 @@ export function withShape(row: BlockRow, shape: RowShape): BlockRow {
   delete out.bend
   delete out.sides
   delete out.path
+  delete out.pieces
   if (shape === 'arc') out.bend = row.bend ?? 60
   if (shape === 'u' || shape === 'l') out.sides = defaultSides(shape, row.seats)
   if (shape === 'path') out.path = row.path ?? [[0, 0], [Math.ceil(row.seats / 2), 0], [Math.ceil(row.seats / 2), Math.floor(row.seats / 2)]]
@@ -77,6 +96,13 @@ export function withSeats(row: BlockRow, seats: number): BlockRow {
     const grow = row.shape === 'u' ? 1 : sides.length - 1
     sides[grow] = Math.max(0, sides[grow] + n - row.seats)
     out.sides = sides.reduce((a, b) => a + b, 0) === n ? sides : defaultSides(row.shape, n)
+  }
+  if (row.pieces?.length) {
+    // The first piece keeps a seat: later pieces go, last first, until it does.
+    const pieces = [...row.pieces]
+    while (pieces.length && pieces.reduce((a, p) => a + p.seats, 0) >= n) pieces.pop()
+    if (pieces.length) out.pieces = pieces
+    else delete out.pieces
   }
   return out
 }

@@ -9,7 +9,8 @@ import type { SeatViewData } from '@/api/types'
 import { type Gap, GAP_MAX, GAP_MIN, cleanGaps, freeGapSpot } from './gaps'
 import type { ItemRef } from './geometry'
 import { mirrorBlock } from './rowShapes'
-import { type BlockRow, MAX_ROWS, MAX_SEATS, type RowShape, SHAPES, moveRow, newRow, withSeats, withShape, withUSide } from './rows'
+import { type BlockRow, MAX_ROWS, MAX_SEATS, ROW_LABELS, type RowLabel, type RowShape, SHAPES, moveRow, newRow, withLabel, withSeats, withShape, withUSide } from './rows'
+import { PieceFields } from './PieceFields'
 import { RowTabs } from './RowTabs'
 import './BlockFields.css'
 
@@ -93,7 +94,7 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
             : <RowList rows={block.rows} name={rowName} picked={picked} onPick={setPicked} onSave={saveRows} />}
           {block.rows.length > 1 && !block.seat_at && <Text size="xs" c="dimmed">{t('blockRows.planHint')}</Text>}
           {shown >= 0 && (
-            <RowFields key={block.rows[shown].id} row={block.rows[shown]} name={rowName(shown)} first={shown === 0}
+            <RowFields key={block.rows[shown].id} row={block.rows[shown]} name={rowName(shown)} first={shown === 0} letters={naming === 'rows'}
               onSave={(row) => saveRows(block.rows.map((r, i) => (i === shown ? row : r)))} />
           )}
         </>
@@ -168,7 +169,12 @@ function RowList({ rows, name, picked, onPick, onSave }: {
 }
 
 /** One row: its seats, shape, where it sits sideways, where people sit, numbering and gaps. */
-function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; first: boolean; onSave: (row: BlockRow) => void }) {
+function RowFields({ row, name, first, letters, onSave }: {
+  row: BlockRow; name: string; first: boolean
+  /** The block names its rows, so each has a letter on the plan. */
+  letters: boolean
+  onSave: (row: BlockRow) => void
+}) {
   const { t } = useTranslation()
   const [seats, setSeats] = useState<number | null>(null)
   const saveSeats = () => { if (seats && seats !== row.seats) onSave(withSeats(row, seats)) }
@@ -219,7 +225,7 @@ function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; 
           <Text size="xs" c="dimmed" mt={4}>{t('blockRows.sidesHint', { count: row.seats })}</Text>
         </div>
       )}
-      {row.shape === 'path' && <Text size="xs" c="dimmed">{t('blockRows.pathHint')}</Text>}
+      {row.shape === 'path' && <PieceFields row={row} onSave={onSave} />}
       <Group gap="xs" wrap="nowrap">
         <Button size="xs" variant={row.mirror ? 'light' : 'default'} aria-pressed={!!row.mirror} leftSection={<IconFlipVertical size={14} />}
           onClick={() => onSave({ ...row, mirror: !row.mirror })}>{t('blockRows.mirror')}</Button>
@@ -239,6 +245,11 @@ function RowFields({ row, name, first, onSave }: { row: BlockRow; name: string; 
           data={['auto', 'left', 'right'].map((v) => ({ value: v, label: t(`blockRows.sides.${v}`) }))} />
       </SimpleGrid>
       {first && <Text size="xs" c="dimmed">{t('blockRows.firstGap')}</Text>}
+      {letters && (
+        <Select size="xs" label={t('blockRows.rowLabel')} description={t('blockRows.rowLabelHint')} allowDeselect={false} value={row.label || 'block'}
+          onChange={(v) => v && v !== (row.label || 'block') && onSave(withLabel(row, v === 'block' ? '' : (v as RowLabel)))}
+          data={['block', ...ROW_LABELS, ...(row.label === 'moved' ? ['moved'] : [])].map((v) => ({ value: v, label: t(`blockRows.rowLabels.${v}`) }))} />
+      )}
       <Checkbox label={t('blockRows.reverse')} checked={row.reverse} onChange={(e) => onSave({ ...row, reverse: e.currentTarget.checked })} />
       <GapList kind="col" gaps={row.col_gaps} count={row.seats} onSave={(next) => onSave({ ...row, col_gaps: cleanGaps(next, row.seats) })} />
     </Stack>
