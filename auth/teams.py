@@ -41,6 +41,15 @@ def _read():
     return read_json(path, {})
 
 
+def _read_shared():
+    path = _path() if _path else None
+    if not path:
+        return {}
+    from floorbit.store import read_shared  # late: floorbit imports auth while it loads
+    found = read_shared(path, {})
+    return found if isinstance(found, dict) else {}
+
+
 def _write(data):
     from floorbit.store import write_json  # in place: data.json is bind-mounted
     write_json(_path(), data)
@@ -55,7 +64,9 @@ def _teams(data):
 
 # reads ----------------------------------------------------------------------------------------
 def all_teams():
-    return _teams(_read())
+    # Shared read: permission checks ask several times per request (once per team on the incident
+    # list), and each plain read parsed the whole data.json. Copies, so callers may change them.
+    return {k: dict(v) for k, v in _teams(_read_shared()).items()}
 
 
 def ancestors(team_id, teams=None):

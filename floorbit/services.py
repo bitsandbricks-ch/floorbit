@@ -412,9 +412,9 @@ def _mbit(bps):
     return f'{bps / 1e6:.0f}' if bps is not None else '?'
 
 
-def health_checks():
+def health_checks(data=None):
     """Uplinks and resolvers as tiles of the service health wall (floorbit/health.py)."""
-    stored = _stored(load_data())
+    stored = _stored(load_data() if data is None else data)
     out = []
     for up in stored['uplinks']:
         s = poller.state(up['id'])

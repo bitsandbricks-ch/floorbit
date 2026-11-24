@@ -69,18 +69,17 @@ def _switches(muted):
     return out
 
 
-def _reach(items):
+def _reach(items, data):
     """What each down switch or link cuts off (issue #950): its seats, by name only, and the switches
     behind it. A switch that is down only because the one before it is names that one as its
     ``cause``, so the crew starts at the cause."""
     from . import impact
-    from .store import load_data
     switches = [p for p in items if p['kind'] == 'switch']
     down_links = [p['id'].split(':', 1)[1] for p in items
                   if p['kind'] == 'link' and p['id'].startswith('link:') and p['level'] == 'down']
     if not switches and not down_links:
         return
-    found = impact.failures(load_data(), [p['name'] for p in switches], down_links)
+    found = impact.failures(data, [p['name'] for p in switches], down_links)
     for p in switches:
         hit = found['switches'].get(p['name']) or {}
         p['seats'], p['behind'] = hit.get('seats') or [], hit.get('behind') or []
@@ -191,14 +190,13 @@ def _seat_incidents():
     return out
 
 
-def _ranges():
+def _ranges(data):
     """Seats with an address outside their switch's ranges (floorbit/seat_ranges.py, issue #1062)."""
     from integrations import seat_sources
 
     from . import seat_ranges
-    from .store import load_data
     try:
-        found = seat_ranges.items(load_data(), seat_sources.load())
+        found = seat_ranges.items(data, seat_sources.load())
     except Exception:  # noqa: BLE001 - a seat source that can't be read must not take the page down
         return []
     # A range set for the wrong switch is fixed under Firewalls; the rest on the plan.
@@ -209,14 +207,13 @@ def _ranges():
             for f in found]
 
 
-def _port_check():
+def _port_check(data):
     """Seat ports whose config breaks a rule, from the last config copies (floorbit/port_config.py)."""
     from integrations import seat_sources
 
     from . import port_config
-    from .store import load_data
     try:
-        found = port_config.problems(port_config.check(load_data(), seat_sources.load()))
+        found = port_config.problems(port_config.check(data, seat_sources.load()))
     except Exception:  # noqa: BLE001 - a copy or seat source that can't be read must not take the page down
         return []
     return [{'id': f['id'], 'kind': 'portconfig', 'level': 'warn', 'title': f['title'], 'where': f['where'],
@@ -235,14 +232,13 @@ def _shared_ports():
             for f in port_clients.problems(state)]
 
 
-def _logs(may_see_people):
+def _logs(may_see_people, data):
     """Syslog lines that matched a known pattern (floorbit/log_alerts.py), as port trouble."""
     from . import features, inventory
-    from .store import load_data
     receiver = current_app.extensions.get('floorbit_syslog')
     if not receiver or not features.on('syslog'):
         return []
-    by_name = {d['name'].lower(): d['id'] for d in inventory.devices(load_data())}
+    by_name = {d['name'].lower(): d['id'] for d in inventory.devices(data)}
     out = []
     for a in receiver.alert_items():
         switch_id = by_name.get(a['device'].lower())
@@ -297,10 +293,8 @@ def _mute_kind(key):
     return 'health' if key.startswith(alerting.service_key('')) else 'wifi' if key.startswith('wifi:') else 'switch'
 
 
-def _wifi(muted):
+def _wifi(muted, data):
     from . import features, wifi
-    from .store import load_data
-    data = load_data()
     registry = current_app.extensions.get('floorbit_plugins')
     if registry is None or not features.on('wifi', data) or not (registry.feeders('wifi') or wifi.agent_active()):
         return []
@@ -308,11 +302,15 @@ def _wifi(muted):
 
 
 def current(may_see_people):
-    muted = alerting.mutes()
     from . import librenms_alerts, links
+    from .store import load_data
+    # Read once and handed on: every page asks for this, and each part reading data.json itself
+    # parsed it a dozen times per request.
+    data = load_data()
+    muted = alerting.mutes(data=data)
     items = (_monitoring() + _switches(muted) + _health(muted) + _security(may_see_people) + _power() + _forecast()
-             + links.problems() + _wifi(muted) + _plugins() + librenms_alerts.problems())
-    _reach(items)
+             + links.problems(data) + _wifi(muted, data) + _plugins() + librenms_alerts.problems(data))
+    _reach(items, data)
     now = time.time()
     items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),
@@ -320,7 +318,7 @@ def current(may_see_people):
               'muted': sum(bool(p.get('muted')) for p in items)}
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
-    attention = sorted(_attention() + _logs(may_see_people) + _ranges() + _port_check()
+    attention = sorted(_attention() + _logs(may_see_people, data) + _ranges(data) + _port_check(data)
                        + _shared_ports() + _seat_incidents(),
                        key=lambda p: -(p['since'] or 0))
     counts['attention'] = len(attention)

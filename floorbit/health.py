@@ -21,6 +21,7 @@ from integrations import config, events
 
 from . import capacity, features, firewalls, game_servers, services
 from .plugins import PluginError
+from .store import load_data
 
 KINDS = ('dhcp', 'dns', 'cache', 'game', 'uplink', 'firewall', 'web', 'other')
 STATES = ('up', 'warn', 'down', 'unknown')
@@ -243,14 +244,17 @@ class HealthWall:
         return self.snapshot()
 
     def snapshot(self):
+        # Read once for the three counts below: each read on its own parsed data.json again, and
+        # every page asks for this (Problems, the status page).
+        data = load_data()
         with self._lock:
             checks = sorted(self.checks.values(), key=lambda c: (KINDS.index(c['kind']), c['name'].lower()))
             counts = {s: sum(c['status'] == s for c in checks) for s in STATES}
             return {'checks': checks, 'counts': counts, 'last_poll': self.last_poll,
                     'interval': self.interval(),
                     'plugins': len(self.registry.feeders('health')) + (1 if self._agent_active() else 0)
-                    + (1 if game_servers.listing() else 0) + (1 if services.health_checks() else 0)
-                    + (1 if firewalls.configured() else 0)}
+                    + (1 if game_servers.listing(data) else 0) + (1 if services.health_checks(data) else 0)
+                    + (1 if firewalls.configured(data) else 0)}
 
 
 def init_health(app, registry, start_background=True):
