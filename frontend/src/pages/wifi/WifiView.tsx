@@ -11,7 +11,7 @@ import type { ViewProps } from '@/pages/monitoring/pages'
 import { DataTable, type DataColumn } from '@/components/DataTable'
 import { StatTile } from '@bitsandbricks/ui'
 import { channelColor, loadColor } from './colors'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { blockTop } from '@/pages/plan/blockTop'
 import { WifiHistory } from './WifiHistory'
 
@@ -108,7 +108,7 @@ export default function WifiView({ expanded }: ViewProps) {
       <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {d?.errors.map((e) => <Alert key={e} color="warn">{t('wifi.pluginError', { message: e })}</Alert>)}
-        {query.isPending || !d ? <LoadingState /> : d.sources.length === 0 ? (
+        {query.isPending || !d ? <LoadingState rows={3} /> : d.sources.length === 0 ? (
           <Alert color="gray" variant="light">{t('wifi.noPlugin')} <Anchor href={DOCS}>docs/wifi.md</Anchor></Alert>
         ) : (
           <>

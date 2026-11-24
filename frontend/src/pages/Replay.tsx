@@ -7,7 +7,7 @@ import { qk } from '@/api/keys'
 import type { EventReplayData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { EventReplay } from './replay/EventReplay'
 
 /** The whole event played back on the floor plan, from the recording (floorbit/recording.py). */
@@ -28,7 +28,7 @@ export default function Replay() {
             data={data.halls.map((h) => ({ value: h.id, label: h.name }))}
             onChange={(v) => setHall(v ?? '')} />
         )} />
-      {query.isPending ? <LoadingState />
+      {query.isPending ? <LoadingState rows={3} />
         : query.error ? <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
           : !data?.frames.length ? <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('replay.event.empty')}</Text></Paper>
             : <EventReplay key={data.hall} data={data} />}

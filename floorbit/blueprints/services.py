@@ -5,9 +5,13 @@ floorbit/services.py, docs in docs/services.md.
 - ``GET /api/services``: every uplink and resolver with how it was when last checked, and the LAN cache.
 - ``GET /api/services/summary``: one count of every service the health wall knows, each internet site
   a row (floorbit/service_summary.py, issue #1037): the Services page and the health panes use it.
-- ``POST /api/services/check``: check everything now (``floorplan.edit``).
+- ``POST /api/services/check``: check everything now, also what the health plugins watch
+  (``floorplan.edit``).
 - ``POST /api/services/<kind>``, ``PUT/DELETE /api/services/<kind>/<id>`` (kind ``uplinks``,
-  ``resolvers`` or ``sites``): ``floorplan.edit``.
+  ``resolvers``, ``sites`` or ``checks``, the crew's own checks of issue #1338): ``floorplan.edit``.
+- ``POST /api/services/checks/test``: run an own check once from the agent, before saving it.
+- ``POST /api/services/tags``: ``{"id": "<service id from the summary>", "tags": [...]}`` replaces a
+  service's tags (issue #1337), for any service the page lists, plugin ones too.
 - ``POST /api/services/sites/common``: add the usual internet sites that are missing (``floorplan.edit``).
 """
 from flask import Blueprint, abort, current_app, g, jsonify, request
@@ -15,7 +19,7 @@ from flask import Blueprint, abort, current_app, g, jsonify, request
 from .. import audit, i18n, service_summary, services, spa
 
 bp = Blueprint('services', __name__)
-WHAT = {'uplinks': 'ISP uplink', 'resolvers': 'DNS resolver', 'sites': 'internet site'}
+WHAT = {'uplinks': 'ISP uplink', 'resolvers': 'DNS resolver', 'sites': 'internet site', 'checks': 'own check'}
 
 
 @bp.route('/services')
@@ -30,18 +34,28 @@ def get_services():
     return jsonify(i18n.translate_fields(services.overview(), lang))
 
 
-@bp.route('/api/services/summary', methods=['GET'])
-def get_summary():
+def _summary():
     wall = current_app.extensions.get('floorbit_health')
     checks = wall.fresh()['checks'] if wall is not None else []
     sites = [{**site, **services.poller.state(site['id'])} for site in services.stored_sites()]
+    tags = services.tags()
+    # Every service's tags, also of one the wall hasn't polled yet (just added), for the page.
+    return {**service_summary.summary(checks, sites, tags), 'tags': tags}
+
+
+@bp.route('/api/services/summary', methods=['GET'])
+def get_summary():
     lang = i18n.language(request.headers.get('Accept-Language'))
-    return jsonify(i18n.translate_fields(service_summary.summary(checks, sites), lang))
+    return jsonify(i18n.translate_fields(_summary(), lang))
 
 
 @bp.route('/api/services/check', methods=['POST'])
 def check_services():
     services.poller.poll_once()
+    # One "Check now" for the whole page: the health plugins (DHCP, firewalls, ...) too.
+    wall = current_app.extensions.get('floorbit_health')
+    if wall is not None:
+        wall.poll_once()
     # The pollers keep their messages in English; a German page gets them in German.
     lang = i18n.language(request.headers.get('Accept-Language'))
     return jsonify(i18n.translate_fields(services.overview(), lang))
@@ -55,6 +69,31 @@ def add_common_sites():
     return jsonify({'added': len(added), **services.overview()})
 
 
+@bp.route('/api/services/checks/test', methods=['POST'])
+def test_check():
+    try:
+        got = services.test_check(request.get_json(silent=True) or {})
+    except services.ServiceError as exc:
+        return jsonify({'error': exc.message}), exc.status
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    return jsonify(i18n.translate_fields(got, lang))
+
+
+@bp.route('/api/services/tags', methods=['POST'])
+def save_tags():
+    body = request.get_json(silent=True) or {}
+    known = {**{r['id']: r['name'] for r in _summary()['rows']}, **services.own_ids()}
+    row = {'id': body.get('id'), 'name': known.get(body.get('id'))} if body.get('id') in known else None
+    if row is None:
+        return jsonify({'error': 'There is no such service.'}), 404
+    try:
+        tags = services.set_tags(row['id'], body.get('tags'))
+    except services.ServiceError as exc:
+        return jsonify({'error': exc.message}), exc.status
+    audit.record('floor plan', 'Changed service tags', g.get('audit_user'), f"{row['name']}: {', '.join(tags) or '-'}")
+    return jsonify({'id': row['id'], 'tags': tags})
+
+
 @bp.route('/api/services/<kind>', methods=['POST'])
 @bp.route('/api/services/<kind>/<item_id>', methods=['PUT'])
 def save_service(kind, item_id=None):
@@ -63,7 +102,7 @@ def save_service(kind, item_id=None):
     try:
         item = services.save(kind, request.get_json(silent=True) or {}, g.get('audit_user'), item_id)
     except services.ServiceError as exc:
-        return jsonify({'error': str(exc)}), exc.status
+        return jsonify({'error': exc.message}), exc.status
     audit.record('floor plan', f"{'Changed' if item_id else 'Added'} {WHAT[kind]}", g.get('audit_user'), item['name'])
     return jsonify(item), 200 if item_id else 201
 

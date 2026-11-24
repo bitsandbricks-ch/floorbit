@@ -278,7 +278,10 @@
       "syslog": "{{n}} per minute now",
       "median_ms": "{{n}} ms now"
     },
-    "noneTitle": "No numbers kept yet"
+    "noneTitle": "No numbers kept yet",
+    "bigger": "Show {{name}} larger",
+    "stats": "min {{min}} · avg {{avg}} · max {{max}}",
+    "close": "Close"
   },
   "cfg": {
     "title": "Agent settings",

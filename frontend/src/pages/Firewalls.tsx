@@ -86,7 +86,7 @@ export default function Firewalls() {
             <Group justify="space-between" align="baseline" mb="sm" wrap="wrap">
               <Title order={2} size="h4">{t('firewalls.ranges', { count: data.ranges.length })}</Title>
               {data.ranges.length > 0 && (
-                <Anchor href="/inventory?type=firewall-range" size="sm">{t('firewalls.inInventory')}</Anchor>
+                <Anchor href="/inventory?type=prefix" size="sm">{t('firewalls.inInventory')}</Anchor>
               )}
             </Group>
             {data.ranges.length === 0

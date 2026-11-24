@@ -9,7 +9,7 @@ import type { DutyStatus, Job, JobsData } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { JobPlan } from './jobs/JobPlan'
-import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
 import { IconChecklist } from '@tabler/icons-react'
@@ -92,7 +92,7 @@ export default function Jobs() {
       <PageHead title={t('jobs.title')} desc={t('jobs.intro')} />
       <Stack gap="md">
         <ErrorBanner error={error} />
-        {jobs.isPending ? <LoadingState /> : data && (
+        {jobs.isPending ? <LoadingState rows={3} /> : data && (
           <>
             <Paper withBorder radius="lg" p="sm">
               <Stack gap="sm">

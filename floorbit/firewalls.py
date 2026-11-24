@@ -9,9 +9,10 @@ fallback while one is down. Floorbit keeps that plan and shows it against the fi
   With several, the range is cut into equal **parts**, one per firewall in their order: a /24 over
   four firewalls sends each quarter to its own (Mike, 2026-11-24). ``fallback``, optional, lists
   where a part goes while its own firewall is down; most events have none.
-  Kept in data.json under ``firewalls``; the crew changes them (``floorplan.edit``), or imports them
-  from NetBox prefixes that have the custom field ``floorbit_firewalls`` (``source: import``; each
-  import replaces the last).
+  A range is an inventory **prefix** with firewalls set (Mike, 2026-11-24, issue #1345): the plan
+  is kept on the prefix entry (``plan``, floorbit/inventory_types.py), so a network is written down
+  once. The crew plans it (``floorplan.edit``), or imports it from NetBox prefixes that have the
+  custom field ``floorbit_firewalls`` (``source: import``; each import replaces the last).
 - **Now**: a part's firewall, or the first fallback, that the monitoring source doesn't report down.
   A firewall the source can't tell about counts as up (the core would still route to it), but the
   part says so (``unknown``).
@@ -30,7 +31,7 @@ from integrations.monitor import StatusMonitor
 from . import inventory, sources
 from .store import load_data, save_data
 
-KEY = 'firewalls'
+TYPE = 'prefix'           # the inventory type a range lives on (inventory_types.BUILTIN)
 MAX_RANGES = 500
 MAX_LINE = 16            # firewalls one range is cut over (and in its fallback)
 READ_EVERY = 15          # seconds the source's device list is kept
@@ -43,10 +44,119 @@ class FirewallError(ValueError):
         self.status = status
 
 
+def _prefixes(data):
+    from . import inventory_types
+    return [e for e in inventory_types._entries(data) if e['type'] == TYPE]
+
+
+def _plan(entry):
+    plan = entry.get('plan')
+    return plan if isinstance(plan, dict) and plan.get('firewalls') else None
+
+
+def _cidr_of(entry):
+    try:
+        return str(_parse((entry.get('fields') or {}).get('prefix')))
+    except ValueError:
+        return None
+
+
+def _row(entry, cidr):
+    """A planned prefix as a range: what the rest of this module (and the API) works with."""
+    plan, name = entry.get('plan') or {}, entry.get('name') or ''
+    return {'id': entry['id'], 'cidr': cidr, 'name': '' if name == cidr else name,
+            'firewalls': list(plan.get('firewalls') or []), 'fallback': list(plan.get('fallback') or []),
+            'switches': list(plan.get('switches') or []), 'source': plan.get('source') or 'floorbit',
+            'plugin': plan.get('plugin') or '', 'updated_at': plan.get('updated_at'), 'by': plan.get('by')}
+
+
 def _ranges(data):
-    raw = data.get(KEY)
-    raw = raw if isinstance(raw, dict) else {}
-    return [r for r in raw.get('ranges') or [] if isinstance(r, dict) and r.get('id') and r.get('cidr')]
+    out = []
+    for entry in _prefixes(data):
+        cidr = _cidr_of(entry) if _plan(entry) else None
+        if cidr:
+            out.append(_row(entry, cidr))
+    return out
+
+
+def _holder(entries, cidr):
+    """The prefix entry for ``cidr`` that a plan goes on: one planned already, else one a source
+    keeps (NetBox, discovery), else any."""
+    same = [e for e in entries if _cidr_of(e) == cidr]
+    return next((e for e in same if _plan(e)), None) or next((e for e in same if e.get('refs')), None) or \
+        (same[0] if same else None)
+
+
+def _new_entry(data, name, cidr, entry_id=None):
+    from . import inventory_types
+    entries = inventory_types._entries(data)
+    if len(entries) >= inventory_types.MAX_ENTRIES:
+        raise FirewallError(f'The inventory holds at most {inventory_types.MAX_ENTRIES} entries.', 409)
+    taken = {e['id'] for e in entries}
+    entry = {'id': entry_id if entry_id and entry_id not in taken else uuid.uuid4().hex[:12], 'type': TYPE,
+             'name': name, 'fields': {'prefix': cidr},
+             # Made for the plan: it goes when the plan goes, unless a source keeps it.
+             'made_for': 'firewalls'}
+    data[inventory_types.ENTRIES] = [*entries, entry]
+    return entry
+
+
+def _name_taken(data, entry, name):
+    return any(e is not entry and (e.get('name') or '').lower() == name.lower() for e in _prefixes(data))
+
+
+def _by_hand(entry, key, value):
+    """Sets a name or field on a prefix; one a source keeps stays as set from now on (inventory sync)."""
+    current = (entry.get('fields') or {}).get(key[7:]) if key.startswith('fields.') else entry.get(key)
+    if current == value:
+        return
+    if key.startswith('fields.'):
+        entry.setdefault('fields', {})[key[7:]] = value
+    else:
+        entry[key] = value
+    if entry.get('refs'):
+        locked = entry.setdefault('locked', [])
+        if key not in locked:
+            locked.append(key)
+
+
+def _drop(data, entry):
+    """Takes the plan off a prefix; one made only for it goes too."""
+    from . import inventory_types
+    entry.pop('plan', None)
+    if entry.get('made_for') == 'firewalls' and not entry.get('refs'):
+        data[inventory_types.ENTRIES] = [e for e in inventory_types._entries(data) if e is not entry]
+
+
+def adopt(data, rows):
+    """Ranges in the shape Floorbit kept them before issue #1345 (``data['firewalls']['ranges']``)
+    onto prefix entries, as they are: for the upgrade step and the demo. Returns {old id: entry id}."""
+    moved = {}
+    for raw in rows or []:
+        if not isinstance(raw, dict):
+            continue
+        try:
+            cidr = str(_parse(raw.get('cidr')))
+        except ValueError:
+            continue
+        entries = _prefixes(data)
+        entry = _holder(entries, cidr)
+        if entry is not None and _plan(entry):
+            continue
+        if entry is None:
+            name = ' '.join(str(raw.get('name') or '').split())[:80] or cidr
+            if any((e.get('name') or '').lower() == name.lower() for e in entries):
+                name = cidr if name != cidr else f'{cidr} ({len(entries) + 1})'
+            entry = _new_entry(data, name, cidr, str(raw.get('id') or '') or None)
+        entry['plan'] = {'firewalls': [str(n) for n in raw.get('firewalls') or []],
+                         'fallback': [str(n) for n in raw.get('fallback') or []],
+                         'switches': [str(n) for n in raw.get('switches') or []],
+                         'source': 'import' if raw.get('source') == 'import' else 'floorbit',
+                         'plugin': str(raw.get('plugin') or ''), 'updated_at': raw.get('updated_at'),
+                         'by': raw.get('by')}
+        if raw.get('id'):
+            moved[str(raw['id'])] = entry['id']
+    return moved
 
 
 def _firewall_names(data):
@@ -170,38 +280,48 @@ def _switches(body, data, current):
 
 
 def save(body, by, range_id=None):
+    """Plans a range, or changes one (``range_id``: its prefix entry). A network the inventory has
+    already gets the plan on its prefix; otherwise a prefix is made for it."""
     with _lock:
         data = load_data()
-        stored = data.get(KEY) if isinstance(data.get(KEY), dict) else {}
-        rows = stored.setdefault('ranges', [])
-        row = next((r for r in rows if r.get('id') == range_id), None) if range_id else None
-        if range_id and row is None:
+        entry = next((e for e in _prefixes(data) if e['id'] == range_id), None) if range_id else None
+        if range_id and (entry is None or not _plan(entry)):
             raise FirewallError('No such range.', 404)
-        if row is not None and row.get('source') == 'import' and set(body) == {'switches'}:
+        row = _row(entry, _cidr_of(entry) or '') if entry else None
+        if row is not None and row['source'] == 'import' and set(body) == {'switches'}:
             # Which switches a range is for is Floorbit's own: kept on an imported range too.
-            row['switches'] = _switches(body, data, row)
-            data[KEY] = stored
+            entry['plan']['switches'] = _switches(body, data, row)
             save_data(data)
-            return dict(row)
-        if row is not None and row.get('source') == 'import':
-            raise FirewallError(f"This range comes from {row.get('plugin') or 'NetBox'}: change it there and import "
+            return _row(entry, row['cidr'])
+        if row is not None and row['source'] == 'import':
+            raise FirewallError(f"This range comes from {row['plugin'] or 'NetBox'}: change it there and import "
                                 'again.', 409)
         fields = _clean(body, data, row)
-        if any(r is not row and r.get('cidr') == fields['cidr'] for r in rows):
-            raise FirewallError(f"{fields['cidr']} is planned already.", 409)
-        clash = _partly_over(_parse(fields['cidr']), [r for r in rows if r is not row])
+        cidr = fields['cidr']
+        others = [r for r in _ranges(data) if entry is None or r['id'] != entry['id']]
+        if any(r['cidr'] == cidr for r in others):
+            raise FirewallError(f'{cidr} is planned already.', 409)
+        clash = _partly_over(_parse(cidr), others)
         if clash:
-            raise FirewallError(f"{fields['cidr']} overlaps {clash} only in part: make one range inside the other, "
+            raise FirewallError(f"{cidr} overlaps {clash} only in part: make one range inside the other, "
                                 'or split them where they meet.', 409)
-        if row is None:
-            if len(rows) >= MAX_RANGES:
-                raise FirewallError(f'Floorbit keeps at most {MAX_RANGES} ranges.')
-            row = {'id': uuid.uuid4().hex[:12]}
-            rows.append(row)
-        row.update(fields, updated_at=time.time(), by=by)
-        data[KEY] = stored
+        if entry is None and len(others) >= MAX_RANGES:
+            raise FirewallError(f'Floorbit keeps at most {MAX_RANGES} ranges.')
+        made = False
+        if entry is None:
+            entry = _holder([e for e in _prefixes(data) if not _plan(e)], cidr)
+        if entry is None:
+            entry, made = _new_entry(data, fields['name'] or cidr, cidr), True
+        name = fields['name'] or (cidr if made or (row is not None and 'name' in body) else entry.get('name'))
+        if _name_taken(data, entry, name):
+            raise FirewallError(f'There is a prefix called {name} already.', 409)
+        _by_hand(entry, 'name', name)
+        _by_hand(entry, 'fields.prefix', cidr)
+        entry['plan'] = {'firewalls': fields['firewalls'], 'fallback': fields['fallback'],
+                         'switches': fields['switches'], 'source': 'floorbit', 'plugin': '',
+                         'updated_at': time.time(), 'by': by}
         save_data(data)
-    return dict(row)
+        return _row(entry, cidr)
 
 
 def _partly_over(span, rows):
@@ -267,52 +387,61 @@ def import_from(registry, by):
         raise FirewallError('; '.join(errors), 502)
     with _lock:
         data = load_data()
-        stored = data.get(KEY) if isinstance(data.get(KEY), dict) else {}
-        # A source that failed this time keeps its last import.
-        kept = [r for r in _ranges(data) if r.get('source') != 'import' or r.get('plugin') not in answered]
-        planned = {r['cidr'] for r in kept}
-        # The switches set on an imported range survive the next import (NetBox doesn't know them).
-        switches_before = {r['cidr']: r.get('switches') or [] for r in _ranges(data) if r.get('source') == 'import'}
-        added, unknown, clash = [], 0, 0
+        rows = _ranges(data)
+        # The crew's own ranges stay; a network the crew planned keeps the crew's line.
+        crew = {r['cidr'] for r in rows if r['source'] != 'import' or r['plugin'] not in answered}
+        count = len(crew)
+        seen, added, unknown, clash = set(), 0, 0, 0
         for plugin, raw in found:
             if not isinstance(raw, dict):
                 continue
             try:
-                fields = _clean({'cidr': raw.get('cidr'), 'name': raw.get('name'), 'firewalls': raw.get('firewalls')},
-                                data)
-                fields['switches'] = switches_before.get(fields['cidr'], [])
+                fields = _clean({'cidr': raw.get('cidr'), 'name': raw.get('name'), 'firewalls': raw.get('firewalls'),
+                                 'switches': []}, data)
             except FirewallError:
                 unknown += 1   # one prefix with a typo in NetBox must not stop the rest
                 continue
-            if fields['cidr'] in planned:
+            cidr = fields['cidr']
+            if cidr in crew:
                 clash += 1
                 continue
-            if len(kept) + len(added) >= MAX_RANGES:
+            if cidr in seen:
+                continue
+            if count + len(seen) >= MAX_RANGES:
                 break
-            planned.add(fields['cidr'])
-            added.append({'id': uuid.uuid4().hex[:12], **fields, 'source': 'import', 'plugin': plugin,
-                          'updated_at': time.time(), 'by': by})
-        data[KEY] = {**stored, 'ranges': kept + added}
+            seen.add(cidr)
+            entry = _holder(_prefixes(data), cidr)
+            if entry is None:
+                name = fields['name'] or cidr
+                entry = _new_entry(data, cidr if _name_taken(data, None, name) else name, cidr)
+            # The switches set on an imported range survive the next import (NetBox doesn't know them).
+            before = (entry.get('plan') or {}).get('switches') or []
+            entry['plan'] = {'firewalls': fields['firewalls'], 'fallback': [], 'switches': list(before),
+                             'source': 'import', 'plugin': plugin, 'updated_at': time.time(), 'by': by}
+            added += 1
+        # What a source that answered no longer lists goes; one that failed keeps its last import.
+        for entry in _prefixes(data):
+            plan = _plan(entry)
+            if plan and plan.get('source') == 'import' and plan.get('plugin') in answered \
+                    and _cidr_of(entry) not in seen:
+                _drop(data, entry)
         save_data(data)
     if unknown:
         errors.append(f'{unknown} prefix(es) skipped: not a network, or a firewall that is not in the inventory.')
     if clash:
         errors.append(f'{clash} prefix(es) skipped: planned in Floorbit already.')
-    return len(added), errors
+    return added, errors
 
 
 def delete(range_id):
+    """Takes a range's plan off its prefix (the prefix stays where a source or the crew keeps it)."""
     with _lock:
         data = load_data()
-        rows = _ranges(data)
-        gone = next((r for r in rows if r.get('id') == range_id), None)
-        if gone is None:
+        entry = next((e for e in _prefixes(data) if e['id'] == range_id and _plan(e)), None)
+        if entry is None:
             return None
-        data[KEY] = {**data[KEY], 'ranges': [r for r in rows if r is not gone]}
-        # Its group, tags and notes in the inventory go with it (floorbit/inventory_types.py).
-        attached = data.get('inventory_items')
-        if isinstance(attached, dict):
-            attached.pop(f'firewall-range:{range_id}', None)
+        gone = _row(entry, _cidr_of(entry) or '')
+        _drop(data, entry)
         save_data(data)
     return gone
 
@@ -408,7 +537,7 @@ def _part_of(ip, rows):
     row = _match(ip, [(r, span) for r, span, _fw in rows])
     if row is None:
         return None
-    return next(((r, span, fw) for r, span, fw in rows if r is row and ip in span), None)
+    return next(((r, span, fw) for r, span, fw in rows if r['id'] == row['id'] and ip in span), None)
 
 
 def _nets(data):
@@ -441,7 +570,7 @@ def overview(now=None):
     for row in rows:
         fallback = [n for n in row.get('fallback') or [] if n in status]
         shown = []
-        for part, fw in ((p, f) for r, p, f in every if r is row):
+        for part, fw in ((p, f) for r, p, f in every if r['id'] == row['id']):
             now_on, state = _route([fw, *fallback], status)
             shown.append({'cidr': str(part), 'firewall': fw, 'now': now_on, 'state': state,
                           'seats': seats.get((row['id'], str(part)), 0)})

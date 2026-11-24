@@ -13,7 +13,7 @@ import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { PortDialog, type PortRequest } from './security/PortDialog'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner } from '@bitsandbricks/ui'
 import { ago } from '@/lib/time'
 import { pluginName } from '@/lib/pluginName'
 

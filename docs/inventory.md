@@ -170,10 +170,11 @@ Devices are one **type** of inventory entry. The others sit in tabs on the Inven
 
 | Type | Where its entries live |
 | --- | --- |
-| Cable, Circuit, Power board, Patch panel, Firewall range | The cables, power, floor plan and Firewalls pages, as before. The inventory shows them and adds fields, tags, a group and properties; name and route stay on their own page. |
+| Cable, Circuit, Power board, Patch panel | The cables, power and floor plan pages, as before. The inventory shows them and adds fields, tags, a group and properties; name and route stay on their own page. |
 | Rack or location | The inventory (height in U, hall). |
 | Transceiver | The inventory (device, port, form factor, media, speed, serial). |
-| VLAN or IP range | The inventory (VLAN ID, prefix, gateway, purpose). |
+| VLAN | The inventory (VLAN ID, purpose). |
+| Prefix or range | The inventory (a network or a from-to range, VLAN ID, gateway, purpose, check-in lookups). A prefix with firewalls set is a [firewall range](firewalls.md): its plan is kept on the prefix. |
 | Item | The inventory, for anything else worth listing. |
 
 Admins add their own types under **Inventory > Types**, and give any type, built-in or their own,
@@ -259,8 +260,8 @@ LibreNMS call (an agent older than this asks nothing, and those areas stay as th
   switches, routers, firewalls, access points, servers and PDUs that are up. With telemetry they
   bring their MAC, IPv4 addresses, access VLAN and whether they are access or trunk ports (Cisco:
   vmVlan and the trunk status; others: the Q-BRIDGE port VLAN).
-- The VLANs each device knows (with their names) and the networks on its interfaces become
-  **VLAN or IP range** entries, with the same rules as a plugin's: what you change stays, nothing
+- The VLANs each device knows (with their names) become **VLAN** entries, and the networks on its
+  interfaces **Prefix or range** entries, with the same rules as a plugin's: what you change stays, nothing
   is deleted. A device's own list is `discovered` in `GET /api/inventory/<id>`; what was plugged
   into its ports is `GET /api/endpoints?device=<name>` ([IP and MAC history](endpoints.md)).
 - The optics ENTITY-MIB lists (module or port rows with a serial and a model like `SFP-10G-SR`,

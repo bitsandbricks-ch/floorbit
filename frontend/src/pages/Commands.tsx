@@ -14,7 +14,7 @@ import { useCan } from '@/api/queries'
 import type { CommandInfo, CommandRun, CommandTemplate } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmIcon, StatusBadge } from '@bitsandbricks/ui'
 
 interface RunBody {
@@ -97,7 +97,7 @@ export default function Commands() {
         } />
       <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
-        {query.isPending ? <LoadingState /> : info && !info.available ? (
+        {query.isPending ? <LoadingState rows={3} /> : info && !info.available ? (
           <Alert color="warn">{t('commands.noPlugin')}</Alert>
         ) : info && (
           <Paper withBorder radius="lg" p="md">

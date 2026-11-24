@@ -21,7 +21,7 @@ import { GLYPH_Y, NODE_H, NODE_W, type Placed, arranged, gbit, layout, placeUpli
 import { DeviceGlyph, UplinkGlyph } from './topology/glyphs'
 import { UPLINK_WIDTH } from './plan/linkLook'
 import './Topology.css'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton, StatusBadge } from '@bitsandbricks/ui'
 
 const READABLE = 1 // the smallest scale the opening view shows names at: 11px, as on the plan

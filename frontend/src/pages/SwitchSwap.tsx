@@ -9,7 +9,8 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, dateTime } from '@/lib/time'
 import type { SwapEntry, SwapPlan } from './switchSwap/types'
 
@@ -49,7 +50,7 @@ export default function SwitchSwap() {
       <PageHead title={name ? t('switchSwap.heading', { name }) : t('switchSwap.title')} desc={t('switchSwap.intro')} />
       <Stack gap="md">
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
-        {query.isPending ? <LoadingState /> : p && (
+        {query.isPending ? <LoadingState rows={3} /> : p && (
           <>
             <Panel title={name} aria-label={t('switchSwap.now')}
               actions={<Badge variant="light" color={down ? 'down' : state === 'online' ? 'up' : 'gray'} tt="none" className="fb-on-tint">

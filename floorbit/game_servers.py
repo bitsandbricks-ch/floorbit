@@ -177,12 +177,23 @@ def _via_agent():
     return agent_link.active()
 
 
+class NoAgent(game_query.QueryError):
+    pass
+
+
+NO_AGENT = 'No local agent is connected, so this is not checked.'
+
+
 def _ask(method, *args):
-    """Run a query here, or on the local agent when one is enrolled (it is on the event network)."""
+    """Run a query on the local agent (it is on the event network), or here when this is the agent.
+    Demo data without an agent sends nothing from the server (issue #1339)."""
     demo = probes.stood_in(method, args)
     if demo is not None:
         return demo
+    from . import agent_link
     if not _via_agent():
+        if not agent_link.lan_here():
+            raise NoAgent(NO_AGENT)
         # The host is the second argument of a query (after the protocol), the first of RCON.
         at = 1 if method == 'game_query' else 0
         try:
@@ -192,10 +203,12 @@ def _ask(method, *args):
         if method == 'game_query':
             return game_query.query(*args)
         return game_query.rcon(*args)
-    from . import agent_link
     try:
         return agent_link.tunnel.call(method, args, timeout=10)
-    except (agent_link.AgentUnavailable, agent_link.AgentError) as exc:
+    except agent_link.AgentUnavailable:
+        # Grey "not checked", not red: the server is not known to be down.
+        raise NoAgent(NO_AGENT) from None
+    except agent_link.AgentError as exc:
         raise game_query.QueryError(str(exc)) from None
 
 
@@ -247,6 +260,8 @@ class Poller:
         now = time.time() if now is None else now
         try:
             info, error, status = _info(_ask('game_query', server['query'], server['host'], server['port'])), '', 'up'
+        except NoAgent as exc:
+            info, error, status = None, str(exc), 'unknown'
         except game_query.QueryError as exc:
             info, error, status = None, str(exc), 'down'
         except Exception as exc:  # noqa: BLE001  # one odd server must not stop the others' poll

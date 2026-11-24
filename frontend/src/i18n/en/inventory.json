@@ -146,9 +146,9 @@
       "patch-panel": "Patch panel",
       "rack": "Rack or location",
       "transceiver": "Transceiver",
-      "vlan": "VLAN or IP range",
-      "item": "Item",
-      "firewall-range": "Firewall range"
+      "vlan": "VLAN",
+      "prefix": "Prefix or range",
+      "item": "Item"
     },
     "fieldLabel": {
       "height_u": "Height (U)",
@@ -196,8 +196,7 @@
       "cable": "Open in cables",
       "circuit": "Open in power",
       "power-board": "Open in power",
-      "patch-panel": "Open in cables",
-      "firewall-range": "Open in firewalls"
+      "patch-panel": "Open in cables"
     },
     "details": "Details",
     "add": "Add {{type}}",
@@ -205,8 +204,7 @@
       "cable": "Cables are added and changed on the Cables page; here they get groups, tags, fields and notes.",
       "circuit": "Circuits are added and changed on the Power page; here they get groups, tags, fields and notes.",
       "power-board": "Power boards are added and changed on the Power page; here they get groups, tags, fields and notes.",
-      "patch-panel": "Patch panels are placed on the floor plan; here they get groups, tags, fields and notes.",
-      "firewall-range": "Firewall ranges are planned on the Firewalls page, or imported from NetBox there; here they get groups, tags, fields and notes."
+      "patch-panel": "Patch panels are placed on the floor plan; here they get groups, tags, fields and notes."
     },
     "count_one": "{{count}} entry",
     "count_other": "{{count}} entries",

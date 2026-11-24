@@ -36,7 +36,7 @@ export const TABS = ['overview', 'floorPlan', 'helpdesk', 'services']
  *  neither lands in "more", so a new page shows up before anyone sorts it in. */
 export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'work', icon: IconLifebuoy, pages: ['helpdesk'] },
-  { id: 'monitoring', icon: IconActivityHeartbeat, pages: ['health', 'network', 'services', 'traffic', 'agents'] },
+  { id: 'monitoring', icon: IconActivityHeartbeat, pages: ['network', 'services', 'traffic', 'agents'] },
   { id: 'places', icon: IconArmchair, pages: ['seats', 'inventory'] },
   { id: 'tools', icon: IconTools, pages: ['console', 'logs'] },
   { id: 'screens', icon: IconDeviceTv, pages: ['dashboards'] },

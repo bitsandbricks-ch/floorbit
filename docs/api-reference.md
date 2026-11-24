@@ -993,8 +993,10 @@ Source: [`floorbit/blueprints/services.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | PUT | `/api/services/<kind>/<item_id>` | `floorplan.edit` |  |
 | POST | `/api/services/check` | `floorplan.edit` |  |
+| POST | `/api/services/checks/test` | `floorplan.edit` |  |
 | POST | `/api/services/sites/common` | `floorplan.edit` |  |
 | GET | `/api/services/summary` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/services/tags` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.setup
 

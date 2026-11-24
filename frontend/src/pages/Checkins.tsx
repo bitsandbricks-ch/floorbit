@@ -13,7 +13,8 @@ import { Layout } from '@/components/Layout'
 import { Link } from 'react-router-dom'
 import { PageHead } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
-import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago } from '@/lib/time'
 import { History } from './checkins/History'
 import { LookupNote, LookupWindow } from './checkins/LookupWindow'
@@ -87,14 +88,14 @@ export default function Checkins() {
           <>
             <Panel>
               <EmptyState icon={<IconPlugConnectedX size={24} />} title={t('crewCheckin.off.title')}
-                desc={t(canSettings ? 'crewCheckin.off.desc' : 'crewCheckin.off.askAdmin')}
+                description={t(canSettings ? 'crewCheckin.off.desc' : 'crewCheckin.off.askAdmin')}
                 action={canSettings && (
                   <Button component={Link} to="/settings/checkin">{t('crewCheckin.off.turnOn')}</Button>
                 )} />
             </Panel>
             <History />
           </>
-        ) : query.isPending || !d ? <LoadingState /> : (
+        ) : query.isPending || !d ? <LoadingState rows={3} /> : (
           <>
             <div className="fb-stat-row">
               <StatTile label={t('crewCheckin.count.checkedIn')} value={num(d.counts.checked_in)}
@@ -129,7 +130,7 @@ export default function Checkins() {
                   ))}
                 </Group>
                 {d.rows.length === 0 ? (
-                  <EmptyState title={t('crewCheckin.empty')} desc={t('crewCheckin.emptyDesc')} />
+                  <EmptyState title={t('crewCheckin.empty')} description={t('crewCheckin.emptyDesc')} />
                 ) : (
                   <DataTable label={t('crewCheckin.title')} rows={rows} rowKey={(r) => r.seat} defaultSort={{ id: 'seat' }} striped cards
                     empty={<Text c="dimmed">{t('crewCheckin.noMatch')}</Text>}
@@ -189,7 +190,7 @@ export default function Checkins() {
 
 function Review({ conflicts, canEdit, onForget }: { conflicts: CheckinConflict[]; canEdit: boolean; onForget: (seat: string) => void }) {
   const { t } = useTranslation()
-  if (!conflicts.length) return <EmptyState title={t('crewCheckin.reviewEmpty')} desc={t('crewCheckin.reviewEmptyDesc')} />
+  if (!conflicts.length) return <EmptyState title={t('crewCheckin.reviewEmpty')} description={t('crewCheckin.reviewEmptyDesc')} />
   return (
     <Stack gap="xs">
       {conflicts.map((c) => (
@@ -225,7 +226,7 @@ function Portal({ portal }: { portal: CheckinOverview['portal'] }) {
       <Text size="sm">{t('crewCheckin.portalIntro')}</Text>
       {!portal.public_url && <Alert color="warn">{t('crewCheckin.portalNoUrl')}</Alert>}
       {!last ? (
-        <EmptyState title={t('crewCheckin.portalEmpty')} desc={t('crewCheckin.portalEmptyDesc')} />
+        <EmptyState title={t('crewCheckin.portalEmpty')} description={t('crewCheckin.portalEmptyDesc')} />
       ) : (
         <>
           <Text size="sm" c="dimmed">{t('crewCheckin.portalLast', { when: ago(last.at, i18n.language), count: last.done })}</Text>

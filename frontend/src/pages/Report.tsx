@@ -13,7 +13,7 @@ import { PageHead } from '@bitsandbricks/ui'
 import { bytes, duration, hourPath, pdfUrl, stamp } from './report/format'
 import { Compare } from './stats/Compare'
 import { bps } from './stats/format'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
 import { incidentTitle } from '@/lib/incidentTitle'
 import { ConfirmButton } from '@bitsandbricks/ui'
@@ -103,7 +103,7 @@ export default function Report() {
             description={t('report.peopleHelp')} />
         )}
         {r?.people && <Alert color="warn" role="note">{t('report.peopleOn')}</Alert>}
-        {query.isPending ? <LoadingState /> : r && (
+        {query.isPending ? <LoadingState rows={3} /> : r && (
           <>
             {r.start && r.end && <Text size="sm" c="dimmed">{t('report.period', { start: stamp(r.start), end: stamp(r.end) })}</Text>}
             <SimpleGrid cols={{ base: 2, sm: 3 }}>

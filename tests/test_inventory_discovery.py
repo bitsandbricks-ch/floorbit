@@ -296,9 +296,10 @@ def test_discovery_fills_interfaces_and_the_vlan_entries(client):
     assert ifaces['Vlan10']['ips'] == ['192.0.2.1/24']
     assert detail['discovered']['vlans'] == [{'id': 10, 'name': 'seats'}, {'id': 20, 'name': ''}]
     assert detail['discovered']['networks'] == ['192.0.2.0/24']
-    entries = client.get('/api/inventory/entries?type=vlan').get_json()
-    names = sorted(e['name'] for e in entries.get('entries', entries if isinstance(entries, list) else []))
-    assert names == ['192.0.2.0/24', 'VLAN 20', 'seats']
+    def names(type_id):
+        entries = client.get(f'/api/inventory/entries?type={type_id}').get_json()
+        return sorted(e['name'] for e in entries.get('entries', entries if isinstance(entries, list) else []))
+    assert names('vlan') == ['VLAN 20', 'seats'] and names('prefix') == ['192.0.2.0/24']
 
 
 # ── transceivers (issue #919) ───────────────────────────────────────────────────────────────────

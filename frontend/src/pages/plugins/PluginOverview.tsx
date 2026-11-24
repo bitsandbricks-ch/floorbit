@@ -8,7 +8,7 @@ import { Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { Badges, DataSchema } from './parts'
 import { pluginState, type PluginTone } from './status'
-import { ConfirmButton } from '@/components/ConfirmButton'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 const TONE: Record<PluginTone, string> = { up: 'up', warn: 'warn', down: 'down', off: 'gray' }
 

@@ -7,7 +7,7 @@ import { qk } from '@/api/keys'
 import { useFeature, useSetup } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { SetupChecklist } from './setup/Checklist'
 import { DoorsCheck } from './setup/Doors'
 
@@ -70,7 +70,7 @@ export default function Setup() {
   const data = setup.data
 
   let body
-  if (setup.isPending || !data) body = <LoadingState />
+  if (setup.isPending || !data) body = <LoadingState rows={3} />
   else if (data.needs_account) body = <AccountStep />
   // The crew comes here for the checks before doors open (#1049); the checklist is the admins'.
   else if (!data.can_set_up) {

@@ -10,7 +10,8 @@ import type { EndpointAnswer, EndpointRow } from '@/api/types'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { EmptyState, ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, dateTime } from '@/lib/time'
 
 // Seen in the last two minutes: the collector looks every minute.
@@ -78,9 +79,9 @@ export default function Endpoints() {
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {query.data?.status.error && <ErrorBanner error={query.data.status.error} />}
         {!ask ? (
-          <EmptyState title={t('endpoints.start')} desc={t('endpoints.startDesc')} />
-        ) : query.isPending ? <LoadingState /> : !rows.length ? (
-          <EmptyState title={t('endpoints.none')} desc={t('endpoints.noneDesc', { days: query.data?.status.keep_days ?? 7 })} />
+          <EmptyState title={t('endpoints.start')} description={t('endpoints.startDesc')} />
+        ) : query.isPending ? <LoadingState rows={3} /> : !rows.length ? (
+          <EmptyState title={t('endpoints.none')} description={t('endpoints.noneDesc', { days: query.data?.status.keep_days ?? 7 })} />
         ) : (
           <Panel padding={0}>
             <DataTable label={t('endpoints.title')} rows={rows} rowKey={(r) => `${r.mac}|${r.ip}|${r.device}|${r.port}|${r.first_seen}`}
