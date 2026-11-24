@@ -10,6 +10,7 @@
  "Send the fallback firewalls as a list.": "Schicke die Ersatz-Firewalls als Liste.",
  "Send the switches as a list.": "Schicke die Switches als Liste.",
  "Serves no range now": "Bedient jetzt keinen Bereich",
+ "There is a prefix called {} already.": "Es gibt schon ein Präfix namens {}.",
  "This range comes from {}: change it there and import again.": "Dieser Bereich kommt aus {}: ändere ihn dort und importiere neu.",
  "Type an IP address or a seat.": "Gib eine IP-Adresse oder einen Platz ein.",
  "Write the range as a network (192.0.2.0/27) or from-to (192.0.2.0-192.0.2.128).": "Schreib den Bereich als Netz (192.0.2.0/27) oder von-bis (192.0.2.0-192.0.2.128).",

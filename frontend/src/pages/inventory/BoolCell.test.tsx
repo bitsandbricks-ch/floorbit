@@ -7,12 +7,12 @@ import { BoolCell } from './BoolCell'
 afterEach(() => vi.unstubAllGlobals())
 
 const field = { key: 'lookups', label: 'Check-in lookups', default: 'no' }
-const type = { id: 'vlan', name: 'VLAN or IP range', sort: 'stored' } as InventoryType
+const type = { id: 'prefix', name: 'Prefix or range', sort: 'stored' } as InventoryType
 const entry = { id: 'e1', name: 'Seats', fields: { vlan_id: '110', prefix: '192.0.2.0/24' } } as unknown as InventoryEntry
 
 describe('BoolCell', () => {
   it('turns check-in lookups on for one range right in the list', async () => {
-    const api = fakeFetch({ 'PATCH /api/inventory/entries/vlan/e1': { ...entry, fields: { ...entry.fields, lookups: 'yes' } } })
+    const api = fakeFetch({ 'PATCH /api/inventory/entries/prefix/e1': { ...entry, fields: { ...entry.fields, lookups: 'yes' } } })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<BoolCell type={type} entry={entry} field={field} canEdit />)
     const toggle = await screen.findByRole('switch', { name: 'Check-in lookups: Seats' })

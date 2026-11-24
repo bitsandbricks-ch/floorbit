@@ -10,11 +10,12 @@ from floorbit.telemetry import snmpget
 
 
 def test_a_range_with_a_vlan_and_a_prefix_is_a_segment_with_lookups_off(client):
-    entries = '/api/inventory/entries/vlan'
+    entries = '/api/inventory/entries/prefix'
     r = client.post(entries, json={'name': 'Seats A', 'fields': {'vlan_id': 110, 'prefix': '10.10.1.7/22'}})
     assert r.status_code == 201
     seg_id = r.get_json()['id']
-    client.post(entries, json={'name': 'Only a VLAN', 'fields': {'vlan_id': 120}})        # no prefix: not one
+    client.post('/api/inventory/entries/vlan', json={'name': 'Only a VLAN', 'fields': {'vlan_id': 120}})  # no prefix
+    client.post(entries, json={'name': 'No VLAN', 'fields': {'prefix': '10.20.0.0/24'}})    # no VLAN: not one either
     client.post(entries, json={'name': 'Too big', 'fields': {'vlan_id': 130, 'prefix': '10.0.0.0/7'}})
     found = segments.all_segments()
     assert [(s['vlan'], s['network'], s['name'], s['lookups'], s['source']) for s in found] == \
@@ -52,7 +53,7 @@ def test_discovery_gives_a_vlan_interfaces_range_its_vlan_and_keeps_hand_edits(c
     assert found['10.10.0.0/22']['vlan'] == 110 and found['10.10.0.0/22']['source'] == 'discovery'
     assert found['10.10.0.0/22']['lookups'] is False
     seg_id = found['10.10.0.0/22']['id']
-    client.patch(f'/api/inventory/entries/vlan/{seg_id}', json={'fields': {'lookups': True, 'vlan_id': 111}})
+    client.patch(f'/api/inventory/entries/prefix/{seg_id}', json={'fields': {'lookups': True, 'vlan_id': 111}})
     discover([{'vlan': 112, 'network': '10.10.0.0/22', 'if_index': 112}], [])
     seg = segments.all_segments()[0]
     assert seg['vlan'] == 111 and seg['lookups'] is True             # changed by hand: kept
