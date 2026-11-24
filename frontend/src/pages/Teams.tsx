@@ -10,7 +10,7 @@ import { useAccounts, useRoles, useTeams } from '@/api/queries'
 import type { RoleInfo, Team } from '@/api/types'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { RoleForm, type RoleDraft } from './teams/RoleForm'
 import { ConfirmButton } from '@bitsandbricks/ui'
 

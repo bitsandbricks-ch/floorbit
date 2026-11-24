@@ -18,13 +18,15 @@ setting **Who polls the switches** decides:
 
 | Setting | Ports and ARP/MAC tables | Telemetry still does |
 | --- | --- | --- |
-| **Auto** (default) | LibreNMS when its plugin is on with a URL and token, else Telemetry | traps, device facts, gNMI/MDT streams, the API pollers |
+| **Auto** (default) | LibreNMS when its plugin is on with a URL and token, else Telemetry | whether each device answers, traps, device facts, gNMI/MDT streams, the API pollers |
 | **LibreNMS** | LibreNMS, even before it is set up | the same |
 | **Telemetry** | Telemetry, and it answers before LibreNMS | everything |
 
 Traps stay with Telemetry either way: they turn a port down or up within a second, while LibreNMS
 sees it on its next 5-minute poll. The device facts (model, software, interfaces) keep filling the
-inventory ([discovery](inventory.md)).
+inventory ([discovery](inventory.md)). Every 30 seconds Telemetry still reads two values
+(`sysName`, `sysUpTime`) from each device, so the Telemetry page knows it answers (and when it
+rebooted) between two fact reads, which come 5 minutes apart.
 
 With the ports Telemetry also reads the temperatures: CISCO-ENVMON-MIB on Catalyst and IOS-XE,
 ENTITY-SENSOR-MIB (the celsius sensors) on Nexus and others. A switch's status gives the hottest

@@ -345,5 +345,18 @@
   },
   "sound": "Ton bei neuen Problemen",
   "soundHint": "Ein kurzer Ton im Vollbild, wenn etwas ausfällt und sich niemand darum kümmert. Für den NOC-Bildschirm.",
-  "soundAllow": "Ton einschalten"
+  "soundAllow": "Ton einschalten",
+  "focus": {
+    "toolbar": "Dashboard-Editor",
+    "exit": "Editor verlassen",
+    "settings": "Dashboard-Einstellungen",
+    "off": "Aus",
+    "hint": "Am Griff ziehen, an der Ecke grösser machen",
+    "more": "Mehr",
+    "dock": "Neben dem Dashboard andocken",
+    "float": "Über dem Dashboard schweben lassen",
+    "close": "Widget-Einstellungen schliessen",
+    "resetAsk": "{{name}} auf den Standard zurücksetzen? Deine Änderungen gehen verloren.",
+    "deleteAsk": "{{name}} löschen? Das lässt sich nicht rückgängig machen."
+  }
 }

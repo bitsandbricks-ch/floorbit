@@ -10,7 +10,7 @@ import { useCan } from '@/api/queries'
 import type { CableList } from '@/api/types'
 import { CableForm, type CableDraft } from '@/components/CableModal'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 
 const START: (keyof CableDraft)[] = ['switch', 'port', 'panel', 'panel_port', 'seat']
@@ -44,7 +44,7 @@ export default function CablePage() {
         <EmptyState title={t('cables.notFound')} action={back} />
       ) : (
         <>
-          <PageHead title={title} kicker={kicker}
+          <PageHead title={title} eyebrow={kicker}
             actions={cable && (
               <Group gap="xs">
                 <Button variant="default" component="a" target="_blank" leftSection={<IconPrinter size={16} />}

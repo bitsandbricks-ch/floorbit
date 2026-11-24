@@ -10,8 +10,8 @@ import { useCan, useInventory } from '@/api/queries'
 import { SPEC_FIELDS, type CredentialInfo, type DeviceDetail, type InventoryField, type InventoryOverview } from '@/api/types'
 import type { EntityOption } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
-import { PageTabs } from '@/components/PageTabs'
+import { PageHead } from '@bitsandbricks/ui'
+import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { DeviceRawData, DeviceTelemetryActions, DeviceTelemetryStatus } from '@/components/telemetry/DeviceTelemetry'
 import { EmptyState, Field, LoadingState, Panel } from '@/components/ui'
@@ -130,7 +130,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
     <>
       <PageHead
         icon={<DeviceIcon icon={icon} color={color} size={28} />}
-        kicker={kicker}
+        eyebrow={kicker}
         title={<Group gap="sm" wrap="wrap" component="span">{dev.name}{dev.status && <StatusBadge size="md" state={dev.status === 'active' ? 'active' : 'idle'} label={statusLabel(t, dev.status)} />}</Group>}
         actions={<>
           {dev.placed && (
@@ -187,7 +187,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
       )}
       {message && <Text size="sm" role="status" mb="sm" className={message.ok ? 'fb-tone-ok' : 'fb-tone-err'}>{message.ok ? '✓' : '✕'} {message.text}</Text>}
 
-      <PageTabs tabs={tabs} value={tab} onChange={setTab} label={dev.name} />
+      <PageTabs tabs={tabs} active={tab} onChange={setTab} label={dev.name} />
       <div role="tabpanel" aria-labelledby={`fb-tab-${tab}`} style={{ paddingTop: 'var(--mantine-spacing-md)' }}>
         {tab === 'overview' && (
           <div className="fb-detail-grid">
@@ -346,7 +346,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                 canEdit={canEdit} busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
             </Panel>
             <Panel title={t('inventory.features.title')}>
-              <FeaturesEditor key={JSON.stringify(dev.features)} catalog={overview.features} value={dev.features ?? {}} resolved={dev.resolved.features}
+              <FeaturesEditor key={JSON.stringify(dev.features)} catalog={overview.features} value={dev.features ?? {}} resolved={dev.resolved.features} role={dev.role}
                 canEdit={canEdit} busy={save.isPending} onSave={(features) => save.mutate({ features })} />
             </Panel>
           </Stack>

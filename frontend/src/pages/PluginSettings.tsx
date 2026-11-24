@@ -8,8 +8,8 @@ import { qk } from '@/api/keys'
 import { usePlugins } from '@/api/queries'
 import type { Agent, PluginInfo } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
-import { PageTabs } from '@/components/PageTabs'
+import { PageHead } from '@bitsandbricks/ui'
+import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { LoadingState } from '@/components/ui'
 import { pluginName } from '@/lib/pluginName'
@@ -46,7 +46,7 @@ export default function PluginSettings() {
   return (
     <Layout title={name} back={{ href: '/settings/plugins', label: t('plugins.title') }}>
       <PageHead title={name} icon={plugin ? <PluginIcon name={plugin.icon} size={28} /> : undefined}
-        kicker={plugin?.description ? describe(plugin, t) : undefined}
+        eyebrow={plugin?.description ? describe(plugin, t) : undefined}
         actions={plugin ? <PluginSwitch plugin={plugin} /> : undefined} />
       {(plugins.isPending || ed.query.isPending) && <LoadingState rows={3} />}
       {error && <Alert color="down" role="alert">{t('common.error', { message: error.message })}</Alert>}
@@ -56,7 +56,7 @@ export default function PluginSettings() {
           <PluginOverview plugin={plugin} agents={onAgent ? agents.data?.agents : undefined} />
           {/* The one plugin with something to paste elsewhere: its token stays behind a button. */}
           {plugin.id === 'librenms-alerts' && plugin.enabled && <LibreNMSAlertsSetup />}
-          <PageTabs label={name} value={tab} onChange={setTab} tabs={tabs} />
+          <PageTabs label={name} active={tab} onChange={setTab} tabs={tabs} />
           <div role="tabpanel" aria-labelledby={`fb-tab-${tab}`}>
             {tab === 'settings' && section && (
               <SettingsForm ed={ed}>

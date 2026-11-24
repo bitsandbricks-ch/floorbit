@@ -6,7 +6,7 @@ import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Account, AccountsList } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { PageHead } from '@bitsandbricks/ui'
 import { ErrorBanner, Panel } from '@/components/ui'
 import { ConfirmButton } from '@/components/ConfirmButton'
 

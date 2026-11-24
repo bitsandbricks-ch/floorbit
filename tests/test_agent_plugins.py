@@ -354,7 +354,7 @@ def test_targets_come_from_the_inventory(client, anon_client, hallthing, monkeyp
     assert [t["name"] for t in merged["settings"]["targets"]] == ["sw-a-01", "fw-01"]
     assert validate(manifest(agent={"targets": {"credentials": ["telnet"]}})).startswith("agent.targets")
     m = manifest(agent={"targets": True})
-    assert validate(m) == "" and m["agent"]["targets"] == {"credentials": None}
+    assert validate(m) == "" and m["agent"]["targets"] == {"credentials": None, "roles": None}
 
 
 def test_plugins_that_answer_for_the_hall_go_to_the_agent_with_their_settings(client, anon_client, monkeypatch):

@@ -78,6 +78,13 @@
   "removeAsk": "Das Widget {{name}} entfernen? Dashboards, die es noch zeigen, behalten es, bis es dort geklont oder entfernt ist.",
   "usedOn": "Auf {{names}}",
   "unused": "Noch auf keinem Dashboard",
-  "noSaved": "Noch keine gespeicherten Widgets. Erstelle eines mit «Neues Widget» oder speichere einen Typ im Tab Typen.",
-  "followHint": "Jedes Dashboard, das dieses Widget zeigt, ändert sich mit."
+  "noSaved": "Noch keine gespeicherten Widgets",
+  "followHint": "Jedes Dashboard, das dieses Widget zeigt, ändert sich mit.",
+  "usedFilter": "Dashboards",
+  "used": {
+    "all": "Alle",
+    "used": "Auf einem Dashboard",
+    "unused": "Auf keinem"
+  },
+  "noSavedHint": "Erstelle eines mit «Neues Widget» oder speichere einen Typ im Tab Typen."
 }
