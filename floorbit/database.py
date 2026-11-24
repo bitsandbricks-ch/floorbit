@@ -25,6 +25,7 @@ import threading
 import time
 from contextlib import contextmanager, suppress
 
+from . import request_timing
 from .env import number
 
 ENV = 'FLOORBIT_DATABASE_URL'
@@ -283,8 +284,10 @@ class Sql:
     def connection(self):
         """Borrow a connection from the pool for one statement or one transaction. At most
         ``FLOORBIT_DATABASE_POOL`` are open; a thread that finds them all busy waits for one."""
+        asked = time.perf_counter()
         if not self._slots.acquire(timeout=POOL_WAIT):
             raise DatabaseBusy(f'{self.describe()}: all {self.pool_size} connections busy for {POOL_WAIT:.0f} s')
+        got = time.perf_counter()
         c = None
         try:
             with self._lock:
@@ -308,6 +311,7 @@ class Sql:
                 if not keep:
                     _close_quietly(c)
             self._slots.release()
+            request_timing.note_db(time.perf_counter() - asked, got - asked)
 
     def run(self, sql, args=(), fetch=False):
         sql = sql.replace('?', self.mark) if self.mark != '?' else sql
