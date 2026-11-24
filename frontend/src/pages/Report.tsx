@@ -7,16 +7,12 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan, useFeature } from '@/api/queries'
 import type { EventReport, ReportHour } from '@/api/types'
-import { DataTable, type DataTableProps } from '@/components/DataTable'
+import { ConfirmButton, DataTable, type DataTableProps, ErrorBanner, LoadingState, PageHead, StatTile } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
 import { bytes, duration, hourPath, pdfUrl, stamp } from './report/format'
 import { Compare } from './stats/Compare'
 import { bps } from './stats/format'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
-import { StatTile } from '@bitsandbricks/ui'
 import { incidentTitle } from '@/lib/incidentTitle'
-import { ConfirmButton } from '@bitsandbricks/ui'
 
 type PortRow = EventReport['problem_ports'][number]
 type IncidentRow = EventReport['incidents']['items'][number]

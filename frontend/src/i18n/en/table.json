@@ -1,6 +1,4 @@
 {
-  "rowsOf": "{{from}}–{{to}} of {{count}}",
-  "empty": "Nothing here yet.",
   "previous": "Previous page",
   "next": "Next page",
   "first": "First page",

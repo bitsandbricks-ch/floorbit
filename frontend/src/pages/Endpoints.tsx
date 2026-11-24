@@ -7,11 +7,9 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { EndpointAnswer, EndpointRow } from '@/api/types'
-import { DataTable } from '@/components/DataTable'
+import { DataTable, EmptyState, ErrorBanner, LoadingState, PageHead } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
 import { Panel } from '@/components/ui'
-import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, dateTime } from '@/lib/time'
 
 // Seen in the last two minutes: the collector looks every minute.

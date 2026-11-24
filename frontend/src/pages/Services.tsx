@@ -15,7 +15,7 @@ import type {
   DnsResolver, GameServer, GameServerList, InternetSite, IspUplink, Services as ServicesData, ServiceStatus, ServiceSummary,
 } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
+import { ConfirmButton, ErrorBanner, FilterBar, LoadingState, PageHead, StatGrid, StatTile, useFilters } from '@bitsandbricks/ui'
 import { ServiceGroup } from '@/widgets/ServiceList'
 import { STATES, TYPES, serviceRows, typeOfKind } from '@/widgets/serviceRows'
 import type { ServiceRowData, ServiceType } from '@/widgets/serviceRows'
@@ -24,10 +24,6 @@ import { RconConsole, ServerModal } from './services/GameServerParts'
 import { CheckModal } from './services/CheckModal'
 import { ServicePanel } from './services/ServicePanel'
 import './services/Services.css'
-import { FilterBar } from '@/components/FilterBar'
-import { useFilters } from '@/components/useFilters'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
-import { ConfirmButton, StatGrid, StatTile } from '@bitsandbricks/ui'
 
 
 type Editing = { kind: 'uplinks'; item: IspUplink | null } | { kind: 'resolvers'; item: DnsResolver | null }
@@ -161,17 +157,18 @@ export default function Services() {
         {common.error && <Alert color="down" role="alert">{common.error.message}</Alert>}
         {check.error && <Alert color="down" role="alert">{check.error.message}</Alert>}
         {rows.length > 0 && (
-          <FilterBar state={filters} searchLabel={t('services.search')} filters={[
-            { id: 'shown', label: t('services.show'), options: [
-              { value: 'all', label: t('services.filter.all'), count: rows.length },
-              { value: 'notUp', label: t('services.filter.notUp'), count: notUp },
-              { value: 'up', label: t('services.filter.up'), count: rows.length - notUp },
-            ] },
-            { id: 'by', label: t('services.groupBy'), options: [
-              { value: 'type', label: t('services.byType') }, { value: 'tag', label: t('services.byTag') },
-              { value: 'state', label: t('services.byState') },
-            ] },
-          ]} />
+          <FilterBar search={filters.search} onSearchChange={filters.setSearch} searchLabel={t('services.search')} onClear={filters.clear}
+            groups={filters.groups([
+              { key: 'shown', label: t('services.show'), options: [
+                { value: 'all', label: t('services.filter.all'), count: rows.length },
+                { value: 'notUp', label: t('services.filter.notUp'), count: notUp },
+                { value: 'up', label: t('services.filter.up'), count: rows.length - notUp },
+              ] },
+              { key: 'by', label: t('services.groupBy'), options: [
+                { value: 'type', label: t('services.byType') }, { value: 'tag', label: t('services.byTag') },
+                { value: 'state', label: t('services.byState') },
+              ] },
+            ])} />
         )}
         {rows.length > 0 && matching.length === 0 && <Text c="dimmed">{t('services.noMatch')}</Text>}
         <div className="fb-services-split">
