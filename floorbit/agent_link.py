@@ -69,7 +69,7 @@ INVENTORY_TIMEOUT = 25   # a NetBox sync pages through every device: give it lon
 # terminal (floorbit/switch_link.py).
 METHODS = ('configured', 'devices', 'device_details', 'resolve_ip', 'port_stats', 'device_ports', 'arp',
            'port_clients', 'inventory_feeds', 'cable_feeds', 'health_feeds', 'dns_feeds',
-           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours', 'device_facts',
+           'wifi_feeds', 'game_query', 'game_rcon', 'neighbours', 'device_facts', 'active_alerts',
            'dns_probe', 'tcp_probe', 'plugin', 'plugins_reload',
            'switch_call', 'shell_open', 'shell_io', 'shell_close', 'plugin_test')
 PLUGIN_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_.-]{0,59}\Z')
@@ -1184,6 +1184,15 @@ def monitoring_source():
 
         def neighbours(self, hostname):
             return self._call('neighbours', hostname) or []
+
+        def active_alerts(self):
+            # An agent older than this method says it doesn't know it: nothing is cleared then.
+            try:
+                rows = self._call('active_alerts')
+            except PluginError as exc:
+                print(f'[agent] active_alerts failed: {exc}')
+                return None
+            return rows if isinstance(rows, list) else None
 
         def device_facts(self, hostname):
             # An agent older than this method says it doesn't know it: discovery then has no facts.
