@@ -112,6 +112,11 @@ top first, with the space above each:
   makes it C.
 - **Space above** a row is the aisle between it and the row above, in seats (0 to 20): room for a switch
   between two rows. Drop a switch into it like anywhere else on the plan.
+- **On the plan**, the selected block shows a bar between each two rows. Drag a bar up or down to change
+  the space above the lower row, in quarter seats (hold Alt, or turn snapping off, to place it freely).
+  The rows above stay where they are; the rows below move. Clicking a bar picks the row under it.
+- **Double-click a row** on the plan to select its block and pick that row in the panel. The picked row
+  is outlined on the plan.
 - Pick a row to change it on its own:
   - **Seats per row**: rows in a block can differ, for a block that narrows towards a pillar or the stage.
   - **Shape**: **Straight**; **Arc** (how far the row turns from its first seat to its last, in degrees,

@@ -44,5 +44,9 @@
   },
   "firstGap": "The first row has no space above it: move the block instead.",
   "reverse": "Number this row the other way",
-  "seats": "Seats"
+  "seats": "Seats",
+  "gapHandle": "Drag to change the space above {{name}}",
+  "gapDraft_one": "{{value}} seat",
+  "gapDraft_other": "{{value}} seats",
+  "planHint": "Double-click a row on the plan to pick it; drag the bar between two rows to change the space."
 }

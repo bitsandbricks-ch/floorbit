@@ -20,8 +20,11 @@ type Change = (ref: ItemRef, before: Record<string, unknown>, after: Record<stri
 /** A seat block's naming and its rows (floorbit/seat_rows.py): a block is a list of rows, each with
  *  its own seats, shape and space above it, from the block as the server keeps it (the drawing has
  *  only cells). Each change is saved on its own, as one step to undo. */
-export function BlockFields({ data, item, onChange, arranging = false, onArrange }: {
+export function BlockFields({ data, item, onChange, arranging = false, onArrange, picked: pickedProp, onPick }: {
   data: SeatViewData; item: ItemRef; onChange: Change
+  /** The picked row's id, when the editor keeps it (a double-click on the plan picks one). */
+  picked?: string | null
+  onPick?: (id: string | null) => void
   /** Seat handles are out, so seats can be dragged one by one (SeatHandles.tsx). */
   arranging?: boolean
   onArrange?: (on: boolean) => void
@@ -33,7 +36,9 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
   })
   const block = blocks.data?.find((b) => b.id === item.id)
   const [rowStart, setRowStart] = useState<string | null>(null)
-  const [picked, setPicked] = useState<string | null>(null)
+  const [own, setOwn] = useState<string | null>(null)
+  const picked = pickedProp !== undefined ? pickedProp : own
+  const setPicked = onPick ?? setOwn
   if (!block || !Array.isArray(block.rows)) return null
   const save = (before: Record<string, unknown>, after: Record<string, unknown>) => {
     if (JSON.stringify(before) !== JSON.stringify(after)) void onChange(item, before, after).then(() => blocks.refetch())
@@ -59,6 +64,7 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
         </SimpleGrid>
       )}
       <RowList rows={block.rows} name={rowName} picked={picked} onPick={setPicked} onSave={saveRows} />
+      {block.rows.length > 1 && !block.seat_at && <Text size="xs" c="dimmed">{t('blockRows.planHint')}</Text>}
       {open >= 0 && (
         <RowFields key={block.rows[open].id} row={block.rows[open]} name={rowName(open)} first={open === 0}
           onSave={(row) => saveRows(block.rows.map((r, i) => (i === open ? row : r)))} />
@@ -103,7 +109,7 @@ function RowList({ rows, name, picked, onPick, onSave }: {
             {i > 0 && (
               <Group gap="xs" wrap="nowrap" className="fb-row-gap">
                 <Text size="xs" c="dimmed" style={{ flex: 1 }}>{t('blockRows.gapAbove', { name: name(i) })}</Text>
-                <NumberInput size="xs" w={88} min={0} max={20} step={0.5} decimalScale={2} aria-label={t('blockRows.gapAboveLabel', { name: name(i) })}
+                <NumberInput key={r.gap} size="xs" w={88} min={0} max={20} step={0.5} decimalScale={2} aria-label={t('blockRows.gapAboveLabel', { name: name(i) })}
                   defaultValue={r.gap} suffix={` ${t('blockRows.seatsUnit')}`}
                   onBlur={(e) => { const v = Number(e.currentTarget.value.replace(/[^\d.]/g, '')); if (Number.isFinite(v) && v !== r.gap) setGap(i, Math.min(20, Math.max(0, v))) }} />
               </Group>

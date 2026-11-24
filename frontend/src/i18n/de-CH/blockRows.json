@@ -44,5 +44,9 @@
   },
   "firstGap": "Die erste Reihe hat keinen Abstand darüber: verschiebe stattdessen den Block.",
   "reverse": "Diese Reihe andersherum nummerieren",
-  "seats": "Plätze"
+  "seats": "Plätze",
+  "gapHandle": "Ziehen, um den Abstand über {{name}} zu ändern",
+  "gapDraft_one": "{{value}} Platz",
+  "gapDraft_other": "{{value}} Plätze",
+  "planHint": "Doppelklick auf eine Reihe im Plan wählt sie; den Balken zwischen zwei Reihen ziehen ändert den Abstand."
 }
