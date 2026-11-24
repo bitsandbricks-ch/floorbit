@@ -4,6 +4,22 @@ These rules are for AI coding agents (Claude Code, Codex, Copilot, ...) working 
 Humans: see [CONTRIBUTING.md](CONTRIBUTING.md); the same rules apply to you in spirit.
 `CLAUDE.md` imports this file.
 
+This repo follows the [BitsAndBricks handbook](https://github.com/bitsandbricks-ch/handbook),
+profile **web-app** (see `.mason.toml`). Read its core chapters and the blocks that profile lists.
+Where this file differs from the handbook, this file wins for this repo.
+
+**Where Floorbit differs from the handbook, on purpose** (Mike, 2026-11-24):
+
+- The default branch is `master`, not `main`.
+- Roles are Admin, Lead, Tech, Viewer and Kiosk, with permissions written `area.action`
+  ([docs/auth.md](docs/auth.md)), not `viewer`/`operator`/`admin`/`owner` with `resource:action`.
+  They follow how an event crew works, down to a Kiosk account for a big screen.
+- The local agent is the only way Floorbit reaches the event network, so it opens SSH to switches,
+  its features are on by default, and it speaks its own protocol. bitsandbricks-ch/floorbit-agent's
+  `AGENTS.md` says why.
+
+Don't propose to change these; a change is Mike's call.
+
 ## What this is
 
 A Flask web app that shows the event's network on a floor plan: switches from NetBox, their live
@@ -75,7 +91,8 @@ pull request.
   Load backend yet: it gets a major rework in 2027.
 - **CI images:** pin them to a version tag (`python:3.11-slim`, not `python:latest`), and pass
   `${{ github.* }}` text that users control (branch names, PR titles) through `env:`, never pasted into
-  a `run:` script. Pin actions to a major version tag (`actions/checkout@v4`).
+  a `run:` script. Pin every action to a full commit sha with the version as a comment
+  (`uses: actions/checkout@<sha> # v7.0.1`), as `.github/workflows/` already does.
 - **Dependencies:** add one only when it clearly pays for itself, and say why in the pull request.
 - **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new page is a React page in
   `frontend/src/pages/` with its texts in English and German (`frontend/src/i18n/`); a new editor

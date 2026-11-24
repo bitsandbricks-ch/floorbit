@@ -10,6 +10,10 @@
 # The master ruleset requires this check (.github/rulesets/main.json).
 protect = { checks = ["CI passed"] }
 
+[handbook]
+profile = "web-app"
+version = "v1"
+
 [release]
 version = "VERSION"
 changelog = ["CHANGELOG.md"]
