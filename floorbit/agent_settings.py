@@ -335,8 +335,14 @@ def issue_cert(agent_id, csr_pem, now=None):
     from . import agent_ca
     now = time.time() if now is None else now
     names = values(agent_id).get('cert_names') or []
-    pem, not_after = agent_ca.sign(csr_pem, names)
-    _change(agent_id, lambda a: a.__setitem__('cert', {'issued_at': now, 'not_after': not_after, 'names': names}))
+    pem, not_after, serial = agent_ca.sign(csr_pem, names)
+
+    def keep(a):
+        # Every certificate still valid, not only the newest: revoking the agent lists them all.
+        held = [c for c in (a.get('cert') or {}).get('serials') or [] if c.get('not_after', 0) > now]
+        a['cert'] = {'issued_at': now, 'not_after': not_after, 'names': names,
+                     'serials': [*held, {'serial': serial, 'not_after': not_after}]}
+    _change(agent_id, keep)
     return pem
 
 

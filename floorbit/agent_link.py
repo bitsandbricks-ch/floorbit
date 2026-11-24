@@ -481,6 +481,11 @@ def revoke(agent_id):
         data[KEY] = [a for a in agents if a['id'] != agent_id]
         save_data(data)
     _forget_cache()
+    held = (found.get('cert') or {}).get('serials') or []
+    if held:
+        # Its server certificates would otherwise stay trusted until they run out (issue #1181).
+        from . import agent_ca
+        agent_ca.revoke(held)
     return found['name']
 
 
