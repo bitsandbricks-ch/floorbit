@@ -127,8 +127,18 @@ def telemetry_page():
 def _devices():
     """What each configured device sent last, and why it sends nothing, for the page. While an
     agent collects, the picture lives there: asked through its link."""
-    if not telemetry.collector_here():
-        return _devices_on_agent()
+    out = _devices_on_agent() if not telemetry.collector_here() else _devices_here()
+    for t in targets.listing():
+        # More SNMPv3 trap users than listeners (targets._trap_ports): its traps go nowhere.
+        if 'traps' in t['drivers'] and t.get('trap_port', 0) is None:
+            row = out.setdefault(t['name'], {'seen': None, 'online': False})
+            row['problems'] = [*(row.get('problems') or []), {
+                'driver': 'traps', 'kind': 'trap_user',
+                'detail': f'at most {telegraf.TRAP_EXTRA + 1} different trap users'}]
+    return out
+
+
+def _devices_here():
     out = {}
     with state_mod.state._lock:
         for dev in state_mod.state.devices.values():
@@ -175,7 +185,7 @@ def _devices_on_agent():
 
 
 # What the page lists of each device: no logins, not even usernames (crew without settings read it).
-SHOWN = ('id', 'name', 'address', 'kind', 'platform', 'drivers', 'agent', 'inventory_id', 'ports')
+SHOWN = ('id', 'name', 'address', 'kind', 'platform', 'drivers', 'agent', 'inventory_id', 'ports', 'trap_send_port')
 
 
 @bp.route('/api/telemetry/overview', methods=['GET'])

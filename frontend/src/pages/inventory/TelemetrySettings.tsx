@@ -116,6 +116,13 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
             )}
             <Text size="xs" c="dimmed">{t('inventory.telemetry.methodsHint')}</Text>
             {needsLogin && <Alert color="warn" py={6}>{t('inventory.telemetry.needsLogin')}</Alert>}
+            {isDevice && info?.target && effective.includes('traps') && info.target.trap_send_port !== undefined && (
+              info.target.trap_send_port === null
+                ? <Alert color="warn" py={6}>{t('inventory.telemetry.trapNoPort')}</Alert>
+                : <Text size="sm">{info.target.trap_user
+                  ? t('inventory.telemetry.trapPortV3', { port: info.target.trap_send_port, user: info.target.trap_user })
+                  : t('inventory.telemetry.trapPort', { port: info.target.trap_send_port })}</Text>
+            )}
           </Stack>
 
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">

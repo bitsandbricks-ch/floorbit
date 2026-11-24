@@ -70,6 +70,8 @@ services:
       # Device telemetry (docs/telemetry.md): the agent runs Telegraf itself. SNMP traps and
       # Cisco model-driven telemetry from the devices; nothing listens until devices use them.
       - "${TRAP_PUBLISH_PORT:-162}:1162/udp"
+      # A listener for each further SNMPv3 trap user (Floorbit shows each device its port).
+      - "1163-1170:1163-1170/udp"
       - "${MDT_PUBLISH_PORT:-57000}:57000"
     depends_on:
       floorbit:
