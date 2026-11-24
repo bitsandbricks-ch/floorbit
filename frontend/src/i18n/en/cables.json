@@ -3,6 +3,7 @@
   "intro": "Which switch port goes to which patch panel port and seat. Each cable gets a label for both ends with a QR code that opens it here. Cables in NetBox come in with the import and stay NetBox's.",
   "add": "Add cable",
   "import": "Import from {{source}}",
+  "more": "More",
   "labels": "Print labels",
   "printOne": "Print its labels",
   "imported_one": "Imported {{count}} cable.",
