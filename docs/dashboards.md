@@ -299,3 +299,10 @@ says which tile a saved `view` pane is read as. `GET /api/dashboard` lists the t
 `TILES` (`floorbit/dashboard_core.py`) plus their builder in `CORE_TILES`
 (`floorbit/blueprints/plugins.py`). What a public dashboard may show is `PUBLIC_TILES` and
 `public_board()` in `floorbit/dashboards.py`.
+
+A dashboard asks for its tiles together: `frontend/src/api/widgetBatch.ts` collects the tiles asked
+for within 10 ms and sends them as `GET /api/dashboard/widgets?u=<tile url>&u=...` (at most 64; the
+browser sends 20 per request). Each tile still runs through its own route and permission check
+(`floorbit/blueprints/widget_batch.py`). A source several tiles read (the traffic snapshot, flows,
+health, DNS) is marked `@once_per_batch` (`floorbit/batch_share.py`) and read once per batch; a new
+builder that reads a shared source should use one of those helpers.

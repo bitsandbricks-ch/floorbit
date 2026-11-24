@@ -1174,6 +1174,16 @@ Source: [`floorbit/blueprints/webhooks.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/settings/webhooks/<hook_id>/secret` | `settings.manage` |  |
 | POST | `/api/settings/webhooks/<hook_id>/test` | `settings.manage` |  |
 
+## floorbit.blueprints.widget_batch
+
+Several dashboard tiles in one request (issue #1300).
+
+Source: [`floorbit/blueprints/widget_batch.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/widget_batch.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/dashboard/widgets` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `dashboard` |
+
 ## floorbit.blueprints.wifi
 
 Wi-Fi view (issue #98). The rules live in floorbit/wifi.py.
