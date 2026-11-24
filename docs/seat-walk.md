@@ -95,11 +95,35 @@ the address and looks for that MAC in the switches' MAC tables (or the monitorin
 Pick your rows and press **Start**. The page then watches for the cable: plug it into the seat's
 socket and the page finds the port on its own and moves on to the next seat. There is no Locate
 button to press while it watches (it stays for a manual retry after five minutes without a port).
+Turn off **Move on by itself after a hit** to stay on a seat until you press Next.
 
-Several people can walk at once, each with their own rows. The page lists every row in the hall with
-how many of its seats have a port, who walks it and at which seat they are now. A row someone else
-walks can't be started twice; **Take them over** moves those rows to you, for when the other walker
-left without stopping. A walk that has not said where it is for ten minutes counts as ended.
+The hall's rows sit beside the walk (on a phone, below it): every row with how many of its seats
+have a port, who walks it and at which seat, how many seats were not found and how many are marked.
+Search a row by name, or show only open rows or your own. Picking a row there starts the setup on
+it, or, while you walk, jumps to the row's first seat.
+
+Above the seat, the **seat strip** shows the walk's seats in order: found, open, not found, marked,
+and where you are. Pick any seat in it to check it now instead of walking there in order.
+
+### Each walk is kept
+
+Floorbit keeps each crew member's walk: its rows and order, the seat it is at, the seats it found
+and the ones it could not find. A row can't be started twice while someone walks it.
+
+- **Pause** (or a closed tab, a flat battery: ten minutes without a word) stops the walk holding
+  its rows, but keeps it. **Continue your walk** on the setup page, on this laptop or any other one,
+  picks it up at the seat it stopped at, with what it found.
+- **Take over** in the row list moves someone else's walk to you, where it got to. Their open page
+  stops writing to it and says who took it. Taking over is in the audit log.
+- **End walk** forgets the walk. The ports it found stay with their seats.
+- A walk nobody touched for a week is gone.
+
+### Marking a seat
+
+**Mark seat** puts a mark on the seat in front of you, with an optional note: **Broken socket**,
+**Come back later** or **Nothing to walk**. A walk skips marked seats (pick one in the seat strip to
+check it anyway); the mark shows on the strip and in the row list until someone removes it. Marks
+belong to the event and are cleared with its seat ports. Each mark is in the audit log.
 
 ## Per event, cleared a day after
 
@@ -114,4 +138,4 @@ The patch plan ([cables](cables.md)) is not cleared: it is what the crew planned
 Where the patch plan names another seat for a port, the plan wins on the floor plan, so the page
 offers to correct the plan.
 
-Who may: reading needs `seats.view`, locating and saving needs `seats.edit`.
+Who may: reading needs `seats.view`; locating, saving, walks and marks need `seats.edit`.

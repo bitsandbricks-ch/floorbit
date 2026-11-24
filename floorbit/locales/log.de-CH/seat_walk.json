@@ -1,4 +1,7 @@
 {
  "Cleared {} seat ports one day after the event ended": "{} Platz-Ports einen Tag nach dem Anlass gelöscht",
- "Walk-through: seat {} found on its port": "Rundgang: Port von Platz {} gefunden"
+ "Walk-through: seat {} found on its port": "Rundgang: Port von Platz {} gefunden",
+ "Walk-through: seat {} marked {}": "Rundgang: Platz {} markiert als {}",
+ "Walk-through: mark on seat {} removed": "Rundgang: Markierung von Platz {} entfernt",
+ "Walk-through: walk taken over": "Rundgang: Rundgang übernommen"
 }

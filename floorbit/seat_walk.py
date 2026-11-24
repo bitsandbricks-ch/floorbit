@@ -521,6 +521,8 @@ def purge_ended(now=None):
             if end is None or now < end + KEEP_AFTER_END:
                 continue
             count = checkin.forget_all_ports()
+            from . import seat_marks
+            count += seat_marks.clear_all()
             if count:
                 cleared.append(event['id'])
                 audit.record('check-in', f'Cleared {count} seat ports one day after the event ended', 'Floorbit',
