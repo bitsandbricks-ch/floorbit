@@ -5,5 +5,37 @@
   "more_one": "+{{count}} weiterer",
   "more_other": "+{{count}} weitere",
   "problems_one": "{{count}} Problem",
-  "problems_other": "{{count}} Probleme"
+  "problems_other": "{{count}} Probleme",
+  "shows": "Zeigt",
+  "view": "Gespeicherte Ansicht",
+  "pickView": "Ansicht wählen",
+  "noViews": "Diese Halle hat noch keine geteilten Ansichten. Speichere eine auf dem Hallenplan mit Gespeicherte Ansichten ▾.",
+  "stops": "Halte",
+  "stopWhole": "Der ganze Bereich",
+  "stopBlocks": "Jeder Block der Reihe nach",
+  "stopViews": "Gespeicherte Ansichten",
+  "secs": "Sekunden pro Halt",
+  "onProblem": "Wenn ein Platz ein Problem bekommt",
+  "onProblemHint": "Als Nächstes zeigen: die Reihen um den Platz sind der nächste Halt (das Spotlight bleibt dort, solange das Problem besteht).",
+  "tour": "Rundgang",
+  "stopProblem": "Platz {{seat}} · Problem",
+  "stopOf": "{{n}} / {{count}}",
+  "viewGone": "Diese gespeicherte Ansicht gibt es nicht mehr, oder nur ihr Besitzer sieht sie.",
+  "noStops": "Dieser Rundgang hat in dieser Halle keine Halte.",
+  "showsOpt": {
+    "area": "Seinen Bereich",
+    "view": "Eine gespeicherte Ansicht",
+    "tour": "Rundgang",
+    "spotlight": "Übersicht + Spotlight"
+  },
+  "showsHint": {
+    "area": "Die ganze Halle, einen Block, eine Reihe, eine Zone oder einen Ausschnitt, den du unten wählst.",
+    "view": "Eine auf dem Hallenplan gespeicherte Ansicht (Gespeicherte Ansichten ▾): wohin sie schaut und ihr Platzfilter.",
+    "tour": "Geht durch die Halte unten, je ein paar Sekunden. Wer den Bildschirm berührt, hält ihn eine Minute an.",
+    "spotlight": "Links der ganze Bereich, nur in Farbe, rechts die Halte unten vergrössert. Braucht ein breites Feld; ein schmales zeigt den Bereich."
+  },
+  "onProblemOpt": {
+    "next": "Als Nächstes zeigen",
+    "keep": "Weitergehen"
+  }
 }
