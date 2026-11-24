@@ -11,5 +11,6 @@
  "Type your switch username.": "Gib deinen Switch-Benutzernamen ein.",
  "{} has no management IP in the inventory.": "{} hat keine Management-IP im Inventar.",
  "{} is not in the inventory, so Floorbit has no address for it.": "{} ist nicht im Inventar, darum hat Floorbit keine Adresse dafür.",
+ "{} on {} leads to another device, not to one seat. Work on it in the switch terminal.": "{} auf {} führt zu einem anderen Gerät, nicht zu einem Platz. Bearbeite ihn im Switch-Terminal.",
  "{} on {} was just bounced. Give it {} seconds.": "{} auf {} wurde gerade neu gestartet. Gib ihm {} Sekunden."
 }

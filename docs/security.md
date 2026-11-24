@@ -14,6 +14,9 @@ the seat or switch, with a count next to **Security**. Code:
   click, plus your own switch login when the plugin needs one. The server takes the switch and
   port from the finding, not from the browser. The port stays down until someone turns it on
   again under **Ports Floorbit shut**, which lists who shut it, when and why.
+  On an uplink (a [topology](topology.md) link ends there, LLDP/CDP sees another device on it, or
+  its name matches the uplink pattern) the finding offers **Open the switch** instead: shutting
+  it would cut every seat behind the switch.
 - **I'm on it**: tells the others someone is looking at it. Findings someone is on sort
   below the ones nobody has taken. The browser tab counts only the findings nobody is on yet, like
   "(2) Security".

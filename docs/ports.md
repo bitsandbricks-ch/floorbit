@@ -23,6 +23,11 @@ On the [Security](security.md) page, **Shut port** takes a finding's port down u
 it on again (**Ports Floorbit shut**, with who, when and why). The browser only names the
 finding; the server takes the switch and port from it.
 
+Shut and bounce refuse an uplink: a port a topology link ends on, a port where LLDP or CDP sees
+another device, or one whose name matches the uplink pattern (`STATS_UPLINK_PATTERN`). Taking it
+down would cut every seat behind the switch, so that work goes through the switch terminal.
+Turning a port on is always allowed.
+
 ## How it reaches the switch
 
 Floorbit doesn't talk to switches itself: a plugin with `uses: [ports]` does, one at a time.

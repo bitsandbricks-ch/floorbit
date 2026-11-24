@@ -172,6 +172,12 @@ def act(registry, account, body, action):
         raise PortError('No port actions plugin is on. An admin turns one on under Settings > Plugins.', 409)
     dev, port, seat = target(body)
     _feature(dev, 'ports')
+    if action != 'enable':
+        from . import uplink_guard
+        if uplink_guard.reason(dev['name'], port):
+            # Shutting or bouncing an uplink cuts every seat behind the switch (#886).
+            raise PortError(f'{port} on {dev["name"]} leads to another device, not to one seat. '
+                            'Work on it in the switch terminal.', 409)
     needs_login = info(registry)['plugin_login']
     login = _login(body, needs_login, dev['name'], account)
     key = (dev['name'], port)
