@@ -3,6 +3,7 @@
   "intro": "Welcher Switch-Port auf welchen Patchpanel-Port und welchen Platz geht. Jedes Kabel bekommt ein Etikett für beide Enden mit einem QR-Code, der es hier öffnet. Kabel aus NetBox kommen mit dem Import und bleiben bei NetBox.",
   "add": "Kabel hinzufügen",
   "import": "Aus {{source}} importieren",
+  "more": "Mehr",
   "labels": "Etiketten drucken",
   "printOne": "Seine Etiketten drucken",
   "imported_one": "{{count}} Kabel importiert.",

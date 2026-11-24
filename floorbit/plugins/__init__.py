@@ -509,7 +509,8 @@ def _check_methods(spec):
             for method in methods:
                 if area in spec.uses:
                     (allowed if table is AREA_METHODS else optional).add(method)
-                elif callable(getattr(cls, method, None)):
+                # Any plugin may say whether it is set up (configured); a monitoring one must.
+                elif method != 'configured' and callable(getattr(cls, method, None)):
                     return f'plugin.py: {method}() needs "{area}" under uses:'
     has_migrate = callable(getattr(cls, 'migrate', None))
     if spec.manifest.get('schema') and not has_migrate:
@@ -653,7 +654,7 @@ class Registry:
         self._busy_lock = threading.Lock()
         self._migrating = {}           # plugin id -> lock, one migration at a time
         self._migrate_failed = {}      # (plugins.json path, id, schema) -> (when, message)
-        self._failing = {}             # id -> (since, message) while every call of it fails (failing())
+        self._failing = {}             # (id, method) -> (since, message) while every call of it fails (failing())
         if dirs is None:
             dirs = [(BUILTIN_DIR, 'builtin')]
             dev = os.environ.get(DEV_ENV, '').strip()
@@ -922,7 +923,7 @@ class Registry:
         try:
             result = getattr(cls(Context(spec, self)), method)(*args)
         except PluginError as exc:
-            self._failed(spec, str(exc))
+            self._failed(spec, method, str(exc))
             raise
         # BaseException too: a plugin's sys.exit() would otherwise end the worker serving the request.
         except BaseException as exc:
@@ -930,19 +931,26 @@ class Registry:
                 raise
             self.log(spec.id, f'{method} failed: ' + ''.join(traceback.format_exception_only(exc)).strip())
             message = f'{spec.name} failed ({type(exc).__name__}); details are in its log'
-            self._failed(spec, message)
+            self._failed(spec, method, message)
             raise PluginError(message) from None
-        self._failing.pop(spec.id, None)
+        # Only this method works again: a plugin's working seat mapping doesn't hide its Wi-Fi
+        # access points failing (#1225).
+        self._failing.pop((spec.id, method), None)
         return result
 
-    def _failed(self, spec, message):
-        since = self._failing.get(spec.id, (time.time(), ''))[0]
-        self._failing[spec.id] = (since, message[:300])
+    def _failed(self, spec, method, message):
+        since = self._failing.get((spec.id, method), (time.time(), ''))[0]
+        self._failing[(spec.id, method)] = (since, message[:300])
 
     def failing(self):
-        """``{id: (since, last message)}``: the plugins whose calls have all failed since then, until
-        one works again. Kept in this process only: each pod sees what it asked."""
-        return dict(self._failing)
+        """``{id: (since, last message)}``: the plugins with a method whose calls have all failed
+        since then, until that method works again. With several, the one failing longest. Kept in
+        this process only: each pod sees what it asked."""
+        out = {}
+        for (pid, _method), (since, message) in list(self._failing.items()):
+            if pid not in out or since < out[pid][0]:
+                out[pid] = (since, message)
+        return out
 
     def schema_of(self, plugin_id):
         """The schema this tenant's data of the plugin is at (0: never migrated)."""
@@ -1047,6 +1055,18 @@ class Registry:
     def feeders(self, area):
         """The plugins that are on and feed this area (``inventory``), in id order."""
         return [s for s in self.specs.values() if area in s.uses and self.enabled(s)]
+
+    def set_up(self, spec):
+        """Whether the plugin has what it needs to work: its ``configured()``, when it has one.
+        A plugin that is on but not set up yet (NetBox without a URL) is left out of syncs, so it
+        doesn't read as a failing source."""
+        cls = spec.plugin_class()
+        if cls is None or not hasattr(cls, 'configured'):
+            return True
+        try:
+            return bool(self.call(spec, 'configured'))
+        except PluginError:
+            return False
 
     def monitoring_source(self):
         """The monitoring plugin in use: the first one that is on and set up, in id order (or None).

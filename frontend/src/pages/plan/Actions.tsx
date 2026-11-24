@@ -1,15 +1,13 @@
 import { Alert, Button, Group, Stack, Textarea } from '@mantine/core'
-import { IconFlag, IconPlugConnected } from '@tabler/icons-react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { IconFlag } from '@tabler/icons-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { get, post } from '@/api/client'
+import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
-import { PortDialog, type PortRequest } from '../security/PortDialog'
+import { BouncePort } from '@/components/BouncePort'
 import { toastDone } from '@/components/toast'
-
-interface PortInfo { available: boolean; needs_login: boolean; plugin: string | null }
 
 /** What a tech can do from the seat inspector (issue #151): bounce the seat's port with their own
  *  switch login, and flag the seat for a tech. The same calls as the floor plan editor. */
@@ -18,20 +16,9 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
   const qc = useQueryClient()
   const canAct = useCan('ports.act')
   const canFlag = useCan('incidents.work')
-  const info = useQuery({ queryKey: qk.ports, queryFn: () => get<PortInfo>('/api/ports'), enabled: canAct })
-  const [request, setRequest] = useState<PortRequest | null>(null)
-  const [dialogError, setDialogError] = useState<string | null>(null)
   const [flagging, setFlagging] = useState(false)
   const [note, setNote] = useState('')
 
-  const bounce = useMutation({
-    mutationFn: (extra: Record<string, string | boolean | undefined>) => post<{ message: string }>('/api/ports/bounce', { seat, ...extra }),
-    onSuccess: (r) => {
-      setRequest(null)
-      toastDone(r.message)
-    },
-    onError: (e) => setDialogError(e.message),
-  })
   const flag = useMutation({
     // The same title as the editor's flag, whatever the language.
     mutationFn: () => post('/api/incidents', { seat, title: 'Tech visit', note: note.trim() }),
@@ -43,8 +30,7 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
     },
   })
 
-  const mayBounce = canAct && hasPort && !!info.data?.available
-  if (!mayBounce && !canFlag) return null
+  if (!(canAct && hasPort) && !canFlag) return null
   return (
     <Stack gap="xs">
       {flag.error && <Alert color="down" role="alert">{flag.error.message}</Alert>}
@@ -58,20 +44,12 @@ export function SeatActions({ seat, hasPort }: { seat: string; hasPort: boolean 
         </Stack>
       ) : (
         <Group gap="xs">
-          {mayBounce && (
-            <Button size="xs" color="warn" variant="light" leftSection={<IconPlugConnected size={14} />}
-              onClick={() => { setDialogError(null); setRequest({ action: 'bounce', seat, where: t('plan.seat', { seat }) }) }}>
-              {t('security.bounce')}
-            </Button>
-          )}
+          {hasPort && <BouncePort seat={seat} onBounced={toastDone} />}
           {canFlag && (
             <Button size="xs" variant="light" leftSection={<IconFlag size={14} />} onClick={() => setFlagging(true)}>{t('plan.flag')}</Button>
           )}
         </Group>
       )}
-      <PortDialog request={request} needsLogin={!!info.data?.needs_login} busy={bounce.isPending} error={dialogError}
-        onClose={() => setRequest(null)}
-        onConfirm={(extra) => bounce.mutate(extra)} />
     </Stack>
   )
 }

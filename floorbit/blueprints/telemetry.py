@@ -166,22 +166,9 @@ def _agent_numbers():
 
 
 def _devices_on_agent():
-    from .. import sources
-    from ..plugins.base import PluginError
-    try:
-        found = sources.monitoring().devices() or []
-    except PluginError:
-        return {}
-    out = {}
-    for d in found if isinstance(found, list) else []:
-        if not isinstance(d, dict) or d.get('source') != 'telemetry' or not d.get('hostname'):
-            continue
-        problems = [p for p in d.get('problems') or [] if isinstance(p, dict)]
-        row = {'seen': d.get('seen'), 'online': bool(d.get('status')), 'problems': problems[:10]}
-        # Counts only from an agent that sends them (older ones don't): the page leaves them out then.
-        row.update({k: d[k] for k in ('ports', 'macs', 'arp', 'neighbours') if isinstance(d.get(k), int)})
-        out[str(d['hostname'])] = row
-    return out
+    from ..telemetry import agent_devices
+    return {name: {k: v for k, v in row.items() if k != 'driver'}
+            for name, row in agent_devices.rows().items()}
 
 
 # What the page lists of each device: no logins, not even usernames (crew without settings read it).
