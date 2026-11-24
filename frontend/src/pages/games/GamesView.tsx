@@ -9,7 +9,7 @@ import type { ViewProps } from '@/pages/monitoring/pages'
 import { DataTable } from '@/components/DataTable'
 import { bytes } from '../traffic/format'
 import { ErrorBanner } from '@/components/ui'
-import { StatTile } from '@/components/StatTile'
+import { StatTile } from '@bitsandbricks/ui'
 import { dayClock } from '@/lib/time'
 
 const W = 1000

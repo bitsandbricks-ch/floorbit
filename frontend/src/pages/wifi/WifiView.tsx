@@ -9,7 +9,7 @@ import { qk } from '@/api/keys'
 import type { WifiAp, WifiBand, WifiData, WifiRadio } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { DataTable, type DataColumn } from '@/components/DataTable'
-import { StatTile } from '@/components/StatTile'
+import { StatTile } from '@bitsandbricks/ui'
 import { channelColor, loadColor } from './colors'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { blockTop } from '@/pages/plan/blockTop'
@@ -115,7 +115,7 @@ export default function WifiView({ expanded }: ViewProps) {
             <div className="fb-stat-row">
               <StatTile label={t('wifi.clients')} value={num(d.clients)}
                 sub={bands.map((b) => t('wifi.bandClients', { band: b, count: d.bands[b]!.clients })).join(' · ')} />
-              <StatTile label={t('wifi.aps')} value={`${d.up} / ${d.aps.length}`} tone={d.down.length ? 'down' : 'up'}
+              <StatTile label={t('wifi.aps')} value={`${d.up} / ${d.aps.length}`} tone={d.down.length ? 'err' : 'ok'}
                 sub={d.down.length ? t('wifi.down', { names: d.down.join(', ') }) : t('wifi.allUp')} />
               <StatTile label={t('wifi.busy')} value={num(d.busy.length)} tone={d.busy.length ? 'warn' : undefined}
                 sub={d.busy.join(', ') || t('wifi.busyNone', { pct: d.thresholds.busy })} />

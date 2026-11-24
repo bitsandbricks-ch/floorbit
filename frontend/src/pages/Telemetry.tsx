@@ -12,7 +12,7 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { PageTabs } from '@/components/PageTabs'
 import { usePageTab } from '@/components/pageTab'
-import { StatTile } from '@/components/StatTile'
+import { StatTile } from '@bitsandbricks/ui'
 import { DeviceStateTable, type DeviceFilter } from '@/components/telemetry/DeviceStateTable'
 import { NEEDS_LOOK, deviceRows } from '@/components/telemetry/state'
 import type { DeviceSeen } from '@/components/telemetry/api'
@@ -60,11 +60,11 @@ export default function Telemetry() {
             <StatTile label={t('telemetry.devicesTitle')} value={String(d.devices.length)}
               sub={t(`telemetry.collectorIs.${d.status.collector}`)} />
             <StatTile label={t('telemetry.heardCard')} value={`${d.devices.length - silent} / ${d.devices.length}`}
-              tone={!d.devices.length ? undefined : silent ? (silent === d.devices.length ? 'down' : 'warn') : 'up'} />
+              tone={!d.devices.length ? undefined : silent ? (silent === d.devices.length ? 'err' : 'warn') : 'ok'} />
             <StatTile label={t('telemetry.problemsCard')} value={String(problems)} tone={problems ? 'warn' : undefined}
               sub={problems ? undefined : t('telemetry.noProblems')} />
             <StatTile label={t('telemetry.points')} value={d.status.points !== null ? String(d.status.points) : '–'}
-              tone={Object.keys(d.status.storage.errors).length ? 'down' : undefined}
+              tone={Object.keys(d.status.storage.errors).length ? 'err' : undefined}
               sub={t(`telemetry.storageIs.${d.status.storage.mode}`, { days: d.status.storage.keep_days })} />
           </SimpleGrid>
         )}

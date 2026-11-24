@@ -250,7 +250,7 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 .fb-tone-warn { color: var(--color-warn); }
 .fb-tone-err { color: var(--color-down); }
 
-.fb-spark {
+.bnb-spark {
   width: 100%;
   height: 40px;
   color: var(--color-trace);

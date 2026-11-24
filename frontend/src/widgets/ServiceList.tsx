@@ -5,7 +5,7 @@ import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { GameServer, ServiceStatus } from '@/api/types'
 import type { ServiceRowData } from './serviceRows'
-import { Sparkline } from './Sparkline'
+import { Sparkline } from '@bitsandbricks/ui'
 import './ServiceList.css'
 
 /** The service list (issue #889): one row per service, the same on the Services page and on a
