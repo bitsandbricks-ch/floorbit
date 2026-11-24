@@ -49,7 +49,7 @@ describe('top bar', () => {
     expect(crumbs).toHaveTextContent('Monitoring')
     expect(within(crumbs).getByRole('link', { name: 'Local agents' })).toHaveAttribute('href', '/settings/agents')
     expect(within(crumbs).getByText('Rack A')).toHaveAttribute('aria-current', 'page')
-    fireEvent.click(await screen.findByRole('button', { name: 'Notifications (2)' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifications (1 down · 1 need a look)' }))
     const list = await screen.findByRole('list', { name: 'Notifications' })
     const rows = within(list).getAllByRole('button')
     // What is down comes first.
@@ -93,7 +93,7 @@ describe('notifications panel', () => {
     const detail = { problem: problems.problems[1], device: null, can_mute: false, can_report: false, may_see_people: false }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/problems': problems, 'GET /api/problems/b': detail }).fn)
     renderWithApp(<TopBar pages={pages} />, '/overview')
-    fireEvent.click(await screen.findByRole('button', { name: 'Notifications (2)' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Notifications (1 down · 1 need a look)' }))
     // The worst one is picked at first, so the details are never empty.
     expect(await screen.findByRole('link', { name: 'Open problem' })).toHaveAttribute('href', '/problems/b')
     const list = screen.getByRole('list', { name: 'Notifications' })

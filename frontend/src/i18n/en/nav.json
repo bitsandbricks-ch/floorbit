@@ -51,5 +51,5 @@
     "checked": "checked {{ago}}"
   },
   "admin": "Plugins and settings",
-  "problemsSplit": "{{count}} down · {{look}} to look at"
+  "problemsSplit": "{{count}} down · {{look}} need a look"
 }

@@ -76,6 +76,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .fb-topbar-count.is-down { background: var(--color-down); color: #fff; }
+.fb-topbar-dot { position: absolute; top: 5px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-warn); }
 @media (max-width: 767.98px) { .fb-topbar { display: none; } }
 
 /* The status line under every page (components/StatusLine.tsx), with the attribution at its end. */
