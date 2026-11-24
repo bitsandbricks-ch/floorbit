@@ -49,7 +49,9 @@ def test_a_plugin_whose_calls_keep_failing(client, registry, monkeypatch):
     assert found['level'] == 'warn' and found['where'] == 'the controller refused the login'
     monkeypatch.undo()
     registry.call(spec, 'wifi_aps')           # works again
-    assert 'demo' not in registry.failing()
+    # Failing is kept per method, and the seat sources may also have caught seat_mapping failing
+    # (in this test's Problems call or the background loop), so check only the method that recovered.
+    assert ('demo', 'wifi_aps') not in registry._failing
 
 
 def test_a_withdrawn_version_that_still_runs(client, market):  # noqa: F811
