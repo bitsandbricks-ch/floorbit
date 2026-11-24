@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SwitchLink, TopologyNode, TopologyUplink } from '@/api/types'
-import { NODE_H, NODE_W, arranged, gbit, layout, placeUplinks } from './layout'
+import { NODE_H, NODE_W, arranged, gbit, layout, placeUplinks, routes } from './layout'
 
 const node = (name: string, role = 'switch'): TopologyNode => ({ id: name, name, role, hall: '', unread: false, status: 'online' })
 const link = (a: string, b: string): SwitchLink => ({
@@ -37,8 +37,8 @@ describe('topology layout', () => {
   it('wraps the end boxes under one parent into a small grid', () => {
     const access = Array.from({ length: 25 }, (_, i) => node(`sw-${i}`))
     const { placed } = layout([node('dist-01'), ...access], access.map((n) => link('dist-01', n.name)))
-    expect(new Set(access.map((n) => placed.get(n.name)!.y)).size).toBe(9)
-    expect(new Set(access.map((n) => placed.get(n.name)!.x)).size).toBe(3)
+    expect(new Set(access.map((n) => placed.get(n.name)!.y)).size).toBe(5)
+    expect(new Set(access.map((n) => placed.get(n.name)!.x)).size).toBe(5)
   })
 
   it('puts each access switch under its own distribution switch', () => {
@@ -77,5 +77,45 @@ describe('topology layout', () => {
     expect(core.y).toBe(0)
     expect(got.height).toBe(500 + NODE_H)
     expect(laid.placed.get('sw-1')!.x).not.toBe(-200)                        // the automatic layout is left as it was
+  })
+
+  describe('routes', () => {
+    const fws = Array.from({ length: 10 }, (_, i) => node(`fw-${String(i + 1).padStart(2, '0')}`, 'firewall'))
+    const nodes = [node('core-01', 'router'), ...fws]
+    const links = fws.map((f) => link('core-01', f.name))
+    const laid = layout(nodes, links)
+    const at = (k: string) => laid.placed.get(k)
+    const { lines, counts } = routes(links, laid.parent, at)
+    const segments = (d: string) => [...d.matchAll(/([MVH])(-?[\d.]+)(?: (-?[\d.]+))?/g)]
+
+    it('runs every link at right angles', () => {
+      expect(lines).toHaveLength(10)
+      for (const r of lines) expect(segments(r.d).slice(1).every((m) => m[1] === 'V' || m[1] === 'H')).toBe(true)
+    })
+
+    it('shares one trunk and one bus between the children of a box, and counts it', () => {
+      const firstTwo = lines.slice(0, 2).map((r) => r.d.split('H')[0])
+      expect(firstTwo[0]).toBe(firstTwo[1])                                  // same way down to the bus
+      expect(counts).toEqual([expect.objectContaining({ count: 10 })])
+    })
+
+    it('reaches a second row down a spine left of the rows, never through the first row', () => {
+      const many = Array.from({ length: 12 }, (_, i) => node(`sw-${i}`))
+      const ls = many.map((n) => link('dist', n.name))
+      const l2 = layout([node('dist'), ...many], ls)
+      const got = routes(ls, l2.parent, (k) => l2.placed.get(k))
+      const row1 = Math.min(...many.map((n) => l2.placed.get(n.name)!.y))
+      const left = Math.min(...many.map((n) => l2.placed.get(n.name)!.x))
+      const second = got.lines.find((r) => r.id === 'dist-sw-11')!
+      const spine = segments(second.d).find((m) => m[1] === 'H' && Number(m[2]) < left)
+      expect(spine).toBeDefined()
+      expect(l2.placed.get('sw-11')!.y).toBeGreaterThan(row1)
+    })
+
+    it('leaves out links to boxes not drawn and gives a count only from three links up', () => {
+      const two = routes([link('core-01', 'fw-01'), link('core-01', 'fw-02'), link('core-01', 'gone')], laid.parent, at)
+      expect(two.lines).toHaveLength(2)
+      expect(two.counts).toEqual([])
+    })
   })
 })

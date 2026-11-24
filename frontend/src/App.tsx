@@ -17,6 +17,7 @@ const Inventory = lazy(() => import('@/pages/Inventory'))
 const DevicePage = lazy(() => import('@/pages/inventory/DevicePage'))
 const ScopePage = lazy(() => import('@/pages/inventory/ScopePage'))
 const EntryPage = lazy(() => import('@/pages/inventory/EntryPage'))
+const PropertiesPage = lazy(() => import('@/pages/inventory/PropertiesPage'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
 const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
@@ -26,7 +27,6 @@ const BoardPage = lazy(() => import('@/pages/power/BoardPage'))
 const CircuitPage = lazy(() => import('@/pages/power/CircuitPage'))
 const Problems = lazy(() => import('@/pages/Problems'))
 const Setup = lazy(() => import('@/pages/Setup'))
-const Topology = lazy(() => import('@/pages/Topology'))
 const Firewalls = lazy(() => import('@/pages/Firewalls'))
 const Services = lazy(() => import('@/pages/Services'))
 const Logs = lazy(() => import('@/pages/Logs'))
@@ -107,6 +107,7 @@ export default function App() {
             <Route path="/inventory/tags/:id" element={<ScopePage kind="tag" />} />
             <Route path="/inventory/defaults" element={<ScopePage kind="defaults" />} />
             <Route path="/inventory/entries/:type/:id" element={<EntryPage />} />
+            <Route path="/inventory/properties" element={<PropertiesPage />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />
             <Route path="/incidents" element={<Incidents />} />
             <Route path="/incidents/qr" element={<HelpdeskQr />} />
@@ -116,7 +117,6 @@ export default function App() {
             <Route path="/power/circuits/:id" element={<CircuitPage />} />
             <Route path="/problems" element={<Problems />} />
             <Route path="/setup" element={<Setup />} />
-            <Route path="/topology" element={<Topology />} />
             <Route path="/firewalls" element={<Firewalls />} />
             <Route path="/services" element={<Services />} />
             <Route path="/logs" element={<Logs />} />

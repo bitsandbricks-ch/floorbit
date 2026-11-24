@@ -279,6 +279,7 @@ RULES = (
     ('/api/icons', READ, 'floorplan.view'),
     # What fields each type of inventory entry has: admins, like the settings.
     ('/api/inventory/types', WRITE, 'settings.manage'),
+    ('/api/inventory/properties', WRITE, 'settings.manage'),
     ('/api/inventory/credentials', WRITE, 'settings.manage'),
     # How often each discovery action runs is a setting; running one now is any editor's.
     ('/api/inventory/discovery/actions', WRITE, 'settings.manage'),

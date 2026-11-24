@@ -102,12 +102,31 @@ A device's page (`GET /api/inventory/<id>`, `property_view`) shows its propertie
 A hand value still wins over discovery (see Discovery below), and the source that disagrees stays
 visible next to it. Custom property names can't start with `system.` or `auto.`.
 
+### Known properties and their types
+
+Some properties have a **type** (issue #879): the `telemetry.*` ones Floorbit reads itself, and
+the ones admins add under **Inventory › ⋯ › Known properties** (`/inventory/properties`) with a
+name, a label, a type, a unit, the allowed values and the device roles they are for. The types are
+text, number, yes/no, IP address, web address, one of a list and several of a list. The property
+editor suggests the known names (on a device, the ones for its role), shows the fitting input with
+the unit, and a value that doesn't fit is refused when it is saved (a yes/no is stored as `true` or
+`false`, a number with a dot). A name nobody defined is **custom, untyped**: kept as typed, as
+before. Removing a custom property's definition keeps the values set with it, as free text.
+Logins don't go here: they are [credentials](#credentials).
+
 ### Feature switches
 
 Per device, tag, group or for all devices, Floorbit's own per-device features can be switched off
 (port actions, switch commands, the terminal, config backups; on unless switched off), and plugins
 switched on. A plugin with a part on the [local agent](agent.md) works on a device only
 where it is switched on **and** a credential for it resolves.
+
+A device lists only the switches that fit its kind: port actions on switches; commands, the terminal
+and config backups on switches, routers and firewalls; telemetry on what it can poll; a plugin on
+the roles its manifest names. The rest fold under **Other features**, in case a device does more
+than its kind suggests. Plugins that don't work on inventory devices (they read one address from
+their settings) aren't listed at all. Groups, tags and All devices show every switch, each with the
+kinds of device it is for.
 
 Switches, properties and telemetry settings don't save on their own: changes collect in the bar at
 the bottom ("2 unsaved changes") until **Save**, and **Discard changes** puts them back, as on
@@ -319,6 +338,8 @@ audit log (area *inventory*, *credentials* and *icons*), with field names, never
 | `POST /api/icons`, `PATCH` / `DELETE /api/icons/<id>` | Upload `{"name", "svg"}`, rename `{"name"}`, remove. Admins |
 | `GET /api/inventory/types` | Every type with its fields and how many entries it has |
 | `POST /api/inventory/types`, `PATCH` / `DELETE /api/inventory/types/<id>` | Add a type, change its fields, icon, colour and properties, delete an empty custom type. Admins |
+| `GET /api/inventory/properties` | The known properties: `key`, `label`, `type`, `unit`, `choices`, `roles`, `hint`, `builtin` |
+| `POST /api/inventory/properties`, `PATCH` / `DELETE /api/inventory/properties/<key>` | Define, change or forget a custom property. Admins |
 | `GET /api/inventory/entries?type=<id>` | Entries of one type (or all but devices) |
 | `POST /api/inventory/entries/<type>` | Add an entry (`name`, `fields`, `tags`, `group_id`, `properties`, `icon`, `color`) |
 | `GET` / `PATCH` / `DELETE /api/inventory/entries/<type>/<id>` | One entry with what it inherits; change it; delete it |

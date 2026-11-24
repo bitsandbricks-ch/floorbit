@@ -71,5 +71,9 @@
   "portsFree": "Free",
   "portsUsed": "Has a link",
   "portUsedBy": "to {{other}}",
-  "portsUnread": "This switch's ports can't be read right now: type the port."
+  "portsUnread": "This switch's ports can't be read right now: type the port.",
+  "tools": "Topology tools",
+  "select": "Select",
+  "showOnMap": "Show on the map",
+  "side": { "problems": "Problems", "found": "Found by LLDP", "allGood": "Every link is up at its planned speed.", "nothingFound": "LLDP sees nothing that no link explains." }
 }

@@ -27,7 +27,7 @@ import math
 import re
 import time
 
-from . import halls, inventory, links, power, seat_layout
+from . import cable_lanes, halls, inventory, links, power, seat_layout
 from .seat_names import block_rows
 from .store import load_data, save_data
 
@@ -74,8 +74,11 @@ def _turn(dx, dy, rotation):
 
 
 def geometry(data, hall_id):
-    """Seat centres ``{seat: (x, y)}`` and block boxes ``{block id: {l, t, r, b, cx, cy, sideways}}``
-    of one hall, in % of the plan. Works in seat units so a turned block keeps its shape."""
+    """Seat centres ``{seat: (x, y, block id)}`` and block boxes ``{block id: {l, t, r, b, cx, cy,
+    sideways}}`` of one hall, in % of the plan. Works in seat units so a turned block keeps its shape.
+
+    A box also keeps the block in its own frame for the lanes (floorbit/cable_lanes.py): ``w``, ``h``
+    and ``rotation``, and ``lanes`` ``{seat: (u, v, lane)}``, the seat's centre and its lane in seats."""
     ids = {h['id'] for h in halls.halls(data)}
     seats, boxes = {}, {}
     for block in data.get('seat_blocks') or []:
@@ -87,6 +90,8 @@ def geometry(data, hall_id):
         at, width, height = seat_layout.places(block)
         rotation = int(block.get('rotation') or 0) % 360
         cx, cy = float(block['x']), float(block['y'])
+        lanes = cable_lanes.lanes(block)
+        local = {}
         corners = []
         for dx, dy in ((-width / 2, -height / 2), (width / 2, -height / 2), (width / 2, height / 2),
                        (-width / 2, height / 2)):
@@ -96,9 +101,12 @@ def geometry(data, hall_id):
             for c, seat in enumerate(row):
                 tx, ty = _turn(at[r, c][0] + 0.5 - width / 2, at[r, c][1] + 0.5 - height / 2, rotation)
                 seats.setdefault(seat, (round(cx + tx * PITCH_X, 3), round(cy + ty * PITCH_Y, 3), block['id']))
+                if (r, c) in lanes:
+                    local.setdefault(seat, (at[r, c][0] + 0.5, at[r, c][1] + 0.5, lanes[r, c]))
         boxes[block['id']] = {'l': min(p[0] for p in corners), 'r': max(p[0] for p in corners),
                               't': min(p[1] for p in corners), 'b': max(p[1] for p in corners),
-                              'cx': cx, 'cy': cy, 'sideways': round(rotation / 90) % 2 == 1}
+                              'cx': cx, 'cy': cy, 'sideways': round(rotation / 90) % 2 == 1,
+                              'w': width, 'h': height, 'rotation': rotation, 'lanes': local}
     return seats, boxes
 
 
@@ -128,7 +136,30 @@ def _elbow(a, b):
     return [] if a[0] == b[0] or a[1] == b[1] else [(b[0], a[1])]
 
 
-def _to_seat(start, seat, box):
+def _in_lane(start, box, local):
+    """From a switch to a seat whose row has a lane (floorbit/cable_lanes.py): to the block's end
+    nearer the start, along it to the row's lane, along the lane and into the seat from that side.
+    Worked out in the block's own frame, so a turned block's cables turn with it."""
+    w, h, rotation = box['w'], box['h'], box['rotation']
+    u, _, lane = local
+    # The start in the block's frame: undo the plan's scale, then the turn.
+    dx, dy = _turn((start[0] - box['cx']) / PITCH_X, (start[1] - box['cy']) / PITCH_Y, -rotation)
+    su, sv = dx + w / 2, dy + h / 2
+    end = -TRUNK / 2 if su < w / 2 else w + TRUNK / 2
+    if 0 <= su <= w:
+        # Above or below the block: to the run along its near edge first.
+        edge = -TRUNK / 2 if sv < h / 2 else h + TRUNK / 2
+        bends = [(su, edge), (end, edge), (end, lane), (u, lane)]
+    else:
+        bends = [(end, sv), (end, lane), (u, lane)]
+    out = []
+    for bu, bv in bends:
+        tx, ty = _turn(bu - w / 2, bv - h / 2, rotation)
+        out.append((box['cx'] + tx * PITCH_X, box['cy'] + ty * PITCH_Y))
+    return out
+
+
+def _to_seat(start, seat, box, name=None):
     """From a switch (or panel) to a seat: to the side of the seat's block that faces the start,
     along it, then into the seat's row. The cables of one block share that run.
 
@@ -137,12 +168,16 @@ def _to_seat(start, seat, box):
     own seat and the block's cables split over two runs instead of piling onto one."""
     if box is None:
         return _elbow(start, seat)
+    if name in (box.get('lanes') or {}):
+        return _in_lane(start, box, box['lanes'][name])
     sx, sy = start
     if box['sideways'] or box['l'] <= sx <= box['r']:
         top = box['t'] - TRUNK * PITCH_Y / 2
         bottom = box['b'] + TRUNK * PITCH_Y / 2
         near, far = (top, bottom) if sy < box['cy'] else (bottom, top)
-        if box['sideways'] or (seat[1] < box['cy']) == (sy < box['cy']):
+        # A seat on the middle line (a lone row) counts as near: no detour round the block for it.
+        far_half = seat[1] > box['cy'] if sy < box['cy'] else seat[1] < box['cy']
+        if box['sideways'] or not far_half:
             return [(sx, near), (seat[0], near)]
         # Round the block's nearer end, then along the far side.
         x = box['l'] - TRUNK * PITCH_X / 2 if sx < box['cx'] else box['r'] + TRUNK * PITCH_X / 2
@@ -245,7 +280,7 @@ def plan(data=None, hall_id=None, live=None, auto=None):
             p = (float(panel['x']), float(panel['y']))
             bends = [*_elbow(start, p), p]
             start = p
-        bends += _to_seat(start, at[:2], boxes.get(at[2]))
+        bends += _to_seat(start, at[:2], boxes.get(at[2]), seat)
         out.append(_drawn(key, 'lan', sw[0], at[:2], via, bends, routes, label=(cable or {}).get('label') or '',
                           ref={'cable': (cable or {}).get('id'), 'source': (cable or {}).get('source') or 'watch',
                                'switch': sw[1]['name'], 'port': port, 'seat': seat},

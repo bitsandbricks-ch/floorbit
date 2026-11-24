@@ -260,7 +260,8 @@
     "name": "Name",
     "value": "Wert",
     "add": "Eigenschaft hinzufügen",
-    "remove": "{{name}} entfernen"
+    "remove": "{{name}} entfernen",
+    "untyped": "eigene, ohne Typ"
   },
   "features": {
     "title": "Funktionsschalter",
@@ -273,7 +274,10 @@
     "isOn": "An",
     "isOff": "Aus",
     "defaultOn": "An, ausser ausgeschaltet",
-    "defaultOff": "Aus, ausser eingeschaltet"
+    "defaultOff": "Aus, ausser eingeschaltet",
+    "for": "für {{roles}}",
+    "others": "Weitere Funktionen ({{count}})",
+    "othersHint": "Für andere Gerätearten gedacht. Nur einschalten, wenn dieses Gerät ({{role}}) es wirklich kann."
   },
   "feature": {
     "ports": "Port-Aktionen",
@@ -468,5 +472,76 @@
     "online": "Online",
     "offline": "Offline",
     "unknown": "Unbekannt"
+  },
+  "propTypes": {
+    "text": "Text",
+    "number": "Zahl",
+    "bool": "Ja / nein",
+    "ip": "IP-Adresse",
+    "url": "Webadresse",
+    "choice": "Eines aus einer Liste",
+    "list": "Mehrere aus einer Liste"
+  },
+  "propCatalog": {
+    "title": "Eigenschaften",
+    "open": "Bekannte Eigenschaften",
+    "intro": "Die Eigenschaften, die Floorbit kennt, und welche Art Wert jede nimmt. Wer bearbeitet, bekommt das passende Eingabefeld, und ein falscher Wert wird abgelehnt. Ein Name, der nicht aufgeführt ist, bleibt freier Text.",
+    "label": "Bezeichnung",
+    "type": "Typ",
+    "unit": "Einheit",
+    "choices": "Erlaubte Werte",
+    "choicesHint": "Nach jedem Wert Enter drücken.",
+    "roles": "Für",
+    "anyRole": "Jedes Gerät",
+    "hint": "Hilfetext",
+    "builtin": "Eingebaut",
+    "edit": "Bearbeiten",
+    "remove": "Entfernen",
+    "removeQ": "{{key}} entfernen? Damit gesetzte Werte bleiben, als freier Text.",
+    "addTitle": "Eigenschaft hinzufügen",
+    "editTitle": "{{key}} ändern",
+    "addHint": "Gib ihr einen Namen in Kleinbuchstaben (Punkte gruppieren, wie poe.budget), die Art Wert und, wenn es passt, eine Einheit und die Geräterollen, für die sie gilt.",
+    "add": "Eigenschaft hinzufügen",
+    "save": "Speichern"
+  },
+  "propBuiltin": {
+    "telemetry_drivers": {
+      "label": "Telemetrie-Treiber",
+      "hint": "Womit der Agent sammelt; leer: was zur Plattform passt."
+    },
+    "telemetry_agent": {
+      "label": "Gesammelt von Agent",
+      "hint": "Der lokale Agent, der sammelt; leer: irgendeiner."
+    },
+    "telemetry_address": {
+      "label": "Telemetrie-Adresse",
+      "hint": "Wo der Agent es erreicht, wenn nicht unter der Management-Adresse."
+    },
+    "telemetry_verify_tls": {
+      "label": "TLS-Zertifikat prüfen"
+    },
+    "telemetry_snmp_fdb": {
+      "label": "MAC-Tabelle über SNMP"
+    },
+    "telemetry_snmp_vlans": {
+      "label": "VLANs über SNMP lesen",
+      "hint": "VLAN-IDs, mit Komma getrennt; leer: die auf seinen Interfaces."
+    },
+    "telemetry_snmp_port": {
+      "label": "SNMP-Port"
+    },
+    "telemetry_gnmi_port": {
+      "label": "gNMI-Port"
+    },
+    "telemetry_api_port": {
+      "label": "API-Port"
+    },
+    "telemetry_api_url": {
+      "label": "API-Adresse"
+    },
+    "telemetry_mdt_node": {
+      "label": "MDT-Knotenname",
+      "hint": "Ciscos modellgetriebene Telemetrie; leer: der Gerätename."
+    }
   }
 }

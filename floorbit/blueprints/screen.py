@@ -5,7 +5,7 @@ import math
 
 from flask import Blueprint
 
-from .. import halls, icon_library, plan_marks, seat_layout, seat_rows, stacking
+from .. import cable_lanes, halls, icon_library, plan_marks, seat_layout, seat_rows, stacking
 from ..seat_names import block_rows, label, row_id, row_label, row_letters, row_names, seat_one_first
 
 bp = Blueprint('screen', __name__)
@@ -85,6 +85,7 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
         at, width, height = seat_layout.places(block)
         angles = seat_layout.angles(block)
         sides = [seat_rows.side_of(r) for r in seat_rows.rows_of(block)]
+        lanes = cable_lanes.lanes(block)
         w, h = width * CELL, height * CELL
         cells = []
         for r, row in enumerate(rows):
@@ -101,6 +102,9 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
                     cell['a'] = angles[r, c]
                 if sides[r]:
                     cell['side'] = sides[r]
+                if (r, c) in lanes:
+                    # Where its cables run, from the seat's centre across the row (floorbit/cable_lanes.py).
+                    cell['lane'] = round((lanes[r, c] - y - 0.5) * CELL, 2)
                 cells.append(cell)
         reach = max(w, h) / 2 + CELL * 2   # the row letters sit one cell out
         xs += [cx - reach, cx + reach]

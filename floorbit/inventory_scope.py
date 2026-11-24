@@ -53,6 +53,10 @@ USER_RE = re.compile(r'^[^\s\x00-\x1f]{1,64}\Z')
 # Floorbit's own per-device features: on unless switched off. Anything else named is a plugin id,
 # off unless switched on.
 CORE_FEATURES = ('ports', 'commands', 'terminal', 'configs')
+# The kinds of device each core feature is about: a device's page lists only these, the rest
+# under "Other features" (#878). Port actions are seat ports; the others need a CLI over SSH.
+CORE_FEATURE_ROLES = {'ports': ('switch',), 'commands': ('switch', 'router', 'firewall'),
+                      'terminal': ('switch', 'router', 'firewall'), 'configs': ('switch', 'router', 'firewall')}
 
 # Credential kinds: the plain fields each one has, and its secrets. Every kind has "secret"; SNMP v3
 # has its privacy passphrase as "priv_secret".
@@ -111,7 +115,9 @@ def clean_name(value, what='name'):
     return value
 
 
-def clean_properties(value):
+def clean_properties(value, data=None):
+    """Property names and values, checked; with ``data``, known properties are checked against their
+    type too (floorbit/property_catalog.py)."""
     if value is None:
         return {}
     if not isinstance(value, dict):
@@ -130,6 +136,9 @@ def clean_properties(value):
         if '\n' in v or len(v) > 200:
             raise ScopeError(f'The value of {k} must be one line, up to 200 characters.')
         out[k] = v
+    if data is not None:
+        from . import property_catalog
+        out = property_catalog.check_all(data, out)
     return out
 
 
@@ -141,6 +150,20 @@ def known_features(registry=None):
         if pid not in ids:
             ids.append(pid)
     return ids
+
+
+def feature_scope(spec):
+    """``(per_device, roles)`` for a plugin: whether switching it on for a device does anything
+    (it works on inventory devices, ``agent.targets``), and for which roles (None: any)."""
+    if getattr(spec, 'id', None) == 'telemetry':
+        # Built in, so it has no agent.targets: it polls what has an address to poll.
+        return True, ['switch', 'router', 'firewall', 'access-point', 'server', 'pdu']
+    block = getattr(spec, 'agent', None) or {}
+    targets = block.get('targets') if isinstance(block, dict) else None
+    if not targets:
+        return False, None
+    roles = targets.get('roles') if isinstance(targets, dict) else None
+    return True, list(roles) if roles else None
 
 
 def clean_features(value, registry=None):
@@ -240,7 +263,7 @@ def _common(data, body, target, changed, registry=None):
             target['tags'] = value
             changed.append('tags')
     if 'properties' in body:
-        value = clean_properties(body['properties'])
+        value = clean_properties(body['properties'], data)
         if value != (target.get('properties') or {}):
             target['properties'] = value
             changed.append('properties')
@@ -391,7 +414,7 @@ def save_defaults(data, body, registry=None):
         current = defaults(data)
         changed = []
         if 'properties' in body:
-            value = clean_properties(body['properties'])
+            value = clean_properties(body['properties'], data)
             if value != current['properties']:
                 current['properties'] = value
                 changed.append('properties')

@@ -31,7 +31,10 @@ def test_with_librenms_on_telemetry_only_takes_traps_facts_and_streams(registry,
     plan = polling.plan(registry)
     assert plan['who'] == 'librenms' and plan['why'] == 'LibreNMS is on' and plan['tables_minutes'] == 0
     conf = '\n'.join(telegraf.snmp(polling.apply([SWITCH], plan)[0]))
-    assert 'name = "fb_if"' not in conf and 'fb_system' not in conf        # no port polls
+    assert 'name = "fb_if"' not in conf and 'fb_cpu' not in conf           # no port polls
+    # Only sysName and sysUpTime, so the device doesn't read offline between two fact reads.
+    system = conf.split('name = "fb_system"')[1].split('name = "fb_facts"')[0]
+    assert '1.3.6.1.2.1.1.3.0' in system and 'inputs.snmp.table' not in system and 'interval = "30s"' in conf
     assert 'fb_arp' not in conf and 'fb_fdb' not in conf                    # no table walks
     assert 'fb_facts' in conf                                               # discovery keeps the inventory filled
     full = telegraf.render(polling.apply([SWITCH], plan), 'http://127.0.0.1:1/write', 'x')

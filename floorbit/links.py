@@ -273,7 +273,7 @@ def problems(data=None):
             there = f"{seen['remote']} {seen['remote_port']}".strip()
             out.append({'id': f"link-lldp:{link['id']}", 'kind': 'link', 'level': 'warn',
                         'title': f'Link {ends}: {here} sees {there}', 'where': 'Check the patch (LLDP/CDP)',
-                        'since': None, 'link': '/topology'})
+                        'since': None, 'link': '/plan?view=topology'})
         if not live['issue']:
             continue
         what = ', '.join(x for x in (LABELS.get(link.get('type') or '', ''),
@@ -283,7 +283,7 @@ def problems(data=None):
         else:
             title = f'Link {ends} is down'
         out.append({'id': f"link:{link['id']}", 'kind': 'link', 'level': 'down' if live['issue'] == 'down' else 'warn',
-                    'title': title, 'where': what, 'since': None, 'link': '/topology'})
+                    'title': title, 'where': what, 'since': None, 'link': '/plan?view=topology'})
     return out
 
 

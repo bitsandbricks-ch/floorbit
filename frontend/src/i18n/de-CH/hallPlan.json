@@ -1,0 +1,9 @@
+{
+  "turn": "Plan zum Einpassen drehen",
+  "turnHint": "Dreht eine hohe Halle um eine Vierteldrehung, damit sie eine breite Fläche füllt (und umgekehrt). Hintergrundbild, Strom, WLAN und Kabel fallen dabei weg.",
+  "attention": "Braucht Aufmerksamkeit",
+  "more_one": "+{{count}} weiterer",
+  "more_other": "+{{count}} weitere",
+  "problems_one": "{{count}} Problem",
+  "problems_other": "{{count}} Probleme"
+}

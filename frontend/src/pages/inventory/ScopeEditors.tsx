@@ -1,4 +1,4 @@
-import { ActionIcon, Badge, Button, ColorInput, Group, MultiSelect, PasswordInput, SegmentedControl, Select, Stack, Table, Text, TextInput } from '@mantine/core'
+import { ActionIcon, Anchor, Autocomplete, Badge, Button, Collapse, ColorInput, Group, MultiSelect, PasswordInput, SegmentedControl, Select, Stack, Table, Text, TextInput } from '@mantine/core'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next'
 import type { CredentialInfo, FeatureInfo, InventoryOverview, InventoryTag, Origin } from '@/api/types'
 import { DEVICE_ICONS, DeviceIcon } from './icons'
 import { useCustomIcons } from './scope'
+import { usePropertyCatalog } from '@/api/properties'
+import { PropertyInput, PropertyNote } from './PropertyInput'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** Where an inherited value comes from, in words ("from group Hall A"). */
@@ -88,14 +90,18 @@ export function TagPicker({ tags, value, onChange, label }: { tags: InventoryTag
 }
 
 /** Name and value pairs. Inherited ones are shown (read-only) under the own ones. */
-export function PropertiesEditor({ value, inherited, busy, canEdit, onSave }: {
+export function PropertiesEditor({ value, inherited, role, busy, canEdit, onSave }: {
   value: Record<string, string>
   inherited?: Record<string, { value: string; from: Origin }>
+  /** A device's role: known properties for other roles aren't suggested (#879). */
+  role?: string
   busy: boolean
   canEdit: boolean
   onSave: (props: Record<string, string>) => void
 }) {
   const { t } = useTranslation()
+  const catalog = usePropertyCatalog().data?.properties ?? []
+  const known = new Map(catalog.map((d) => [d.key, d]))
   const [rows, setRows] = useState<[string, string][]>(() => Object.entries(value))
   const clean = (r: [string, string][]) => Object.fromEntries(r.filter(([k]) => k.trim()).map(([k, v]) => [k.trim().toLowerCase(), v]))
   const next = clean(rows)
@@ -103,24 +109,33 @@ export function PropertiesEditor({ value, inherited, busy, canEdit, onSave }: {
   const count = [...new Set([...Object.keys(value), ...Object.keys(next)])].filter((k) => value[k] !== next[k]).length
   useLeaveWarning(count > 0)
   const others = Object.entries(inherited ?? {}).filter(([, v]) => v.from.type !== 'device')
+  const used = new Set(rows.map(([k]) => k.trim().toLowerCase()))
+  const suggest = catalog.filter((d) => !used.has(d.key) && (!role || !d.roles.length || d.roles.includes(role)))
+    .map((d) => ({ value: d.key, label: d.key }))
   return (
     <Stack gap="xs">
       {rows.length === 0 && <Text size="sm" c="dimmed">{t('inventory.props.none')}</Text>}
-      {rows.map(([k, v], i) => (
-        <Group key={i} gap="xs" wrap="nowrap" align="flex-end">
-          <TextInput aria-label={t('inventory.props.name')} placeholder="rack" value={k} disabled={!canEdit} style={{ flex: '0 0 40%' }}
-            styles={{ input: { fontFamily: 'var(--font-mono)' } }}
-            onChange={(e) => { const name = e.currentTarget.value; setRows((r) => r.map((row, j) => (j === i ? [name, row[1]] : row))) }} />
-          <TextInput aria-label={t('inventory.props.value')} value={v} disabled={!canEdit} style={{ flex: 1 }}
-            onChange={(e) => { const val = e.currentTarget.value; setRows((r) => r.map((row, j) => (j === i ? [row[0], val] : row))) }} />
-          {canEdit && (
-            <ActionIcon variant="subtle" color="gray" mb={4} aria-label={t('inventory.props.remove', { name: k })}
-              onClick={() => setRows((r) => r.filter((_, j) => j !== i))}>
-              <IconTrash size={16} />
-            </ActionIcon>
-          )}
-        </Group>
-      ))}
+      {rows.map(([k, v], i) => {
+        const def = known.get(k.trim().toLowerCase())
+        return (
+          <Group key={i} gap="xs" wrap="nowrap" align="flex-start">
+            <Stack gap={2} style={{ flex: '0 0 40%', minWidth: 0 }}>
+              <Autocomplete aria-label={t('inventory.props.name')} placeholder="rack" value={k} disabled={!canEdit} data={suggest}
+                styles={{ input: { fontFamily: 'var(--font-mono)' } }}
+                onChange={(name) => setRows((r) => r.map((row, j) => (j === i ? [name, row[1]] : row)))} />
+              <PropertyNote def={def} name={k} />
+            </Stack>
+            <PropertyInput def={def} value={v} disabled={!canEdit}
+              onChange={(val) => setRows((r) => r.map((row, j) => (j === i ? [row[0], val] : row)))} />
+            {canEdit && (
+              <ActionIcon variant="subtle" color="gray" mt={6} aria-label={t('inventory.props.remove', { name: k })}
+                onClick={() => setRows((r) => r.filter((_, j) => j !== i))}>
+                <IconTrash size={16} />
+              </ActionIcon>
+            )}
+          </Group>
+        )
+      })}
       {canEdit && (
         <Group>
           <Button size="xs" variant="subtle" leftSection={<IconPlus size={14} />} onClick={() => setRows((r) => [...r, ['', '']])}>
@@ -135,7 +150,7 @@ export function PropertiesEditor({ value, inherited, busy, canEdit, onSave }: {
             {others.map(([k, v]) => (
               <Table.Tr key={k} style={{ opacity: k in Object.fromEntries(rows) ? 0.5 : 1 }}>
                 <Table.Td ff="monospace">{k}</Table.Td>
-                <Table.Td>{v.value}</Table.Td>
+                <Table.Td>{v.value}{known.get(k)?.unit ? ` ${known.get(k)!.unit}` : ''}</Table.Td>
                 <Table.Td ta="right"><FromLabel from={v.from} /></Table.Td>
               </Table.Tr>
             ))}
@@ -149,10 +164,12 @@ export function PropertiesEditor({ value, inherited, busy, canEdit, onSave }: {
 type Choice = 'inherit' | 'on' | 'off'
 
 /** Feature switches: inherit, on or off, each with what it is now and why. */
-export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave }: {
+export function FeaturesEditor({ catalog, value, resolved, role, busy, canEdit, onSave }: {
   catalog: FeatureInfo[]
   value: Record<string, boolean>
   resolved?: Record<string, { on: boolean; from: Origin | null }>
+  /** A device's role: features about other kinds of device fold under "Other features" (#878). */
+  role?: string
   busy: boolean
   canEdit: boolean
   onSave: (features: Record<string, boolean | null>) => void
@@ -169,7 +186,13 @@ export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave
     for (const id of changed) next[id] = draft[id] === 'inherit' ? null : draft[id] === 'on'
     onSave(next)
   }
-  const section = (core: boolean) => catalog.filter((f) => f.core === core)
+  const [others, setOthers] = useState(false)
+  // A plugin that doesn't work on inventory devices has nothing to switch here, unless it was set before.
+  const listed = catalog.filter((f) => f.per_device !== false || f.id in value || f.id in draft)
+  const fits = (f: FeatureInfo) => !role || !f.roles || f.roles.includes(role) || f.id in value || f.id in draft
+  const section = (core: boolean, fit = true) => listed.filter((f) => f.core === core && fits(f) === fit)
+  const elsewhere = listed.filter((f) => !fits(f))
+  const roleNames = (roles: string[]) => roles.map((r) => t(`inventory.role.${r}`, { defaultValue: r })).join(', ')
   const row = (f: FeatureInfo) => {
     const now = resolved?.[f.id]
     return (
@@ -181,7 +204,10 @@ export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave
               {now.on ? t('inventory.features.isOn') : t('inventory.features.isOff')} · <FromLabel from={now.from} />
             </Text>
           ) : (
-            <Text size="xs" c="dimmed">{f.default ? t('inventory.features.defaultOn') : t('inventory.features.defaultOff')}</Text>
+            <Text size="xs" c="dimmed">
+              {f.default ? t('inventory.features.defaultOn') : t('inventory.features.defaultOff')}
+              {f.roles ? ` · ${t('inventory.features.for', { roles: roleNames(f.roles) })}` : ''}
+            </Text>
           )}
         </Table.Td>
         <Table.Td ta="right">
@@ -198,9 +224,24 @@ export function FeaturesEditor({ catalog, value, resolved, busy, canEdit, onSave
     <Stack gap="xs">
       <Text size="xs" fw={600} c="dimmed" tt="uppercase">{t('inventory.features.core')}</Text>
       <Table verticalSpacing={6}><Table.Tbody>{section(true).map(row)}</Table.Tbody></Table>
-      <Text size="xs" fw={600} c="dimmed" tt="uppercase">{t('inventory.features.plugins')}</Text>
-      <Text size="xs" c="dimmed">{t('inventory.features.pluginsHint')}</Text>
-      <Table verticalSpacing={6}><Table.Tbody>{section(false).map(row)}</Table.Tbody></Table>
+      {section(false).length > 0 && (
+        <>
+          <Text size="xs" fw={600} c="dimmed" tt="uppercase">{t('inventory.features.plugins')}</Text>
+          <Text size="xs" c="dimmed">{t('inventory.features.pluginsHint')}</Text>
+          <Table verticalSpacing={6}><Table.Tbody>{section(false).map(row)}</Table.Tbody></Table>
+        </>
+      )}
+      {elsewhere.length > 0 && (
+        <>
+          <Anchor component="button" type="button" size="sm" onClick={() => setOthers((o) => !o)} aria-expanded={others}>
+            {t('inventory.features.others', { count: elsewhere.length })}
+          </Anchor>
+          <Collapse expanded={others}>
+            <Text size="xs" c="dimmed">{t('inventory.features.othersHint', { role: t(`inventory.role.${role}`, { defaultValue: role }) })}</Text>
+            <Table verticalSpacing={6}><Table.Tbody>{[...section(true, false), ...section(false, false)].map(row)}</Table.Tbody></Table>
+          </Collapse>
+        </>
+      )}
       {canEdit && <SaveBar count={changed.length} saving={busy} onDiscard={() => setDraft({})} onSave={save} />}
     </Stack>
   )

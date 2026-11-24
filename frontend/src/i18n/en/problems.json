@@ -71,8 +71,6 @@
   "copy": "Copy list",
   "copied": "Copied",
   "seats": "Seats",
-  "range": "{{from}}–{{to}} of {{count}}",
-  "pages": "Pages",
   "seatsAffected_one": "1 seat affected",
   "seatsAffected_other": "{{count}} seats affected",
   "switchesBehind_one": "1 switch behind it",
@@ -81,5 +79,29 @@
   "showSeats": "Show the seats",
   "hideSeats": "Hide the seats",
   "swap": "Swap",
-  "clear": "Clear"
+  "clear": "Clear",
+  "col": {
+    "level": "Type",
+    "what": "Problem",
+    "since": "Started"
+  },
+  "shown_one": "{{count}} problem",
+  "shown_other": "{{count}} problems",
+  "noneShown": "No problem matches these filters.",
+  "noDevice": "Not on a switch",
+  "filter": {
+    "level": "Severity",
+    "group": "Group by",
+    "hideMuted": "Hide muted",
+    "levels": {
+      "all": "All",
+      "down": "Down",
+      "warn": "To look at"
+    },
+    "groups": {
+      "none": "Nothing",
+      "kind": "Type",
+      "device": "Switch"
+    }
+  }
 }
