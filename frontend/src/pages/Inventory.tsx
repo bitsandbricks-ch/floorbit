@@ -20,6 +20,8 @@ import { PageHead } from '@bitsandbricks/ui'
 import { useDriftAll } from '@/api/inventoryDrift'
 import { DeviceForm } from './inventory/DeviceForm'
 import { DriftAll } from './inventory/DriftPanel'
+import { IpamView } from './inventory/IpamView'
+import { ipamSubOf, type IpamSub } from './inventory/ipam'
 import type { ScopeTarget } from './inventory/ScopeEditor'
 import { GroupTree, type GroupFilter } from './inventory/GroupTree'
 import { EntriesView } from './inventory/EntriesView'
@@ -82,7 +84,12 @@ export default function Inventory() {
   const [typesOpen, typesEditor] = useDisclosure(false)
   const navigate = useNavigate()
   // ?type= from an entry's page going back to its list
-  const [typeTab, setTypeTab] = useState(() => new URLSearchParams(window.location.search).get('type') ?? 'device')
+  const [typeTab, setTypeTab] = useState(() => {
+    const type = new URLSearchParams(window.location.search).get('type') ?? 'device'
+    return ipamSubOf(type) ? 'ipam' : type
+  })
+  // VLANs and prefixes live on the IPAM tab (#1346); ?type=vlan|prefix comes back from their pages.
+  const [ipamSub, setIpamSub] = useState<IpamSub>(() => ipamSubOf(new URLSearchParams(window.location.search).get('type') ?? '') ?? 'prefixes')
   const types = useInventoryTypes().data?.types ?? []
   const currentType = types.find((x) => x.id === typeTab)
   const [showHidden, setShowHidden] = useState(false)
@@ -172,7 +179,8 @@ export default function Inventory() {
   const driftCount = all.filter((d) => d.drift).length
   const groupName = (id?: string | null) => groups.find((g) => g.id === id)?.name ?? ''
   const tagOf = (id: string) => overview?.tags.find((x) => x.id === id)
-  const otherTypes = types.filter((x) => x.sort !== 'device' && x.count > 0)
+  const otherTypes = types.filter((x) => x.sort !== 'device' && x.count > 0 && !ipamSubOf(x.id))
+  const ipamCount = types.filter((x) => ipamSubOf(x.id)).reduce((n, x) => n + x.count, 0)
   const deviceCount = types.find((x) => x.sort === 'device')?.count ?? all.length
   // Groups, tags and the defaults have their own pages.
   const openScope = (target: ScopeTarget) => navigate(
@@ -224,6 +232,7 @@ export default function Inventory() {
           {otherTypes.map((x) => (
             <Tabs.Tab key={x.id} value={x.id} rightSection={<Text span size="xs" c="dimmed">{x.count}</Text>}>{typeName(t, x)}</Tabs.Tab>
           ))}
+          <Tabs.Tab value="ipam" rightSection={<Text span size="xs" c="dimmed">{ipamCount}</Text>}>{t('ipam.title')}</Tabs.Tab>
           <Tabs.Tab value="groups">{t('inventory.groupsAndTags')}</Tabs.Tab>
         </Tabs.List>
       </Tabs>
@@ -236,6 +245,8 @@ export default function Inventory() {
             onGroup={(g) => { setGroup(g); setTypeTab('device') }}
             onTags={(tg) => { setTagFilter(tg); setTypeTab('device') }} onEdit={openScope} />
         </Box>
+      ) : typeTab === 'ipam' ? (
+        <IpamView types={types} sub={ipamSub} onSub={setIpamSub} canEdit={canEdit} sourceName={sourceName} />
       ) : typeTab !== 'device' && currentType && overview ? (
         <EntriesView key={typeTab} type={currentType} overview={overview} group={group} tags={tagFilter} canEdit={canEdit} onOpen={(id) => navigate(entryPath(typeTab, id))} sourceName={sourceName} />
       ) : (<>

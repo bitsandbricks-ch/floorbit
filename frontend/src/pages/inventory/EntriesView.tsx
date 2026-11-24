@@ -92,7 +92,7 @@ export function EntriesView({ type, overview, group, tags, canEdit, onOpen, sour
   )
 }
 
-function AddEntry({ type, onClose, onAdded }: { type: InventoryType; onClose: () => void; onAdded: (id: string) => void }) {
+export function AddEntry({ type, onClose, onAdded }: { type: InventoryType; onClose: () => void; onAdded: (id: string) => void }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const [name, setName] = useState('')

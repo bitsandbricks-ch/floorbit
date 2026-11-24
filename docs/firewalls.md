@@ -28,7 +28,7 @@ are off their firewall and which firewall a seat's traffic takes.
 ## The plan
 
 A firewall range is an inventory **prefix** with firewalls set (Mike, 2026-11-24): a network is
-written down once, under **Inventory** (type *Prefix or range*), with its VLAN, gateway, group, tags and
+written down once, under **Inventory › IPAM › Prefixes**, with its VLAN, gateway, group, tags and
 notes, and the firewall plan on top. Planning a range here for a network the inventory has already puts
 the plan on that prefix; otherwise a prefix is made for it, and it goes again when its plan is removed.
 A prefix NetBox or discovery keeps stays when its plan goes.
