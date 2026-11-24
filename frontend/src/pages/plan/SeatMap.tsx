@@ -17,6 +17,7 @@ import { Minimap } from './Minimap'
 import { showMinimap } from './minimap'
 import { WifiLayer } from './WifiLayer'
 import { type LabelMode, type SeatLabels, labelPlan, labelStyle, rowEnds } from './labels'
+import { UPLINK_WIDTH } from './linkLook'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
  *  online is filled, offline is hollow with a slash, unknown is dashed. */
@@ -117,7 +118,6 @@ export function SwitchGlyph({ status }: { status: string }) {
 }
 
 const ARROWS: Record<string, Direction> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
-const UPLINK_WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 100: 5 }
 
 /** The plan with pan (drag, Shift + arrow keys), zoom (wheel, pinch, + and -) and three levels of
  *  detail. Arrow keys move a cursor from seat to seat and Enter opens it (issue #155). */

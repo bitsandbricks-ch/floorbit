@@ -1,0 +1,23 @@
+/* The topology in the floor plan's look (#1330): the svg also carries .fb-plan, so switch glyphs,
+   their names, status colours, link colours (.uplink.m-*, .t-*) and run counts come from
+   styles/plan.css. Only what the plan doesn't draw lives here. */
+.fb-topology .sw .mark { fill: none; stroke: var(--color-ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.fb-topology .sw.down text { fill: var(--color-down); }
+.fb-topology .sw text.side { text-anchor: end; }
+/* Full strength: on the plan, links sit under the seats and are dimmed; here they are the subject. */
+.fb-topology .uplink { opacity: 1; fill: none; stroke-linejoin: round; }
+.fb-topology .uplink-hit { fill: none; stroke: transparent; stroke-width: 12px; }
+.fb-topology .cable-count circle { stroke: var(--color-muted); }
+.fb-topology .fb-uplink .cloud { fill: var(--color-surface); stroke: var(--color-up); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.fb-topology .fb-uplink[data-status='warn'] .cloud { stroke: var(--color-warn); }
+.fb-topology .fb-uplink[data-status='down'] .cloud { stroke: var(--color-down); }
+.fb-topology .fb-uplink[data-status='unknown'] .cloud { stroke: var(--color-unknown); }
+.fb-topology .fb-uplink.chosen .cloud { stroke: var(--color-trace); stroke-width: 2.5; }
+.fb-topology .fb-uplink path.line { fill: none; stroke-width: 2px; stroke-linejoin: round; vector-effect: non-scaling-stroke; stroke: var(--color-up); }
+.fb-topology .fb-uplink[data-status='warn'] path.line { stroke: var(--color-warn); }
+.fb-topology .fb-uplink[data-status='down'] path.line { stroke: var(--color-down); }
+.fb-topology .fb-uplink[data-status='unknown'] path.line { stroke: var(--color-unknown); }
+.fb-topology .fb-uplink text { fill: var(--color-muted); font: 600 11px var(--font-mono); text-anchor: middle; }
+/* The plan's grid under the diagram (styles/plan.css .fb-grid colours); it pans and zooms with it. */
+.fb-topology .grid-minor { fill: none; stroke: color-mix(in srgb, var(--color-muted) 12%, transparent); }
+.fb-topology .grid-major { fill: none; stroke: color-mix(in srgb, var(--color-muted) 28%, transparent); }

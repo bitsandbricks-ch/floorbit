@@ -56,8 +56,8 @@ describe('Topology', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
     const { container } = renderWithApp(<Topology />)
     await screen.findByRole('img', { name: 'Topology with 2 links' })
-    expect(container.querySelector('rect[data-status="offline"]')).not.toBeNull()
-    expect(container.querySelectorAll('rect[data-status="online"]')).toHaveLength(2)     // sw-d-01 has no links, so it isn't drawn
+    expect(container.querySelector('g[data-node][data-status="offline"]')).not.toBeNull()
+    expect(container.querySelectorAll('g[data-node][data-status="online"]')).toHaveLength(2)     // sw-d-01 has no links, so it isn't drawn
     fireEvent.click(screen.getByText('dist-01', { selector: 'text' }))
     expect(await screen.findByText('Down', { selector: '.mantine-Badge-label' })).toBeInTheDocument()
   })
@@ -72,11 +72,24 @@ describe('Topology', () => {
     const { container } = renderWithApp(<Topology />)
     await screen.findByRole('img', { name: 'Topology with 2 links' })
     expect(container.querySelectorAll('.fb-uplink')).toHaveLength(2)        // a line on a box not drawn is left out
-    expect(container.querySelector('.fb-uplink[data-status="down"] line')).toHaveAttribute('stroke-dasharray', '6 4')
+    expect(container.querySelector('.fb-uplink[data-status="down"] path.line')).toHaveAttribute('stroke-dasharray', '6 4')
     fireEvent.click(screen.getByText('ISP A', { selector: 'text' }))
     expect(await screen.findByText('Needs a look', { selector: '.mantine-Badge-label' })).toBeInTheDocument()
     expect(screen.getByText('core-01 Te1/0/48')).toBeInTheDocument()
     expect(screen.getByText('85 %')).toBeInTheDocument()
+  })
+
+  it('draws devices as the floor plan does, on its grid, in its link colours', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
+    const { container } = renderWithApp(<Topology />)
+    const svg = await screen.findByRole('img', { name: 'Topology with 2 links' })
+    expect(svg).toHaveClass('fb-plan', 'fb-topology')
+    expect(container.querySelector('g[data-node="dist-01"].sw.sw-offline .cross')).not.toBeNull()  // down: red glyph with a cross
+    expect(container.querySelector('g[data-node="sw-c-02"] .port')).not.toBeNull()                   // the plan's switch glyph
+    expect(container.querySelector('g[data-node="core-01"] .mark')).not.toBeNull()                   // a router has its own mark
+    expect(container.querySelector('g[data-link="l1"] path.uplink.m-fiber.t-fiber-sm')).not.toBeNull()
+    expect(container.querySelector('g[data-link="l2"] path.uplink.slow')).not.toBeNull()
+    expect(container.querySelector('pattern path.grid-major')).not.toBeNull()
   })
 
   it('zooms with the buttons and back to everything with Show everything', async () => {

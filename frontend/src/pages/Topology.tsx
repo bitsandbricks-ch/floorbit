@@ -5,7 +5,7 @@ import { useElementSize, useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { IconDownload, IconFocusCentered, IconLine, IconPhoto, IconVectorBezier2, IconZoomIn, IconZoomOut } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -15,22 +15,26 @@ import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { download, standaloneSvg, svgToPng } from './plan/exportImage'
 import { type Box as ViewBox, bounds, toDiagram, zoomAt } from './topology/camera'
-import { NODE_H, NODE_W, type Placed, arranged, gbit, layout, placeUplinks } from './topology/layout'
+import { GLYPH_Y, NODE_H, NODE_W, type Placed, arranged, gbit, layout, placeUplinks, routes } from './topology/layout'
+import { DeviceGlyph, UplinkGlyph } from './topology/glyphs'
+import { UPLINK_WIDTH } from './plan/linkLook'
+import './Topology.css'
 import { ErrorBanner } from '@/components/ui'
 import { ConfirmButton, StatusBadge } from '@bitsandbricks/ui'
 
-const COLOR: Record<string, string> = {
-  cat5e: 'var(--mantine-color-blue-6)', cat6: 'var(--mantine-color-blue-6)', cat6a: 'var(--mantine-color-blue-6)',
-  'fiber-sm': 'var(--mantine-color-yellow-6)', 'fiber-mm': 'var(--mantine-color-cyan-6)', dac: 'var(--mantine-color-violet-6)',
-  '': 'var(--mantine-color-gray-5)',
+const READABLE = 1 // the smallest scale the opening view shows names at: 11px, as on the plan
+const ROOMY = 1.6 // the largest: a small network doesn't blow up to fill the page (#1331)
+const NAME_MAX = 10
+const short = (name: string) => (name.length > NAME_MAX ? `${name.slice(0, NAME_MAX - 1)}…` : name)
+/** The plan's link classes (styles/plan.css .uplink): one colour per media, single-mode fiber its own (#1334). */
+const linkClass = (l: SwitchLink) => `uplink m-${l.media || mediaOf(l.type) || 'none'} t-${l.type || 'none'}${l.issue ? ` ${l.issue}` : ''}`
+function mediaOf(type: string) {
+  return type.startsWith('cat') ? 'copper' : type.startsWith('fiber') ? 'fiber' : type === 'dac' ? 'dac' : ''
 }
-const WIDTH: Record<number, number> = { 1: 1.5, 10: 2.5, 25: 3, 40: 4, 100: 5 }
-const READABLE = 0.75 // the smallest scale the opening view shows names at
 
 
 type Picked = { kind: 'link'; id: string } | { kind: 'node'; name: string } | { kind: 'uplink'; id: string } | null
 
-const UPLINK_COLOR = { up: 'var(--mantine-color-green-6)', warn: 'var(--mantine-color-orange-6)', down: 'var(--mantine-color-red-6)', unknown: 'var(--mantine-color-gray-5)' } as const
 type Draft = Partial<SwitchLink> & { id?: string }
 
 /** The network's links between switches (issue #468): type and speed, down or slower than planned,
@@ -60,18 +64,27 @@ export default function Topology() {
   const base = useMemo<ViewBox | null>(() => {
     if (!placed || !lines) return null
     const boxes = [...placed.placed.values()].map((p) => ({ ...spot(p), w: NODE_W, h: NODE_H })).map((b) => ({ ...b, x: b.x + lines.dx, y: b.y + lines.dy }))
-    return bounds([...boxes, ...lines.boxes.map((b) => ({ x: b.x, y: b.y, w: NODE_W, h: NODE_H }))])
+    return bounds([...boxes, ...lines.boxes.map((b) => ({ x: b.x, y: b.y - 20, w: NODE_W, h: NODE_H + 20 }))])
   }, [placed, lines, spot])
   // Fitted, 26 boxes in a narrow pane are too small to read (#1050): open at a readable size from the
   // top of the network instead, and leave the whole picture to the fit button.
+  // Show everything, but no bigger than ROOMY: three switches stay three small glyphs.
+  const whole = useMemo<ViewBox | null>(() => {
+    if (!base || !paneWidth || paneWidth / base.w <= ROOMY) return base
+    const w = paneWidth / ROOMY
+    return { x: base.x - (w - base.w) / 2, y: base.y, w, h: base.h }
+  }, [base, paneWidth])
   const start = useMemo<ViewBox | null>(() => {
-    if (!base || !paneWidth) return base
-    if (paneWidth / base.w >= READABLE) return base
+    if (!base || !paneWidth) return whole
+    if (paneWidth / base.w >= READABLE) return whole
     // As wide as the pane shows at READABLE, and as tall as the picture, up to most of the screen.
     const w = paneWidth / READABLE, h = Math.min(base.h, (window.innerHeight * 0.75) / READABLE)
     return { x: base.x + (base.w - w) / 2, y: base.y, w, h }
-  }, [base, paneWidth])
+  }, [base, paneWidth, whole])
   const view = cam ?? start
+  const hasKids = useMemo(() => new Set(placed ? placed.parent.values() : []), [placed])
+  const gridId = `topo-grid-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
+  const runs = useMemo(() => (placed ? routes(data?.links ?? [], placed.parent, (k) => { const p = placed.placed.get(k); return p ? spot(p) : undefined }) : null), [placed, data?.links, spot])
   const uplink = picked?.kind === 'uplink' ? data?.uplinks.find((u) => u.id === picked.id) : undefined
   const link = picked?.kind === 'link' ? data?.links.find((l) => l.id === picked.id) : undefined
   const node = picked?.kind === 'node' ? data?.nodes.find((n) => n.name === picked.name) : undefined
@@ -193,7 +206,7 @@ export default function Topology() {
                 <ActionIcon.Group>
                   <ActionIcon variant="default" aria-label={t('topology.zoomIn')} title={t('topology.zoomIn')} onClick={() => zoomBy(1.4)}><IconZoomIn size={16} aria-hidden="true" /></ActionIcon>
                   <ActionIcon variant="default" aria-label={t('topology.zoomOut')} title={t('topology.zoomOut')} onClick={() => zoomBy(1 / 1.4)}><IconZoomOut size={16} aria-hidden="true" /></ActionIcon>
-                  <ActionIcon variant="default" aria-label={t('topology.fit')} title={t('topology.fit')} onClick={() => setCam(base)}><IconFocusCentered size={16} aria-hidden="true" /></ActionIcon>
+                  <ActionIcon variant="default" aria-label={t('topology.fit')} title={t('topology.fit')} onClick={() => setCam(whole)}><IconFocusCentered size={16} aria-hidden="true" /></ActionIcon>
                 </ActionIcon.Group>
                 {canEdit && (
                   <Button size="compact-sm" variant={wire ? 'filled' : 'default'} leftSection={<IconLine size={14} aria-hidden="true" />}
@@ -219,67 +232,63 @@ export default function Topology() {
               )}
               {saveLayout.error && <Alert color="down" role="alert" mb={6}>{saveLayout.error.message}</Alert>}
               <svg ref={svgRef} role="img" aria-label={t('topology.diagram', { count: data.links.length })}
-                viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="fb-topology"
+                viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="fb-plan fb-topology"
                 onPointerDown={(e) => down(e)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { gesture.current = null; setDrag(null) }}
                 style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '75vh', touchAction: 'none', cursor: wire ? 'crosshair' : 'grab', userSelect: 'none' }}>
+                <TopologyGrid id={gridId} view={view} base={base} scale={paneWidth ? paneWidth / view.w : 1} />
                 {lines.boxes.map(({ uplink: u, x, y, to }) => {
                   const chosen = picked?.kind === 'uplink' && picked.id === u.id
                   const toAt = spot(to)
+                  const cx = x + NODE_W / 2, tx = toAt.x + lines.dx + NODE_W / 2, ty = toAt.y + lines.dy + GLYPH_Y - 8
+                  const mid = (y + GLYPH_Y + 8 + ty) / 2
                   return (
-                    <g key={u.id} className="fb-uplink" data-status={u.status} onClick={() => { if (!clickedAfterMove()) setPicked({ kind: 'uplink', id: u.id }) }} style={{ cursor: 'pointer' }}>
+                    <g key={u.id} className={`fb-uplink${chosen ? ' chosen' : ''}`} data-status={u.status} onClick={() => { if (!clickedAfterMove()) setPicked({ kind: 'uplink', id: u.id }) }} style={{ cursor: 'pointer' }}>
                       <title>{`${u.name}: ${u.device} ${u.port} · ${t(`topology.uplinkStatus.${u.status}`)}`}</title>
-                      <line x1={x + NODE_W / 2} y1={y + NODE_H} x2={toAt.x + lines.dx + NODE_W / 2} y2={toAt.y + lines.dy}
-                        stroke={UPLINK_COLOR[u.status]} strokeWidth={3} strokeDasharray={u.status === 'down' ? '6 4' : undefined} strokeLinecap="round" />
-                      {/* A cloud-ish pill, so the internet doesn't read as one more switch. */}
-                      <rect x={x} y={y} width={NODE_W} height={NODE_H} rx={NODE_H / 2} fill="var(--mantine-color-body)"
-                        stroke={chosen ? 'var(--mantine-primary-color-filled)' : UPLINK_COLOR[u.status]} strokeWidth={chosen ? 2.5 : 1.8} />
-                      <text x={x + NODE_W / 2} y={y + NODE_H / 2} dominantBaseline="central" textAnchor="middle" fontSize={12}
-                        fill="var(--mantine-color-text)" fontWeight={600}>
-                        {u.name.length > 15 ? `${u.name.slice(0, 14)}…` : u.name}
-                      </text>
+                      <path className="line" d={`M${cx} ${y + GLYPH_Y + 8}V${mid}H${tx}V${ty}`} strokeDasharray={u.status === 'down' ? '6 4' : undefined} />
+                      <rect x={x} y={y} width={NODE_W} height={NODE_H} fill="transparent" />
+                      <g transform={`translate(${cx} ${y + GLYPH_Y})`}><UplinkGlyph /></g>
+                      <text x={cx} y={y + GLYPH_Y - 17}>{short(u.name)}</text>
                     </g>
                   )
                 })}
                 <g transform={`translate(${lines.dx} ${lines.dy})`}>
-                {data.links.map((l) => {
-                  const pa = placed.placed.get(l.a.toLowerCase()), pb = placed.placed.get(l.b.toLowerCase())
-                  if (!pa || !pb) return null
-                  const a = spot(pa), b = spot(pb)
-                  // Out of the bottom of the upper box into the top of the lower one; side by side, middle to middle.
-                  const [top, bottom] = a.y <= b.y ? [a, b] : [b, a]
-                  const level = Math.abs(top.y - bottom.y) < NODE_H
-                  const x1 = top.x + NODE_W / 2, y1 = level ? top.y + NODE_H / 2 : top.y + NODE_H
-                  const x2 = bottom.x + NODE_W / 2, y2 = level ? bottom.y + NODE_H / 2 : bottom.y
-                  const color = l.issue === 'down' ? 'var(--mantine-color-red-6)' : l.issue === 'slow' ? 'var(--mantine-color-orange-6)' : COLOR[l.type]
+                {/* Problem links first, so a shared trunk shows the run's colour and only its own drop the problem. */}
+                {runs && [...data.links].sort((x, y) => Number(!x.issue) - Number(!y.issue)).map((l) => {
+                  const r = runs.lines.find((x) => x.id === l.id)
+                  if (!r) return null
                   const chosen = picked?.kind === 'link' && picked.id === l.id
                   return (
-                    <g key={l.id} onClick={() => { if (!clickedAfterMove() && !wire) setPicked({ kind: 'link', id: l.id }) }} style={{ cursor: 'pointer' }}>
+                    <g key={l.id} data-link={l.id} onClick={() => { if (!clickedAfterMove() && !wire) setPicked({ kind: 'link', id: l.id }) }} style={{ cursor: 'pointer' }}>
                       <title>{`${l.a} ${l.a_port} – ${l.b} ${l.b_port}${l.speed ? ` · ${l.speed}G` : ''}`}</title>
-                      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={14} />
-                      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={(WIDTH[l.speed ?? 0] ?? 1.5) + (chosen ? 2 : 0)}
-                        strokeDasharray={l.issue === 'down' ? '6 4' : l.type === '' ? '2 3' : undefined} strokeLinecap="round" />
+                      <path className="uplink-hit" d={r.d} vectorEffect="non-scaling-stroke" />
+                      <path className={linkClass(l)} d={r.d} strokeWidth={(UPLINK_WIDTH[l.speed ?? 0] ?? 1.5) + (chosen ? 2 : 0)} vectorEffect="non-scaling-stroke"
+                        strokeDasharray={l.type === '' ? '2 3' : undefined} strokeLinecap="round" />
                     </g>
                   )
                 })}
+                {runs?.counts.map((c) => (
+                  <g key={`${c.x} ${c.y}`} className="cable-count" transform={`translate(${c.x} ${c.y})`} aria-hidden="true">
+                    <circle r={9} /><text dy="0.35em" fontSize={10}>{c.count}</text>
+                  </g>
+                ))}
                 {[...placed.placed.entries()].map(([key, p]) => {
                   const chosen = (picked?.kind === 'node' && picked.name === p.node.name) || wire?.a === p.node.name
                   const at = spot(p)
+                  const status = p.node.status
                   return (
-                    <g key={p.node.id} transform={`translate(${at.x} ${at.y})`} data-node={p.node.name}
+                    <g key={p.node.id} transform={`translate(${at.x + NODE_W / 2} ${at.y + GLYPH_Y})`} data-node={p.node.name} data-status={status}
+                      className={`sw sw-${status}${status === 'offline' ? ' down' : ''}`}
                       onPointerDown={(e) => { e.stopPropagation(); if (canEdit && !wire) down(e as unknown as React.PointerEvent<SVGSVGElement>, key); else { gesture.current = null; moved.current = false } }}
                       onClick={() => { if (!clickedAfterMove()) pickNode(p.node.name) }}
                       style={{ cursor: wire ? 'crosshair' : canEdit ? 'move' : 'pointer' }}>
-                      <title>{`${p.node.name}: ${t(`topology.status.${p.node.status}`)}`}</title>
-                      {/* A box that is down: red, dashed and struck through, so it doesn't rely on colour. */}
-                      <rect width={NODE_W} height={NODE_H} rx={8} fill={p.node.status === 'offline' ? 'var(--mantine-color-red-light)' : 'var(--mantine-color-body)'}
-                        stroke={chosen ? 'var(--mantine-primary-color-filled)' : p.node.status === 'offline' ? 'var(--mantine-color-red-6)' : 'var(--mantine-color-default-border)'}
-                        strokeWidth={chosen || p.node.status === 'offline' ? 2.5 : 1.2} strokeDasharray={p.node.status === 'offline' ? '6 4' : undefined}
-                        data-status={p.node.status} />
-                      <circle cx={10} cy={10} r={4} fill={p.node.status === 'online' ? 'var(--mantine-color-green-6)' : p.node.status === 'offline' ? 'var(--mantine-color-red-6)' : 'var(--mantine-color-gray-5)'} />
-                      <text x={NODE_W / 2} y={NODE_H / 2} dominantBaseline="central" textAnchor="middle" fontSize={13}
-                        fill="var(--mantine-color-text)" fontWeight={p.node.role === 'switch' ? 400 : 600}>
-                        {p.node.name.length > 15 ? `${p.node.name.slice(0, 14)}…` : p.node.name}
-                      </text>
+                      <title>{`${p.node.name}: ${t(`topology.status.${status}`)}`}</title>
+                      <rect x={-NODE_W / 2} y={-GLYPH_Y} width={NODE_W} height={NODE_H} fill="transparent" />
+                      {chosen && <circle className="sw-focus" r={17} />}
+                      <DeviceGlyph role={p.node.role} status={status} />
+                      {/* A box with a run going down has its name beside it, clear of the trunk. */}
+                      {hasKids.has(key)
+                        ? <text className="side" x={p.node.role === 'router' ? -19 : -16} y={4}>{short(p.node.name)}</text>
+                        : <text y={NODE_H - GLYPH_Y - 4}>{short(p.node.name)}</text>}
                     </g>
                   )
                 })}
@@ -333,21 +342,21 @@ function fromSuggestion(s: LinkSuggestion): Draft {
 function Legend({ links }: { links: SwitchLink[] }) {
   const { t } = useTranslation()
   const has = (pred: (l: SwitchLink) => boolean) => links.some(pred)
-  const all: [boolean, string, string, string?][] = [
-    [has((l) => l.type.startsWith('cat')), t('topology.media.copper'), COLOR.cat6],
-    [has((l) => l.type === 'fiber-sm'), t('topology.types.fiber-sm'), COLOR['fiber-sm']],
-    [has((l) => l.type === 'fiber-mm'), t('topology.types.fiber-mm'), COLOR['fiber-mm']],
-    [has((l) => l.type === 'dac'), t('topology.types.dac'), COLOR.dac],
-    [has((l) => l.issue === 'slow'), t('topology.slow'), 'var(--mantine-color-orange-6)'],
-    [has((l) => l.issue === 'down'), t('topology.down'), 'var(--mantine-color-red-6)', '6 4'],
+  const all: [boolean, string, string][] = [
+    [has((l) => l.type.startsWith('cat')), t('topology.media.copper'), 'uplink m-copper'],
+    [has((l) => l.type === 'fiber-sm'), t('topology.types.fiber-sm'), 'uplink m-fiber t-fiber-sm'],
+    [has((l) => l.type === 'fiber-mm'), t('topology.types.fiber-mm'), 'uplink m-fiber'],
+    [has((l) => l.type === 'dac'), t('topology.types.dac'), 'uplink m-dac'],
+    [has((l) => l.issue === 'slow'), t('topology.slow'), 'uplink slow'],
+    [has((l) => l.issue === 'down'), t('topology.down'), 'uplink down'],
   ]
-  const items = all.filter(([shown]) => shown).map(([, ...rest]) => rest as [string, string, string?])
+  const items = all.filter(([shown]) => shown).map(([, ...rest]) => rest as [string, string])
   const speeds = new Set(links.map((l) => l.speed).filter(Boolean)).size
   return (
     <Group gap="md" mt="xs" px={4}>
-      {items.map(([label, color, dash]) => (
+      {items.map(([label, look]) => (
         <Group key={label} gap={6} wrap="nowrap">
-          <svg width={24} height={8} aria-hidden="true"><line x1={1} y1={4} x2={23} y2={4} stroke={color} strokeWidth={3} strokeDasharray={dash} /></svg>
+          <svg width={24} height={8} aria-hidden="true" className="fb-plan fb-topology"><line className={look} x1={1} y1={4} x2={23} y2={4} strokeWidth={3} /></svg>
           <Text size="xs" c="dimmed">{label}</Text>
         </Group>
       ))}
@@ -512,5 +521,24 @@ function UplinkPanel({ uplink: u }: { uplink: TopologyUplink }) {
       </SimpleGrid>
       <Button size="compact-sm" variant="default" component="a" href="/services" mt={4} style={{ alignSelf: 'flex-start' }}>{t('topology.openServices')}</Button>
     </Stack>
+  )
+}
+
+/** The floor plan's grid (styles/plan.css .fb-grid) under the diagram, in its units so it pans and
+ *  zooms with it; lines stay 1px on screen. */
+function TopologyGrid({ id, view, base, scale }: { id: string; view: ViewBox; base: ViewBox; scale: number }) {
+  const w = 1 / (scale || 1)
+  const x = Math.min(view.x, base.x), y = Math.min(view.y, base.y)
+  const x2 = Math.max(view.x + view.w, base.x + base.w), y2 = Math.max(view.y + view.h, base.y + base.h)
+  return (
+    <g aria-hidden="true">
+      <defs>
+        <pattern id={id} width={100} height={100} patternUnits="userSpaceOnUse">
+          <path className="grid-minor" strokeWidth={w} d="M20 0V100M40 0V100M60 0V100M80 0V100M0 20H100M0 40H100M0 60H100M0 80H100" />
+          <path className="grid-major" strokeWidth={w} d="M0 0V100M0 0H100" />
+        </pattern>
+      </defs>
+      <rect x={x} y={y} width={x2 - x} height={y2 - y} fill={`url(#${id})`} />
+    </g>
   )
 }
