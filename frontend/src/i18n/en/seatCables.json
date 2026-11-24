@@ -1,0 +1,13 @@
+{
+  "chairs": "Chairs",
+  "connect": "Cables connect",
+  "connectAll": "Cables connect, all rows",
+  "connectHint": "Auto plugs in on the side with a gap to the next row, never under the chairs; otherwise behind the table.",
+  "modes": {
+    "auto": "Auto",
+    "behind": "Behind",
+    "chair": "Chair side"
+  },
+  "autoChairs": "Set chairs automatically",
+  "autoChairsHint": "Rows that share a table get their chairs on the outer sides; a row on its own faces its bigger gap. Straight rows only; undo puts them back."
+}

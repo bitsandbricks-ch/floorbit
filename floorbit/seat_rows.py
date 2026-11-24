@@ -18,6 +18,8 @@ A block keeps ``rows``, top first, each a dict:
   against the widest one.
 - ``side``: where the people sit, ``left`` or ``right`` of the way the row runs, or ``""`` for the
   shape's own default (none for a line or path, inside for an arc, U or L).
+- ``cables``: where its seat cables plug in: ``""`` (Auto), ``behind`` (away from the chairs) or
+  ``chair`` (where the player sits); floorbit/cable_lanes.py. Kept only when set.
 - ``reverse``: number this row the other way. ``col_gaps``: gaps inside the row,
   ``[{"after": n, "size": s}]`` (floorbit/seat_gaps.py).
 - ``mirror`` and ``flip``: the shape turned over left to right, or upside down (Mike: "Mirror /
@@ -37,6 +39,7 @@ SHAPES = ('line', 'arc', 'u', 'l', 'path')
 LABELS = ('', 'start', 'end', 'both', 'hidden', 'moved')
 ALIGNS = ('start', 'middle', 'end')
 SIDES = ('', 'left', 'right')
+CABLES = ('', 'behind', 'chair')
 MAX_ROWS = 50
 MAX_SEATS = 200      # in one row
 MAX_GAP = 20         # seats between two rows
@@ -115,6 +118,11 @@ def clean_row(raw, used=()):
         row['bend'] = _num(raw.get('bend') if raw.get('bend') is not None else 60, -MAX_BEND, MAX_BEND, 'The bend')
     if shape in ('u', 'l'):
         row['sides'] = _sides(raw.get('sides'), shape, seats)
+    cables = raw.get('cables') or ''
+    if cables not in CABLES:
+        raise RowError('Seat cables plug in automatically, behind the table or on the chair side')
+    if cables:
+        row['cables'] = cables
     label = raw.get('label') or ''
     if label not in LABELS:
         raise RowError('A row label is at the start, the end, both, hidden or moved')

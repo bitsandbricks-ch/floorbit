@@ -10,6 +10,8 @@ import { type Gap, GAP_MAX, GAP_MIN, cleanGaps, freeGapSpot } from './gaps'
 import type { ItemRef } from './geometry'
 import { mirrorBlock } from './rowShapes'
 import { type BlockRow, MAX_ROWS, MAX_SEATS, ROW_LABELS, type RowLabel, type RowShape, SHAPES, moveRow, newRow, withLabel, withSeats, withShape, withUSide } from './rows'
+import { withCables } from './autoChairs'
+import { BlockCableFields, CablesConnect } from './CableFields'
 import { PieceFields } from './PieceFields'
 import { RowTabs } from './RowTabs'
 import './BlockFields.css'
@@ -87,6 +89,7 @@ export function BlockFields({ data, item, onChange, arranging = false, onArrange
           <Button size="xs" variant="default" leftSection={<IconFlipHorizontal size={14} />} onClick={() => turnBlock(true)}>{t('blockRows.flipBlock')}</Button>
         </Group>
       )}
+      {show('block') && !block.seat_at && <BlockCableFields rows={block.rows} onSave={saveRows} />}
       {show('rows') && (
         <>
           {section === 'rows'
@@ -240,10 +243,11 @@ function RowFields({ row, name, first, letters, onSave }: {
       <SimpleGrid cols={2} spacing="xs">
         <NumberInput size="xs" label={t('blockRows.shift')} min={-200} max={200} step={0.5} decimalScale={2} defaultValue={row.shift}
           onBlur={(e) => { const v = num(e.currentTarget.value, -200, 200); if (v != null && v !== row.shift) onSave({ ...row, shift: v }) }} />
-        <Select size="xs" label={t('blockRows.side')} allowDeselect={false} value={row.side || 'auto'}
+        <Select size="xs" label={t('seatCables.chairs')} allowDeselect={false} value={row.side || 'auto'}
           onChange={(v) => v && onSave({ ...row, side: v === 'auto' ? '' : (v as 'left' | 'right') })}
           data={['auto', 'left', 'right'].map((v) => ({ value: v, label: t(`blockRows.sides.${v}`) }))} />
       </SimpleGrid>
+      {row.shape === 'line' && <CablesConnect value={row.cables ?? ''} onChange={(v) => onSave(withCables([row], v)[0])} />}
       {first && <Text size="xs" c="dimmed">{t('blockRows.firstGap')}</Text>}
       {letters && (
         <Select size="xs" label={t('blockRows.rowLabel')} description={t('blockRows.rowLabelHint')} allowDeselect={false} value={row.label || 'block'}
