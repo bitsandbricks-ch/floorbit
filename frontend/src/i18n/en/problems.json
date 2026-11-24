@@ -64,6 +64,7 @@
   },
   "muteTextService": "No Discord messages about this service going down or coming back until the mute ends. It stays on this list and on the health wall.",
   "muteTextAp": "Keeps this access point out of the problem counts until the mute ends. It stays on this list and in the Wi-Fi view.",
+  "muteTextProblem": "Keeps this problem out of the counts until the mute ends. It stays on this list, marked as muted.",
   "show": "Show",
   "all": "All",
   "report": "Make an incident",

@@ -10,7 +10,7 @@
   (issue #885).
 - ``POST /api/alerts/mutes``: ``{"switch_id", "minutes", "reason"}`` mutes a switch's alerts;
   ``{"service_id", ...}`` mutes a service on the health wall instead (issue #256), ``{"ap", ...}``
-  a Wi-Fi access point (issue #1064).
+  a Wi-Fi access point (issue #1064), ``{"problem_id", ...}`` any other problem on the list (issue #887).
 - ``PATCH /api/alerts/mutes/<id>``: ``{"minutes"}`` makes a running mute last longer (issue #264).
 - ``DELETE /api/alerts/mutes/<id>``: ends a mute (a switch id, ``health:<service id>`` or ``wifi:<ap>``).
 Mutes need ``incidents.work`` (auth/roles.py): the people working problems decide what pages them.
@@ -125,6 +125,12 @@ def add_mute():
         if not check:
             return jsonify({'error': 'There is no such service.'}), 400
         key, name, label = alerting.service_key(check['id']), check['name'], 'Muted service alerts'
+    elif body.get('problem_id'):
+        # Any other problem, by its id on the list: it stays there, marked, and leaves the counts.
+        found = problems.find(_can('seats.view'), str(body['problem_id']))
+        if not found or not str(found.get('mute_id') or '').startswith(problems.PROBLEM_MUTE):
+            return jsonify({'error': 'There is no such problem.'}), 400
+        key, name, label = found['mute_id'], found.get('title') or found['id'], 'Muted a problem'
     elif body.get('ap'):
         # An access point from the Wi-Fi view (floorbit/wifi.py): only one it knows now.
         registry = current_app.extensions['floorbit_plugins']

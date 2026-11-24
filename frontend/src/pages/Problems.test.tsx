@@ -217,6 +217,26 @@ describe('Problems', () => {
       .toEqual({ ap: 'ap-stage', minutes: 60, reason: '' }))
   })
 
+  it('mutes any other problem by its id, and links a running one to its page (issue #887)', async () => {
+    const circuit = { id: 'power:c1', kind: 'power' as const, level: 'warn' as const, title: 'Circuit B row 2 getting close (86.9 %)',
+      where: 'Feeds 12 seats', since: now, link: '/power', mute_id: 'problem:power:c1', muted: null }
+    const fake = fakeFetch({
+      'GET /api/auth/me': me,
+      'GET /api/problems': list({ problems: [circuit], mutes: [{ switch_id: 'problem:link:x', kind: 'problem', name: 'Uplink slow', until: now + 600, at: now, by: 'kim', reason: '' }] }),
+      'POST /api/alerts/mutes': { status: 201, body: {} },
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<Problems />)
+    const row = await screen.findByRole('row', { name: 'Circuit B row 2 getting close (86.9 %)' })
+    expect(screen.getByRole('link', { name: 'Uplink slow' })).toHaveAttribute('href', '/problems/link%3Ax')
+    fireEvent.click(within(row).getByRole('button', { name: 'Mute' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Mute alerts for Circuit B row 2 getting close (86.9 %)' })
+    expect(within(dialog).getByText(/out of the counts/)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Mute' }))
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.path === '/api/alerts/mutes')?.body)
+      .toEqual({ problem_id: 'power:c1', minutes: 60, reason: '' }))
+  })
+
   it('says when all is well', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems: [], mutes: [], counts: { down: 0, warn: 0, muted: 0 } }) }).fn)
     renderWithApp(<Problems />)

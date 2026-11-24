@@ -17,7 +17,7 @@ import { useNowSeconds } from '@/components/useNowSeconds'
 import { canReport, problemsText, rank, reportBody } from './problems/format'
 import { MuteDialog } from './problems/MuteDialog'
 import { ShutPorts } from './problems/ShutPorts'
-import { muteBody, muteKind, type MuteTarget } from './problems/mute'
+import { muteBody, muteHref, muteTarget, type MuteTarget } from './problems/mute'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, clock } from '@/lib/time'
 import { StatusBadge } from '@bitsandbricks/ui'
@@ -220,7 +220,7 @@ export default function Problems() {
     canMute: !!data?.can_mute, canSwap, busy: mute.isPending || report.isPending || clearAlert.isPending,
     onReport: data?.can_report ? (p) => report.mutate(p) : undefined,
     onClear: (p) => clearAlert.mutate(p.clear_id ?? ''),
-    onMute: (p) => { setDialogError(null); setTarget({ id: p.mute_id ?? p.switch_id ?? '', name: p.name ?? p.where, kind: muteKind(p.kind) }) },
+    onMute: (p) => { setDialogError(null); setTarget(muteTarget(p)) },
   }
   const error = list.error ?? unmute.error ?? extend.error ?? report.error ?? clearAlert.error
 
@@ -296,7 +296,7 @@ export default function Problems() {
               <Stack gap={4}>
                 {data.mutes.map((m) => (
                   <Group key={m.switch_id} gap="sm">
-                    <Text size="sm"><Anchor href={m.kind === 'health' ? '/services' : m.kind === 'wifi' ? WIFI_LINK : `/plan?switch=${encodeURIComponent(m.name)}`}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
+                    <Text size="sm"><Anchor href={muteHref({ ...m, kind: m.kind ?? 'switch' }, WIFI_LINK)}>{m.name}</Anchor> · {t('problems.mutedUntil', { time: clock(m.until), who: m.by ?? '?' })}{m.reason ? ` · ${m.reason}` : ''}</Text>
                     {m.until - now < ENDING_SOON && (
                       <Badge color="warn" variant="light" tt="none">
                         {t('problems.endsIn', { count: Math.max(1, Math.ceil((m.until - now) / 60)) })}
