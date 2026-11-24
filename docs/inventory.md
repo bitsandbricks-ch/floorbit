@@ -287,7 +287,11 @@ same. Each row says what is configured, what is actual and since when.
 `GET /api/inventory/<id>` has the device's `drift`, `GET /api/inventory` a count per device, and
 `GET /api/inventory/drift` all of it.
 
-The device page lists it under **Differs from the device**. For a field or the management address,
+The device page lists it under **Differs from the device**, like a code diff: grouped as fields, then
+name and address, then interfaces, each row a hunk with the inventory's value as the removed (`-`, red)
+line and the device's as the added (`+`, green) one. The page header counts the differences, the
+inventory list has a **Differs** column, and the **Differs from the device** chip above the list shows
+every device that differs as one diff (`/inventory?view=drift`). For a field or the management address,
 **Take** puts the device's value into the inventory like a hand edit (so a value NetBox feeds is then
 locked against it), and the row goes at once (`POST /api/inventory/<id>/drift/take` with `{field}`,
 `floorplan.edit`, in the audit log). A different hostname is shown but never taken in one click: a

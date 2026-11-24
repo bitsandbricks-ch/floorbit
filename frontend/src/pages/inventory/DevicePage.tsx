@@ -159,6 +159,9 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
           : dev.sources.map((s) => <Badge key={s} variant="light" color="trace" tt="none">{sourceName(s)}</Badge>)}
         {dev.gone.map((s) => <Badge key={`gone-${s}`} variant="light" color="warn" tt="none">{t('inventory.gone', { source: sourceName(s) })}</Badge>)}
         {dev.hidden && <Badge variant="outline" color="gray" tt="none">{t('inventory.hidden')}</Badge>}
+        {!!dev.drift?.length && (
+          <Badge variant="light" color="warn" tt="none" role="status">{t('inventoryDrift.count', { count: dev.drift.length })}</Badge>
+        )}
       </Group>
 
       {dev.blocks.length > 0 && (

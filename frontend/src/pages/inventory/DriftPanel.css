@@ -1,0 +1,12 @@
+/* The drift diff (issue #903): a code diff's look, with the theme's up/down colours for added/removed. */
+.fb-diff-file { border: 1px solid var(--color-line); border-radius: var(--mantine-radius-sm); overflow: hidden; }
+.fb-diff-file-head { padding: 6px 10px; background: var(--color-surface); border-bottom: 1px solid var(--color-line); }
+.fb-diff-hunk + .fb-diff-hunk { border-top: 1px solid var(--color-line); }
+.fb-diff-hunk-head { padding: 4px 10px; color: var(--mantine-color-dimmed);
+  background: color-mix(in srgb, var(--color-trace) 6%, transparent); }
+.fb-diff-line { display: flex; gap: 10px; padding: 2px 10px; font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+.fb-diff-line.is-del { background: color-mix(in srgb, var(--color-down) 12%, transparent); }
+.fb-diff-line.is-add { background: color-mix(in srgb, var(--color-up) 14%, transparent); }
+.fb-diff-line.is-del > span:first-child { color: var(--color-down); }
+.fb-diff-line.is-add > span:first-child { color: var(--color-up); }

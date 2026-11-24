@@ -20,5 +20,16 @@
   "take": "Übernehmen",
   "takeLabel": "{{what}} vom Gerät übernehmen",
   "taken": "Vom Gerät übernommen.",
-  "hostnameHint": "Benenn es im Inventar oder auf dem Gerät um: Ein neuer Name verschiebt auch seine Plätze und Verbindungen."
+  "hostnameHint": "Benenn es im Inventar oder auf dem Gerät um: Ein neuer Name verschiebt auch seine Plätze und Verbindungen.",
+  "group": {
+    "fields": "Felder",
+    "identity": "Name und Adresse",
+    "interfaces": "Interfaces"
+  },
+  "since": "seit {{when}}",
+  "none": "Alle Geräte passen zum Inventar.",
+  "count_one": "{{count}} Abweichung",
+  "count_other": "{{count}} Abweichungen",
+  "filter": "Weicht vom Gerät ab",
+  "badge": "Weicht ab"
 }
