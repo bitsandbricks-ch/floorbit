@@ -280,7 +280,7 @@
     },
     "integrations_seat_source_json_path": {
       "label": "JSON-Datei der Plätze",
-      "help": "Pfad der festen Datei mit der Platzzuordnung."
+      "help": "Pfad der festen Datei mit der Platzzuordnung. Leer: seats.json neben data.json."
     },
     "integrations_seat_source_http_url": {
       "label": "URL der HTTP-Platzquelle",

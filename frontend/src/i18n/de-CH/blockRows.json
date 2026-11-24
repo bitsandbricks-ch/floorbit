@@ -53,5 +53,9 @@
   "armHandle": "Ziehen, um Seite {{arm}} von Reihe {{name}} zu ändern",
   "pointHandle": "Punkt {{n}} von Reihe {{name}}: ziehen zum Verschieben, Doppelklick zum Entfernen",
   "addPoint": "Hier einen Punkt zu Reihe {{name}} hinzufügen",
-  "shapeHint": "Im Plan: die Griffe ziehen, um die Reihe zu biegen, eine Seite zu ändern oder die Punkte des Pfads zu verschieben. + fügt einen Punkt hinzu; Doppelklick auf einen Punkt entfernt ihn."
+  "shapeHint": "Im Plan: die Griffe ziehen, um die Reihe zu biegen, eine Seite zu ändern oder die Punkte des Pfads zu verschieben. + fügt einen Punkt hinzu; Doppelklick auf einen Punkt entfernt ihn.",
+  "mirror": "Spiegeln",
+  "flip": "Kippen",
+  "mirrorBlock": "Block spiegeln",
+  "flipBlock": "Block kippen"
 }

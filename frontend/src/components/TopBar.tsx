@@ -30,7 +30,7 @@ export function TopBar({ pages, onSlot }: { pages: NavPage[]; onSlot?: (el: HTML
   // The page's own title after its row: a sub page (one agent, one device), or a tab of a row
   // (Helpdesk > Problems). The breadcrumb is the page's only title on a computer (issue #932).
   const sub = page && title && title !== label ? title : null
-  const count = (problems?.counts.down ?? 0) + (problems?.counts.warn ?? 0)
+  const count = problems?.counts.total ?? (problems?.counts.down ?? 0) + (problems?.counts.warn ?? 0)
   return (
     <header className="fb-topbar">
       <nav className="fb-crumbs" aria-label={t('nav.breadcrumbs')}>

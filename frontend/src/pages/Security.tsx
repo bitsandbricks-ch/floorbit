@@ -1,8 +1,9 @@
 import { Alert, Badge, Button, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core'
-import { IconPlugConnectedX, IconRefresh } from '@tabler/icons-react'
+import { IconPlugConnectedX, IconRefresh, IconTerminal2 } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -45,6 +46,7 @@ function FindingCard({ f, list, busy, onShut, onAck }: {
           <Text fw={600}>{f.title}</Text>
           {(f.switch || f.seat) && <Text size="sm">{where(f, t)}</Text>}
           {f.detail && <Text size="sm" c="dimmed">{f.detail}</Text>}
+          {f.switch && f.port && f.uplink && <Text size="sm">{t(`security.uplink.${f.uplink}`)}</Text>}
           {f.evidence.length > 0 && (
             <ul className="fb-evidence">
               {f.evidence.map((e) => <li key={e}>{e}</li>)}
@@ -55,9 +57,15 @@ function FindingCard({ f, list, busy, onShut, onAck }: {
           </Text>
         </Stack>
         <Stack gap="xs" style={{ flexShrink: 0 }}>
-          {list.can_act && f.switch && f.port && (
+          {list.can_act && f.switch && f.port && !f.uplink && (
             <Button size="xs" color="down" leftSection={<IconPlugConnectedX size={14} />} onClick={onShut} disabled={busy}>
               {t('security.shut')}
+            </Button>
+          )}
+          {f.switch && f.port && f.uplink && (
+            <Button size="xs" variant="default" leftSection={<IconTerminal2 size={14} />}
+              component={Link} to={`/terminal?switch=${encodeURIComponent(f.switch)}`}>
+              {t('security.openSwitch')}
             </Button>
           )}
           <Button size="xs" variant="default" onClick={() => onAck(!f.ack)} disabled={busy}>

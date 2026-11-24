@@ -53,5 +53,9 @@
   "armHandle": "Drag to change side {{arm}} of row {{name}}",
   "pointHandle": "Point {{n}} of row {{name}}: drag to move, double-click to take out",
   "addPoint": "Add a point to row {{name}} here",
-  "shapeHint": "On the plan: drag the handles to bend the row, change a side or move the path's points. + adds a point; double-click a point takes it out."
+  "shapeHint": "On the plan: drag the handles to bend the row, change a side or move the path's points. + adds a point; double-click a point takes it out.",
+  "mirror": "Mirror",
+  "flip": "Flip",
+  "mirrorBlock": "Mirror block",
+  "flipBlock": "Flip block"
 }

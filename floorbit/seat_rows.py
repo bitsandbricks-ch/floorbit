@@ -19,6 +19,9 @@ A block keeps ``rows``, top first, each a dict:
   shape's own default (none for a line or path, inside for an arc, U or L).
 - ``reverse``: number this row the other way. ``col_gaps``: gaps inside the row,
   ``[{"after": n, "size": s}]`` (floorbit/seat_gaps.py).
+- ``mirror`` and ``flip``: the shape turned over left to right, or upside down (Mike: "Mirror /
+  Flip?"), so an L can turn the other way and a U open downwards. The seats keep their order and
+  the people stay on the same side of the shape.
 
 Everything is in seats: one seat is one unit. ``layout`` turns a block into each seat's centre and
 the direction its row runs there; seat_layout.py turns that into what the pages draw.
@@ -102,7 +105,8 @@ def clean_row(raw, used=()):
     row = {'id': rid, 'seats': seats, 'shape': shape,
            'gap': _num(raw.get('gap') or 0, 0, MAX_GAP, 'The space above a row'),
            'align': align, 'shift': _num(raw.get('shift') or 0, -MAX_SHIFT, MAX_SHIFT, 'A row\'s shift'),
-           'side': side, 'reverse': bool(raw.get('reverse')), 'col_gaps': col_gaps}
+           'side': side, 'reverse': bool(raw.get('reverse')), 'col_gaps': col_gaps,
+           'mirror': bool(raw.get('mirror')), 'flip': bool(raw.get('flip'))}
     if shape == 'arc':
         row['bend'] = _num(raw.get('bend') if raw.get('bend') is not None else 60, -MAX_BEND, MAX_BEND, 'The bend')
     if shape in ('u', 'l'):
@@ -228,7 +232,11 @@ def default_side(row):
 
 
 def side_of(row):
-    return row.get('side') or default_side(row)
+    side = row.get('side') or default_side(row)
+    # Turned over once, left of the way the row runs is what was right: swap to stay on the same side.
+    if side and bool(row.get('mirror')) != bool(row.get('flip')):
+        return 'right' if side == 'left' else 'left'
+    return side
 
 
 # ── Laying the seats out ──────────────────────────────────────────────────────────────────
@@ -301,7 +309,18 @@ _SHAPES = {'line': _line, 'arc': _arc, 'u': _u, 'l': _l, 'path': _on_path}
 def row_seats(row):
     """Each seat of one row on its own: ``[(x, y, angle)]`` centres in seats (any origin) and the
     direction the row runs there in degrees (0 = left to right), in seat order before numbering."""
-    return _SHAPES.get(row.get('shape') or 'line', _line)(row)
+    seats = _SHAPES.get(row.get('shape') or 'line', _line)(row)
+    if row.get('mirror'):
+        seats = [(-x, y, _turn(180 - a)) for x, y, a in seats]
+    if row.get('flip'):
+        seats = [(x, -y, _turn(-a)) for x, y, a in seats]
+    return seats
+
+
+def _turn(a):
+    """An angle in degrees within -180..180, 0 for no turn at all."""
+    a = (a + 180) % 360 - 180
+    return 180.0 if a == -180 else a + 0.0
 
 
 def _box(points):

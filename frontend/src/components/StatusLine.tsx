@@ -19,7 +19,7 @@ export function StatusLine() {
     enabled: admin, refetchInterval: 30_000, retry: false,
   }).data?.agents
   const down = problems?.counts.down ?? 0
-  const warn = problems?.counts.warn ?? 0
+  const warn = problems?.counts.look ?? problems?.counts.warn ?? 0
   return (
     <footer className="fb-status" aria-label={t('nav.statusLine')}>
       {problems && (

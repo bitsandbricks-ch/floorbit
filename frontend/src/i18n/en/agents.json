@@ -3,7 +3,7 @@
   "settings": "Settings",
   "intro": "Floorbit reaches the event network only through a local agent, whether it is hosted or runs in the hall. The agent runs there, connects out to this Floorbit and answers its questions: switches, LibreNMS, NetBox and the rest. Nothing on the event network has to be reachable from outside.",
   "agents": "Agents",
-  "none": "No agent yet. Floorbit asks its own monitoring plugin.",
+  "none": "No agent yet. Nothing on the event network is read until one connects.",
   "inUse": "Without a connected agent, pages show the last known state and say so. The \"Local agent\" next to a self-hosted Floorbit enrols itself.",
   "connected": "Connected",
   "notConnected": "Not connected",
@@ -413,5 +413,12 @@
     "standbyHelp": "The other agent of this pair collects. This one only takes the devices given to it by name, and takes over the rest when the other one goes away.",
     "none": "No devices for this agent. Turn on Telemetry for devices in the inventory."
   },
-  "runInsecure": "This Floorbit is on plain http, so the agent needs FLOORBIT_AGENT_INSECURE=1 and sends its key unencrypted. Use it only for a test or on a network you trust; put Floorbit behind HTTPS for an event."
+  "runInsecure": "This Floorbit is on plain http, so the agent needs FLOORBIT_AGENT_INSECURE=1 and sends its key unencrypted. Use it only for a test or on a network you trust; put Floorbit behind HTTPS for an event.",
+  "quiet": {
+    "offEverywhere": "Off on every agent",
+    "offHere": "Left to another agent",
+    "notReported": "On, but this agent hasn't reported it yet",
+    "turnOn": "Turn it on",
+    "agentSettings": "This agent's settings"
+  }
 }

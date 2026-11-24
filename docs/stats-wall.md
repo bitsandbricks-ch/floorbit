@@ -5,7 +5,9 @@ big screen in the hall and for attendees' phones. It is public, and each of its 
 own (**Downloaded**, **Busiest moment**, **Most seats online**, **Busiest hour**, **Most loyal block**,
 **From the LAN cache**, **Top games**) that can go on any public dashboard too. No account
 is needed. It is off until **Settings > Attendee pages > Stats wall** (or `STATS_WALL=true`) turns it on;
-while it is off, those tiles say so.
+while it is off, those tiles say so on public screens and `/wall.json` answers anonymous callers
+with 404. The setting is about the public side only: signed-in crew always see the numbers, on
+their own dashboards and in `/wall.json`.
 
 What it shows, each only once there is something to show:
 

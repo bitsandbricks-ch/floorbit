@@ -65,7 +65,7 @@ export function AppNav() {
 
   return (
     <>
-      <Sidebar boot={boot} path={path} renderLink={renderLink} onGoTo={open} down={problems?.counts.down ?? null} actions={actions} dashboards={dashboards} />
+      <Sidebar boot={boot} path={path} renderLink={renderLink} onGoTo={open} down={problems?.counts.down ?? null} look={problems?.counts.look ?? null} actions={actions} dashboards={dashboards} />
       <GoTo opened={goTo} onOpen={open} onClose={close} />
       {notify && <NotifySettings opened onClose={() => setNotify(false)} />}
       {notice && <CrewNoticeEditor onClose={() => setNotice(false)} />}

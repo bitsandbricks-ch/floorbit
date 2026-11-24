@@ -143,6 +143,8 @@ export interface PluginInfo {
   endpoints: { id: string; label: string; url: string }[]
   hooks: { events: string[]; action: string }[]
   has_test: boolean
+  /** Set for a plugin with a part on the local agent (``agent:`` in plugin.yaml). */
+  agent?: { actions: string[]; calls: string[]; sends: string[] } | null
   /** ``schema:`` of this version, and the schema this tenant's data is at (0: none). */
   schema?: number
   data_schema?: number
@@ -637,6 +639,8 @@ export interface Finding {
   last_seen: number
   ack: { by: string | null; at: number } | null
   cleared_at?: number
+  /** Why the port is an uplink (a topology link, an LLDP/CDP neighbour, the uplink pattern): no Shut port then (#886). */
+  uplink?: 'topology' | 'neighbour' | 'pattern' | null
 }
 export interface ShutPort {
   switch: string
@@ -763,7 +767,8 @@ export interface LibreNMSAlertsSetup {
 export interface ProblemList {
   problems: Problem[]
   attention?: Problem[]
-  counts: { down: number; warn: number; muted: number; attention?: number; seats?: number }
+  /** `look` = warn + attention, `total` = down + look: the one count every place shows (#884). */
+  counts: { down: number; warn: number; muted: number; attention?: number; seats?: number; look?: number; total?: number }
   mutes: AlertMute[]
   quiet_hours: boolean
   checked_at: number

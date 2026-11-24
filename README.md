@@ -33,7 +33,7 @@ each seat is plugged into.
   without a network. See [docs/demo.md](docs/demo.md).
 - **Seat mapping:** each seat's IP, MAC and nick, typed in by hand (or imported as CSV) or fed by
   plugins, check-ins and `seats.json`; what you type wins. See [docs/seat-mapping.md](docs/seat-mapping.md).
-- **Seats:** `seats.json` maps seat numbers to IPs and usernames. The heat map colours each seat by
+- **Seats:** an optional `seats.json` next to `data.json` maps seat numbers to IPs and usernames (`seats.example.json` shows the shape). The heat map colours each seat by
   its port's traffic.
 - **Sign-in:** the editor and the settings need an account; the floor plan data stays readable for
   kiosk screens. Username and password, or **Sign in with Discord**: members of your Discord server
@@ -223,7 +223,7 @@ The documentation site: `pip install -r requirements-docs.txt`, then `mkdocs ser
 | `frontend/` | The React app (TypeScript, Mantine). The dashboard and Settings > Plugins are in it so far; the other pages follow. See [frontend/README.md](frontend/README.md). |
 | `templates/`, `static/` | The other pages (plain JavaScript and CSS, no build step); the floor plan editor is in `frontend/src/pages/plan/edit/`. |
 | `changelog.d/` | One changelog fragment per pull request. |
-| `seats.json` | Seat number to IP and username. |
+| `seats.example.json` | The shape of the optional seat file (seat number to IP and username); the real `seats.json` lives next to `data.json`, never in the repository. |
 | `tests/` | pytest smoke tests. |
 | `scripts/screenshots.py` | Desktop and phone screenshots for pull requests. |
 | `docs/` | The documentation, also built as a site (`mkdocs.yml`); `docs/api-reference.md` is written by `scripts/api_reference.py`. Design notes are in `docs/plans/`. |

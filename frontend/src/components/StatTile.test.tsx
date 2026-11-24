@@ -32,14 +32,16 @@ describe('Badge colours', () => {
   const resolve = (variant: string, color: string) =>
     variantColorResolver({ variant, color, theme: theme as never, gradient: undefined, autoContrast: false })
 
+  // The shared theme's resolver; styles/bnb.css feeds its --bnb-* variables from Floorbit's --color-*.
   it('pulls light-variant text towards the page text so it passes 4.5:1 on its tint (issue #230)', () => {
-    expect(resolve('light', 'warn').color).toBe('color-mix(in srgb, var(--color-warn) 80%, var(--color-fg))')
-    expect(resolve('light', 'warn').background).toContain('var(--color-warn) 14%')
+    expect(resolve('light', 'warn').color).toBe('color-mix(in srgb, var(--bnb-warn) 80%, var(--bnb-fg))')
+    expect(resolve('light', 'warn').background).toContain('var(--bnb-warn) 14%')
   })
 
   it('uses the muted text colour for grey outlines and dark text on filled cyan', () => {
-    expect(resolve('outline', 'gray').color).toBe('var(--color-muted)')
-    expect(resolve('filled', 'trace').color).toBe('var(--color-ink)')
+    expect(resolve('outline', 'gray').color).toBe('var(--bnb-muted)')
+    expect(resolve('filled', 'trace').color).toBe('var(--bnb-on-status)')
+    expect(resolve('filled', 'bit')).toMatchObject({ background: 'var(--bnb-accent)', color: 'var(--bnb-on-accent)' })
     expect(resolve('light', 'gray')).toEqual(defaultVariantColorsResolver({ variant: 'light', color: 'gray', theme: theme as never, autoContrast: false }))
   })
 })
