@@ -17,7 +17,9 @@ import type { Device, InventoryField, InventorySource, SyncReport } from '@/api/
 import { Layout } from '@/components/Layout'
 import { DataTable } from '@/components/DataTable'
 import { PageHead } from '@bitsandbricks/ui'
+import { useDriftAll } from '@/api/inventoryDrift'
 import { DeviceForm } from './inventory/DeviceForm'
+import { DriftAll } from './inventory/DriftPanel'
 import type { ScopeTarget } from './inventory/ScopeEditor'
 import { GroupTree, type GroupFilter } from './inventory/GroupTree'
 import { EntriesView } from './inventory/EntriesView'
@@ -91,6 +93,9 @@ export default function Inventory() {
   const [group, setGroup] = useState<GroupFilter>(null)
   const [tagFilter, setTagFilter] = useState<string[]>([])
   const [state, setState] = useState<string | null>(null)
+  // ?view=drift: every device that differs, as one diff (issue #903)
+  const [driftView, setDriftView] = useState(() => new URLSearchParams(window.location.search).get('view') === 'drift')
+  const driftAll = useDriftAll(driftView)
   const [removing, setRemoving] = useState<Device | null>(null)
   const groupsQuery = useInventoryGroups()
   const overview = groupsQuery.data
@@ -164,6 +169,7 @@ export default function Inventory() {
   const roleCounts = new Map<string, number>()
   for (const d of filtered) roleCounts.set(d.role, (roleCounts.get(d.role) ?? 0) + 1)
   const devices = filtered.filter((d) => !role || d.role === role)
+  const driftCount = all.filter((d) => d.drift).length
   const groupName = (id?: string | null) => groups.find((g) => g.id === id)?.name ?? ''
   const tagOf = (id: string) => overview?.tags.find((x) => x.id === id)
   const otherTypes = types.filter((x) => x.sort !== 'device' && x.count > 0)
@@ -254,9 +260,14 @@ export default function Inventory() {
           data={(['online', 'offline', 'unknown'] as const).map((v) => ({ value: v, label: t(`inventory.state.${v}`) }))}
           value={state} onChange={(v) => { setState(v) }} />
         <Switch label={t('inventory.showHidden')} checked={showHidden} onChange={(e) => setShowHidden(e.currentTarget.checked)} />
+        {(driftCount > 0 || driftView) && (
+          <Chip size="sm" color="warn" variant="outline" checked={driftView} onChange={setDriftView}>
+            {`${t('inventoryDrift.filter')} ${driftCount}`}
+          </Chip>
+        )}
         {data && <SyncChip sources={data.sources} every={data.every} />}
       </Group>
-      {data && filtered.length > 0 && (
+      {data && !driftView && filtered.length > 0 && (
         <Chip.Group value={role ?? ''} onChange={(v) => { setRole((v as string) || null) }}>
           <Group gap={6} mb="sm">
             <Chip value="" size="sm" variant="outline">{t('inventory.allCount', { count: filtered.length })}</Chip>
@@ -272,7 +283,9 @@ export default function Inventory() {
           {t('common.error', { message: error.message })}
         </Alert>
       )}
-      {data && (
+      {driftView && driftAll.data && <DriftAll devices={driftAll.data.devices} canEdit={canEdit} />}
+      {driftView && driftAll.error && <Alert color="down" role="alert">{t('common.error', { message: driftAll.error.message })}</Alert>}
+      {data && !driftView && (
         <DataTable
           label={t('inventory.title')}
           rows={devices}
@@ -319,6 +332,11 @@ export default function Inventory() {
             { id: 'model', header: t('inventory.field.model'), sort: (d) => d.model ?? '', cell: (d) => d.model, hideOnPhone: true },
             { id: 'mgmt_ip', header: t('inventory.field.mgmt_ip'), sort: (d) => d.mgmt_ip ?? '', cell: (d) => d.mgmt_ip, mono: true, hideOnPhone: true },
             { id: 'ports', header: t('inventory.ports'), sort: (d) => (d.ports ? d.ports.up / Math.max(1, d.ports.total) : -1), cell: portsText, mono: true },
+            { id: 'drift', header: t('inventoryDrift.badge'), hideOnPhone: true, sort: (d) => d.drift ?? 0, descFirst: true, cell: (d) => !!d.drift && (
+              <Badge component={Link} to={devicePath(d.id)} size="sm" variant="light" color="warn" tt="none" style={{ cursor: 'pointer' }}>
+                {t('inventoryDrift.count', { count: d.drift })}
+              </Badge>
+            ) },
             { id: 'source', header: t('inventory.fedBy'), hideOnPhone: true, cell: (d) => (
               <Group gap={4} wrap="nowrap">
                 {d.sources.length === 0 && <Badge variant="outline" color="gray" tt="none">{t('inventory.manual')}</Badge>}

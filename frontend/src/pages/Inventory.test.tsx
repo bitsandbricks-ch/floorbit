@@ -121,6 +121,23 @@ describe('Inventory page', () => {
     expect(screen.getByText('2 devices')).toBeInTheDocument()
   })
 
+  it('counts what differs from the device per row and shows it all as one diff (#903)', async () => {
+    const drifting = { ...list, devices: [{ ...list.devices[0], drift: 2 }, hand] }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': drifting, 'GET /api/inventory/groups': overview,
+      'GET /api/inventory/drift': { devices: [{ id: 'netbox-12', name: 'Stage switch', drift: [
+        { kind: 'field', field: 'model', configured: 'C9200', actual: 'C9300-48P' },
+        { kind: 'address', field: 'mgmt_ip', configured: '192.0.2.5', actual: '192.0.2.6' },
+      ] }] },
+    }).fn)
+    app()
+    const row = (await screen.findByRole('link', { name: 'Stage switch' })).closest('tr')!
+    expect(within(row).getByText('2 differences')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Differs from the device 1' }))
+    expect(await screen.findByRole('group', { name: 'Management address' })).toBeInTheDocument()
+    expect(screen.queryByRole('table')).toBeNull()
+  })
+
   it('says when the inventory syncs on its own', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': { ...list, every: 15 }, 'GET /api/inventory/groups': overview }).fn)
     app()
