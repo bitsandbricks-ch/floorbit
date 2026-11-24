@@ -198,7 +198,7 @@ editor saves it as a new dashboard of your own, named "… (copy)" and not publi
 | **Services** | Services up, the LAN cache and agents; service health and internet uplinks; the services and LAN cache settings and details below. |
 | **Traffic** | Bandwidth, the peak and what looks odd; traffic over time and by kind; top services, traffic by area and the busiest seats; DNS lookups, the LAN cache, top and blocked sites, game launchers, and speed tests. |
 | **Power load** | Every circuit's load, fullest first, then the boards in detail. |
-| **Event in numbers** | The stats wall for the hall and attendees' phones. Public, Screen layout. |
+| **Event in numbers** | The stats wall for the hall and attendees' phones: seats online, downloaded, the busiest moment and hour, most seats online, the most loyal block, the LAN cache and the top games, a tile each. Public, Screen layout. |
 
 ## Kiosk
 
@@ -217,8 +217,9 @@ event website. Signed out, it shows only what anyone may see:
   and status, and the public marks only (a pane set to **All** draws the public ones). No nicks,
   IPs, MACs, notes, seat problems, power boards or patch panels, and no power, firewall, Wi-Fi or
   crew layer.
-- **Tiles**: Floorbit's switches, seats online and switches down tiles.
-- **Widgets**: the event in numbers (the [stats wall](stats-wall.md)), while the stats wall is on.
+- **Tiles**: Floorbit's switches, seats online and switches down tiles, and the event in numbers tiles
+  (the [stats wall](stats-wall.md)), which say so while the stats wall is off.
+- **Widgets**: the event in numbers widget, while the stats wall is on.
 - **Text** and empty panes.
 
 Any other pane (other tiles and widgets) says it needs an account. Someone signed

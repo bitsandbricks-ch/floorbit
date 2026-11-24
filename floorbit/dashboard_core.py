@@ -638,3 +638,12 @@ def wifi_aps_widget(lang, wifi):
     order = {'down': 0, 'warn': 1, 'unknown': 2, 'up': 3}
     items.sort(key=lambda i: (order[i['state']], i['label']))
     return {'type': 'status', 'items': items, 'link': '/dashboards/network'}
+
+
+# The Event in numbers tiles live in their own module (it reads the stats wall's facts); listed here
+# like every core tile, so the tile list and the labels have them.
+from . import dashboard_event as _event  # noqa: E402  (it imports helpers from this module)
+
+TILES.update(_event.TILES)
+for _lang, _texts in _event.TEXTS.items():
+    TEXTS[_lang].update(_texts)
