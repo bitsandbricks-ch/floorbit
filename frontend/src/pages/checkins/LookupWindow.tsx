@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { del, post } from '@/api/client'
 import type { CheckinLookup, LookupWindow as Window } from '@/api/types'
-import { ErrorBanner, Panel } from '@/components/ui'
+import { Panel } from '@/components/ui'
+import { ErrorBanner } from '@bitsandbricks/ui'
 import { dayClock } from '@/lib/time'
 
 /** When check-ins may ask the switches for their PC (docs/segments.md): open from doors open for a
@@ -33,7 +34,7 @@ export function LookupWindow({ w, canEdit, onChange }: { w: Window; canEdit: boo
         {w.segments_on === 0 && (
           <Alert color="warn" role="status">
             {t('crewCheckin.lookups.noSegments')}{' '}
-            <Anchor component={Link} to="/inventory?type=vlan">{t('crewCheckin.lookups.segments')}</Anchor>
+            <Anchor component={Link} to="/inventory?type=prefix">{t('crewCheckin.lookups.segments')}</Anchor>
           </Alert>
         )}
       </Stack>

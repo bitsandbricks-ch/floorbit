@@ -131,7 +131,7 @@ def test_switches_are_checked_and_kept_on_an_imported_range(client, hall):
     assert row["switches"] == [green]
     # An imported range takes its switches in Floorbit, but nothing else.
     data = load_data()
-    data["firewalls"]["ranges"][0]["source"] = "import"
+    next(e for e in data["inventory_entries"] if e["id"] == row["id"])["plan"]["source"] = "import"
     save_data(data)
     assert client.put(f"/api/firewalls/ranges/{row['id']}", json={"name": "x"}).status_code == 409
     r = client.put(f"/api/firewalls/ranges/{row['id']}", json={"switches": [red]})

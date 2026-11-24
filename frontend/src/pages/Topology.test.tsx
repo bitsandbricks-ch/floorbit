@@ -2,9 +2,13 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SwitchLink, Topology as TopologyData } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
-import Topology from './Topology'
+import Topology, { type TopologyViewProps } from './Topology'
 
 afterEach(() => vi.unstubAllGlobals())
+
+/** The view as the floor plan shows it: side panel open, no switch open in it. */
+const show = (props: Partial<TopologyViewProps> = {}) =>
+  renderWithApp(<Topology phone={false} sideOpen switchSel={null} switchPanel={null} onSwitch={vi.fn()} {...props} />)
 
 const lead = { enabled: true, user: { username: 'ana', display_name: 'Ana', role: 'lead', permissions: ['floorplan.view', 'floorplan.edit'] } }
 const base = { note: '', media: 'fiber', state: 'up', issue: '' } as const
@@ -24,15 +28,17 @@ describe('Topology', () => {
       'POST /api/links': () => ({ status: 201, body: { ...slow, id: 'l3' } }),
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Topology />)
+    show()
     expect(await screen.findByRole('img', { name: 'Topology with 2 links' })).toBeInTheDocument()
-    expect(screen.getByText('1 link needs a look')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Problems 1' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('No links yet: sw-d-01')).toBeInTheDocument()
     fireEvent.click(screen.getByText('sw-c-02 Te1/1/1 – dist-01 Te1/0/2 runs at 1G, planned 10G'))
     expect(await screen.findByText('Slower than planned', { selector: '.mantine-Badge-label' })).toBeInTheDocument()
     expect(screen.getAllByText('Fiber multi-mode')).toHaveLength(2)            // the panel and the legend
-    expect(screen.getByText('No links yet: sw-d-01')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
-    expect(screen.getByText('sw-d-01 Te1/1/1 – dist-01 Te1/0/3 (LLDP)')).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Found by LLDP 1' }))
+    expect(await screen.findByText('sw-d-01 Te1/1/1 – dist-01 Te1/0/3 (LLDP)')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     fireEvent.click(await screen.findByRole('combobox', { name: 'Type' }))
     fireEvent.click(await screen.findByRole('option', { name: 'Fiber multi-mode', hidden: true }))
@@ -46,20 +52,39 @@ describe('Topology', () => {
     const wrong: SwitchLink = { ...up, lldp: { state: 'other', at: 'a', remote: 'core-01', remote_port: 'Fo1/0/9' } }
     const seen: SwitchLink = { ...slow, issue: '', speed_bps: 1e10, lldp: { state: 'seen' } }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': { ...data, links: [wrong, seen] } }).fn)
-    renderWithApp(<Topology />)
-    expect(await screen.findByText('1 link needs a look')).toBeInTheDocument()
+    show()
+    await screen.findByRole('img', { name: 'Topology with 2 links' })
     fireEvent.click(screen.getByText('dist-01 Fo1/1/1 – core-01 Fo1/0/1: dist-01 Fo1/1/1 sees core-01 Fo1/0/9, check the patch'))
     expect(await screen.findByText('Sees core-01 Fo1/0/9: check the patch')).toBeInTheDocument()
   })
 
-  it('marks a box that is down and says so in its panel', async () => {
+  it('marks a switch that is down and opens it in the floor plan\'s switch panel', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
-    const { container } = renderWithApp(<Topology />)
+    const onSwitch = vi.fn()
+    const { container } = show({ onSwitch })
     await screen.findByRole('img', { name: 'Topology with 2 links' })
-    expect(container.querySelector('rect[data-status="offline"]')).not.toBeNull()
-    expect(container.querySelectorAll('rect[data-status="online"]')).toHaveLength(2)     // sw-d-01 has no links, so it isn't drawn
+    expect(container.querySelector('g[data-node][data-status="offline"]')).not.toBeNull()
+    expect(container.querySelectorAll('g[data-node][data-status="online"]')).toHaveLength(2)     // sw-d-01 has no links, so it isn't drawn
     fireEvent.click(screen.getByText('dist-01', { selector: 'text' }))
-    expect(await screen.findByText('Down', { selector: '.mantine-Badge-label' })).toBeInTheDocument()
+    expect(onSwitch).toHaveBeenCalledWith('dist-01')
+  })
+
+  it('opens a router in its own panel, with its links', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
+    show()
+    await screen.findByRole('img', { name: 'Topology with 2 links' })
+    fireEvent.click(screen.getByText('core-01', { selector: 'text' }))
+    expect(await screen.findByText('Up', { selector: '.mantine-Badge-label' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Fo1\/0\/1 → dist-01 Fo1\/1\/1/ })).toBeInTheDocument()
+  })
+
+  it('shows the switch panel it is given in place of the tabs', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
+    const { container } = show({ switchSel: 'sw-c-02', switchPanel: <p>the plan's panel</p> })
+    await screen.findByRole('img', { name: 'Topology with 2 links' })
+    expect(screen.getByText("the plan's panel")).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /Problems/ })).toBeNull()
+    expect(container.querySelector('g[data-node="sw-c-02"] .sw-focus')).not.toBeNull()
   })
 
   it('draws each internet line above its router, with its state in the panel', async () => {
@@ -69,19 +94,32 @@ describe('Topology', () => {
       { id: 'u3', name: 'Lost', device: 'nope-01', port: 'Gi0/1', capacity_mbps: 100, status: 'up' as const, utilization: null },
     ]
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': { ...data, uplinks: lines } }).fn)
-    const { container } = renderWithApp(<Topology />)
+    const { container } = show()
     await screen.findByRole('img', { name: 'Topology with 2 links' })
     expect(container.querySelectorAll('.fb-uplink')).toHaveLength(2)        // a line on a box not drawn is left out
-    expect(container.querySelector('.fb-uplink[data-status="down"] line')).toHaveAttribute('stroke-dasharray', '6 4')
+    expect(container.querySelector('.fb-uplink[data-status="down"] path.line')).toHaveAttribute('stroke-dasharray', '6 4')
     fireEvent.click(screen.getByText('ISP A', { selector: 'text' }))
     expect(await screen.findByText('Needs a look', { selector: '.mantine-Badge-label' })).toBeInTheDocument()
     expect(screen.getByText('core-01 Te1/0/48')).toBeInTheDocument()
     expect(screen.getByText('85 %')).toBeInTheDocument()
   })
 
+  it('draws devices as the floor plan does, on its grid, in its link colours', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
+    const { container } = show()
+    const svg = await screen.findByRole('img', { name: 'Topology with 2 links' })
+    expect(svg).toHaveClass('fb-plan', 'fb-topology')
+    expect(container.querySelector('g[data-node="dist-01"].sw.sw-offline .cross')).not.toBeNull()  // down: red glyph with a cross
+    expect(container.querySelector('g[data-node="sw-c-02"] .port')).not.toBeNull()                   // the plan's switch glyph
+    expect(container.querySelector('g[data-node="core-01"] .mark')).not.toBeNull()                   // a router has its own mark
+    expect(container.querySelector('g[data-link="l1"] path.uplink.m-fiber.t-fiber-sm')).not.toBeNull()
+    expect(container.querySelector('g[data-link="l2"] path.uplink.slow')).not.toBeNull()
+    expect(container.querySelector('pattern path.grid-major')).not.toBeNull()
+  })
+
   it('zooms with the buttons and back to everything with Show everything', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
-    renderWithApp(<Topology />)
+    show()
     const svg = await screen.findByRole('img', { name: 'Topology with 2 links' })
     const whole = svg.getAttribute('viewBox')!
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
@@ -93,7 +131,7 @@ describe('Topology', () => {
 
   it('draws a link by picking two switches', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/links': data }).fn)
-    renderWithApp(<Topology />)
+    show()
     await screen.findByRole('img', { name: 'Topology with 2 links' })
     fireEvent.click(screen.getByRole('button', { name: 'Draw a link' }))
     expect(screen.getByText('Pick the switch the link starts at (Esc cancels).')).toBeInTheDocument()
@@ -111,7 +149,7 @@ describe('Topology', () => {
       'PUT /api/links/layout': (init?: RequestInit) => ({ status: 200, body: { layout: JSON.parse(String(init?.body)).positions } }),
     })
     vi.stubGlobal('fetch', api.fn)
-    const { container } = renderWithApp(<Topology />)
+    const { container } = show()
     await screen.findByRole('img', { name: 'Topology with 2 links' })
     const box = container.querySelector('g[data-node="sw-c-02"]')!
     const before = box.getAttribute('transform')
@@ -127,7 +165,7 @@ describe('Topology', () => {
   it('lets viewers look around but not draw or drag', async () => {
     const viewer = { ...lead, user: { ...lead.user, role: 'viewer', permissions: ['floorplan.view'] } }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/links': data }).fn)
-    renderWithApp(<Topology />)
+    show()
     await screen.findByRole('img', { name: 'Topology with 2 links' })
     expect(screen.queryByRole('button', { name: 'Draw a link' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument()
@@ -141,7 +179,7 @@ describe('Topology', () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': lead, 'GET /api/links': data, 'GET /api/links/ports?switch=sw-c-02': { ports },
     }).fn)
-    renderWithApp(<Topology />)
+    show()
     await screen.findByRole('img', { name: 'Topology with 2 links' })
     fireEvent.click(screen.getByRole('button', { name: 'Draw a link' }))
     fireEvent.click(screen.getByText('sw-c-02', { selector: 'text' }))

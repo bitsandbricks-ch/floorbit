@@ -371,8 +371,8 @@ class Plugin(Plugin):
         return {
             'rack': [rack(r) for r in self._optional('/api/dcim/racks/', dict(page), 'rack')]
             + [location(x) for x in self._optional('/api/dcim/locations/', dict(page), 'location')],
-            'vlan': [vlan(v) for v in self._optional('/api/ipam/vlans/', dict(page), 'VLAN')]
-            + [prefix(p) for p in self._optional('/api/ipam/prefixes/', dict(page), 'prefix')],
+            'vlan': [vlan(v) for v in self._optional('/api/ipam/vlans/', dict(page), 'VLAN')],
+            'prefix': [prefix(p) for p in self._optional('/api/ipam/prefixes/', dict(page), 'prefix')],
             'transceiver': [o for o in optics if o],
             'power-board': [power_panel(p) for p in panels],
             'circuit': [power_feed(f) for f in feeds],

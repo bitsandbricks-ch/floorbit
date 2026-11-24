@@ -21,9 +21,9 @@ Admins (`settings.manage`) press **Add service › Game server** and give:
 Floorbit asks every server each `GAME_INTERVAL` seconds (default 30, at least 10). The query is the
 one a server browser sends: it changes nothing on the server.
 
-With a [local agent](agent.md) enrolled, the agent asks from the event network instead, and the page
-says so. That is how a hosted Floorbit reaches servers on the LAN.
-Without an agent the server's own queries follow `PROBE_NETS` (see [services](services.md#what-the-server-itself-may-reach)).
+The [local agent](agent.md) asks from the event network, and the page says so. That is how a hosted
+Floorbit reaches servers on the LAN. Without a connected agent the servers show grey, "not checked":
+the Floorbit server never asks them itself (see [services](services.md#without-an-agent)).
 
 ## RCON
 

@@ -8,7 +8,6 @@ export interface ViewProps {
 
 /** The Monitoring pages drawn by ViewPage: the i18n key of each title and its body. */
 const PAGES = {
-  health: { label: 'health.title', load: () => import('@/pages/health/HealthView') },
   wifi: { label: 'wifi.title', load: () => import('@/pages/wifi/WifiView') },
   dns: { label: 'dns.title', load: () => import('@/pages/dns/DnsView') },
   lancache: { label: 'lancache.title', load: () => import('@/pages/lancache/LancacheView') },

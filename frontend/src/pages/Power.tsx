@@ -10,7 +10,7 @@ import { useCan, usePower } from '@/api/queries'
 import type { PowerOverview } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner } from '@bitsandbricks/ui'
 import { CircuitTable } from './power/parts'
 import { boardPath, ORDER, TONE } from './power/state'
 

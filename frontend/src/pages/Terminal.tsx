@@ -9,7 +9,7 @@ import { qk } from '@/api/keys'
 import type { TerminalInfo, TerminalOutput } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { type TerminalHandle, TerminalView } from './terminal/TerminalView'
-import { LoadingState, ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { StatusBit } from '@bitsandbricks/ui'
 
 interface Open {
@@ -99,7 +99,7 @@ export default function TerminalPage() {
           {active === NEW && (
             <div id="term-new" role="tabpanel" className="fb-term-new">
               <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
-              {query.isPending ? <LoadingState /> : info && !info.available ? (
+              {query.isPending ? <LoadingState rows={3} /> : info && !info.available ? (
                 <Alert color="warn">{t('terminal.noPlugin')}</Alert>
               ) : info && (
                 <Connect info={info} full={full} initial={params.get('switch')} onOpened={opened} />

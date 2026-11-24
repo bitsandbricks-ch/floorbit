@@ -171,10 +171,11 @@ def _seed_power(data, layout):
 
 def _seed_firewalls(data, layout):
     """The demo's seat ranges, cut over their firewalls."""
+    from .. import firewalls
     spec = layout.get('firewalls')
-    if not spec or (data.get('firewalls') or {}).get('ranges'):
+    if not spec or firewalls._ranges(data):
         return
-    data['firewalls'] = {'ranges': [{'id': uuid.uuid4().hex[:12], **r} for r in spec]}
+    firewalls.adopt(data, [{'id': uuid.uuid4().hex[:12], **r} for r in spec])
 
 
 def _seed_uplinks(data, layout):

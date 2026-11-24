@@ -36,7 +36,7 @@ export const TABS = ['overview', 'floorPlan', 'helpdesk', 'services']
  *  neither lands in "more", so a new page shows up before anyone sorts it in. */
 export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'work', icon: IconLifebuoy, pages: ['helpdesk'] },
-  { id: 'monitoring', icon: IconActivityHeartbeat, pages: ['health', 'network', 'services', 'traffic', 'agents'] },
+  { id: 'monitoring', icon: IconActivityHeartbeat, pages: ['network', 'services', 'traffic', 'agents'] },
   { id: 'places', icon: IconArmchair, pages: ['seats', 'inventory'] },
   { id: 'tools', icon: IconTools, pages: ['console', 'logs'] },
   { id: 'screens', icon: IconDeviceTv, pages: ['dashboards'] },
@@ -48,7 +48,7 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
  *  page. */
 export const HUBS: Record<string, string[]> = {
   helpdesk: ['problems', 'incidents', 'jobs', 'handover', 'networkStatus'],
-  network: ['topology', 'firewalls', 'wifi', 'telemetry', 'security'],
+  network: ['firewalls', 'wifi', 'telemetry', 'security'],
   services: ['dns', 'lancache'],
   traffic: ['games', 'stats', 'speedtests'],
   seats: ['seatMapping', 'checkins', 'seatWalk', 'switchAreas', 'endpoints'],
@@ -62,9 +62,10 @@ export const HUBS: Record<string, string[]> = {
 /** Hubs that draw their tabs themselves (pages/Settings.tsx). */
 export const OWN_TABS = ['settings']
 
-/** Rows outside the sidebar's groups: Settings sits at the foot, and the checks before doors open
- *  are a panel on Set up (#1049) that "Go to" still finds. */
-export const OFF_LIST = ['settings', 'preflight']
+/** Rows outside the sidebar's groups: Settings sits at the foot, the checks before doors open
+ *  are a panel on Set up (#1049) and the topology a view of the floor plan (#1330), which "Go to"
+ *  still finds. */
+export const OFF_LIST = ['settings', 'preflight', 'topology']
 
 /** Pages that are a tab of another row: page -> its row. */
 export const INSIDE: Record<string, string> = Object.fromEntries(

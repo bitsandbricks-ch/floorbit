@@ -9,14 +9,16 @@ all entries (floorbit/inventory_scope.py ``layers``).
 Three sorts of type:
 
 - ``device``: the inventory devices (floorbit/inventory.py), as before.
-- **linked**: cables, circuits, power boards, patch panels and firewall ranges. Their records stay
-  where their pages keep them (``cables``, ``power``, ``patch_panels``, ``firewalls``), so those pages
+- **linked**: cables, circuits, power boards and patch panels. Their records stay
+  where their pages keep them (``cables``, ``power``, ``patch_panels``), so those pages
   work as before; the inventory
   adds a group, tags, properties, icon, colour, notes and field values, kept in ``inventory_items``
   keyed ``<type>:<id>``. An entry whose record is gone stops being listed. Patch panels have no id,
   so they are keyed by their name in lower case.
-- **stored**: racks and locations, transceivers, VLANs and IP ranges, other items, and the types
-  admins add. Their entries live in ``inventory_entries``.
+- **stored**: racks and locations, transceivers, VLANs, prefixes, other items, and the types
+  admins add. Their entries live in ``inventory_entries``. A prefix may also carry the firewall plan
+  (``plan``: the firewalls it is policy-routed to, floorbit/firewalls.py): a firewall range is a
+  prefix with firewalls set (Mike, 2026-11-24, issue #1345).
 
 Type settings are kept in ``inventory_types``: the built-in types' changes, and the custom types.
 """
@@ -48,6 +50,8 @@ def _f(key, label, kind='text', **kw):
             'default': kw.get('default', ''), 'link': kw.get('link', '')}
 
 
+PURPOSES = ['Seats', 'Crew', 'Servers', 'Management', 'Wi-Fi', 'Other']
+
 # The types Floorbit knows. Admins add fields to any of them, and types of their own.
 BUILTIN = {
     'device': {'name': 'Device', 'sort': 'device', 'icon': 'other', 'fields': []},
@@ -55,9 +59,6 @@ BUILTIN = {
     'circuit': {'name': 'Circuit', 'sort': 'linked', 'icon': 'circuit', 'fields': []},
     'power-board': {'name': 'Power board', 'sort': 'linked', 'icon': 'power-board', 'fields': []},
     'patch-panel': {'name': 'Patch panel', 'sort': 'linked', 'icon': 'patch-panel', 'fields': []},
-    # A range is an inventory item (Mike, 2026-11-24): planned on the Firewalls page, or imported
-    # from NetBox there; the inventory gives it a group, tags, fields and notes.
-    'firewall-range': {'name': 'Firewall range', 'sort': 'linked', 'icon': 'vlan', 'fields': []},
     'rack': {'name': 'Rack or location', 'sort': 'stored', 'icon': 'rack', 'fields': [
         _f('height_u', 'Height (U)', 'number', default='42'),
         _f('hall', 'Hall or site'),
@@ -70,13 +71,19 @@ BUILTIN = {
         _f('speed', 'Speed', 'choice', choices=['1G', '10G', '25G', '40G', '100G']),
         _f('serial', 'Serial'),
     ]},
-    'vlan': {'name': 'VLAN or IP range', 'sort': 'stored', 'icon': 'vlan', 'fields': [
+    'vlan': {'name': 'VLAN', 'sort': 'stored', 'icon': 'vlan', 'fields': [
         _f('vlan_id', 'VLAN ID', 'number'),
+        _f('purpose', 'Purpose', 'choice', choices=PURPOSES),
+    ]},
+    # A network (192.0.2.0/24) or a from-to range. Its VLAN is the VLAN ID, so a prefix finds its
+    # VLAN entry whatever either is called; with both it is a lookup segment (floorbit/segments.py).
+    'prefix': {'name': 'Prefix or range', 'sort': 'stored', 'icon': 'vlan', 'fields': [
         _f('prefix', 'Prefix'),
-        # With a VLAN and a prefix the range is a lookup segment (floorbit/segments.py): off by default.
-        _f('lookups', 'Check-in lookups', 'bool', default='no'),
+        _f('vlan_id', 'VLAN ID', 'number'),
         _f('gateway', 'Gateway'),
-        _f('purpose', 'Purpose', 'choice', choices=['Seats', 'Crew', 'Servers', 'Management', 'Wi-Fi', 'Other']),
+        _f('purpose', 'Purpose', 'choice', choices=PURPOSES),
+        # Off by default: nothing gets asked of the switches by surprise.
+        _f('lookups', 'Check-in lookups', 'bool', default='no'),
     ]},
     'item': {'name': 'Item', 'sort': 'stored', 'icon': 'other', 'fields': []},
 }
@@ -312,18 +319,9 @@ def _cable(c):
             'link': f"/cables/{c['id']}"}
 
 
-def _range(r):
-    line = list(r.get('firewalls') or [])
-    return {'id': r['id'], 'name': r.get('name') or r['cidr'],
-            'summary': f"{r['cidr']} → {', '.join(line)}" if line else r['cidr'], 'detail': '',
-            'link': f"/firewalls?q={r['cidr'].split('/')[0].split('-')[0]}"}
-
-
 def _records(data, type_id):
     """A linked type's records as the inventory lists them."""
-    from . import cable_plan, cables, firewalls, power
-    if type_id == 'firewall-range':
-        return [_range(r) for r in firewalls._ranges(data)]
+    from . import cable_plan, cables, power
     if type_id == 'cable':
         return [_cable(c) for c in cables.all_cables(data) if c.get('id')]
     if type_id == 'patch-panel':
@@ -339,6 +337,12 @@ def _records(data, type_id):
              'summary': ' · '.join(x for x in (names.get(c.get('board'), ''), c.get('phase') or '',
                                                f"{c['rating_a']} A" if c.get('rating_a') else '') if x)}
             for c in circuits if c.get('id')]
+
+
+def _summary(entry):
+    """A planned prefix says where the core sends it."""
+    line = (entry.get('plan') or {}).get('firewalls') if isinstance(entry.get('plan'), dict) else None
+    return f"→ {', '.join(line)}" if line else ''
 
 
 def _settings(own):
@@ -361,7 +365,7 @@ def listing(data, type_id=None):
         else:
             for e in _entries(data):
                 if e['type'] == t['id']:
-                    out.append({'id': e['id'], 'type': t['id'], 'name': e.get('name') or '', 'summary': '',
+                    out.append({'id': e['id'], 'type': t['id'], 'name': e.get('name') or '', 'summary': _summary(e),
                                 'detail': '', 'link': '', **_settings(e), 'sources': sorted(e.get('refs') or {}),
                                 'locked': list(e.get('locked') or []), 'gone': list(e.get('gone') or [])})
     return sorted(out, key=lambda e: (e['type'], e['name'].lower()))

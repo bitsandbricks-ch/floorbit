@@ -143,4 +143,17 @@ describe('Shift handover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy as text' }))
     expect(writeText.mock.calls[0][0]).toContain(': 2 (1 waiting 10+ min) · ')
   })
+
+  it('lists incidents as a table: one status badge, the wait as plain text (issue #888)', async () => {
+    const waiting = { ...data.incidents.open[0], id: 'i3', title: 'No DHCP', created_at: now - 25 * 60 }
+    const body = { ...data, incidents: { ...data.incidents, open: [data.incidents.open[0], waiting] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/handover': body }).fn)
+    renderWithApp(<Handover />)
+    const table = await screen.findByRole('table', { name: 'Still open' })
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Incident', 'Who', 'Open for', 'Status'])
+    const row = within(table).getByText('No DHCP').closest('tr')!
+    expect(within(row).getByText('Waiting 25 min')).not.toHaveClass('mantine-Badge-root')
+    expect(within(row).getAllByText('Open')).toHaveLength(1)
+    expect(within(screen.getByRole('table', { name: 'Fixed this shift' })).getByText('Fixed')).toBeInTheDocument()
+  })
 })

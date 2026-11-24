@@ -59,8 +59,8 @@ still caught:
 
 A refused request fails like an unreachable server, with "Refused: ..." in the error. Through an HTTP
 proxy (`HTTPS_PROXY`) the server connects to the proxy, so only the proxy's address is checked: let the
-proxy refuse the hosting network too. The server's own probes, game server queries and RCON follow
-`PROBE_NETS` ([services](services.md#what-the-server-itself-may-reach)).
+proxy refuse the hosting network too. Probes, game server queries and RCON go only through the agent
+([services](services.md#without-an-agent)), within `FLOORBIT_AGENT_PROBE_NETS` and `_GAME_NETS`.
 
 ## The agent next to a self-hosted Floorbit
 
@@ -652,6 +652,10 @@ answer. They are stored with the telemetry series (Floorbit's database, a point 
 hours and every 15 minutes for `FLOORBIT_TELEMETRY_DAYS`; or VictoriaMetrics as `fb_agent_<name>`
 with an `agent` label when it is set up) and age out with them. A gap in a graph is a time the
 agent didn't report.
+
+Each graph shows the value now in its header and the lowest, average and highest of the range
+under it. Hovering a graph (or focusing it and pressing the arrow keys) shows the time and value of
+the nearest sample; the arrows in a graph's corner open it large, with the same range picker.
 
 The **Devices** tab on the agent's page lists the devices it collects, worst first: sends
 nothing, never heard, partly (a VLAN or a table fails), waits for traps, another agent collects

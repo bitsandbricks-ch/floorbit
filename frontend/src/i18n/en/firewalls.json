@@ -76,5 +76,8 @@
       "down": "down"
     }
   },
-  "inInventory": "Groups, tags and notes in the inventory"
+  "inInventory": "The prefixes in the inventory",
+  "planned": "Planned",
+  "now": "Now",
+  "plan": "Plan"
 }

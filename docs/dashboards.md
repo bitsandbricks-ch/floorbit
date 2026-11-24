@@ -200,7 +200,7 @@ editor saves it as a new dashboard of your own, named "… (copy)" and not publi
 | --- | --- |
 | **Kiosk** | The big screen in the hall (below). Public. |
 | **Overview** | Seats, bandwidth, switches, incidents, agents and the LAN cache as numbers; the plan, service health and switches down; switch states, traffic over time, uplinks, the busiest seats, traffic by kind and what looks odd. |
-| **Service health** | Services up, switches, LAN cache and agents as numbers; every check worst first, internet uplinks and switches down. Each check's numbers and mutes are on the Health page. |
+| **Service health** | Services up, switches, LAN cache and agents as numbers; every check worst first, internet uplinks and switches down. Each check's numbers and mutes are in its panel on the Services page. |
 | **Network** | Switches, seats, bandwidth and ports; traffic over time, switches down, uplinks, the busiest seats and switch states; Wi-Fi clients, access points and seats online by block. IP/MAC search and network status updates are on their pages. |
 | **Services** | Services up, the LAN cache, DNS lookups and agents; service health and internet uplinks; top and blocked sites and game launchers. Adding and editing services is on the Services page. |
 | **Traffic** | Bandwidth, the peak and what looks odd; traffic over time and by kind; top services, traffic by area and the busiest seats; DNS lookups, the LAN cache, top and blocked sites and game launchers. Speed tests are on their page. |

@@ -1,6 +1,6 @@
 {
   "title": "Dienste",
-  "intro": "Alles, wovon der Event ausser den Switches abhängt: die Internetleitungen, die DNS-Resolver, die Websites, die Spieler brauchen, der LAN-Cache und die Gameserver. Ob sie antworten, wie voll und wie schnell.",
+  "intro": "Alles, wovon der Anlass abhängt: Internetleitungen, DNS, die Websites für die Spieler, der LAN-Cache, DHCP, Firewalls, Gameserver und eigene Checks. Ob sie antworten, wie voll und wie schnell, vom lokalen Agent aus dem Event-Netz geprüft.",
   "uplinks": "Internetleitungen",
   "resolvers": "DNS-Resolver",
   "lanCache": "LAN-Cache",
@@ -69,7 +69,8 @@
     "game": "Gameserver",
     "dhcp": "DHCP",
     "firewall": "Firewall",
-    "other": "Prüfung"
+    "other": "Andere",
+    "check": "Eigener Check"
   },
   "groups": {
     "uplink": "Internetleitungen",
@@ -79,7 +80,8 @@
     "game": "Gameserver",
     "dhcp": "DHCP",
     "firewall": "Firewalls",
-    "other": "Weitere Prüfungen"
+    "other": "Andere Checks",
+    "check": "Eigene Checks"
   },
   "search": "Dienste suchen",
   "show": "Zeigen",
@@ -98,5 +100,65 @@
     "dhcp": "Vom DHCP-Server: im Plugin eingerichtet",
     "firewall": "Eingerichtet unter Netzwerk > Firewalls",
     "other": "Von einem Plugin"
+  },
+  "byTag": "Tag",
+  "noTag": "Ohne Tag",
+  "details": "Details zu {{name}}",
+  "count": {
+    "down": "Down",
+    "warn": "Prüfen",
+    "up": "Up",
+    "all": "Dienste",
+    "unknown_one": "{{count}} nicht geprüft",
+    "unknown_other": "{{count}} nicht geprüft"
+  },
+  "panel": {
+    "label": "{{name}}: Details",
+    "close": "Details schliessen",
+    "since": "So seit {{time}}",
+    "history": "Letzte halbe Stunde",
+    "tags": "Tags",
+    "tagsHelp": "Eigene Gruppen, etwa eine Bühne oder eine Halle. Die Liste lässt sich nach Tag gruppieren.",
+    "mute": "Alarme 1 h stumm",
+    "unmute": "Alarme wieder an",
+    "problems": "Probleme öffnen",
+    "mutedUntil": "Alarme stumm bis {{time}}",
+    "fullIn_one": "In etwa {{count}} Minute voll, bei {{rate}} pro Minute",
+    "fullIn_other": "In etwa {{count}} Minuten voll, bei {{rate}} pro Minute"
+  },
+  "check": {
+    "add": "Eigenen Check hinzufügen",
+    "edit": "Eigenen Check ändern",
+    "namePlaceholder": "Stream-Encoder",
+    "kind": "Check",
+    "kinds": {
+      "ping": "Ping",
+      "tcp": "TCP-Port",
+      "udp": "UDP-Port",
+      "http": "HTTP(S)"
+    },
+    "url": "Adresse",
+    "urlHelp": "Eine URL. Der Agent öffnet sie aus dem Event-Netz mit einem einfachen GET und behält nur Status und Zeit.",
+    "expect": "Erwarteter Status",
+    "expectHelp": "Ein Code wie 200 oder ein Bereich wie 200-399.",
+    "contains": "Seite enthält (optional)",
+    "containsHelp": "Down, wenn dieser Text fehlt.",
+    "certWarn": "Anschauen, wenn das Zertifikat endet in (Tagen)",
+    "host": "Adresse",
+    "hostHelp": "Ein Hostname oder eine IP-Adresse, wie der Agent sie erreicht.",
+    "ask": "Fragen mit",
+    "askHelp": "UDP antwortet nur auf eine Frage, die es kennt. Ohne Frage zählt nur ein geschlossener Port als down.",
+    "asks": {
+      "dns": "DNS-Abfrage",
+      "ntp": "NTP-Zeitabfrage",
+      "a2s": "Steam/Source-Serverabfrage",
+      "none": "Nichts (nur ein geschlossener Port ist down)"
+    },
+    "slow": "Anschauen, wenn langsamer als",
+    "test": "Testen",
+    "testHelp": "Läuft einmal vom lokalen Agent aus, ohne zu speichern.",
+    "code": "Status {{code}}",
+    "certDays_one": "Zertifikat {{count}} Tag",
+    "certDays_other": "Zertifikat {{count}} Tage"
   }
 }

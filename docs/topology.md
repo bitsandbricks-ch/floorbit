@@ -1,13 +1,15 @@
 # Topology
 
-**Network › Topology** (`/topology`) draws the links between switches: the uplinks from the access
-switches to distribution, from there to the core, and to the routers and firewalls. Each link has
+The floor plan's **Topology** view (**Map | List | Topology** in its top bar, `/plan?view=topology`)
+draws the links between switches: the uplinks from the access switches to distribution, from there to
+the core, and to the routers and firewalls. It looks like the plan: the same grid, the same switch
+glyphs and colours, the tool rail on the left, the zoom buttons bottom right and the side panel. Each link has
 its cable type and planned speed, and Floorbit checks it against what the switches report.
 
 ## Links
 
 A link joins a port on one switch with a port on another. Leads and admins (`floorplan.edit`) press
-**Add link** and give:
+**Add link** on the tool rail and give:
 
 | Field | What |
 | --- | --- |
@@ -26,31 +28,40 @@ A port belongs to one link at most; `Te1/1/1` and `TenGigabitEthernet1/1/1` coun
 ## What the page shows
 
 - **The diagram**, from the top of the network down: routers and firewalls first (or the switch with
-  the most links), then what hangs off them. A wide layer wraps into rows. The colour is the cable type
-  (blue copper, yellow single-mode, cyan multi-mode, violet DAC); a thicker line is a faster link.
+  the most links), then what hangs off them. Switches are drawn as on the floor plan; a router is a
+  rounded glyph with arrows, a firewall one with a brick wall. A wide layer wraps into rows of five.
+  Links run at right angles: down from the box above, along a bus, and down to each box; where three or
+  more share a run, a number says how many. The colours are the plan's (copper, single-mode fiber,
+  multi-mode fiber, DAC, see the legend bottom left); a thicker line is a faster link.
 - **Down** (red, dashed): the port at either end reports it down.
 - **Slower than planned** (orange): the port is up at less than the planned speed. A 10G uplink that came up
   at 1G usually means a wrong optic or a bad cable.
-- **A box that is down** (a router, firewall or switch the monitoring source reports down): red, dashed
-  border. A dot in each box's corner is green when up, red when down, grey when not read; its panel says
-  the same. The state comes from the source's device list, like the [firewalls](firewalls.md) view.
+- **A box that is down** (a router, firewall or switch the monitoring source reports down): red, with
+  a white cross, as on the floor plan; its name turns red. Its panel says the same. The state comes from the source's device list, like the [firewalls](firewalls.md) view.
 - **Internet lines** from the [Services](services.md) page sit in a row above the box they come in at,
-  as rounded pills: green when fine, orange when full or lossy, red and dashed when down. Pick one for
+  as clouds: green when fine, orange when full or lossy, red and dashed when down. Pick one for
   its port, capacity and how much of it is in use.
-- Pick a switch or a link to see its details on the side (at the bottom on a phone).
+- Pick a switch to open the floor plan's own switch panel (its seats, uplinks and neighbours, and
+  **Show on the map**); pick a router, firewall, link or internet line for its details on the side (at
+  the bottom on a phone).
+- **The side panel**, while nothing is picked: **Problems** lists the links that are down, slow or
+  wrongly patched (pick one to open it), **Found by LLDP** what LLDP sees that no link explains yet.
+  The **]** key or the button in the top bar folds it away, as on the map.
 
 The state comes from the monitoring source's port list (`device_ports`, the same as the needs-attention
 watch), read at most every 30 seconds per switch. A link whose switches can't be read is *not read*.
 
 ## Moving around
 
-Scroll (or the **+** and **−** buttons) to zoom, and drag the background to move around; **Show
-everything** fits the whole diagram again. **Export** saves the whole diagram as a PNG picture or an
-SVG drawing.
+The view opens at the size the floor plan draws names at, so a big network starts readable from its
+top and a small one doesn't blow up. Scroll (or the **+** and **−** buttons, or the **+**, **−** and
+**0** keys with the diagram focused) to zoom, and drag the background to move around; **Show
+everything** fits the whole diagram again. **Export** on the tool rail saves the whole diagram as a
+PNG picture or an SVG drawing.
 
 Leads and admins (`floorplan.edit`) drag a box to put it where it belongs: the places are kept for
-everyone, and boxes nobody moved keep their automatic place. **Arrange again** forgets the places and
-lays the diagram out on its own. **Draw a link** is the quick way to add one: pick the switch it
+everyone, and boxes nobody moved keep their automatic place. **Arrange again** (the wand on the tool rail)
+forgets the places and lays the diagram out on its own. **Draw a link** is the quick way to add one: pick the switch it
 starts at, then the one at the other end, and the link form opens with both filled in.
 
 ## On the floor plan
@@ -73,7 +84,7 @@ its ports:
 
 - **Seen as planned**: the port sees the box and port at the other end of the link.
 - **Sees … : check the patch** (orange): the port sees another box or another port than planned. That
-  is a wrong patch, and it is listed at the top of the page and on the Problems page.
+  is a wrong patch, and it is listed under Problems in the side panel and on the Problems page.
 - **Not seen on this port**: the switch tells its neighbours, but none on this port. LLDP may be off
   on the other box, so this is only a hint.
 - **–**: the source doesn't tell neighbours for these switches.

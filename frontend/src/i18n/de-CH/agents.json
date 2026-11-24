@@ -278,7 +278,10 @@
       "syslog": "{{n}} pro Minute jetzt",
       "median_ms": "{{n}} ms jetzt"
     },
-    "noneTitle": "Noch keine Zahlen gespeichert"
+    "noneTitle": "Noch keine Zahlen gespeichert",
+    "bigger": "{{name}} gross anzeigen",
+    "stats": "min {{min}} · Mittel {{avg}} · max {{max}}",
+    "close": "Schliessen"
   },
   "cfg": {
     "title": "Agent-Einstellungen",

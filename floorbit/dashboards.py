@@ -17,6 +17,7 @@ A node is a tree: a node is either a split (``split`` "row" puts its children si
   (frontend/src/pages/plan/layers.ts PRESETS), a seat filter (``show``), how seats are numbered
   (``labels``, frontend/src/pages/plan/labels.ts) and which plan marks it draws (``marks``: ``all``
   the preset shows, ``public`` only the Overview and Safety ones, like the attendee pages, or ``none``);
+  ``turn`` turns a tall hall a quarter to fill a wide box (or the other way round);
 - ``tile``: one data tile (``<plugin>/w/<id>``, the tiles of ``GET /api/dashboard``, Floorbit's own
   and the plugins'), drawn as a widget ``type`` (:data:`WIDGET_TYPES`; ``auto`` picks one from the
   data's shape) at a ``level`` (``auto`` picks small, medium or large from the box it gets, or one of
@@ -364,6 +365,8 @@ def _pane(raw):
             raise LayoutError(f'Plan marks are one of: {", ".join(MARKS)}.')
         pane.update(hall=hall, area=_area(raw.get('area') or {'kind': 'hall'}), preset=preset, show=show, labels=labels,
                     marks=marks)
+        if raw.get('turn'):
+            pane['turn'] = True   # turn a tall hall to fill a wide box (frontend/src/pages/plan/turn.ts)
     elif kind == 'tile':
         tile = str(raw.get('tile') or '')
         if not TILE_RE.match(tile):

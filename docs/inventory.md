@@ -102,6 +102,18 @@ A device's page (`GET /api/inventory/<id>`, `property_view`) shows its propertie
 A hand value still wins over discovery (see Discovery below), and the source that disagrees stays
 visible next to it. Custom property names can't start with `system.` or `auto.`.
 
+### Known properties and their types
+
+Some properties have a **type** (issue #879): the `telemetry.*` ones Floorbit reads itself, and
+the ones admins add under **Inventory › ⋯ › Known properties** (`/inventory/properties`) with a
+name, a label, a type, a unit, the allowed values and the device roles they are for. The types are
+text, number, yes/no, IP address, web address, one of a list and several of a list. The property
+editor suggests the known names (on a device, the ones for its role), shows the fitting input with
+the unit, and a value that doesn't fit is refused when it is saved (a yes/no is stored as `true` or
+`false`, a number with a dot). A name nobody defined is **custom, untyped**: kept as typed, as
+before. Removing a custom property's definition keeps the values set with it, as free text.
+Logins don't go here: they are [credentials](#credentials).
+
 ### Feature switches
 
 Per device, tag, group or for all devices, Floorbit's own per-device features can be switched off
@@ -158,10 +170,11 @@ Devices are one **type** of inventory entry. The others sit in tabs on the Inven
 
 | Type | Where its entries live |
 | --- | --- |
-| Cable, Circuit, Power board, Patch panel, Firewall range | The cables, power, floor plan and Firewalls pages, as before. The inventory shows them and adds fields, tags, a group and properties; name and route stay on their own page. |
+| Cable, Circuit, Power board, Patch panel | The cables, power and floor plan pages, as before. The inventory shows them and adds fields, tags, a group and properties; name and route stay on their own page. |
 | Rack or location | The inventory (height in U, hall). |
 | Transceiver | The inventory (device, port, form factor, media, speed, serial). |
-| VLAN or IP range | The inventory (VLAN ID, prefix, gateway, purpose). |
+| VLAN | The inventory (VLAN ID, purpose). |
+| Prefix or range | The inventory (a network or a from-to range, VLAN ID, gateway, purpose, check-in lookups). A prefix with firewalls set is a [firewall range](firewalls.md): its plan is kept on the prefix. |
 | Item | The inventory, for anything else worth listing. |
 
 Admins add their own types under **Inventory > Types**, and give any type, built-in or their own,
@@ -247,8 +260,8 @@ LibreNMS call (an agent older than this asks nothing, and those areas stay as th
   switches, routers, firewalls, access points, servers and PDUs that are up. With telemetry they
   bring their MAC, IPv4 addresses, access VLAN and whether they are access or trunk ports (Cisco:
   vmVlan and the trunk status; others: the Q-BRIDGE port VLAN).
-- The VLANs each device knows (with their names) and the networks on its interfaces become
-  **VLAN or IP range** entries, with the same rules as a plugin's: what you change stays, nothing
+- The VLANs each device knows (with their names) become **VLAN** entries, and the networks on its
+  interfaces **Prefix or range** entries, with the same rules as a plugin's: what you change stays, nothing
   is deleted. A device's own list is `discovered` in `GET /api/inventory/<id>`; what was plugged
   into its ports is `GET /api/endpoints?device=<name>` ([IP and MAC history](endpoints.md)).
 - The optics ENTITY-MIB lists (module or port rows with a serial and a model like `SFP-10G-SR`,
@@ -326,6 +339,8 @@ audit log (area *inventory*, *credentials* and *icons*), with field names, never
 | `POST /api/icons`, `PATCH` / `DELETE /api/icons/<id>` | Upload `{"name", "svg"}`, rename `{"name"}`, remove. Admins |
 | `GET /api/inventory/types` | Every type with its fields and how many entries it has |
 | `POST /api/inventory/types`, `PATCH` / `DELETE /api/inventory/types/<id>` | Add a type, change its fields, icon, colour and properties, delete an empty custom type. Admins |
+| `GET /api/inventory/properties` | The known properties: `key`, `label`, `type`, `unit`, `choices`, `roles`, `hint`, `builtin` |
+| `POST /api/inventory/properties`, `PATCH` / `DELETE /api/inventory/properties/<key>` | Define, change or forget a custom property. Admins |
 | `GET /api/inventory/entries?type=<id>` | Entries of one type (or all but devices) |
 | `POST /api/inventory/entries/<type>` | Add an entry (`name`, `fields`, `tags`, `group_id`, `properties`, `icon`, `color`) |
 | `GET` / `PATCH` / `DELETE /api/inventory/entries/<type>/<id>` | One entry with what it inherits; change it; delete it |

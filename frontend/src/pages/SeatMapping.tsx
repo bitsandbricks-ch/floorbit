@@ -14,7 +14,7 @@ import { PageHead } from '@bitsandbricks/ui'
 import { ImportDialog } from './seatmap/ImportDialog'
 import { choices, matches } from './seatmap/model'
 import { SeatForm, type SeatDraft } from './seatmap/SeatForm'
-import { LoadingState } from '@/components/ui'
+import { LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** Where a row came from, in one compact cell (issue #872): the first source, "+n" for the rest,
@@ -214,7 +214,7 @@ export default function SeatMapping() {
           </Button>
         )}
       </Group>
-      {isPending && <LoadingState />}
+      {isPending && <LoadingState rows={3} />}
       {error && (
         <Alert color="down" role="alert">
           {t('common.error', { message: error.message })}

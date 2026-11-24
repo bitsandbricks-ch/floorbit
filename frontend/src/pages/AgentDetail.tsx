@@ -11,7 +11,8 @@ import type { Agent } from '@/api/types'
 import { DangerZone } from '@/components/ItemPage'
 import { Layout } from '@/components/Layout'
 import { StatTile } from '@bitsandbricks/ui'
-import { EmptyState, ErrorBanner, Field, LoadingState, Panel } from '@/components/ui'
+import { Field, Panel } from '@/components/ui'
+import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, dateOnly } from '@/lib/time'
 import { AgentDevices } from './agents/AgentDevices'
 import { AgentGraphs } from './agents/AgentGraphs'
@@ -52,12 +53,12 @@ export default function AgentDetail() {
   const back = { href: '/settings/agents', label: t('agents.title') }
   const row = rows.find((r) => r.agent.id === id)
 
-  if (query.isPending) return <Layout title={t('agents.title')} back={back}><LoadingState /></Layout>
+  if (query.isPending) return <Layout title={t('agents.title')} back={back}><LoadingState rows={3} /></Layout>
   if (!row || !d) {
     return (
       <Layout title={t('agents.title')} back={back}>
         <ErrorBanner error={query.error} />
-        <EmptyState title={t('agents.gone')} desc={t('agents.goneHelp')} />
+        <EmptyState title={t('agents.gone')} description={t('agents.goneHelp')} />
       </Layout>
     )
   }

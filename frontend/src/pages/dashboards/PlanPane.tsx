@@ -1,6 +1,6 @@
 import { Text } from '@mantine/core'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -10,10 +10,19 @@ import { PRESETS, type LayerState } from '../plan/layers'
 import type { View } from '../plan/model'
 import { SeatMap } from '../plan/SeatMap'
 import { useCablePlan } from '../plan/cablePlan'
+import { turnHelps, turnPlan, turnView } from '../plan/turn'
+import { useSize } from '../plan/useSize'
+import { ProblemList } from './ProblemList'
+import { problemSeats } from './problemSeats'
+import './PlanPane.css'
 import { areaView, blockText, findBlock, findRow, PUBLIC_MARK_LAYERS, seatsIn, type Pane } from './model'
 import { publicUrl, useScreen } from './screen'
 
 type PlanPaneDef = Extract<Pane, { kind: 'plan' }>
+
+// From this wide a pane lists its problem seats beside the plan, in a column this wide (PlanPane.css).
+const LIST_FROM = 720
+const LIST_W = 220
 
 /** The halls a rotating pane goes through, and which one is up. */
 function useHall(pane: PlanPaneDef, cycle: number | undefined, halls: { id: string }[] | undefined) {
@@ -63,14 +72,26 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
   useLiveEvent('attention.changed', refresh)
   useLiveEvent('plan.changed', refresh)
 
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const px = useSize(bodyRef)
+  const drawing = data?.drawing
+  const home = useMemo(() => (drawing ? areaView(pane.area, drawing) : null), [drawing, pane.area])
+  // The side list takes room from the plan: decide on turning for what is left.
+  const wide = px.w >= LIST_FROM
+  const room = { w: wide ? px.w - LIST_W : px.w, h: px.h }
+  const turned = !!pane.turn && !!home && turnHelps(home, room)
+  const shown = useMemo(() => (turned && data ? turnPlan(data) : data), [turned, data])
+
   const layers: LayerState = useMemo(() => {
     const on = new Set<string>(PRESETS[pane.preset])
     // Safety marks are public (exits, first aid): a public pane draws them whatever the preset.
     if (marks === 'public') on.add('safety')
     // Signed out there is no feed for power, firewalls, Wi-Fi, incidents or cables.
     if (open) for (const l of ['electrical', 'firewalls', 'wifi', 'crew']) on.delete(l)
+    // Turned, these would draw where the hall was (they come in plan coordinates of their own).
+    if (turned) for (const l of ['electrical', 'wifi']) on.delete(l)
     return { on: on as LayerState['on'], fade: {} }
-  }, [pane.preset, marks, open])
+  }, [pane.preset, marks, open, turned])
   const on = (id: string) => layers.on.has(id as never)
   // Cached answers from another pane come back even while a query is off: gate them on the layer too.
   const powerQ = useQuery({
@@ -94,16 +115,16 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
     refetchInterval: 30_000, enabled: on('crew'), retry: false,
   })
   const incidents = on('crew') ? incidentQ.data : undefined
-  const cablePlan = useCablePlan(data?.hall, pane.preset === 'network' && !open)
-  const cables = pane.preset === 'network' && !open ? cablePlan : undefined
-
-  const drawing = data?.drawing
-  const home = useMemo(() => (drawing ? areaView(pane.area, drawing) : null), [drawing, pane.area])
-  const [moved, setMoved] = useState<View | null>(null)
+  const cablePlan = useCablePlan(data?.hall, pane.preset === 'network' && !open && !turned)
+  const cables = pane.preset === 'network' && !open && !turned ? cablePlan : undefined
+  // Where someone dragged the plan to, in the turned or the upright plan's coordinates.
+  const [movedTo, setMovedTo] = useState<{ view: View; turned: boolean } | null>(null)
+  const moved = movedTo && movedTo.turned === turned ? movedTo.view : null
+  const setMoved = useCallback((view: View) => setMovedTo({ view, turned }), [turned])
   // Someone zoomed in on the screen: back to the pane's area after a minute.
   useEffect(() => {
     if (!moved) return
-    const timer = window.setTimeout(() => setMoved(null), 60_000)
+    const timer = window.setTimeout(() => setMovedTo(null), 60_000)
     return () => window.clearTimeout(timer)
   }, [moved])
   // A row's box reaches into the rows beside it: count only the row's own seats.
@@ -121,6 +142,7 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
   const seats = data && inArea ? [...inArea].map((s) => data.seats[s]).filter(Boolean) : []
   const online = seats.filter((s) => s.state === 'online').length
   const problems = seats.filter((s) => s.problems).length
+  const listed = useMemo(() => (data && inArea ? problemSeats(data.seats, inArea) : []), [data, inArea])
 
   let body: React.ReactNode
   if (q.isPending) body = null
@@ -128,8 +150,9 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
   else if (!drawing) body = <Text c="dimmed" className="fb-pane-note">{t('dashboards.pane.noPlan')}</Text>
   else if (!home) body = <Text c="dimmed" className="fb-pane-note">{t('dashboards.pane.areaGone')}</Text>
   else {
+    const view = moved ?? (turned ? turnView(home) : home)
     body = (
-      <SeatMap data={data} view={moved ?? home} setView={setMoved} filter={pane.show} selected={null} onSelect={() => {}}
+      <SeatMap data={shown!} view={view} setView={setMoved} rings filter={pane.show} selected={null} onSelect={() => {}}
         layers={layers} traffic={on('status')} power={power?.enabled ? power : undefined}
         firewalls={firewalls?.enabled ? firewalls.seats : undefined} wifi={wifi} incidents={incidents}
         cables={cables?.cables} labels={pane.labels} focus={row && inArea ? { seats: inArea } : undefined} />
@@ -146,7 +169,10 @@ export function PlanPane({ pane: given, cycle }: { pane: PlanPaneDef; cycle?: nu
           </Text>
         )}
       </div>}
-      <div className="fb-pane-body">{body}</div>
+      <div ref={bodyRef} className={`fb-pane-body${wide && listed.length ? ' fb-plan-listed' : ''}`}>
+        {body}
+        {wide && listed.length > 0 && drawing && home && <ProblemList seats={listed} />}
+      </div>
     </div>
   )
 }

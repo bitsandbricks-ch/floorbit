@@ -4,8 +4,8 @@ A segment says which VLAN an IP is on, so a check-in can ask the switches for th
 one VLAN (issue #947) instead of walking every table. Lookups are opt-in per segment and every
 segment starts with them **off** (Mike, 2026-11-19): nothing gets asked of the switches by surprise.
 
-Segments are the inventory's "VLAN or IP range" entries (issue #1029, floorbit/inventory_types.py)
-that have both a VLAN and a prefix; their ``lookups`` field turns lookups on. Discovery gives a
+Segments are the inventory's prefixes (issue #1345, floorbit/inventory_types.py) that have both a
+network and a VLAN ID; their ``lookups`` field turns lookups on. Discovery gives a
 network on a switch's or router's VLAN interface (``svis`` in floorbit/telemetry/state.py) its VLAN
 (floorbit/inventory_discovery.py), so those become segments by themselves; a field someone changed
 by hand stays as they set it (the inventory's sync rules).
@@ -14,7 +14,7 @@ import ipaddress
 import re
 
 FEED = 'discovery'          # discovery's inventory feed (inventory_discovery.PLUGIN)
-TYPE = 'vlan'               # the inventory type (inventory_types.BUILTIN)
+TYPE = 'prefix'             # the inventory type (inventory_types.BUILTIN)
 
 
 class SegmentError(ValueError):
