@@ -1,28 +1,31 @@
 import {
-  ActionIcon, Alert, Autocomplete, Badge, Box, Button, Drawer, Group, Menu, Modal, Paper, Select, SimpleGrid, Stack, Text, TextInput, Title,
+  ActionIcon, Alert, Autocomplete, Badge, Button, Drawer, Group, Menu, Modal, Paper, ScrollArea, Select, SimpleGrid, Stack, Tabs, Text, TextInput, Title, Tooltip, UnstyledButton,
 } from '@mantine/core'
-import { useElementSize, useMediaQuery } from '@mantine/hooks'
+import { useElementSize, useHotkeys } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
-import { IconDownload, IconFocusCentered, IconLine, IconPhoto, IconVectorBezier2, IconZoomIn, IconZoomOut } from '@tabler/icons-react'
+import {
+  IconAlertTriangle, IconDownload, IconFocus2, IconLine, IconMinus, IconPhoto, IconPlus, IconPointer, IconRadar, IconVectorBezier2, IconWand,
+} from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { LinkSuggestion, SwitchLink, SwitchPort, Topology as TopologyData, TopologyNode, TopologyUplink } from '@/api/types'
-import { Layout } from '@/components/Layout'
-import { PageHead } from '@/components/PageHead'
+import { Attribution } from '@/components/Attribution'
 import { download, standaloneSvg, svgToPng } from './plan/exportImage'
-import { type Box as ViewBox, bounds, toDiagram, zoomAt } from './topology/camera'
+import { PlanKey } from './plan/PlanKey'
+import { type Box as ViewBox, bounds, framed, toDiagram, zoomAt } from './topology/camera'
 import { GLYPH_Y, NODE_H, NODE_W, type Placed, arranged, gbit, layout, placeUplinks, routes } from './topology/layout'
 import { DeviceGlyph, UplinkGlyph } from './topology/glyphs'
 import { UPLINK_WIDTH } from './plan/linkLook'
 import './Topology.css'
-import { ErrorBanner } from '@/components/ui'
+import { ErrorBanner, LoadingState } from '@/components/ui'
 import { ConfirmButton, StatusBadge } from '@bitsandbricks/ui'
 
 const READABLE = 1 // the smallest scale the opening view shows names at: 11px, as on the plan
+const NEARLY = 0.7 // fitted at 70 % of READABLE or more, the opening view shows everything
 const ROOMY = 1.6 // the largest: a small network doesn't blow up to fill the page (#1331)
 const NAME_MAX = 10
 const short = (name: string) => (name.length > NAME_MAX ? `${name.slice(0, NAME_MAX - 1)}…` : name)
@@ -32,25 +35,36 @@ function mediaOf(type: string) {
   return type.startsWith('cat') ? 'copper' : type.startsWith('fiber') ? 'fiber' : type === 'dac' ? 'dac' : ''
 }
 
-
 type Picked = { kind: 'link'; id: string } | { kind: 'node'; name: string } | { kind: 'uplink'; id: string } | null
-
 type Draft = Partial<SwitchLink> & { id?: string }
+type SideTab = 'problems' | 'found'
 
-/** The network's links between switches (issue #468): type and speed, down or slower than planned,
- *  and what LLDP sees that no link explains yet. The diagram pans and zooms, the crew drags its boxes
- *  where they belong (kept for everyone), draws a link by picking two boxes, and it saves as PNG or SVG. */
-export default function Topology() {
+export interface TopologyViewProps {
+  phone: boolean
+  /** The floor plan's side panel is open (the ] key and its button in the top bar). */
+  sideOpen: boolean
+  /** The switch open in the plan's switch panel (?switch=), and that panel. */
+  switchSel: string | null
+  switchPanel: ReactNode
+  /** Open a switch in the plan's panel, or close it (null). */
+  onSwitch: (name: string | null) => void
+}
+
+/** The network's links between switches (issue #468), as the floor plan's third view (#1330): the
+ *  plan's grid, glyphs, tool rail, zoom buttons and side panel. Type and speed, down or slower than
+ *  planned, and what LLDP sees that no link explains yet. The crew drags glyphs where they belong
+ *  (kept for everyone), draws a link by picking two, and it saves as PNG or SVG. */
+export default function TopologyView({ phone, sideOpen, switchSel, switchPanel, onSwitch }: TopologyViewProps) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const canEdit = useCan('floorplan.edit')
-  const phone = useMediaQuery('(max-width: 48em)')
   const q = useQuery({ queryKey: qk.topology, queryFn: () => get<TopologyData>('/api/links'), refetchInterval: 30_000 })
   const [picked, setPicked] = useState<Picked>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [wire, setWire] = useState<{ a?: string } | null>(null)
+  const [tab, setTab] = useState<SideTab>('problems')
   const [cam, setCam] = useState<ViewBox | null>(null) // null: the opening view (see `start`)
-  const { ref: paneRef, width: paneWidth } = useElementSize()
+  const { ref: paneRef, width: paneWidth, height: paneHeight } = useElementSize()
   const [drag, setDrag] = useState<{ key: string; x: number; y: number } | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const gesture = useRef<{ kind: 'pan' | 'node'; key?: string; sx: number; sy: number; ox: number; oy: number; cam: ViewBox; moved: boolean } | null>(null)
@@ -59,29 +73,29 @@ export default function Topology() {
   const auto = useMemo(() => (data ? layout(data.nodes, data.links) : null), [data])
   const placed = useMemo(() => (auto ? arranged(auto, data?.layout) : null), [auto, data?.layout])
   const lines = useMemo(() => (placed && data ? placeUplinks(placed, data.uplinks ?? []) : null), [placed, data])
-  // where a box is drawn: being dragged, or where the layout puts it
+  // where a glyph is drawn: being dragged, or where the layout puts it
   const spot = useCallback((p: Placed) => (drag && drag.key === p.node.name.toLowerCase() ? { x: drag.x, y: drag.y } : { x: p.x, y: p.y }), [drag])
   const base = useMemo<ViewBox | null>(() => {
     if (!placed || !lines) return null
     const boxes = [...placed.placed.values()].map((p) => ({ ...spot(p), w: NODE_W, h: NODE_H })).map((b) => ({ ...b, x: b.x + lines.dx, y: b.y + lines.dy }))
-    return bounds([...boxes, ...lines.boxes.map((b) => ({ x: b.x, y: b.y - 20, w: NODE_W, h: NODE_H + 20 }))])
+    return bounds([...boxes, ...lines.boxes.map((b) => ({ x: b.x, y: b.y - 20, w: NODE_W, h: NODE_H + 20 }))], 24)
   }, [placed, lines, spot])
-  // Fitted, 26 boxes in a narrow pane are too small to read (#1050): open at a readable size from the
-  // top of the network instead, and leave the whole picture to the fit button.
+  const sized = paneWidth > 0 && paneHeight > 0
   // Show everything, but no bigger than ROOMY: three switches stay three small glyphs.
-  const whole = useMemo<ViewBox | null>(() => {
-    if (!base || !paneWidth || paneWidth / base.w <= ROOMY) return base
-    const w = paneWidth / ROOMY
-    return { x: base.x - (w - base.w) / 2, y: base.y, w, h: base.h }
-  }, [base, paneWidth])
-  const start = useMemo<ViewBox | null>(() => {
-    if (!base || !paneWidth) return whole
-    if (paneWidth / base.w >= READABLE) return whole
-    // As wide as the pane shows at READABLE, and as tall as the picture, up to most of the screen.
-    const w = paneWidth / READABLE, h = Math.min(base.h, (window.innerHeight * 0.75) / READABLE)
-    return { x: base.x + (base.w - w) / 2, y: base.y, w, h }
-  }, [base, paneWidth, whole])
-  const view = cam ?? start
+  // (Before the pane is measured, and in tests, the picture as it is.)
+  const whole = useMemo(() => (base && sized ? framed(base, paneWidth, paneHeight, 0, ROOMY) : base), [base, sized, paneWidth, paneHeight])
+  // Fitted, a big network is too small to read (#1050): it opens at READABLE from its top instead.
+  // One that nearly fits opens whole: cutting off a few names at both edges reads worse.
+  const start = useMemo(() => {
+    if (!base || !sized) return base
+    return Math.min(paneWidth / base.w, paneHeight / base.h) >= NEARLY * READABLE ? whole : framed(base, paneWidth, paneHeight, READABLE, ROOMY)
+  }, [base, sized, paneWidth, paneHeight, whole])
+  // The camera keeps the pane's shape, so the grid reaches every edge; a resized pane widens it.
+  const view = useMemo(() => {
+    if (!cam || !sized) return cam ?? start
+    const h = (cam.w * paneHeight) / paneWidth
+    return { ...cam, y: cam.y + (cam.h - h) / 2, h }
+  }, [cam, start, sized, paneWidth, paneHeight])
   const hasKids = useMemo(() => new Set(placed ? placed.parent.values() : []), [placed])
   const gridId = `topo-grid-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const runs = useMemo(() => (placed ? routes(data?.links ?? [], placed.parent, (k) => { const p = placed.placed.get(k); return p ? spot(p) : undefined }) : null), [placed, data?.links, spot])
@@ -113,18 +127,25 @@ export default function Topology() {
     svg.addEventListener('wheel', onWheel, { passive: false })
     return () => svg.removeEventListener('wheel', onWheel)
   }, [view, base])
-  useEffect(() => {
-    if (!wire) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setWire(null) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [wire])
 
   const zoomBy = (factor: number) => { if (view && base) setCam(zoomAt(view, base, factor, { x: view.x + view.w / 2, y: view.y + view.h / 2 })) }
-  const pickNode = (name: string) => {
-    if (!wire) { setPicked({ kind: 'node', name }); return }
-    if (!wire.a) { setWire({ a: name }); return }
-    if (wire.a !== name) { setDraft({ a: wire.a, b: name }); setWire(null) }
+  const dialogOpen = () => !!document.querySelector('[role="dialog"]')
+  const pick = (p: Picked) => { setPicked(p); if (p) onSwitch(null) }
+  // Esc ends drawing a link, then closes what is open here.
+  useHotkeys([['Escape', () => { if (dialogOpen()) return; if (wire) setWire(null); else if (picked) setPicked(null) }]])
+  // With the diagram focused, + and − zoom and 0 shows everything, as on the plan.
+  const onKey = (e: React.KeyboardEvent) => {
+    const keys: Record<string, () => void> = { '+': () => zoomBy(1.4), '=': () => zoomBy(1.4), '-': () => zoomBy(1 / 1.4), '0': () => setCam(whole) }
+    if (keys[e.key]) { e.preventDefault(); keys[e.key]() }
+  }
+  // A switch opens the plan's own switch panel; routers, firewalls and links open theirs here.
+  const pickNode = (name: string, role: string) => {
+    if (wire) {
+      if (!wire.a) setWire({ a: name })
+      else if (wire.a !== name) { setDraft({ a: wire.a, b: name }); setWire(null) }
+      return
+    }
+    if (role === 'switch') { setPicked(null); onSwitch(name) } else pick({ kind: 'node', name })
   }
   const down = (e: React.PointerEvent<SVGSVGElement>, key?: string) => {
     if (!view || e.button !== 0) return
@@ -147,7 +168,7 @@ export default function Topology() {
     gesture.current = null
     moved.current = !!g?.moved
     if (!g?.moved || g.kind !== 'node' || !drag || !placed) return
-    // Every box's place goes with it, so the picture stays as it is when one box is moved.
+    // Every glyph's place goes with it, so the picture stays as it is when one is moved.
     const positions = Object.fromEntries([...placed.placed].map(([k, p]) => [k, k === drag.key ? { x: drag.x, y: drag.y } : { x: p.x, y: p.y }]))
     saveLayout.mutate(positions)
   }
@@ -169,80 +190,71 @@ export default function Topology() {
     }
   }
 
-  const panel = uplink ? <UplinkPanel uplink={uplink} />
+  const own = uplink ? <UplinkPanel uplink={uplink} />
     : link ? <LinkPanel link={link} canEdit={canEdit} onEdit={() => setDraft(link)} onGone={() => setPicked(null)} />
     : node ? <NodePanel name={node.name} role={node.role} status={node.status} links={data!.links.filter((l) => l.a === node.name || l.b === node.name)}
-      onPick={(id) => setPicked({ kind: 'link', id })} />
+      onPick={(id) => pick({ kind: 'link', id })} />
       : null
+  const inspector = switchSel ? switchPanel : own && (
+    <Stack gap="sm" className="fb-inspector">
+      <Group justify="flex-end"><Button variant="subtle" size="compact-sm" onClick={() => setPicked(null)}>{t('plan.close')}</Button></Group>
+      {own}
+    </Stack>
+  )
+  const showSide = !phone && (!!inspector || sideOpen)
+  const chosenName = switchSel ?? (picked?.kind === 'node' ? picked.name : null)
 
   return (
-    <Layout title={t('topology.title')}>
-      <PageHead title={t('topology.title')} desc={t('topology.intro')}
-        actions={canEdit && <Button onClick={() => setDraft({})}>{t('topology.add')}</Button>} />
-      <Stack gap="md">
-        <ErrorBanner error={q.error} onRetry={() => void q.refetch()} />
-        {problems.length > 0 && (
-          <Alert color={problems.some((l) => l.issue === 'down') ? 'down' : 'warn'} title={t('topology.problems', { count: problems.length })}>
-            <Stack gap={2}>
-              {problems.map((l) => (
-                <Text key={l.id} size="sm" component="button" type="button" className="fb-text-button"
-                  onClick={() => setPicked({ kind: 'link', id: l.id })}>
-                  {l.issue
-                    ? t(`topology.issue.${l.issue}`, { a: `${l.a} ${l.a_port}`, b: `${l.b} ${l.b_port}`, planned: `${l.speed}G`, actual: gbit(l.speed_bps) })
-                    : t('topology.issue.miswired', { a: `${l.a} ${l.a_port}`, b: `${l.b} ${l.b_port}`, ...seenAt(l) })}
-                </Text>
-              ))}
-            </Stack>
-          </Alert>
-        )}
-        {data && data.links.length === 0 && (
-          <Paper withBorder radius="lg" p="md"><Text c="dimmed">{t(canEdit ? 'topology.emptyEdit' : 'topology.empty')}</Text></Paper>
-        )}
-        {data && placed && lines && view && base && data.links.length > 0 && (
-          <Box style={{ display: 'grid', gap: 16, gridTemplateColumns: phone || !panel ? '1fr' : 'minmax(0, 1fr) 300px' }}>
-            <Paper withBorder radius="lg" p="sm" style={{ position: 'relative', overflow: 'hidden' }}>
-              <div ref={paneRef} aria-hidden="true" style={{ height: 0 }} />
-              <Group gap={6} mb={6} wrap="wrap">
-                <ActionIcon.Group>
-                  <ActionIcon variant="default" aria-label={t('topology.zoomIn')} title={t('topology.zoomIn')} onClick={() => zoomBy(1.4)}><IconZoomIn size={16} aria-hidden="true" /></ActionIcon>
-                  <ActionIcon variant="default" aria-label={t('topology.zoomOut')} title={t('topology.zoomOut')} onClick={() => zoomBy(1 / 1.4)}><IconZoomOut size={16} aria-hidden="true" /></ActionIcon>
-                  <ActionIcon variant="default" aria-label={t('topology.fit')} title={t('topology.fit')} onClick={() => setCam(whole)}><IconFocusCentered size={16} aria-hidden="true" /></ActionIcon>
-                </ActionIcon.Group>
-                {canEdit && (
-                  <Button size="compact-sm" variant={wire ? 'filled' : 'default'} leftSection={<IconLine size={14} aria-hidden="true" />}
-                    onClick={() => setWire(wire ? null : {})} aria-pressed={!!wire}>{t(wire ? 'topology.drawCancel' : 'topology.draw')}</Button>
-                )}
-                <Box style={{ flex: 1 }} />
-                {canEdit && arrangedByCrew && (
-                  <ConfirmButton size="compact-sm" variant="subtle" label={t('topology.arrange')} question={t('topology.arrangeQuestion')}
-                    onConfirm={() => resetLayout.mutate()} />
-                )}
-                <Menu position="bottom-end" withinPortal>
+    <>
+      <div className={`fb-plan-layout fb-topology-view${showSide ? ' with-inspector' : ''}`}>
+        <div className="fb-edit-stage">
+          <Stack gap={4} className="fb-edit-rail" role="toolbar" aria-orientation="vertical" aria-label={t('topology.tools')}>
+            <RailButton label={t('topology.select')} icon={IconPointer} pressed={!wire} onClick={() => setWire(null)} />
+            {canEdit && <>
+              <RailButton label={t(wire ? 'topology.drawCancel' : 'topology.draw')} icon={IconLine} pressed={!!wire} onClick={() => setWire(wire ? null : {})} />
+              <RailButton label={t('topology.add')} icon={IconPlus} onClick={() => setDraft({})} />
+              {arrangedByCrew && (
+                <Menu position="right-start" withinPortal>
                   <Menu.Target>
-                    <Button size="compact-sm" variant="default" leftSection={<IconDownload size={14} aria-hidden="true" />}>{t('topology.export')}</Button>
+                    <ActionIcon size="lg" variant="subtle" aria-label={t('topology.arrange')} title={t('topology.arrange')}><IconWand size={18} aria-hidden="true" /></ActionIcon>
                   </Menu.Target>
-                  <Menu.Dropdown>
-                    <Menu.Item leftSection={<IconPhoto size={14} />} onClick={() => void exportAs('png')}>{t('topology.exportPng')}</Menu.Item>
-                    <Menu.Item leftSection={<IconVectorBezier2 size={14} />} onClick={() => void exportAs('svg')}>{t('topology.exportSvg')}</Menu.Item>
+                  <Menu.Dropdown maw={260}>
+                    <Text size="sm" p="xs">{t('topology.arrangeQuestion')}</Text>
+                    <Menu.Item onClick={() => resetLayout.mutate()}>{t('topology.arrange')}</Menu.Item>
                   </Menu.Dropdown>
                 </Menu>
-              </Group>
-              {wire && (
-                <Text size="sm" mb={6} role="status">{wire.a ? t('topology.drawSecond', { a: wire.a }) : t('topology.drawFirst')}</Text>
               )}
-              {saveLayout.error && <Alert color="down" role="alert" mb={6}>{saveLayout.error.message}</Alert>}
+            </>}
+            <div className="fb-edit-rail-sep" role="separator" />
+            <Menu position="right-start" withinPortal>
+              <Menu.Target>
+                <ActionIcon size="lg" variant="subtle" aria-label={t('topology.export')} title={t('topology.export')}><IconDownload size={18} aria-hidden="true" /></ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<IconPhoto size={14} />} onClick={() => void exportAs('png')}>{t('topology.exportPng')}</Menu.Item>
+                <Menu.Item leftSection={<IconVectorBezier2 size={14} />} onClick={() => void exportAs('svg')}>{t('topology.exportSvg')}</Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Stack>
+          <div className="fb-ws-canvas fb-topology-canvas" ref={paneRef}>
+            {q.isPending && <div className="fb-ws-pad"><LoadingState /></div>}
+            {q.error && <div className="fb-ws-pad"><ErrorBanner error={q.error} onRetry={() => void q.refetch()} /></div>}
+            {data && data.links.length === 0 && (
+              <div className="fb-ws-pad"><Paper withBorder radius="lg" p="md"><Text c="dimmed">{t(canEdit ? 'topology.emptyEdit' : 'topology.empty')}</Text></Paper></div>
+            )}
+            {data && placed && lines && view && base && data.links.length > 0 && (
               <svg ref={svgRef} role="img" aria-label={t('topology.diagram', { count: data.links.length })}
                 viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="fb-plan fb-topology"
-                onPointerDown={(e) => down(e)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { gesture.current = null; setDrag(null) }}
-                style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '75vh', touchAction: 'none', cursor: wire ? 'crosshair' : 'grab', userSelect: 'none' }}>
-                <TopologyGrid id={gridId} view={view} base={base} scale={paneWidth ? paneWidth / view.w : 1} />
+                tabIndex={0} onKeyDown={onKey} onPointerDown={(e) => down(e)} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { gesture.current = null; setDrag(null) }}
+                style={{ cursor: wire ? 'crosshair' : 'grab' }}>
+                <TopologyGrid id={gridId} view={view} base={base} scale={paneWidth / view.w} />
                 {lines.boxes.map(({ uplink: u, x, y, to }) => {
                   const chosen = picked?.kind === 'uplink' && picked.id === u.id
                   const toAt = spot(to)
                   const cx = x + NODE_W / 2, tx = toAt.x + lines.dx + NODE_W / 2, ty = toAt.y + lines.dy + GLYPH_Y - 8
                   const mid = (y + GLYPH_Y + 8 + ty) / 2
                   return (
-                    <g key={u.id} className={`fb-uplink${chosen ? ' chosen' : ''}`} data-status={u.status} onClick={() => { if (!clickedAfterMove()) setPicked({ kind: 'uplink', id: u.id }) }} style={{ cursor: 'pointer' }}>
+                    <g key={u.id} className={`fb-uplink${chosen ? ' chosen' : ''}`} data-status={u.status} onClick={() => { if (!clickedAfterMove()) pick({ kind: 'uplink', id: u.id }) }} style={{ cursor: 'pointer' }}>
                       <title>{`${u.name}: ${u.device} ${u.port} · ${t(`topology.uplinkStatus.${u.status}`)}`}</title>
                       <path className="line" d={`M${cx} ${y + GLYPH_Y + 8}V${mid}H${tx}V${ty}`} strokeDasharray={u.status === 'down' ? '6 4' : undefined} />
                       <rect x={x} y={y} width={NODE_W} height={NODE_H} fill="transparent" />
@@ -258,7 +270,7 @@ export default function Topology() {
                   if (!r) return null
                   const chosen = picked?.kind === 'link' && picked.id === l.id
                   return (
-                    <g key={l.id} data-link={l.id} onClick={() => { if (!clickedAfterMove() && !wire) setPicked({ kind: 'link', id: l.id }) }} style={{ cursor: 'pointer' }}>
+                    <g key={l.id} data-link={l.id} onClick={() => { if (!clickedAfterMove() && !wire) pick({ kind: 'link', id: l.id }) }} style={{ cursor: 'pointer' }}>
                       <title>{`${l.a} ${l.a_port} – ${l.b} ${l.b_port}${l.speed ? ` · ${l.speed}G` : ''}`}</title>
                       <path className="uplink-hit" d={r.d} vectorEffect="non-scaling-stroke" />
                       <path className={linkClass(l)} d={r.d} strokeWidth={(UPLINK_WIDTH[l.speed ?? 0] ?? 1.5) + (chosen ? 2 : 0)} vectorEffect="non-scaling-stroke"
@@ -272,20 +284,20 @@ export default function Topology() {
                   </g>
                 ))}
                 {[...placed.placed.entries()].map(([key, p]) => {
-                  const chosen = (picked?.kind === 'node' && picked.name === p.node.name) || wire?.a === p.node.name
+                  const chosen = chosenName === p.node.name || wire?.a === p.node.name
                   const at = spot(p)
                   const status = p.node.status
                   return (
                     <g key={p.node.id} transform={`translate(${at.x + NODE_W / 2} ${at.y + GLYPH_Y})`} data-node={p.node.name} data-status={status}
                       className={`sw sw-${status}${status === 'offline' ? ' down' : ''}`}
                       onPointerDown={(e) => { e.stopPropagation(); if (canEdit && !wire) down(e as unknown as React.PointerEvent<SVGSVGElement>, key); else { gesture.current = null; moved.current = false } }}
-                      onClick={() => { if (!clickedAfterMove()) pickNode(p.node.name) }}
+                      onClick={() => { if (!clickedAfterMove()) pickNode(p.node.name, p.node.role) }}
                       style={{ cursor: wire ? 'crosshair' : canEdit ? 'move' : 'pointer' }}>
                       <title>{`${p.node.name}: ${t(`topology.status.${status}`)}`}</title>
                       <rect x={-NODE_W / 2} y={-GLYPH_Y} width={NODE_W} height={NODE_H} fill="transparent" />
                       {chosen && <circle className="sw-focus" r={17} />}
                       <DeviceGlyph role={p.node.role} status={status} />
-                      {/* A box with a run going down has its name beside it, clear of the trunk. */}
+                      {/* A glyph with a run going down has its name beside it, clear of the trunk. */}
                       {hasKids.has(key)
                         ? <text className="side" x={p.node.role === 'router' ? -19 : -16} y={4}>{short(p.node.name)}</text>
                         : <text y={NODE_H - GLYPH_Y - 4}>{short(p.node.name)}</text>}
@@ -294,37 +306,98 @@ export default function Topology() {
                 })}
                 </g>
               </svg>
-              <Legend links={data.links} />
-              <Text size="xs" c="dimmed" mt={4}>{t(canEdit ? 'topology.pickHintEdit' : 'topology.pickHint')} {t(canEdit ? 'topology.howEdit' : 'topology.how')}</Text>
-            </Paper>
-            {phone
-              ? <Drawer opened={!!panel} onClose={() => setPicked(null)} position="bottom" size="55%"
-                aria-label={link ? t('topology.link') : node?.name}>{panel}</Drawer>
-              : panel && <Paper withBorder radius="lg" p="md" style={{ alignSelf: 'start' }}>{panel}</Paper>}
-          </Box>
-        )}
-        {placed && placed.loose.length > 0 && data!.links.length > 0 && (
-          <Text size="sm" c="dimmed">{t('topology.loose', { names: placed.loose.map((n) => n.name).join(', ') })}</Text>
-        )}
-        {data && data.suggestions.length > 0 && (
-          <Paper withBorder radius="lg" p="md">
-            <Title order={3} size="h5" mb={4}>{t('topology.suggestions', { count: data.suggestions.length })}</Title>
-            <Text size="sm" c="dimmed" mb="sm">{t('topology.suggestionsHint')}</Text>
+            )}
+            {wire && <div className="fb-topology-hint" role="status">{wire.a ? t('topology.drawSecond', { a: wire.a }) : t('topology.drawFirst')}</div>}
+            {data && data.links.length > 0 && (
+              <div className="fb-ws-corner">
+                {saveLayout.error && <Alert color="down" role="alert" py={6}>{saveLayout.error.message}</Alert>}
+                <PlanKey><Legend links={data.links} /></PlanKey>
+              </div>
+            )}
+            {view && base && (
+              <Group gap={4} className="fb-plan-zoom fb-no-print">
+                <Tooltip label={t('topology.zoomIn')}><ActionIcon variant="default" aria-label={t('topology.zoomIn')} onClick={() => zoomBy(1.4)}><IconPlus size={16} /></ActionIcon></Tooltip>
+                <Tooltip label={t('topology.zoomOut')}><ActionIcon variant="default" aria-label={t('topology.zoomOut')} onClick={() => zoomBy(1 / 1.4)}><IconMinus size={16} /></ActionIcon></Tooltip>
+                <Tooltip label={t('topology.fit')}><ActionIcon variant="default" aria-label={t('topology.fit')} onClick={() => setCam(whole)}><IconFocus2 size={16} /></ActionIcon></Tooltip>
+              </Group>
+            )}
+          </div>
+        </div>
+        {showSide && (inspector
+          ? <aside className="fb-ws-panel" aria-label={t('plan.side.label')}>{inspector}</aside>
+          : <TopologySide tab={tab} onTab={setTab} data={data} problems={problems} loose={placed?.loose.map((n) => n.name) ?? []}
+            canEdit={canEdit} onLink={(id) => pick({ kind: 'link', id })} onAdd={(s) => setDraft(fromSuggestion(s))} />)}
+      </div>
+      {phone && (
+        <Drawer opened={!!inspector} onClose={() => { setPicked(null); onSwitch(null) }} position="bottom" size="55%" withCloseButton={false}
+          title={null} aria-label={switchSel ?? (link ? t('topology.link') : node?.name ?? uplink?.name ?? '')}>{inspector}</Drawer>
+      )}
+      {draft && data && <LinkModal draft={draft} data={data} onClose={() => setDraft(null)} />}
+    </>
+  )
+}
+
+function RailButton({ label, icon: Icon, pressed, onClick }: { label: string; icon: typeof IconPointer; pressed?: boolean; onClick: () => void }) {
+  return (
+    <Tooltip position="right" label={label}>
+      <ActionIcon size="lg" variant={pressed ? 'filled' : 'subtle'} aria-label={label} aria-pressed={pressed} onClick={onClick}>
+        <Icon size={18} aria-hidden="true" />
+      </ActionIcon>
+    </Tooltip>
+  )
+}
+
+/** The side panel while nothing is open, like the plan's: what is wrong with the links, and what
+ *  LLDP sees that no link explains yet. */
+function TopologySide({ tab, onTab, data, problems, loose, canEdit, onLink, onAdd }: {
+  tab: SideTab; onTab: (t: SideTab) => void; data?: TopologyData; problems: SwitchLink[]; loose: string[]
+  canEdit: boolean; onLink: (id: string) => void; onAdd: (s: LinkSuggestion) => void
+}) {
+  const { t } = useTranslation()
+  const found = data?.suggestions ?? []
+  return (
+    <aside className="fb-ws-panel tabs" aria-label={t('plan.side.label')}>
+      <Tabs value={tab} onChange={(v) => v && onTab(v as SideTab)} keepMounted={false} className="fb-side-tabs">
+        <Tabs.List grow>
+          <Tabs.Tab value="problems" leftSection={<IconAlertTriangle size={14} />}>
+            {t('topology.side.problems')}{problems.length ? <Badge size="xs" color="down" ml={6}>{problems.length}</Badge> : null}</Tabs.Tab>
+          <Tabs.Tab value="found" leftSection={<IconRadar size={14} />}>
+            {t('topology.side.found')}{found.length ? <Badge size="xs" color="gray" ml={6}>{found.length}</Badge> : null}</Tabs.Tab>
+        </Tabs.List>
+        <ScrollArea className="fb-side-body" type="auto">
+          <Tabs.Panel value="problems" p="md">
+            <Stack gap="xs">
+              {!problems.length && <Text size="sm" c="dimmed">{t('topology.side.allGood')}</Text>}
+              {problems.map((l) => (
+                <UnstyledButton key={l.id} className="fb-side-row" onClick={() => onLink(l.id)}>
+                  <Text size="sm" c={l.issue === 'down' ? 'down' : l.issue ? 'warn' : undefined}>
+                    {l.issue
+                      ? t(`topology.issue.${l.issue}`, { a: `${l.a} ${l.a_port}`, b: `${l.b} ${l.b_port}`, planned: `${l.speed}G`, actual: gbit(l.speed_bps) })
+                      : t('topology.issue.miswired', { a: `${l.a} ${l.a_port}`, b: `${l.b} ${l.b_port}`, ...seenAt(l) })}
+                  </Text>
+                </UnstyledButton>
+              ))}
+              {loose.length > 0 && <Text size="xs" c="dimmed" mt="sm">{t('topology.loose', { names: loose.join(', ') })}</Text>}
+              <Text size="xs" c="dimmed" mt="sm">{t(canEdit ? 'topology.pickHintEdit' : 'topology.pickHint')} {t(canEdit ? 'topology.howEdit' : 'topology.how')}</Text>
+            </Stack>
+          </Tabs.Panel>
+          <Tabs.Panel value="found" p="md">
             <Stack gap={6}>
-              {data.suggestions.map((s) => (
+              <Text size="sm" c="dimmed">{found.length ? t('topology.suggestionsHint') : t('topology.side.nothingFound')}</Text>
+              {found.map((s) => (
                 <Group key={`${s.a}${s.a_port}${s.b}${s.b_port}`} justify="space-between" wrap="nowrap" gap="xs">
                   <Text size="sm" ff="monospace" style={{ overflowWrap: 'anywhere' }}>
                     {s.a} {s.a_port} – {s.b} {s.b_port}{s.protocol ? ` (${s.protocol.toUpperCase()})` : ''}
                   </Text>
-                  {canEdit && <Button size="compact-sm" variant="default" onClick={() => setDraft(fromSuggestion(s))}>{t('topology.addThis')}</Button>}
+                  {canEdit && <Button size="compact-sm" variant="default" onClick={() => onAdd(s)}>{t('topology.addThis')}</Button>}
                 </Group>
               ))}
             </Stack>
-          </Paper>
-        )}
-      </Stack>
-      {draft && data && <LinkModal draft={draft} data={data} onClose={() => setDraft(null)} />}
-    </Layout>
+          </Tabs.Panel>
+        </ScrollArea>
+      </Tabs>
+      <div className="fb-side-foot"><Attribution compact version /></div>
+    </aside>
   )
 }
 
@@ -353,15 +426,15 @@ function Legend({ links }: { links: SwitchLink[] }) {
   const items = all.filter(([shown]) => shown).map(([, ...rest]) => rest as [string, string])
   const speeds = new Set(links.map((l) => l.speed).filter(Boolean)).size
   return (
-    <Group gap="md" mt="xs" px={4}>
+    <Stack gap={4}>
       {items.map(([label, look]) => (
-        <Group key={label} gap={6} wrap="nowrap">
+        <Group key={label} gap={8} wrap="nowrap">
           <svg width={24} height={8} aria-hidden="true" className="fb-plan fb-topology"><line className={look} x1={1} y1={4} x2={23} y2={4} strokeWidth={3} /></svg>
           <Text size="xs" c="dimmed">{label}</Text>
         </Group>
       ))}
       {speeds > 1 && <Text size="xs" c="dimmed">{t('topology.thicker')}</Text>}
-    </Group>
+    </Stack>
   )
 }
 

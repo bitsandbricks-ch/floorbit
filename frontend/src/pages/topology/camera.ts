@@ -25,3 +25,13 @@ export function bounds(points: { x: number; y: number; w: number; h: number }[],
   const x1 = Math.max(...points.map((p) => p.x + p.w)), y1 = Math.max(...points.map((p) => p.y + p.h))
   return { x: x0 - margin, y: y0 - margin, w: x1 - x0 + 2 * margin, h: y1 - y0 + 2 * margin }
 }
+
+/** The camera showing `base` in a pane of `width` x `height` pixels, at a scale between `min` and
+ *  `max` pixels per unit and with the pane's shape: centred across, from the top when the picture
+ *  is taller than the pane at that scale, else centred down too. */
+export function framed(base: Box, width: number, height: number, min: number, max: number): Box {
+  const fits = Math.min(width / base.w, height / base.h)
+  const scale = Math.max(min, Math.min(max, fits))
+  const w = width / scale, h = height / scale
+  return { x: base.x + (base.w - w) / 2, y: h >= base.h ? base.y + (base.h - h) / 2 : base.y, w, h }
+}

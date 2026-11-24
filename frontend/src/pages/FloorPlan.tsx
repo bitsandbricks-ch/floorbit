@@ -1,8 +1,8 @@
-import { ActionIcon, Alert, Anchor, Button, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Text, TextInput, Tooltip, UnstyledButton } from '@mantine/core'
+import { ActionIcon, Alert, Anchor, Button, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core'
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconChevronDown, IconChevronUp, IconHelp, IconLayoutSidebarRight, IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconHelp, IconLayoutSidebarRight, IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { notifications } from '@mantine/notifications'
 import { useSearchParams } from 'react-router-dom'
@@ -41,12 +41,15 @@ import { ExportMenu } from './plan/ExportMenu'
 import { SnapToggles } from './plan/edit/SnapToggles'
 import { fromOldMode, isEditing, setEditing } from './plan/workspace'
 import { ToolRail } from './plan/edit/ToolRail'
+import { PlanKey } from './plan/PlanKey'
 import { TOOL_KEYS, TOOLS, type Tool } from './plan/edit/tools'
 import { revealActive } from './plan/reveal'
 import { LoadingState, ErrorBanner } from '@/components/ui'
 import { clock } from '@/lib/time'
 
 const PANELS = ['seat', 'block', 'switch']
+// The third view (#1330): the network's links, loaded only when someone opens it.
+const TopologyView = lazy(() => import('./Topology'))
 const FILTERS: Filter[] = ['all', 'problems', 'offline', 'recent', 'note', 'checked_in']
 
 /** The floor plan's seats (issue #55): one state per seat that reads the same in every theme and
@@ -95,6 +98,8 @@ export default function FloorPlan() {
   const wifiOn = layers.on.has('wifi')
   const crewOn = layers.on.has('crew')
   const list = !screen && params.get('view') === 'list'
+  // Not while editing: the editor works on the map.
+  const topo = !screen && !editing && params.get('view') === 'topology'
   // Big screens can rotate through the halls (issue #163): ?cycle=30 shows each for 30 seconds.
   const cycle = screen && params.get('cycle') ? Math.max(10, Number(params.get('cycle')) || 30) : 0
   const phone = useMediaQuery('(max-width: 48em)')
@@ -194,7 +199,7 @@ export default function FloorPlan() {
   }
   // 1 to 4 switch the layer preset, so the crew at a big screen can flip views without the mouse.
   const presetKeys = PRESET_KEYS.map((p, i): [string, () => void] => [String(i + 1), () => {
-    if (!list && !dialogOpen()) setLayers(applyPreset(layers, p))
+    if (!list && !topo && !dialogOpen()) setLayers(applyPreset(layers, p))
   }])
   // L flips between the map and the list, like the Map/List switch.
   const toggleList = () => { if (!editing && !screen && !dialogOpen()) set('view', list ? null : 'list') }
@@ -203,7 +208,7 @@ export default function FloorPlan() {
   // A tool's key on the live plan takes the tool up, as its button on the rail does.
   const edit = (tool: Tool) => { setStartTool(tool); setParams(setEditing(params, true)) }
   const toolKeys = TOOLS.filter((id) => TOOL_KEYS[id] !== 'b').map((id): [string, () => void] => [TOOL_KEYS[id], () => {
-    if (canEdit && !editing && !screen && !list && data?.drawing && !dialogOpen()) edit(id)
+    if (canEdit && !editing && !screen && !list && !topo && data?.drawing && !dialogOpen()) edit(id)
   }])
   useHotkeys([['/', toFind], ['shift+/', toFind], ['shift+?', showShortcuts], ['?', showShortcuts], ['Escape', closePanel], ['l', toggleList], [']', toggleSide], ...presetKeys, ...toolKeys])
   const box = data?.drawing?.box
@@ -395,26 +400,27 @@ export default function FloorPlan() {
         <div className="fb-ws">
           {/* One slim bar like a map editor's: where you are, what you see, and the tools. */}
           <div className="fb-ws-bar">
-            {data.halls.length > 1 && (
+            {!topo && data.halls.length > 1 && (
               <Select aria-label={t('plan.hall')} w={170} size="xs" comboboxProps={{ width: 'max-content', position: 'bottom-start' }}
                 allowDeselect={false} value={data.hall}
                 data={data.halls.map((h) => ({ value: h.id, label: h.name }))}
                 renderOption={({ option }) => <HallOption hall={data.halls.find((h) => h.id === option.value)!} />}
                 onChange={(v) => { if (v) toHall(v) }} />
             )}
-            <Text size="sm" className="fb-ws-online"><b>{online}</b> / {total} {t('plan.online')}</Text>
+            {!topo && <Text size="sm" className="fb-ws-online"><b>{online}</b> / {total} {t('plan.online')}</Text>}
             {editing && problems > 0 && <Text size="sm" c="down"><b>{problems}</b> {t('plan.withProblems')}</Text>}
             {/* The filters say how many seats each holds (issue #190), so the row doubles as the summary. */}
-              <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
+              {!topo && <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
                 data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
                   value: f,
                   label: <span><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
-                }))} /></div>
-            {!editing && <SegmentedControl size="xs" value={list ? 'list' : 'map'} onChange={(v) => set('view', v === 'list' ? 'list' : null)}
-              aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }]} />}
-            {!list && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} extra={pluginPicker} />}
+                }))} /></div>}
+            {!editing && <SegmentedControl size="xs" value={topo ? 'topology' : list ? 'list' : 'map'} onChange={(v) => set('view', v === 'map' ? null : v)}
+              aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }, { value: 'topology', label: t('topology.title') }]} />}
+            {!list && !topo && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} extra={pluginPicker} />}
             {editing && !list && <SnapToggles layers={layers} onLayers={setLayers} />}
             <div className="fb-ws-bar-end">
+              {!topo && <>
               {elsewhere > 0 && <Text size="sm" c="down" fw={600} className="fb-ws-elsewhere" title={t('plan.elsewhere', { count: elsewhere })}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
               {data.last_read && <Text c="dimmed" size="xs" className="fb-ws-read">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
               <StaleNotice updatedAt={q.dataUpdatedAt} failing={q.isRefetchError} />
@@ -427,6 +433,7 @@ export default function FloorPlan() {
               <ScreenLink hall={data.hall} params={params} />
               {editing && <PlanMenu onOpen={setPlanDialog} />}
               <ExportMenu hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall} filter={filter} />
+              </>}
               <Tooltip label={t('plan.shortcuts.show')}>
                 <ActionIcon variant="default" size="md" aria-label={t('plan.shortcuts.show')} aria-keyshortcuts="?" onClick={showShortcuts}><IconHelp size={16} aria-hidden="true" /></ActionIcon>
               </Tooltip>
@@ -451,9 +458,19 @@ export default function FloorPlan() {
               ))}
             </Group>
           )}
-          {!data.monitoring && <Alert color="warn" radius={0} py={6} className="fb-ws-strip">{t('plan.noMonitoring')}</Alert>}
+          {!data.monitoring && !topo && <Alert color="warn" radius={0} py={6} className="fb-ws-strip">{t('plan.noMonitoring')}</Alert>}
           <div className="fb-ws-body">
-            {!data.drawing && (
+            {topo && (
+              <Suspense fallback={<div className="fb-ws-pad"><LoadingState /></div>}>
+                <TopologyView phone={!!phone} sideOpen={side.open} switchSel={switchSel} onSwitch={(w) => set('switch', w)} switchPanel={switchSel && (
+                  <Stack gap="xs">
+                    <Button variant="default" size="compact-sm" style={{ alignSelf: 'flex-start' }} onClick={() => set('view', null)}>{t('topology.showOnMap')}</Button>
+                    <SwitchPanel key={switchSel} name={switchSel} onSeat={(s) => { const next = new URLSearchParams(params); next.delete('view'); next.delete('switch'); next.set('seat', s); setParams(next, { replace: true }) }} onClose={() => set('switch', null)} />
+                  </Stack>
+                )} />
+              </Suspense>
+            )}
+            {!topo && !data.drawing && (
               <div className="fb-ws-pad"><Paper withBorder radius="lg" p="lg"><Text>{t('plan.empty')}</Text><Anchor href={`/plan?edit=1&hall=${encodeURIComponent(data.hall)}`} mt="xs" display="inline-block">{t('plan.emptyLink')}</Anchor></Paper></div>
             )}
             {editing && data.drawing && view && (
@@ -462,7 +479,7 @@ export default function FloorPlan() {
                 dialog={planDialog} onDialog={setPlanDialog} />
             )}
             {/* The side panel's tabs carry the attribution in their foot; one is enough. */}
-            {!editing && data.drawing && <div className={`fb-plan-layout${(panel || side.open) && !phone ? ' with-inspector' : ''}${list ? ' is-list' : ''}`}>
+            {!editing && !topo && data.drawing && <div className={`fb-plan-layout${(panel || side.open) && !phone ? ' with-inspector' : ''}${list ? ' is-list' : ''}`}>
               <div className={canEdit && !list ? 'fb-edit-stage' : 'fb-ws-stage'}>
               {canEdit && !list && <ToolRail tool={null} onTool={edit} onView={() => {}} />}
               <div className="fb-ws-canvas">
@@ -485,7 +502,7 @@ export default function FloorPlan() {
             </div>}
           </div>
           <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} editing={editing} canEdit={canEdit} />
-          {phone && (
+          {phone && !topo && (
             <Drawer opened={panel} onClose={() => set(selected ? 'seat' : blockSel ? 'block' : 'switch', null)} position="bottom" size="55%" withCloseButton={false}
               title={null} aria-label={selected ?? blockSel ?? switchSel ?? ''}>
               {inspector}
@@ -508,23 +525,6 @@ function readSide(): { open: boolean; tab: SideTab } {
 }
 function saveSide(v: { open: boolean; tab: SideTab }) {
   try { localStorage.setItem(SIDE_KEY, JSON.stringify(v)) } catch { /* private window: just not kept */ }
-}
-
-/** The legend floats over the plan's bottom-left corner, like a map's key, and folds away. */
-function PlanKey({ children }: { children: ReactNode }) {
-  const { t } = useTranslation()
-  const phone = useMediaQuery('(max-width: 48em)')
-  const [open, setOpen] = useState<boolean | null>(null)
-  const shown = open ?? !phone
-  return (
-    <div className={shown ? 'fb-plan-key open' : 'fb-plan-key'} role="region" aria-label={t('plan.legend')}>
-      <UnstyledButton className="fb-plan-key-head" aria-expanded={shown} onClick={() => setOpen(!shown)}>
-        {shown ? <IconChevronDown size={14} aria-hidden="true" /> : <IconChevronUp size={14} aria-hidden="true" />}
-        {t('plan.legend')}
-      </UnstyledButton>
-      {shown && <div className="fb-plan-key-body">{children}</div>}
-    </div>
-  )
 }
 
 /** A hall in the picker with its totals, so trouble in another hall shows before switching to it. */

@@ -13,22 +13,22 @@ afterEach(() => vi.unstubAllGlobals())
 
 const pages = [
   { href: '/overview', id: 'overview', label: 'Overview' },
-  { href: '/topology', id: 'topology', label: 'Topology' },
+  { href: '/firewalls', id: 'firewalls', label: 'Firewalls' },
   { href: '/settings/agents', id: 'agents', label: 'Local agents' },
   { href: '/plugins/gs/overview', id: 'plugin:gs:overview', label: 'Game servers' },
 ]
 const problems = {
   problems: [
     { id: 'a', kind: 'switch', level: 'warn', title: 'Uplink at 1G', where: 'sw-c-02', since: 1, link: '/problems' },
-    { id: 'b', kind: 'switch', level: 'down', title: 'fw-07 down', where: 'Hall 2', since: 2, link: '/topology' },
+    { id: 'b', kind: 'switch', level: 'down', title: 'fw-07 down', where: 'Hall 2', since: 2, link: '/plan?view=topology' },
   ],
   counts: { down: 1, warn: 1, muted: 0 }, mutes: [], quiet_hours: false, checked_at: 3, can_mute: false,
 }
 
 describe('breadcrumbs', () => {
   it('names the group and the page, and plugins under Plugins', () => {
-    // Topology is a tab of the Network row.
-    expect(crumbsFor(pages, '/topology')).toMatchObject({ section: 'monitoring', page: { id: 'network', href: '/topology' } })
+    // Firewalls is a tab of the Network row.
+    expect(crumbsFor(pages, '/firewalls')).toMatchObject({ section: 'monitoring', page: { id: 'network', href: '/firewalls' } })
     expect(crumbsFor(pages, '/settings/agents/rack-a')).toEqual({ section: 'monitoring', page: pages[2] })
     expect(crumbsFor(pages, '/plugins/gs/overview').section).toBe('plugins')
     expect(crumbsFor(pages, '/nowhere')).toEqual({ section: null, page: null })

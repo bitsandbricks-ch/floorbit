@@ -1,6 +1,6 @@
 """Links between switches and the topology (issue #468). Rules in floorbit/links.py, docs in docs/topology.md.
 
-- ``GET /topology``: the page.
+The page is the floor plan's Topology view (``/plan?view=topology``).
 - ``GET /api/links``: the switches, every link with its live state, and LLDP neighbours no link explains.
 - ``POST /api/links``, ``PUT /api/links/<id>``, ``DELETE /api/links/<id>``: ``floorplan.edit``.
 - ``GET /api/links/ports?switch=<name>``: that switch's ports and which link uses each, for the port picker
@@ -10,15 +10,10 @@
 """
 from flask import Blueprint, g, jsonify, request
 
-from .. import audit, links, spa
+from .. import audit, links
 
 bp = Blueprint('topology', __name__)
 LAYOUT_ERROR = 'The places could not be saved.'
-
-
-@bp.route('/topology')
-def topology_page():
-    return spa.render('Topology')
 
 
 @bp.route('/api/links', methods=['GET'])
