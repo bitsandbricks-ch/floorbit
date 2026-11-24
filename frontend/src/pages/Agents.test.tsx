@@ -6,7 +6,7 @@ import { admin, busyAgent, quietAgent } from './agents/fixtures'
 
 afterEach(() => vi.unstubAllGlobals())
 
-const halls = { halls: [{ id: 'main', name: 'Main hall' }, { id: 'h2', name: 'Hall 2' }] }
+const groups = { groups: [], tags: [{ id: 't1', name: 'Site A' }, { id: 't2', name: 'Hall 2' }] }
 
 describe('Agents', () => {
   it('shows every agent at a glance and enrols one', async () => {
@@ -17,7 +17,7 @@ describe('Agents', () => {
           quietAgent({ id: 'c', name: 'Old box', connected: false, version: '0.0.9', protocol: 1, outdated: true, last_seen: Date.now() / 1000 - 3600 })],
         connected: true, max: 10, server_version: '0.1.0', protocol: 2, newest_version: '0.9.0',
       },
-      'GET /api/halls': halls,
+      'GET /api/inventory/groups': groups,
       'POST /api/agents': { ...busyAgent(), id: 'e5f6a7b8', name: 'Autumn LAN', connected: false, last_seen: null, key: 'fba_e5f6a7b8_example-key-0123456789' },
     })
     vi.stubGlobal('fetch', api.fn)
@@ -61,7 +61,7 @@ describe('Agents', () => {
       dns: { status: 'warning', hint: 'device_problems', message: '1 of 2 devices fail', running: true, metrics: {}, errors: [] },
     }
     vi.stubGlobal('fetch', fakeFetch({
-      'GET /api/auth/me': admin, 'GET /api/halls': halls,
+      'GET /api/auth/me': admin, 'GET /api/inventory/groups': groups,
       'GET /api/agents': { agents: [agent], connected: true, max: 10, server_version: '0.1.0', protocol: 2, newest_version: '0.9.0' },
     }).fn)
     renderWithApp(<Agents />)
@@ -74,7 +74,7 @@ describe('Agents', () => {
 
   it('flags an agent behind the newest one', async () => {
     vi.stubGlobal('fetch', fakeFetch({
-      'GET /api/auth/me': admin, 'GET /api/halls': halls,
+      'GET /api/auth/me': admin, 'GET /api/inventory/groups': groups,
       'GET /api/agents': { agents: [quietAgent({ id: 'x', name: 'Behind', version: '0.9.0', report: { at: Date.now() / 1000 } }), quietAgent({ id: 'y', name: 'Ahead', version: '0.10.0' })],
         connected: true, max: 10, protocol: 2, newest_version: '0.10.0' },
     }).fn)
@@ -90,14 +90,14 @@ describe('Agents', () => {
     expect(await screen.findByText(/No agent yet/)).toBeInTheDocument()
   })
 
-  it('shows failover per hall and this Floorbit on their tabs', async () => {
+  it('shows failover per tag and this Floorbit on their tabs', async () => {
     const now = Date.now() / 1000
     const a = busyAgent()
     vi.stubGlobal('fetch', fakeFetch({
-      'GET /api/auth/me': admin, 'GET /api/halls': { halls: [] },
+      'GET /api/auth/me': admin, 'GET /api/inventory/groups': { groups: [], tags: [] },
       'GET /api/agents': {
         agents: [a], connected: true, max: 10, protocol: 2,
-        groups: [{ id: '*', halls: [], label: '', state: 'degraded', mode: 'active-passive', primary: a.id, vips: ['192.0.2.10/24'],
+        groups: [{ id: '*', tags: [], label: '', state: 'degraded', mode: 'active-passive', primary: a.id, vips: ['192.0.2.10/24'],
           agents: [{ id: a.id, name: a.name, connected: true, role: 'primary', holds: ['192.0.2.10/24'] },
                    { id: 'b', name: 'Backup box', connected: false, role: 'offline', holds: [] }] }],
         hosted: { mode: 'redis', pods: [{ pod: 'floorbit-0', at: now, leader: true, me: true }, { pod: 'floorbit-1', at: now, leader: false, me: false }],
@@ -105,7 +105,7 @@ describe('Agents', () => {
       },
     }).fn)
     renderWithApp(<Agents />)
-    fireEvent.click(await screen.findByRole('tab', { name: /Failover per hall · 1/ }))
+    fireEvent.click(await screen.findByRole('tab', { name: /Failover per tag · 1/ }))
     expect(await screen.findByText('Backup missing')).toBeInTheDocument()
     expect(screen.getByText('active/passive')).toBeInTheDocument()
     expect(screen.getByText(/Spring LAN, hall 2 · primary · 192\.0\.2\.10\/24/)).toBeInTheDocument()
@@ -121,7 +121,7 @@ describe('AgentsView on a dashboard', () => {
   it('shows the figures and only the agents that need a look', async () => {
     const { default: AgentsView } = await import('./agents/AgentsView')
     vi.stubGlobal('fetch', fakeFetch({
-      'GET /api/auth/me': admin, 'GET /api/halls': halls,
+      'GET /api/auth/me': admin, 'GET /api/inventory/groups': groups,
       'GET /api/agents': { agents: [busyAgent(), quietAgent({ id: 'ok', name: 'Calm one', report: { at: Date.now() / 1000 } })], connected: true, max: 10, protocol: 2, newest_version: '0.9.0' },
     }).fn)
     renderWithApp(<AgentsView expanded={false} />)

@@ -1826,8 +1826,8 @@ export interface Agent {
   protocol?: number | null
   /** Speaks an older agent protocol than this Floorbit: time to pull the new image. */
   outdated?: boolean
-  /** Hall ids it answers for; empty: every hall. */
-  halls?: string[]
+  /** Inventory tag ids it answers for (devices with one, directly or by group); empty: every device. */
+  tags?: string[]
   /** What it sent in the last ten minutes besides answers: syslog lines kept, flow summaries. */
   relays?: { syslog?: { at: number; count: number }; flows?: { at: number; count: number } }
   /** The agent's own numbers, sent every half minute (null: none lately, or an older agent). */
@@ -1857,10 +1857,10 @@ export interface AgentUpdates {
   events: { at: number; plugin: string; event: 'installed' | 'kept' | 'rolled back' | 'refused' | 'waiting' | 'dropped'; version: string; detail: string }[]
 }
 
-/** Agents that serve the same halls, and how their failover stands (floorbit/agent_ha.py). */
+/** Agents that serve the same tags, and how their failover stands (floorbit/agent_ha.py). */
 export interface AgentGroup {
   id: string
-  halls: string[]
+  tags: string[]
   label: string
   state: 'down' | 'split' | 'no_vrrp' | 'no_primary' | 'degraded' | 'single' | 'ok'
   mode: 'active-active' | 'active-passive' | null

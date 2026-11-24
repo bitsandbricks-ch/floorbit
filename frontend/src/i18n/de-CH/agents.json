@@ -18,9 +18,6 @@
   "statsNone": "Keine Anfragen in der letzten Stunde",
   "statsFailed": "{{count}} fehlgeschlagen",
   "lastError": "Letzter Fehler, {{when}}: {{method}}: {{error}}",
-  "halls": "Zuständig für",
-  "allHalls": "Alle Hallen",
-  "hallsHelp": "Mit einem Agent pro Halle beantwortet jeder die Fragen zu seinen Switches; die Geräteliste kommt von allen.",
   "revoke": "Widerrufen",
   "revokeQuestion": "{{name}} widerrufen? Er hört bei der nächsten Anfrage auf und braucht einen neuen Schlüssel.",
   "new": "Agent eintragen",
@@ -110,8 +107,8 @@
     "redisOk": "Valkey antwortet.",
     "redisOff": "Valkey wird nicht verwendet oder antwortet nicht: Live-Updates bleiben auf dieser Instanz.",
     "redisDown": "Valkey antwortet nicht: Die Instanzen können Live-Updates und Agent-Aufrufe nicht teilen.",
-    "groupsTitle": "Agents pro Halle",
-    "groupsHelp": "Agents, die für dieselben Hallen antworten, sichern sich gegenseitig ab. Mit VRRP (FLOORBIT_AGENT_VRRP_VIPS) ist derjenige mit der ersten Adresse der Primäre: Nur er fragt Geräte ab und meldet sich an, die anderen übernehmen innert Sekunden.",
+    "groupsTitle": "Agents pro Tag",
+    "groupsHelp": "Agents, die für dieselben Tags antworten, sichern sich gegenseitig ab. Mit VRRP (FLOORBIT_AGENT_VRRP_VIPS) ist derjenige mit der ersten Adresse der Primäre: Nur er fragt Geräte ab und meldet sich an, die anderen übernehmen innert Sekunden.",
     "state": {
       "ok": "Ausfallsicher",
       "single": "Ein Agent",
@@ -133,12 +130,12 @@
     },
     "help": {
       "ok": "Stoppt der Primäre, übernimmt ein Standby seine Adressen.",
-      "single": "Kein Ausfallschutz: Melde einen zweiten Agent für diese Hallen an und schalte bei beiden VRRP ein.",
+      "single": "Kein Ausfallschutz: Melde einen zweiten Agent für diese Tags an und schalte bei beiden VRRP ein.",
       "degraded": "Der Primäre läuft, aber ein Backup-Agent ist offline: Im Moment gibt es keinen Ausfallschutz.",
       "no_primary": "Die Agents sind verbunden, aber keiner hält die erste Adresse. Prüfe keepalived auf ihnen.",
-      "no_vrrp": "Mehrere Agents antworten hier ohne VRRP: Jeder fragt die Geräte ab. Schalte VRRP bei allen ein oder gib ihnen verschiedene Hallen.",
+      "no_vrrp": "Mehrere Agents antworten hier ohne VRRP: Jeder fragt die Geräte ab. Schalte VRRP bei allen ein oder gib ihnen verschiedene Tags.",
       "split": "Zwei Agents halten sich beide für primär: Sie hören einander nicht. Prüfe das VLAN oder setze FLOORBIT_AGENT_VRRP_PEERS.",
-      "down": "Kein Agent für diese Hallen ist verbunden."
+      "down": "Kein Agent für diese Tags ist verbunden."
     },
     "noGroups": "Noch kein Agent, also keine Ausfallsicherheit zu zeigen."
   },
@@ -217,7 +214,7 @@
   },
   "tab": {
     "agents": "Agents ({{count}})",
-    "failover": "Ausfallsicherheit pro Halle",
+    "failover": "Ausfallsicherheit pro Tag",
     "server": "Dieses Floorbit",
     "overview": "Übersicht",
     "devices": "Geräte",
@@ -429,5 +426,9 @@
     "notReported": "Eingeschaltet, aber dieser Agent hat es noch nicht gemeldet",
     "turnOn": "Einschalten",
     "agentSettings": "Einstellungen dieses Agents"
-  }
+  },
+  "tags": "Zuständig für",
+  "allDevices": "Alle Geräte",
+  "tagsHelp": "Inventar-Tags: Der Agent ist für die Geräte mit einem davon zuständig, direkt oder über ihre Gruppe. Agents mit denselben Tags sichern sich gegenseitig ab. Leer: alle Geräte.",
+  "noTags": "Noch keine Tags: Leg sie unter Inventar › Gruppen und Tags an."
 }

@@ -384,25 +384,28 @@ def test_main_knows_its_commands():
 
 
 def _two_halls_two_agents(client, app_module):
-    """Hall 1 (main) with sw-a-01, hall 2 with sw-h2-01, and an agent for each hall."""
+    """Two sites as inventory tags (issue #869): sw-a-01 tagged "Site A" itself, sw-h2-01 in a group
+    that carries "Site B", and an agent for each tag."""
     from floorbit import inventory, store
-    hall2 = client.post('/api/halls', json={'name': 'Hall 2'}).get_json()['id']
+    site_a = client.post('/api/inventory/tags', json={'name': 'Site A'}).get_json()['id']
+    site_b = client.post('/api/inventory/tags', json={'name': 'Site B'}).get_json()['id']
+    group = client.post('/api/inventory/groups', json={'name': 'Hall 2', 'tags': [site_b]}).get_json()['id']
     data = store.load_data()
-    inventory.create(data, {'name': 'sw-a-01', 'role': 'switch'})
+    dev = inventory.create(data, {'name': 'sw-a-01', 'role': 'switch'})
+    dev['tags'] = [site_a]
     dev = inventory.create(data, {'name': 'sw-h2-01', 'role': 'switch'})
-    dev['hall_id'] = hall2
+    dev['group_id'] = group
     store.save_data(data)
-    main = client.get('/api/halls').get_json()['halls'][0]['id']
     one, two = enrol(client, 'Hall 1 agent'), enrol(client, 'Hall 2 agent')
-    assert client.patch(f"/api/agents/{one['id']}", json={'halls': [main]}).status_code == 200
-    assert client.patch(f"/api/agents/{two['id']}", json={'halls': [hall2]}).get_json()['halls'] == [hall2]
+    assert client.patch(f"/api/agents/{one['id']}", json={'tags': [site_a]}).status_code == 200
+    assert client.patch(f"/api/agents/{two['id']}", json={'tags': [site_b]}).get_json()['tags'] == [site_b]
     return one, two
 
 
-def test_calls_go_to_the_agent_for_the_hall(client, app_module):
+def test_calls_go_to_the_agent_for_the_devices_tags(client, app_module):
     one, two = _two_halls_two_agents(client, app_module)
-    assert client.patch(f"/api/agents/{one['id']}", json={'halls': ['nope']}).status_code == 400
-    assert client.patch('/api/agents/00000000', json={'halls': []}).status_code == 404
+    assert client.patch(f"/api/agents/{one['id']}", json={'tags': ['nope']}).status_code == 400
+    assert client.patch('/api/agents/00000000', json={'tags': []}).status_code == 404
 
     def site(name, switch):
         def execute(method, args):
@@ -429,13 +432,13 @@ def test_calls_go_to_the_agent_for_the_hall(client, app_module):
         while len(agent_link.tunnel.connected_agents()) < 2 and time.time() < deadline:
             time.sleep(0.05)
         mon = sources.monitoring()
-        for _ in range(4):      # whichever agent polls first, the hall decides
+        for _ in range(4):      # whichever agent polls first, the tags decide (one through its group)
             assert mon.device_details('sw-a-01')['answered_by'] == 'one'
             assert mon.device_details('sw-h2-01.example.com')['answered_by'] == 'two'
         assert sorted(d['hostname'] for d in mon.devices()) == ['sw-a-01', 'sw-h2-01']   # both sites
         assert mon.resolve_ip('192.0.2.20') == {'device': 'sw-h2-01'}                     # the one that knows
         listed = {a['name']: a for a in client.get('/api/agents').get_json()['agents']}
-        assert listed['Hall 2 agent']['halls'] and listed['Hall 2 agent']['stats']['calls'] >= 4
+        assert listed['Hall 2 agent']['tags'] and listed['Hall 2 agent']['stats']['calls'] >= 4
     finally:
         for a in agents:
             a.stop()
@@ -443,7 +446,7 @@ def test_calls_go_to_the_agent_for_the_hall(client, app_module):
             w.join(30)
 
 
-def test_two_agents_for_the_same_halls_answer_from_the_primary(client, app_module):
+def test_two_agents_for_the_same_tags_answer_from_the_primary(client, app_module):
     """Agents sharing VIPs (VRRP): only the primary has the telemetry picture; the standby's empty
     answers never win, and lists come once."""
     one, two = enrol(client, 'Agent A'), enrol(client, 'Agent B')
@@ -484,7 +487,7 @@ def test_two_agents_for_the_same_halls_answer_from_the_primary(client, app_modul
 
 
 def test_each_sites_netbox_keeps_its_own_devices(client, app_module):
-    """With agents per hall, two NetBox servers sync under their own ids and don't mark each
+    """With agents per site (tag), two NetBox servers sync under their own ids and don't mark each
     other's devices gone."""
     one, two = _two_halls_two_agents(client, app_module)
 
@@ -997,3 +1000,20 @@ def test_a_skewed_agent_clock_is_corrected_from_its_header(client, app_module, m
         res = post("/api/agent/v1/syslog", json={"lines": lines},
                    headers={"Floorbit-Agent-Key": key, agent_clock.HEADER: odd})
         assert res.get_json()["taken"] == 0
+
+
+def test_agent_tags_take_the_place_of_halls(app_module):
+    """Issue #869: the upgrade drops the halls an agent was limited to (nothing is live yet)."""
+    from floorbit import upgrades
+    data = {'agents': [{'id': 'a1', 'name': 'A', 'halls': ['main']}],
+            upgrades.KEY: upgrades.STEPS.index(upgrades._agent_tags)}
+    assert upgrades.apply(data)
+    assert 'halls' not in data['agents'][0]
+
+
+def test_a_device_has_the_tags_its_groups_give_it(app_module):
+    from floorbit import inventory_scope
+    data = {'inventory_groups': [{'id': 'g1', 'name': 'Hall', 'tags': ['t1']},
+                                 {'id': 'g2', 'name': 'Row', 'parent_id': 'g1', 'tags': ['t2']}]}
+    assert inventory_scope.device_tags(data, {'tags': ['t3'], 'group_id': 'g2'}) == {'t1', 't2', 't3'}
+    assert inventory_scope.device_tags(data, {}) == frozenset()

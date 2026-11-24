@@ -112,30 +112,35 @@ monitoring plugin. Revoke every agent to go back to the plugins.
 
 ### Several agents
 
-Every agent answers for every hall until you say otherwise. Several agents for the same hall share
+Every agent answers for every device until you say otherwise. Several agents for the same devices share
 the work: whichever asks first gets the next call, which suits a spare on another box for when the
 first one goes down. An answer is only taken from the agent that took the call.
 
-**An agent per hall or site.** With more than one hall, each agent has an **Answers for** field on
-the page: pick the halls whose switches it can reach (empty means every hall). Once any agent is
-limited like that:
+**An agent per hall or site: tags.** Each agent has an **Answers for** field on its Settings tab:
+pick the [inventory tags](inventory.md#groups-and-tags) of the devices it can reach. A device counts
+when it has one of them itself or gets it from its group, so a "Hall 2" group that carries a "Site B"
+tag sends every switch in it to the agents with "Site B". Empty means every device (issue #869; tags
+took the place of halls, so a site can be a hall, a building or a rack). Once any agent is limited
+like that:
 
-- a question about one switch (its status, ports, port traffic) goes to an agent for that switch's
-  hall, matched by the switch's name in the [inventory](inventory.md). A switch Floorbit doesn't know
-  goes to any agent;
+- a question about one switch (its status, ports, port traffic) goes to an agent for one of that
+  switch's tags, matched by the switch's name in the [inventory](inventory.md). A switch Floorbit
+  doesn't know goes to any agent. Calls that must stay on one agent (an SSH shell, a port bounce) go
+  to the first connected one by id, so the same agent keeps a device while it is there and the next
+  one takes over when it goes;
 - a question about everything (the device list, which switch an IP is on, ARP) goes to every
   connected agent, and their answers are put together: the device lists are joined, and the first
   agent that knows an IP answers;
 - each agent's inventory and cable plugins are synced under their own id (`netbox.<agent id>`, shown as
   "NetBox, Hall 2 agent"), so two sites' NetBox servers don't mark each other's devices as gone.
 
-Changing an agent's halls is written to the [audit log](audit.md).
+Changing an agent's tags is written to the [audit log](audit.md).
 
-### Two agents in one hall (failover)
+### Two agents for the same devices (failover)
 
-Agents that answer for the same halls back each other up. For the event network to reach them at
+Agents that answer for the same tags back each other up. For the event network to reach them at
 one address that moves, turn on VRRP in the agents (floorbit-agent's `docs/vrrp.md`): they share
-virtual IPs, and the agent holding the first one is the hall's **primary**.
+virtual IPs, and the agent holding the first one is the group's **primary**.
 
 - **Active/passive:** every VIP on one agent (the same `FLOORBIT_AGENT_VRRP_PREFER` on both). The
   standby only takes over.
@@ -148,7 +153,7 @@ Syslog that reached both agents is kept once (each line has the same id on every
 standby's NetFlow summary doesn't replace the primary's on the Traffic page. Point devices' syslog,
 NetFlow and traps at the first VIP.
 
-**Agents per hall** on the Local agents page shows each group: who is primary or standby, which
+**Failover per tag** on the Local agents page shows each group: who is primary or standby, which
 addresses each holds, active/active or active/passive, and what needs a look: **Backup missing**
 (a standby is offline), **No VRRP** (several agents without it, so each polls), **Two primaries**
 (they can't hear each other: check the VLAN or set `FLOORBIT_AGENT_VRRP_PEERS`), **No primary**, or
@@ -484,8 +489,8 @@ same **SSH port actions** plugin with the hosted settings; nothing to set on the
 - **Host keys** stay pinned on the hosted side and go along with each call, so two agents in one
   hall, or an agent that was replaced, check a switch against the same key. **Forget pinned host
   keys** works as before.
-- **Which agent:** the one serving the switch's hall ([several agents](#several-agents)); with two
-  in one hall, always the same one of them, so a terminal stays with the agent that opened it.
+- **Which agent:** one serving one of the switch's tags ([several agents](#several-agents)); with two
+  for the same tags, always the same one of them, so a terminal stays with the agent that opened it.
 - **What the agent will reach:** only private addresses, or the networks in
   `FLOORBIT_AGENT_SWITCH_NETS` (comma separated) on the agent. A hosted Floorbit that was taken
   over can't send the agent to log in anywhere else.

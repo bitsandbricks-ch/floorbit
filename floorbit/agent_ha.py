@@ -1,6 +1,7 @@
-"""High availability of the local agents (docs/agent.md, "Two agents in one hall").
+"""High availability of the local agents (docs/agent.md, "Two agents for the same devices").
 
-Agents that serve the same halls form a group. With VRRP (floorbit-agent's docs/vrrp.md) they share
+Agents that serve the same tags form a group (issue #869; tags took the place of halls). With VRRP
+(floorbit-agent's docs/vrrp.md) they share
 virtual addresses: the agent holding the first one is the group's primary, and only it polls devices
 and logs in to them (``ctx.primary()``); the others listen and take over when it goes. Holding all
 addresses on one agent is active/passive; spreading them (FLOORBIT_AGENT_VRRP_PREFER) is
@@ -27,12 +28,12 @@ def _vrrp(agent):
     return report.get('vrrp') if isinstance(report.get('vrrp'), dict) else None
 
 
-def groups(agents, hall_names=None):
-    """``[{id, halls, label, state, mode, primary, agents: [{id, name, connected, role, holds}], vips}]``."""
-    hall_names = hall_names or {}
+def groups(agents, tag_names=None):
+    """``[{id, tags, label, state, mode, primary, agents: [{id, name, connected, role, holds}], vips}]``."""
+    tag_names = tag_names or {}
     by_key = {}
     for a in agents:
-        key = tuple(sorted(a.get('halls') or ()))
+        key = tuple(sorted(a.get('tags') or ()))
         by_key.setdefault(key, []).append(a)
     out = []
     for key, members in sorted(by_key.items(), key=lambda kv: (bool(kv[0]), kv[0])):
@@ -67,8 +68,8 @@ def groups(agents, hall_names=None):
                 return 'primary'
             return 'standby' if vrrp.get(a['id']) else 'active'
         out.append({
-            'id': '|'.join(key) or '*', 'halls': list(key),
-            'label': ', '.join(hall_names.get(h, h) for h in key),
+            'id': '|'.join(key) or '*', 'tags': list(key),
+            'label': ', '.join(tag_names.get(h, h) for h in key),
             'state': state, 'mode': mode, 'primary': primary,
             'agents': [{'id': a['id'], 'name': a['name'], 'connected': bool(a.get('connected')), 'role': role(a),
                         'holds': holders.get(a['id'], [])} for a in members],
@@ -90,9 +91,9 @@ def stand_by_for(agent_id, agents=None, now=None):
     me = next((a for a in agents if a['id'] == agent_id), None)
     if me is None or not _claims_primary(me):
         return None
-    mine = sorted(me.get('halls') or ())
+    mine = sorted(me.get('tags') or ())
     rivals = [a['id'] for a in agents
-              if a['id'] != agent_id and _claims_primary(a) and sorted(a.get('halls') or ()) == mine]
+              if a['id'] != agent_id and _claims_primary(a) and sorted(a.get('tags') or ()) == mine]
     winner = min([agent_id, *rivals])
     return winner if winner != agent_id else None
 
@@ -105,9 +106,9 @@ def standby_with_primary(agent_id, now):
     me = next((a for a in agents if a['id'] == agent_id), None)
     if me is None or (_vrrp(me) or {}).get('primary', True):
         return False
-    mine = sorted(me.get('halls') or ())
+    mine = sorted(me.get('tags') or ())
     for other in agents:
-        if (other['id'] != agent_id and other.get('connected') and sorted(other.get('halls') or ()) == mine
+        if (other['id'] != agent_id and other.get('connected') and sorted(other.get('tags') or ()) == mine
                 and (_vrrp(other) or {}).get('primary')):
             flows = (other.get('relays') or {}).get('flows')
             if flows and now - flows['at'] < FLOWS_FRESH:
@@ -117,7 +118,7 @@ def standby_with_primary(agent_id, now):
 
 def action_targets(agent_ids, now=None):
     """Which of ``agent_ids`` (connected agents) a plugin action that changes something in the hall
-    goes to: one per group, its primary. Two agents of one hall sharing the work must not both
+    goes to: one per group, its primary. Two agents of one group sharing the work must not both
     clear the cache or bounce the port. A group without a single primary (no VRRP: each agent is
     its own primary; or a split) keeps every member, as before."""
     import time
