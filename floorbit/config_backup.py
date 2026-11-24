@@ -186,7 +186,9 @@ def overview(switches):
 
 
 def history(switch):
-    entry = _index().get(switch) or {}
+    # Shared, read only: the port check asks once per switch on every Problems request.
+    found = store.read_shared(_index_path(), {})
+    entry = (found if isinstance(found, dict) else {}).get(switch) or {}
     base = baseline_of(entry)
     return {'switch': switch, 'copies': list(reversed(entry.get('copies') or [])),
             'baseline': base['id'] if base else None, 'checked': entry.get('checked')}
