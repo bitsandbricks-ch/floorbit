@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
 import type { ActionResult, Agent, PluginInfo } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { Badges, DataSchema } from './parts'
 import { pluginState, type PluginTone } from './status'
+import { ConfirmButton } from '@/components/ConfirmButton'
 
 const TONE: Record<PluginTone, string> = { up: 'up', warn: 'warn', down: 'down', off: 'gray' }
 

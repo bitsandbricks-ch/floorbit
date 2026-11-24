@@ -8,11 +8,11 @@ import { del, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useAccounts, useRoles, useTeams } from '@/api/queries'
 import type { RoleInfo, Team } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { RoleForm, type RoleDraft } from './teams/RoleForm'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** Settings > Roles and teams: custom roles, the team tree and who is in which team. Admins only. */
 export default function Teams() {

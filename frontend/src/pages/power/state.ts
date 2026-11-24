@@ -1,5 +1,5 @@
 import type { PowerState } from '@/api/types'
-import { STATE_TONE, toneColor } from '@/components/stateTone'
+import { STATE_TONE, toneColor } from '@bitsandbricks/ui'
 
 /** A circuit's state as a Mantine colour (the shared state looks, #1016), and the order the counts
  *  are listed in (worst first). */

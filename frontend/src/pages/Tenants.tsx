@@ -4,10 +4,10 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ErrorBanner, LoadingState, Panel } from '@/components/ui'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 type Tenant = { id: string; name: string; url: string; status: 'active' | 'suspended' }
 type Answer = { tenants: Tenant[]; here: string }

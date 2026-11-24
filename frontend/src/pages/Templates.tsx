@@ -7,12 +7,11 @@ import { del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { Hall, LayoutTemplate } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { ApplyDialog, EditDialog, ImportDialog, SaveDialog } from './templates/Dialogs'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
-import { toastDone } from '@/components/toast'
+import { ConfirmButton, toastDone } from '@bitsandbricks/ui'
 
 type Open =
   | { kind: 'save'; template?: LayoutTemplate }

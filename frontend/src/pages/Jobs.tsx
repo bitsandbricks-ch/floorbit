@@ -12,8 +12,8 @@ import { JobPlan } from './jobs/JobPlan'
 import { EmptyState, ErrorBanner, LoadingState } from '@/components/ui'
 import { clock } from '@/lib/time'
 import { incidentTitle } from '@/lib/incidentTitle'
-import { toastDone } from '@/components/toast'
 import { IconChecklist } from '@tabler/icons-react'
+import { toastDone } from '@bitsandbricks/ui'
 
 function since(ts: number) {
   return clock(ts)

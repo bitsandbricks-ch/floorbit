@@ -6,7 +6,6 @@ import { IconFileDiff, IconPlayerPlay, IconPlus, IconTerminal2, IconTrash } from
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ConfirmIcon } from '@/components/ConfirmButton'
 import { EntitySelect } from '@/components/EntitySelect'
 import { useSearchParams } from 'react-router-dom'
 import { ApiError, del, get, post, put } from '@/api/client'
@@ -16,7 +15,7 @@ import type { CommandInfo, CommandRun, CommandTemplate } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { LoadingState, ErrorBanner } from '@/components/ui'
-import { StateBadge } from '@/components/State'
+import { ConfirmIcon, StatusBadge } from '@bitsandbricks/ui'
 
 interface RunBody {
   template: string
@@ -200,7 +199,7 @@ function Results({ run, terminal }: { run: CommandRun; terminal: boolean }) {
     <Stack gap="sm">
       <Group gap="xs">
         <Title order={2} size="h4">{run.label}{run.port ? ` · ${run.port}` : ''}</Title>
-        <StateBadge size="md" state={failed ? 'warn' : 'up'}
+        <StatusBadge size="md" state={failed ? 'warn' : 'up'}
           label={failed ? t('commands.someFailed', { count: failed, total: run.results.length }) : t('commands.allOk', { count: run.results.length })} />
       </Group>
       <SimpleGrid cols={{ base: 1, md: Math.min(run.results.length, 2), xl: Math.min(run.results.length, 3) }}>
@@ -218,7 +217,7 @@ function Results({ run, terminal }: { run: CommandRun; terminal: boolean }) {
                   </Tooltip>
                 )}
                 {r.ms !== undefined && <Text size="xs" c="dimmed">{t('commands.took', { s: (r.ms / 1000).toFixed(1) })}</Text>}
-                <StateBadge state={r.ok ? 'ok' : 'failed'} label={r.ok ? t('commands.ok') : t('commands.failed')} />
+                <StatusBadge state={r.ok ? 'ok' : 'failed'} label={r.ok ? t('commands.ok') : t('commands.failed')} />
               </Group>
             </Group>
             {r.error && <Text size="sm" c="down" mb={6}>{r.error}</Text>}

@@ -6,8 +6,8 @@ import { patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent, AgentUpdates } from '@/api/types'
 import type { Made } from './KeyAlert'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { ago } from '@/lib/time'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** Rename, a new key (the old one works until the agent uses the new one), and plugins left off. */
 export function AgentRename({ agent }: { agent: Agent }) {

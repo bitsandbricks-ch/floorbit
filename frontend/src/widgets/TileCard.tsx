@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
 import { useWidget } from '@/api/queries'
 import type { ActionResult, ActionTile, Tile, WidgetTile } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { pluginName } from '@/lib/pluginName'
 import { WidgetBody } from './WidgetBody'
 import { LoadingState } from '@/components/ui'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** Plugin tiles (issue #11): a data widget or an action button from a plugin. A dashboard pane
  *  shows one; a plugin's own page shows its tiles in a grid. */

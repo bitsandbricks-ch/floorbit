@@ -9,10 +9,10 @@ import { qk } from '@/api/keys'
 import { useCan, useInventory } from '@/api/queries'
 import { useInventoryGroups } from '@/pages/inventory/scope'
 import type { FirewallCard, FirewallList, FirewallRange } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { DataTable } from '@/components/DataTable'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 const STATUS_TONE = { online: 'up', offline: 'down', unknown: 'gray' } as const
 const ROUTE_TONE = { primary: 'up', failover: 'warn', unknown: 'gray', down: 'down' } as const

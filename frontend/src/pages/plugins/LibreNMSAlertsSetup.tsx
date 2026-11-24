@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
 import type { LibreNMSAlertsSetup as Setup } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Panel } from '@/components/ui'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 function Copy({ value }: { value: string }) {
   const { t } = useTranslation()

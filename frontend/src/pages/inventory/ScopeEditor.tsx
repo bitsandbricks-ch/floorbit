@@ -6,7 +6,6 @@ import { del, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { CredentialInfo, InventoryGroup, InventoryOverview, InventoryTag } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { PageTabs } from '@/components/PageTabs'
 import { usePageTab } from '@/components/pageTab'
 import { Panel } from '@/components/ui'
@@ -14,6 +13,7 @@ import { credentialBody } from './model'
 import { groupAndBelow, groupTree, useCredentials } from './scope'
 import { TelemetrySettings } from './TelemetrySettings'
 import { CredentialsEditor, FeaturesEditor, LookFields, PropertiesEditor, TagPicker, type CredentialDraft } from './ScopeEditors'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 export type ScopeTarget = { kind: 'group'; item: InventoryGroup | null; parent?: string | null }
   | { kind: 'tag'; item: InventoryTag | null }

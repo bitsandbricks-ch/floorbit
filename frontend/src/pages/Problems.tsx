@@ -16,7 +16,7 @@ import { useNowSeconds } from '@/components/useNowSeconds'
 import { problemsText } from './problems/format'
 import { ErrorBanner, LoadingState } from '@/components/ui'
 import { ago, clock } from '@/lib/time'
-import { StateBadge } from '@/components/State'
+import { StatusBadge } from '@bitsandbricks/ui'
 
 const MINUTES = ['30', '60', '240', '720', '1440']
 /** Cards per page: a big event can have dozens of seats with port trouble (issue #1204). */
@@ -39,7 +39,7 @@ function Row({ p, canMute, canSwap, busy, onMute, onReport, onClear }: {
       <Group justify="space-between" align="flex-start" gap="xs">
         <Stack gap={2} style={{ minWidth: 0, flex: '1 1 240px' }}>
           <Group gap="xs">
-            <StateBadge size="md" state={p.level === 'down' ? 'down' : 'warn'} label={t(`problems.kind.${p.kind}`)} />
+            <StatusBadge size="md" state={p.level === 'down' ? 'down' : 'warn'} label={t(`problems.kind.${p.kind}`)} />
             <Text fw={600} style={{ overflowWrap: 'anywhere' }}>{p.title}</Text>
           </Group>
           {p.where && <Text size="sm" c="dimmed">{p.where}</Text>}

@@ -11,14 +11,13 @@ import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { LinkSuggestion, SwitchLink, SwitchPort, Topology as TopologyData, TopologyNode, TopologyUplink } from '@/api/types'
-import { ConfirmButton } from '@/components/ConfirmButton'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@/components/PageHead'
 import { download, standaloneSvg, svgToPng } from './plan/exportImage'
 import { type Box as ViewBox, bounds, toDiagram, zoomAt } from './topology/camera'
 import { NODE_H, NODE_W, type Placed, arranged, gbit, layout, placeUplinks } from './topology/layout'
 import { ErrorBanner } from '@/components/ui'
-import { StateBadge } from '@/components/State'
+import { ConfirmButton, StatusBadge } from '@bitsandbricks/ui'
 
 const COLOR: Record<string, string> = {
   cat5e: 'var(--mantine-color-blue-6)', cat6: 'var(--mantine-color-blue-6)', cat6a: 'var(--mantine-color-blue-6)',
@@ -402,7 +401,7 @@ function NodePanel({ name, role, status, links, onPick }: {
     <Stack gap="xs">
       <Group justify="space-between" wrap="nowrap">
         <Title order={3} size="h5">{name}</Title>
-        <StateBadge size="md" state={status} label={t(`topology.status.${status}`)} />
+        <StatusBadge size="md" state={status} label={t(`topology.status.${status}`)} />
       </Group>
       <Text size="sm" c="dimmed">{t(`topology.roles.${role}`, { defaultValue: role })} · {t('topology.links', { count: links.length })}</Text>
       {links.map((l) => {

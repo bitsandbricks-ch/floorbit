@@ -3,10 +3,10 @@ import { IconArrowLeft } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { ConfirmButton } from './ConfirmButton'
 import { Layout } from './Layout'
 import { PageHead } from './PageHead'
 import { EmptyState, LoadingState, Panel } from './ui'
+import { ConfirmButton } from '@bitsandbricks/ui'
 
 /** One thing on its own page (#1018): a link back to its list, its name with an icon and a line
  *  about it in the top bar, then its parts. While it loads the page shows its shape; when it is gone
