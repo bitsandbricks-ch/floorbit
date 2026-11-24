@@ -6,7 +6,7 @@ For admins (``settings.manage``):
 - ``GET /api/agents``: the enrolled agents, whether each is connected, and the tunnel's state.
 - ``GET /api/agents/<id>/devices``: the devices it collects, their state and why one sends nothing.
 - ``POST /api/agents`` ``{"name"}``: enrol one; the answer holds its key, this once.
-- ``PATCH /api/agents/<id>`` ``{"halls": [ids]}``: the halls it answers for (empty: every hall).
+- ``PATCH /api/agents/<id>`` ``{"tags": [ids]}``: the inventory tags it answers for (empty: every device).
 - ``DELETE /api/agents/<id>``: revoke it.
 
 For the agent, with its key in ``Floorbit-Agent-Key`` (no session, no browser):
@@ -80,8 +80,8 @@ def agent_page(agent_id):
 def list_agents():
     server = current_app.config.get('FLOORBIT_VERSION') or '0'
     agents = [{**a, 'outdated': agent_link.outdated(a.get('protocol'))} for a in agent_link.all_agents()]
-    from .. import agent_ha, cluster, halls
-    names = {h['id']: h['name'] for h in halls.halls(agent_link.load_data())}
+    from .. import agent_ha, cluster, inventory_scope
+    names = {t['id']: t['name'] for t in inventory_scope.tags(agent_link.load_data())}
     return jsonify({'agents': agents, 'connected': agent_link.tunnel.connected(),
                     'max': agent_link.MAX_AGENTS, 'server_version': server, 'protocol': agent_link.PROTOCOL,
                     'newest_version': agent_link.newest_version(agents),
@@ -131,7 +131,7 @@ def enrol():
 
 @bp.route('/api/agents/<agent_id>', methods=['PATCH'])
 def change(agent_id):
-    """``{"name"}``, ``{"halls": [hall id]}`` and/or ``{"plugins_off": [plugin id]}``."""
+    """``{"name"}``, ``{"tags": [inventory tag id]}`` and/or ``{"plugins_off": [plugin id]}``."""
     body = request.get_json(silent=True) or {}
     out = {'id': agent_id}
     try:
@@ -139,11 +139,14 @@ def change(agent_id):
             old, name = agent_link.rename(agent_id, body['name'])
             audit.record('agents', f'Renamed a local agent: {old}', g.get('audit_user'), name, fields=['name'])
             out['name'] = name
-        if 'halls' in body:
-            name, halls = agent_link.set_halls(agent_id, body.get('halls') or [])
-            audit.record('agents', f"Set the halls of a local agent: {', '.join(halls) or 'every hall'}",
-                         g.get('audit_user'), name, fields=['halls'])
-            out['halls'] = halls
+        if 'tags' in body:
+            name, tags = agent_link.set_tags(agent_id, body.get('tags') or [])
+            from .. import inventory_scope
+            names = {t['id']: t['name'] for t in inventory_scope.tags(agent_link.load_data())}
+            audit.record('agents', 'Set the tags of a local agent: '
+                         f"{', '.join(names.get(t, t) for t in tags) or 'every device'}",
+                         g.get('audit_user'), name, fields=['tags'])
+            out['tags'] = tags
         if 'plugins_off' in body:
             name, off = agent_link.set_plugins_off(agent_id, body.get('plugins_off'))
             audit.record('agents', f"Set the plugins a local agent leaves off: {', '.join(off) or 'none'}",
@@ -688,7 +691,7 @@ def take_flow_summary(agent, snap):
             clean[key] = value[:most] if most and isinstance(value, list) else value
     from .. import agent_ha
     if agent_ha.standby_with_primary(agent['id'], time.time()):
-        # Two agents in one hall: the primary's summary stands; a standby's would replace it with part of it.
+        # Two agents of one group: the primary's summary stands; a standby's would replace it with part of it.
         agent_link.tunnel.relayed(agent['id'], 'flows', 0)
         return True
     # The hosted clock decides whether the summary is stale, not the agent's.

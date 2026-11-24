@@ -324,9 +324,18 @@ def _ipam(data):
             data['inventory_items'].pop(key)
 
 
+def _agent_tags(data):
+    """Issue #869: agents serve inventory tags, not halls. Floorbit isn't live anywhere yet, so a
+    hall an agent was limited to isn't carried over: the agent serves every device until its tags
+    are set."""
+    for a in data.get('agents') or []:
+        if isinstance(a, dict):
+            a.pop('halls', None)
+
+
 STEPS = (_inventory, _display_settings, _roles, _block_groups, _dashboards, _switch_logins, _no_brackets,
          _no_runbooks, _no_seat_finder, _small_status_page, _no_attendee_programme,
-         _platform_admins, _no_match_seats, _telemetry_properties, _block_rows, _ipam)
+         _platform_admins, _no_match_seats, _telemetry_properties, _block_rows, _ipam, _agent_tags)
 CURRENT = len(STEPS)
 
 

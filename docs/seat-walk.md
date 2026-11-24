@@ -39,6 +39,24 @@ asked. An answer that still
 names the last seat's port comes from a MAC table nobody read again yet: Floorbit doesn't take it and
 keeps asking for up to 90 seconds.
 
+## Watching what it does
+
+While the walk runs, the page shows:
+
+- **At the top:** the agent address to open on the laptop (with a copy button), the laptop's IP and
+  MAC that Floorbit is looking for, and which agent saw it.
+- **A flow strip:** laptop, MAC, the monitoring tables, then the switches of the row, the block and
+  the rest of the VLAN (and SSH when it comes to that), up to the seat. The step being asked right
+  now is marked.
+- **What Floorbit is doing:** every step with its time and how long it took: which agent saw the
+  laptop, whether the monitoring tables had it, which switch was asked in which group and what it
+  said (not there, only on an uplink, no answer, found), an answer that still names the last seat's
+  port, and the next try. **Everything** shows each try; **Steps** folds the waits. **Copy** puts the
+  whole trace on the clipboard, for a bug report.
+
+The steps reach the page live while the lookup runs. Only signed-in pages that may read seats see the
+laptop's IP and MAC in them; on other pages they are left out.
+
 ## Why always through the agent
 
 Floorbit itself often doesn't see the laptop's own address: behind NAT or on a hosted Floorbit it
@@ -55,6 +73,11 @@ Nothing has to be set up for it. Floorbit works out how the laptop reaches an ag
   front door answers it.
 - **No check-in name set:** the address browsers in the hall last reached an agent at. Each agent's
   front door learns it from the requests it answers and reports it.
+
+When the agent's host publishes the front door on another port than 443/80 (`HTTPS_PUBLISH_PORT`,
+`HTTP_PUBLISH_PORT` in the agent's compose), the agent says so and the check-in name gets that
+port. **Reached in the hall at** on an agent's page names the address outright, for a reverse proxy
+or port forwarding; it comes first. The address shows at the top of the walk, with a copy button.
 
 A code is good for ten minutes, is used once, and only a signed-in page with `seats.edit` makes one.
 The agent sends the browser back only to the Floorbit it is enrolled with.
@@ -77,11 +100,35 @@ the address and looks for that MAC in the switches' MAC tables (or the monitorin
 Pick your rows and press **Start**. The page then watches for the cable: plug it into the seat's
 socket and the page finds the port on its own and moves on to the next seat. There is no Locate
 button to press while it watches (it stays for a manual retry after five minutes without a port).
+Turn off **Move on by itself after a hit** to stay on a seat until you press Next.
 
-Several people can walk at once, each with their own rows. The page lists every row in the hall with
-how many of its seats have a port, who walks it and at which seat they are now. A row someone else
-walks can't be started twice; **Take them over** moves those rows to you, for when the other walker
-left without stopping. A walk that has not said where it is for ten minutes counts as ended.
+The hall's rows sit beside the walk (on a phone, below it): every row with how many of its seats
+have a port, who walks it and at which seat, how many seats were not found and how many are marked.
+Search a row by name, or show only open rows or your own. Picking a row there starts the setup on
+it, or, while you walk, jumps to the row's first seat.
+
+Above the seat, the **seat strip** shows the walk's seats in order: found, open, not found, marked,
+and where you are. Pick any seat in it to check it now instead of walking there in order.
+
+### Each walk is kept
+
+Floorbit keeps each crew member's walk: its rows and order, the seat it is at, the seats it found
+and the ones it could not find. A row can't be started twice while someone walks it.
+
+- **Pause** (or a closed tab, a flat battery: ten minutes without a word) stops the walk holding
+  its rows, but keeps it. **Continue your walk** on the setup page, on this laptop or any other one,
+  picks it up at the seat it stopped at, with what it found.
+- **Take over** in the row list moves someone else's walk to you, where it got to. Their open page
+  stops writing to it and says who took it. Taking over is in the audit log.
+- **End walk** forgets the walk. The ports it found stay with their seats.
+- A walk nobody touched for a week is gone.
+
+### Marking a seat
+
+**Mark seat** puts a mark on the seat in front of you, with an optional note: **Broken socket**,
+**Come back later** or **Nothing to walk**. A walk skips marked seats (pick one in the seat strip to
+check it anyway); the mark shows on the strip and in the row list until someone removes it. Marks
+belong to the event and are cleared with its seat ports. Each mark is in the audit log.
 
 ## Per event, cleared a day after
 
@@ -96,4 +143,4 @@ The patch plan ([cables](cables.md)) is not cleared: it is what the crew planned
 Where the patch plan names another seat for a port, the plan wins on the floor plan, so the page
 offers to correct the plan.
 
-Who may: reading needs `seats.view`, locating and saving needs `seats.edit`.
+Who may: reading needs `seats.view`; locating, saving, walks and marks need `seats.edit`.

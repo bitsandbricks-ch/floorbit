@@ -56,8 +56,8 @@ def test_rename_and_plugins_left_off(client, anon_client, app_module):
     assert "Renamed a local agent: Old name" in actions
 
 
-def agent(aid, connected=True, halls=(), vrrp=None):
-    return {"id": aid, "name": aid.upper(), "connected": connected, "halls": list(halls),
+def agent(aid, connected=True, tags=(), vrrp=None):
+    return {"id": aid, "name": aid.upper(), "connected": connected, "tags": list(tags),
             "report": {"vrrp": vrrp} if vrrp is not None else {}}
 
 
@@ -83,10 +83,10 @@ def test_groups_say_who_is_primary_and_how_the_hall_stands():
         assert agent_ha.groups(agents)[0]["state"] == state, state
 
 
-def test_groups_follow_the_halls():
-    got = agent_ha.groups([agent("a", halls=["h2"]), agent("b"), agent("c", halls=["h2"])], {"h2": "Hall 2"})
+def test_groups_follow_the_tags():
+    got = agent_ha.groups([agent("a", tags=["h2"]), agent("b"), agent("c", tags=["h2"])], {"h2": "Site 2"})
     assert [(g["id"], g["label"], [a["id"] for a in g["agents"]]) for g in got] == [
-        ("*", "", ["b"]), ("h2", "Hall 2", ["a", "c"])]
+        ("*", "", ["b"]), ("h2", "Site 2", ["a", "c"])]
 
 
 def test_a_standby_keeps_out_of_the_traffic_page_while_the_primary_reports(client, anon_client, monkeypatch):
@@ -118,7 +118,7 @@ def test_the_page_shows_groups_and_this_floorbit(client, anon_client):
 
 def test_a_split_group_keeps_one_primary_the_smallest_id():
     both = [agent("b2", vrrp={"primary": True}), agent("a1", vrrp={"primary": True}),
-            agent("c3", halls=["side"], vrrp={"primary": True})]       # another hall: not a rival
+            agent("c3", tags=["side"], vrrp={"primary": True})]       # other tags: not a rival
     assert agent_ha.stand_by_for("a1", both) is None
     assert agent_ha.stand_by_for("b2", both) == "a1"
     assert agent_ha.stand_by_for("c3", both) is None
@@ -152,11 +152,11 @@ def test_the_split_reaches_the_agents_with_their_plugin_config(client, anon_clie
 
 
 def test_a_plugin_action_goes_to_one_agent_per_hall(monkeypatch):
-    agents = [agent("a", halls=["h1"], vrrp={"primary": True, "holds": ["192.0.2.10/24"]}),
-              agent("b", halls=["h1"], vrrp={"primary": False, "holds": []}),
-              agent("c", halls=["h2"]),                                   # another hall, alone
-              agent("d", halls=["h3"]), agent("e", halls=["h3"]),         # no VRRP: both stay
-              agent("f", halls=["h4"], vrrp={"primary": True}), agent("g", halls=["h4"], vrrp={"primary": True})]
+    agents = [agent("a", tags=["h1"], vrrp={"primary": True, "holds": ["192.0.2.10/24"]}),
+              agent("b", tags=["h1"], vrrp={"primary": False, "holds": []}),
+              agent("c", tags=["h2"]),                                   # other tags, alone
+              agent("d", tags=["h3"]), agent("e", tags=["h3"]),         # no VRRP: both stay
+              agent("f", tags=["h4"], vrrp={"primary": True}), agent("g", tags=["h4"], vrrp={"primary": True})]
     monkeypatch.setattr("floorbit.agent_link.all_agents", lambda now=None: agents)
     assert agent_ha.action_targets([a["id"] for a in agents]) == ["a", "c", "d", "e", "f", "g"]
     # The primary away: its standby takes the action.

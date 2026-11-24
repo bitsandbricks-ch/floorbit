@@ -151,14 +151,22 @@ def _vlan_switches(vlan, data):
     return out
 
 
-def candidates(seat, vlan, data=None):
-    """Switch names in the order to ask: the seat's row, its block, the rest with the VLAN."""
+def candidate_groups(seat, vlan, data=None):
+    """``{"row": [...], "block": [...], "vlan": [...]}``: the switches to ask, in order and each once:
+    the seat's row (its area), the rest of its block, then every other switch with the VLAN."""
     data = load_data() if data is None else data
     row, block = _block_rows(seat, data)
-    first = _switches_of(row, data) if row else []
-    second = _switches_of(block, data) if block else []
-    rest = _vlan_switches(vlan, data)
-    return list(dict.fromkeys(first + second + rest))
+    seen, out = set(), {}
+    for group, names in (('row', _switches_of(row, data) if row else []),
+                         ('block', _switches_of(block, data) if block else []),
+                         ('vlan', _vlan_switches(vlan, data))):
+        out[group] = [n for n in names if not (n in seen or seen.add(n))]
+    return out
+
+
+def candidates(seat, vlan, data=None):
+    """Switch names in the order to ask: the seat's row, its block, the rest with the VLAN."""
+    return [n for names in candidate_groups(seat, vlan, data).values() for n in names]
 
 
 def _core(seg, data):
@@ -195,7 +203,7 @@ def _ask_agents(req):
                       or 'No local agent answered.')
 
 
-def lookup(ip, seat=None, mac=None, crew=False, now=None, ask=None, data=None):
+def lookup(ip, seat=None, mac=None, crew=False, now=None, ask=None, data=None, trace=None):
     """``{state, switch?, port?, mac?, todo?, ...}``. ``state``:
 
     - ``found``: a switch learned it on an access port;
@@ -204,14 +212,18 @@ def lookup(ip, seat=None, mac=None, crew=False, now=None, ask=None, data=None):
       MAC or picks the port;
     - ``closed``: outside the check-in window;
     - ``error``: the agent didn't answer.
+
+    ``trace`` (the seat walk's, floorbit/seat_walk.py) hears which switches are asked and what each said.
     """
     from . import segments
     now = time.time() if now is None else now
     data = load_data() if data is None else data
     seg = segments.for_ip(ip, segments.all_segments()) if ip else None
     if seg is None:
+        _said(trace, 'snmpTodo', 'skip', why='no_segment', ip=ip)
         return {'state': 'todo', 'todo': 'no_segment'}
     if not seg.get('lookups'):
+        _said(trace, 'snmpTodo', 'skip', why='segment_off', vlan=seg['vlan'])
         return {'state': 'todo', 'todo': 'segment_off', 'vlan': seg['vlan']}
     if not crew and not window(now, data)['open']:
         return {'state': 'closed', 'vlan': seg['vlan']}
@@ -230,7 +242,7 @@ def lookup(ip, seat=None, mac=None, crew=False, now=None, ask=None, data=None):
         running.wait(30)          # someone else asks right now: share their answer
         now = time.time()
     try:
-        result = _lookup(ip, seat, mac, seg, data, ask or _ask_agents)
+        result = _lookup(ip, seat, mac, seg, data, ask or _ask_agents, trace)
         with _lock:
             if len(_memo) >= MAX_MEMO:
                 _memo.clear()
@@ -242,19 +254,32 @@ def lookup(ip, seat=None, mac=None, crew=False, now=None, ask=None, data=None):
         running.set()
 
 
-def _lookup(ip, seat, mac, seg, data, ask):
+def _said(trace, code, state, **args):
+    if trace is not None:
+        trace.add(code, state, **args)
+
+
+def _lookup(ip, seat, mac, seg, data, ask, trace=None):
     from .plugins.base import PluginError
     vlan = seg['vlan']
     core, if_index = _core(seg, data)
     if not mac and not core:
+        _said(trace, 'snmpTodo', 'skip', why='no_core', vlan=vlan)
         return {'state': 'todo', 'todo': 'no_core', 'vlan': vlan}
+    groups = candidate_groups(seat, vlan, data)
     req = {'ip': ip, 'vlan': vlan, 'if_index': if_index, 'core': core, 'mac': mac,
-           'switches': candidates(seat, vlan, data)}
+           'switches': [n for names in groups.values() for n in names]}
+    if not mac:
+        _said(trace, 'snmpArp', 'run', core=core, vlan=vlan, ip=ip)
+    _said(trace, 'snmpAsk', 'run', vlan=vlan, row=groups['row'], block=groups['block'], others=len(groups['vlan']))
     try:
         got = ask(req)
     except PluginError as exc:
         print(f'[check-in] lookup of {ip} in VLAN {vlan} failed: {exc}')
+        _said(trace, 'snmpError', 'no', error=str(exc)[:200])
         return {'state': 'error', 'vlan': vlan}
+    if trace is not None:
+        _trail(trace, got, groups, mac)
     out = {'vlan': vlan, 'mac': got.get('mac'), 'asked': len(got.get('asked') or []),
            'took_ms': got.get('took_ms')}
     if got.get('switch') and (got.get('port') or got.get('if_index')):
@@ -263,6 +288,40 @@ def _lookup(ip, seat, mac, seg, data, ask):
     else:
         out['state'] = 'not_found'
     return out
+
+
+def _trail(trace, got, groups, mac):
+    """What each switch said, from the agent's ``trail`` (agents built on a Floorbit before issue
+    #1359 send only ``asked``, ``skipped`` and ``errors``, so it is worked out from those)."""
+    group_of = {n: g for g, names in groups.items() for n in names}
+    if not mac:
+        trace.add('snmpMac', 'ok' if got.get('mac') else 'no', mac=got.get('mac'))
+        if not got.get('mac'):
+            return
+    trail = got.get('trail')
+    if not isinstance(trail, list):
+        errors = {e.get('switch'): e.get('error') for e in got.get('errors') or [] if isinstance(e, dict)}
+        uplinks = {s.get('switch'): s.get('if_index') for s in got.get('skipped') or [] if isinstance(s, dict)}
+        trail = []
+        for name in got.get('asked') or []:
+            if name == got.get('switch'):
+                trail.append({'switch': name, 'result': 'found', 'port': got.get('port') or got.get('if_index')})
+            elif name in uplinks:
+                trail.append({'switch': name, 'result': 'uplink', 'if_index': uplinks[name]})
+            else:
+                trail.append({'switch': name, 'result': 'error' if name in errors else 'none',
+                              'error': errors.get(name)})
+    errors = {e.get('switch'): e.get('error') for e in got.get('errors') or [] if isinstance(e, dict)}
+    for step in trail[:64]:
+        if not isinstance(step, dict):
+            continue
+        name, result = str(step.get('switch') or ''), str(step.get('result') or 'none')
+        args = {'switch': name, 'group': group_of.get(name, 'vlan'), 'result': result,
+                'port': step.get('port') or (str(step['if_index']) if step.get('if_index') else None)}
+        if result == 'error':
+            args['error'] = str(step.get('error') or errors.get(name) or '')[:200]
+        state = 'ok' if result == 'found' else 'skip' if result == 'uplink' else 'no'
+        trace.add('snmpSwitch', state, ms=step.get('ms'), **args)
 
 
 def _remember(ip, found):

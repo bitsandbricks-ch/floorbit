@@ -5,11 +5,12 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { Panel } from '@/components/ui'
-import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
-import type { TimePoint } from '@bitsandbricks/widgets'
+import { EmptyState, ErrorBanner, LoadingState, type Widget } from '@bitsandbricks/ui'
+import { FitWidget, type TimePoint } from '@bitsandbricks/widgets'
 import { IconArrowsMaximize, IconChartLine } from '@tabler/icons-react'
 import { HoverTimeChart } from '@/components/HoverTimeChart'
 import { stats } from '@/components/timeSeries'
+import './AgentGraphs.css'
 
 /** GET /api/agents/<id>/history (floorbit/agent_history.py): rates are per minute. */
 export interface AgentHistory { hours: number; series: Record<string, TimePoint[]> }
@@ -17,8 +18,10 @@ export interface AgentHistory { hours: number; series: Record<string, TimePoint[
 // The page's order: is telemetry flowing, does it reach Floorbit, then the agent's own link.
 const METRICS = ['points', 'sent', 'series', 'heard', 'failing', 'telegraf_restarts', 'reconnects', 'syslog', 'median_ms'] as const
 const RANGES = ['1', '6', '24', '48'] as const
+const PER_MINUTE: readonly string[] = ['points', 'sent', 'reconnects', 'syslog']
 
-/** One agent's numbers over time, a small chart each; a metric it never sent is left out. */
+/** One agent's numbers over time: each one's latest value as the dashboards' stat widget (#1321),
+ *  then its chart; a metric it never sent is left out. */
 export function AgentGraphs({ agentId }: { agentId: string }) {
   const { t, i18n } = useTranslation()
   const [hours, setHours] = useState<string>('6')
@@ -32,6 +35,9 @@ export function AgentGraphs({ agentId }: { agentId: string }) {
   const since = until - Number(hours) * 3600
   const shown = METRICS.filter((m) => (q.data?.series[m] ?? []).length > 0)
   const num = (v: number) => v.toLocaleString(i18n.language, { maximumFractionDigits: v < 10 ? 1 : 0 })
+  const unit = (m: string) => PER_MINUTE.includes(m) ? t('agents.graphs.unit.perMinute') : m === 'median_ms' ? t('agents.graphs.unit.ms') : ''
+  const widget = (m: string, pts: TimePoint[]): Widget => ({ type: 'series', id: m, label: t(`agents.graphs.metric.${m}`),
+    size: 'small', refresh: 60, sub: '', link: '', unit: unit(m), series: [{ label: t(`agents.graphs.metric.${m}`), points: pts }] })
 
   return (
     <>
@@ -47,14 +53,15 @@ export function AgentGraphs({ agentId }: { agentId: string }) {
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           {shown.map((m) => {
             const pts = q.data!.series[m]
-            const last = pts[pts.length - 1][1]
             const s = stats(pts)
             const name = t(`agents.graphs.metric.${m}`)
             return (
-              <Panel key={m} title={name} desc={t(`agents.graphs.unit.${m}`, { n: num(last) })}
+              <Panel key={m} title={name} desc={t(`agents.graphs.note.${m}`)}
                 actions={<ActionIcon variant="subtle" color="gray" aria-label={t('agents.graphs.bigger', { name })} onClick={() => setBig(m)}>
                   <IconArrowsMaximize size={16} />
                 </ActionIcon>}>
+                {/* The latest value as the stat widget, at the level without its own graph: the chart under it has the history. */}
+                <div className="fb-agent-stat"><FitWidget widget={widget(m, pts)} pick="stat" pin="m" /></div>
                 <HoverTimeChart points={pts} since={since} until={until} label={name}
                   format={(v) => t('agents.graphs.max', { n: num(v) })} value={num} />
                 <Text size="xs" c="dimmed" mt={4} style={{ fontVariantNumeric: 'tabular-nums' }}>

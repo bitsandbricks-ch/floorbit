@@ -3,13 +3,17 @@ laptop, plug it into each seat's port and press Locate. Floorbit looks the lapto
 request's IP (ARP: IP to MAC, then the switches' MAC tables: MAC to switch port) and keeps
 seat to port for this event, in the same place a seat check-in keeps it (integrations/checkin.py).
 
-Freshest answer first, because every seat counts:
+Cheapest fresh answer first, because every seat counts:
 
-1. **The switch itself** (``switch``): over SSH with the stored login (floorbit/credentials.py), ask
-   ``show mac address-table address <mac>`` on the switch the last seat was on (rows are mostly on
-   one switch), then on the other switches. One to three seconds.
-2. **The monitoring source** (``monitoring``): telemetry or LibreNMS, through the local agent when
-   one is enrolled. Only as fresh as their last poll of the MAC tables, so this is retried.
+1. **The monitoring source** (``monitoring``): telemetry or LibreNMS, through the local agent when
+   one is enrolled. Only as fresh as their last poll of the MAC tables, so an old answer is retried.
+2. **Single SNMP GETs** (``snmp``) through the agent (floorbit/checkin_lookup.py): the switches of
+   the seat's row (its area) first, then the rest of its block, then every switch with the VLAN.
+3. **The switch itself** (``switch``), the last resort for switches that don't answer SNMP: over SSH
+   with the stored login (floorbit/credentials.py), ``show mac address-table address <mac>`` on the
+   switch the last seat was on (rows are mostly on one switch), then on the other switches.
+
+Every step goes to the page as it happens (``Trace``, issue #1359).
 
 The laptop keeps its IP and MAC from seat to seat; only its port changes. So an answer that still
 names the last seat's port is old (a MAC table nobody read again yet) and is not taken.
@@ -28,6 +32,7 @@ import re
 import secrets
 import threading
 import time
+from urllib.parse import urlsplit, urlunsplit
 
 from integrations import checkin
 
@@ -41,6 +46,33 @@ MAX_CANDIDATES = 12        # switches asked at once when the likely ones didn't 
 MAC_RE = re.compile(r'\b([0-9a-f]{4}\.[0-9a-f]{4}\.[0-9a-f]{4}|(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2})\b', re.I)
 UPLINK_NAME_RE = re.compile(r'^(po|port-channel|vlan|vl|nve|tunnel|mgmt|lag|ae)\s*\d', re.I)
 SOURCE = 'walk'
+
+
+class Trace:
+    """What one Locate does, step by step: the page shows it live while it runs (issue #1359).
+
+    Each step is ``{"at": ms since the epoch, "code", "state", "ms"?, "args"}``; the page words it
+    from ``code`` (``seatWalkTrace`` texts). ``state`` is ``ok``, ``no``, ``skip``, ``warn`` or ``run``
+    (still going). With a ``run`` (the page's own random id for this Locate) every step also goes out
+    on the live bus as ``seat-walk.trace``; the bus drops ``ip`` and ``mac`` for pages that may not
+    read them (integrations/events.py), so a trace never shows a laptop to a kiosk.
+    """
+    MAX_STEPS = 300
+
+    def __init__(self, run=None, seat=None, clock=time.time):
+        self.run, self.seat, self.clock, self.steps = run, seat, clock, []
+
+    def add(self, code, state='ok', ms=None, **args):
+        step = {'at': int(self.clock() * 1000), 'code': code, 'state': state,
+                'args': {k: v for k, v in args.items() if v is not None and v != []}}
+        if ms is not None:
+            step['ms'] = int(ms)
+        if len(self.steps) < self.MAX_STEPS:
+            self.steps.append(step)
+            if self.run:
+                from integrations import events
+                events.publish('seat-walk.trace', {'run': self.run, 'seat': self.seat, 'step': step})
+        return step
 
 
 class WalkError(ValueError):
@@ -154,9 +186,10 @@ def _mac_command(mac):
     return f'show mac address-table address {digits[0:4]}.{digits[4:8]}.{digits[8:12]}'
 
 
-def port_from_switches(mac, registry, account, likely=()):
+def port_from_switches(mac, registry, account, likely=(), trace=None):
     """``{"switch", "port"}`` where ``mac`` is on an access port now, or None. The likely switches
     first (the last seat's, the seat's patch plan), then every other switch at once."""
+    trace = trace or Trace()
     switches = [d['name'] for d in _devices() if d.get('role') == 'switch']
     if not switches or _ssh(registry)[0] is None:
         return None
@@ -164,14 +197,23 @@ def port_from_switches(mac, registry, account, likely=()):
     rest = [s for s in switches if _short(s).lower() not in {_short(f).lower() for f in first}]
     for batch in ([first] if first else []) + [rest[i:i + MAX_CANDIDATES] for i in range(0, len(rest), MAX_CANDIDATES)]:
         hits = []
+        trace.add('sshAsk', 'run', switches=batch, mac=mac)
         for result in _run(registry, account, batch, _mac_command(mac)):
             if not result.get('ok'):
+                trace.add('sshSwitch', 'no', switch=result.get('switch'), result='error',
+                          error=str(result.get('error') or '')[:200] or None)
                 continue
             ups = _uplinks(result['switch'])
+            seen = False
             for port in _parse_mac_table(result.get('output'), mac):
+                seen = True
                 if port.lower() in ups or UPLINK_NAME_RE.match(port):
+                    trace.add('sshSwitch', 'skip', switch=result['switch'], port=port, result='uplink')
                     continue
                 hits.append({'switch': result['switch'], 'port': port})
+                trace.add('sshSwitch', 'ok', switch=result['switch'], port=port, result='found')
+            if not seen:
+                trace.add('sshSwitch', 'no', switch=result['switch'], result='none')
         if len(hits) == 1:
             return hits[0]
         if hits:
@@ -206,75 +248,101 @@ def _from_monitoring(ip):
             'mac': _mac(found.get('mac'))}
 
 
-def _from_switches(ip, seat, mac):
+def _from_switches(ip, seat, mac, trace=None):
     """One PC's port with a few SNMP GETs through the agent (floorbit/checkin_lookup.py), or None."""
     from . import checkin_lookup
     try:
-        got = checkin_lookup.lookup(ip, seat=seat, mac=mac, crew=True)
+        got = checkin_lookup.lookup(ip, seat=seat, mac=mac, crew=True, trace=trace)
     except Exception as exc:  # noqa: BLE001  # SSH and the next try are still there
         print(f'[seat-walk] switch lookup failed: {exc}')
+        if trace is not None:
+            trace.add('snmpError', 'no', error=str(exc)[:200])
         return None, None
     found = {'switch': got['switch'], 'port': got['port']} if got.get('state') == 'found' else None
     return found, got
 
 
-def locate_once(ip, registry=None, account=None, previous=None, likely=(), mac=None, seat=None):
+def locate_once(ip, registry=None, account=None, previous=None, likely=(), mac=None, seat=None, trace=None):
     """One try: ``{"found": {"switch", "port"} | None, "mac", "how", "steps": [...], "stale"}``.
-    The tables first (LibreNMS, Telemetry), then single SNMP GETs on the switches, and SSH last,
-    for switches that don't answer SNMP."""
+    The tables first (LibreNMS, Telemetry), then single SNMP GETs on the switches through the agent
+    (the seat row's switches, its block's, then every switch on the VLAN), and SSH last, for
+    switches that don't answer SNMP. ``trace`` hears every step (issue #1359)."""
+    trace = trace or Trace()
     steps, stale = [], False
+
+    def old(port, how):
+        trace.add('stale', 'warn', switch=port['switch'], port=port['port'], how=how)
+        return True
+
     if not mac:
         mac, how = mac_for(ip, registry, account)
         steps.append({'step': 'mac', 'ok': bool(mac), 'how': how})
+        trace.add('mac', 'ok' if mac else 'no', how=how, ip=ip, mac=mac)
     if mac:
         # The laptop may have a new lease in another seat block's network (or the crew typed only
         # its MAC): ask by the MAC. The IP we have still answers while ARP keeps it.
         with contextlib.suppress(Exception):
             ip = sources.monitoring().ip_for_mac(mac) or ip
-    port = _from_monitoring(ip) if ip else None
+    monitoring = sources.monitoring().enabled()
+    asked_at = time.monotonic()
+    port = _from_monitoring(ip) if ip and monitoring else None
+    took = (time.monotonic() - asked_at) * 1000
     if port and port.get('mac') and not mac:
         mac = port['mac']
+    if not monitoring:
+        trace.add('monitoringOff', 'skip')
     if port and port.get('uplink'):
         steps.append({'step': 'monitoring', 'ok': False, 'how': 'uplink'})
+        trace.add('monitoring', 'skip', ms=took, result='uplink')
         port = None
     else:
         steps.append({'step': 'monitoring', 'ok': bool(port)})
+        if monitoring:
+            trace.add('monitoring', 'ok' if port else 'no', ms=took, result='found' if port else 'none',
+                      switch=(port or {}).get('switch'), port=(port or {}).get('port'))
     if port and _same(port, previous):
-        stale, port = True, None
+        stale, port = old(port, 'monitoring'), None
     if port:
         return {'found': {'switch': port['switch'], 'port': port['port']}, 'mac': mac, 'how': 'monitoring',
                 'steps': steps, 'stale': False}
     if ip:
-        port, got = _from_switches(ip, seat, mac)
+        port, got = _from_switches(ip, seat, mac, trace)
         if got and got.get('state') not in ('todo', 'closed'):
             steps.append({'step': 'snmp', 'ok': bool(port)})
         mac = mac or (got or {}).get('mac')
         if port and _same(port, previous):
-            stale, port = True, None
+            stale, port = old(port, 'snmp'), None
         if port:
             return {'found': port, 'mac': mac, 'how': 'snmp', 'steps': steps, 'stale': False}
     if mac and _ssh(registry)[0] is not None:
-        port = port_from_switches(mac, registry, account, likely)
+        port = port_from_switches(mac, registry, account, likely, trace)
         steps.append({'step': 'switch', 'ok': bool(port)})
         if port and _same(port, previous):
-            stale, port = True, None
+            stale, port = old(port, 'switch'), None
         if port:
             return {'found': port, 'mac': mac, 'how': 'switch', 'steps': steps, 'stale': False}
     return {'found': None, 'mac': mac, 'how': None, 'steps': steps, 'stale': stale}
 
 
 def locate(ip, registry=None, account=None, previous=None, likely=(), mac=None, seconds=ATTEMPT_SECONDS,
-           sleep=time.sleep, clock=time.monotonic, seat=None):
+           sleep=time.sleep, clock=time.monotonic, seat=None, trace=None):
     """Try for up to ``seconds``. The answer of the last try, with ``tries``. ``mac``: the laptop's,
     when the last seat already found it (it doesn't change from seat to seat)."""
+    trace = trace or Trace()
     started, tries = clock(), 0
     while True:
         tries += 1
-        result = locate_once(ip, registry, account, previous, likely, mac, seat)
+        result = locate_once(ip, registry, account, previous, likely, mac, seat, trace)
         mac = result['mac'] or mac
-        if result['found'] or clock() - started + RETRY_EVERY > seconds:
-            return {**result, 'tries': tries, 'ms': int((clock() - started) * 1000)}
-        sleep(RETRY_EVERY)
+        if result['found']:
+            trace.add('found', 'ok', ms=(clock() - started) * 1000, how=result['how'], **result['found'])
+        elif clock() - started + RETRY_EVERY > seconds:
+            trace.add('notFound', 'no', ms=(clock() - started) * 1000, tries=tries)
+        else:
+            trace.add('wait', 'run', seconds=RETRY_EVERY, attempt=tries + 1)
+            sleep(RETRY_EVERY)
+            continue
+        return {**result, 'tries': tries, 'ms': int((clock() - started) * 1000), 'trace': trace.steps}
 
 
 # ── the laptop's own address, through the local agent ───────────────────────────────────────────
@@ -306,23 +374,49 @@ def private_ip(ip):
     return addr.is_private and not addr.is_loopback
 
 
+def _with_port(url, ports):
+    """``url`` with the port the agent's host publishes its front door on, when the URL names none
+    and it isn't the scheme's own (compose.yml's HTTPS_PUBLISH_PORT, issue #1361)."""
+    parts = urlsplit(url)
+    port = (ports or {}).get(parts.scheme)
+    if not port or parts.port or port == {'https': 443, 'http': 80}.get(parts.scheme) or not parts.hostname:
+        return url
+    return urlunsplit(parts._replace(netloc=f'{parts.netloc}:{port}'))
+
+
 def agent_url():
-    """Where laptops on the event network reach a local agent, worked out, never typed in: the
-    check-in name (CHECKIN_ADDRESS, already on every seat card, and every agent's front door answers
-    it), else where browsers in the hall last reached an agent (each front door learns it from the
-    requests it answers). '' while neither is known."""
+    """Where laptops on the event network reach a local agent, worked out, rarely typed in: a
+    connected agent's "Reached in the hall at" (its page, or FLOORBIT_AGENT_HALL_URL in the hall),
+    else the check-in name (CHECKIN_ADDRESS, already on every seat card, and every agent's front door
+    answers it) on the port the agent is published on, else where browsers in the hall last reached
+    an agent (each front door learns it from the requests it answers). '' while none is known."""
     from integrations import checkin
 
-    from . import agent_link
-    if checkin.hall_url():
-        return checkin.hall_url()
+    from . import agent_link, agent_settings
     try:
-        for a in agent_link.all_agents():
-            url = ((a.get('report') or {}).get('lan_url') or '').rstrip('/')
-            if a.get('connected') and url:
-                return url
+        agents = [a for a in agent_link.all_agents() if a.get('connected')]
     except Exception as exc:  # noqa: BLE001  # no agents: the page says so
         print(f'[seat-walk] could not read the agents: {exc}')
+        agents = []
+    for a in agents:
+        report = a.get('report') or {}
+        said = ((report.get('settings') or {}).get('values') or {}).get('hall_url') or {}
+        # The hall's own setting wins, as on the agent; else Floorbit's, also for an agent too old to know it.
+        try:
+            named = said.get('value') if said.get('source') == 'env' else (
+                agent_settings.values(a['id']).get('hall_url') if a.get('id') else None)
+        except agent_settings.AgentError:
+            named = None
+        if named:
+            return str(named).rstrip('/')
+    if checkin.hall_url():
+        ports = next(((a.get('report') or {}).get('front_door_ports') for a in agents
+                      if (a.get('report') or {}).get('front_door_ports')), None)
+        return _with_port(checkin.hall_url(), ports)
+    for a in agents:
+        url = ((a.get('report') or {}).get('lan_url') or '').rstrip('/')
+        if url:
+            return url
     return ''
 
 
@@ -454,6 +548,8 @@ def purge_ended(now=None):
             if end is None or now < end + KEEP_AFTER_END:
                 continue
             count = checkin.forget_all_ports()
+            from . import seat_marks
+            count += seat_marks.clear_all()
             if count:
                 cleared.append(event['id'])
                 audit.record('check-in', f'Cleared {count} seat ports one day after the event ended', 'Floorbit',

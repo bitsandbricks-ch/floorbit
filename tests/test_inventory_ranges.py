@@ -73,7 +73,7 @@ def test_the_old_shapes_move_once(client):
         {"id": "r2", "cidr": "192.0.2.0/27", "name": "", "firewalls": ["fw-01"], "source": "import",
          "plugin": "NetBox"}]}
     data["inventory_items"] = {"firewall-range:r2": {"notes": "from NetBox"}}
-    data[upgrades.KEY] = upgrades.CURRENT - 1
+    data[upgrades.KEY] = upgrades.STEPS.index(upgrades._ipam)   # from before that step
     save_data(data)
     data = load_data()
     by_id = {e["id"]: e for e in data["inventory_entries"]}

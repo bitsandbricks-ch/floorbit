@@ -1,0 +1,73 @@
+{
+  "title": "What Floorbit is doing",
+  "steps": "Steps",
+  "all": "Everything",
+  "copy": "Copy the trace",
+  "copied": "Copied",
+  "empty": "Nothing yet. Press Locate or plug the laptop in.",
+  "hidden": "(hidden)",
+  "group": { "row": "row's switch", "block": "block", "vlan": "VLAN" },
+  "how": { "monitoring": "the monitoring source", "history": "the IP/MAC history", "switch": "the router's ARP over SSH" },
+  "hello": "{{agent}} saw the laptop at {{ip}}",
+  "macTyped": "Using the typed MAC {{mac}}, no agent needed",
+  "macReused": "Same address as at the last seat: MAC {{mac}} again",
+  "mac": { "ok": "MAC {{mac}} from {{how}}", "no": "No MAC known for {{ip}} yet" },
+  "monitoringOff": "No monitoring source: on to the switches",
+  "monitoring": {
+    "found": "Monitoring source has it on {{switch}} {{port}}",
+    "none": "Monitoring source doesn't have it on a port yet",
+    "uplink": "Monitoring source only has it on an uplink: not the seat's port"
+  },
+  "stale": "{{switch}} {{port}} is still the last seat's port: that table isn't fresh yet",
+  "snmpTodo": {
+    "no_segment": "{{ip}} is in no network segment: no SNMP lookup",
+    "segment_off": "Lookups are off for VLAN {{vlan}}: no SNMP lookup",
+    "no_core": "No core switch known for VLAN {{vlan}}: no SNMP lookup"
+  },
+  "snmpArp": "Asking the core {{core}} for the MAC of {{ip}} (VLAN {{vlan}})",
+  "snmpMac": { "ok": "Core answered: MAC {{mac}}", "no": "The core doesn't know the MAC yet" },
+  "snmpAsk": "SNMP through the agent, VLAN {{vlan}}: row's switches {{row}}, then block {{block}}, then {{others}} more",
+  "snmpSwitch": {
+    "found": "{{switch}} ({{group}}): on {{port}}",
+    "none": "{{switch}} ({{group}}): not there",
+    "uplink": "{{switch}} ({{group}}): only on uplink {{port}}, skipped",
+    "error": "{{switch}} ({{group}}): no answer, {{error}}"
+  },
+  "snmpError": "The agent couldn't ask the switches: {{error}}",
+  "sshAsk": "Last resort over SSH: show mac address-table on {{switches}}",
+  "sshSwitch": {
+    "found": "{{switch}} over SSH: on {{port}}",
+    "none": "{{switch}} over SSH: not there",
+    "uplink": "{{switch}} over SSH: only on uplink {{port}}, skipped",
+    "error": "{{switch}} over SSH: no answer, {{error}}"
+  },
+  "wait": "Not found yet, asking again in {{seconds}} s (try {{attempt}})",
+  "found": "Found: {{switch}} {{port}}",
+  "notFound": "Not found after {{tries}} tries",
+  "flow": {
+    "title": "Where the lookup is",
+    "laptop": "Laptop",
+    "mac": "MAC",
+    "known": "known",
+    "tables": "Tables",
+    "ok": "found",
+    "no": "not yet",
+    "skip": "uplink only",
+    "warn": "old",
+    "run": "asking",
+    "off": "off",
+    "row": "Row's switch",
+    "block": "Block",
+    "vlan": "All on VLAN",
+    "ssh": "SSH",
+    "switches_one": "{{count}} switch",
+    "switches_other": "{{count}} switches"
+  },
+  "strip": {
+    "open": "Open on the laptop",
+    "noAgent": "No agent address known yet",
+    "laptop": "Looking for this laptop",
+    "unknown": "Not identified yet",
+    "agent": "Agent"
+  }
+}

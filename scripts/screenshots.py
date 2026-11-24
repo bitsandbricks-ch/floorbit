@@ -58,6 +58,7 @@ PAGES["problems"] = "/problems"
 PAGES["s3-backups"] = "/settings/backup"
 PAGES["tile-levels"] = "/dashboards/tile-levels"
 PAGES["tile-charts"] = "/dashboards/tile-charts"
+PAGES["seat-walk"] = "/seat-walk"
 PAGES["tile-data"] = "/dashboards/tile-data"
 
 

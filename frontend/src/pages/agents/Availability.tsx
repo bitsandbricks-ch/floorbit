@@ -56,9 +56,9 @@ export function GroupsCard({ groups }: { groups?: AgentGroup[] }) {
       <Title order={2} size="h4" mb="xs" id="ha-groups">{t('agents.ha.groupsTitle')}</Title>
       <Stack gap="sm">
         {groups.map((g) => (
-          <Stack key={g.id} gap={4} aria-label={g.label || t('agents.allHalls')}>
+          <Stack key={g.id} gap={4} aria-label={g.label || t('agents.allDevices')}>
             <Group gap={6} wrap="wrap">
-              <Text fw={600}>{g.label || t('agents.allHalls')}</Text>
+              <Text fw={600}>{g.label || t('agents.allDevices')}</Text>
               <Badge variant="light" color={STATE_COLOR[g.state]} tt="none">{t(`agents.ha.state.${g.state}`)}</Badge>
               {g.mode && <Badge variant="outline" color="gray" tt="none">{t(`agents.ha.mode.${g.mode}`)}</Badge>}
             </Group>

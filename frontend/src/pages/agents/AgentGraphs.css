@@ -1,0 +1,3 @@
+/* The stat widget sizes its figure from its box, like a dashboard pane (.fb-pane-body). */
+.fb-agent-stat { height: 64px; display: flex; margin-bottom: 4px; }
+.fb-agent-stat > * { flex: 1; }

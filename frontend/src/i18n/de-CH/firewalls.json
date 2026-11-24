@@ -38,12 +38,8 @@
     "unknown": "Nicht gelesen",
     "down": "Keine läuft"
   },
-  "import": "Aus NetBox importieren",
-  "importDone_one": "{{count}} Bereich aus NetBox importiert.",
-  "importDone_other": "{{count}} Bereiche aus NetBox importiert.",
-  "importHelp": "Liest die NetBox-Prefixe mit dem Custom Field floorbit_firewalls (ihre Firewalls, in Reihenfolge: der Prefix wird in gleiche Teile über sie geschnitten). Jeder Import ersetzt den letzten; hier geplante Bereiche bleiben.",
   "fromPlugin": "Aus {{plugin}}",
-  "fromPluginHelp": "In {{plugin}} ändern und neu importieren.",
+  "fromPluginHelp": "In {{plugin}} ändern: Die nächste Inventar-Synchronisation bringt es.",
   "noMonitoring": "Es ist keine Monitoring-Quelle eingerichtet, darum zeigen die Bereiche ihre geplante Firewall. Ein Admin fügt LibreNMS (oder ein anderes Monitoring-Plugin) unter Einstellungen hinzu.",
   "forSwitches": "Für: {{switches}}",
   "editSwitches": "Switches",

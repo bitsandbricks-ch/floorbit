@@ -39,4 +39,25 @@ describe('RangePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ switches: ['g-green', 'd1'] }))
   })
+
+  it('starts a plan on a prefix that no firewall routes yet (IPAM, #1346)', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': lead, 'GET /api/firewalls': list,
+      'GET /api/inventory/groups': { groups: [], tags: [] }, 'GET /api/inventory': { devices: [], sources: [] },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<RangePanel id="p9" canEdit prefix="198.51.100.0/24" />)
+    expect(await screen.findByText('No firewalls route this prefix yet.')).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Range' })).toHaveValue('198.51.100.0/24')
+  })
+
+  it('shows nothing for a prefix without a plan to those who may not edit', async () => {
+    const api = fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/firewalls': list })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<RangePanel id="p9" canEdit={false} prefix="198.51.100.0/24" />)
+    await waitFor(() => expect(api.calls.some((c) => c.path === '/api/firewalls')).toBe(true))
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.queryByText('No firewalls route this prefix yet.')).toBeNull()
+  })
+
 })

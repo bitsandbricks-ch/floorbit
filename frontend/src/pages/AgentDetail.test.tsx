@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { Agent } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import AgentDetail from './AgentDetail'
@@ -8,11 +8,11 @@ import { admin, busyAgent } from './agents/fixtures'
 
 afterEach(() => vi.unstubAllGlobals())
 
-const halls = { halls: [{ id: 'main', name: 'Main hall' }, { id: 'h2', name: 'Hall 2' }] }
+const groups = { groups: [], tags: [{ id: 't1', name: 'Site A' }, { id: 't2', name: 'Hall 2' }] }
 
 function open(agent: Agent, tab = '', extra: Record<string, unknown> = {}) {
   const api = fakeFetch({
-    'GET /api/auth/me': admin, 'GET /api/halls': halls,
+    'GET /api/auth/me': admin, 'GET /api/inventory/groups': groups,
     'GET /api/agents': { agents: [agent], connected: true, max: 10, protocol: 2, newest_version: agent.version },
     ...extra,
   })
@@ -96,6 +96,10 @@ describe('AgentDetail', () => {
   })
 
   it('draws its numbers over time and changes the range', async () => {
+    // jsdom lays nothing out: give the stat widgets a box, or they draw nothing.
+    const w = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(320)
+    const h = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(64)
+    onTestFinished(() => { w.mockRestore(); h.mockRestore() })
     const now = Math.floor(Date.now() / 1000)
     const pts = (v: number) => [[now - 180, v], [now - 120, v], [now - 60, v + 2]]
     const api = open(busyAgent(), 'graphs', {
@@ -103,8 +107,10 @@ describe('AgentDetail', () => {
       'GET /api/agents/a1b2c3d4/history?hours=24': { hours: 24, series: {} },
     })
     expect(await screen.findByRole('img', { name: 'Telemetry points' })).toBeInTheDocument()
-    expect(screen.getByText('1,202 per minute now')).toBeInTheDocument()
-    expect(screen.getByText('6 now')).toBeInTheDocument()
+    // The latest value is the shared stat widget, with its unit (#1321).
+    expect(screen.getByText('1,202')).toBeInTheDocument()
+    expect(screen.getAllByText('/min').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Per minute').length).toBeGreaterThan(0)
     expect(screen.queryByText('Sends to Floorbit')).not.toBeInTheDocument()       // never sent: left out
     // Lowest, average and highest under each chart, and the value at a point on hover or arrow key (issue #868).
     expect(screen.getByText('min 1,200 · avg 1,201 · max 1,202')).toBeInTheDocument()
@@ -139,7 +145,7 @@ describe('AgentDetail', () => {
     expect(screen.getByText(/telemetry 0\.5\.0 · .* · cannot start/)).toBeInTheDocument()
   })
 
-  it('changes its settings: a new key, a new name, its halls, revoke', async () => {
+  it('changes its settings: a new key, a new name, its tags, revoke', async () => {
     const a = { ...busyAgent(), plugins_off: ['shelly'] }
     const api = open(a, 'settings', {
       [`POST /api/agents/${a.id}/rotate`]: { id: a.id, name: a.name, key: 'fba_a1b2c3d4_another-example-key-012345' },
@@ -164,7 +170,7 @@ describe('AgentDetail', () => {
   })
 
   it('says when the agent is gone', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/halls': halls, 'GET /api/agents': { agents: [], connected: false, max: 10 } }).fn)
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/inventory/groups': groups, 'GET /api/agents': { agents: [], connected: false, max: 10 } }).fn)
     renderWithApp(<Routes><Route path="/settings/agents/:id" element={<AgentDetail />} /></Routes>, '/settings/agents/nope')
     expect(await screen.findByText('No such agent')).toBeInTheDocument()
   })

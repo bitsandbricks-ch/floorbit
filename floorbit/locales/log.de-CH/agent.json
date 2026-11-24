@@ -9,7 +9,7 @@
  "Made a new key for a local agent": "Neuen Schlüssel für einen lokalen Agent erstellt",
  "Renamed a local agent: {}": "Lokalen Agent umbenannt: {}",
  "Revoked a local agent": "Lokalen Agent widerrufen",
- "Set the halls of a local agent: {}": "Hallen eines lokalen Agents gesetzt: {}",
+ "Set the tags of a local agent: {}": "Tags eines lokalen Agents gesetzt: {}",
  "Set the plugins a local agent leaves off: {}": "Plugins gesetzt, die ein lokaler Agent auslässt: {}",
  "Signed a certificate for a local agent": "Zertifikat für einen lokalen Agent signiert",
  "The agents' Let's Encrypt certificate is replaced: a revoked agent had its key": "Das Let's-Encrypt-Zertifikat der Agents wird ersetzt: ein widerrufener Agent hatte seinen Schlüssel"

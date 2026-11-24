@@ -12,7 +12,8 @@ fallback while one is down. Floorbit keeps that plan and shows it against the fi
   A range is an inventory **prefix** with firewalls set (Mike, 2026-11-24, issue #1345): the plan
   is kept on the prefix entry (``plan``, floorbit/inventory_types.py), so a network is written down
   once. The crew plans it (``floorplan.edit``), or imports it from NetBox prefixes that have the
-  custom field ``floorbit_firewalls`` (``source: import``; each import replaces the last).
+  custom field ``floorbit_firewalls`` (``source: import``): every inventory sync reads them again
+  and replaces the last (issue #1347).
 - **Now**: a part's firewall, or the first fallback, that the monitoring source doesn't report down.
   A firewall the source can't tell about counts as up (the core would still route to it), but the
   part says so (``unknown``).
@@ -294,8 +295,8 @@ def save(body, by, range_id=None):
             save_data(data)
             return _row(entry, row['cidr'])
         if row is not None and row['source'] == 'import':
-            raise FirewallError(f"This range comes from {row['plugin'] or 'NetBox'}: change it there and import "
-                                'again.', 409)
+            raise FirewallError(f"This range comes from {row['plugin'] or 'NetBox'}: change it there, and the "
+                                'next inventory sync brings it.', 409)
         fields = _clean(body, data, row)
         cidr = fields['cidr']
         others = [r for r in _ranges(data) if entry is None or r['id'] != entry['id']]
@@ -349,11 +350,6 @@ def import_sources(registry):
         return []
     return [spec for spec in registry.feeders('inventory')
             if (cls := spec.plugin_class()) is not None and hasattr(cls, 'firewall_ranges')]
-
-
-def can_import():
-    from . import agent_link
-    return agent_link.active() or bool(import_sources(sources.registry))
 
 
 def import_from(registry, by):
@@ -598,7 +594,7 @@ def overview(now=None):
                        'failover': sum(p['state'] == 'failover' for p in all_parts),
                        'without': sum(p['state'] == 'down' for p in all_parts)},
             'monitoring': _monitored(),
-            'unread': _monitored() and health.devices(now) is None, 'can_import': can_import()}
+            'unread': _monitored() and health.devices(now) is None}
 
 
 def _monitored():

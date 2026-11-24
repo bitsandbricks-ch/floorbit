@@ -333,7 +333,6 @@ Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/firewalls/ranges` | `floorplan.edit` |  |
 | DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
-| POST | `/api/firewalls/ranges/import` | `floorplan.edit` |  |
 | GET | `/api/firewalls/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
 ## floorbit.blueprints.flows
@@ -976,9 +975,12 @@ Source: [`floorbit/blueprints/seat_walk.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/seat-walk/hello` | `seats.edit` |  |
 | GET | `/api/seat-walk/hello/<token>` | `seats.view` |  |
 | POST | `/api/seat-walk/locate` | `seats.edit` |  |
+| DELETE | `/api/seat-walk/marks/<seat>` | `seats.edit` |  |
+| PUT | `/api/seat-walk/marks/<seat>` | `seats.edit` |  |
 | POST | `/api/seat-walk/walkers` | `seats.edit` |  |
 | DELETE | `/api/seat-walk/walkers/<walker_id>` | `seats.edit` |  |
 | PUT | `/api/seat-walk/walkers/<walker_id>` | `seats.edit` |  |
+| POST | `/api/seat-walk/walkers/<walker_id>/take` | `seats.edit` |  |
 
 ## floorbit.blueprints.security
 
