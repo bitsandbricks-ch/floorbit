@@ -20,6 +20,9 @@ export interface BlockRow {
   sides?: number[]
   /** path: points in seats. */
   path?: [number, number][]
+  /** The shape turned over left to right, or upside down; seats keep their order. */
+  mirror?: boolean
+  flip?: boolean
 }
 
 export type RowShape = 'line' | 'arc' | 'u' | 'l' | 'path'

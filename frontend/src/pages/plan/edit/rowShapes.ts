@@ -36,8 +36,20 @@ export function pointAlong(path: Pt[], d: number): Pt {
   return path[path.length - 1]
 }
 
+/** ``p`` turned over as the row is (mirrored, flipped); doing it twice gives ``p`` back. */
+export function turnOver(row: BlockRow, p: Pt): Pt {
+  return [row.mirror ? -p[0] : p[0], row.flip ? -p[1] : p[1]]
+}
+
+/** Turned over once, the row's handedness swaps: a bend, a side, the way it bows read the other way. */
+export const turnedOnce = (row: BlockRow) => !!row.mirror !== !!row.flip
+
 /** Each seat's centre in the row's own frame (any origin), in seat order. */
 export function rowSeats(row: BlockRow): Pt[] {
+  return shapeSeats(row).map((p) => turnOver(row, p))
+}
+
+function shapeSeats(row: BlockRow): Pt[] {
   const { at, length } = along(row)
   if (row.shape === 'arc' && Math.abs(row.bend ?? 0) >= 0.06) {
     const turn = ((row.bend ?? 0) * Math.PI) / 180, radius = length / turn, start = -turn / 2
@@ -111,15 +123,15 @@ export function armEnds(row: BlockRow): { arm: number; at: Pt; grow: Pt }[] {
   const seats = rowSeats(row)
   const sides = row.sides ?? defaultSides(row.shape, row.seats) ?? []
   if (row.shape === 'u') {
-    const out = []
-    if (sides[0]) out.push({ arm: 0, at: seats[0], grow: [0, -1] as Pt })
-    if (sides[2]) out.push({ arm: 2, at: seats[seats.length - 1], grow: [0, -1] as Pt })
+    const out: { arm: number; at: Pt; grow: Pt }[] = []
+    if (sides[0]) out.push({ arm: 0, at: seats[0], grow: turnOver(row, [0, -1]) })
+    if (sides[2]) out.push({ arm: 2, at: seats[seats.length - 1], grow: turnOver(row, [0, -1]) })
     return out
   }
   if (row.shape === 'l') {
-    const out = []
-    if (sides[0]) out.push({ arm: 0, at: seats[0], grow: [0, -1] as Pt })
-    if (sides[1]) out.push({ arm: 1, at: seats[seats.length - 1], grow: [1, 0] as Pt })
+    const out: { arm: number; at: Pt; grow: Pt }[] = []
+    if (sides[0]) out.push({ arm: 0, at: seats[0], grow: turnOver(row, [0, -1]) })
+    if (sides[1]) out.push({ arm: 1, at: seats[seats.length - 1], grow: turnOver(row, [1, 0]) })
     return out
   }
   return []
@@ -194,4 +206,19 @@ export function reshaped(shape: PlanShape, cell: number, size: { w: number; h: n
   const t = (shape.rotation * Math.PI) / 180
   const cx = shape.cx + dx * Math.cos(t) - dy * Math.sin(t), cy = shape.cy + dx * Math.sin(t) + dy * Math.cos(t)
   return { seats, x: Math.round((cx / size.w) * 100000) / 1000, y: Math.round((cy / size.h) * 100000) / 1000 }
+}
+
+// ── Turning a whole block over ─────────────────────────────────────────────────────────
+
+type Turnable = { rows: BlockRow[]; seat_at?: Record<string, [number, number]> | null }
+
+/** The block mirrored left to right in place: every row turned over, rows lined up from the other
+ *  end, seats placed by hand moved across. Its box stays the same, so it stays where it is. */
+export function mirrorBlock<T extends Turnable>(block: T): Pick<T, 'rows' | 'seat_at'> {
+  const ends = { start: 'end', middle: 'middle', end: 'start' } as const
+  const rows = block.rows.map((r) => ({ ...r, mirror: !r.mirror, align: ends[r.align] ?? 'start', shift: -(Number(r.shift) || 0) }))
+  if (!block.seat_at) return { rows, seat_at: block.seat_at }
+  const right = Math.max(...Object.values(block.seat_at).map((p) => p[0]))
+  const seat_at = Object.fromEntries(Object.entries(block.seat_at).map(([k, p]) => [k, [Math.round((right - p[0]) * 100) / 100, p[1]] as [number, number]]))
+  return { rows, seat_at }
 }

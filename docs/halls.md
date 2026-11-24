@@ -115,6 +115,10 @@ top first, with the space above each:
 - **On the plan**, the selected block shows a bar between each two rows. Drag a bar up or down to change
   the space above the lower row, in quarter seats (hold Alt, or turn snapping off, to place it freely).
   The rows above stay where they are; the rows below move. Clicking a bar picks the row under it.
+- **Mirror block** turns the whole block over left to right where it stands: every row, their line-up
+  and shift, and seats placed freely. **Flip block** turns it upside down (mirrored and turned half
+  round, so it shows 180° under Rotation); like any turned block it then numbers from where a reader
+  starts.
 - **Double-click a row** on the plan to select its block and pick that row in the panel. The picked row
   is outlined on the plan.
 - Pick a row to change it on its own:
@@ -127,6 +131,9 @@ top first, with the space above each:
     **Shift** in seats.
   - **People sit** left or right of the way the row runs, drawn as a bar on that side of each seat. "As
     the shape says" draws nothing on a straight row and the inside of an arc, U or L.
+  - **Mirror** turns the row over left to right, **Flip** upside down: an L that turns the other way,
+    a U that opens downwards. The seats keep their numbers and the people stay on the same side of the
+    shape; the shape's handles work as before.
   - **Number this row the other way**, and **gaps in this row**: an empty space after a seat, for a
     fiber roll or a post (0.25 to 20 seats). Seat names and numbers carry on across a gap.
 - **A picked row's shape has handles on the plan**, and faint seats show where they will go while you drag:
@@ -148,7 +155,7 @@ order, so what named a row by its place still names the same row. Old templates 
 same way.
 
 **In the API** a block has `rows`, top first, each
-`{"id", "seats", "shape", "gap", "align", "shift", "side", "reverse", "col_gaps"}` plus `bend` (arc), `sides`
+`{"id", "seats", "shape", "gap", "align", "shift", "side", "reverse", "col_gaps", "mirror", "flip"}` plus `bend` (arc), `sides`
 (U and L) or `path` (`[[x, y], ...]` in seats). A new block can still be given as `cols` and `rows` numbers
 (a rectangle, as the Block tool and the CSV import make it). Rules: `floorbit/seat_rows.py`.
 
