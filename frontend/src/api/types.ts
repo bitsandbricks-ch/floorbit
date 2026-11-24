@@ -622,7 +622,6 @@ export interface Finding {
   evidence: string[]
   first_seen: number
   last_seen: number
-  ack: { by: string | null; at: number } | null
   cleared_at?: number
   /** Why the port is an uplink (a topology link, an LLDP/CDP neighbour, the uplink pattern): no Shut port then (#886). */
   uplink?: 'topology' | 'neighbour' | 'pattern' | null
@@ -748,6 +747,10 @@ export interface ProblemDetail {
   can_mute: boolean
   can_report: boolean
   may_see_people: boolean
+  /** A security finding's own details, for seats.view (issue #885). */
+  finding?: Omit<Finding, 'title' | 'cleared_at'>
+  can_shut?: boolean
+  needs_login?: boolean
 }
 /** What to paste into LibreNMS's API transport (GET /api/alerts/librenms/setup). */
 export interface LibreNMSAlertsSetup {

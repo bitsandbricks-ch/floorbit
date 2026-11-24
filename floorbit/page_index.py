@@ -37,7 +37,6 @@ PAGES = (
      lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),
     ('/logs', 'logs', 'Logs',
      lambda c, can: c['feature_on']('syslog') and c.get('logs_page') and can('seats.view')),
-    ('/security', 'security', 'Security', lambda c, can: c['feature_on']('security') and can('seats.view')),
     ('/endpoints', 'endpoints', 'IP and MAC history', lambda c, can: can('seats.view')),
     ('/power', 'power', 'Electrics', lambda c, can: c['feature_on']('power') and c.get('power_on')),
     ('/commands', 'commands', 'Switch commands',

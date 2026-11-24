@@ -1,16 +1,16 @@
 """Security findings (issue #29). The checks come from security plugins (floorbit/security.py).
 
-- ``GET /security``: the findings page.
 - ``GET /api/security``: active and recently cleared findings, and the ports Floorbit shut.
   Findings hold MACs and IPs, so this needs ``seats.view`` (auth/roles.py).
 - ``GET /api/security/markers``: active findings per seat and switch, for the floor plan.
-- ``POST /api/security/<id>/ack``: ``{"on": true|false}``, someone is on it.
 - ``POST /api/security/check``: ask every security plugin now (``plugins.run``).
 Shutting a finding's port goes through the port actions: ``POST /api/ports/shutdown {finding}``.
+Each finding is a problem (``security:<id>``) with its own page; there is no page of findings
+(issue #885).
 """
-from flask import Blueprint, current_app, g, jsonify, request
+from flask import Blueprint, current_app, jsonify
 
-from .. import audit, inventory, ports, spa
+from .. import inventory, ports
 from ..store import load_data
 
 bp = Blueprint('security', __name__)
@@ -18,11 +18,6 @@ bp = Blueprint('security', __name__)
 
 def _watch():
     return current_app.extensions['floorbit_security']
-
-
-@bp.route('/security')
-def security_page():
-    return spa.render('Security')
 
 
 @bp.route('/api/security', methods=['GET'])
@@ -51,17 +46,6 @@ def markers():
             sid = by_name[f['switch'].lower()]
             switches[sid] = switches.get(sid, 0) + 1
     return jsonify({'seats': seats, 'switches': switches})
-
-
-@bp.route('/api/security/<path:finding_id>/ack', methods=['POST'])
-def acknowledge(finding_id):
-    on = bool((request.get_json(silent=True) or {}).get('on', True))
-    found = _watch().acknowledge(finding_id, g.get('audit_user'), on)
-    if not found:
-        return jsonify({'error': 'That finding is not active any more.'}), 404
-    audit.record('security', 'Acknowledged finding' if on else 'Took back acknowledgement',
-                 user=g.get('audit_user'), target=found['title'])
-    return jsonify(found)
 
 
 @bp.route('/api/security/check', methods=['POST'])

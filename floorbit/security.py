@@ -144,8 +144,7 @@ class SecurityWatch:
                 # only counts when the plugin gave no MAC. A wrong seat would send a tech to the victim.
                 f['seat'] = f['seat'] or (index.get(f['mac'], '') if f['mac'] else index.get(f['ip'], ''))
                 old = self.findings.get(f['id'])
-                current[f['id']] = {**f, 'first_seen': old['first_seen'] if old else now, 'last_seen': now,
-                                    'ack': old.get('ack') if old else None}
+                current[f['id']] = {**f, 'first_seen': old['first_seen'] if old else now, 'last_seen': now}
                 if not old and self.baseline_done:
                     new.append(current[f['id']])
             for fid, old in self.findings.items():
@@ -174,7 +173,7 @@ class SecurityWatch:
         order = {s: i for i, s in enumerate(SEVERITIES)}
         with self._lock:
             active = sorted(self.findings.values(),
-                            key=lambda f: (f['ack'] is not None, order[f['severity']], -f['first_seen']))
+                            key=lambda f: (order[f['severity']], -f['first_seen']))
             return {'findings': active, 'cleared': list(self.cleared), 'last_poll': self.last_poll,
                     'interval': self.interval(), 'plugins': len(self.registry.feeders('security'))}
 
@@ -182,14 +181,6 @@ class SecurityWatch:
         with self._lock:
             f = self.findings.get(finding_id)
             return dict(f) if f else None
-
-    def acknowledge(self, finding_id, user, on=True):
-        with self._lock:
-            f = self.findings.get(finding_id)
-            if not f:
-                return None
-            f['ack'] = {'by': user, 'at': time.time()} if on else None
-            return dict(f)
 
 
 def get(finding_id):

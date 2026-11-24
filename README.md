@@ -59,7 +59,8 @@ each seat is plugged into.
 - **Switch configs:** back up the running configs with the tech's own login (secrets taken out)
   and see what changed since the event's baseline. See [docs/configs.md](docs/configs.md).
 - **Security detection:** rogue DHCP, ARP spoofing, MAC flapping, loops and storms from security plugins,
-  pointing at the seat and port, with one-click port shutdown. See [docs/security.md](docs/security.md).
+  as problems pointing at the seat and port, with the evidence and one-click port shutdown on the problem's page.
+  See [docs/security.md](docs/security.md).
 - **Problems and alerts:** one list of everything wrong right now, mutes for switches someone is
   working on, quiet hours, one Discord message for a big outage, and the ports that need a look
   (flapping, errors rising, half duplex, online without a check-in). See [docs/alerts.md](docs/alerts.md).

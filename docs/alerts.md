@@ -14,8 +14,9 @@ that are down or need a look, muted ones (switches and services) left out, e.g. 
 - the monitoring source (LibreNMS) not answering;
 - placed switches that are offline;
 - red and amber services on the [health wall](health.md);
-- high and medium [security findings](security.md). Accounts without `seats.view` see the kind and
-  the switch port only, since titles and seats can point at a person;
+- high and medium [security findings](security.md), with the evidence on the problem's page; low ones
+  come with the seat and port trouble. Accounts without `seats.view` see the kind and the switch
+  port only, since titles and seats can point at a person;
 - [power circuits](power.md) that tripped, are about to, or are getting close;
 - the [bandwidth forecast](forecast.md) reaching the warning share of the line within the next hours;
 - [links between switches](topology.md) that are down (red) or came up slower than planned (amber);

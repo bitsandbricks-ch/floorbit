@@ -16,6 +16,7 @@ import { StatTile } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { canReport, problemsText, rank, reportBody } from './problems/format'
 import { MuteDialog } from './problems/MuteDialog'
+import { ShutPorts } from './problems/ShutPorts'
 import { muteBody, muteKind, type MuteTarget } from './problems/mute'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, clock } from '@/lib/time'
@@ -188,6 +189,8 @@ export default function Problems() {
     onSuccess: refresh,
   })
   const canSwap = useCan('floorplan.edit')
+  // Shut ports name seats: the findings' rule (seats.view).
+  const canSeePeople = useCan('seats.view')
   const data = list.data
   // Seat and port trouble are problems too (issue #1204): after the rest, so a switch that is down
   // stays on top, newest first among themselves as the server sends them.
@@ -315,6 +318,7 @@ export default function Problems() {
               </Stack>
             </section>
           )}
+          {canSeePeople && <ShutPorts always={shown === 'security'} />}
         </Stack>
       )}
       <MuteDialog target={target} busy={mute.isPending} error={dialogError} onClose={() => setTarget(null)}
