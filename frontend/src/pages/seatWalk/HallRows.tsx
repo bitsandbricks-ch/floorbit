@@ -28,6 +28,7 @@ export function HallRows({ rows, walks, me, mine, selected, onSelect, onTake }: 
   const open = rows.filter((r) => !(r.seats > 0 && r.found >= r.seats)).length
   const seats = rows.reduce((n, r) => n + r.seats, 0)
   const found = rows.reduce((n, r) => n + r.found, 0)
+  const walked = rows.reduce((n, r) => n + (r.walked ?? 0), 0)
   // Walking now, then walks that stopped: someone else's can be taken over where it got to.
   const people = walks.filter((w) => w.active || w.user !== me)
   const walking = new Set(walks.filter((w) => w.active).map((w) => w.who)).size
@@ -46,7 +47,7 @@ export function HallRows({ rows, walks, me, mine, selected, onSelect, onTake }: 
           { value: 'open', label: t('seatWalkRows.open', { count: open }) },
           { value: 'mine', label: t('seatWalkRows.mine', { count: myRows.size }) },
         ]} />
-        <Text size="xs" c="dimmed">{t('seatWalkRows.summary', { rows: rows.length, found, seats })}</Text>
+        <Text size="xs" c="dimmed">{t('seatWalkRows.summary', { rows: rows.length, found, seats, walked, checkin: found - walked })}</Text>
 
         {people.length > 0 && (
           <Stack gap={4}>

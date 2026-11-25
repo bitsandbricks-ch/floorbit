@@ -10,6 +10,8 @@ export interface WalkPort { switch: string; port: string; learned_at?: number; s
 export interface SeatWalkInfo {
   /** Where laptops in the hall reach the local agent, which identifies them (null: not known). */
   agent_url: string | null; through_agent?: boolean; switch_lookup: boolean; monitoring: boolean; keep_hours: number
+  /** Local agents connected now (#1424): the "no agent" warning only shows at 0. */
+  agents_connected?: number
   event: { id: string; name: string; status: string }
   rows?: string[]; row_names?: string[]; seats?: { seat: string; port: WalkPort | null }[]
   /** Every hall row: how far the walk got and who walks it now (#1000). */

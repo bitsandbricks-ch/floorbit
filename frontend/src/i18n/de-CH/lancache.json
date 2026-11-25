@@ -15,6 +15,7 @@
   "fromInternetSub": "einmal geholt, dann im Cache",
   "clients": "Spieler",
   "clientsSub": "am meisten in einer Stunde",
+  "clientsNone": "zählt das LAN-Cache-Plugin auf dem Agent",
   "perHour": "Pro Stunde",
   "hit": "Aus dem Cache",
   "miss": "Aus dem Internet",

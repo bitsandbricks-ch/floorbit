@@ -6,7 +6,6 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useFeature, usePageList, usePageListSettled } from '@/api/queries'
 import { Layout, PageSkeleton } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
-import { SetupNudge } from './setup/Checklist'
 import { PageTabs } from '@bitsandbricks/ui'
 import { InPanel } from '@bitsandbricks/ui'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
@@ -183,7 +182,6 @@ export default function Settings() {
     <Layout title={title}>
       <PageHead title={t('settings.title')} eyebrow={t('settings.kicker')} actions={search} />
       <ErrorBanner error={mayEdit ? ed.query.error : null} onRetry={() => void ed.query.refetch()} mb="md" />
-      {!results && <SetupNudge enabled={mayEdit} />}
       {!list.settled || (mayEdit && ed.query.isPending) ? <LoadingState rows={4} /> : !active ? null : results ? (
         <SettingsForm ed={ed}>
           <Text size="sm" c="dimmed" role="status">{t('settings.nav.results', { count: results.reduce((n, r) => n + r.only.size, 0) })}</Text>

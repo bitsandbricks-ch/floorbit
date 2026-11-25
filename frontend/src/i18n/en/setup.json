@@ -38,7 +38,7 @@
       "doneNoLogo": "Name and dates are set. A logo is optional.",
       "missing": "Still missing: {{list}}.",
       "part": {
-        "name": "the event name (Settings › Appearance)",
+        "name": "a name for the event (Events; until then it shows as \"First event\")",
         "dates": "the dates (Schedule)",
         "logo": "a logo (optional)"
       }
@@ -84,8 +84,6 @@
       "done_one": "{{count}} account, {{teams}} teams.",
       "done_other": "{{count}} accounts, {{teams}} teams.",
       "alone": "Only one account so far. Add the crew and their teams."
-    },
-    "nudge": "Event setup: {{done}} of {{count}} steps done. Next: {{next}}.",
-    "continue": "Continue setup"
+    }
   }
 }

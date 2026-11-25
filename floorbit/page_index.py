@@ -60,6 +60,8 @@ PAGES = (
     # events on the page follows the past_events feature (issue #1201).
     ('/events', 'events', 'Events', None),
     ('/templates', 'templates', 'Floor plan templates', None),
+    # The event's setup checklist, at the sidebar's foot with its progress (#1437).
+    ('/setup', 'setup', 'Set up', lambda c, can: can('settings.manage')),
     ('/settings', 'settings', 'Settings', lambda c, can: can('settings.manage')),
     ('/settings/plugins', 'plugins', 'Plugins', lambda c, can: can('settings.manage')),
     ('/settings/features', 'features', 'Features', lambda c, can: can('settings.manage')),
@@ -78,9 +80,10 @@ PAGES = (
 
 
 def _lancache_on():
-    # The LAN cache plugin comes from the Marketplace: no page until it is installed and on.
-    from .blueprints.lancache import _plugin
-    return _plugin()[1]
+    # The LAN cache plugin comes from the Marketplace; a cache log Floorbit reads itself (or the
+    # demo) brings the page too, so it keeps its place in the Services tabs while data comes in (#1420).
+    from .blueprints.lancache import _has_data, _plugin
+    return _plugin()[1] or _has_data()
 
 
 def _checkin_on():

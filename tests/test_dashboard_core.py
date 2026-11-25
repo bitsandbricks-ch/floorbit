@@ -212,11 +212,12 @@ def test_the_traffic_view_is_split_into_tiles():
 
 
 def test_the_service_views_are_split_into_tiles():
-    wall = {"checks": [{"name": "DNS", "status": "up", "summary": "12 ms"},
-                       {"name": "fw-03", "status": "down", "summary": "1 range failed over"},
-                       {"name": "odd", "status": "sideways", "summary": ""}]}
-    items = dashboard_core.service_health_widget("en", wall)["items"]
-    assert [(i["label"], i["state"]) for i in items] == [("fw-03", "down"), ("odd", "unknown"), ("DNS", "up")]
+    summary = {"rows": [{"name": "DNS", "status": "up", "summary": "12 ms"},
+                        {"name": "fw-03", "status": "down", "summary": "1 range failed over"},
+                        {"name": "odd", "status": "sideways", "summary": ""}]}
+    tile = dashboard_core.service_health_widget("en", summary)
+    assert [(i["label"], i["state"]) for i in tile["items"]] == [("fw-03", "down"), ("odd", "unknown"), ("DNS", "up")]
+    assert tile["link"] == "/services"
     assert dashboard_core.service_health_widget("de", {})["sub"] == "Noch nichts geprüft"
     ups = dashboard_core.internet_uplinks_widget("en", {"uplinks": [
         {"name": "ISP 1", "status": "up", "utilization": 0.65, "in_bps": 6.5e9, "out_bps": 1e9},

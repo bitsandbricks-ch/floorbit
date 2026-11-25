@@ -292,3 +292,18 @@ describe('skip link', () => {
     expect(within(main()).getByRole('button', { name: 'Work' })).toHaveAttribute('aria-expanded', 'true')
   })
 })
+
+describe('Set up at the foot (#1437)', () => {
+  const withSetup = [...pages, { href: '/setup', id: 'setup', label: 'Set up' }]
+  it('shows Set up with its progress while steps are open, and not in the groups', () => {
+    render(<Sidebar boot={{ ...boot, pages: withSetup }} path="/problems" renderLink={link} onGoTo={() => {}} setup={{ done: 4, count: 7 }} />)
+    const foot = screen.getByRole('list', { name: 'Plugins and settings' })
+    expect(within(foot).getByRole('link', { name: /Set up/ })).toHaveAttribute('href', '/setup')
+    expect(within(foot).getByText('4/7')).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /Set up/ })).toHaveLength(1)
+  })
+  it('leaves it out once every step is done', () => {
+    render(<Sidebar boot={{ ...boot, pages: withSetup }} path="/problems" renderLink={link} onGoTo={() => {}} setup={{ done: 7, count: 7 }} />)
+    expect(screen.queryByRole('link', { name: /Set up/ })).not.toBeInTheDocument()
+  })
+})

@@ -104,12 +104,15 @@ def _step(step_id, done, started, href, skipped, **facts):
     return {'id': step_id, 'state': status, 'href': href, 'facts': facts}
 
 
-def checklist(data, settings, agents=(), users=0, teams=0, hooks=0, monitoring=False, event_dates=None, mapped=0):
+def checklist(data, settings, agents=(), users=0, teams=0, hooks=0, monitoring=False, event_dates=None, mapped=0,
+              event_name=''):
     """What an event needs, in the order it is done (#988): each step's state from what is really
     there, with the one place it is set. The caller gathers what lives outside ``data``.
 
     ``settings`` is the settings store (``get``); ``agents`` the enrolled agents; ``mapped`` the
-    seats that have a switch port; ``monitoring`` whether a monitoring plugin is on and set up."""
+    seats that have a switch port; ``monitoring`` whether a monitoring plugin is on and set up;
+    ``event_name`` the name of the event being set up (Events), which names it as well as the
+    sidebar title does (#1437)."""
     skipped = state(data).get('steps', {})
     devices = [d for d in data.get('inventory') or [] if not d.get('hidden')]
     placed = sum(d.get('x') is not None for d in devices)
@@ -119,12 +122,13 @@ def checklist(data, settings, agents=(), users=0, teams=0, hooks=0, monitoring=F
     connected = sum(1 for a in agents if a.get('connected'))
     checkin = bool(settings.get('integrations.checkin_enabled'))
     discord = bool(settings.get('integrations.discord_webhook_url') or settings.get('integrations.discord_bot_token'))
-    name = bool((settings.get('theme.name') or '').strip())
+    name = bool((settings.get('theme.name') or '').strip() or (event_name or '').strip())
     dates = bool(event_dates and event_dates.get('start'))
     logo = bool(settings.get('theme.logo'))
     source = librenms or monitoring
     return [
-        _step('event', name and dates, name or dates or logo, '/settings/appearance' if not name else '/schedule',
+        _step('event', name and dates, name or dates or logo,
+              '/events' if not name else '/schedule' if not dates else '/settings/appearance',
               skipped, name=name, dates=dates, logo=logo),
         _step('inventory', bool(devices), netbox, '/inventory' if netbox or devices else '/settings/plugins/netbox',
               skipped, devices=len(devices), netbox=netbox),
