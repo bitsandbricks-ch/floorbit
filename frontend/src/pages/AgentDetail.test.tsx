@@ -152,7 +152,7 @@ describe('AgentDetail', () => {
       report: { at: now, plugins: {}, agent_update: { policy: 'approve', running: '0.9.0', image: '0.9.0', trial: false,
         rolled_back: [], events: [{ at: now - 120, event: 'rolled back', version: '0.9.5', detail: 'did not reach Floorbit' }] } } }
     open(a, 'updates')
-    const panel = await screen.findByLabelText('Agent update')
+    const panel = await screen.findByRole('region', { name: 'Agent update' })
     expect(within(panel).getByText('Approve on the agent')).toBeInTheDocument()
     expect(within(panel).getByText('Runs 0.9.0 · newest release 1.0.0')).toBeInTheDocument()
     expect(within(panel).getByText('docker compose exec agent python -m floorbit_agent_boot update approve')).toBeInTheDocument()
