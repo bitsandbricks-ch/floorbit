@@ -5,5 +5,7 @@
  "That terminal is closed.": "Dieses Terminal ist geschlossen.",
  "The connection to the switch was lost ({}).": "Die Verbindung zum Switch ist abgebrochen ({}).",
  "Too many terminals are open. Close one first.": "Zu viele Terminals sind offen. Schliesse zuerst eines.",
- "You have {} terminals open. Close one first.": "Du hast {} Terminals offen. Schliesse zuerst eines."
+ "You have {} terminals open. Close one first.": "Du hast {} Terminals offen. Schliesse zuerst eines.",
+ "The server holding this terminal did not answer. Try again.": "Der Server mit diesem Terminal hat nicht geantwortet. Versuche es nochmals.",
+ "Unknown terminal request.": "Unbekannte Terminal-Anfrage."
 }
