@@ -74,7 +74,8 @@ describe('AgentDetail', () => {
       ] },
     })
     const table = await screen.findByRole('table', { name: 'Devices and their state' })
-    expect(within(table).getAllByText('Sends nothing')).toHaveLength(2)     // the column, and under the name on phones
+    // Once: on phones the row is a card with the state inline, no second badge under the name (#1107).
+    expect(within(table).getAllByText('Sends nothing')).toHaveLength(1)
     expect(within(table).getByText('Given to this agent')).toBeInTheDocument()
     expect(within(table).getAllByText('Sends').length).toBeGreaterThan(0)
     expect(within(table).getByText('52 ports, 10 MACs, 0 ARP, 2 neighbours')).toBeInTheDocument()
