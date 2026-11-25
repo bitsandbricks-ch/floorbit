@@ -520,6 +520,16 @@ Source: [`floorbit/blueprints/inventory_agent.py`](https://github.com/bitsandbri
 | GET | `/api/agent/v1/inventory/<plugin_id>` | anyone |  |
 | POST | `/api/agent/v1/inventory/auth-failed` | anyone |  |
 
+## floorbit.blueprints.inventory_bulk
+
+Acting on several inventory devices at once (issue #980): the list's pick bar.
+
+Source: [`floorbit/blueprints/inventory_bulk.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_bulk.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/inventory/bulk` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.inventory_drift
 
 Fix drift from the device page (issue #918): take what the device reports into the inventory.

@@ -597,5 +597,19 @@
       "flow_one": "Flows, {{count}}",
       "flow_other": "Flows, {{count}}"
     }
+  },
+  "bulk": {
+    "label": "Mit den gewählten Geräten arbeiten",
+    "picked_one": "{{count}} Gerät gewählt",
+    "picked_other": "{{count}} Geräte gewählt",
+    "run": "Befehl ausführen",
+    "tagAdd": "Tag hinzufügen",
+    "tagRemove": "Tag entfernen",
+    "group": "In Gruppe verschieben",
+    "noGroup": "Keine Gruppe",
+    "hide": "Ausblenden",
+    "clear": "Auswahl aufheben",
+    "done_one": "{{count}} Gerät geändert",
+    "done_other": "{{count}} Geräte geändert"
   }
 }
