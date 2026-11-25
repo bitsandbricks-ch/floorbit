@@ -74,6 +74,13 @@ Flows are personal data under Swiss and EU rules (an address at a seat is a pers
 - **Raw flows** (`FLOWS_DIR/raw/`, one gzip file per hour) are kept for `FLOWS_RETENTION_DAYS` (7)
   for looking into an incident afterwards, then deleted; past `FLOWS_RAW_MAX_MB` (10 GB) the oldest
   hours go first. `FLOWS_KEEP_RAW=false` keeps none.
+- **Raw flows are merged per minute** before they are written: one line per minute and
+  conversation (source, destination, protocol, ports) with the bytes, packets and how many records
+  it was made of, `[minute, src, dst, proto, sport, dport, bytes, packets, records]`. Exporters
+  report a long download again every active timeout, so this answers "who talked to what, when" the
+  same with fewer lines. A minute is written 60 seconds after it ends, so late records still merge
+  into it. With made-up traffic it took about 13 instead of 31 bytes per flow record on disk; real
+  halls will differ.
 - **Per-seat numbers** live only in the collector's memory and are gone after the retention too
   (or when it restarts).
 - **What stays** after that is `FLOWS_DIR/hourly.jsonl`: per hour, the hall, area and service

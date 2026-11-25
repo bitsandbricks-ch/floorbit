@@ -765,7 +765,7 @@ def test_flows_are_counted_on_the_agent_and_only_the_summary_goes_up(client, app
     assert collector.agg.seat_of == {"192.0.2.10": "A-1"}
     collector.receive(v5([STEAM]), "198.51.100.1", now=NOW + 1)
     collector._next["publish"] = collector._next["raw"] = 0
-    relay.tick(now=NOW + 2)
+    relay.tick(now=NOW + 200)                                # the minute is closed: its rows go to disk
     assert relay.sent == 2 and sent[-1]["mix_hour"] == {"gaming": 5_000_000}
     body = client.get("/api/flows").get_json()
     assert body["collector"] and body["agent"] == "Demo LAN 2026" and body["mix_hour"] == {"gaming": 5_000_000}
