@@ -179,7 +179,10 @@ def test_the_stats_view_is_split_into_tiles():
     peak = dashboard_core.peak_widget("en", SNAP, now=100 + 13 * 60)
     assert peak["value"] == 16e9 and peak["sub"] == "13 min ago · 24 h peak 16 Gbit/s"
     ports = dashboard_core.ports_widget("de", SNAP)
-    assert (ports["value"], ports["tone"], ports["sub"]) == (138, "warn", "598 offline · 1 mit Fehlern")
+    assert (ports["value"], ports["tone"], ports["sub"]) == (138, "warn", "von 736 · 0 ausgefallen · 1 mit Fehlern")
+    lost = dashboard_core.ports_widget("en", {"now": {"ports_up": 10, "ports_down": 90, "ports_lost": 2,
+                                                      "ports_total": 100}})
+    assert (lost["unit"], lost["sub"], lost["max"]) == ("in use", "of 100 · 2 went down · 0 with errors", 100)
     up = dashboard_core.uplinks_widget("en", SNAP)["items"]
     assert up[0] == {"label": "sw-b Te1/1", "value": "85 % · 8.5 Gbit/s", "number": 85, "max": 100, "tone": "err"}
     top = dashboard_core.top_ports_widget("en", SNAP)["items"]
