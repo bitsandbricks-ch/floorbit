@@ -548,7 +548,7 @@ export default function SeatWalk() {
           </Stack>
         </Paper>
       )}
-      {d && !d.agent_url && !d.through_agent && !mac.trim() && <Alert color="warn">{t('seatWalk.noAgent')}</Alert>}
+      {d && !d.agent_url && !d.through_agent && !d.agents_connected && !mac.trim() && <Alert color="warn">{t('seatWalk.noAgent')}</Alert>}
       {d && !d.switch_lookup && !d.monitoring && <Alert color="down">{t('seatWalk.noLookup')}</Alert>}
       {d && <LaptopStrip agentUrl={d.agent_url} ip={null} mac={mac.trim() && macOk ? mac.trim() : null} agent={null} />}
       <Paper withBorder radius="lg" p="lg">
