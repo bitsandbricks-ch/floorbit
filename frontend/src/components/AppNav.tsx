@@ -15,6 +15,7 @@ import { useShellNav, type MenuAction } from '@/nav/ShellNav'
 import { useChecklist } from '@/pages/setup/checklist'
 import { CrewNoticeEditor } from './CrewNotice'
 import { GoTo } from './GoTo'
+import { CrewNotify } from '@/notify/CrewNotify'
 import { NotifySettings } from './NotifySettings'
 
 /** The sidebar's parts for the shared AppShell, plus "Go to" and the account menu's dialogs. */
@@ -63,6 +64,7 @@ export function useAppNav() {
   const dialogs = (
     <>
       <GoTo opened={goTo} onOpen={open} onClose={close} />
+      <CrewNotify />
       {notify && <NotifySettings opened onClose={() => setNotify(false)} />}
       {notice && <CrewNoticeEditor onClose={() => setNotice(false)} />}
     </>
