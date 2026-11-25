@@ -1061,7 +1061,9 @@ class Tunnel:
                     clean[key] = max(clean.get(key) or 0, value)
         from .agent_plugins import clean_updates, clean_vrrp
         from .agent_settings import clean_report
-        for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report)):
+        from .disk_budget import clean as clean_disk
+        for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report),
+                             ('disk', clean_disk)):
             value = cleaner(raw.get(key))
             if value is not None:
                 clean[key] = value

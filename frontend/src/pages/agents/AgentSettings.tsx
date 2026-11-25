@@ -19,8 +19,8 @@ import { ConfirmButton } from '@bitsandbricks/ui'
 // Floorbit sets these per agent (floorbit/agent_settings.py); the agent's own env wins.
 
 // What differs between agents comes first; the rest folds under Advanced (#996).
-const BASIC = ['hall_url', 'telemetry_port', 'log_level']
-const ADVANCED = ['log_summary', 'metrics', 'metrics_token', 'buffer_max_mb', 'buffer_max_hours']
+const BASIC = ['hall_url', 'telemetry_port', 'disk_budget_mb', 'log_level']
+const ADVANCED = ['log_summary', 'metrics', 'metrics_token', 'buffer_max_hours']
 const VRRP = ['vrrp_vips', 'vrrp_interface', 'vrrp_prefer', 'vrrp_id', 'vrrp_peers']
 
 /** The agent's own settings, saved with Settings' save bar. Plugin values that differ on it are set on the plugin's page (#990). */

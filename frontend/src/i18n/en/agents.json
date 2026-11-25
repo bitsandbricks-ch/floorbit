@@ -298,7 +298,7 @@
       "hall_url": "Reached in the hall at",
       "metrics": "Metrics listener",
       "metrics_token": "Metrics token",
-      "buffer_max_mb": "Buffer size (MB)",
+      "disk_budget_mb": "Disk budget (MB)",
       "buffer_max_hours": "Buffer age (hours)",
       "telemetry_port": "Telemetry port",
       "cert_names": "Names on the certificate",
@@ -314,7 +314,7 @@
       "hall_url": "Where laptops in the hall open this agent, for the seat walk-through. Leave it empty: the agent learns it, with the ports compose publishes it on. Set it for a reverse proxy or port forwarding, such as https://checkin.lan:8443.",
       "metrics": "host:port for /metrics and /healthz, or off.",
       "metrics_token": "Scrapers then send \"Authorization: Bearer <token>\". Set it when the port is reachable from the LAN.",
-      "buffer_max_mb": "How much the agent keeps while Floorbit is out of reach.",
+      "disk_budget_mb": "All the agent keeps on its disk: raw flows, its buffer while Floorbit is away, plugin files. When it is used up, the oldest go first. 0: half of what its disk could hold.",
       "buffer_max_hours": "How long the agent keeps data while Floorbit is out of reach.",
       "telemetry_port": "Where switches send telemetry to the agent's Telegraf.",
       "cert_names": "Host names and IPs crew devices use to reach this agent. Only these go on its certificate.",
@@ -430,5 +430,19 @@
   "tags": "Answers for",
   "allDevices": "Every device",
   "tagsHelp": "Inventory tags: the agent answers for the devices with one of them, directly or through their group. Agents with the same tags back each other up. Empty: every device.",
-  "noTags": "No tags yet: make them under Inventory › Groups and tags."
+  "noTags": "No tags yet: make them under Inventory › Groups and tags.",
+  "disk": {
+    "title": "Disk",
+    "budget": "Disk budget",
+    "budgetAuto": "Disk budget (automatic)",
+    "used": "{{used}} of {{budget}}",
+    "kindValue": "{{size}}, {{hours}} hours back",
+    "dropped_one": "{{count}} old file overwritten",
+    "dropped_other": "{{count}} old files overwritten",
+    "empty": "Nothing kept on disk yet.",
+    "kind": {
+      "flows": "Raw flows",
+      "buffer": "Buffer while Floorbit is away"
+    }
+  }
 }

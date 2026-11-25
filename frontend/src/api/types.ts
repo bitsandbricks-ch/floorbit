@@ -1,4 +1,5 @@
 import type { OwnCheck, ServiceTags } from './serviceChecks'
+import type { AgentDisk } from './agentDisk'
 // Shapes the Flask API returns. Keep in step with floorbit/plugins and auth.
 
 /** A permission from auth/roles.py PERMISSIONS, e.g. 'floorplan.edit'. */
@@ -1967,6 +1968,8 @@ export interface AgentReport {
   vrrp?: { primary: boolean; holds: string[] }
   /** Where each of its settings came from (floorbit/agent_settings.py ``clean_report``). */
   settings?: AgentSettingsReport
+  /** Its disk budget and what each kind of data uses of it. */
+  disk?: AgentDisk
 }
 
 export type SettingSource = 'env' | 'floorbit' | 'default'

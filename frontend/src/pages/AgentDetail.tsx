@@ -14,6 +14,7 @@ import { EmptyState, ErrorBanner, LoadingState, PanelField, StatTile } from '@bi
 import { Panel } from '@/components/ui'
 import { ago, dateOnly } from '@/lib/time'
 import { AgentDevices } from './agents/AgentDevices'
+import { DiskBudget } from './agents/AgentDisk'
 import { AgentGraphs } from './agents/AgentGraphs'
 import { AgentRename, NewKeyButton, PluginsOff, Updates } from './agents/AgentTools'
 import { AgentSettingsForm, CertPanel, KeyPanel } from './agents/AgentSettings'
@@ -153,6 +154,11 @@ export default function AgentDetail() {
                   {a.connected && (
                     <Panel title={t('agentCapabilities.title')} desc={t('agentCapabilities.help')}>
                       <Capabilities have={a.capabilities} />
+                    </Panel>
+                  )}
+                  {r?.disk && (
+                    <Panel title={t('agents.disk.title')}>
+                      <DiskBudget disk={r.disk} />
                     </Panel>
                   )}
                   {r && (

@@ -11,6 +11,7 @@ import time
 
 from integrations import config
 
+from .. import disk_budget
 from . import seat_maps, store
 from .aggregate import Aggregator
 from .parse import ParseError, Templates, parse
@@ -18,6 +19,7 @@ from .parse import ParseError, Templates, parse
 PUBLISH_EVERY = 10
 SEATS_EVERY = 60
 PRUNE_EVERY = 3600
+BUDGET_EVERY = 60     # a busy hall writes a few MB of raw flows a minute
 FEATURE_EVERY = 30
 ALLOW_EVERY = 30
 RAW_EVERY = 5         # seconds between raw writes: one gzip member per packet cost more than the rest
@@ -35,7 +37,7 @@ class Collector:
         self.errors = 0
         self.refused = 0
         self._allow = (None, None)     # (monotonic time read, networks or None for everyone)
-        self._next = {'publish': 0, 'seats': 0, 'prune': 0, 'feature': 0, 'raw': 0}
+        self._next = {'publish': 0, 'seats': 0, 'prune': 0, 'feature': 0, 'raw': 0, 'budget': 0}
         self._pending = {}   # (minute, src, dst, proto, sport, dport) -> [bytes, packets, records]
         self._lock = threading.Lock()   # receive() and housekeeping() may run in two threads
         self._on = True
@@ -156,6 +158,8 @@ class Collector:
             self.raw.append_hours(hours)
             if self._due('prune', now, PRUNE_EVERY):
                 self.raw.prune(now=now)
+            if self._due('budget', now, BUDGET_EVERY):
+                disk_budget.enforce(now=now)
         except OSError as exc:
             self.log(f'[flows] could not write to {self.raw.root}: {exc}')
         if snap is not None:

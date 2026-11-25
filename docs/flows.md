@@ -72,8 +72,8 @@ Flows are personal data under Swiss and EU rules (an address at a seat is a pers
 - **Per seat** there is only the volume and the category mix ("80 GB, mostly gaming"), for spotting
   problems. Never services, addresses or ports.
 - **Raw flows** (`FLOWS_DIR/raw/`, one gzip file per hour) are kept for `FLOWS_RETENTION_DAYS` (7)
-  for looking into an incident afterwards, then deleted; past `FLOWS_RAW_MAX_MB` (10 GB) the oldest
-  hours go first. `FLOWS_KEEP_RAW=false` keeps none.
+  for looking into an incident afterwards, then deleted; when the agent's disk budget is used up the
+  oldest go first ([agent](agent.md#the-agents-disk-budget)). `FLOWS_KEEP_RAW=false` keeps none.
 - **Raw flows are merged per minute** before they are written: one line per minute and
   conversation (source, destination, protocol, ports) with the bytes, packets and how many records
   it was made of, `[minute, src, dst, proto, sport, dport, bytes, packets, records]`. Exporters
@@ -109,7 +109,6 @@ An entry stays for ten minutes after it was last seen.
 | `FLOWS_MIN_SEATS` | `5` | different seats before a service is named (at least 2) |
 | `FLOWS_RETENTION_DAYS` | `7` | days raw flows and per-seat numbers are kept |
 | `FLOWS_KEEP_RAW` | `true` | keep raw flows at all |
-| `FLOWS_RAW_MAX_MB` | `10240` | most raw flows kept on disk; the oldest hours go first (a busy hall writes about 300 MB an hour) |
 | `FLOWS_DIR` | next to `data.json` | where raw flows and hourly totals go |
 | `FLOWS_P2P_PEERS` | `300` | peers per minute that count as P2P |
 | `FLOWS_BURST_PPS` | `50000` | packets per second that count as a burst |
