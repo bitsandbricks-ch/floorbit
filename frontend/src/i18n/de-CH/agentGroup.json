@@ -1,0 +1,49 @@
+{
+  "kicker": "Agent-Gruppe",
+  "allDevices": "Alle Geräte",
+  "gone": "In dieser Gruppe ist kein Agent",
+  "goneHelp": "Ihre Agents haben andere Tags bekommen oder wurden widerrufen.",
+  "tags": "Tags: {{tags}}",
+  "noTags": "Keine Tags: zuständig für alle Geräte",
+  "agents_one": "1 Agent",
+  "agents_other": "{{count}} Agents",
+  "intro": "Diese Agents sind für dieselben Tags zuständig und vertreten sich gegenseitig. Floorbit bestimmt den Primary und teilt die Geräte unter ihnen auf. Für das Failover muss nichts eingerichtet werden.",
+  "agentsTitle": "Agents",
+  "fact": {
+    "holds": "Geteilte Adressen",
+    "none": "keine",
+    "owns": "Eigene Geräte",
+    "ownsValue": "{{n}} von {{total}}",
+    "pinned": "Fest zugewiesen",
+    "version": "Version",
+    "split": "Folgt der Aufteilung",
+    "yes": "ja",
+    "no": "nein, Agent aktualisieren"
+  },
+  "roleHelp": {
+    "primary": "Macht, was nur ein Agent tun soll (LANcache, DHCP, Plugin-Aktionen), und sammelt alle Geräte, wenn die Gruppe nicht aufteilt.",
+    "standby": "Übernimmt innert etwa einer Sekunde, wenn die Verbindung des Primary abbricht.",
+    "active": "Sammelt seine eigenen Geräte.",
+    "offline": "Nicht verbunden: Seine Geräte sind bei den anderen."
+  },
+  "splitTitle": "Wer welches Gerät übernimmt",
+  "splitOn": "Jedes Gerät gehört einem Agent. Nur dieser fragt es ab, meldet sich an und verarbeitet sein Syslog, seine Traps und Streams. Die anderen hören mit und behalten die letzte Minute, damit bei einer Übernahme nichts verloren geht.",
+  "splitOld": "Die Geräte sind nicht aufgeteilt: {{names}} kann noch nicht mitmachen, darum sammelt der Primary alle Geräte. Aktualisiere die Agents, um die Last zu teilen.",
+  "splitAlone": "Ein Agent: Er sammelt alle Geräte. Registriere einen zweiten Agent mit denselben Tags, um die Last zu teilen und eine Reserve zu haben.",
+  "splitOffline": "Nur ein Agent ist verbunden, darum sammelt er alle Geräte.",
+  "splitWaiting": "Die Geräte sind noch nicht aufgeteilt: Floorbit teilt sie auf, sobald sich jeder Agent der Gruppe gemeldet hat.",
+  "share": "{{name}} · {{n}}",
+  "pinnedNote_one": "1 Gerät ist unter «Gesammelt von» einem Agent fest zugewiesen und bleibt dort.",
+  "pinnedNote_other": "{{count}} Geräte sind unter «Gesammelt von» einem Agent fest zugewiesen und bleiben dort.",
+  "whenStops": "Wenn {{name}} stoppt, gehen seine {{n}} Geräte an die anderen. Der Rest bleibt, wo er ist.",
+  "sendTitle": "Wohin Geräte senden",
+  "sendHelp": "Richte Syslog, SNMP-Traps und Streaming-Telemetrie jedes Geräts auf alle Agents dieser Gruppe. Geräte, die nur an ein Ziel senden können, nehmen stattdessen eine geteilte Adresse.",
+  "vipsTitle": "Geteilte Adressen",
+  "vipsHelp": "Eine geteilte Adresse liegt auf einem Agent und wandert zu einem anderen, wenn dieser stoppt (VRRP auf den Agents). Check-in und Geräte, die nur an ein Ziel senden können, nutzen sie.",
+  "vipsNone": "Keine geteilten Adressen. Ohne sie trägst du im Event-DNS beim Check-in-Namen die Adressen aller Agents ein.",
+  "vip": {
+    "address": "Adresse",
+    "on": "Jetzt auf",
+    "nobody": "niemandem"
+  }
+}

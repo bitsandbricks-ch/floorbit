@@ -86,6 +86,16 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/agents/load` | `settings.manage` |  |
 | POST | `/api/agents/roll` | `settings.manage` |  |
 
+## floorbit.blueprints.agent_groups
+
+One group of local agents: the agents with the same tags, which back each other up (#1405) and split their devices (#1441). For admins (``settings.manage``, as all of ``/api/agents``):
+
+Source: [`floorbit/blueprints/agent_groups.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent_groups.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/agents/groups/<path:group_id>` | `settings.manage` |  |
+
 ## floorbit.blueprints.agent_plugins
 
 Agent plugins (floorbit/agent_plugins.py, docs/agent-plugins.md), for the agent with its key:

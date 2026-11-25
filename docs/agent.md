@@ -188,6 +188,10 @@ in the event DNS: browsers try the next address when one doesn't answer.
 Agents of a group share their **certificate names**: names set on one agent's page go on the
 others' certificates too, so a second agent behind the same VIP or name needs none typed in.
 
+Each group has its own page (the group's name on the Local agents page, `/settings/agents/groups/<tags>`):
+its agents and their roles, which shared addresses each holds, how many devices each owns now and
+whether each follows the split, and what happens when the busiest one stops.
+
 **Failover per tag** on the Local agents page shows each group: who is primary or standby, which
 addresses each holds, active/active or active/passive, and what needs a look: **Backup missing**
 (a standby is offline), **No primary**, or **One agent** (no failover). Agents from before the
