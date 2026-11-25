@@ -77,21 +77,25 @@ export function ServiceRow({ row: r, showType = false, canRcon = false, onConsol
   )
 }
 
-/** A titled group of rows, like "Internet lines 2". */
+/** A titled group of rows, like "Internet lines 2". When every row is set up in the same other
+ *  place, the group says where once instead of on each row (ten firewalls, #1419). */
 export function ServiceGroup({ title, rows, showType, canRcon, onConsole, onSelect, selected }: {
   title?: string; rows: ServiceRowData[]; showType?: boolean; canRcon?: boolean; onConsole?: (s: GameServer) => void
   onSelect?: (r: ServiceRowData) => void; selected?: string | null
 }) {
+  const where = rows.length > 1 && rows.every((r) => r.elsewhere && r.elsewhere === rows[0].elsewhere) ? rows[0].elsewhere : null
+  const shown = where ? rows.map((r) => ({ ...r, elsewhere: undefined })) : rows
   return (
     <Stack gap="xs" component="section" aria-label={title}>
       {title && (
         <Group gap="xs">
           <Title order={2} size="h4">{title}</Title>
           <Badge variant="default" radius="sm">{rows.length}</Badge>
+          {where && <Text size="sm" c="dimmed" className="fb-service-group-note">{where}</Text>}
         </Group>
       )}
       <Paper withBorder className="fb-service-list">
-        {rows.map((r) => (
+        {shown.map((r) => (
           <ServiceRow key={r.key} row={r} showType={showType} canRcon={canRcon} onConsole={r.game && onConsole ? () => onConsole(r.game!) : undefined}
             onSelect={onSelect ? () => onSelect(r) : undefined} selected={selected === r.key} />
         ))}
