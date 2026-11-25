@@ -12,6 +12,10 @@ defaults for all devices at `/inventory/defaults`, each with tabs for its detail
 settings (properties and feature switches) and credentials. Other entries (cables, transceivers, ...) open at
 `/inventory/entries/<type>/<id>`. The links can be shared and bookmarked.
 
+Edits happen on these pages too, never in a dialog: a device's details (name, role, model,
+address, group, tags, look, notes) are the first panel of its **Settings** tab, which **Edit details**
+opens, and **Add device** opens `/inventory/devices/new`, which goes to the new device's page once it is added.
+
 **Graphs** on a device's page shows its CPU, memory and reachability over 1 to 48 hours, then
 one port's traffic in and out and its errors (pick the port), as Floorbit stored them from
 monitoring or telemetry; a number never stored is left out. **Logs** shows the syslog lines this
