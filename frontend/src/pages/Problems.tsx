@@ -223,8 +223,7 @@ export default function Problems() {
   const now = useNowSeconds()
   // The filters live in the address, so a reload or a shared link keeps them (issues #276, #883),
   // on one row like every other list (issue #1472).
-  const filters = useFilters({ kind: 'all', level: 'all', group: 'none', tag: '', muted: 'show', incident: 'all' })
-  const shown = filters.values.kind
+  const filters = useFilters({ kind: '', level: 'all', group: 'none', tag: '', muted: 'show', incident: 'all' })
   const folds = useFolds()
   const [groupPage, setGroupPage] = useState(1)
   const [groupsPerPage, setGroupsPerPage] = useState(GROUP_PAGE)
@@ -274,7 +273,11 @@ export default function Problems() {
   // In the order they first appear, which is worst first.
   const kinds: string[] = [...new Set(all.map((p) => p.kind))]
   const seatCount = all.filter((p) => p.seat).length
-  const chips = seatCount && kinds.length > 1 ? ['all', SEATS, ...kinds] : ['all', ...kinds]
+  const chips = seatCount && kinds.length > 1 ? [SEATS, ...kinds] : kinds
+  // Several types at once (issue #1472): "security,service"; none picked shows every row. A type
+  // that is gone from the list stops counting, so an old link doesn't empty the page.
+  const picked = filters.values.kind.split(',').filter((k) => chips.includes(k))
+  const ofType = (p: Problem) => !picked.length || picked.some((k) => (k === SEATS ? !!p.seat : p.kind === k))
   const level = filters.values.level
   const hideMuted = filters.values.muted === 'hide'
   // Whether someone works on it (#883): only those who see the board get the incident at all.
@@ -288,13 +291,13 @@ export default function Problems() {
   const groupBy: GroupBy = (GROUPS as readonly string[]).includes(filters.values.group) ? filters.values.group as GroupBy : 'none'
   const query = filters.search.trim().toLowerCase()
   const found = (p: Problem) => !query || [p.title, p.where, p.device, p.seat, p.hall].some((v) => v?.toLowerCase().includes(query))
-  const matches = (p: Problem) => (shown === SEATS ? !!p.seat : !kinds.includes(shown) || p.kind === shown)
+  const matches = (p: Problem) => ofType(p)
     && (level === 'all' || (level === 'down' ? p.level === 'down' : p.level !== 'down'))
     && !(hideMuted && p.muted) && (!tag || (p.tags ?? []).includes(tag)) && worked(p) && found(p)
   const matching = all.filter(matches).sort((x, y) => rank(x, now) - rank(y, now))
   // The same seat problem on many seats is one row, and a down link hangs under its down box
   // (issue #1415). A kind picked on purpose stays one row per seat.
-  const visible = fold(matching, (k) => shown === k || shown === SEATS)
+  const visible = fold(matching, (k) => picked.includes(k) || picked.includes(SEATS))
   const groupKey = (p: Problem) => groupBy === 'kind' ? t(`problems.kind.${p.kind}`) : groupBy === 'hall' ? p.hall ?? '' : p.device ?? ''
   const groups = groupBy === 'none' ? [] : [...new Set(visible.map(groupKey))]
     .sort((x, y) => (x === '' ? 1 : 0) - (y === '' ? 1 : 0) || x.localeCompare(y, undefined, { numeric: true }))
@@ -342,11 +345,10 @@ export default function Problems() {
           {all.length > 0 && (
             <FilterBar search={filters.search} onSearchChange={filters.setSearch} searchLabel={t('problemHeader.search')} onClear={filters.clear}
               groups={filters.groups([
-                // TODO(#1472): several types at once once the shared FilterBar's `multiple` is released (ui#91).
-                { key: 'kind', label: t('problemHeader.type'), hidden: kinds.length < 2, options: chips.map((k) => ({
+                { key: 'kind', label: t('problemHeader.type'), multiple: true, hidden: kinds.length < 2, options: chips.map((k) => ({
                   value: k,
-                  label: k === 'all' ? t('problems.all') : k === SEATS ? t('problems.seats') : t(`problems.kind.${k}`),
-                  count: k === 'all' ? all.length : k === SEATS ? seatCount : all.filter((p) => p.kind === k).length,
+                  label: k === SEATS ? t('problems.seats') : t(`problems.kind.${k}`),
+                  count: k === SEATS ? seatCount : all.filter((p) => p.kind === k).length,
                 })) },
                 { key: 'level', label: t('problems.filter.level'), options: (['all', 'down', 'warn'] as const).map((v) => ({
                   value: v, label: t(`problems.filter.levels.${v}`),
@@ -433,7 +435,7 @@ export default function Problems() {
               </Stack>
             </section>
           )}
-          {canSeePeople && <ShutPorts always={shown === 'security'} />}
+          {canSeePeople && <ShutPorts always={picked.includes('security')} />}
         </Stack>
       )}
       <MuteDialog target={target} busy={mute.isPending} error={dialogError} onClose={() => setTarget(null)}
