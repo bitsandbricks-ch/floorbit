@@ -16,7 +16,7 @@ def net(client, monkeypatch):
     links.reader.reset()
     services.poller.reset()
     answers = {}
-    monkeypatch.setattr(services, "_ask", lambda method, *args: answers[method](*args))
+    monkeypatch.setattr(services, "_ask", lambda method, *args, **_where: answers[method](*args))
     for name, role in (("core-01", "router"), ("sw-a-01", "switch")):
         assert client.post("/api/inventory", json={"name": name, "role": role}).status_code in (200, 201)
     yield mon, answers

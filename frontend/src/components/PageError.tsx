@@ -21,7 +21,7 @@ function Fallback({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   const { t } = useTranslation()
   const stale = isStaleCode(error)
   return (
-    <main className="fb-main" role="alert">
+    <div className="fb-page" role="alert">
       <Stack gap="sm" maw={560}>
         <IconAlertTriangle size={32} aria-hidden="true" color="var(--mantine-color-orange-6)" />
         <Title order={2}>{t(stale ? 'crash.updatedTitle' : 'crash.title')}</Title>
@@ -39,7 +39,7 @@ function Fallback({ error, onRetry }: { error: unknown; onRetry: () => void }) {
           </details>
         )}
       </Stack>
-    </main>
+    </div>
   )
 }
 

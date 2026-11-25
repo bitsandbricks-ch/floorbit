@@ -85,7 +85,7 @@ def checklist():
     from auth import teams as auth_teams
     from integrations import seat_sources
 
-    from .. import agent_link, schedule, sources, webhooks
+    from .. import agent_link, schedule, sources, tenancy, webhooks
     data = load_data()
     auth = _auth()
     registry = sources.registry
@@ -96,7 +96,7 @@ def checklist():
         users=auth.users.count() if auth and auth.enabled else 0,
         teams=len(auth_teams.all_teams()) if auth and auth.enabled else 0,
         hooks=len(webhooks.all_hooks()), monitoring=bool(registry and registry.monitoring_source()),
-        event_dates=schedule.get(data)['event'], mapped=len(mapped))
+        event_dates=schedule.get(data)['event'], mapped=len(mapped), event_name=tenancy.current().get('name') or '')
     return jsonify({'steps': steps, 'done': setup.state(data)['done']})
 
 

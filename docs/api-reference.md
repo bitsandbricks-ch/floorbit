@@ -86,6 +86,16 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/agents/load` | `settings.manage` |  |
 | POST | `/api/agents/roll` | `settings.manage` |  |
 
+## floorbit.blueprints.agent_events
+
+One local agent's recent events, for the Logs tab and the overview of its page (issue #905). For admins (``settings.manage``, as all of ``/api/agents``):
+
+Source: [`floorbit/blueprints/agent_events.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent_events.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/agents/<agent_id>/events` | `settings.manage` |  |
+
 ## floorbit.blueprints.agent_groups
 
 One group of local agents: the agents with the same tags, which back each other up (#1405) and split their devices (#1441). For admins (``settings.manage``, as all of ``/api/agents``):
@@ -634,7 +644,9 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 | --- | --- | --- | --- |
 | GET | `/api/logs` | `seats.view` | `syslog` |
 | GET | `/api/logs/alerts` | `seats.view` | `syslog` |
+| GET | `/api/logs/download` | `seats.view` | `syslog` |
 | GET | `/api/logs/markers` | `seats.view` | `syslog` |
+| GET | `/api/logs/volume` | `seats.view` | `syslog` |
 
 ## floorbit.blueprints.marketplace
 

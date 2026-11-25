@@ -9,7 +9,13 @@ lives in floorbit/syslog.py.
   (1 to 1000, 200 by default). Needs ``seats.view``: logs name MACs and IPs. ``source=app`` reads
   Floorbit's own log and ``source=audit`` the audit log instead, with the same filters (issue #93);
   both also need ``audit.read``. ``source=plugin:loki`` searches what a logs plugin keeps, with
-  ``q`` in its query language (LogQL) over the last ``hours`` (24).
+  ``q`` in its query language (LogQL) over the last ``hours`` (24). For the syslog, ``since`` and
+  ``until`` (unix seconds) keep only lines of that time.
+- ``GET /api/logs/volume``: the syslog's lines per time slice (``buckets``, 60 by default) from ``since``
+  (an hour ago by default) to ``until`` (now), with the same filters: ``[start, lines, errors]`` per slice,
+  for the chart over the list (issue #1048).
+- ``GET /api/logs/download``: every syslog line the filters match, oldest first, as a text file.
+  The download is written to the audit log: the lines name MACs and IPs.
 - ``GET /api/logs/markers``: warnings and worse of the last 10 minutes, counted per seat and per
   switch, for the floor plan (issue #92).
 - ``GET /api/logs/alerts``: lines that matched a known pattern (err-disable, DHCP snooping, port
@@ -119,9 +125,89 @@ def get_logs():
         device = (args.get('device') or '').lower()
         return jsonify({'lines': [ln for ln in lines if not device or ln['device'].lower() == device],
                         'status': status})
-    lines = receiver.search(q=args.get('q', ''), device=args.get('device', ''), seat=args.get('seat', ''),
-                            port=args.get('port', ''), severity=severity, after=after, before=before, limit=limit)
+    try:
+        since, until = _window()
+    except ValueError:
+        return jsonify({'error': WINDOW_ERROR}), 400
+    lines = receiver.search(**_filters(severity), after=after, before=before, limit=limit, since=since, until=until)
     return jsonify({'lines': lines, 'status': status})
+
+
+WINDOW_ERROR = 'since and until are unix seconds, since before until.'
+
+
+def _window(default_since=None, default_until=None):
+    def read(name, default):
+        raw = request.args.get(name)
+        if raw in (None, ''):
+            return default
+        value = float(raw)   # ValueError is answered by the caller
+        if not 0 <= value < 2**33:
+            raise ValueError
+        return value
+    since, until = read('since', default_since), read('until', default_until)
+    if since is not None and until is not None and since >= until:
+        raise ValueError
+    return since, until
+
+
+def _filters(severity):
+    args = request.args
+    return {'q': args.get('q', ''), 'device': args.get('device', ''), 'seat': args.get('seat', ''),
+            'port': args.get('port', ''), 'severity': severity}
+
+
+def _severity():
+    severity = (request.args.get('severity') or '').strip().lower()
+    if severity and severity not in syslog.SEVERITIES:
+        raise ValueError(f"severity is one of {', '.join(syslog.SEVERITIES)}.")
+    return severity
+
+
+@bp.route('/api/logs/volume', methods=['GET'])
+def get_volume():
+    import time
+    now = time.time()
+    try:
+        severity = _severity()
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    try:
+        since, until = _window(now - 3600, now)
+        buckets = _int('buckets', 60, 1, 500)
+    except ValueError:
+        return jsonify({'error': WINDOW_ERROR + ' buckets is a whole number from 1 to 500.'}), 400
+    return jsonify(current_app.extensions['floorbit_syslog'].volume(
+        since, until, buckets, **_filters(severity)))
+
+
+DOWNLOAD_LIMIT = 200_000
+
+
+@bp.route('/api/logs/download', methods=['GET'])
+def download():
+    import time
+
+    from flask import Response, g
+
+    from .. import audit
+    try:
+        severity = _severity()
+        since, until = _window()
+    except ValueError as exc:
+        return jsonify({'error': str(exc) if str(exc).startswith('severity') else WINDOW_ERROR}), 400
+    lines = current_app.extensions['floorbit_syslog'].search(**_filters(severity), limit=DOWNLOAD_LIMIT,
+                                                             since=since, until=until)
+    audit.record('security', 'Downloaded syslog lines', g.get('audit_user'), f'{len(lines)} lines')
+
+    def row(line):
+        at = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(line.get('ts') or 0))
+        where = ' '.join(str(line.get(k)) for k in ('device', 'port', 'seat') if line.get(k))
+        program = f"{line['program']}: " if line.get('program') else ''
+        return f"{at} {line['severity']:<7} {where} {program}{line['message']}\n"
+    name = time.strftime('floorbit-syslog-%Y%m%d-%H%M.log', time.gmtime())
+    return Response(''.join(row(ln) for ln in reversed(lines)), mimetype='text/plain',
+                    headers={'Content-Disposition': f'attachment; filename="{name}"'})
 
 
 @bp.route('/api/logs/markers', methods=['GET'])

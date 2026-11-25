@@ -43,5 +43,11 @@
   },
   "retry": "Nochmals versuchen",
   "close": "Schliessen",
-  "nothingYet": "Hier ist noch nichts."
+  "nothingYet": "Hier ist noch nichts.",
+  "leave": {
+    "title": "Ohne Speichern verlassen?",
+    "text": "Diese Seite hat Änderungen, die noch nicht gespeichert sind. Sie gehen verloren, wenn du sie jetzt verlässt.",
+    "stay": "Bleiben",
+    "go": "Ohne Speichern verlassen"
+  }
 }

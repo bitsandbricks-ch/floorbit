@@ -38,8 +38,8 @@ describe('Plugins page', () => {
 
     expect(await screen.findByRole('heading', { name: 'HTTP check' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'HTTP check' })).toHaveAttribute('href', '/settings/plugins/http-check')
-    expect(within(screen.getByRole('list')).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings/plugins/http-check')
-    expect(screen.getByText('Ships with Floorbit')).toBeInTheDocument()
+    expect(screen.getByText('v1.0.0 · Ships with Floorbit')).toBeInTheDocument()
+    expect(within(screen.getByRole('list')).getByText('Off')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('switch'))
     expect(await screen.findByText('✓ HTTP check is on.')).toBeInTheDocument()
@@ -60,6 +60,27 @@ describe('Plugins page', () => {
     }
     renderWithApp(<PluginOverview plugin={plugin} />)
     expect(screen.queryByText(/schema/)).toBeNull()
+  })
+
+  it('says what each plugin does, and lists the LAN cache whose data is here without its plugin (#1435)', async () => {
+    const receiving = { ...plugin, id: 'syslog-relay', name: 'Syslog from the hall', enabled: true,
+      uses: [{ id: 'agent', label: 'Agent' }], activity: { state: 'receiving' as const, values: { count: 2, total: 2 } } }
+    const unset = { ...plugin, id: 'netbox', name: 'NetBox', enabled: true, activity: { state: 'not_configured' as const, values: {} } }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: false, user: null },
+      'GET /api/settings/plugins': { plugins: [receiving, unset], missing: [{ id: 'lancache', name: 'LAN cache', href: '/lancache' }] },
+      'GET /api/settings/marketplace': { source: { url: '', name: '', generated: '', error: '' }, plugins: [] },
+    }).fn)
+    renderWithApp(<Plugins />)
+    const card = (id: string) => document.querySelector(`[data-plugin="${id}"]`) as HTMLElement
+    await screen.findByRole('heading', { name: 'Syslog from the hall' })
+    expect(within(card('syslog-relay')).getByText('Receiving')).toBeInTheDocument()
+    expect(within(card('syslog-relay')).getByText(/runs on the agent/)).toBeInTheDocument()
+    expect(within(card('netbox')).getByText('Not configured')).toBeInTheDocument()
+    expect(within(card('lancache')).getByText('Not installed')).toBeInTheDocument()
+    expect(within(card('lancache')).getByRole('link', { name: 'LAN cache' })).toHaveAttribute('href', '/lancache')
+    fireEvent.click(within(card('lancache')).getByRole('button', { name: 'Install' }))
+    expect(await screen.findByRole('tab', { name: 'Marketplace' })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('filters a long list', async () => {

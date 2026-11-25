@@ -16,6 +16,7 @@ import { canReport, reportBody } from './problems/format'
 import { ProblemFacts } from './problems/facts'
 import { problemPlaces } from './problems/places'
 import { FindingPanel } from './problems/FindingPanel'
+import { ProblemLogs } from './problems/ProblemLogs'
 import { MuteDialog } from './problems/MuteDialog'
 import { muteBody, muteTarget, type MuteTarget } from './problems/mute'
 
@@ -95,6 +96,11 @@ export default function ProblemPage() {
       {q.data.finding && (
         <div style={{ marginTop: 'var(--mantine-spacing-md)' }}>
           <FindingPanel f={q.data.finding} canShut={!!q.data.can_shut} needsLogin={!!q.data.needs_login} />
+        </div>
+      )}
+      {q.data.may_see_people && (p.seat || p.device) && (
+        <div style={{ marginTop: 'var(--mantine-spacing-md)' }}>
+          <ProblemLogs p={p} />
         </div>
       )}
       <MuteDialog target={target} busy={mute.isPending} error={muteError} onClose={() => setTarget(null)}

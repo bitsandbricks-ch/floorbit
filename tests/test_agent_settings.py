@@ -31,24 +31,24 @@ def test_settings_are_checked_saved_and_reach_only_that_agent(client, anon_clien
     page = client.patch(f"/api/agents/{a['id']}/settings", json={
         "settings": {"log_level": "debug", "buffer_max_mb": 512, "metrics_token": "example-token",
                      "vrrp_vips": "192.0.2.10/24, 192.0.2.11/24"},
-        "plugins": {"netflow-relay": {"port": 2055}}}).get_json()
+        "plugins": {"netflow-relay": {"port": 2056}}}).get_json()
     assert page["values"] == {"log_level": "debug", "buffer_max_mb": 512, "metrics_token": True,
                               "vrrp_vips": ["192.0.2.10/24", "192.0.2.11/24"]}
     relay = next(p for p in page["plugins"] if p["id"] == "netflow-relay")
-    assert relay["values"] == {"port": 2055} and {f["key"] for f in relay["fields"]} == {"port", "bind"}
+    assert relay["values"] == {"port": 2056} and {f["key"] for f in relay["fields"]} == {"port", "bind"}
     assert "FLOORBIT_AGENT_ALLOW_ACTIONS" in page["local_only"]
     assert "example-token" not in str(agent_link.load_data())          # sealed at rest
     mine = anon_client.get("/api/agent/v1/plugins", headers=head(a["key"])).get_json()
-    assert mine["plugins"]["netflow-relay"]["settings"]["port"] == 2055
+    assert mine["plugins"]["netflow-relay"]["settings"]["port"] == 2056
     assert mine["agent"]["settings"]["metrics_token"] == "example-token"
     assert mine["agent"]["settings"]["buffer_max_mb"] == 512
     other = anon_client.get("/api/agent/v1/plugins", headers=head(b["key"])).get_json()
-    assert other["plugins"]["netflow-relay"]["settings"]["port"] == 0 and other["agent"]["settings"] == {}
+    assert other["plugins"]["netflow-relay"]["settings"]["port"] == 2055 and other["agent"]["settings"] == {}
     # Cleared: the default from Settings > Plugins applies again.
     client.patch(f"/api/agents/{a['id']}/settings", json={"plugins": {"netflow-relay": {"port": None}},
                                                           "settings": {"metrics_token": None}})
     mine = anon_client.get("/api/agent/v1/plugins", headers=head(a["key"])).get_json()
-    assert mine["plugins"]["netflow-relay"]["settings"]["port"] == 0
+    assert mine["plugins"]["netflow-relay"]["settings"]["port"] == 2055
     assert "metrics_token" not in mine["agent"]["settings"]
 
 

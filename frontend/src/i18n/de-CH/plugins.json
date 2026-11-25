@@ -119,5 +119,48 @@
     "settingsTitle": "Einstellungen pro Agent",
     "settingsIntro": "Braucht ein Agent einen anderen Wert, hier setzen. Leere Felder nehmen die Einstellungen des Plugins.",
     "same": "nimmt die Einstellungen des Plugins"
+  },
+  "activity": {
+    "broken": {
+      "label": "Nicht geladen",
+      "text": "Es liess sich nicht laden."
+    },
+    "off": {
+      "label": "Aus",
+      "text": "Ausgeschaltet."
+    },
+    "no_agent": {
+      "label": "Kein Agent",
+      "text": "Es läuft auf dem lokalen Agenten, und keiner ist verbunden."
+    },
+    "failing": {
+      "label": "Fehler",
+      "text": "Fehler auf {{names}}."
+    },
+    "not_configured": {
+      "label": "Nicht eingerichtet",
+      "text": "An, braucht aber noch seine Einstellungen."
+    },
+    "receiving": {
+      "label": "Empfängt",
+      "text": "Daten kommen über {{count}} von {{total}} lokalen Agenten."
+    },
+    "waiting": {
+      "label": "Wartet",
+      "text": "An; noch ist nichts angekommen."
+    },
+    "on": {
+      "label": "An",
+      "text": "An und eingerichtet."
+    }
+  },
+  "meta": {
+    "agent": "läuft auf dem Agenten"
+  },
+  "missing": {
+    "label": "Nicht installiert",
+    "text": "Seine Daten sind schon da. Installiere das Plugin aus dem Marketplace, um seine Einstellungen zu ändern.",
+    "install": "Installieren",
+    "from": "aus dem Marketplace"
   }
 }

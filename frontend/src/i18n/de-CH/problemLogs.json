@@ -1,0 +1,6 @@
+{
+  "title": "Neueste Logs",
+  "open": "In Logs öffnen",
+  "none": "Noch keine Syslog-Zeilen von {{name}}.",
+  "noneSeat": "Noch keine Syslog-Zeilen zu Platz {{name}}."
+}
