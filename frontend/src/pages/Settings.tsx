@@ -18,7 +18,7 @@ import { BackupPanel, Connections, SectionPanel, SettingsForm } from './settings
 import { S3BackupPanel } from './settings/S3Backups'
 import { useChecklist } from './setup/checklist'
 import './Settings.css'
-import { k, keys, sectionTitle, useSettingsEditor, type SettingsAnswer, type SettingsEditor } from './settings/model'
+import { inSettings, k, keys, sectionTitle, useSettingsEditor, type SettingsAnswer, type SettingsEditor } from './settings/model'
 
 export type { SettingsAnswer }
 
@@ -175,7 +175,7 @@ export default function Settings() {
   // list (it failed), try: the server says no if it must.
   const list = usePageListSettled()
   const mayEdit = list.settled && (list.failed || listed.has('settings'))
-  const ed = useSettingsEditor({ enabled: mayEdit })
+  const ed = useSettingsEditor({ enabled: mayEdit, keep: inSettings })
   const d = ed.d
   const { entries, byId } = useEntries(d, listed)
   const steps = useChecklist(mayEdit && listed.has('setup')).data?.steps

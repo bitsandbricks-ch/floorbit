@@ -456,36 +456,71 @@ class SyslogReceiver:
                 line['seat'] = index.get((str(line.get('device') or '').lower(), line['port']))
 
     # ── reading ─────────────────────────────────────────────────────────────────────
-    def search(self, q='', device='', seat='', port='', severity='', after=0, before=None, limit=200):
-        """Newest first. ``severity`` is the least severe level to show ('warning' shows emerg to warning)."""
+    def _matcher(self, q='', device='', seat='', port='', severity='', since=None, until=None):
+        """One test for the filters every reader shares: the list, the volume chart and the download."""
         words = [w for w in str(q or '').lower().split() if w]
         worst = SEVERITIES.index(severity) if severity in SEVERITIES else len(SEVERITIES) - 1
         device, seat, port = str(device or '').lower(), str(seat or '').lower(), canonical_port(port) if port else ''
+
+        def match(line):
+            if SEVERITIES.index(line['severity']) > worst:
+                return False
+            if since is not None and (line.get('ts') or 0) < since:
+                return False
+            if until is not None and (line.get('ts') or 0) >= until:
+                return False
+            if device and str(line.get('device') or '').lower() != device:
+                return False
+            if seat and str(line.get('seat') or '').lower() != seat:
+                return False
+            if port and line.get('port') != port:
+                return False
+            if words:
+                text = ' '.join(str(line.get(k) or '') for k in ('message', 'device', 'program', 'seat')).lower()
+                if not all(w in text for w in words):
+                    return False
+            return True
+        return match
+
+    def _snapshot(self):
         with self._lock:
             lines = list(self.lines)
         self._fill_seats(lines)
+        return lines
+
+    def search(self, q='', device='', seat='', port='', severity='', after=0, before=None, limit=200,
+               since=None, until=None):
+        """Newest first. ``severity`` is the least severe level to show ('warning' shows emerg to warning);
+        ``since`` and ``until`` are unix seconds."""
+        match = self._matcher(q, device, seat, port, severity, since, until)
         out = []
-        for line in reversed(lines):
+        for line in reversed(self._snapshot()):
             if line['id'] <= after:
                 break
             if before is not None and line['id'] >= before:
                 continue
-            if SEVERITIES.index(line['severity']) > worst:
+            if not match(line):
                 continue
-            if device and str(line.get('device') or '').lower() != device:
-                continue
-            if seat and str(line.get('seat') or '').lower() != seat:
-                continue
-            if port and line.get('port') != port:
-                continue
-            if words:
-                text = ' '.join(str(line.get(k) or '') for k in ('message', 'device', 'program', 'seat')).lower()
-                if not all(w in text for w in words):
-                    continue
             out.append(line)
             if len(out) >= limit:
                 break
         return out
+
+    def volume(self, since, until, buckets=60, **filters):
+        """Lines per time slice for the chart over the list: ``[start, all, errors]`` per slice, where
+        errors are err and worse, so a burst of them stands out."""
+        step = max(1, -(-(until - since) // buckets))
+        counts = [[since + i * step, 0, 0] for i in range(buckets)]
+        match = self._matcher(since=since, until=until, **filters)
+        worst = SEVERITIES.index('err')
+        for line in self._snapshot():
+            if not match(line):
+                continue
+            row = counts[min(buckets - 1, int((line['ts'] - since) // step))]
+            row[1] += 1
+            if SEVERITIES.index(line['severity']) <= worst:
+                row[2] += 1
+        return {'since': since, 'until': until, 'step': step, 'buckets': counts}
 
     def markers(self, devices, now=None, minutes=10):
         with self._lock:
@@ -552,6 +587,7 @@ class SyslogReceiver:
                     'relayed': [{'agent': name, **seen, 'recent': time.time() - seen['at'] < 300}
                                 for name, seen in sorted(self.relayed.items())],
                     'last_id': self.lines[-1]['id'] if self.lines else 0,
+                    'first_ts': self.lines[0].get('ts') if self.lines else None,
                     'leases': dhcp_leases.leases.status(),
                     'stores': [{'id': s.id, 'name': s.name, **{k: v for k, v in self.forwarded.get(s.id, {}).items()
                                                                if k != 'id'}} for s in self.log_plugins()]}

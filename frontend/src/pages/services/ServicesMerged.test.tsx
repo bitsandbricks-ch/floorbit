@@ -55,14 +55,14 @@ describe('Services with what Service health showed (#1337)', () => {
     // The plugin's HTTP check sits with the sites, the DHCP scope under DHCP; nothing twice.
     expect(within(screen.getByRole('region', { name: 'Internet sites' })).getByRole('group', { name: 'Crew wiki' })).toBeInTheDocument()
     expect(screen.getAllByRole('group', { name: 'Stream encoder' })).toHaveLength(1)
-    expect(within(screen.getByRole('button', { name: 'Show: All' })).getByText('4')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: /^Show: All/ })).getByText('4')).toBeInTheDocument()
   })
 
   it('groups by tag: a service with two tags shows under both, one without under No tag', async () => {
     vi.stubGlobal('fetch', api().fn)
     renderWithApp(<Services />)
     await screen.findByRole('group', { name: 'Stream encoder' })
-    fireEvent.click(screen.getByRole('button', { name: 'Group by: Type' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Group by: Type/ }))
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Tag' }))
     const stage = await screen.findByRole('region', { name: 'Stage' })
     expect(within(stage).getAllByRole('group').map((g) => g.getAttribute('aria-label'))).toEqual(['Stream encoder', 'DHCP players'])
@@ -107,7 +107,7 @@ describe('Services with what Service health showed (#1337)', () => {
     expect(await screen.findByText('Up · Status 200 · 92 ms · certificate 61 days')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(fake.calls.find((c) => c.method === 'POST' && c.path === '/api/services/checks')?.body).toEqual({
-      name: 'Tournament site', kind: 'http', slow_ms: 1000, url: 'https://tournament.example.com/', expect: '200-399', contains: '',
+      name: 'Tournament site', kind: 'http', slow_ms: 1000, from: '', url: 'https://tournament.example.com/', expect: '200-399', contains: '',
       cert_warn_days: 14,
     }))
   })

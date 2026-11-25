@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useLeaveWarning } from '@/components/useLeaveWarning'
+import { type Keep, useLeaveWarning } from '@/components/useLeaveWarning'
 
 type FieldType = 'url' | 'text' | 'secret' | 'list' | 'bool' | 'int' | 'choice' | 'color' | 'image'
 export type Field = {
@@ -56,11 +56,19 @@ export function useTest(changes: Changes) {
   return { results, run }
 }
 
+// The pages under /settings that are not Settings itself: leaving for one loses its changes.
+const OWN_PAGES = new Set(['plugins', 'agents'])
+/** Settings keeps its changes across its own entries (/settings/<entry>), not into another page. */
+export const inSettings: Keep = (pathname) => {
+  const m = /^\/settings(?:\/([^/]+))?\/?$/.exec(pathname)
+  return !!m && !OWN_PAGES.has(m[1] ?? '')
+}
+
 /** The settings schema from GET /api/settings and the unsaved changes, shared by the Settings
  *  pages and each plugin's page. Saves only what changed; ``null`` resets a field to its
  *  environment variable or built-in default. */
 /** ``enabled`` false: don't ask the server (an account that may open Settings' people pages but not its fields). */
-export function useSettingsEditor({ enabled = true }: { enabled?: boolean } = {}) {
+export function useSettingsEditor({ enabled = true, keep }: { enabled?: boolean; keep?: Keep } = {}) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const query = useQuery({ queryKey: qk.settings, queryFn: () => get<SettingsAnswer>('/api/settings'), enabled })
@@ -85,7 +93,7 @@ export function useSettingsEditor({ enabled = true }: { enabled?: boolean } = {}
     return !!f && v !== null && invalid(f, v)
   })
 
-  useLeaveWarning(count > 0)
+  useLeaveWarning(count > 0, keep)
 
   const setField = (f: Field, v: unknown) => {
     setSaved(null)

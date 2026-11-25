@@ -1,0 +1,19 @@
+{
+  "time": "Time",
+  "any": "All kept",
+  "last": {
+    "15m": "Last 15 minutes",
+    "1h": "Last hour",
+    "6h": "Last 6 hours",
+    "24h": "Last 24 hours"
+  },
+  "between": "{{from}} to {{to}}",
+  "chart": "Lines over time, errors in red",
+  "bar": "{{time}}: {{count}} lines, {{errors}} errors",
+  "zoom": "Click a bar to show only its time",
+  "max": "max {{n}} per {{step}}",
+  "pause": "Pause",
+  "resume": "Resume",
+  "download": "Download",
+  "downloadHint": "The lines the filters match, as a text file"
+}

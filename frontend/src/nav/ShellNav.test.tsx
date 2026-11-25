@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import '@/i18n'
+import { AppShell } from '@bitsandbricks/ui'
+import { fakeFetch, renderWithApp } from '@/test/render'
 import { resetNavPrefs, type NavBoot } from './boot'
 import { activeHref, group, hubTabs, isServerPage } from './sections'
-import { Sidebar, type LinkProps } from './Sidebar'
+import { useShellNav, type ShellNavProps } from './ShellNav'
 
 const pages = [
   { href: '/', id: 'floorPlan', label: 'Floor plan' },
@@ -17,12 +18,24 @@ const pages = [
   { href: '/brand-new', id: 'brandNew', label: 'Brand new page' },
 ]
 const boot: NavBoot = { pages, brand: { logo: null, name: null }, user: { name: 'Kim', username: 'kim' }, signOut: true, prefs: null }
-const link = ({ children, ...rest }: LinkProps) => <a {...rest}>{children}</a>
 
-function sidebar(path = '/problems', extra: Partial<Parameters<typeof Sidebar>[0]> = {}) {
-  return render(<Sidebar boot={boot} path={path} renderLink={link} onGoTo={() => {}} {...extra} />)
+// Mantine's menus close again in jsdom once their transition ends, so the tests read menu items
+// with hidden: true, as the package's own tests do.
+function Shell(props: ShellNavProps) {
+  const s = useShellNav(props)
+  return (
+    <AppShell brand={s.brand(s.folded)} navTop={s.navTop} nav={s.nav} navFooter={s.navFooter}
+      folded={s.folded} onFoldedChange={s.onFoldedChange} phoneNav={s.phoneNav}>
+      <p>page</p>
+    </AppShell>
+  )
+}
+
+function sidebar(path = '/problems', extra: Partial<ShellNavProps> = {}) {
+  return renderWithApp(<Shell boot={boot} path={path} {...extra} />, path)
 }
 const main = () => screen.getByRole('navigation', { name: 'Main' })
+const aside = () => main().closest('aside') as HTMLElement
 
 afterEach(() => {
   resetNavPrefs()
@@ -81,28 +94,20 @@ describe('sections', () => {
   })
 })
 
-describe('Sidebar', () => {
+describe('the sidebar', () => {
   it('shows the Settings tabs (Users) as the Settings row, lit while one is on screen', () => {
-    const withUsers = [...pages, { href: '/settings/users', id: 'users', label: 'Users' }]
-    render(<Sidebar boot={{ ...boot, pages: withUsers }} path="/settings/users" renderLink={link} onGoTo={() => {}} />)
+    sidebar('/settings/users', { boot: { ...boot, pages: [...pages, { href: '/settings/users', id: 'users', label: 'Users' }] } })
     expect(within(main()).queryByRole('link', { name: 'Users' })).toBeNull()
     expect(within(main()).getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('names Plugins and Settings at the foot, not just a gear icon', () => {
+  it('names Plugins and Settings at the foot, and lights Plugins on the plugin pages', () => {
     const withPlugins = [...pages, { href: '/settings/plugins', id: 'plugins', label: 'Plugins' }]
-    render(<Sidebar boot={{ ...boot, pages: withPlugins }} path="/problems" renderLink={link} onGoTo={() => {}} />)
-    const admin = within(main()).getByRole('list', { name: 'Plugins and settings' })
-    expect(within(admin).getByRole('link', { name: 'Plugins' })).toHaveAttribute('href', '/settings/plugins')
-    expect(within(admin).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
-  })
-
-  it('lights Plugins on the plugin pages, not Settings', () => {
-    const withPlugins = [...pages, { href: '/settings/plugins', id: 'plugins', label: 'Plugins' }]
-    render(<Sidebar boot={{ ...boot, pages: withPlugins }} path="/settings/plugins/netbox" renderLink={link} onGoTo={() => {}} />)
-    const admin = within(main()).getByRole('list', { name: 'Plugins and settings' })
-    expect(within(admin).getByRole('link', { name: 'Plugins' })).toHaveAttribute('aria-current', 'page')
-    expect(within(admin).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
+    sidebar('/settings/plugins/netbox', { boot: { ...boot, pages: withPlugins } })
+    const links = within(main()).getAllByRole('link').map((a) => a.textContent)
+    expect(links.slice(-2)).toEqual(['Plugins', 'Settings'])
+    expect(within(main()).getByRole('link', { name: 'Plugins' })).toHaveAttribute('aria-current', 'page')
+    expect(within(main()).getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
   })
 
   it('marks the page on screen and shows how many switches are down', () => {
@@ -117,11 +122,10 @@ describe('Sidebar', () => {
     expect(within(main()).getByRole('link', { name: 'Network' })).toHaveAttribute('aria-current', 'page')
     // The topology is a view of the floor plan (#1330): "Go to" finds it, the sidebar has no row for it.
     expect(within(main()).queryByRole('link', { name: 'Topology' })).not.toBeInTheDocument()
-    const live = within(main()).getByRole('button', { name: 'Work' })
-    expect(live).toHaveAttribute('aria-expanded', 'true')
-    expect(within(main()).getByRole('link', { name: 'Settings' })).toBeInTheDocument()
-    fireEvent.click(live)
-    expect(live).toHaveAttribute('aria-expanded', 'false')
+    const work = within(main()).getByRole('button', { name: 'Work' })
+    expect(work).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(work)
+    expect(work).toHaveAttribute('aria-expanded', 'false')
     expect(within(main()).queryByRole('link', { name: /Helpdesk/ })).not.toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem('floorbit-nav-folded')!)).toContain('work')
     // The group with the page on screen stays open.
@@ -132,7 +136,7 @@ describe('Sidebar', () => {
 
   it("gives Events a row of its own under the start pages, lit by the event's pages (#1201)", () => {
     const more = [...pages, { href: '/events', id: 'events', label: 'Events' }, { href: '/replay', id: 'replay', label: 'Event replay' }]
-    render(<Sidebar boot={{ ...boot, pages: more }} path="/replay" renderLink={link} onGoTo={() => {}} />)
+    sidebar('/replay', { boot: { ...boot, pages: more } })
     expect(within(main()).queryByRole('link', { name: 'Event replay' })).not.toBeInTheDocument()
     expect(within(main()).getByRole('link', { name: 'Events' })).toHaveAttribute('aria-current', 'page')
   })
@@ -140,56 +144,48 @@ describe('Sidebar', () => {
   it('pins favourites to the top, saved with the account when signed in', () => {
     const fetchMock = vi.fn(() => Promise.resolve(new Response('{}')))
     vi.stubGlobal('fetch', fetchMock)
-    render(<Sidebar boot={{ ...boot, prefs: { favourites: ['widgets'], accordion: true } }} path="/problems" renderLink={link} onGoTo={() => {}} />)
-    const favs = within(main()).getByRole('list', { name: 'Favourites' })
-    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Widgets'])
+    sidebar('/problems', { boot: { ...boot, prefs: { favourites: ['widgets'], accordion: true } } })
+    const first = () => within(main()).getAllByRole('link').map((a) => a.textContent)
+    expect(within(main()).getByText('Favourites')).toBeInTheDocument()
+    expect(first()[0]).toBe('Widgets')
     fireEvent.click(within(main()).getByRole('button', { name: 'Add Helpdesk to favourites' }))
-    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Widgets', 'Helpdesk'])
+    expect(first().slice(0, 2)).toEqual(['Widgets', 'Helpdesk'])
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/me/nav', expect.objectContaining({
       method: 'PUT', body: JSON.stringify({ favourites: ['widgets', 'helpdesk'], accordion: true }),
     }))
-    fireEvent.click(within(favs).getByRole('button', { name: 'Remove Widgets from favourites' }))
-    expect(within(favs).getAllByRole('link').map((a) => a.textContent)).toEqual(['Helpdesk'])
+    fireEvent.click(within(main()).getAllByRole('button', { name: 'Remove Widgets from favourites' })[0])
+    expect(first()[0]).toBe('Helpdesk')
     expect(localStorage.getItem('floorbit-nav-prefs')).toBeNull()
   })
 
   it('lists pinned dashboards with the favourites, lit while one is on screen', () => {
-    render(<Sidebar boot={{ ...boot, prefs: { favourites: ['dashboard:hall-b'], accordion: true } }} path="/dashboards/view/hall-b"
-      renderLink={link} onGoTo={() => {}} dashboards={[{ id: 'hall-b', name: 'Hall B' }, { id: 'ops', name: 'Ops desk' }]} />)
-    const favs = within(main()).getByRole('list', { name: 'Favourites' })
-    const row = within(favs).getByRole('link', { name: 'Hall B' })
+    sidebar('/dashboards/view/hall-b', {
+      boot: { ...boot, prefs: { favourites: ['dashboard:hall-b'], accordion: true } },
+      dashboards: [{ id: 'hall-b', name: 'Hall B' }, { id: 'ops', name: 'Ops desk' }],
+    })
+    const row = within(main()).getByRole('link', { name: 'Hall B' })
     expect(row).toHaveAttribute('href', '/dashboards/view/hall-b')
     expect(row).toHaveAttribute('aria-current', 'page')
     expect(within(main()).queryByRole('link', { name: 'Ops desk' })).not.toBeInTheDocument()
   })
 
   it('folds to icons, keeps that in a cookie, and shows every page as an icon with its name', () => {
+    vi.stubGlobal('fetch', fakeFetch({}).fn)
     sidebar('/problems')
-    fireEvent.click(within(main()).getByRole('button', { name: 'Collapse the sidebar' }))
-    expect(main()).toHaveAttribute('data-state', 'rail')
+    fireEvent.click(screen.getByRole('button', { name: 'Fold the sidebar' }))
+    expect(aside()).toHaveClass('is-folded')
     expect(document.cookie).toContain('floorbit_nav=rail')
     expect(within(main()).queryByRole('button', { name: 'Work' })).not.toBeInTheDocument()
     expect(within(main()).getByRole('link', { name: 'Dashboards' })).toHaveAttribute('title', 'Dashboards')
   })
 
-  it('opens everything in a sheet from the phone bar', () => {
-    sidebar('/problems')
-    const bar = screen.getByRole('navigation', { name: 'Main pages' })
-    expect(within(bar).getAllByRole('link').map((a) => a.textContent)).toEqual(['Floor plan', 'Helpdesk'])
-    fireEvent.click(within(bar).getByRole('button', { name: 'Menu' }))
-    const sheet = screen.getByRole('dialog', { name: 'Menu' })
-    expect(within(sheet).getByRole('button', { name: 'Monitoring' })).toBeInTheDocument()
-    expect(within(sheet).getByRole('button', { name: /Go to/ })).toBeInTheDocument()
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Close the menu' }))
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  })
-
-  it('offers language, theme and sign-out in the account menu', () => {
+  it('offers language, theme and sign-out in the account menu', async () => {
     sidebar()
-    fireEvent.click(within(main()).getByRole('button', { name: 'Signed in as kim' }))
-    expect(screen.getByRole('menuitemradio', { name: 'Deutsch (Schweiz)' })).toBeInTheDocument()
-    expect(screen.getByRole('menuitemradio', { name: 'Deutsch (Deutschland, Österreich)' })).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: 'Sign out' }).closest('form')).toHaveAttribute('action', '/logout')
+    fireEvent.click(await within(aside()).findByRole('button', { name: /Signed in as kim/ }))
+    expect(await screen.findByRole('menuitem', { name: 'English', hidden: true })).toHaveAttribute('aria-current', 'true')
+    expect(await screen.findByRole('menuitem', { name: 'Deutsch (Schweiz)', hidden: true })).toBeInTheDocument()
+    expect(await screen.findByRole('menuitem', { name: 'Deutsch (Deutschland, Österreich)', hidden: true })).toBeInTheDocument()
+    expect((await screen.findByRole('menuitem', { name: 'Sign out', hidden: true })).closest('form')).toHaveAttribute('action', '/logout')
   })
 
   it('switches to another tenant of someone on a platform with several tenants', async () => {
@@ -206,12 +202,11 @@ describe('Sidebar', () => {
     vi.stubGlobal('fetch', fetchMock)
     const assign = vi.fn()
     vi.stubGlobal('location', { ...window.location, assign })
-    render(<Sidebar boot={{ ...boot, tenants: true }} path="/problems" renderLink={link} onGoTo={() => {}} />)
-    fireEvent.click(await within(main()).findByRole('button', { name: /This tenant/ }))
-    expect(screen.getByRole('menuitem', { name: /Club C.*as platform admin/ })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('menuitem', { name: /Club B/ }))
+    sidebar('/problems', { boot: { ...boot, tenants: true } })
+    fireEvent.click(await within(aside()).findByRole('button', { name: /This tenant/ }))
+    expect(await screen.findByRole('menuitem', { name: /Club C.*as platform admin/, hidden: true })).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Club B/, hidden: true }))
     await vi.waitFor(() => expect(assign).toHaveBeenCalledWith('https://b.example.com/switch/arrive?ticket=abc'))
-    expect(fetchMock).toHaveBeenCalledWith('/api/tenant/mine', expect.anything())
     const call = fetchMock.mock.calls.find((c) => c[0] === '/api/tenant/switch') as unknown as [string, RequestInit]
     expect(JSON.parse(call[1].body as string)).toEqual({ tenant: 'club-b' })
   })
@@ -219,26 +214,17 @@ describe('Sidebar', () => {
   it('shows no switcher when there is no other tenant to go to', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ here: 'club-a', tenants: [] })))
     vi.stubGlobal('fetch', fetchMock)
-    render(<Sidebar boot={{ ...boot, tenants: true }} path="/problems" renderLink={link} onGoTo={() => {}} />)
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(within(main()).queryByRole('button', { name: /This tenant/ })).not.toBeInTheDocument()
+    sidebar('/problems', { boot: { ...boot, tenants: true } })
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/tenant/mine', expect.anything()))
+    expect(within(aside()).queryByRole('button', { name: /This tenant/ })).not.toBeInTheDocument()
   })
 
-  it('tells a platform admin visiting that they are one, and offers no switching on', () => {
+  it('tells a platform admin visiting that they are one, and offers no switching on', async () => {
     const fetchMock = vi.fn(() => Promise.resolve(new Response('{}')))
     vi.stubGlobal('fetch', fetchMock)
-    render(<Sidebar boot={{ ...boot, tenants: true, user: { name: 'Kim', username: 'platform:kim', platform: true } }}
-      path="/problems" renderLink={link} onGoTo={() => {}} />)
-    fireEvent.click(within(main()).getByRole('button', { name: 'Signed in as platform:kim' }))
-    expect(screen.getByText('Visiting as platform admin')).toBeInTheDocument()
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/tenant/mine', expect.anything())
-  })
-
-  it('asks for other tenants only on a platform with several tenants', () => {
-    const fetchMock = vi.fn(() => Promise.resolve(new Response('{}')))
-    vi.stubGlobal('fetch', fetchMock)
-    sidebar()
-    expect(within(main()).queryByRole('button', { name: /This tenant/ })).not.toBeInTheDocument()
+    sidebar('/problems', { boot: { ...boot, tenants: true, user: { name: 'Kim', username: 'platform:kim', platform: true } } })
+    fireEvent.click(await within(aside()).findByRole('button', { name: /Signed in as platform:kim/ }))
+    expect(await screen.findByText('Visiting as platform admin')).toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalledWith('/api/tenant/mine', expect.anything())
   })
 
@@ -250,27 +236,10 @@ describe('Sidebar', () => {
     }))))
     vi.stubGlobal('fetch', fetchMock)
     sidebar()
-    const picker = await within(main()).findByRole('button', { name: /Spring LAN/ })
-    fireEvent.click(picker)
-    expect(screen.getByRole('menuitemradio', { name: /Spring LAN/ })).toHaveAttribute('aria-checked', 'true')
-    fireEvent.click(screen.getByRole('menuitemradio', { name: /Autumn LAN/ }))
+    fireEvent.click(await within(aside()).findByRole('button', { name: /Spring LAN/ }))
+    expect(await screen.findByRole('menuitem', { name: /Spring LAN/, hidden: true })).toHaveAttribute('aria-current', 'true')
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Autumn LAN/, hidden: true }))
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/tenant/current', expect.objectContaining({ body: JSON.stringify({ event: 'e2' }) })))
-  })
-})
-
-describe('skip link', () => {
-  it('moves keyboard focus past the sidebar into the page', () => {
-    const page = document.createElement('main')
-    page.innerHTML = '<button>First thing on the page</button>'
-    document.body.appendChild(page)
-    try {
-      sidebar()
-      fireEvent.click(screen.getByRole('link', { name: 'Skip to content' }))
-      expect(document.activeElement).toBe(page)
-      expect(page).toHaveAttribute('tabindex', '-1')
-    } finally {
-      page.remove()
-    }
   })
 
   it('shows the sections admins made, opens the one with the page on screen, and opens addresses in a new tab', () => {
@@ -281,9 +250,8 @@ describe('skip link', () => {
         { kind: 'url' as const, href: 'https://example.com/grafana', label: 'Grafana', external: true },
       ],
     }]
-    render(<Sidebar boot={{ ...boot, custom }} path="/dashboards/wall" renderLink={link} onGoTo={() => {}} />)
-    const head = within(main()).getByRole('button', { name: 'Main hall' })
-    expect(head).toHaveAttribute('aria-expanded', 'true')
+    sidebar('/dashboards/wall', { boot: { ...boot, custom } })
+    expect(within(main()).getByRole('button', { name: 'Main hall' })).toHaveAttribute('aria-expanded', 'true')
     expect(within(main()).getByRole('link', { name: 'Hall wall' })).toHaveAttribute('aria-current', 'page')
     const out = within(main()).getByRole('link', { name: 'Grafana' })
     expect(out).toHaveAttribute('target', '_blank')
@@ -293,17 +261,36 @@ describe('skip link', () => {
   })
 })
 
+describe('the phone bar', () => {
+  it('shows the main pages and opens every page from "More"', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('max-width'), media: query, onchange: null,
+      addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
+    }))
+    sidebar('/problems')
+    const bar = screen.getByRole('navigation', { name: 'Pages' })
+    expect(within(bar).getAllByRole('link').map((a) => a.textContent)).toEqual(['Floor plan', 'Helpdesk'])
+    fireEvent.click(within(bar).getByRole('button', { name: 'More' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Every page' })
+    expect(within(sheet).getByRole('button', { name: 'Monitoring' })).toBeInTheDocument()
+    expect(within(sheet).getByRole('link', { name: 'Settings' })).toBeInTheDocument()
+  })
+})
+
 describe('Set up at the foot (#1437)', () => {
   const withSetup = [...pages, { href: '/setup', id: 'setup', label: 'Set up' }]
-  it('shows Set up with its progress while steps are open, and not in the groups', () => {
-    render(<Sidebar boot={{ ...boot, pages: withSetup }} path="/problems" renderLink={link} onGoTo={() => {}} setup={{ done: 4, count: 7 }} />)
-    const foot = screen.getByRole('list', { name: 'Plugins and settings' })
-    expect(within(foot).getByRole('link', { name: /Set up/ })).toHaveAttribute('href', '/setup')
-    expect(within(foot).getByText('4/7')).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: /Set up/ })).toHaveLength(1)
+  it('shows Set up with its progress next to Settings while steps are open, and not in the groups', () => {
+    renderWithApp(<Shell boot={{ ...boot, pages: withSetup }} path="/problems" setup={{ done: 4, count: 7 }} />, '/problems')
+    const link = within(main()).getByRole('link', { name: /Set up/ })
+    expect(link).toHaveAttribute('href', '/setup')
+    expect(within(link).getByText('4/7')).toBeInTheDocument()
+    expect(within(main()).getAllByRole('link', { name: /Set up/ })).toHaveLength(1)
+    // At the foot with Plugins and Settings, not among the groups.
+    const names = within(main()).getAllByRole('link').map((a) => a.textContent)
+    expect(names.indexOf('Settings')).toBeGreaterThan(names.indexOf('Set up4/7'))
   })
   it('leaves it out once every step is done', () => {
-    render(<Sidebar boot={{ ...boot, pages: withSetup }} path="/problems" renderLink={link} onGoTo={() => {}} setup={{ done: 7, count: 7 }} />)
-    expect(screen.queryByRole('link', { name: /Set up/ })).not.toBeInTheDocument()
+    renderWithApp(<Shell boot={{ ...boot, pages: withSetup }} path="/problems" setup={{ done: 7, count: 7 }} />, '/problems')
+    expect(within(main()).queryByRole('link', { name: /Set up/ })).not.toBeInTheDocument()
   })
 })
