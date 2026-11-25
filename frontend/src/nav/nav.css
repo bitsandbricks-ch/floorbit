@@ -208,6 +208,8 @@ a.fb-nav-menu-item { text-decoration: none; }
   .fb-tabbar-icon { position: relative; display: inline-flex; }
   .fb-tabbar-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
   body.fb-has-nav { padding-bottom: calc(var(--fb-tabbar-h) + env(safe-area-inset-bottom)); }
+  /* The body's padding already holds the bar, so a short page fits the screen without scrolling (#1438). */
+  body.fb-has-nav .fb-shell { min-height: calc(100dvh - var(--fb-tabbar-h) - env(safe-area-inset-bottom)); }
 }
 
 .fb-sheet-backdrop { position: fixed; inset: 0; background: rgb(0 0 0 / 45%); z-index: 300; display: flex; justify-content: flex-start; }
