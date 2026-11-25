@@ -6,22 +6,27 @@ import { LAYERS, type LayerId, type LayerState, PRESETS, type PresetId, applyPre
 
 /** The layer picker over the Seats view: presets, one switch per layer and how strong it is drawn.
  *  ``available`` leaves out what isn't set up (no power boards, no firewall ranges, …). */
-export function LayersPanel({ state, onChange, available, legends, extra }: {
+export function LayersPanel({ state, onChange, available, legends, extra, onOpen }: {
   state: LayerState; onChange: (next: LayerState) => void; available: Record<LayerId, boolean>; legends?: LayerLegends
   /** Drawn under the plan's own layers: the plugin layer picker (./PluginLayer.tsx). */
   extra?: ReactNode
+  /** Phones: the button opens the plan's side panel as a sheet instead of a popover. */
+  onOpen?: () => void
 }) {
   const { t } = useTranslation()
   const shown = LAYERS.filter((l) => state.on.has(l) && available[l]).length
+  const button = (
+    <Button size="xs" variant="default" leftSection={<IconStack2 size={14} />} onClick={onOpen}
+      rightSection={<Badge size="xs" variant="light" circle>{shown}</Badge>}>
+      {t('plan.layers.button')}
+    </Button>
+  )
+  if (onOpen) return button
+  // Never wider or taller than the screen: on a phone a 400 px popover lost its right edge.
   return (
-    <Popover position="bottom-end" width={400} shadow="md" withArrow>
-      <Popover.Target>
-        <Button size="xs" variant="default" leftSection={<IconStack2 size={14} />}
-          rightSection={<Badge size="xs" variant="light" circle>{shown}</Badge>}>
-          {t('plan.layers.button')}
-        </Button>
-      </Popover.Target>
-      <Popover.Dropdown aria-label={t('plan.layers.title')}>
+    <Popover position="bottom-end" width="min(400px, calc(100vw - 16px))" shadow="md" withArrow>
+      <Popover.Target>{button}</Popover.Target>
+      <Popover.Dropdown aria-label={t('plan.layers.title')} className="fb-layers-pop">
         <LayersBody state={state} onChange={onChange} available={available} legends={legends} extra={extra} />
       </Popover.Dropdown>
     </Popover>
