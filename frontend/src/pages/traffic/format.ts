@@ -1,4 +1,4 @@
-import type { FlowCategory, FlowMix } from '@/api/types'
+import type { FlowCategory, FlowMix, FlowService } from '@/api/types'
 
 export const CATEGORIES: FlowCategory[] = ['gaming', 'streaming', 'downloads', 'updates', 'web', 'other']
 
@@ -21,4 +21,16 @@ export function mostly(mix: FlowMix | undefined): FlowCategory | null {
   let best: FlowCategory | null = null
   for (const c of CATEGORIES) if ((mix?.[c] ?? 0) > (best ? mix?.[best] ?? 0 : 0)) best = c
   return best
+}
+
+const TREND_HOURS = 6
+const HOUR = 3600
+
+/** The last six hours of a service, oldest first, with 0 for an hour it had nothing. */
+export function trendOf(s: FlowService, updated: number | undefined): { t: number; bytes: number }[] {
+  const now = Math.floor((updated ?? Date.now() / 1000) / HOUR) * HOUR
+  return Array.from({ length: TREND_HOURS }, (_, i) => {
+    const t = now - (TREND_HOURS - 1 - i) * HOUR
+    return { t, bytes: s.trend?.[String(t)] ?? 0 }
+  })
 }

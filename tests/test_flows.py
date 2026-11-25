@@ -213,6 +213,21 @@ def test_a_service_is_only_named_once_enough_seats_used_it(agg, monkeypatch):
     assert "203.0.113" not in json.dumps(snap)   # no remote addresses anywhere
 
 
+def test_a_service_has_down_up_a_trend_and_blocks_of_enough_seats(agg, monkeypatch):
+    monkeypatch.setenv("FLOWS_MIN_SEATS", "3")
+    agg.set_seats(SEATS, {**AREAS, "A-6": "B", "A-7": "B"})
+    hour = NOW // 3600 * 3600
+    down = [rec("203.0.113.30", f"192.0.2.{10 + i}", 27015, 50000, size=1000) for i in range(7)]
+    up = rec("192.0.2.10", "203.0.113.30", 50000, 27015, size=300)
+    agg.add(down, now=hour + 10)
+    agg.add([up], now=hour + 3600 + 10)
+    [steam] = agg.snapshot(now=hour + 3600 + 20)["services"]
+    assert (steam["down"], steam["up"], steam["seats"]) == (7000, 300, 7)
+    assert steam["trend"] == {str(hour): 7000, str(hour + 3600): 300}
+    # Block B had two of its seats on Steam: under the floor of three, so it isn't named.
+    assert steam["areas"] == {"A": 5300}
+
+
 def test_per_seat_is_volume_and_mix_only(agg):
     agg.add([STEAM, rec("192.0.2.10", "203.0.113.9", 51000, 443, proto=6, size=1000)], now=NOW)
     [seat] = agg.snapshot(now=NOW + 1)["seats"]
@@ -232,7 +247,8 @@ def test_closed_hours_keep_no_seats(agg, monkeypatch):
     agg.tick(now=NOW + 3600)
     [(start, hour)] = agg.take_closed_hours()
     assert start == NOW // 3600 * 3600
-    assert hour["services"] == {"Steam": {"bytes": 5_001_000, "category": "gaming", "seats": 2}}
+    assert hour["services"] == {"Steam": {"bytes": 5_001_000, "down": 5_001_000, "up": 0, "category": "gaming",
+                                          "seats": 2}}
     assert "A-1" not in json.dumps(hour) and "192.0.2" not in json.dumps(hour)
 
 

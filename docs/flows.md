@@ -42,7 +42,7 @@ agent has sent anything for 5 minutes, and when the last summary is more than a 
 | --- | --- | --- |
 | The whole hall | bytes per category, last hour and last 24 hours | everyone with `floorplan.view` |
 | Per area | the same per seat block, last hour | everyone |
-| Top services | bytes per service and how many different seats used it, 24 hours | everyone |
+| Applications | per service, 24 hours: how many different seats used it, bytes down (to the seats) and up, bytes per hour for the last 6 hours, and bytes per seat block. Click one for its blocks and hours | everyone |
 | Look at this | P2P or torrent floods, DDoS-like bursts, seats answering DHCP or DNS | everyone sees the kind; `seats.view` sees which seat |
 | Per seat | total volume and the category mix only, 24 hours | `seats.view` |
 
@@ -66,7 +66,9 @@ ports only.
 Flows are personal data under Swiss and EU rules (an address at a seat is a person). So:
 
 - A **service is only named once `FLOWS_MIN_SEATS` (5) different seats used it**. Below that it
-  counts as "other", so a rare service can't point at one person.
+  counts as "other", so a rare service can't point at one person. The same floor holds for a seat
+  block: a service's bytes in a block are only shown when that many of the block's seats used it;
+  the rest shows as "blocks with fewer seats".
 - **Per seat** there is only the volume and the category mix ("80 GB, mostly gaming"), for spotting
   problems. Never services, addresses or ports.
 - **Raw flows** (`FLOWS_DIR/raw/`, one gzip file per hour) are kept for `FLOWS_RETENTION_DAYS` (7)

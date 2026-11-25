@@ -868,6 +868,19 @@ export interface FlowAnomaly {
   first_seen: number
   last_seen: number
 }
+/** A service on the Traffic page: down (to the seats) and up, bytes per hour (unix hour start as text)
+ *  and per seat block. An older agent sends only name, category, bytes and seats. */
+export interface FlowService {
+  name: string
+  category: FlowCategory
+  bytes: number
+  seats: number
+  down?: number
+  up?: number
+  trend?: Record<string, number>
+  areas?: Record<string, number>
+}
+
 export interface FlowsData {
   collector: boolean
   can_see_seats: boolean
@@ -883,7 +896,7 @@ export interface FlowsData {
   mix_day?: FlowMix
   series?: ({ t: number } & FlowMix)[]
   areas?: { area: string; bytes: number; mix: FlowMix }[]
-  services?: { name: string; category: FlowCategory; bytes: number; seats: number }[]
+  services?: FlowService[]
   other_services?: number
   seats?: { seat: string; area: string | null; bytes: number; mix: FlowMix }[] | null
   anomalies?: FlowAnomaly[]

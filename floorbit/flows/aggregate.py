@@ -25,6 +25,7 @@ MINUTE, HOUR, DAY = 60, 3600, 24 * 3600
 TCP, UDP = 6, 17
 ANOMALY_HOLD = 10 * MINUTE     # an anomaly stays listed this long after it was last seen
 PEER_CAP = 2000                # distinct peers tracked per seat and minute
+TREND_HOURS = 6                # hourly bytes per service the Traffic page draws as a trend
 
 
 def _cats():
@@ -37,7 +38,8 @@ def _bucket():
 
 def _hour():
     return {'total': _cats(), 'areas': defaultdict(_cats),
-            'services': defaultdict(lambda: {'bytes': 0, 'category': 'other', 'seats': set()}),
+            'services': defaultdict(lambda: {'bytes': 0, 'down': 0, 'up': 0, 'category': 'other', 'seats': set(),
+                                             'areas': defaultdict(lambda: {'bytes': 0, 'seats': set()})}),
             'seats': defaultdict(lambda: {'bytes': 0, 'mix': _cats()})}
 
 
@@ -105,8 +107,12 @@ class Aggregator:
             bucket['areas'][area][category] += size
         svc = hour['services'][service]
         svc['bytes'] += size
+        svc['down' if dst_seat else 'up'] += size
         svc['category'] = category
         svc['seats'].add(seat)
+        per_area = svc['areas'][area]
+        per_area['bytes'] += size
+        per_area['seats'].add(seat)
         for s in {src_seat, dst_seat} - {None}:
             hour['seats'][s]['bytes'] += size
             hour['seats'][s]['mix'][category] += size
@@ -191,7 +197,8 @@ class Aggregator:
         services, other = {}, 0
         for name, svc in h['services'].items():
             if len(svc['seats']) >= min_seats:
-                services[name] = {'bytes': svc['bytes'], 'category': svc['category'], 'seats': len(svc['seats'])}
+                services[name] = {'bytes': svc['bytes'], 'down': svc['down'], 'up': svc['up'],
+                                  'category': svc['category'], 'seats': len(svc['seats'])}
             else:
                 other += svc['bytes']
         return {'total': dict(h['total']), 'areas': {a: dict(c) for a, c in h['areas'].items()},
@@ -204,7 +211,6 @@ class Aggregator:
             self._roll(now)
             hour_ago = [b for m, b in self.minutes.items() if m >= now - HOUR]
             series = [{'t': m, **dict(b['total'])} for m, b in sorted(self.minutes.items()) if m >= now - HOUR]
-            day = [h for t, h in self.hours.items() if t > now - DAY - HOUR]
             mix_hour, areas = _cats(), defaultdict(_cats)
             for b in hour_ago:
                 for c, v in b['total'].items():
@@ -213,18 +219,33 @@ class Aggregator:
                     for c, v in cats.items():
                         areas[a][c] += v
             mix_day, services, seats = _cats(), {}, defaultdict(lambda: {'bytes': 0, 'mix': _cats()})
-            for h in day:
+            trend_from = int(now // HOUR) * HOUR - (TREND_HOURS - 1) * HOUR
+            for t, h in sorted(self.hours.items()):
+                if t <= now - DAY - HOUR:
+                    continue
                 for c, v in h['total'].items():
                     mix_day[c] += v
                 for name, svc in h['services'].items():
-                    got = services.setdefault(name, {'bytes': 0, 'category': svc['category'], 'seats': set()})
+                    got = services.setdefault(name, {'bytes': 0, 'down': 0, 'up': 0, 'category': svc['category'],
+                                                     'seats': set(), 'trend': {}, 'areas': {}})
                     got['bytes'] += svc['bytes']
+                    got['down'] += svc.get('down', 0)
+                    got['up'] += svc.get('up', 0)
                     got['seats'] |= svc['seats']
+                    if t >= trend_from:
+                        got['trend'][str(t)] = svc['bytes']
+                    for area, a in (svc.get('areas') or {}).items():
+                        mine = got['areas'].setdefault(area, {'bytes': 0, 'seats': set()})
+                        mine['bytes'] += a['bytes']
+                        mine['seats'] |= a['seats']
                 for seat, v in h['seats'].items():
                     seats[seat]['bytes'] += v['bytes']
                     for c, b in v['mix'].items():
                         seats[seat]['mix'][c] += b
-            named = [{'name': n, 'category': v['category'], 'bytes': v['bytes'], 'seats': len(v['seats'])}
+            # A block is named for a service only with enough of its seats in it (the five-seat rule).
+            named = [{'name': n, 'category': v['category'], 'bytes': v['bytes'], 'down': v['down'], 'up': v['up'],
+                      'seats': len(v['seats']), 'trend': v['trend'],
+                      'areas': {a: x['bytes'] for a, x in v['areas'].items() if len(x['seats']) >= s['min_seats']}}
                      for n, v in services.items() if len(v['seats']) >= s['min_seats']]
             folded = sum(v['bytes'] for v in services.values() if len(v['seats']) < s['min_seats'])
             out = {

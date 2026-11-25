@@ -9,6 +9,7 @@ import { bytes, CATEGORIES, mostly, total } from './format'
 import { onPlan } from '../plan/links'
 import { clock } from '@/lib/time'
 import { Panel } from '@/components/ui'
+import { TrafficServices } from './TrafficServices'
 
 
 /** One bar split by category, with the shares as its accessible name. */
@@ -102,19 +103,18 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
         <Text size="xs" c="dimmed" mt={6}>{t('traffic.areasText')}</Text>
       </Panel>}
 
-      <Panel titleId="traffic-services" title={t('traffic.services')}>
-        <ol className="fb-stats-top">
-          {services.map((s) => (
-            <li key={s.name}>
-              <span className="name"><i className={`fb-dotcat cat-${s.category}`} /> {s.name} <small>· {t('traffic.seatCount', { count: s.seats })}</small></span>
-              <span className="value">{bytes(s.bytes)}</span>
-            </li>
-          ))}
-        </ol>
-        <Text size="xs" c="dimmed" mt={6}>
-          {t('traffic.servicesText', { count: data.min_seats ?? 5, volume: bytes(data.other_services) })}
-        </Text>
-      </Panel>
+      {compact ? (
+        <Panel titleId="traffic-services" title={t('traffic.services')}>
+          <ol className="fb-stats-top">
+            {services.map((s) => (
+              <li key={s.name}>
+                <span className="name"><i className={`fb-dotcat cat-${s.category}`} /> {s.name} <small>· {t('traffic.seatCount', { count: s.seats })}</small></span>
+                <span className="value">{bytes(s.bytes)}</span>
+              </li>
+            ))}
+          </ol>
+        </Panel>
+      ) : <TrafficServices data={data} />}
 
       {!compact && data.seats && <Seats seats={data.seats} />}
     </div>
