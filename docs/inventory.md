@@ -321,6 +321,11 @@ LibreNMS call (an agent older than this asks nothing, and those areas stay as th
   runs some (`{"actions": ["optics"]}`) or all, on every device or one (`{"device": "<id>"}`), and
   a run for one device doesn't move the schedule. The Inventory page shows the last run next to
   the plugins'.
+- Plugins with an agent part can add **areas** of their own or feed the built-in ones (an OPNsense
+  plugin's gateways, a Proxmox host's VMs): each is an action named `<plugin>.<area>` with its own
+  interval and last run, listed after the built-in ones ([plugin spec](plugin-spec.md#discovery)).
+  Where the monitoring source and a plugin both read an area, the monitoring source's answer
+  counts and the plugin's fills only what it doesn't say.
 - It only fills in. A field gets the discovered value when it is empty, or when it still holds
   what discovery put there last, so a software upgrade shows up. A value typed by hand or sent by
   another plugin (NetBox) stays; the run counts it as kept. Empty a field and the next run fills
