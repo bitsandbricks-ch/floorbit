@@ -68,7 +68,7 @@ hall, with a day of history.
 | `LANCACHE_INTERVAL` | `30` | Seconds between reads (at least 5). |
 | `LANCACHE_RETENTION_HOURS` | `168` | How long hourly counts are kept. |
 
-The feature switch is **Game insights** (Settings > Features). Turned off, the page and the API
+The feature switch is **Game insights** (Settings > Plugins > Built in). Turned off, the page and the API
 answer 404 and the log is no longer read.
 
 ## API

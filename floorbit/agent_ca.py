@@ -120,7 +120,7 @@ def _sans(names):
 
 def _crl_url():
     from integrations import config
-    base = str(config.get('PUBLIC_URL', '') or '').strip().rstrip('/')
+    base = config.public_url().strip()
     return f'{base}{CRL_PATH}' if base.startswith(('https://', 'http://')) else ''
 
 

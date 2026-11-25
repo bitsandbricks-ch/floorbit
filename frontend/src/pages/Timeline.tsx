@@ -5,6 +5,7 @@ import { IconDownload, IconHistory, IconSearch } from '@tabler/icons-react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -27,7 +28,8 @@ function dayOf(t: number, lang: string) {
   return dateOnly(t, lang, { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-function Row({ e, lang }: { e: TimelineEntry; lang: string }) {
+/** One line of the changelog; problem and incident pages show their place's lines the same way (issue #882). */
+export function TimelineRow({ e, lang }: { e: TimelineEntry; lang: string }) {
   const { t } = useTranslation()
   return (
     // On a phone the text goes under the time and kind instead of into a column one word wide.
@@ -55,7 +57,9 @@ function Row({ e, lang }: { e: TimelineEntry; lang: string }) {
 export default function Timeline() {
   const { t, i18n } = useTranslation()
   const [kinds, setKinds] = useState<string[]>(KINDS.filter((k) => k !== 'sign-in'))
-  const [search, setSearch] = useState('')
+  const [linked] = useSearchParams()
+  // A problem's or incident's page links here with its place (issue #882).
+  const [search, setSearch] = useState(() => linked.get('q') ?? '')
   const [hours, setHours] = useState<string>('24')
   const params = new URLSearchParams()
   if (kinds.length && kinds.length < KINDS.length) params.set('kinds', kinds.join(','))
@@ -112,7 +116,7 @@ export default function Timeline() {
             {days.map(([day, entries]) => (
               <Paper key={day} withBorder radius="lg" p="md">
                 <Title order={2} size="h5" mb={4}>{day}</Title>
-                {entries.map((e, n) => <Row key={`${e.t}-${n}`} e={e} lang={i18n.language} />)}
+                {entries.map((e, n) => <TimelineRow key={`${e.t}-${n}`} e={e} lang={i18n.language} />)}
               </Paper>
             ))}
             <Group justify="space-between">

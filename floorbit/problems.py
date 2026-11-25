@@ -17,7 +17,8 @@ Gathered from what is already watched, without asking anything new:
 Seat and port trouble (issue #15: flapping, errors rising, half duplex, online without a check-in;
 syslog matches; seats outside their switch's range, floorbit/seat_ranges.py; seat ports whose config
 breaks a rule, floorbit/port_config.py; seat ports with more than one machine, floorbit/port_clients.py;
-open incidents on a seat, issue #1204) comes as a list of its own under ``attention``, newest first,
+open incidents on a seat, issue #1204; addresses that send syslog or flows but aren't in the inventory,
+floorbit/unknown_senders.py) comes as a list of its own under ``attention``, newest first,
 each with its ``seat`` when it has one. The page shows it with the rest, after it; ``counts['seats']``
 is how many seats have trouble, counted like the floor plan's "!" (check-in left out).
 
@@ -39,7 +40,7 @@ from flask import current_app
 
 from integrations import alerting
 
-from . import sources
+from . import sources, unknown_senders
 
 SECURITY_KINDS = {'rogue-dhcp': 'Rogue DHCP server', 'arp-spoof': 'ARP spoofing', 'mac-flap': 'MAC flapping',
                   'loop': 'Network loop', 'storm': 'Broadcast storm', 'other': 'Security finding'}
@@ -409,7 +410,8 @@ def current(may_see_people):
     # Port trouble is its own list, newest first: during an event there can be dozens, and they
     # shouldn't bury a switch that is down.
     attention = sorted(_attention() + _logs(may_see_people, data) + _ranges(data) + _port_check(data)
-                       + _shared_ports() + _seat_incidents() + _security(may_see_people, low=True),
+                       + _shared_ports() + _seat_incidents() + _security(may_see_people, low=True)
+                       + unknown_senders.problems(data),
                        key=lambda p: -(p['since'] or 0))
     _mute_rest(attention, muted)
     attention.sort(key=lambda p: bool(p.get('muted')))

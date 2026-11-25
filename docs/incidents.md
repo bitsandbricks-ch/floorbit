@@ -13,7 +13,7 @@ incident's own page.
 
 **Show as Table** lists every incident in one sortable table instead: title, state, where, who has
 it, team and when it was filed, open ones first, 50 to a page. A row opens the incident's page,
-where the actions are. The filter and the switches above apply to both views, and the choice stays
+where the actions are. The filter and the menus above apply to both views, and the choice stays
 in the address (`?view=table`), so a link opens the same view.
 
 ### One incident's page
@@ -23,7 +23,14 @@ when the report came in, the speed test from the seat, the crew note on the seat
 made from, every note with who wrote it, and every action this account may take: take it, mark it
 fixed or reopen it, bounce the seat's port, send it to the nearest tech, give it to someone or
 another team, and add a note. **Incident open** on the Problems page and on a problem's page links
-here. An incident that is no longer on the board says so.
+here. An incident that is no longer on the board says so. With `seats.view`, **Recent logs** at the
+bottom lists the newest 20 syslog lines of the seat (or the switch), every 15 seconds, so the tech
+reads what the switch says without leaving the incident.
+
+**What happened here** above it lists the switch's or seat's outages, incidents and alerts from the
+[event changelog](timeline.md), from six hours before the incident was filed until now, newest first
+(never the audit log's changes). Accounts with `audit.read` get **Open in the changelog** for the
+rest.
 
 When the problem an incident was made from ends (Floorbit no longer sees it), the incident gets a
 green **Problem over** tag, on its card and its page, within a minute. It stays open: check the
@@ -56,8 +63,18 @@ on average.
 
 **Filter** narrows the columns to incidents whose title, seat, switch, circuit, assignee, team or
 notes contain the text, ignoring case. `seat:D-2` matches that seat only (not D-20), `switch:sw-a-01` one switch by name or id (not sw-a-010), and `with:kim` the incidents kim is on (not those that only mention kim in a note). It is kept in the address (`/incidents?q=B-7`), so a link can
-open the board filtered, and it works together with **Only what I can work**. **/** anywhere on the
+open the board filtered, and it works together with the menus next to it. **/** anywhere on the
 board puts the cursor in it, as on the [Seats page](seats.md#keyboard-and-screen-readers).
+
+The menus next to the filter narrow the board further, each with how many incidents it leaves:
+
+- **Who**: everyone, **Assigned to me** (`?mine=1`, the link Discord's `/jobs` sends) or **Only what I
+  can work** (`?mine=can`).
+- **Team**: one team's incidents, when the board has more than one team on it.
+- **State**: open, being worked or fixed; handy with **Show as Table**.
+- **Where**: seats, switches or power circuits, when the board has more than one kind.
+
+They stay in the address like the filter, so a link opens the same view; **Clear** resets them all.
 
 An open incident at a seat has **Bounce port** on its page, for
 accounts that may work it and have `ports.act` while a [port actions plugin](ports.md) is on. It asks
@@ -155,7 +172,7 @@ Reports go to a team by problem, if that team exists: no internet and slow → A
 Electrics, something else → Operations. Otherwise they wait without a team for someone with
 `incidents.assign`. (Routing rules per area come with issue #11.)
 
-Set **Public URL** (Settings › General, `PUBLIC_URL`) when Floorbit runs behind a reverse proxy, so the QR codes point
+Set **Public URL** (Settings › Server, Advanced, `PUBLIC_URL`) when Floorbit runs behind a reverse proxy, so the QR codes point
 at the address attendees can reach. When attendees reach Floorbit under another name than the crew (an event DNS
 name like `http://help.lan`), set **Address on the seat QR codes** (`QR_URL`) instead: it wins over the public URL for
 the seat cards only, the help and check-in links on them. A bare host gets `http://`; a path prefix is kept. The QR

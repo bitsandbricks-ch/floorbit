@@ -66,7 +66,6 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
   const sourceName = (sid: string) => inventory?.sources.find((s) => s.id === sid)?.name ?? sid
   // The agent list the Telemetry tab's picker shows (cached): an agent by its name.
   const agents = useQuery({ queryKey: qk.options('agents', ''), queryFn: () => get<{ options: EntityOption[] }>('/api/options/agents') }).data?.options
-  const [editing, setEditing] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [credError, setCredError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -77,12 +76,14 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
     onSuccess: () => { void refresh(); setMessage({ ok: true, text: t('inventory.saved') }) },
     onError: (e) => setMessage({ ok: false, text: e.message }),
   })
+  const [formSaved, setFormSaved] = useState<string | null>(null)
   const edit = useMutation({
     mutationFn: (changes: Partial<Draft> & { unlock?: InventoryField[]; [k: string]: unknown }) => patch(url, changes),
+    onMutate: () => { setFormSaved(null) },
     onSuccess: (_d, changes) => {
       void refresh()
       setFormError(null)
-      if (!('unlock' in changes)) { setEditing(false); setMessage({ ok: true, text: t('inventory.saved') }) }
+      if (!('unlock' in changes)) setFormSaved(t('inventory.saved'))
     },
     onError: (e) => setFormError(e.message),
   })
@@ -153,7 +154,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
             </Button>
           )}
           {canEdit && (
-            <Button variant="default" leftSection={<IconPencil size={16} />} onClick={() => { setFormError(null); setEditing(true) }}>
+            <Button variant="default" leftSection={<IconPencil size={16} />} onClick={() => { setTab('settings') }}>
               {t('inventory.editDetails')}
             </Button>
           )}
@@ -364,6 +365,15 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
 
         {tab === 'settings' && (
           <Stack gap="md">
+            {canEdit && inventory && (
+              // The device's details are edited here, on its page (#877), not in a dialog.
+              <Panel title={t('inventory.page.details')}>
+                <DeviceForm key={JSON.stringify(dev)} device={{ ...dev, drift: dev.drift?.length }} roles={inventory.roles} overview={overview}
+                  sourceName={sourceName} busy={edit.isPending} error={formError} saved={formSaved}
+                  onCancel={() => setTab('overview')} onSave={(changes) => edit.mutate(changes)}
+                  onUnlock={(f) => edit.mutate({ unlock: [f] })} />
+              </Panel>
+            )}
             <Panel title={t('inventory.props.title')}>
               <PropertiesEditor key={JSON.stringify(dev.properties)} value={dev.properties ?? {}} inherited={dev.resolved.properties} role={dev.role}
                 canEdit={canEdit} busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
@@ -384,11 +394,6 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
         )}
       </div>
 
-      {editing && inventory && (
-        <DeviceForm device={{ ...dev, drift: dev.drift?.length }} roles={inventory.roles} overview={overview} sourceName={sourceName} opened busy={edit.isPending}
-          error={formError} onClose={() => setEditing(false)} onSave={(changes) => edit.mutate(changes)}
-          onUnlock={(f) => edit.mutate({ unlock: [f] })} />
-      )}
     </>
   )
 }

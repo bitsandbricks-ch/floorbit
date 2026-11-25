@@ -693,7 +693,7 @@
       "rename": "Gruppenname",
       "renameHelp": "Klicken zum Auswählen, Doppelklick zum Umbenennen"
     },
-    "smallScreen": "Auf dem Handy tippen zum Auswählen und ziehen zum Verschieben; das Panel ist unter dem Plan. Zeichnen und Anordnen geht am besten mit Maus auf einem grösseren Bildschirm.",
+    "smallScreen": "Auf dem Handy tippen zum Auswählen und ziehen zum Verschieben; das Panel öffnet sich von unten, und seine Leiste klappt es ein. Zeichnen und Anordnen geht am besten mit Maus auf einem grösseren Bildschirm.",
     "unplace_one": "Vom Plan nehmen",
     "unplace_other": "{{count}} vom Plan nehmen",
     "locked": "Gesperrt: bleibt, wo es ist, bis du es entsperrst (Ctrl+Shift+L)",

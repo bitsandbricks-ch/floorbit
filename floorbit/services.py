@@ -179,6 +179,17 @@ def _expect(value):
     return f'{low}-{high}' if high != low else str(low)
 
 
+def _from(value):
+    """ "Checked from" (issue #1444): '' any agent, ``tag:<id>`` the agents with a tag, or an agent
+    id, as telemetry's "Collected by" (telemetry/targets.collector)."""
+    from .telemetry import targets
+    value = str(value or '').strip()
+    who = targets.collector(value)
+    if value and not (who['agent'] or who['tag']):
+        raise ServiceError('Checked from is any agent, the agents with a tag, or one agent.')
+    return f"{targets.TAG_PREFIX}{who['tag']}" if who['tag'] else who['agent']
+
+
 def _clean_check(body, _data, old):
     """An own check (issue #1338): ping, a TCP port, a UDP port or an HTTP(S) address."""
     name = _text(body.get('name', old.get('name')), 60)
@@ -188,7 +199,7 @@ def _clean_check(body, _data, old):
     if kind not in probes.CHECK_KINDS:
         raise ServiceError('The check is a ping, a TCP port, a UDP port or HTTP(S).')
     out = {'name': name, 'kind': kind, 'host': '', 'port': None, 'ask': '', 'url': '', 'expect': '',
-           'contains': '', 'cert_warn_days': None,
+           'contains': '', 'cert_warn_days': None, 'from': _from(body.get('from', old.get('from'))),
            'slow_ms': _int(body.get('slow_ms', old.get('slow_ms')), CHECK_SLOW_MS[kind], 1, 60_000,
                            'Slow above is a number of milliseconds, up to 60000.')}
     if kind == 'http':
@@ -330,9 +341,11 @@ class NoAgent(probes.ProbeError):
 NO_AGENT = 'No local agent is connected, so this is not checked.'
 
 
-def _ask(method, *args):
+def _ask(method, *args, given='', host=''):
     """Run a probe on the local agent (it is on the event network), or here when this is the agent.
-    Demo data without an agent sends nothing from the server (issue #1339)."""
+    Demo data without an agent sends nothing from the server (issue #1339). ``given`` and ``host``
+    pick the agent (agent_link.check_agent, issue #1444): the check's "Checked from" and what it
+    checks."""
     demo = probes.stood_in(method, args)
     if demo is not None:
         return demo
@@ -345,7 +358,8 @@ def _ask(method, *args):
             return probes.check(*args)
         return local(probes.target(args[0]), *args[1:])
     try:
-        return agent_link.tunnel.call(method, args, timeout=20)
+        where = agent_link.check_agent(given, host)
+        return agent_link.tunnel.call(method, args, timeout=20, targets={where} if where else None)
     except agent_link.AgentUnavailable:
         # Grey "not checked", not red: nothing is known to be down.
         raise NoAgent(NO_AGENT) from None
@@ -376,7 +390,7 @@ def check_uplink(uplink, now):
         out['error'] = f"{uplink['device']} has no port {uplink['port']}."
     if uplink.get('probe_host'):
         try:
-            got = _ask('tcp_probe', uplink['probe_host'], uplink['probe_port'], 5)
+            got = _ask('tcp_probe', uplink['probe_host'], uplink['probe_port'], 5, host=uplink['probe_host'])
             sent = max(1, int(got.get('sent') or 1))
             out['loss'] = round(min(int(got.get('lost') or 0), sent) / sent, 2)
             out['latency_ms'] = _num(got.get('avg_ms'))
@@ -396,7 +410,7 @@ def check_uplink(uplink, now):
 
 def check_resolver(resolver, _now):
     try:
-        got = _ask('dns_probe', resolver['address'], resolver['lookup'])
+        got = _ask('dns_probe', resolver['address'], resolver['lookup'], host=resolver['address'])
     except NoAgent as exc:
         return 'unknown', {'latency_ms': None, 'rcode': None, 'answers': None, 'error': str(exc)}
     except probes.ProbeError as exc:
@@ -410,7 +424,7 @@ def check_resolver(resolver, _now):
 
 def check_site(site, _now):
     try:
-        got = _ask('tcp_probe', site['host'], site['port'], SITE_TRIES)
+        got = _ask('tcp_probe', site['host'], site['port'], SITE_TRIES, host=site['host'])
         sent = max(1, int(got.get('sent') or 1))
         loss = round(min(int(got.get('lost') or 0), sent) / sent, 2)
     except NoAgent as exc:
@@ -433,7 +447,8 @@ def check_own(item, _now=None):
     """An own check (issue #1338), run once on the agent: its status and what it saw."""
     out = {'latency_ms': None, 'loss': None, 'code': None, 'cert_days': None, 'error': '', 'note': ''}
     try:
-        got = _ask('check_probe', _spec(item))
+        got = _ask('check_probe', _spec(item), given=item.get('from') or '',
+                   host=item.get('host') or urlsplit(item.get('url') or '').hostname or '')
     except NoAgent as exc:
         return 'unknown', {**out, 'error': str(exc)}
     except probes.ProbeError as exc:

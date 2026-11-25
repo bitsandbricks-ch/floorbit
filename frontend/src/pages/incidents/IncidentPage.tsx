@@ -7,10 +7,13 @@ import { Link, useParams } from 'react-router-dom'
 import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
-import { useIncidentPeople, useIncidents, useMe } from '@/api/queries'
-import type { CrewMember, Incident } from '@/api/types'
+import { useCan, useIncidentPeople, useIncidents, useMe } from '@/api/queries'
+import type { CrewMember, Incident, TimelineEntry } from '@/api/types'
 import { BouncePort } from '@/components/BouncePort'
 import { Layout } from '@/components/Layout'
+import { RecentLogs } from '@/components/RecentLogs'
+import { PlaceHistory } from '@/components/PlaceHistory'
+import { useCanOpenTimeline } from '@/components/useCanOpenTimeline'
 import { Panel } from '@/components/ui'
 import { EmptyState, ErrorBanner, LoadingState, PageHead, PanelField } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
@@ -28,6 +31,7 @@ const SNOOZES = [15, 60, 240]
  *  known when it came in, who has it, every note, and every action this account may take. */
 export default function IncidentPage() {
   const { t } = useTranslation()
+  const seesLogs = useCan('seats.view')
   const { id = '' } = useParams()
   const client = useQueryClient()
   const board = useIncidents()
@@ -36,6 +40,12 @@ export default function IncidentPage() {
   const now = useNowSeconds()
   const [note, setNote] = useState('')
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  const canAudit = useCanOpenTimeline()
+  // What happened at its seat or switch lately (issue #913); every incident change may add a line.
+  const history = useQuery({
+    queryKey: qk.incidentHistory(id), queryFn: () => get<{ entries: TimelineEntry[] }>(`/api/incidents/${encodeURIComponent(id)}/history`),
+    refetchInterval: 30_000, enabled: !!id,
+  })
   const crew = useQuery({
     queryKey: qk.crew, queryFn: () => get<{ crew: CrewMember[]; auto?: boolean }>('/api/dispatch/crew'),
     enabled: !!board.data?.can_assign_any, refetchInterval: 30_000,
@@ -184,6 +194,10 @@ export default function IncidentPage() {
             )}
           </Stack>
         </Panel>
+        {/* Where it happens, without leaving the incident (issue #913). */}
+        <PlaceHistory entries={history.data?.entries} loading={history.isPending} error={history.error}
+          search={i.switch_name ?? i.seat} canOpen={canAudit} />
+        {seesLogs && (i.seat || i.switch_name) && <RecentLogs seat={i.seat} device={i.switch_name} />}
       </Stack>
     </Layout>
   )

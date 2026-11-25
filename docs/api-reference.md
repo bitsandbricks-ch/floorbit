@@ -86,6 +86,16 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/agents/load` | `settings.manage` |  |
 | POST | `/api/agents/roll` | `settings.manage` |  |
 
+## floorbit.blueprints.agent_events
+
+One local agent's recent events, for the Logs tab and the overview of its page (issue #905). For admins (``settings.manage``, as all of ``/api/agents``):
+
+Source: [`floorbit/blueprints/agent_events.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent_events.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/agents/<agent_id>/events` | `settings.manage` |  |
+
 ## floorbit.blueprints.agent_groups
 
 One group of local agents: the agents with the same tags, which back each other up (#1405) and split their devices (#1441). For admins (``settings.manage``, as all of ``/api/agents``):
@@ -477,6 +487,7 @@ Source: [`floorbit/blueprints/incidents.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/incidents` | `floorplan.view` | `incidents` |
 | GET | `/api/incidents.csv` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PATCH | `/api/incidents/<incident_id>` | `floorplan.view` | `incidents` |
+| GET | `/api/incidents/<incident_id>/history` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `incidents` |
 | GET | `/api/incidents/markers` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `incidents` |
 | GET | `/api/incidents/people` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `incidents` |
 
@@ -509,6 +520,16 @@ Source: [`floorbit/blueprints/inventory_agent.py`](https://github.com/bitsandbri
 | --- | --- | --- | --- |
 | GET | `/api/agent/v1/inventory/<plugin_id>` | anyone |  |
 | POST | `/api/agent/v1/inventory/auth-failed` | anyone |  |
+
+## floorbit.blueprints.inventory_bulk
+
+Acting on several inventory devices at once (issue #980): the list's pick bar.
+
+Source: [`floorbit/blueprints/inventory_bulk.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_bulk.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/inventory/bulk` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.inventory_drift
 
@@ -555,6 +576,17 @@ Source: [`floorbit/blueprints/inventory_interfaces.py`](https://github.com/bitsa
 | DELETE | `/api/inventory/<device_id>/interfaces/<iface_id>` | `floorplan.edit` |  |
 | PATCH | `/api/inventory/<device_id>/interfaces/<iface_id>` | `floorplan.edit` |  |
 | POST | `/api/inventory/interfaces/sync` | `floorplan.edit` |  |
+
+## floorbit.blueprints.inventory_senders
+
+Devices that send but aren't in the inventory (issue #1443, floorbit/unknown_senders.py).
+
+Source: [`floorbit/blueprints/inventory_senders.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_senders.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/inventory/unknown-senders` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/unknown-senders/ignore` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.inventory_types
 
@@ -624,7 +656,9 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 | --- | --- | --- | --- |
 | GET | `/api/logs` | `seats.view` | `syslog` |
 | GET | `/api/logs/alerts` | `seats.view` | `syslog` |
+| GET | `/api/logs/download` | `seats.view` | `syslog` |
 | GET | `/api/logs/markers` | `seats.view` | `syslog` |
+| GET | `/api/logs/volume` | `seats.view` | `syslog` |
 
 ## floorbit.blueprints.marketplace
 

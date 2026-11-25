@@ -12,6 +12,10 @@ defaults for all devices at `/inventory/defaults`, each with tabs for its detail
 settings (properties and feature switches) and credentials. Other entries (cables, transceivers, ...) open at
 `/inventory/entries/<type>/<id>`. The links can be shared and bookmarked.
 
+Edits happen on these pages too, never in a dialog: a device's details (name, role, model,
+address, group, tags, look, notes) are the first panel of its **Settings** tab, which **Edit details**
+opens, and **Add device** opens `/inventory/devices/new`, which goes to the new device's page once it is added.
+
 **Graphs** on a device's page shows its CPU, memory and reachability over 1 to 48 hours, then
 one port's traffic in and out and its errors (pick the port), as Floorbit stored them from
 monitoring or telemetry; a number never stored is left out. **Logs** shows the syslog lines this
@@ -67,6 +71,38 @@ the floor plan can use them too: the editor's icon list has them under **Uploade
 the kiosk and the attendee hall view draw them in the icon's colour. Removing an icon puts the
 devices, groups and tags that showed it back on their default icon, and turns plan icons that used
 it into the info icon.
+
+### In the list
+
+Besides name, role, model and state, the device list shows per device:
+
+- **Uplink**: its link towards the core, as the [topology](topology.md) draws it (the core is where
+  the internet lines come in, else the routers). It shows the speed the port runs at, amber "1G of
+  10G" when it runs slower than planned, and red when the link is down. The tooltip names both ports.
+- **Last 24 h**: one block per hour from the status monitor's changes, amber when the device was
+  down for part of the hour, red for half an hour or more. A device the monitor doesn't track stays grey.
+- **Agent**: who reads it, from its `telemetry.agent` property: Auto, the agents with a tag, or one agent.
+
+All three come with the one list call; sort by them to find the devices that need a look.
+
+### Acting on several devices
+
+Tick the box in front of devices (shift-click picks a span, the header box every device the filters
+show) and a bar comes up under the list: **Add tag**, **Remove tag**, **Move to group** (or out of
+any group), **Hide** or **Show again**, and **Run command**, which opens the
+[switch console](commands.md) with the picked switches. Editing needs `floorplan.edit`, Run command
+the console's `ports.act`; viewers see no boxes. Each action is one request
+(`POST /api/inventory/bulk`), and every device it changed gets its own line in the audit log.
+
+### Unknown senders
+
+A device that sends syslog, traps, streams (gNMI, MDT) or flows to the agents without being in the
+inventory would look silent although it talks. The list's **Unknown senders** chip opens each address
+heard from in the last 24 hours that matches no device (by management address or name): what it sent
+and how often, first and last heard, through which agent, and the name it gives (the syslog host name
+or the trap's `sysName`). **Add to inventory** makes the device with that address; **Ignore** leaves it
+out of the count and the Problems page, where the rest show as one row to look at. Only these counts
+leave the agents, never the lines. Up to 200 addresses are kept per kind.
 
 ## Interfaces
 
@@ -244,7 +280,7 @@ stored.
 
 ### Syncing on its own
 
-Set **Inventory sync (minutes)** under Settings > General (`INVENTORY_SYNC_MINUTES`) and Floorbit
+Set **Inventory sync (minutes)** under Settings > Inventory (`INVENTORY_SYNC_MINUTES`) and Floorbit
 runs the same sync by itself, so a switch added in NetBox during setup shows up without anyone
 pressing **Sync now**. 0 (the default) is off; less than 5 counts as 5, at most once a day. The
 time counts from the newest sync, by hand or not, and a failed one waits the same time before the
@@ -277,7 +313,7 @@ LibreNMS call (an agent older than this asks nothing, and those areas stay as th
   | `poe`: the PoE budget | switches | Discovery (minutes) |
   | `routes` | firewalls | Discovery (minutes) |
 
-  **Discovery (minutes)** is under Settings > General (`DISCOVERY_MINUTES`, 15 by default; less
+  **Discovery (minutes)** is under Settings > Inventory (`DISCOVERY_MINUTES`, 15 by default; less
   than 5 counts as 5, 0 turns every action off). An admin sets one action's own interval with
   `PUT /api/inventory/discovery/actions/<id>` (`{"minutes": 30}`, 0 for off, `null` for the
   default). `GET /api/inventory/discovery` lists the actions with their last run (when, how many

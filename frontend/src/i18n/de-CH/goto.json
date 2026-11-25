@@ -42,7 +42,7 @@
     "switchAreas": "Switch-Bereiche",
     "schedule": "Programm",
     "timeline": "Ereignis-Chronik",
-    "networkStatus": "Netzwerkstatus",
+    "networkStatus": "Statusmeldungen",
     "replay": "Event-Wiedergabe",
     "report": "Event-Bericht",
     "events": "Events",
@@ -50,7 +50,6 @@
     "settings": "Einstellungen",
     "setup": "Einrichten",
     "plugins": "Plugins",
-    "features": "Funktionen",
     "sidebarSections": "Bereiche in der Seitenleiste",
     "apiTokens": "API-Tokens",
     "tenants": "Mandanten",
@@ -96,6 +95,6 @@
     "setup": "Checkliste, erste Schritte, loslegen",
     "checkins": "PIN, Ankunft",
     "firewalls": "Routing, Uplinks",
-    "networkStatus": "Internet, Provider, Uplinks"
+    "networkStatus": "Statusseite, Teilnehmende, Störung, Meldung"
   }
 }

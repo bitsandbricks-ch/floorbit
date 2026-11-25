@@ -430,6 +430,9 @@ class State:
         self.problems = None
         self.points = 0
         self.unknown = 0               # points no driver here understands (kept in storage only)
+        # Traps and streams from addresses no device here has: listed as unknown senders (#1443).
+        from ..unknown_senders import Seen
+        self.senders = Seen()
         self._expired = 0.0
 
     def reset(self):
@@ -437,6 +440,7 @@ class State:
             self.devices.clear()
             self.points = self.unknown = 0
             self.collecting = True
+            self.senders.clear()
 
     def device(self, name):
         with self._lock:
@@ -488,6 +492,14 @@ class State:
             dev.kind = tags['kind']
         return dev
 
+    def _unknown_sender(self, point, now):
+        tags = point.tags
+        sender = tags.get('mdt_source') or tags.get('source') or tags.get('agent_host')
+        if not sender or tags.get('device') or tags.get('host'):
+            return
+        kind = 'trap' if 'trap' in point.measurement else 'stream'
+        self.senders.note(kind, sender, name=tags.get('sysName') or tags.get('sys_name') or '', now=now)
+
     def know(self, targets):
         """Make the configured devices known before they send, so traps and MDT from their address
         find them, and a device that never sent shows as offline instead of missing."""
@@ -513,6 +525,7 @@ class State:
                 dev = self._device_for(point.tags)
                 if dev is None:
                     self.unknown += 1
+                    self._unknown_sender(point, now)
                     continue
                 at = point.time or now
                 handler = _HANDLERS.get(point.measurement) or _generic

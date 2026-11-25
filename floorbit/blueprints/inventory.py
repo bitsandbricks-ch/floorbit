@@ -239,6 +239,22 @@ def _state(dev, states, found):
     return state
 
 
+def _columns(data, states):
+    """Uplink, last 24 h and agent per device (issue #981). A column that can't be worked out stays
+    empty rather than failing the list."""
+    from .. import inventory_columns as cols
+    out = []
+    for build in (lambda: cols.uplinks(data),
+                  lambda: cols.last_day(current_app.extensions['floorbit_stats'].event().get('switch_events'), states),
+                  lambda: cols.collectors(data)):
+        try:
+            out.append(build())
+        except Exception as exc:  # noqa: BLE001  # the list must show even when a column can't
+            print(f'[inventory] list column: {exc}')
+            out.append({})
+    return out
+
+
 @bp.route('/api/inventory', methods=['GET'])
 def list_devices():
     data = load_data()
@@ -246,12 +262,27 @@ def list_devices():
     drift = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
     states, ports = _live()
     found = _monitored()
+    devices = inventory.devices(data, include_hidden=hidden)
+    state_of = {d['id']: _state(d, states, found) for d in devices}
+    up, day, agents = _columns(data, {str(d['name']).lower(): state_of[d['id']] for d in devices})
     return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or []),
-                                 'state': _state(d, states, found),
-                                 'ports': ports.get(str(d['name']).lower())}
-                                for d in inventory.devices(data, include_hidden=hidden)],
+                                 'state': state_of[d['id']],
+                                 'ports': ports.get(str(d['name']).lower()),
+                                 'uplink': up.get(str(d['name']).lower()),
+                                 'last_day': day.get(str(d['name']).lower()),
+                                 'agent': agents.get(str(d['name']).lower(), '')}
+                                for d in devices],
                     'sources': _sources(data), 'every': inventory_schedule.every_minutes(),
                     'roles': list(inventory.ROLES), 'fields': list(inventory.FIELDS)})
+
+
+def _bad_input(exc):
+    """An InventoryError a route lets through: its message is one the inventory wrote for people
+    ("A device needs a name"), never a library's or a stack trace."""
+    return jsonify({'error': exc.args[0] if exc.args else 'Bad input'}), 400
+
+
+bp.register_error_handler(inventory.InventoryError, _bad_input)
 
 
 @bp.route('/api/inventory', methods=['POST'])
@@ -260,10 +291,7 @@ def create_device():
     body.pop('hall_id', None)   # placing in a hall goes through /api/switches, which checks the hall
     with data_lock:
         data = load_data()
-        try:
-            dev = inventory.create(data, body)
-        except inventory.InventoryError as exc:
-            return jsonify({'error': str(exc)}), 400
+        dev = inventory.create(data, body)      # bad input raises: _bad_input answers
         save_data(data)
     return jsonify(inventory.public(dev)), 201
 
@@ -280,8 +308,6 @@ def update_device(device_id):
             dev, changed = inventory.update(data, device_id, body)
         except KeyError:
             return jsonify({'error': 'No such device'}), 404
-        except inventory.InventoryError as exc:
-            return jsonify({'error': str(exc)}), 400
         save_data(data)
     return jsonify({**inventory.public(dev), 'changed': changed})
 

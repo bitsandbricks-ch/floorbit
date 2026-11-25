@@ -1,7 +1,9 @@
-import { ActionIcon, Button, Collapse, Group, Modal, Select, Stack, Text, Textarea, TextInput, Tooltip } from '@mantine/core'
+import { ActionIcon, Button, Collapse, Group, Select, Stack, Text, Textarea, TextInput, Tooltip } from '@mantine/core'
 import { IconChevronDown, IconLock, IconLockOpen } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SaveBar } from '@/pages/settings/editor'
+import { useLeaveWarning } from '@/components/useLeaveWarning'
 import { INVENTORY_FIELDS, SPEC_FIELDS, type Device, type InventoryField, type InventoryOverview } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { FieldInputs } from './FieldInputs'
@@ -22,15 +24,17 @@ function placementOf(device: Device | null): Placement {
   return { group_id: device?.group_id ?? null, tags: device?.tags ?? [], icon: device?.icon ?? '', color: device?.color ?? '', fields: device?.fields ?? {} }
 }
 
+/** A device's details as a form on a page (#877): the Settings tab of its page, or the page for a
+ *  new device. No dialog: edits happen on the page. */
 export function DeviceForm({
   device,
   roles,
   overview,
   sourceName,
-  opened,
   busy,
   error,
-  onClose,
+  saved = null,
+  onCancel,
   onSave,
   onUnlock,
 }: {
@@ -38,10 +42,10 @@ export function DeviceForm({
   roles: string[]
   overview?: InventoryOverview
   sourceName: (id: string) => string
-  opened: boolean
   busy: boolean
   error: string | null
-  onClose: () => void
+  saved?: string | null
+  onCancel: () => void
   onSave: (changes: Partial<Draft> & Partial<Placement>) => void
   onUnlock: (field: InventoryField) => void
 }) {
@@ -101,9 +105,11 @@ export function DeviceForm({
     (Object.keys(place) as (keyof Placement)[]).filter((k) => JSON.stringify(place[k]) !== JSON.stringify(placeBefore[k])).map((k) => [k, place[k]]),
   )
   const changes = { ...Object.fromEntries(INVENTORY_FIELDS.filter((f) => draft[f] !== original[f]).map((f) => [f, draft[f]])), ...placeChanges }
+  const typed = device ? Object.keys(changes).length > 0
+    : INVENTORY_FIELDS.some((f) => draft[f] !== original[f]) || Object.keys(placeChanges).length > 0
+  useLeaveWarning(typed && !busy)
 
   return (
-    <Modal opened={opened} onClose={onClose} title={device ? t('inventory.edit', { name: device.name }) : t('inventory.newDevice')} size="lg">
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -193,21 +199,29 @@ export function DeviceForm({
             minRows={2}
             maxLength={1000}
           />
-          {error && (
-            <Text className="fb-tone-err" role="alert">
-              ✕ {error}
-            </Text>
+          {device ? (
+            // Changes to a device save the way every settings page does (#993): the shared bar.
+            <SaveBar count={Object.keys(changes).length} bad={!draft.name.trim()} saving={busy}
+              error={error ? new Error(error) : null} saved={saved}
+              onDiscard={() => { setDraft(original); setPlace(placeBefore) }} />
+          ) : (
+            <>
+              {error && (
+                <Text className="fb-tone-err" role="alert">
+                  ✕ {error}
+                </Text>
+              )}
+              <Group justify="flex-end">
+                <Button variant="default" onClick={onCancel}>
+                  {t('common.cancel')}
+                </Button>
+                <Button type="submit" loading={busy}>
+                  {t('inventory.add')}
+                </Button>
+              </Group>
+            </>
           )}
-          <Group justify="flex-end">
-            <Button variant="default" onClick={onClose}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" loading={busy} disabled={!!device && Object.keys(changes).length === 0}>
-              {t('inventory.save')}
-            </Button>
-          </Group>
         </Stack>
       </form>
-    </Modal>
   )
 }

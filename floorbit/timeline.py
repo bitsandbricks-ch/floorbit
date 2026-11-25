@@ -246,6 +246,31 @@ def build(switch_events=(), kinds=None, q='', since=None, until=None, limit=MAX_
     return picked[:limit], len(picked), counts
 
 
+def about(switch_events=(), names=(), seat=None, people=False, since=None, limit=30, lang=None):
+    """What happened at one place (issues #882, #913): outages, incidents and alerts whose target is one
+    of ``names`` (a switch, or a switch and port) or ``seat``, newest first. Never the audit log, so it
+    needs no ``audit.read``. Lines that name a seat only with ``people`` (``seats.view``)."""
+    from .i18n import log_text
+    want = {str(n).lower() for n in names if n}
+    seat_target = f'seat {seat}'.lower() if seat else None
+    seat_title = f'(seat {seat})'.lower() if seat else None
+
+    def here(r):
+        target = str(r.get('target') or '').lower()
+        title = str(r.get('title') or '').lower()
+        if people and seat_target and (target == seat_target or seat_title in title):
+            return True
+        if not people and ('(seat ' in title or target.startswith('seat ')):
+            return False
+        return bool(target) and (target in want or target.split(' ')[0] in want)
+
+    rows, _total, _counts = build(switch_events, kinds={'outage', 'incident', 'alert'}, since=since, limit=10 ** 6)
+    picked = [r for r in rows if here(r)][:limit]
+    if lang:
+        picked = [{**r, **{k: log_text(r[k], lang) for k in ('title', 'target') if k in r}} for r in picked]
+    return picked
+
+
 def csv_text(rows):
     from .csvcell import cell as _csv
     lines = ['time,kind,title,target,who']

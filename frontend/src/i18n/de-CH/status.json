@@ -1,5 +1,5 @@
 {
-  "title": "Netzwerkstatus",
+  "title": "Statusmeldungen",
   "intro": "Was die Teilnehmenden auf der öffentlichen Statusseite sehen, und die Updates, die die Crew dort postet.",
   "open": "Öffentliche Seite öffnen",
   "publicOff": "Die öffentliche Seite /status ist ausgeschaltet. Ein Admin schaltet sie unter Einstellungen > Attendee pages ein.",
@@ -10,7 +10,6 @@
   "setState": "Status setzen",
   "note": "Notiz für die Crew",
   "set": "Setzen",
-  "backToAuto": "Zurück auf automatisch",
   "areas": "Betroffene Bereiche",
   "noAreas": "Kein Switch ist ausgefallen.",
   "namesHidden": "Die öffentliche Seite zeigt nur Hallen, Blöcke und Reihen, keine Switch-Namen.",

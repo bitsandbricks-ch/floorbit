@@ -2,21 +2,21 @@ import { Button } from '@mantine/core'
 import { IconBell, IconBellOff } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { crewNotify, setWatchedSeats, watchedSeats } from '@/notify/crewNotify'
 
-/** Watch this seat (issue #178): static/js/notify.js shows a notification when its link changes.
- *  Kept with the other notification settings of this browser; watching turns notifications on. */
+/** Watch this seat (issue #178): a notification when its link changes (notify/CrewNotify.tsx).
+ *  Kept in this browser; watching turns notifications on. */
 export function WatchSeat({ seat }: { seat: string }) {
   const { t } = useTranslation()
-  const api = typeof window !== 'undefined' ? window.floorNotify : undefined
-  const [watch, setWatch] = useState<string[]>(() => api?.settings().watch ?? [])
+  const [watch, setWatch] = useState<string[]>(watchedSeats)
   const [denied, setDenied] = useState(false)
-  if (!api || !api.supported()) return null
+  if (!crewNotify.supported()) return null
   const on = watch.includes(seat)
   const toggle = async () => {
-    const next = on ? watch.filter((s) => s !== seat) : [...watch, seat].slice(-20)
-    const prefs = await api.set(on ? { watch: next } : { watch: next, on: true })
-    setWatch(prefs.watch ?? [])
-    setDenied(!on && !prefs.on)
+    const next = on ? watch.filter((s) => s !== seat) : [...watch, seat]
+    setWatchedSeats(next)
+    setWatch(watchedSeats())
+    if (!on) setDenied(!(await crewNotify.set({ on: true })).on)
   }
   return (
     <Button variant={on ? 'filled' : 'default'} size="xs" onClick={() => void toggle()} aria-pressed={on}

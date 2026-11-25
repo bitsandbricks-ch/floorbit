@@ -75,9 +75,11 @@ pull request.
    the pull request ready. Leave it a draft only while work is open or you are blocked, and say why
    in the description.
 7. **Auto-merge** (handbook decision 0017): once the pull request is ready, turn on squash auto-merge
-   (`gh pr merge <n> --auto --squash`); GitHub merges it when the required check passes. Leave it off,
-   for the maintainer to merge, on pull requests that touch keys, signing, sign-in, the plugin sandbox or
-   release workflows, and on version pull requests from `mason bump`. Never merge by hand, never
+   (`gh pr merge <n> --auto --squash`); GitHub merges it when the required check passes. GitHub refuses
+   auto-merge on a pull request whose checks have all passed already: then squash-merge it directly
+   (`gh pr merge <n> --squash`), which is what auto-merge would have done. Leave both off, for the
+   maintainer to merge, on pull requests that touch keys, signing, sign-in, the plugin sandbox or
+   release workflows, and on version pull requests from `mason bump`. Never merge any other way, never
    force-push to a branch someone else works on, never push a tag. Releasing is the maintainer's call.
 8. Keep the pull request description current when you push more commits.
 9. **Keep it mergeable:** when `master` moves while your pull request is open, merge `master` into
@@ -123,7 +125,7 @@ happen. Add files, don't grow shared ones:
 | Instead of | Do this |
 | --- | --- |
 | one big translation file (`floorbit/locales/de-CH.json` is gone; `discord.de-CH.json` too should not grow) | add to `floorbit/locales/de-CH/<area>.json` (`log.de-CH/`, `discord.de-CH/`), named after the module that sends the text |
-| adding a blueprint to `ALL` in `floorbit/blueprints/__init__.py` | nothing: a module in `floorbit/blueprints/` with a `bp` registers itself |
+| adding a blueprint to a shared list | nothing: a module in `floorbit/blueprints/` with a `bp` registers itself (there is no list) |
 | adding a new area's types to `frontend/src/api/types.ts` | put them in `frontend/src/api/<area>.ts`, next to its queries (like `tenantEvents.ts`) |
 | adding a new page's styles to `frontend/src/app.css` or `frontend/src/styles/` | a `<Page>.css` next to the page, imported by it |
 | one big test file for an area (`tests/test_cables.py`) | a new `tests/test_<area>_<topic>.py` for a new topic |
