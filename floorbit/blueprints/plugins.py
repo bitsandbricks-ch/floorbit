@@ -524,7 +524,11 @@ def _down_tile(user):
 
 
 def _switch_states_tile(user):
-    return core.switch_states_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].statuses)
+    from .. import inventory
+    from ..store import load_data
+    roles = {d['id']: d.get('role') or '' for d in inventory.devices(load_data())}
+    return core.switch_states_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].statuses,
+                                     roles=roles)
 
 
 def _open_incidents_tile(user):
