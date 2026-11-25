@@ -12,6 +12,7 @@ import { readBoot } from '@/nav/boot'
 import { GOTO_EVENT } from '@/nav/goto'
 import { inApp } from '@/nav/sections'
 import { Sidebar, type LinkProps, type MenuAction } from '@/nav/Sidebar'
+import { useChecklist } from '@/pages/setup/checklist'
 import { CrewNoticeEditor } from './CrewNotice'
 import { GoTo } from './GoTo'
 import { NotifySettings } from './NotifySettings'
@@ -58,6 +59,9 @@ export function AppNav() {
   }, [me, listed, custom])
 
   useInAppLinks(boot.pages)
+  // Set up's progress beside its row, for the accounts that may open it (#1437).
+  const steps = useChecklist(boot.pages.some((p) => p.id === 'setup')).data?.steps
+  const setup = useMemo(() => (steps ? { done: steps.filter((s) => s.state === 'done' || s.state === 'skipped').length, count: steps.length } : null), [steps])
 
   const actions: MenuAction[] = []
   if (me?.user) actions.push({ id: 'notify', label: t('common.notify.menu'), icon: IconBell, run: () => setNotify(true) })
@@ -65,7 +69,7 @@ export function AppNav() {
 
   return (
     <>
-      <Sidebar boot={boot} path={path} renderLink={renderLink} onGoTo={open} down={problems?.counts.down ?? null} look={problems?.counts.look ?? null} actions={actions} dashboards={dashboards} />
+      <Sidebar boot={boot} path={path} renderLink={renderLink} onGoTo={open} down={problems?.counts.down ?? null} look={problems?.counts.look ?? null} actions={actions} dashboards={dashboards} setup={setup} />
       <GoTo opened={goTo} onOpen={open} onClose={close} />
       {notify && <NotifySettings opened onClose={() => setNotify(false)} />}
       {notice && <CrewNoticeEditor onClose={() => setNotice(false)} />}

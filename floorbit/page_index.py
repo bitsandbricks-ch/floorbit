@@ -60,6 +60,8 @@ PAGES = (
     # events on the page follows the past_events feature (issue #1201).
     ('/events', 'events', 'Events', None),
     ('/templates', 'templates', 'Floor plan templates', None),
+    # The event's setup checklist, at the sidebar's foot with its progress (#1437).
+    ('/setup', 'setup', 'Set up', lambda c, can: can('settings.manage')),
     ('/settings', 'settings', 'Settings', lambda c, can: can('settings.manage')),
     ('/settings/plugins', 'plugins', 'Plugins', lambda c, can: can('settings.manage')),
     ('/settings/features', 'features', 'Features', lambda c, can: can('settings.manage')),
