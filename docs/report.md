@@ -37,12 +37,13 @@ The report has seat numbers, switches, ports and times, no nicks or IPs. An admi
 IP of each problem port's seat and the incidents' seats, and who reported each incident. Every such
 download goes to the audit log. The PDF says on its first page that it holds personal data.
 
-## Start a new event
+## Starting the figures again
 
-**Start a new event** (admins) clears the report's history: the hourly rows, the switch outages, the
-problem ports and the bandwidth peak. Incidents and check-ins stay on their own pages; the report
-counts the incidents opened since the new event started. Use it before doors open, after the setup
-and load tests.
+**Only start the figures again** on the [Events](events.md) page (admins) clears the report's history
+without closing the event: the hourly rows, the switch outages, the problem ports, the bandwidth peak
+and the replay. Incidents and check-ins stay on their own pages; the report counts the incidents
+opened since then. Use it before doors open, after the setup and load tests. Closing the event does
+the same and keeps the old one as a past event.
 
 ## API
 
@@ -50,4 +51,4 @@ and load tests.
 | --- | --- | --- |
 | `GET /api/report` | `floorplan.view` | The report as JSON; `?people=1` adds nicks and IPs (`settings.manage`) |
 | `GET /api/report.pdf` | `floorplan.view` | The PDF; `lang`, `tz` and `people` as above |
-| `POST /api/report/new-event` | `settings.manage` | Start a new event |
+| `POST /api/report/new-event` | `settings.manage` | Start the figures again (Events page) |

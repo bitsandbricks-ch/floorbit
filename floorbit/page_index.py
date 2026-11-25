@@ -80,9 +80,10 @@ PAGES = (
 
 
 def _lancache_on():
-    # The LAN cache plugin comes from the Marketplace: no page until it is installed and on.
-    from .blueprints.lancache import _plugin
-    return _plugin()[1]
+    # The LAN cache plugin comes from the Marketplace; a cache log Floorbit reads itself (or the
+    # demo) brings the page too, so it keeps its place in the Services tabs while data comes in (#1420).
+    from .blueprints.lancache import _has_data, _plugin
+    return _plugin()[1] or _has_data()
 
 
 def _checkin_on():
