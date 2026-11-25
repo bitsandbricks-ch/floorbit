@@ -61,8 +61,9 @@ describe('Checkins', () => {
     expect(await screen.findByText('sw-a-01 Gi1/0/2')).toBeInTheDocument()
     expect(screen.getAllByRole('row')).toHaveLength(4)
     expect(screen.getByText('3 of 24 seat PINs used')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Not wired · 1/ }))
-    expect(screen.getAllByRole('row')).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: /^State: All/ }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Not wired\s*1/, hidden: true }))
+    await vi.waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(2))
     expect(screen.getByText('Phone')).toBeInTheDocument()
   })
 

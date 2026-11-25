@@ -51,7 +51,8 @@ describe('seats not on the plan (#1036)', () => {
     renderWithApp(<SeatMapping />)
     expect(await screen.findByText('3 seats: 2 on the plan, 1 not on any plan')).toBeInTheDocument()
     expect(within(screen.getByRole('button', { name: 'F-1' }).closest('tr')!).getByText('not on the plan')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('switch', { name: 'Only seats not on the plan' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Show: All/ }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Only seats not on the plan/, hidden: true }))
     expect(await screen.findByText('1 seat')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'A-1' })).not.toBeInTheDocument()
   })
@@ -72,9 +73,9 @@ describe('filters (#872)', () => {
     vi.stubGlobal('fetch', fakeFetch({ ...me, 'GET /api/seat-map?read=1': list }).fn)
     renderWithApp(<SeatMapping />)
     await screen.findByRole('button', { name: 'A-1' })
-    expect(screen.getAllByLabelText('Source', { selector: 'input' })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Source: Any' })).toBeInTheDocument()
     // One switch only: no switch filter.
-    expect(screen.queryAllByLabelText('Switch', { selector: 'input' })).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: /^Switch:/ })).not.toBeInTheDocument()
   })
 })
 

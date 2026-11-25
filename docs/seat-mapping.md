@@ -27,8 +27,10 @@ you leave empty on a hand entry is filled from the other sources. The page shows
 each field, so you can see why a seat has the IP it has. Removing a hand entry brings the other
 sources' values back.
 
-The table pages, sorts on each column, and narrows by search and by **Block**, **Switch** and
-**Source** (each shown once there is more than one to pick from). The **From** column shows the
+The table pages at 50 rows, sorts on each column, and narrows by search and by **Block**, **Switch**
+and **Source** (each shown once there is more than one to pick from) on one row of menus like the
+other lists, all kept in the address. **Show** picks all seats, only hand entries, or only seats not
+on the plan. The **From** column shows the
 first source and "+n" for the others; hovering names them all.
 
 One port belongs to one seat: a hand entry can't take a port another hand entry has.
