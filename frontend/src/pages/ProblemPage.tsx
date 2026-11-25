@@ -11,6 +11,8 @@ import type { ProblemDetail } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { Panel } from '@/components/ui'
 import { RecentLogs } from '@/components/RecentLogs'
+import { PlaceHistory } from '@/components/PlaceHistory'
+import { useCanOpenTimeline } from '@/components/useCanOpenTimeline'
 import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { PageHead } from '@bitsandbricks/ui'
 import { canReport, reportBody } from './problems/format'
@@ -26,6 +28,7 @@ export default function ProblemPage() {
   const { t } = useTranslation()
   const { id = '' } = useParams()
   const client = useQueryClient()
+  const canAudit = useCanOpenTimeline()
   const key = [...qk.problems, 'one', id]
   const q = useQuery({
     queryKey: key, queryFn: () => get<ProblemDetail>(`/api/problems/${encodeURIComponent(id)}`), refetchInterval: 30_000,
@@ -96,6 +99,12 @@ export default function ProblemPage() {
       {q.data.finding && (
         <div style={{ marginTop: 'var(--mantine-spacing-md)' }}>
           <FindingPanel f={q.data.finding} canShut={!!q.data.can_shut} needsLogin={!!q.data.needs_login} />
+        </div>
+      )}
+      {/* What happened at this place lately (issue #882): its outages, incidents and alerts. */}
+      {q.data.history && (
+        <div style={{ marginTop: 'var(--mantine-spacing-md)' }}>
+          <PlaceHistory entries={q.data.history} search={p.device ?? (q.data.may_see_people ? p.seat : null)} canOpen={canAudit} />
         </div>
       )}
       {q.data.may_see_people && (p.seat || p.device) && (

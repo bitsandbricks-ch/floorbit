@@ -487,6 +487,7 @@ Source: [`floorbit/blueprints/incidents.py`](https://github.com/bitsandbricks-ch
 | POST | `/api/incidents` | `floorplan.view` | `incidents` |
 | GET | `/api/incidents.csv` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | PATCH | `/api/incidents/<incident_id>` | `floorplan.view` | `incidents` |
+| GET | `/api/incidents/<incident_id>/history` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `incidents` |
 | GET | `/api/incidents/markers` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `incidents` |
 | GET | `/api/incidents/people` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) | `incidents` |
 

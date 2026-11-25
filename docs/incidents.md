@@ -27,6 +27,11 @@ here. An incident that is no longer on the board says so. With `seats.view`, **R
 bottom lists the newest 20 syslog lines of the seat (or the switch), every 15 seconds, so the tech
 reads what the switch says without leaving the incident.
 
+**What happened here** above it lists the switch's or seat's outages, incidents and alerts from the
+[event changelog](timeline.md), from six hours before the incident was filed until now, newest first
+(never the audit log's changes). Accounts with `audit.read` get **Open in the changelog** for the
+rest.
+
 When the problem an incident was made from ends (Floorbit no longer sees it), the incident gets a
 green **Problem over** tag, on its card and its page, within a minute. It stays open: check the
 seat or switch works, then mark it fixed. If the same problem comes back, the tag goes again.

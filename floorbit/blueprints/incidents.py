@@ -4,6 +4,8 @@
 - ``POST /api/incidents``, ``PATCH /api/incidents/<id>``: file and work incidents.
 - ``GET /api/incidents.csv?tz=<minutes>``: the board as a spreadsheet for the debrief after the event
   (issue #418). Same people as the board; never attendee data. The download goes to the audit log.
+- ``GET /api/incidents/<id>/history``: what happened at its seat or switch (issue #913): outages,
+  incidents and alerts from the event changelog, from a few hours before it was filed.
 - ``GET /api/incidents/markers``: open incidents per seat and switch, for the floor plan.
 - ``GET /api/helpdesk/qr``: the signed help link and QR code of every seat (``incidents.assign``).
 - ``GET``/``POST /help/<seat>?k=<signature>``: the attendee's page. No account, nothing personal,
@@ -237,6 +239,26 @@ def change_incident(incident_id):
         return _error(exc)
     _changed(incident, 'changed')
     return jsonify(_view(user, incident))
+
+
+HISTORY_HOURS = 6
+
+
+@bp.route('/api/incidents/<incident_id>/history', methods=['GET'])
+def incident_history(incident_id):
+    _board_user()
+    incident = incidents.get(incident_id)
+    if not incident:
+        return jsonify({'error': 'No such incident.'}), 404
+    from .. import i18n, timeline
+    events = current_app.extensions['floorbit_stats'].event().get('switch_events') or []
+    names = [incident.get('switch_name'), incident.get('switch_id'), incident.get('circuit_name')]
+    since = incident['created_at'] - HISTORY_HOURS * 3600
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    # Everyone on the board sees the seats of its incidents, so the seat's own lines too.
+    entries = [e for e in timeline.about(events, names, incident.get('seat'), people=True, since=since, lang=lang)
+               if e.get('id') != incident['id']]
+    return jsonify({'entries': entries})
 
 
 # ── QR sheet ───────────────────────────────────────────────────────────────────
