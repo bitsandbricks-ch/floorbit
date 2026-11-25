@@ -350,3 +350,15 @@ def _agents_sign(monkeypatch):
         kwargs["headers"] = headers
         return real_open(self, *args, **kwargs)
     monkeypatch.setattr(FlaskClient, "open", signing_open)
+
+
+@pytest.fixture(autouse=True)
+def _agent_lease_fresh(monkeypatch):
+    """No lease holder remembered from another test, and Floorbit started long ago, so nothing
+    waits for a holder after a restart (floorbit/agent_ha.py, tests/test_agent_ha_lease.py)."""
+    from floorbit import agent_ha
+    kept = {}
+    monkeypatch.setattr(agent_ha, "_remembered", kept.get)
+    monkeypatch.setattr(agent_ha, "_remember", kept.__setitem__)
+    monkeypatch.setattr(agent_ha, "_started", -10 * agent_ha.STARTUP_GRACE)
+    monkeypatch.setattr(agent_ha, "_back", set())

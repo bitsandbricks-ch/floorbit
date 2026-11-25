@@ -1,18 +1,7 @@
 """Floorbit picks each group's primary (issue #1405): a sticky lease, VRRP optional."""
-import pytest
 from test_agent import clean_tunnel, enrol, head  # noqa: F401  # clean_tunnel is autouse there
 
 from floorbit import agent_ha, agent_link
-
-
-@pytest.fixture(autouse=True)
-def long_since_started(monkeypatch):
-    """This Floorbit started long ago: no wait for the last holder (test_a_restart_waits_...)."""
-    monkeypatch.setattr(agent_ha, "_started", -10 * agent_ha.STARTUP_GRACE)
-    # Each test starts with no holder remembered.
-    kept = {}
-    monkeypatch.setattr(agent_ha, "_remembered", kept.get)
-    monkeypatch.setattr(agent_ha, "_remember", kept.__setitem__)
 
 
 def agent(aid, connected=True, tags=(), lease=None, vrrp=None):
@@ -104,14 +93,22 @@ def test_the_lease_goes_to_an_agent_that_runs_every_plugin():
 
 def test_a_restart_waits_a_minute_for_the_last_holder(monkeypatch):
     # agent-b held the lease before this Floorbit restarted, which forgot every report.
-    assert agent_ha.lease_holder([agent("a"), agent("b")]) == "a"
     assert agent_ha.lease_holder([agent("a"), agent("b", lease=True)]) == "b"
-    monkeypatch.setattr(agent_ha, "_started", agent_ha.time.monotonic())
+
+    def restart():
+        monkeypatch.setattr(agent_ha, "_started", agent_ha.time.monotonic())
+        agent_ha._back.clear()
+    restart()
     # agent-a reconnects first: it must not take the lease while agent-b may still come back.
     assert agent_ha.lease_holder([agent("a"), agent("b", connected=False)]) is None
     # agent-b is back and hasn't reported yet: it keeps the lease.
     assert agent_ha.lease_holder([agent("a"), agent("b")]) == "b"
-    # A minute on, agent-b gone for good: agent-a takes over.
+    # It was back once: when it leaves again, agent-a takes over at once.
+    assert agent_ha.lease_holder([agent("a"), agent("b", connected=False)]) == "a"
+    # agent-b holds it again; then a restart, and agent-b never comes back: a minute on, agent-a.
+    assert agent_ha.lease_holder([agent("a"), agent("b", lease=True)]) == "b"
+    restart()
+    assert agent_ha.lease_holder([agent("a"), agent("b", connected=False)]) is None
     monkeypatch.setattr(agent_ha, "_started", -10 * agent_ha.STARTUP_GRACE)
     assert agent_ha.lease_holder([agent("a"), agent("b", connected=False)]) == "a"
 
@@ -122,3 +119,13 @@ def test_the_last_holder_is_kept_in_the_data(client, monkeypatch):
     assert agent_ha._remembered("h1|h2") == "b"
     agent_ha._remember("h1|h2", "a")
     assert agent_ha._remembered("h1|h2") == "a"
+
+
+def test_after_a_restart_the_page_shows_the_remembered_holder(monkeypatch):
+    # No agent has reported since the restart: the group still counts as one that takes leases.
+    agent_ha._remember("", "b")
+    monkeypatch.setattr(agent_ha, "_started", agent_ha.time.monotonic())
+    plain = [{"id": i, "name": i, "connected": True, "tags": [], "report": None} for i in ("a", "b")]
+    (group,) = agent_ha.groups(plain)
+    assert group["primary"] == "b"
+    assert [a["role"] for a in group["agents"]] == ["standby", "primary"]

@@ -42,7 +42,11 @@ def groups(agents, tag_names=None):
         connected = [a for a in members if a.get('connected')]
         vrrp = {a['id']: _vrrp(a) for a in connected}
         # Agents that take Floorbit's lease (issue #1405): it picks the primary, VRRP only moves addresses.
-        leased = bool(connected) and all(_lease(a) is not None for a in connected)
+        # Right after a restart of this Floorbit no agent has reported yet: one that held the lease
+        # before (remembered) says the group takes leases, so the page doesn't fall back to VRRP.
+        reported = [a for a in connected if a.get('report')]
+        leased = bool(connected) and (all(_lease(a) is not None for a in reported) if reported
+                                      else _remembered('|'.join(key)) is not None)
         if leased:
             holder = lease_holder(members)
             primaries = [a for a in connected if a['id'] == holder]
@@ -115,6 +119,7 @@ def group_key(agent_id):
 LEASES = 'agent_leases'
 STARTUP_GRACE = 60
 _started = time.monotonic()
+_back = set()    # agents connected since this start: one that leaves again isn't waited for
 
 
 def _remembered(key):
@@ -143,13 +148,14 @@ def lease_holder(members):
     """The group's primary, picked here (issue #1405): the connected agent that holds the lease
     already keeps it (sticky; the smallest id if two say so for a moment), else the one that held
     it last, else the group's VRRP primary, else the smallest connected id. None when nobody of
-    the group is connected, or in the first minute after a start while the last holder is not
-    back yet.
+    the group is connected, or in the first minute after a start while the last holder has not
+    been back yet.
     Only the members with the fewest plugins turned off are picked: the primary polls and logs in
     for the group, so one without telemetry would leave the group's devices unpolled.
     Asked fresh on every pull, so every pod that hears the same reports picks the same agent."""
     by_id = {a['id']: a for a in members}
     every = sorted(a['id'] for a in members if a.get('connected'))
+    _back.update(every)
     if not every:
         return None
     fewest = min(len(by_id[i].get('plugins_off') or ()) for i in every)
@@ -163,7 +169,8 @@ def lease_holder(members):
         # Given out but not reported yet (its report comes within half a minute), or held before
         # a restart: keep it there, or an agent that comes back in between would take it.
         pick = last
-    elif last in by_id and last not in every and time.monotonic() - _started < STARTUP_GRACE:
+    elif (last in by_id and last not in every and last not in _back
+          and time.monotonic() - _started < STARTUP_GRACE):
         return None
     else:
         vrrp = [i for i in connected if (_vrrp(by_id[i]) or {}).get('primary')]

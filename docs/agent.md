@@ -158,8 +158,9 @@ twice and no login is tried twice, which is what locks accounts.
 - **Back again.** An agent that lost its link gives up the lease until this Floorbit says it again,
   so it doesn't take it back from the one that took over.
 - **This Floorbit restarts.** It forgets every report, so it keeps who last held each group's
-  lease in its data. For a minute after a start it gives that agent's lease to nobody else while
-  it is not back yet, so whichever agent reconnects first doesn't take it over.
+  lease in its data. For a minute after a start it gives that agent's lease to nobody else until
+  it is back, so whichever agent reconnects first doesn't take it over. Once back, a failover is
+  immediate again.
 - **This Floorbit out of reach.** Each agent keeps its last role, and a standby never takes over on
   its own. The primary keeps polling (a point sent twice later is kept once), but tries no login
   until it hears this Floorbit again, since the lease may have moved meanwhile.
