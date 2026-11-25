@@ -284,6 +284,24 @@ describe('Problems', () => {
     await vi.waitFor(() => expect(api.calls.some((c) => c.method === 'DELETE' && c.path === '/api/alerts/librenms/abc')).toBe(true))
   })
 
+  it('filters by whether someone works on it, for those who see the board (issue #883)', async () => {
+    const problems = list().problems.map((p) => ({ ...p, incident: p.id === 'switch:s2' ? 'abc123' : null }))
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems }) }).fn)
+    renderWithApp(<Problems />, '/problems?incident=none')
+    await screen.findByRole('row', { name: 'sw-c-02 is offline' })
+    expect(bodyRows()).toHaveLength(2)
+    await pick('Incident: Nobody on it', /^Being worked on/)
+    await vi.waitFor(() => expect(bodyRows().map((r) => r.getAttribute('aria-label'))).toEqual(['sw-d-01 is offline']))
+  })
+
+  it('offers no incident filter to those who don\'t see the board', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />, '/problems?incident=open')
+    await screen.findByRole('row', { name: 'sw-c-02 is offline' })
+    expect(bodyRows()).toHaveLength(3)
+    expect(screen.queryByRole('button', { name: /^Incident:/ })).not.toBeInTheDocument()
+  })
+
   it('filters by severity and muted, and groups by switch, all in the address (issue #883)', async () => {
     const attention = [
       { id: 'attention:errors:s1:Gi1/0/9', kind: 'errors' as const, level: 'warn' as const, title: 'Errors rising on Gi1/0/9',
