@@ -58,5 +58,8 @@
   "nothing": "Nichts. Er läuft, wie er soll.",
   "update_one": "1 Agent aktualisieren",
   "update_other": "{{count}} Agents aktualisieren",
-  "updateTitle": "Die Agents mit einer älteren Version zeigen, und wie man sie aktualisiert"
+  "updateTitle": "Die Agents mit einer älteren Version zeigen, und wie man sie aktualisiert",
+  "addresses": "Geteilte Adressen:",
+  "holds": "Hält",
+  "mode": "Failover-Modus"
 }

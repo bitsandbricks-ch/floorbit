@@ -132,6 +132,12 @@ describe('Agents', () => {
     const head = (await screen.findAllByRole('heading', { name: /Every device/ }))[0]
     expect(within(head).getByText('Backup missing')).toBeInTheDocument()
     expect(within(head).getByText('2 agents')).toBeInTheDocument()
+    // The shared addresses, active/passive, what's wrong, and which agent holds which address
+    expect(within(head).getByText('active/passive')).toBeInTheDocument()
+    expect(within(head).getByText('192.0.2.10/24')).toBeInTheDocument()
+    expect(screen.getByText(/a backup agent is offline/)).toBeInTheDocument()
+    const primary = screen.getAllByRole('row').find((r) => r.textContent?.includes('Spring LAN, hall 2'))!
+    expect(within(primary).getByText('192.0.2.10/24')).toBeInTheDocument()
     expect(screen.getByText('0 / 1')).toBeInTheDocument()                        // failover ready
     expect(screen.getByText('2 instances share the work over Valkey.')).toBeInTheDocument()
     expect(screen.getByText(/floorbit-0 · leader · this page/)).toBeInTheDocument()
