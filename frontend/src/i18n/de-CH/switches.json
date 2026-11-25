@@ -1,0 +1,31 @@
+{
+  "title": "Switches",
+  "intro": "Die Switches aus dem Inventar und was sie gerade tun. Eine Zeile öffnet die Seite des Switches.",
+  "search": "Switches suchen",
+  "inInventory": "Im Inventar öffnen",
+  "none": "Noch keine Switches im Inventar.",
+  "noMatch": "Kein Switch passt zu den Filtern.",
+  "foot": "Dieselben Switches wie im Inventar, mit Live-Spalten. Die Stufe kommt aus der Topologie: Core hat keinen Uplink, Access hat Plätze.",
+  "poe": "{{used}} / {{budget}} W",
+  "col": {
+    "name": "Switch", "state": "Zustand", "seats": "Plätze", "ports": "Ports aktiv", "uplink": "Uplink",
+    "load": "Uplink-Last", "poe": "PoE", "lastDay": "Letzte 24 h"
+  },
+  "tier": { "core": "Core", "distribution": "Distribution", "access": "Access" },
+  "state": { "up": "Aktiv", "errors": "Uplink-Problem", "down": "Ausgefallen", "unknown": "Nicht gelesen" },
+  "filter": { "tier": "Stufe", "state": "Zustand", "hall": "Halle", "any": "Alle" },
+  "fig": {
+    "up": "Switches aktiv",
+    "down_one": "{{names}} ausgefallen: {{count}} Platz offline",
+    "down_other": "{{names}} ausgefallen: {{count}} Plätze offline",
+    "allUp": "Alle Switches antworten",
+    "notRead": "Noch nicht gelesen",
+    "ports": "Ports aktiv",
+    "portsSub": "Auf Switches mit Plätzen",
+    "busiest": "Vollster Uplink",
+    "noLoad": "Noch kein Uplink gelesen",
+    "poe": "PoE in Gebrauch",
+    "poeSub": "Von {{budget}} W Budget",
+    "noPoe": "Kein Switch meldet PoE"
+  }
+}
