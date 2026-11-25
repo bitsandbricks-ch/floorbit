@@ -73,9 +73,10 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
         {data.peak && <StatTile label={t('stats.peak')} value={bps(data.peak.bps)} sub={t('stats.at', { time: clock(data.peak.at) })} />}
         <StatTile label={t('stats.online')} value={String(now.online)} trend={lastHour.map((s) => s.online)} trendLabel={t('stats.trendOnline')}
           sub={data.day ? t('stats.onlineMax', { count: data.day.online_max }) : undefined} />
+        {/* An unused port is down too: only ports that were up this event and went down count (#1421). */}
         <StatTile label={t('stats.ports')} value={t('stats.portsUp', { count: now.ports_up })}
-          tone={now.ports_errors ? 'warn' : undefined} href={screen ? undefined : '/problems'}
-          sub={t('stats.portsRest', { down: now.ports_down, errors: now.ports_errors })} />
+          tone={now.ports_errors || now.ports_lost ? 'warn' : undefined} href={screen ? undefined : '/problems'}
+          sub={t('stats.portsRest', { total: now.ports_total ?? now.ports_up + now.ports_down, lost: now.ports_lost ?? 0, errors: now.ports_errors })} />
       </div>
 
       <section className="fb-stats-panel wide" aria-labelledby="stats-traffic">

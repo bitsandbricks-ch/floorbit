@@ -5,7 +5,8 @@ the placed, online switches each ``ATTENTION_INTERVAL``, and hands them here. Fr
 
 - **bandwidth:** download and upload summed over the access ports (to and from the players);
 - **online seats:** seat ports (the description names a seat) that are up;
-- **ports:** up, down and with errors;
+- **ports:** in use (up), of how many, down and with errors. ``ports_lost`` counts only the ports
+  that were up at some read of this event and are down now: an unused port is not an outage (#1421);
 - **uplinks:** per switch, its busiest up port whose description says ``uplink`` or ``trunk``
   (``STATS_UPLINK_PATTERN``) or names another switch;
 - **top talkers:** the seats with the most traffic right now; ports without a seat are left out.
@@ -82,6 +83,7 @@ class Stats:
         self.hours = {}          # str(hour start) -> {'online_max', 'peak_bps', 'sum_bps', 'n'}
         self.switch_events = deque()   # [t, switch_id, name, 'offline'|'online']
         self.problem_ports = {}  # 'switch_id|port' -> {'switch', 'port', 'seat', 'count', 'kinds', 'last'}
+        self.seen_up = set()     # 'switch_id|port' of every port up at some read of this event
         self.event_start = None
         self.last = None
         self._loaded = False   # False while the database was away at start (docs/database.md)
@@ -120,6 +122,7 @@ class Stats:
             self.problem_ports = {k: v for k, v in problems.items() if isinstance(v, dict)} \
                 if isinstance(problems, dict) else {}
             self.event_start = saved.get('event_start')
+            self.seen_up = set(saved.get('seen_up') or [])
 
     def _save(self, now=None, force=False):
         if not self._loaded or self._path is None:
@@ -133,7 +136,7 @@ class Stats:
                 'samples': list(self.samples), 'peak': self.peak, 'seat_events': list(self.seat_events),
                 'seat_base': self.seat_base, 'online_now': sorted(self._online) if self._online is not None else None,
                 'hours': self.hours, 'switch_events': list(self.switch_events), 'problem_ports': self.problem_ports,
-                'event_start': self.event_start,
+                'event_start': self.event_start, 'seen_up': sorted(self.seen_up),
             })
         except (OSError, database.DatabaseError) as exc:
             print(f'[stats] could not save the stats: {exc}')
@@ -148,15 +151,19 @@ class Stats:
         names = {n.lower() for n in switch_names}
         down = up = 0.0
         online = ports_up = ports_down = ports_errors = 0
+        up_now, down_now = set(), set()
         uplinks = {}
         talkers = []
         seat_bps = {}
         for dev, port, seat in reads:
             state = port.get('state')
+            key = f"{dev['id']}|{port.get('name')}"
             if state in ('up', 'errors'):
                 ports_up += 1
+                up_now.add(key)
             elif state == 'down':
                 ports_down += 1
+                down_now.add(key)
             if state == 'errors':
                 ports_errors += 1
             desc = str(port.get('description') or '')
@@ -181,10 +188,13 @@ class Stats:
             if seat and d + u > 0:
                 talkers.append({'seat': seat, 'switch_id': dev['id'], 'switch': dev['name'], 'port': port['name'],
                                 'download_bps': round(d), 'upload_bps': round(u), 'bps': round(d + u)})
-        sample = {'t': now, 'down': round(down), 'up': round(up), 'online': online,
-                  'ports_up': ports_up, 'ports_down': ports_down, 'ports_errors': ports_errors}
         with self._lock:
             self._load()
+            self.seen_up |= up_now
+            ports_lost = len(down_now & self.seen_up)
+            sample = {'t': now, 'down': round(down), 'up': round(up), 'online': online,
+                      'ports_up': ports_up, 'ports_down': ports_down, 'ports_errors': ports_errors,
+                      'ports_total': len(reads), 'ports_lost': ports_lost}
             self.samples.append(sample)
             while self.samples and now - self.samples[0]['t'] > DAY:
                 self.samples.popleft()
@@ -284,6 +294,7 @@ class Stats:
             self._load()
             self.hours, self.problem_ports, self.event_start = {}, {}, now
             self.switch_events = deque()
+            self.seen_up = set()   # the next read marks what is up; a port unused since then is no outage
             last = self.samples[-1] if self.samples else None
             self.peak = {'bps': last['down'] + last['up'], 'at': last['t']} if last else None
             self._save(now, force=True)
