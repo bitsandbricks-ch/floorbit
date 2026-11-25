@@ -385,6 +385,12 @@ def gnmi(t, interval='10s'):
     return lines
 
 
+def collects(t, primary):
+    """Does the agent that got ``t`` collect from it? Its own devices always; the rest only on the
+    primary, and only when its group doesn't split them (targets.for_agent, issue #1441)."""
+    return bool(t.get('mine')) or (bool(primary) and not t.get('split'))
+
+
 def render(targets, output_url, token, interval='30s', tables_interval='60s', listen_traps=True, listen_mdt=True,
            output_insecure=False, poll=True):
     """The whole telegraf.conf. ``targets`` with secrets opened (targets.opened). ``poll=False``
@@ -407,8 +413,9 @@ def render(targets, output_url, token, interval='30s', tables_interval='60s', li
              f'    Authorization = {q("Token " + token)}', '']
     traps = [t for t in targets if 'traps' in t['drivers']]
     mdt = [t for t in targets if 'mdt' in t['drivers']]
-    # A standby agent still polls the devices given to it by name (targets.for_agent).
-    for t in [t for t in targets if poll or t.get('mine')]:
+    # A standby agent still polls the devices given to it by name, and in a split group every agent
+    # polls only its own (targets.for_agent, telegraf.collects).
+    for t in [t for t in targets if collects(t, poll)]:
         if 'snmp' in t['drivers']:
             lines += [*snmp(t, interval, tables_interval), '']
         if 'gnmi' in t['drivers']:

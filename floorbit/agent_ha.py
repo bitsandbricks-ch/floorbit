@@ -141,7 +141,16 @@ def lease_for(agent_id, agents=None, now=None):
     me, members = _group_of(agent_id, agents)
     if me is None:
         return None
-    return {'primary': lease_holder(members) == agent_id, 'members': len(members)}
+    out = {'primary': lease_holder(members) == agent_id, 'members': len(members)}
+    connected = {a['id'] for a in members if a.get('connected')}
+    tags = {a['id']: set(a.get('tags') or ()) for a in members}
+    split = split_group(agent_id, connected, tags, {a['id']: a.get('report') for a in members}) \
+        if agent_id in connected and len(connected) > 1 else []
+    if split:
+        # The agent works out which devices are its own from these (split_owner): it logs in to
+        # those, primary or not (floorbit-agent's PluginHost.may_login).
+        out.update(split=split, me=agent_id)
+    return out
 
 
 def _claims_primary(agent):
@@ -180,6 +189,39 @@ def standby_with_primary(agent_id, now):
             if flows and now - flows['at'] < FLOWS_FRESH:
                 return True
     return False
+
+
+def split_owner(name, members):
+    """The agent of ``members`` that owns the device ``name`` (issue #1441): the highest hash of
+    agent and name (rendezvous hashing). When an agent goes, only its devices move, and every pod
+    picks the same owner without asking anyone. None without members."""
+    import hashlib
+    key = str(name or '').lower()
+    return max(sorted(members), key=lambda m: hashlib.sha256(f'{m}|{key}'.encode()).digest(), default=None)
+
+
+def splits(report):
+    """Does the agent's telemetry follow a split (it says so in its report)? One that doesn't would
+    poll every device as primary, next to the owners: its group isn't split until it does."""
+    metrics = (((report or {}).get('plugins') or {}).get('telemetry') or {}).get('metrics') or {}
+    return metrics.get('split') == 1
+
+
+def split_members(agent_id, connected, agent_tags):
+    """The connected agents that share the device work with ``agent_id``: its group (the same
+    tags), itself included."""
+    mine = sorted(agent_tags.get(agent_id, ()))
+    # Only agents Floorbit knows: a link that outlived its agent (revoked a moment ago) owns nothing.
+    return sorted({agent_id, *(a for a in connected if a in agent_tags and sorted(agent_tags[a]) == mine)})
+
+
+def split_group(agent_id, connected, agent_tags, reports):
+    """The members to split devices between, or [] when the group doesn't split: one agent alone,
+    or one of them too old to follow (splits()). ``reports``: agent id -> its last report."""
+    members = split_members(agent_id, connected, agent_tags)
+    if len(members) < 2 or not all(splits(reports.get(m)) for m in members):
+        return []
+    return members
 
 
 def one_per_group(agent_ids, now=None):

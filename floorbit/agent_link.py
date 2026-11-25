@@ -323,8 +323,8 @@ def _pinned_agent(hostname, everyone, scoped):
 
 def agent_for(hostname):
     """The one connected agent that should talk to this switch: one serving one of its tags, else
-    any. The first by id, so the same agent keeps it while it is there (sticky), and the next one
-    takes over when it goes.
+    any. Its group's primary, or the switch's owner when the group splits its devices (both sticky
+    while the agent is there); the next one takes over when it goes.
     For calls that hold something open on the agent (an SSH shell) or must not run twice (a port
     bounce), where ``ask()`` would ask every agent. Raises AgentUnavailable."""
     scoped, everyone, by_name = _routing()
@@ -341,7 +341,13 @@ def agent_for(hostname):
     # Two agents sharing VIPs: only the primary logs in to switches (the agent's docs/vrrp.md), so
     # an SSH shell or port action from the standby would be the second login the primary avoids.
     from . import agent_ha
-    return sorted(agent_ha.action_targets(connected) or connected)[0]
+    first = sorted(agent_ha.action_targets(connected) or connected)[0]
+    # A group that splits its devices (issue #1441): the device's owner logs in, as it polls it.
+    tags = {a['id']: set(a.get('tags') or ()) for a in all_agents()}
+    members = [a for a in agent_ha.split_members(first, connected, tags) if a in connected]
+    group = agent_ha.split_group(first, set(members), tags, {a: tunnel.reported(a) for a in members}) \
+        if len(members) > 1 else []
+    return agent_ha.split_owner(hostname, group) or first
 
 
 HEDGE_AFTER = 3.0      # seconds: a lookup burst answers in under 2; longer means that agent hangs
@@ -1086,8 +1092,10 @@ class Tunnel:
         if clean.get('updates'):
             from .agent_plugins import note_updates
             note_updates(agent, before, clean, now=clean['at'])
+        from .agent_ha import splits
         if (((before or {}).get('vrrp') or {}).get('primary') != (clean.get('vrrp') or {}).get('primary')
-                or (before or {}).get('lease') != clean.get('lease')):
+                or (before or {}).get('lease') != clean.get('lease')
+                or splits(before) != splits(clean)):
             # An agent became primary or stopped being it: a split (two primaries) or its end must reach
             # the agents' plugin config now, not at their next minute's pull (agent_ha.stand_by_for).
             from .agent_plugins import reload_agents
