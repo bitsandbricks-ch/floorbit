@@ -1,7 +1,8 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProblemList } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
+import { rowAction, rowActions } from '@/test/rowMenu'
 import Problems from '../Problems'
 
 afterEach(() => vi.unstubAllGlobals())
@@ -39,10 +40,10 @@ describe('Problem priorities (issue #1364)', () => {
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<Problems />)
     const access = await screen.findByRole('row', { name: 'sw-a-01 is offline' })
-    fireEvent.click(within(access).getByRole('button', { name: 'Raise' }))
+    await rowAction(access, 'Raise')
     await waitFor(() => expect(api.calls).toContainEqual({ method: 'POST', path: '/api/alerts/raised', body: { problem_id: 'switch:a1' } }))
-    expect(within(screen.getByRole('row', { name: 'core-01 is offline' })).queryByRole('button', { name: 'Raise' })).toBeNull()
-    fireEvent.click(within(screen.getByRole('row', { name: 'Circuit near its limit' })).getByRole('button', { name: 'Lower again' }))
+    expect(await rowActions(screen.getByRole('row', { name: 'core-01 is offline' }))).not.toContain('Raise')
+    await rowAction(screen.getByRole('row', { name: 'Circuit near its limit' }), 'Lower again')
     await waitFor(() => expect(api.calls.some((c) => c.method === 'DELETE' && c.path.startsWith('/api/alerts/raised/'))).toBe(true))
   })
 

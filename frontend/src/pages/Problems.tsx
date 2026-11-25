@@ -1,5 +1,5 @@
-import { Alert, Anchor, Badge, Button, Checkbox, CopyButton, Group, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
-import { IconArrowDown, IconArrowUp, IconBellOff, IconCheck, IconCopy, IconReplace } from '@tabler/icons-react'
+import { ActionIcon, Alert, Anchor, Badge, Button, Checkbox, CopyButton, Group, Menu, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
+import { IconArrowDown, IconArrowUp, IconBellOff, IconCheck, IconCopy, IconDots, IconReplace } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +13,7 @@ import { type DataColumn, DataTable, ErrorBanner, LoadingState, PageHead, StatTi
 import { Layout } from '@/components/Layout'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { canReport, problemsText, rank, reportBody } from './problems/format'
+import { fold, type Row } from './problems/fold'
 import { MuteDialog } from './problems/MuteDialog'
 import { ShutPorts } from './problems/ShutPorts'
 import { muteBody, muteHref, muteTarget, type MuteTarget } from './problems/mute'
@@ -34,13 +35,20 @@ type Actions = {
 }
 
 /** What a problem is: its title, where, what it cuts off and its mute. */
-function What({ p }: { p: Problem }) {
+function What({ p }: { p: Row }) {
   const { t } = useTranslation()
+  if (p.members) return <Members p={p} />
   return (
     <Stack gap={2} style={{ minWidth: 0 }}>
       {/* Its own page: where it is, its incident and where to look next (issue #882). */}
       <Anchor fw={600} size="sm" c="inherit" href={`/problems/${encodeURIComponent(p.id)}`} style={{ overflowWrap: 'anywhere' }}>{p.title}</Anchor>
       {p.where && <Text size="sm" c="dimmed">{p.where}</Text>}
+      {/* A link down because the box at its end is (issue #1415). */}
+      {p.links && p.links.length > 0 && (
+        <Text size="sm" c="down">
+          {t('problemGroups.linksDown', { count: p.links.length, names: p.links.map((l) => l.title).join(' · ') })}
+        </Text>
+      )}
       {p.cause
         ? <Text size="sm" c="down">{t('problems.behindCause', { name: p.cause })}</Text>
         : <Reach p={p} />}
@@ -55,11 +63,42 @@ function What({ p }: { p: Problem }) {
   )
 }
 
-function RowActions({ p, a }: { p: Problem; a: Actions }) {
-  const { t } = useTranslation()
+/** The seats of a grouped row, on demand (issue #1415). */
+function Members({ p }: { p: Row }) {
+  const { t, i18n } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const members = p.members ?? []
+  const key = `problemGroups.kinds.${p.kind}`
+  const title = i18n.exists(`${key}_other`) ? t(key, { count: members.length })
+    : t('problemGroups.title', { count: members.length, kind: t(`problems.kind.${p.kind}`) })
   return (
-    // Wraps on a phone: a switch problem has up to four actions, wider than the screen.
-    <Group gap={4} justify="flex-end" wrap="wrap">
+    <Stack gap={2} style={{ minWidth: 0 }}>
+      <Text fw={600} size="sm">{title}</Text>
+      <Anchor component="button" type="button" size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open} style={{ alignSelf: 'flex-start' }}>
+        {open ? t('problemGroups.hide') : t('problemGroups.show', { count: members.length })}
+      </Anchor>
+      {open && (
+        <Group gap={6} wrap="wrap">
+          {members.map((m) => (
+            <Anchor key={m.id} size="sm" href={`/problems/${encodeURIComponent(m.id)}`} title={m.where}>{m.seat}</Anchor>
+          ))}
+        </Group>
+      )}
+    </Stack>
+  )
+}
+
+function RowActions({ p, a }: { p: Row; a: Actions }) {
+  const { t } = useTranslation()
+  if (p.members) return null
+  const report = a.onReport && canReport(p) && p.incident === null
+  const swap = a.canSwap && p.kind === 'switch' && p.level === 'down' && p.switch_id
+  const mute = a.canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted
+  const raise = a.canMute && !p.muted && (p.raised || p.priority !== 1)
+  const clear = a.canMute && p.clear_id
+  return (
+    // One line per row: the main actions as buttons, the rest behind "…", so rows keep one height (issue #1415).
+    <Group gap={4} justify="flex-end" wrap="nowrap">
       {p.link && <Button size="compact-sm" variant="default" component="a" href={p.link}>{t('problems.open')}</Button>}
       {/* An offline switch becomes an incident in one click, or links the open one (issue #278). */}
       {p.incident && (
@@ -67,27 +106,32 @@ function RowActions({ p, a }: { p: Problem; a: Actions }) {
           {t('problems.incidentOpen')}
         </Button>
       )}
-      {a.onReport && canReport(p) && p.incident === null && (
+      {report && (
         <Button size="compact-sm" variant="subtle" onClick={() => a.onReport?.(p)} disabled={a.busy}>{t('problems.report')}</Button>
       )}
-      {/* A switch that stays down is swapped for a spare, step by step (issue #1060). */}
-      {a.canSwap && p.kind === 'switch' && p.level === 'down' && p.switch_id && (
-        <Button size="compact-sm" variant="subtle" leftSection={<IconReplace size={14} />} component="a"
-          href={`/switch-swap/${encodeURIComponent(p.switch_id)}`}>{t('problems.swap')}</Button>
-      )}
-      {a.canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted && (
-        <Button size="compact-sm" variant="subtle" leftSection={<IconBellOff size={14} />} onClick={() => a.onMute(p)} disabled={a.busy}>{t('problems.mute')}</Button>
-      )}
-      {/* Ahead of the rest by hand, when the rules don't know it matters more (issue #1364). */}
-      {a.canMute && !p.muted && (p.raised || p.priority !== 1) && (
-        <Button size="compact-sm" variant="subtle" leftSection={p.raised ? <IconArrowDown size={14} /> : <IconArrowUp size={14} />}
-          onClick={() => a.onRaise(p, !p.raised)} disabled={a.busy}>
-          {p.raised ? t('problemPriority.lower') : t('problemPriority.raise')}
-        </Button>
-      )}
-      {/* A LibreNMS alert whose recovery never came (issue #951). */}
-      {a.canMute && p.clear_id && (
-        <Button size="compact-sm" variant="subtle" onClick={() => a.onClear(p)} disabled={a.busy}>{t('problems.clear')}</Button>
+      {(swap || mute || raise || clear) && (
+        <Menu position="bottom-end" withinPortal>
+          <Menu.Target>
+            <ActionIcon variant="subtle" color="gray" aria-label={t('problemGroups.more')} disabled={a.busy}><IconDots size={16} /></ActionIcon>
+          </Menu.Target>
+          <Menu.Dropdown>
+            {mute && <Menu.Item leftSection={<IconBellOff size={14} />} onClick={() => a.onMute(p)}>{t('problems.mute')}</Menu.Item>}
+            {/* Ahead of the rest by hand, when the rules don't know it matters more (issue #1364). */}
+            {raise && (
+              <Menu.Item leftSection={p.raised ? <IconArrowDown size={14} /> : <IconArrowUp size={14} />} onClick={() => a.onRaise(p, !p.raised)}>
+                {p.raised ? t('problemPriority.lower') : t('problemPriority.raise')}
+              </Menu.Item>
+            )}
+            {/* A switch that stays down is swapped for a spare, step by step (issue #1060). */}
+            {swap && (
+              <Menu.Item leftSection={<IconReplace size={14} />} component="a" href={`/switch-swap/${encodeURIComponent(p.switch_id ?? '')}`}>
+                {t('problems.swap')}
+              </Menu.Item>
+            )}
+            {/* A LibreNMS alert whose recovery never came (issue #951). */}
+            {clear && <Menu.Item onClick={() => a.onClear(p)}>{t('problems.clear')}</Menu.Item>}
+          </Menu.Dropdown>
+        </Menu>
       )}
     </Group>
   )
@@ -96,9 +140,9 @@ function RowActions({ p, a }: { p: Problem; a: Actions }) {
 const GROUPS = ['none', 'kind', 'device', 'hall'] as const
 type GroupBy = typeof GROUPS[number]
 
-function ProblemTable({ rows, actions, now, label, urlState }: { rows: Problem[]; actions: Actions; now: number; label: string; urlState: boolean }) {
+function ProblemTable({ rows, actions, now, label, urlState }: { rows: Row[]; actions: Actions; now: number; label: string; urlState: boolean }) {
   const { t } = useTranslation()
-  const columns: DataColumn<Problem>[] = [
+  const columns: DataColumn<Row>[] = [
     { id: 'level', header: t('problems.col.level'), width: 130, card: 'inline', sort: (p) => rank(p, now),
       cell: (p) => (
         <Stack gap={2} align="flex-start">
@@ -113,12 +157,12 @@ function ProblemTable({ rows, actions, now, label, urlState }: { rows: Problem[]
     { id: 'what', header: t('problems.col.what'), wrap: true, card: 'inline', sort: (p) => p.title, cell: (p) => <What p={p} /> },
     { id: 'since', header: t('problems.col.since'), width: 140, card: 'label', descFirst: true, sort: (p) => p.since ?? 0,
       cell: (p) => p.since ? <Text size="sm" c="dimmed">{ago(p.since)}</Text> : '' },
-    { id: 'actions', header: '', width: 260, card: 'actions', cell: (p) => <RowActions p={p} a={actions} /> },
+    { id: 'actions', header: '', width: 200, card: 'actions', cell: (p) => <RowActions p={p} a={actions} /> },
   ]
   return (
     <DataTable rows={rows} columns={columns} rowKey={(p) => p.id} label={label} cards urlState={urlState}
       defaultSort={{ id: 'level' }} pageSize={PAGE_SIZE} minWidth={720}
-      rowProps={(p) => ({ 'aria-label': p.title, className: `fb-problem-row ${p.muted ? 'muted' : p.level}` })}
+      rowProps={(p) => ({ 'aria-label': p.members ? undefined : p.title, className: `fb-problem-row ${p.muted ? 'muted' : p.level}` })}
       count={urlState ? (n) => t('problems.shown', { count: n }) : undefined} />
   )
 }
@@ -234,7 +278,10 @@ export default function Problems() {
   const matches = (p: Problem) => (shown === SEATS ? !!p.seat : !kinds.includes(shown) || p.kind === shown)
     && (level === 'all' || (level === 'down' ? p.level === 'down' : p.level !== 'down'))
     && !(hideMuted && p.muted) && (!tag || (p.tags ?? []).includes(tag))
-  const visible = all.filter(matches).sort((x, y) => rank(x, now) - rank(y, now))
+  const matching = all.filter(matches).sort((x, y) => rank(x, now) - rank(y, now))
+  // The same seat problem on many seats is one row, and a down link hangs under its down box
+  // (issue #1415). A kind picked on purpose stays one row per seat.
+  const visible = fold(matching, (k) => shown === k || shown === SEATS)
   const groupKey = (p: Problem) => groupBy === 'kind' ? t(`problems.kind.${p.kind}`) : groupBy === 'hall' ? p.hall ?? '' : p.device ?? ''
   const groups = groupBy === 'none' ? [] : [...new Set(visible.map(groupKey))]
     .sort((x, y) => (x === '' ? 1 : 0) - (y === '' ? 1 : 0) || x.localeCompare(y, undefined, { numeric: true }))
@@ -253,7 +300,7 @@ export default function Problems() {
       count={data ? data.counts.total ?? (data.counts.down ?? 0) + (data.counts.warn ?? 0) : undefined}>
       <PageHead title={t('problems.title')} desc={t('problems.intro')} actions={data && (
         // For pasting into the crew chat instead of a screenshot (issue #280).
-        <CopyButton value={problemsText(visible, data.mutes, t, (ts) => ago(ts))} timeout={2000}>
+        <CopyButton value={problemsText(matching, data.mutes, t, (ts) => ago(ts))} timeout={2000}>
           {({ copied, copy }) => (
             <Button variant="default" size="xs" leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
               color={copied ? 'up' : undefined} onClick={copy}>

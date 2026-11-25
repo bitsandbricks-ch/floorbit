@@ -57,6 +57,10 @@ def _record_frame(sample, seat_bps, data):
         print(f'[attention] could not record a replay frame: {exc}')
 
 
+# When each open item was first seen, so a restart doesn't make them all start "now".
+SINCE_FILE = 'attention_since.json'
+
+
 class AttentionWatch:
     def __init__(self):
         self._lock = threading.Lock()
@@ -72,6 +76,7 @@ class AttentionWatch:
         self.port_reads = {}  # (switch lowercase, canonical port) -> what the last read said, for patch_check.py
         self.read_switches = set()   # switches (lowercase) read in the last poll
         self.last_poll = None
+        self._kept = None     # {item id: since} kept across restarts, read on the first poll (#1415)
 
     # ── lifecycle ─────────────────────────────────────────────────────────────
     def start(self):
@@ -145,19 +150,23 @@ class AttentionWatch:
         for entry in mapping_items(data, devices):
             found[entry['id']] = entry
         new = []
+        kept = self._read_kept()
         with self._lock:
             for key, entry in found.items():
                 old = self.items.get(key)
-                entry['since'] = old['since'] if old else now
-                if not old:
+                # After a restart an item that was already there keeps when it started, instead of
+                # every row saying "now" (issue #1415).
+                entry['since'] = old['since'] if old else kept.get(key) or now
+                if not old and key not in kept:
                     new.append(entry)
-            changed = bool(new) or found.keys() != self.items.keys()
+            changed = found.keys() != self.items.keys()
             self.items = found
             self.port_seats = port_seats
             self.port_reads, self.read_switches = port_reads, read_switches
             self.last_poll = now
         status_page.learn_seats(port_seats)
         if changed:
+            self._write_kept({k: e['since'] for k, e in found.items()})
             events.publish('attention.changed', {'count': len(found)})
         stats = (_app_ext() or {}).get('floorbit_stats')
         if stats is not None:
@@ -204,6 +213,25 @@ class AttentionWatch:
         for item in out:
             item['id'] = f"{item['kind']}:{dev['id']}:{name}"
         return out
+
+    def _read_kept(self):
+        if self._kept is None:
+            from . import database, store
+            try:
+                saved = store.read_json(store.event_path(SINCE_FILE), {})
+            except (OSError, ValueError, database.DatabaseError):
+                saved = {}
+            self._kept = {str(k): float(v) for k, v in (saved or {}).items()
+                          if isinstance(v, (int, float))} if isinstance(saved, dict) else {}
+        return self._kept
+
+    def _write_kept(self, since):
+        from . import database, store
+        self._kept = since
+        try:
+            store.write_json(store.event_path(SINCE_FILE), since)
+        except (OSError, database.DatabaseError) as exc:
+            print(f'[attention] could not keep the start times: {exc}')
 
     def snapshot(self):
         with self._lock:
