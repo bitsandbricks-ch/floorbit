@@ -383,6 +383,11 @@
         "help": "Ob der Agent signierte Plugin-Updates selbst installiert (auto), auf eine Freigabe in der Halle wartet (approve) oder keine nimmt (off).",
         "unset": "auto"
       },
+      "FLOORBIT_AGENT_UPDATES": {
+        "label": "Agent-Updates",
+        "help": "Ob der Agent signierte Updates von sich selbst installiert (auto), auf eine Freigabe in der Halle wartet (approve) oder keine nimmt (off).",
+        "unset": "auto"
+      },
       "FLOORBIT_AGENT_SWITCH_NETS": {
         "label": "Netze für Switch-Logins",
         "help": "Wohin sich Port-Aktionen, Befehle, Konfig-Backups und das Terminal anmelden dürfen.",

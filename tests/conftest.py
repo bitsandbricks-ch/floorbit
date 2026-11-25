@@ -249,6 +249,14 @@ def _librenms_answers_again():
 
 
 @pytest.fixture(autouse=True)
+def _no_agent_releases_from_github(monkeypatch):
+    """The app's hourly look at the agent's GitHub releases (floorbit/agent_updates.py) never runs
+    in tests: tests/test_agent_updates.py hands refresh() a fake instead."""
+    from floorbit import agent_updates
+    monkeypatch.setattr(agent_updates, "_loop", lambda: None)
+
+
+@pytest.fixture(autouse=True)
 def _no_wrong_pins_yet(monkeypatch):
     """Wrong check-in PINs count per PC for ten minutes; one test's guesses don't lock the next."""
     from integrations import checkin

@@ -1,0 +1,43 @@
+{
+  "title": "Agent-Update",
+  "runs": "Läuft mit {{v}}",
+  "latest": "neuste Version {{v}}",
+  "state": {
+    "current": "Aktuell",
+    "updating": "Wird aktualisiert",
+    "installing": "Update angeboten",
+    "approve": "Auf dem Agent freigeben",
+    "off": "Updates aus",
+    "image": "Braucht ein neues Image",
+    "pull": "Neues Image holen",
+    "floorbit": "Wartet auf Floorbit",
+    "refused": "Abgelehnt",
+    "rolled_back": "Zurückgesetzt",
+    "none": "Noch keine Version"
+  },
+  "help": {
+    "current": "Er läuft mit der neusten Agent-Version.",
+    "updating": "Er ist mit der neuen Version gestartet und hat fünf Minuten, um Floorbit zu erreichen; sonst geht er zur Version davor zurück.",
+    "installing": "Floorbit bietet {{v}} an. Der Agent installiert es innert einer Minute und startet neu; in einer HA-Gruppe einer nach dem anderen, der Primary zuletzt.",
+    "approve": "{{v}} wartet, bis die Crew es auf dem Agent freigibt (FLOORBIT_AGENT_UPDATES=approve):",
+    "off": "Updates sind auf diesem Agent aus (FLOORBIT_AGENT_UPDATES=off). Hol das neue Image, um ihn zu aktualisieren.",
+    "image": "{{v}} braucht ein neueres Image, als dieser Agent hat (andere Pakete oder Telegraf). Hol es und starte den Agent neu:",
+    "pull": "Dieser Agent kann sich noch nicht selbst aktualisieren. Hol das neue Image und starte ihn neu:",
+    "floorbit": "{{v}} braucht ein neueres Floorbit als dieses. Es wird angeboten, sobald Floorbit aktualisiert ist.",
+    "refused": "Der Agent hat {{v}} abgelehnt. Er versucht es mit der nächsten Version wieder.",
+    "rolled_back": "{{v}} hat Floorbit nach dem Update nicht erreicht. Der Agent ist zurückgegangen und versucht es nicht mehr. `python -m floorbit_agent_boot update retry` auf dem Agent erlaubt es wieder.",
+    "none": "Floorbit schaut jede Stunde nach einer neuen Agent-Version."
+  },
+  "policy": {
+    "auto": "Installiert Agent-Updates selbst",
+    "approve": "Wartet auf Freigabe auf dem Agent",
+    "off": "Agent-Updates sind hier aus"
+  },
+  "event": {
+    "installed": "Installiert",
+    "kept": "Behalten",
+    "rolled_back": "Zurückgesetzt",
+    "refused": "Abgelehnt",
+    "dropped": "Verworfen"
+  }
+}

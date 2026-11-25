@@ -1,0 +1,43 @@
+{
+  "title": "Agent update",
+  "runs": "Runs {{v}}",
+  "latest": "newest release {{v}}",
+  "state": {
+    "current": "Up to date",
+    "updating": "Updating",
+    "installing": "Update offered",
+    "approve": "Approve on the agent",
+    "off": "Updates off",
+    "image": "Needs a new image",
+    "pull": "Pull the new image",
+    "floorbit": "Waits for Floorbit",
+    "refused": "Refused",
+    "rolled_back": "Rolled back",
+    "none": "No release yet"
+  },
+  "help": {
+    "current": "It runs the newest agent release.",
+    "updating": "It started on the new version and has five minutes to reach Floorbit; otherwise it goes back to the one before.",
+    "installing": "Floorbit offers {{v}}. The agent installs it within a minute and starts again; in an HA group one agent at a time, the primary last.",
+    "approve": "{{v}} waits for the crew to approve it on the agent (FLOORBIT_AGENT_UPDATES=approve):",
+    "off": "Updates are off on this agent (FLOORBIT_AGENT_UPDATES=off). Pull the new image to update it.",
+    "image": "{{v}} needs a newer image than this agent runs (other packages or Telegraf). Pull it and start the agent again:",
+    "pull": "This agent can't update itself yet. Pull the new image and start it again:",
+    "floorbit": "{{v}} needs a newer Floorbit than this one. It is offered once Floorbit is updated.",
+    "refused": "The agent refused {{v}}. It tries again with the next release.",
+    "rolled_back": "{{v}} didn't reach Floorbit after the update, so the agent went back and won't try it again. `python -m floorbit_agent_boot update retry` on the agent allows it again.",
+    "none": "Floorbit looks for a new agent release every hour."
+  },
+  "policy": {
+    "auto": "Installs agent updates by itself",
+    "approve": "Waits for approval on the agent",
+    "off": "Agent updates are off here"
+  },
+  "event": {
+    "installed": "Installed",
+    "kept": "Kept",
+    "rolled_back": "Rolled back",
+    "refused": "Refused",
+    "dropped": "Dropped"
+  }
+}

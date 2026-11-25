@@ -145,6 +145,26 @@ describe('AgentDetail', () => {
     expect(screen.getByText(/telemetry 0\.5\.0 · .* · cannot start/)).toBeInTheDocument()
   })
 
+  it('shows where its own update stands and what the crew does about it', async () => {
+    const now = Date.now() / 1000
+    const a: Agent = { ...busyAgent(), self_update: { latest: '1.0.0', state: 'approve', why: 'waits for approval on the agent' },
+      report: { at: now, plugins: {}, agent_update: { policy: 'approve', running: '0.9.0', image: '0.9.0', trial: false,
+        rolled_back: [], events: [{ at: now - 120, event: 'rolled back', version: '0.9.5', detail: 'did not reach Floorbit' }] } } }
+    open(a, 'updates')
+    const panel = await screen.findByLabelText('Agent update')
+    expect(within(panel).getByText('Approve on the agent')).toBeInTheDocument()
+    expect(within(panel).getByText('Runs 0.9.0 · newest release 1.0.0')).toBeInTheDocument()
+    expect(within(panel).getByText('docker compose exec agent python -m floorbit_agent_boot update approve')).toBeInTheDocument()
+    expect(within(panel).getByText(/0\.9\.5 · .* · did not reach Floorbit/)).toBeInTheDocument()
+    expect(screen.getByText("This agent hasn't said anything about plugin updates yet (older agents don't).")).toBeInTheDocument()
+  })
+
+  it('tells the crew to pull the new image for an agent that can\'t update itself', async () => {
+    open({ ...busyAgent(), self_update: { latest: '1.0.0', state: 'pull', why: '' } }, 'updates')
+    expect(await screen.findByText('Pull the new image')).toBeInTheDocument()
+    expect(screen.getByText('docker compose pull && docker compose up -d')).toBeInTheDocument()
+  })
+
   it('changes its settings: a new key, a new name, its tags, revoke', async () => {
     const a = { ...busyAgent(), plugins_off: ['shelly'] }
     const api = open(a, 'settings', {
