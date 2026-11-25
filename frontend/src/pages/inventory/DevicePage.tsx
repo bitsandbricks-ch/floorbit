@@ -170,7 +170,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
         {dev.mgmt_ip && <Chip label={t('inventory.page.mgmt')} mono>{dev.mgmt_ip}</Chip>}
         {agentName && <Chip label={t('inventory.telemetry.agent')}>{agentName}</Chip>}
         {dev.sources.length === 0 ? <Badge variant="outline" color="gray" tt="none">{t('inventory.manual')}</Badge>
-          : dev.sources.map((s) => <Badge key={s} variant="light" color="trace" tt="none">{sourceName(s)}</Badge>)}
+          : dev.sources.map((s) => <Badge key={s} variant="light" color="gray" tt="none">{sourceName(s)}</Badge>)}
         {dev.gone.map((s) => <Badge key={`gone-${s}`} variant="light" color="warn" tt="none">{t('inventory.gone', { source: sourceName(s) })}</Badge>)}
         {dev.hidden && <Badge variant="outline" color="gray" tt="none">{t('inventory.hidden')}</Badge>}
         {!!dev.drift?.length && (

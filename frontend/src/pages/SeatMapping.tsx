@@ -23,7 +23,7 @@ function Sources({ row, label }: { row: SeatRow; label: (s: string) => string })
     <>
       <Tooltip label={row.sources.map(label).join(', ')} disabled={!rest.length}>
         <Group gap={4} wrap="nowrap" style={{ display: 'inline-flex' }}>
-          <Badge size="sm" tt="none" variant={first === 'manual' ? 'filled' : 'light'} color={first === 'manual' ? 'bit' : 'trace'}>{label(first)}</Badge>
+          <Badge size="sm" tt="none" variant={first === 'manual' ? 'filled' : 'light'} color={first === 'manual' ? 'bit' : 'gray'}>{label(first)}</Badge>
           {rest.length > 0 && <Text size="xs" c="dimmed" aria-label={row.sources.map(label).join(', ')}>+{rest.length}</Text>}
         </Group>
       </Tooltip>
@@ -48,7 +48,7 @@ function Cell({ value, source, label, mono }: { value: string; source?: string; 
       )}
       {source === 'network' && (
         <Tooltip label={label('network')}>
-          <Badge size="xs" variant="light" color="trace" aria-label={label('network')} style={{ flexShrink: 0 }}>
+          <Badge size="xs" variant="light" color="gray" aria-label={label('network')} style={{ flexShrink: 0 }}>
             ⇄
           </Badge>
         </Tooltip>
@@ -69,7 +69,7 @@ function PortCell({ row }: { row: SeatRow }) {
       </Text>
       {origin && (
         <Tooltip label={t(`seatmap.originLong.${row.port_origin}`)}>
-          <Badge size="xs" variant={row.port_origin === 'manual' ? 'filled' : 'light'} color={row.port_origin === 'manual' ? 'bit' : 'trace'} tt="none" style={{ flexShrink: 0 }}>
+          <Badge size="xs" variant={row.port_origin === 'manual' ? 'filled' : 'light'} color={row.port_origin === 'manual' ? 'bit' : 'gray'} tt="none" style={{ flexShrink: 0 }}>
             {origin}
           </Badge>
         </Tooltip>
