@@ -10,6 +10,7 @@ import { ConfirmButton, DataTable, ErrorBanner, StatTile } from '@bitsandbricks/
 import { ago, dayClock } from '@/lib/time'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { bytes } from '../traffic/format'
+import { Panel } from '@/components/ui'
 
 const W = 1000
 const H = 140
@@ -26,14 +27,12 @@ function Chart({ data }: { data: LancacheOverview }) {
   const w = W / Math.max(1, hours.length)
   const stamp = (ts: number) => dayClock(ts, i18n.language)
   return (
-    <section className="fb-stats-panel wide" aria-labelledby="lc-hours">
-      <Group justify="space-between" mb={6}>
-        <h2 id="lc-hours">{t('lancache.perHour')}</h2>
-        <Group gap="sm">
-          <Text size="xs" c="dimmed"><span className="fb-dns-key hit" /> {t('lancache.hit')}</Text>
-          <Text size="xs" c="dimmed"><span className="fb-dns-key miss" /> {t('lancache.miss')}</Text>
-        </Group>
+    <Panel className="fb-wide" titleId="lc-hours" title={t('lancache.perHour')} actions={<>
+      <Group gap="sm">
+        <Text size="xs" c="dimmed"><span className="fb-dns-key hit" /> {t('lancache.hit')}</Text>
+        <Text size="xs" c="dimmed"><span className="fb-dns-key miss" /> {t('lancache.miss')}</Text>
       </Group>
+    </>}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="fb-dns-chart" role="img"
         aria-label={t('lancache.chartLabel', { hit: bytes(data.hit_bytes), miss: bytes(data.miss_bytes) })}>
         {[0.25, 0.5, 0.75].map((f) => <line key={f} className="grid" x1={0} x2={W} y1={H * f} y2={H * f} />)}
@@ -54,7 +53,7 @@ function Chart({ data }: { data: LancacheOverview }) {
           <Text size="xs" c="dimmed">{stamp(hours[hours.length - 1].t + 3600)}</Text>
         </Group>
       )}
-    </section>
+    </Panel>
   )
 }
 
@@ -120,21 +119,19 @@ function Machines({ data, expanded }: { data: LancacheOverview; expanded: boolea
     onError: (e) => setResult({ ok: false, text: e.message }),
   })
   return (
-    <section className="fb-stats-panel wide" aria-labelledby="lc-machine">
-      <Group justify="space-between" mb={6}>
-        <h2 id="lc-machine">{t('lancache.machine')}</h2>
-        {expanded && canClear && data.agents.length > 0 && (
-          <ConfirmButton size="xs" variant="light" danger label={t('lancache.clear')} question={t('lancache.clearQuestion')}
-            loading={clear.isPending} onConfirm={() => clear.mutate()} />
-        )}
-      </Group>
+    <Panel className="fb-wide" titleId="lc-machine" title={t('lancache.machine')} actions={<>
+      {expanded && canClear && data.agents.length > 0 && (
+        <ConfirmButton size="xs" variant="light" danger label={t('lancache.clear')} question={t('lancache.clearQuestion')}
+          loading={clear.isPending} onConfirm={() => clear.mutate()} />
+      )}
+    </>}>
       {result && <Alert color={result.ok ? 'up' : 'down'} variant="light" mb="sm" withCloseButton onClose={() => setResult(null)}>{result.text}</Alert>}
       {data.agents.length === 0 ? <Text size="sm" c="dimmed">{t('lancache.noAgent')}</Text> : (
         <SimpleGrid cols={{ base: 1, md: 2 }}>
           {data.agents.map((a) => <Machine key={a.id} agent={a} />)}
         </SimpleGrid>
       )}
-    </section>
+    </Panel>
   )
 }
 
@@ -142,8 +139,7 @@ function Downloads({ data }: { data: LancacheOverview }) {
   const { t } = useTranslation()
   const other = data.other_downloads
   return (
-    <section className="fb-stats-panel wide" aria-labelledby="lc-downloads">
-      <h2 id="lc-downloads">{t('lancache.downloads')}</h2>
+    <Panel className="fb-wide" titleId="lc-downloads" title={t('lancache.downloads')}>
       {data.downloads.length === 0 ? <Text size="sm" c="dimmed">{t('lancache.noDownloads', { count: data.min_clients })}</Text> : (
         <DataTable rows={data.downloads} rowKey={(d) => `${d.cache}/${d.item}`} label={t('lancache.downloads')} urlState={false} pageSize={25}
           bare striped density="compact" minWidth={560} defaultSort={{ id: 'bytes', desc: true }}
@@ -160,15 +156,14 @@ function Downloads({ data }: { data: LancacheOverview }) {
         {t('lancache.downloadsText', { count: data.min_clients })}
         {other.items > 0 && ` ${t('lancache.otherDownloads', { items: other.items, size: bytes(other.hit_bytes + other.miss_bytes) })}`}
       </Text>
-    </section>
+    </Panel>
   )
 }
 
 function Services({ data }: { data: LancacheOverview }) {
   const { t } = useTranslation()
   return (
-    <section className="fb-stats-panel" aria-labelledby="lc-services">
-      <h2 id="lc-services">{t('lancache.services')}</h2>
+    <Panel titleId="lc-services" title={t('lancache.services')}>
       {data.caches.length === 0 ? <Text size="sm" c="dimmed">{t('lancache.nothingYet')}</Text> : (
         <ol className="fb-stats-top">
           {data.caches.map((c) => (
@@ -180,15 +175,14 @@ function Services({ data }: { data: LancacheOverview }) {
           ))}
         </ol>
       )}
-    </section>
+    </Panel>
   )
 }
 
 function Suspects({ data }: { data: LancacheOverview }) {
   const { t } = useTranslation()
   return (
-    <section className="fb-stats-panel" aria-labelledby="lc-suspects">
-      <h2 id="lc-suspects">{t('lancache.suspects')}</h2>
+    <Panel titleId="lc-suspects" title={t('lancache.suspects')}>
       {data.suspects.length === 0 ? <Text size="sm" c="dimmed">{t('lancache.noSuspects')}</Text> : (
         <ol className="fb-stats-top">
           {data.suspects.map((s) => (
@@ -201,7 +195,7 @@ function Suspects({ data }: { data: LancacheOverview }) {
         </ol>
       )}
       <Text size="xs" c="dimmed" mt={6}>{t('lancache.suspectsText')}</Text>
-    </section>
+    </Panel>
   )
 }
 
@@ -209,8 +203,7 @@ function Lookups({ data }: { data: LancacheOverview }) {
   const { t, i18n } = useTranslation()
   if (data.dns_services.length === 0) return null
   return (
-    <section className="fb-stats-panel" aria-labelledby="lc-dns">
-      <h2 id="lc-dns">{t('lancache.lookups')}</h2>
+    <Panel titleId="lc-dns" title={t('lancache.lookups')}>
       <ol className="fb-stats-top">
         {data.dns_services.map((s) => (
           <li key={s.cache}>
@@ -220,7 +213,7 @@ function Lookups({ data }: { data: LancacheOverview }) {
         ))}
       </ol>
       <Text size="xs" c="dimmed" mt={6}>{t('lancache.lookupsText')}</Text>
-    </section>
+    </Panel>
   )
 }
 

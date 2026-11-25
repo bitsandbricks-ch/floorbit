@@ -6,6 +6,7 @@ import { qk } from '@/api/keys'
 import type { ForecastData } from '@/api/types'
 import { bps } from './format'
 import { clock } from '@/lib/time'
+import { Panel } from '@/components/ui'
 
 const W = 1000
 const H = 140
@@ -19,17 +20,15 @@ export function Forecast() {
   if (!f) return null
   const hour = (ts: number) => clock(ts, i18n.language)
   return (
-    <section className="fb-stats-panel wide" aria-labelledby="stats-forecast">
-      <Group justify="space-between" mb={6}>
-        <h2 id="stats-forecast">{t('stats.forecast.title')}</h2>
-        {f.ready && (
-          <Group gap="sm">
-            <Text size="xs" c="dimmed"><span className="fb-dns-key hit" /> {t('stats.forecast.expected')}</Text>
-            <Text size="xs" c="dimmed"><span className="fb-dns-key miss" /> {t('stats.forecast.range')}</Text>
-            {f.capacity_bps && <Text size="xs" c="dimmed"><span className="fb-dns-key blocked" /> {t('stats.forecast.capacity')}</Text>}
-          </Group>
-        )}
-      </Group>
+    <Panel className="fb-wide" titleId="stats-forecast" title={t('stats.forecast.title')} actions={<>
+      {f.ready && (
+        <Group gap="sm">
+          <Text size="xs" c="dimmed"><span className="fb-dns-key hit" /> {t('stats.forecast.expected')}</Text>
+          <Text size="xs" c="dimmed"><span className="fb-dns-key miss" /> {t('stats.forecast.range')}</Text>
+          {f.capacity_bps && <Text size="xs" c="dimmed"><span className="fb-dns-key blocked" /> {t('stats.forecast.capacity')}</Text>}
+        </Group>
+      )}
+    </>}>
       {!f.ready ? (
         <Text size="sm" c="dimmed">{t('stats.forecast.notYet', { count: f.min_hours, have: f.history_hours })}</Text>
       ) : (
@@ -52,7 +51,7 @@ export function Forecast() {
           </Text>
         </>
       )}
-    </section>
+    </Panel>
   )
 }
 
