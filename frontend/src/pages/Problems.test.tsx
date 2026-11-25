@@ -5,6 +5,12 @@ import { fakeFetch, renderWithApp } from '@/test/render'
 import { rowAction, rowActions } from '@/test/rowMenu'
 import Problems from './Problems'
 
+/** Picks a choice from one of the filter row's menus. */
+async function pick(button: string, item: string | RegExp) {
+  fireEvent.click(screen.getByRole('button', { name: button }))
+  fireEvent.click(await screen.findByRole('menuitem', { name: item, hidden: true }))
+}
+
 afterEach(() => vi.unstubAllGlobals())
 
 /** The problem rows, without the header. */
@@ -86,19 +92,19 @@ describe('Problems', () => {
     expect(within(incident).getByText('Incident')).toBeInTheDocument()
     expect(within(incident).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/incidents?q=seat%3AB-4')
     expect(await rowActions(incident)).not.toContain('Mute')
-    fireEvent.click(screen.getByRole('radio', { name: /Seats/ }))
+    await pick('Type: All', /Seats/)
     await vi.waitFor(() => expect(names()).toEqual(['No internet at the seat', 'Seat A-12 is online without a check-in']))
   })
 
   it('pages a long list, the page in the address (issue #1204)', async () => {
-    const many = Array.from({ length: 30 }, (_, i) => ({
+    const many = Array.from({ length: 55 }, (_, i) => ({
       id: `attention:errors:s1:Gi1/0/${i + 1}`, kind: 'errors' as const, level: 'warn' as const, title: `Errors rising on Gi1/0/${i + 1}`,
       where: `sw-a-01 Gi1/0/${i + 1}`, since: now - i, link: '/plan?switch=sw-a-01', switch_id: 's1' }))
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ attention: many }) }).fn)
     renderWithApp(<Problems />)
     await screen.findByRole('row', { name: 'sw-c-02 is offline' })
-    expect(bodyRows()).toHaveLength(25)
-    expect(screen.getByText('33 problems')).toBeInTheDocument()
+    expect(bodyRows()).toHaveLength(50)
+    expect(screen.getByText('58 problems')).toBeInTheDocument()
     fireEvent.click(screen.getAllByRole('button', { name: '2' }).at(-1)!)
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(8))
     expect(screen.getByRole('row', { name: 'Errors rising on Gi1/0/1' })).toBeInTheDocument()
@@ -131,10 +137,10 @@ describe('Problems', () => {
     renderWithApp(<Problems />, '/problems?kind=power')
     expect(await screen.findByRole('row', { name: /Circuit B row 2/ })).toBeInTheDocument()
     expect(screen.queryByRole('row', { name: 'sw-c-02 is offline' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('radio', { name: /^Switch/ }))
+    await pick('Type: Power', /^Switch/)
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(2))
     expect(screen.queryByRole('row', { name: /Circuit B row 2/ })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('radio', { name: /^All/ }))
+    await pick('Type: Switch', /^All/)
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(3))
   })
 
@@ -286,7 +292,7 @@ describe('Problems', () => {
     renderWithApp(<Problems />, '/problems?level=down&muted=hide')
     await screen.findByRole('row', { name: 'sw-c-02 is offline' })
     expect(bodyRows().map((r) => r.getAttribute('aria-label'))).toEqual(['sw-c-02 is offline'])
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Hide muted' }))
+    await pick('Muted: Hidden', 'Shown')
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(2))
     const grouped = renderWithApp(<Problems />, '/problems?group=device')
     const sw = await within(grouped.container).findByRole('region', { name: 'sw-c-02' })
@@ -294,5 +300,32 @@ describe('Problems', () => {
       .toEqual(['sw-c-02 is offline', 'Errors rising on Gi1/0/9'])
     const loose = within(grouped.container).getByRole('region', { name: 'Not on a switch' })
     expect(within(loose).getByRole('row', { name: /Circuit B row 2/ })).toBeInTheDocument()
+  })
+
+  it('searches, folds a group and remembers it, and pages by groups (issue #1472)', async () => {
+    localStorage.clear()
+    const attention = Array.from({ length: 12 }, (_, i) => ({
+      id: `attention:errors:s${i}:Gi1/0/1`, kind: 'errors' as const, level: 'warn' as const, title: `Errors rising on sw-${i + 10}`,
+      where: `sw-${i + 10} Gi1/0/1`, since: now, link: '/plan', switch_id: `s${i}`, device: `sw-${i + 10}` }))
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ attention }) }).fn)
+    const view = renderWithApp(<Problems />, '/problems?group=device')
+    const head = await screen.findByRole('button', { name: /^sw-10/ })
+    expect(head).toHaveAttribute('aria-expanded', 'true')
+    // 13 switches and the rest: ten groups on a page, the rest on the next.
+    expect(screen.getByText('1–10 of 13 groups')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'sw-21' })).not.toBeInTheDocument()
+    fireEvent.click(head)
+    await vi.waitFor(() => expect(within(screen.getByRole('region', { name: 'sw-10' })).queryByRole('table')).not.toBeInTheDocument())
+    fireEvent.click(screen.getAllByRole('button', { name: '2' }).at(-1)!)
+    expect(await screen.findByRole('region', { name: 'sw-21' })).toBeInTheDocument()
+    view.unmount()
+    // Folded stays folded after a reload.
+    renderWithApp(<Problems />, '/problems?group=device')
+    expect(await screen.findByRole('button', { name: /^sw-10/ })).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(screen.getByRole('button', { name: 'Fold all' }))
+    await vi.waitFor(() => expect(screen.queryAllByRole('table')).toHaveLength(0))
+    fireEvent.click(screen.getByRole('button', { name: 'Unfold all' }))
+    fireEvent.change(screen.getByPlaceholderText('Search a switch, seat or text'), { target: { value: 'sw-12' } })
+    await vi.waitFor(() => expect(bodyRows().map((r) => r.getAttribute('aria-label'))).toEqual(['Errors rising on sw-12']))
   })
 })
