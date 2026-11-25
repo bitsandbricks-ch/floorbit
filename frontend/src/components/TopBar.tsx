@@ -1,9 +1,10 @@
-import { IconChevronRight, IconSearch } from '@tabler/icons-react'
+import { IconSearch } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import { Breadcrumbs, type Crumb } from '@bitsandbricks/ui'
 import { openGoTo } from '@/nav/goto'
 import { crumbsFor } from '@/nav/crumbs'
-import { inApp, isPluginPage, type NavPage } from '@/nav/sections'
+import { isPluginPage, type NavPage } from '@/nav/sections'
 import { CrewNoticeBadge } from './CrewNotice'
 import { NotificationsBell } from './NotificationsBell'
 import { usePageTitle } from './pageTitle'
@@ -13,8 +14,8 @@ const isLocalPath = (href: string) => /^\/(?!\/)/.test(href)
 
 const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
-/** The bar above every crew page on a desktop: where you are, "Go to" and the notifications. */
-export function TopBar({ pages, onSlot }: { pages: NavPage[]; onSlot?: (el: HTMLElement | null) => void }) {
+/** Where you are, in the shared top bar: section, page, and the sub page's own title. */
+export function TopBarCrumbs({ pages }: { pages: NavPage[] }) {
   const { t } = useTranslation()
   const path = useLocation().pathname
   const title = usePageTitle()
@@ -26,30 +27,31 @@ export function TopBar({ pages, onSlot }: { pages: NavPage[]; onSlot?: (el: HTML
   // The page's own title after its row: a sub page (one agent, one device), or a tab of a row
   // (Helpdesk > Problems). The breadcrumb is the page's only title on a computer (issue #932).
   const sub = page && title && title !== label ? title : null
+  const items: Crumb[] = []
+  if (section) items.push({ label: t(`nav.sections.${section}`) })
+  if (sub && page) items.push({ label, href: isLocalPath(page.href) ? page.href : undefined }, { label: sub })
+  else if (label ?? title) items.push({ label: label ?? title })
+  return <Breadcrumbs items={items} />
+}
+
+/** The top bar's right end: the crew notice, "Go to" and the notifications. Phones get the small kinds. */
+export function TopBarEnd({ phone }: { phone: boolean }) {
+  const { t } = useTranslation()
   return (
-    <header className="fb-topbar">
-      <nav className="fb-crumbs" aria-label={t('nav.breadcrumbs')}>
-        {section && <span className="fb-crumb-section">{t(`nav.sections.${section}`)}</span>}
-        {section && (label || title) && <IconChevronRight size={13} className="fb-crumb-sep" aria-hidden="true" />}
-        {sub && page ? (
-          <>
-            {!isLocalPath(page.href) ? <span>{label}</span> : inApp(page.href) ? <Link to={page.href}>{label}</Link> : <a href={page.href}>{label}</a>}
-            <IconChevronRight size={13} className="fb-crumb-sep" aria-hidden="true" />
-            <b aria-current="page">{sub}</b>
-          </>
-        ) : (
-          <b aria-current="page">{label ?? title}</b>
-        )}
-      </nav>
-      {/* The page's own buttons (PageHead puts them here). */}
-      <div ref={onSlot} className="fb-topbar-actions" />
-      <CrewNoticeBadge />
-      <button type="button" className="fb-topbar-search" onClick={openGoTo} aria-keyshortcuts="Control+K Meta+K"
-        aria-label={t('nav.search')} title={t('nav.search')}>
-        <IconSearch size={15} aria-hidden="true" />
-        <kbd className="fb-nav-kbd">{mac ? '⌘K' : 'Ctrl K'}</kbd>
-      </button>
-      <NotificationsBell />
-    </header>
+    <>
+      <CrewNoticeBadge compact={phone} />
+      {phone ? (
+        <button type="button" className="fb-nav-icon-btn" onClick={openGoTo} aria-label={t('nav.search')}>
+          <IconSearch size={20} aria-hidden="true" />
+        </button>
+      ) : (
+        <button type="button" className="fb-topbar-search" onClick={openGoTo} aria-keyshortcuts="Control+K Meta+K"
+          aria-label={t('nav.search')} title={t('nav.search')}>
+          <IconSearch size={15} aria-hidden="true" />
+          <kbd className="fb-nav-kbd">{mac ? '⌘K' : 'Ctrl K'}</kbd>
+        </button>
+      )}
+      <NotificationsBell compact={phone} />
+    </>
   )
 }

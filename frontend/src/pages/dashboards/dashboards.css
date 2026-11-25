@@ -46,14 +46,12 @@
 .fb-split-pane:not(.selected):not(:hover):not(:focus-within) > .fb-pane-tools { opacity: 0; }
 /* Focus mode (#1325): while a dashboard is edited, the app's sidebar, top bar, tabs and phone tab bar
    step aside, so the canvas gets the whole screen like the plan editor. ✕ in the bar leaves. */
-body:has(.fb-board-editor) .fb-nav-slot,
-body:has(.fb-board-editor) .fb-tabbar,
-body:has(.fb-board-editor) .fb-header,
-body:has(.fb-board-editor) .fb-topbar,
+body:has(.fb-board-editor) .bnb-shell-nav,
+body:has(.fb-board-editor) .bnb-dock,
+body:has(.fb-board-editor) .bnb-topbar,
 body:has(.fb-board-editor) .fb-hubtabs,
 body:has(.fb-board-editor) .fb-up { display: none; }
-body.fb-has-nav:has(.fb-board-editor) { padding-bottom: 0; }
-body .fb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; }
+body .bnb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; padding-bottom: 0; }
 .fb-board-editor { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 /* One slim bar: name, tools, the dashboard's settings in a popover, save. */
 .fb-board-bar { display: flex; align-items: center; gap: 8px; min-height: 50px; padding: 6px 10px;
@@ -256,7 +254,7 @@ body .fb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; }
 @media (prefers-reduced-motion: reduce) { .fb-screen-alert { animation: none; } }
 /* The demo badge (static/css/brand/demo.css) sits by the sidebar's logo, which focus mode hides:
    bottom left of the canvas instead, clear of the bar's name and buttons. */
-html body:has(.fb-board-editor):has(.fb-nav-slot)::after { top: auto; bottom: 18px; left: 18px; transform: none; }
+html body:has(.fb-board-editor):has(.bnb-shell)::after { top: auto; bottom: 18px; left: 18px; transform: none; }
 @media (max-width: 48em) {
-  html body:has(.fb-board-editor):has(.fb-nav-slot)::after { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  html body:has(.fb-board-editor):has(.bnb-shell)::after { bottom: calc(64px + env(safe-area-inset-bottom)); }
 }

@@ -27,6 +27,8 @@ import { EntriesView } from './inventory/EntriesView'
 import { IconLibrary } from './inventory/IconLibrary'
 import { TypesEditor } from './inventory/TypesEditor'
 import { DeviceIcon } from './inventory/icons'
+import { LastDayCell, UplinkCell } from './inventory/ListCells'
+import { lastDaySort, uplinkSort, useAgentName } from './inventory/listColumns'
 import { devicePath, effectiveLook, entryPath, matches, roleIcon, scopePath, typeName, type Draft } from './inventory/model'
 import { groupAndBelow, groupTree, useInventoryGroups, useInventoryTypes } from './inventory/scope'
 import { dateTime } from '@/lib/time'
@@ -107,6 +109,7 @@ export default function Inventory() {
   const driftView = filters.values.view === 'drift'
   const setDriftView = (on: boolean) => filters.set('view', on ? 'drift' : '')
   const [editing, setEditing] = useState<Device | null>(null)
+  const agentName = useAgentName()
   const driftAll = useDriftAll(driftView)
   const [removing, setRemoving] = useState<Device | null>(null)
   const groupsQuery = useInventoryGroups()
@@ -299,7 +302,7 @@ export default function Inventory() {
           rows={devices}
           rowKey={(d) => d.id}
           defaultSort={{ id: 'name' }}
-          minWidth={860}
+          minWidth={1180}
           rowStyle={(d) => (d.hidden ? { opacity: 0.6 } : undefined)}
           empty={<Text c="dimmed">{data.devices.length ? t('inventory.noMatch') : t('inventory.empty')}</Text>}
           count={(n) => t('inventory.count', { count: n })}
@@ -340,6 +343,9 @@ export default function Inventory() {
             { id: 'model', header: t('inventory.field.model'), sort: (d) => d.model ?? '', cell: (d) => d.model, hideOnPhone: true },
             { id: 'mgmt_ip', header: t('inventory.field.mgmt_ip'), sort: (d) => d.mgmt_ip ?? '', cell: (d) => d.mgmt_ip, mono: true, hideOnPhone: true },
             { id: 'ports', header: t('inventory.ports'), sort: (d) => (d.ports ? d.ports.up / Math.max(1, d.ports.total) : -1), cell: portsText, mono: true },
+            { id: 'uplink', header: t('inventory.uplink.title'), sort: uplinkSort, cell: (d) => <UplinkCell d={d} />, hideOnPhone: true },
+            { id: 'last_day', header: t('inventory.lastDay.title'), sort: lastDaySort, descFirst: true, cell: (d) => <LastDayCell d={d} />, hideOnPhone: true },
+            { id: 'agent', header: t('inventory.agent'), sort: (d) => agentName(d.agent), cell: (d) => agentName(d.agent), hideOnPhone: true },
             { id: 'drift', header: t('inventoryDrift.badge'), hideOnPhone: true, sort: (d) => d.drift ?? 0, descFirst: true, cell: (d) => !!d.drift && (
               <Badge component={Link} to={devicePath(d.id)} size="sm" variant="light" color="warn" tt="none" style={{ cursor: 'pointer' }}>
                 {t('inventoryDrift.count', { count: d.drift })}

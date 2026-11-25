@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -8,8 +9,9 @@ import { ago } from '@/lib/time'
 import { Attribution } from './Attribution'
 
 /** One quiet line under every crew page: how the network is, how many agents answer, when it
- *  was last checked, then the attribution and the version. */
-export function StatusLine() {
+ *  was last checked, then the attribution and the version. ``bare`` inside the shared shell,
+ *  whose own footer holds it; a dashboard screen draws it on its own. */
+export function StatusLine({ bare = false }: { bare?: boolean }) {
   const { t } = useTranslation()
   const problems = useProblems().data
   const admin = useCan('settings.manage')
@@ -21,7 +23,7 @@ export function StatusLine() {
   const down = problems?.counts.down ?? 0
   const warn = problems?.counts.look ?? problems?.counts.warn ?? 0
   return (
-    <footer className="fb-status" aria-label={t('nav.statusLine')}>
+    <Frame bare={bare} label={t('nav.statusLine')}>
       {problems && (
         <Link to="/problems" className="fb-status-item">
           <span className={`fb-bit${down ? ' is-down' : warn ? ' is-warn' : ''}`} aria-hidden="true" />
@@ -36,6 +38,11 @@ export function StatusLine() {
       {problems && <span className="fb-status-item fb-status-when">{t('nav.status.checked', { ago: ago(problems.checked_at) })}</span>}
       <span className="fb-status-grow" />
       <Attribution compact version />
-    </footer>
+    </Frame>
   )
+}
+
+function Frame({ bare, label, children }: { bare: boolean; label: string; children: ReactNode }) {
+  if (bare) return <div className="fb-status">{children}</div>
+  return <footer className="fb-status fb-status-own" aria-label={label}>{children}</footer>
 }

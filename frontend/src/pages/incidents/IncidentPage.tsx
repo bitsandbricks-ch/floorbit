@@ -7,10 +7,11 @@ import { Link, useParams } from 'react-router-dom'
 import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
-import { useIncidentPeople, useIncidents, useMe } from '@/api/queries'
+import { useCan, useIncidentPeople, useIncidents, useMe } from '@/api/queries'
 import type { CrewMember, Incident } from '@/api/types'
 import { BouncePort } from '@/components/BouncePort'
 import { Layout } from '@/components/Layout'
+import { RecentLogs } from '@/components/RecentLogs'
 import { Panel } from '@/components/ui'
 import { EmptyState, ErrorBanner, LoadingState, PageHead, PanelField } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
@@ -28,6 +29,7 @@ const SNOOZES = [15, 60, 240]
  *  known when it came in, who has it, every note, and every action this account may take. */
 export default function IncidentPage() {
   const { t } = useTranslation()
+  const seesLogs = useCan('seats.view')
   const { id = '' } = useParams()
   const client = useQueryClient()
   const board = useIncidents()
@@ -184,6 +186,8 @@ export default function IncidentPage() {
             )}
           </Stack>
         </Panel>
+        {/* Where it happens, without leaving the incident (issue #913). */}
+        {seesLogs && (i.seat || i.switch_name) && <RecentLogs seat={i.seat} device={i.switch_name} />}
       </Stack>
     </Layout>
   )

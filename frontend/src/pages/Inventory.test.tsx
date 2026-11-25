@@ -138,6 +138,26 @@ describe('Inventory page', () => {
     expect(screen.queryByRole('table')).toBeNull()
   })
 
+  it("shows each device's uplink, its last 24 hours and who reads it (#981)", async () => {
+    const day = Array.from({ length: 24 }, (_, i) => (i === 20 ? 2400 : 0))
+    const cols = { ...list, devices: [
+      { ...list.devices[0], agent: 'a1', last_day: day,
+        uplink: { port: 'Gi1/0/48', peer: 'dist-01', peer_port: 'Te1/1/1', speed_bps: 1e9, planned_gbps: 10, state: 'up', issue: 'slow' } },
+      { ...hand, agent: '' },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': cols, 'GET /api/inventory/groups': overview,
+      'GET /api/options/agents': { options: [{ value: 'a1', label: 'Hall agent' }] },
+    }).fn)
+    app()
+    const row = (await screen.findByRole('link', { name: 'Stage switch' })).closest('tr')!
+    expect(within(row).getByText('1G of 10G')).toBeInTheDocument()
+    expect(within(row).getByLabelText('1 hour with an outage in the last 24 hours')).toBeInTheDocument()
+    expect(await within(row).findByText('Hall agent')).toBeInTheDocument()
+    const handRow = screen.getByRole('link', { name: 'sw-hand' }).closest('tr')!
+    expect(within(handRow).getByText('Auto')).toBeInTheDocument()
+  })
+
   it('says when the inventory syncs on its own', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': { ...list, every: 15 }, 'GET /api/inventory/groups': overview }).fn)
     app()
@@ -173,7 +193,13 @@ describe('Inventory page', () => {
     app()
     fireEvent.click(await screen.findByRole('link', { name: 'sw-hand' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }))
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()     // nothing changed yet
     fireEvent.change(await screen.findByLabelText('Model'), { target: { value: 'X1' } })
+    // The shared save bar, as on every settings page (#993); Discard puts the old value back.
+    expect(screen.getByText('1 unsaved change')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
+    expect(screen.getByLabelText('Model')).toHaveValue('')
+    fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'X1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ model: 'X1' }))
   })

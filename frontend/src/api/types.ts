@@ -144,6 +144,12 @@ export const INVENTORY_FIELDS = ['name', 'role', 'model', 'serial', 'mgmt_ip', '
 export type InventoryField = (typeof INVENTORY_FIELDS)[number]
 export const SPEC_FIELDS = ['platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host'] as const
 
+/** A device's link towards the core, in the inventory list (issue #981). */
+export interface DeviceUplink {
+  port: string; peer: string; peer_port: string; speed_bps: number | null; planned_gbps: number | null
+  state: 'up' | 'down' | 'unknown'; issue: '' | 'down' | 'slow'
+}
+
 export interface Device extends Record<InventoryField, string> {
   id: string
   x: number | null
@@ -170,6 +176,11 @@ export interface Device extends Record<InventoryField, string> {
   state?: 'online' | 'offline' | 'unknown' | null
   ports?: { up: number; total: number } | null
   drift?: number
+  /** In the list only (issue #981): the link towards the core, seconds down in each of the last 24
+   *  hours (oldest first; none when the monitor never reported it), and telemetry.agent ('' Auto). */
+  uplink?: DeviceUplink | null
+  last_day?: number[] | null
+  agent?: string
 }
 
 /** Icon, colour, tags, properties and feature switches: what devices, groups and tags all carry. */
@@ -968,6 +979,8 @@ export interface PlanCell {
   /** Where its seat cables run, across the row from the seat's centre (drawing units, in the block's
    *  own frame; floorbit/cable_lanes.py); missing when they come along the block instead. */
   lane?: number
+  /** On a bent row with a lane: this seat's point in its row's lane (``PlanShape.lanes``). */
+  li?: number
 }
 
 export interface PlanShape {
@@ -987,6 +1000,9 @@ export interface PlanShape {
   row_list?: { id: string; name: string; row?: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
+  /** Bent rows' cable lanes by row (a cell's rc[0]): points in the block's own frame, drawing units,
+   *  one past each end (floorbit/cable_lanes.py ``paths``). Missing when no row bends. */
+  lanes?: Record<string, [number, number][]>
 }
 
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */
@@ -1368,6 +1384,8 @@ export interface LogStatus {
   retention_hours: number
   demo: boolean
   last_id: number
+  /** When the oldest kept line came (unix seconds): where the volume chart starts. */
+  first_ts?: number | null
   /** Local agents that send the event network's syslog on (issue #2). */
   relayed?: { agent: string; at: number; lines: number; dropped: number; recent: boolean }[]
   sources: LogSource[]

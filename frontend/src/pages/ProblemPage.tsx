@@ -10,6 +10,7 @@ import { useLiveEvent } from '@/api/live'
 import type { ProblemDetail } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { Panel } from '@/components/ui'
+import { RecentLogs } from '@/components/RecentLogs'
 import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { PageHead } from '@bitsandbricks/ui'
 import { canReport, reportBody } from './problems/format'
@@ -95,6 +96,11 @@ export default function ProblemPage() {
       {q.data.finding && (
         <div style={{ marginTop: 'var(--mantine-spacing-md)' }}>
           <FindingPanel f={q.data.finding} canShut={!!q.data.can_shut} needsLogin={!!q.data.needs_login} />
+        </div>
+      )}
+      {q.data.may_see_people && (p.seat || p.device) && (
+        <div style={{ marginTop: 'var(--mantine-spacing-md)' }}>
+          <RecentLogs seat={p.seat} device={p.device} />
         </div>
       )}
       <MuteDialog target={target} busy={mute.isPending} error={muteError} onClose={() => setTarget(null)}
