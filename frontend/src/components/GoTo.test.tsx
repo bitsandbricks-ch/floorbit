@@ -128,7 +128,9 @@ describe('Go to', () => {
       .toEqual(['Seat B-8', 'Switch sw-b8', 'Player b8ster · C-3']))
     // One character never asks the server.
     expect(fake.calls.some((c) => c.path === '/api/pages/find?q=b')).toBe(false)
-    fireEvent.click(rows('Seats, switches and players')[0])
+    // Only the server's answers match: the first one is picked, so Enter goes there.
+    await waitFor(() => expect(rows('Seats, switches and players')[0]).toHaveAttribute('data-selected', 'true'))
+    await key('Enter')
     await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/plan?seat=B-8'))
   })
 
