@@ -554,9 +554,10 @@ def _flows(user):
 
 
 @once_per_batch
-def _health():
-    from .health import _wall, _with_mutes
-    return _with_mutes(_wall().fresh())
+def _service_summary():
+    # The Services page's own list, so the tile can't count or colour a service differently (#1411).
+    from .services import _summary
+    return _summary(translate=True)
 
 
 @once_per_batch
@@ -621,7 +622,7 @@ CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switche
               'flow_services': lambda user: core.flow_services_widget(_lang(), _flows(user)),
               'traffic_areas': lambda user: core.traffic_areas_widget(_lang(), _flows(user)),
               'anomalies': lambda user: core.anomalies_widget(_lang(), _flows(user)),
-              'service_health': lambda user: core.service_health_widget(_lang(), _health()),
+              'service_health': lambda user: core.service_health_widget(_lang(), _service_summary()),
               'internet_uplinks': lambda user: core.internet_uplinks_widget(_lang(), _services()),
               'lancache': lambda user: core.lancache_widget(_lang(), _lancache()),
               'power_circuits': lambda user: core.power_circuits_widget(_lang(), _power()),
