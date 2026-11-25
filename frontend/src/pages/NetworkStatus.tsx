@@ -9,11 +9,11 @@ import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { StatusArea, StatusPageData, StatusState } from '@/api/types'
+import type { StatusArea, StatusPageData, StatusState, StatusUpdate } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { Panel } from '@/components/ui'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { DataTable, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { COLOR } from './status/state'
 import { ConfirmIcon } from '@bitsandbricks/ui'
@@ -181,23 +181,21 @@ export default function NetworkStatus() {
                   </Group>
                 </Stack>
               )}
-              {d.updates.length === 0 ? <Text size="sm" c="dimmed">{t('status.noUpdates')}</Text> : (
-                <Stack gap="xs">
-                  {d.updates.map((u) => (
-                    <Group key={u.id} gap="sm" wrap="nowrap" align="flex-start" justify="space-between">
-                      <div style={{ minWidth: 0 }}>
-                        <Text size="xs" c="dimmed">{[when(u.at), u.area].filter(Boolean).join(' · ')}</Text>
-                        <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{u.text}</Text>
-                      </div>
-                      {canSet && (
-                        <ConfirmIcon label={t('status.remove')} onConfirm={() => remove.mutate(u.id)}>
-                          <IconTrash size={16} />
-                        </ConfirmIcon>
-                      )}
-                    </Group>
-                  ))}
-                </Stack>
-              )}
+              {/* The shared table, like every list in the app (issue #890): newest first, ten to a page. */}
+              <DataTable label={t('status.updates')} rows={d.updates} rowKey={(u) => u.id} pageSize={10} pager="compact" bare cards
+                defaultSort={{ id: 'when', desc: true }}
+                empty={<Text size="sm" c="dimmed">{t('status.noUpdates')}</Text>}
+                columns={[
+                  { id: 'when', header: t('statusUpdates.when'), sort: (u) => u.at, descFirst: true, card: 'inline', cell: (u) => when(u.at) },
+                  { id: 'area', header: t('statusUpdates.area'), sort: (u) => u.area ?? '', card: 'inline',
+                    cell: (u) => u.area || <Text span size="sm" c="dimmed">{t('statusUpdates.everywhere')}</Text> },
+                  { id: 'text', header: t('statusUpdates.text'), wrap: true, cell: (u) => u.text },
+                  ...(canSet ? [{ id: 'remove', header: '', width: 44, card: 'actions' as const, cell: (u: StatusUpdate) => (
+                    <ConfirmIcon label={t('status.remove')} onConfirm={() => remove.mutate(u.id)}>
+                      <IconTrash size={16} />
+                    </ConfirmIcon>
+                  ) }] : []),
+                ]} />
             </Panel>
           </>
         )}
