@@ -25,8 +25,11 @@ others are in **Planning** or **Closed** (see [Tenants and events](tenancy.md)).
 ## Closing an event
 
 When the event is over, an admin (**Change settings**) closes it at the bottom of the events page. To
-make sure it isn't a stray click, the event's name (Settings > Theme) has to be typed; an event with
-no name asks for `close`. A name for the next event can be given and becomes the theme's event name.
+make sure it isn't a stray click, the page asks first, and the request carries the event's name
+(Settings > Theme; `close` for an event with no name), which the server checks. A name for the next
+event can be given and becomes the theme's event name.
+
+**Side by side** compares the running event with past ones; it shows once there is a past event.
 
 Closing:
 
@@ -35,8 +38,8 @@ Closing:
    accounts) and the key figures.
 2. **Starts the next one from it.** These stay: the floor plan and inventory, the settings, and
    accounts and teams.
-3. **Begins these again:** the report's history and the bandwidth peak (like *Start a new event* on the
-   report), incidents, shift handovers and pre-flight results.
+3. **Begins these again:** the report's history and the bandwidth peak (like *Only start the figures
+   again*), the replay, seat notes, incidents, shift handovers and pre-flight results.
 
 The file is written first. If that fails, nothing is cleared. Closing goes to the audit log.
 
