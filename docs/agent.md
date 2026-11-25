@@ -162,6 +162,14 @@ twice and no login is tried twice, which is what locks accounts.
 Plugin actions that change something in the hall (clear a cache, bounce a port), switch terminals
 and switch commands go to the primary as well.
 
+**Splitting the load.** When every agent of a group follows it, the group splits its devices: each
+device gets one owner agent, which alone polls it and logs in to it, and switch logins for that
+device go to the owner instead of the primary. The lease then also carries the group's members
+(`split`) and the agent's own id (`me`), so the agent works out its own devices with the same hash
+as this Floorbit. When an agent goes, only its devices move. Devices send traps and streams to all
+agents of the group; the others keep a minute of it for a takeover. See
+[telemetry.md](telemetry.md#splitting-the-devices-issue-1441).
+
 **Addresses that move.** Devices and attendees reach "the agent" at one address: syslog, NetFlow
 and traps, the check-in name, LibreNMS's alert webhook. For that address to move with a failover,
 use VRRP in the agents (floorbit-agent's `docs/vrrp.md`): they share virtual IPs, and moving one

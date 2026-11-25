@@ -292,6 +292,29 @@ starts collecting within about 5 seconds; its picture fills within a polling rou
 Point the devices' traps, model-driven telemetry and a firewall's own Telegraf at the first VIP:
 a standby listens, but drops what it hears (issue #1447 changes that).
 
+### Splitting the devices (issue #1441)
+
+When every agent of the group is new enough to follow it (it reports `split` in its telemetry
+health), the group stops having one agent collect everything. Each device nobody pinned gets an
+**owner** among the connected agents of the group, picked by a hash of the agent id and the
+device name (rendezvous hashing). Floorbit and the agent compute the same owner, so:
+
+- Only the owner polls the device (SNMP, gNMI, the API pollers) and logs in to it. Switch
+  commands, terminals and port actions for the device go to its owner too.
+- When an agent goes, only its devices move, to the others of the group. The rest stay where they
+  are, so no picture starts over.
+- Devices send traps, model-driven telemetry and a firewall's own Telegraf to **every** agent of
+  the group (both VIPs, or each agent's address). The owner handles what comes in. Every other
+  agent keeps the last minute of it (up to 20,000 points) and drops the rest. When a device
+  becomes its own, it handles that minute first, so a failover loses nothing.
+- Syslog works the same way: devices log to every agent, only the owner sends a device's lines
+  on, and the others hold the last minute for a takeover (the "Syslog from the hall" plugin, with
+  floorbit-agent's `syslog_relay.py`). An agent from before this sends every line, which the
+  hosted side keeps once, as before.
+
+A group with one agent, or with an agent from before the split, works as above: the primary
+collects everything. Devices pinned to one agent or a tag (below) are left alone.
+
 Nothing comes in twice on the hosted side either:
 
 - Floorbit asks every connected agent and keeps the answer that has something, the device and

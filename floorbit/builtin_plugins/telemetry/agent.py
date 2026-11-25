@@ -53,6 +53,8 @@ MAX_BODY = 32 * 1024 * 1024
 SERIES_PER_SEND = 30_000   # about 2 MB as JSON (keys like "sw-0001|Gi1/0/48|in_bps")
 ENDPOINTS_PER_SEND = 10_000
 # Drivers that Telegraf does; the others are pollers that run in this plugin.
+HOLD_OTHERS = 60          # seconds of another agent's devices' traps and streams kept, for a takeover
+HOLD_POINTS = 20_000       # at most this many held points, over all devices
 TELEGRAF_DRIVERS = frozenset({'snmp', 'traps', 'gnmi', 'mdt'})
 
 
@@ -78,6 +80,9 @@ class AgentPlugin(Base):
         self.push_token = self._token('ingest-token')
         self.token = self._token('own-telegraf-token') if self.binary else self.push_token
         self.targets = []
+        # In a group that splits its devices (floorbit #1441), what this agent hears from another
+        # agent's devices: kept a minute, then dropped. Applied if they become its own.
+        self.held = collections.deque()      # (time, device name, point)
         self.primary = self.state.collecting = self.is_primary()
         self.configure(self.settings)
         # HTTPS when the hall gave the agent a certificate (FLOORBIT_AGENT_TLS_CERT/KEY): a firewall's
@@ -118,6 +123,7 @@ class AgentPlugin(Base):
         with self.lock:
             self.targets = [t for t in (found or []) if isinstance(t, dict) and t.get('name')]
         self.state.know(self.targets)
+        self.take_over_held()
         names = sorted(str(t['name']) for t in self.targets)
         if names != getattr(self, 'targets_said', None):
             # Device names only: the settings also carry logins, which never go into a log.
@@ -290,6 +296,62 @@ class AgentPlugin(Base):
                 return 'push'
         return None
 
+    def others(self):
+        """{name, address or MDT node: device name} of the devices another agent of this group owns
+        (targets.for_agent marks them split, not mine)."""
+        out = {}
+        with self.lock:
+            for t in self.targets:
+                if t.get('split') and not t.get('mine'):
+                    for key in (t.get('name'), t.get('address'), t.get('mdt_node')):
+                        if key:
+                            out[str(key)] = t['name']
+        return out
+
+    def _sender(self, tags, others):
+        name = tags.get('device') or tags.get('host') or ''
+        for key in (name, name.split('.')[0], tags.get('mdt_source'), tags.get('source'), tags.get('agent_host')):
+            if key and key in others:
+                return others[key]
+        return None
+
+    def hold(self, points, now):
+        """Split off what another agent of the group owns: it handles it. Kept a minute, so nothing
+        is lost if this agent takes the device over before the device notices."""
+        others = self.others()
+        if not others:
+            return points
+        mine = []
+        for p in points:
+            owner = self._sender(p.tags, others)
+            if owner is None:
+                mine.append(p)
+            else:
+                self.held.append((now, owner, p))
+        while self.held and (now - self.held[0][0] > HOLD_OTHERS or len(self.held) > HOLD_POINTS):
+            self.held.popleft()
+        self.ctx.gauge('held_points', len(self.held))
+        return mine
+
+    def take_over_held(self, now=None):
+        """New targets from Floorbit: held points of devices that are this agent's own now count."""
+        if not self.held:
+            return 0
+        now = time.time() if now is None else now
+        others = set(self.others().values())
+        kept, taken = collections.deque(), []
+        for item in self.held:
+            if now - item[0] > HOLD_OTHERS:
+                continue
+            (kept if item[1] in others else taken).append(item)
+        self.held = kept
+        if taken:
+            self.state.apply([p for _at, _name, p in taken], now)
+            names = sorted({name for _at, name, _p in taken})
+            self.say('split', f'took over {", ".join(names[:POLL_LINE_DEVICES])}: '
+                              f'{len(taken)} points from the last minute applied')
+        return len(taken)
+
     def take(self, text, now=None):
         self.keep_raw(text)
         points, bad = lineproto.parse(text)
@@ -298,6 +360,9 @@ class AgentPlugin(Base):
             self._debug(f'{bad} lines from Telegraf not understood')
         if not points:
             return None if bad else 0
+        points = self.hold(points, time.time() if now is None else now)
+        if not points:
+            return 0
         taken = self.state.apply(points, now)
         self.last_write = time.time() if now is None else now
         names = {p.tags.get('device') for p in points if p.tags.get('device')}
@@ -343,7 +408,7 @@ class AgentPlugin(Base):
     def poll(self, now):
         with self.lock:
             wanted = [t for t in self.targets if set(t.get('drivers') or []) & set(pollers.POLLERS)
-                      and (self.primary or t.get('mine'))]
+                      and telegraf.collects(t, self.primary)]
         if not wanted:
             return
         began = time.monotonic()
@@ -413,6 +478,10 @@ class AgentPlugin(Base):
         if self.last_write is not None:
             self.ctx.gauge('telegraf_quiet_seconds', round(now - self.last_write))
         self.ctx.gauge('primary', int(self.primary))
+        # Floorbit splits a group's devices only once every agent of it says it follows the split;
+        # an agent host without ctx.owns would still refuse logins to its own devices off-primary.
+        if callable(getattr(self.ctx, 'owns', None)):
+            self.ctx.gauge('split', 1)
         if self.telegraf:
             self.ctx.gauge('telegraf_restarts', self.telegraf.exits)
         quiet = self.last_write is None or now - self.last_write > QUIET_AFTER
@@ -504,7 +573,7 @@ class AgentPlugin(Base):
                          + ', '.join(f'{d} {n}' for d, n in sorted(got.items(), key=lambda x: (-x[1], x[0]))))
         with self.lock:
             # A traps-only device speaks when something happens: a quiet minute is no news.
-            names = [t['name'] for t in self.targets if (self.primary or t.get('mine'))
+            names = [t['name'] for t in self.targets if telegraf.collects(t, self.primary)
                      and not set(t.get('drivers') or []) <= {'traps'}]
         if not names and not counts:
             return
@@ -562,7 +631,7 @@ class AgentPlugin(Base):
                 dev = heard.pop(t['name'], None)
                 rows.append(_device_row(t['name'], dev, now, problems.pop(t['name'], []),
                                         t.get('drivers') or [], bool(t.get('mine')),
-                                        self.primary or bool(t.get('mine'))))
+                                        telegraf.collects(t, self.primary)))
             # Devices that push themselves (a firewall's own Telegraf) without being given here.
             for name, dev in sorted(heard.items()):
                 rows.append(_device_row(name, dev, now, problems.pop(name, []), [dev.driver] if dev.driver else [],

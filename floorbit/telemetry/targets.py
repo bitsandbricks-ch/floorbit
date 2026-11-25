@@ -371,8 +371,8 @@ def token_ok(given):
 # (VRRP): "mine" tells it to. One given to a tag goes to the first connected agent with that tag
 # (by id, so the same one keeps it while it is there), and to the next when it goes. While nobody
 # it was given to is there, the device goes back to the rest like one without an agent, so it isn't
-# left unheard, unless telemetry.failover is off. Without an agent, every agent gets it and the
-# primary one polls (the agent's own rule).
+# left unheard, unless telemetry.failover is off. Without an agent, every agent gets it; in a group
+# of two or more, one of them owns it (agent_ha.split_owner), else the primary polls it.
 
 def _agent_tags():
     from .. import agent_link
@@ -395,23 +395,38 @@ def owner_of(t, connected, agent_tags):
     return None, t.get('failover') is False
 
 
-def for_agent(every, agent_id, connected, agent_tags=None):
+def _reports(agents):
+    from .. import agent_link
+    return {a: agent_link.tunnel.reported(a) for a in agents}
+
+
+def for_agent(every, agent_id, connected, agent_tags=None, reports=None):
     """The targets ``agent_id`` gets, ``mine`` set on those only it collects. ``connected``: the
     agent ids connected now. ``agent_id`` None (an agent that doesn't say who it is): every target,
-    as before."""
+    as before. ``reports``: agent id -> its last report (whether it follows a split)."""
     if agent_id is None:
         return [dict(t) for t in every]
-    if agent_tags is None and any(t.get('agent_tag') for t in every):
+    from .. import agent_ha
+    if agent_tags is None:
         agent_tags = _agent_tags()
+    # The agent's group splits the devices nobody was given (issue #1441): each one has an owner,
+    # which alone polls it and handles what it sends. "split" tells a primary not to poll the rest.
+    members = agent_ha.split_members(agent_id, connected, agent_tags)
+    group = agent_ha.split_group(agent_id, connected, agent_tags,
+                                 reports if reports is not None else _reports(members)) if len(members) > 1 else []
     out = []
     for t in every:
-        owner, given = owner_of(t, connected, agent_tags or {})
+        owner, given = owner_of(t, connected, agent_tags)
         if owner is not None:
             if owner == agent_id:
                 out.append({**t, 'mine': True})
         elif not given:
-            out.append(dict(t))
+            if group:
+                out.append({**t, 'mine': agent_ha.split_owner(t.get('name'), group) == agent_id, 'split': True})
+            else:
+                out.append(dict(t))
     return out
+
 
 
 def pinned(data=None):
