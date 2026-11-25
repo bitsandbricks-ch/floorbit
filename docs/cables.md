@@ -267,4 +267,4 @@ under **cables**, with the cable's label and route.
   off too), `null` forgets the drawing.
 - `PUT /api/cable-plan/panels/<name>` `{"x", "y", "hall_id"}`, `DELETE /api/cable-plan/panels/<name>`.
 
-The feature can be turned off under Settings > Features (`cables`).
+The feature can be turned off under Settings > Plugins > Built in (`cables`).

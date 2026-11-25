@@ -66,7 +66,6 @@ PAGES = (
     ('/setup', 'setup', 'Set up', lambda c, can: can('settings.manage')),
     ('/settings', 'settings', 'Settings', lambda c, can: can('settings.manage')),
     ('/settings/plugins', 'plugins', 'Plugins', lambda c, can: can('settings.manage')),
-    ('/settings/features', 'features', 'Features', lambda c, can: can('settings.manage')),
     ('/settings/sidebar', 'sidebarSections', 'Sidebar sections', lambda c, can: can('settings.manage')),
     ('/settings/api', 'apiTokens', 'API tokens', lambda c, can: can('settings.manage')),
     ('/settings/tenants', 'tenants', 'Tenants',

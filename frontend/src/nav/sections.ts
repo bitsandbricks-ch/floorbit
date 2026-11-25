@@ -55,7 +55,7 @@ export const HUBS: Record<string, string[]> = {
   inventory: ['cables', 'power'],
   console: ['commands', 'terminal', 'configs'],
   dashboards: ['widgets'],
-  settings: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'features', 'sidebarSections', 'audit'],
+  settings: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'sidebarSections', 'audit'],
   events: ['schedule', 'timeline', 'replay', 'report', 'templates'],
 }
 

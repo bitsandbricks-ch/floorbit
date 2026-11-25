@@ -76,7 +76,7 @@
       "off": "Aus",
       "partly": "Teilweise an"
     },
-    "partly": "Einige Teile sind aus: {{parts}}. Einschalten, um alle einzuschalten.",
+    "partly": "Einige Teile sind aus: {{parts}}.",
     "forced": "In der Umgebung des Servers ausgeschaltet.",
     "needsTitle": "Was es braucht",
     "stillNeeds": "Was {{name}} noch braucht",
@@ -111,6 +111,7 @@
       "cap.checkin": "Der Platz-Check-in eingeschaltet",
       "dhcp114": "Option 114 im DHCP des Events, mit Ziel Agent",
       "powerSource": "Ein Strommesser-Plugin, etwa Shelly oder Home Assistant"
-    }
+    },
+    "allOn": "Alles einschalten"
   }
 }

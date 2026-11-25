@@ -13,7 +13,7 @@ Code: [`floorbit/commands.py`](../floorbit/commands.py) (templates, checks, runn
 It uses the same plugin as [port actions](ports.md): turn on **SSH port actions** under
 *Settings > Plugins* and pick the switch software there (Cisco IOS, NX-OS, Aruba AOS-CX, ProCurve
 or Junos). With the demo data on, the page answers with made-up output and touches nothing. The
-feature can be turned off under *Settings > Features* (`commands`); it also goes off with port
+feature can be turned off under *Settings > Plugins > Built in* (`commands`); it also goes off with port
 actions.
 
 ## Nobody types a command

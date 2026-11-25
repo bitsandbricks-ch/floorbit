@@ -76,7 +76,7 @@
       "off": "Off",
       "partly": "Partly on"
     },
-    "partly": "Some parts are off: {{parts}}. Switch it on to turn them all on.",
+    "partly": "Some parts are off: {{parts}}.",
     "forced": "Turned off on the server's environment.",
     "needsTitle": "What it needs",
     "stillNeeds": "What {{name}} still needs",
@@ -111,6 +111,7 @@
       "cap.checkin": "Seat check-in switched on",
       "dhcp114": "Option 114 in the event's DHCP, pointing at the agent",
       "powerSource": "A power meter plugin, such as Shelly or Home Assistant"
-    }
+    },
+    "allOn": "Turn all on"
   }
 }

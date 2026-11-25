@@ -22,7 +22,7 @@ is the same as for [traffic](flows.md):
 - **A week.** Closed hours are kept `DNS_RETENTION_HOURS` (168) in `dns.json` next to `data.json`,
   then dropped. Nothing is per seat, per person or per IP.
 
-Turning the feature off (Settings > Features) stops Floorbit asking the resolver.
+Turning the feature off (Settings > Plugins > Built in) stops Floorbit asking the resolver.
 
 ## Where the lookups come from
 
