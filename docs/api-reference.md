@@ -366,6 +366,16 @@ Source: [`floorbit/blueprints/features.py`](https://github.com/bitsandbricks-ch/
 | GET | `/api/settings/features` | `settings.manage` |  |
 | PUT | `/api/settings/features` | `settings.manage` |  |
 
+## floorbit.blueprints.fill_area
+
+Fill area (#1565): seat blocks and walkways laid out over a box the editor draws (floorbit/fill_area.py).
+
+Source: [`floorbit/blueprints/fill_area.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/fill_area.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/seat-blocks/fill` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.firewalls
 
 Firewalls and the seat ranges they serve (issue #470). Rules in floorbit/firewalls.py, docs in docs/firewalls.md.

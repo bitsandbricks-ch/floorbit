@@ -131,6 +131,7 @@ export const qk = {
   appConfig: ['app-config'] as const,
   planIcons: ['plan-marks', 'icons'] as const,
   planBlocks: (hall: string) => ['seat-blocks', 'hall', hall] as const,
+  fillPreview: (hall: string, ask: unknown) => ['seat-blocks', 'fill', hall, ask] as const,
   ports: ['ports'] as const,
   plan: (hall: string) => ['plan', hall] as const,
   planSeat: (seat: string) => ['plan', 'seat', seat] as const,

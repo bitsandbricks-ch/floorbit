@@ -1,0 +1,10 @@
+{
+ "A run has 1 to {} rows": "Ein Block hat 1 bis {} Reihen",
+ "A walkway is 0 or {} to {} seats wide": "Ein Gang ist 0 oder {} bis {} Plätze breit",
+ "Draw the area as a box with x, y, w and h": "Zeichne die Fläche als Rechteck mit x, y, w und h",
+ "Row letters start at a letter, A to ZZ": "Die Reihenbuchstaben beginnen bei einem Buchstaben, A bis ZZ",
+ "Seats and rows are whole numbers": "Plätze und Reihen sind ganze Zahlen",
+ "Send the area as a JSON object.": "Sende die Fläche als JSON-Objekt.",
+ "That makes more than {} runs: draw a smaller area or make the runs longer": "Das gibt mehr als {} Blöcke: Zeichne eine kleinere Fläche oder mache die Blöcke länger",
+ "The area is too small for one run of seats": "Die Fläche ist zu klein für einen Block"
+}

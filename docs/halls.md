@@ -273,6 +273,17 @@ walkway snaps with its seats right on the band's edge, so the walkway's width is
 blocks on either side. There is no separate gap item between blocks: draw a walkway instead. On the API a
 walkway is a mark with `kind: "walkway"`, `x`/`y` to `x2`/`y2`, optional `points` and `width` (0.5 to 20).
 
+**Fill area** (the **Fill area** tool, <kbd>A</kbd>) lays out a whole hall at once. Drag a box over the
+floor, then pick the **seats per row**, the **rows per run** (2 back to back by default), the **spacer**
+between a run's rows and the **walkway** between runs (0 puts the runs back to back). The dialog says how
+many runs, seats and walkways that makes. The box fills from its top left corner with as many runs as fit,
+side by side and in bands; each run is one seat block, and a walkway goes in every gap between runs, so
+moving one later still snaps to it. Row letters count on band by band, left to right, from the next free
+letter (A-B, C-D, ...). The runs and walkways become one group, and one undo takes them all away again.
+On the API: `POST /api/seat-blocks/fill` with the box (`x`, `y`, `w`, `h` in % of the plan), `seats`,
+`rows`, `spacer`, `walkway`, `row_start`, `labels` and a `group` name; `preview: true` only counts. It is
+all or nothing: a row letter already in use refuses the whole fill.
+
 **Example hall:** *Add an example hall* in the Halls dialog (`POST /api/halls/example`) creates a new hall
 with 8 pairs of 2×24 rows, a standing row turned on its side, outer walls with an entrance, a fenced side
 events area, bar and crew zones and a few icons. Its rows count on from the last row letter in use, so it
