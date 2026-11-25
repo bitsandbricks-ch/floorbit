@@ -78,7 +78,8 @@ def geometry(data, hall_id):
     sideways}}`` of one hall, in % of the plan. Works in seat units so a turned block keeps its shape.
 
     A box also keeps the block in its own frame for the lanes (floorbit/cable_lanes.py): ``w``, ``h``
-    and ``rotation``, and ``lanes`` ``{seat: (u, v, lane)}``, the seat's centre and its lane in seats."""
+    and ``rotation``, ``lanes`` ``{seat: (u, v, lane)}``, the seat's centre and its lane in seats, and
+    ``paths`` ``{seat: (points, i)}``, the bent lane of its row and the seat's point in it."""
     ids = {h['id'] for h in halls.halls(data)}
     seats, boxes = {}, {}
     for block in data.get('seat_blocks') or []:
@@ -91,7 +92,8 @@ def geometry(data, hall_id):
         rotation = int(block.get('rotation') or 0) % 360
         cx, cy = float(block['x']), float(block['y'])
         lanes = cable_lanes.lanes(block)
-        local = {}
+        bent = cable_lanes.paths(block)
+        local, along = {}, {}
         corners = []
         for dx, dy in ((-width / 2, -height / 2), (width / 2, -height / 2), (width / 2, height / 2),
                        (-width / 2, height / 2)):
@@ -103,10 +105,13 @@ def geometry(data, hall_id):
                 seats.setdefault(seat, (round(cx + tx * PITCH_X, 3), round(cy + ty * PITCH_Y, 3), block['id']))
                 if (r, c) in lanes:
                     local.setdefault(seat, (at[r, c][0] + 0.5, at[r, c][1] + 0.5, lanes[r, c]))
+                elif (r, c) in bent:
+                    along.setdefault(seat, bent[r, c])
         boxes[block['id']] = {'l': min(p[0] for p in corners), 'r': max(p[0] for p in corners),
                               't': min(p[1] for p in corners), 'b': max(p[1] for p in corners),
                               'cx': cx, 'cy': cy, 'sideways': round(rotation / 90) % 2 == 1,
-                              'w': width, 'h': height, 'rotation': rotation, 'lanes': local}
+                              'w': width, 'h': height, 'rotation': rotation, 'lanes': local,
+                              'paths': along}
     return seats, boxes
 
 
@@ -159,6 +164,33 @@ def _in_lane(start, box, local):
     return out
 
 
+def _along_path(start, box, lane, i):
+    """From a switch to a seat on a bent row (floorbit/cable_lanes.py ``paths``): to the block's side
+    like a straight lane, to the lane's end that makes the shorter cable, and along the lane to the
+    seat. In the block's own frame, like ``_in_lane``; the client draws the same (cableRoute.ts)."""
+    w, h, rotation = box['w'], box['h'], box['rotation']
+    dx, dy = _turn((start[0] - box['cx']) / PITCH_X, (start[1] - box['cy']) / PITCH_Y, -rotation)
+    su, sv = dx + w / 2, dy + h / 2
+    best = None
+    for run in (list(lane[:i + 1]), list(reversed(lane[i:]))):
+        eu, ev = run[0]
+        end = -TRUNK / 2 if su < w / 2 else w + TRUNK / 2
+        if 0 <= su <= w:
+            edge = -TRUNK / 2 if sv < h / 2 else h + TRUNK / 2
+            bends = [(su, edge), (eu, edge)]
+        else:
+            bends = [(end, sv), (end, ev)]
+        bends += run
+        length = sum(math.dist(a, b) for a, b in zip([(su, sv), *bends[:-1]], bends, strict=True))
+        if best is None or length < best[0] - 1e-6:
+            best = (length, bends)
+    out = []
+    for bu, bv in best[1]:
+        tx, ty = _turn(bu - w / 2, bv - h / 2, rotation)
+        out.append((box['cx'] + tx * PITCH_X, box['cy'] + ty * PITCH_Y))
+    return out
+
+
 def _to_seat(start, seat, box, name=None):
     """From a switch (or panel) to a seat: to the side of the seat's block that faces the start,
     along it, then into the seat's row. The cables of one block share that run.
@@ -170,6 +202,8 @@ def _to_seat(start, seat, box, name=None):
         return _elbow(start, seat)
     if name in (box.get('lanes') or {}):
         return _in_lane(start, box, box['lanes'][name])
+    if name in (box.get('paths') or {}):
+        return _along_path(start, box, *box['paths'][name])
     sx, sy = start
     if box['sideways'] or box['l'] <= sx <= box['r']:
         top = box['t'] - TRUNK * PITCH_Y / 2
