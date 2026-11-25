@@ -349,7 +349,7 @@ A dashboard is `sections` (each with an optional `title`, `folded` and its `pane
 as one split tree (`root`) are read as one panel filling the screen. How panels make room is in
 `frontend/src/pages/dashboards/grid.ts`.
 A Monitoring page (Health, Wi-Fi, DNS, ...) is one line in `frontend/src/pages/monitoring/pages.ts`
-and is drawn by `pages/monitoring/ViewPage.tsx` (one route in `App.tsx`, one entry in
+and is drawn by `pages/monitoring/ViewPage.tsx` (one route in `routes/<area>.ts`, one entry in
 `floorbit/page_index.py`, a tab in `nav/sections.ts`). `RETIRED_VIEWS` in `floorbit/dashboards.py`
 says which tile a saved `view` pane is read as. `GET /api/dashboard` lists the tiles this account may see. Floorbit's own tiles are one line in
 `TILES` (`floorbit/dashboard_core.py`) plus their builder in `CORE_TILES`

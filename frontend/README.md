@@ -27,7 +27,7 @@ npm run build        # writes ../static/app/, which Flask serves
 
 ## Rules
 
-- A page is a file in `src/pages/` and a route in `src/App.tsx`. Point its Flask route at
+- A page is a file in `src/pages/` and a route in `src/routes/<area>.ts` (a new area is a new file there; `App.tsx` collects them). Point its Flask route at
   `spa.render('<Title>')` (`floorbit/spa.py`), so Flask still checks sign-in and roles.
 - Every text goes through `t()` with a key in `src/i18n/en/<feature>.json` **and**
   `src/i18n/de-CH/<feature>.json` (Swiss spelling, no "ß"). The i18n test fails otherwise.
