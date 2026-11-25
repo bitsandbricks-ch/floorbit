@@ -62,6 +62,8 @@ SERVICE_NAMES = {'blizzard': 'Battle.net'}
 class ApplicationError(ValueError):
     def __init__(self, message, status=400):
         super().__init__(message)
+        # The text is ours (a validation message), never a stack trace.
+        self.message = message
         self.status = status
 
 

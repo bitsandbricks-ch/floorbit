@@ -12,13 +12,14 @@ def by_id(rows):
 def test_builtin_lists_and_starter_merge():
     apps = applications.builtin()["apps"]
     # From cache-domains, with Floorbit's own sites and the published ports added.
-    assert apps["steam"]["kind"] == "launcher" and "steamcontent.com" in apps["steam"]["sites"]
-    assert "steampowered.com" in apps["steam"]["sites"] and "udp/27015-27030" in apps["steam"]["ports"]
+    assert apps["steam"]["kind"] == "launcher"
+    assert {"steamcontent.com", "steampowered.com"} <= set(apps["steam"]["sites"])
+    assert "udp/27015-27030" in apps["steam"]["ports"]
     assert apps["steam"]["caches"] == ["steam"]
     assert apps["valorant"]["part_of"] == "riot" and apps["valorant"]["kind"] == "game"
     assert apps["streaming"]["kind"] == "sitegroup" and "twitch.tv" in apps["streaming"]["sites"]
     # Shared CDNs count for nobody.
-    assert not any("edgesuite.net" in a["sites"] or "akamaihd.net" in a["sites"] for a in apps.values())
+    assert not any({"edgesuite.net", "akamaihd.net"} & set(a["sites"]) for a in apps.values())
     assert {s["id"] for s in applications.builtin()["sources"]} == {"cache-domains", "v2fly"}
 
 

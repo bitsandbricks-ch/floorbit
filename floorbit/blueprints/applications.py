@@ -51,7 +51,7 @@ def _saved(app_id=None):
     try:
         app = applications.save(body, app_id)
     except applications.ApplicationError as exc:
-        return jsonify({'error': str(exc)}), exc.status
+        return jsonify({'error': exc.message}), exc.status
     fields = [k for k in ('name', 'kind', 'category', 'part_of', 'sites', 'ports', 'cidr', 'depots', 'hidden')
               if k in (body or {})]
     audit.record('applications', 'Changed an application' if app_id else 'Added an application',
