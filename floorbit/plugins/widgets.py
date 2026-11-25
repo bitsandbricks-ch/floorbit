@@ -12,12 +12,14 @@ Shapes (each may also have ``sub``, a short line under it, and ``link``, a path 
     {"type": "series", "unit": "bit/s", "series": [{"label": "Download", "points": [[1763560000, 4.2e9], ...]}]}
 
 ``min`` and ``max`` on a stat let it show as a gauge; ``number`` (and ``max``) on list items let a
-list show as bars or a pie. All of them are optional.
+list show as bars or a pie, and ``colour`` (``#rrggbb`` or ``var(--name)``) fixes an item's colour.
+All of them are optional.
 
 A ``series`` is up to four lines over time: each point is ``[unix seconds, value]``, oldest first.
 The dashboard's graph widget draws it with a crosshair that names each line's value on hover.
 """
 import math
+import re
 
 TONES = ('', 'ok', 'warn', 'err')
 STATES = ('up', 'down', 'warn', 'unknown')
@@ -25,6 +27,8 @@ MAX_ITEMS = 50
 MAX_POINTS = 500
 MAX_SERIES = 4
 MAX_MARKS = 50
+# A colour a plugin may give a list item: a hex colour or a theme variable, nothing that could carry CSS.
+COLOUR_RE = re.compile(r'^(#[0-9a-fA-F]{6}|var\(--[a-z0-9-]{1,40}\))\Z')
 
 
 class WidgetError(ValueError):
@@ -111,6 +115,8 @@ def check_widget(raw, item):
                         'tone': _tone(i.get('tone'))}
                 if i.get('sub'):   # a second line under the label (@bitsandbricks/widgets draws it)
                     item['sub'] = _text(i['sub'], 80)
+                if isinstance(i.get('colour'), str) and COLOUR_RE.match(i['colour']):
+                    item['colour'] = i['colour']   # a fixed colour for its slice or bar (#1408)
                 items.append(_device(i, _numbers(i, item, ('number', 'max'))))
         out['items'] = items
     elif kind == 'table':

@@ -433,7 +433,7 @@ def top_ports_widget(lang, snapshot):
     return {'type': 'list', 'items': items, 'link': '/dashboards/network'}
 
 
-CATEGORIES = ('gaming', 'streaming', 'downloads', 'updates', 'web', 'other')
+from .flows.classify import CATEGORIES, CATEGORY_COLOURS  # noqa: E402
 
 
 def _no_flows(text):
@@ -447,8 +447,9 @@ def traffic_mix_widget(lang, flows):
         return _no_flows(text)
     mix = flows.get('mix_hour') or {}
     total = sum(mix.get(c) or 0 for c in CATEGORIES)
-    items = [{'label': text['cat'][c], 'value': f"{round((mix.get(c) or 0) / total * 100)} % · {size(mix.get(c))}",
-              'number': mix.get(c) or 0} for c in CATEGORIES if total and mix.get(c)]
+    # The share shows in the pie (hover, large tiles); a short value keeps the legend's names whole.
+    items = [{'label': text['cat'][c], 'value': size(mix.get(c)), 'number': mix.get(c) or 0,
+              'colour': CATEGORY_COLOURS[c]} for c in CATEGORIES if total and mix.get(c)]
     return {'type': 'list', 'items': items, 'sub': text['mix_sub'].format(total=size(total)),
             'link': '/dashboards/traffic'}
 

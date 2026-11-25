@@ -204,7 +204,7 @@ FLOWS = {"mix_hour": {"gaming": 300, "web": 700}, "services": [{"name": "Steam",
 
 def test_the_traffic_view_is_split_into_tiles():
     mix = dashboard_core.traffic_mix_widget("de", FLOWS)
-    assert [(i["label"], i["value"]) for i in mix["items"]] == [("Gaming", "30 % · 300 B"), ("Web", "70 % · 700 B")]
+    assert [(i["label"], i["value"]) for i in mix["items"]] == [("Gaming", "300 B"), ("Web", "700 B")]
     assert mix["sub"] == "Letzte Stunde: 1.0 kB"
     assert dashboard_core.flow_services_widget("en", FLOWS)["items"][0]["value"] == "200 GB · 12 seats"
     assert dashboard_core.traffic_areas_widget("en", FLOWS)["items"][0]["number"] == 5e11
