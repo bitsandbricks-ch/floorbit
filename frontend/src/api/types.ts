@@ -1023,7 +1023,7 @@ export interface PlanGroup {
 
 export interface PlanMark {
   id?: string
-  kind: 'text' | 'icon' | 'wall' | 'zone'
+  kind: 'text' | 'icon' | 'wall' | 'walkway' | 'zone'
   /** Drawing order, higher on top (floorbit/stacking.py). */
   z?: number
   x: number
@@ -1039,6 +1039,8 @@ export interface PlanMark {
   /** A wall's bends between its ends, [x, y] each (drawing units in the plan, % from /api/plan-marks). */
   points?: [number, number][]
   style?: 'solid' | 'dashed'
+  /** A walkway's width, in seats (0.5 to 20; #1564). */
+  width?: number
   w?: number
   h?: number
   label?: string
