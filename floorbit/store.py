@@ -13,6 +13,7 @@ now, so one saving a copy it loaded a moment ago doesn't undo what another saved
 import contextvars
 import json
 import os
+import random
 import re
 import shutil
 import threading
@@ -46,7 +47,7 @@ def _doc(found, path, text):
 
 
 _GONE = object()     # a key or an item that isn't there, in _merge3
-WRITE_TRIES = 8      # a save that keeps meeting another pod's write merges again this often
+WRITE_TRIES = 12     # a save that keeps meeting another pod's write merges again this often
 
 
 def _by_id(value):
@@ -197,12 +198,15 @@ def write_json(path, data):
         else:
             # Other processes write the same document: merge with what is there now and store it only
             # if nobody wrote in between, else merge again (compare and swap on updated_at).
-            for _ in range(WRITE_TRIES):
+            for attempt in range(WRITE_TRIES):
                 current, version = db.get_versioned(key)
                 out = _merge(data, base_text, None if current is database._MISSING else current)
                 text = json.dumps(out)
                 if db.put_if(key, text, version):
                     break
+                # Writers that met each other would meet again right away: each waits a random
+                # while, longer each time (about 1.5 s at most over all tries).
+                time.sleep(random.uniform(0, min(0.2, 0.005 * 2 ** attempt)))
             else:
                 raise database.DatabaseError(f'{key}: other writers kept saving it; not saved')
     _generation[0] += 1

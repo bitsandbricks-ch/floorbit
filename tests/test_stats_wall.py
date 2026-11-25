@@ -32,14 +32,40 @@ def test_loyal_block_names_only_blocks_of_five_or_more():
     assert stats_wall.loyal_block(frames[:1]) is None
 
 
-def test_top_games_are_names_with_a_bar():
-    insights = {'launchers': [
-        {'name': 'Steam', 'cache_hit_bytes': 800, 'cache_miss_bytes': 200, 'traffic_bytes': 5, 'lookups': 9},
-        {'name': 'Riot Games', 'cache_hit_bytes': None, 'cache_miss_bytes': None, 'traffic_bytes': 250, 'lookups': 3},
-        {'name': 'EA app', 'cache_hit_bytes': None, 'cache_miss_bytes': None, 'traffic_bytes': None, 'lookups': 0},
-    ], 'games': [{'name': 'Tournament servers', 'bytes': 500, 'seats': 40}]}
+def _title(name, seats=0, hit=None, miss=None, part_of=None, **seen):
+    return {'id': name.lower(), 'name': name, 'part_of': part_of, 'seats': seats, 'cache_hit_bytes': hit,
+            'cache_miss_bytes': miss, 'dns_seats_max': None, 'traffic_seats': None, 'players': None, **seen}
+
+
+def test_top_games_are_titles_by_seats():
+    insights = {'titles': [_title('Valorant', 61, dns_seats_max=61, traffic_seats=40),
+                           _title('Counter-Strike 2', 142, traffic_seats=142, players=30),
+                           _title('Baldur\'s Gate 3', 0, hit=500)]}
     assert stats_wall.top_games(insights) == [
-        {'name': 'Steam', 'bar': 1.0}, {'name': 'Tournament servers', 'bar': 0.5}, {'name': 'Riot Games', 'bar': 0.25}]
+        {'name': 'Counter-Strike 2', 'bar': 1.0, 'seats': 142, 'via': ['traffic', 'servers']},
+        {'name': 'Valorant', 'bar': 0.43, 'seats': 61, 'via': ['dns', 'traffic']}]
+
+
+def test_downloads_by_title_then_what_is_left_of_the_launcher():
+    insights = {'titles': [_title('Counter-Strike 2', 0, hit=900, miss=300, part_of='steam')],
+                'launchers': [{'id': 'steam', 'name': 'Steam', 'cache_hit_bytes': 1800, 'cache_miss_bytes': 600},
+                              {'id': 'epic', 'name': 'Epic Games', 'cache_hit_bytes': None, 'cache_miss_bytes': None}],
+                'sitegroups': [{'id': 'wsus', 'name': 'Windows updates', 'cache_hit_bytes': 400,
+                                'cache_miss_bytes': 0}]}
+    assert stats_wall.top_downloads(insights) == [
+        {'name': 'Counter-Strike 2', 'bar': 1.0, 'bytes': 1200}, {'name': 'Steam', 'bar': 1.0, 'bytes': 1200},
+        {'name': 'Windows updates', 'bar': 0.333, 'bytes': 400}]
+
+
+def test_top_sites_only_name_sites_of_a_known_application():
+    insights = {'sites': [{'site': 'discord.com', 'lookups': 900, 'seats': 412, 'application': 'Voice and chat',
+                           'category': 'social'},
+                          {'site': 'example.com', 'lookups': 800, 'seats': 300, 'application': None, 'category': None},
+                          {'site': 'twitch.tv', 'lookups': 400, 'seats': 201, 'application': 'Streaming',
+                           'category': 'streaming'}]}
+    assert stats_wall.top_sites(insights) == [
+        {'name': 'discord.com', 'bar': 1.0, 'seats': 412, 'category': 'social'},
+        {'name': 'twitch.tv', 'bar': 0.488, 'seats': 201, 'category': 'streaming'}]
 
 
 def test_units_by_language():

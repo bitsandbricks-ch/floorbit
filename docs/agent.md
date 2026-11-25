@@ -148,12 +148,19 @@ twice and no login is tried twice, which is what locks accounts.
 
 - **Sticky.** The agent that holds the lease keeps it while it is connected. A new one goes to the
   group's VRRP primary if there is one, else to the connected agent with the smallest id.
+- **Every plugin on.** Only the agents with the fewest plugins turned off (Local agents page) get
+  the lease, and a holder with more turned off hands it to one that runs them. A primary without
+  telemetry would leave the group's devices unpolled.
 - **Failover.** When the primary's link closes (the agent stops, its machine dies, the line is
   cut), the next agent of the group gets the lease at once: its config is reloaded within a
   second, and its plugins start polling. An agent on the HTTPS long poll counts as gone after a
   minute without a request.
 - **Back again.** An agent that lost its link gives up the lease until this Floorbit says it again,
   so it doesn't take it back from the one that took over.
+- **This Floorbit restarts.** It forgets every report, so it keeps who last held each group's
+  lease in its data. For a minute after a start it gives that agent's lease to nobody else until
+  it is back, so whichever agent reconnects first doesn't take it over. Once back, a failover is
+  immediate again.
 - **This Floorbit out of reach.** Each agent keeps its last role, and a standby never takes over on
   its own. The primary keeps polling (a point sent twice later is kept once), but tries no login
   until it hears this Floorbit again, since the lease may have moved meanwhile.
@@ -161,6 +168,14 @@ twice and no login is tried twice, which is what locks accounts.
 
 Plugin actions that change something in the hall (clear a cache, bounce a port), switch terminals
 and switch commands go to the primary as well.
+
+**Splitting the load.** When every agent of a group follows it, the group splits its devices: each
+device gets one owner agent, which alone polls it and logs in to it, and switch logins for that
+device go to the owner instead of the primary. The lease then also carries the group's members
+(`split`) and the agent's own id (`me`), so the agent works out its own devices with the same hash
+as this Floorbit. When an agent goes, only its devices move. Devices send traps and streams to all
+agents of the group; the others keep a minute of it for a takeover. See
+[telemetry.md](telemetry.md#splitting-the-devices-issue-1441).
 
 **Addresses that move.** Devices and attendees reach "the agent" at one address: syslog, NetFlow
 and traps, the check-in name, LibreNMS's alert webhook. For that address to move with a failover,
@@ -179,6 +194,18 @@ in the event DNS: browsers try the next address when one doesn't answer.
 
 Agents of a group share their **certificate names**: names set on one agent's page go on the
 others' certificates too, so a second agent behind the same VIP or name needs none typed in.
+
+**Capabilities.** Each agent lists in its report what it can do (`capabilities`): `lease` (follows
+the primary Floorbit picks), `split` (splits devices with its group) and `syslog_hold` (sends only its
+own devices' syslog and keeps a minute of the rest). For an agent from before the list, Floorbit works
+them out from its report, and for what an agent can't do it falls back: VRRP picks the primary, one
+primary collects every device, every agent sends every syslog line (kept once). A group splits only
+when every connected agent of it can. The agent's page and its group's page show the list, and for
+each missing capability what Floorbit does instead.
+
+Each group has its own page (the group's name on the Local agents page, `/settings/agents/groups/<tags>`):
+its agents and their roles, which shared addresses each holds, how many devices each owns now and
+whether each follows the split, and what happens when the busiest one stops.
 
 **Failover per tag** on the Local agents page shows each group: who is primary or standby, which
 addresses each holds, active/active or active/passive, and what needs a look: **Backup missing**
@@ -282,14 +309,14 @@ What stays in the agent's environment:
 | --- | --- |
 | `FLOORBIT_URL` | the hosted Floorbit, `https://…` |
 | `FLOORBIT_AGENT_KEY` | the key from **Agents**, to enrol it; a rolled key replaces it (below) |
-| `FLOORBIT_AGENT_ALLOW_ACTIONS`, `FLOORBIT_AGENT_PLUGIN_UPDATES` | what the people at the hall allow (actions, plugin updates) |
+| `FLOORBIT_AGENT_ALLOW_ACTIONS`, `FLOORBIT_AGENT_PLUGIN_UPDATES`, `FLOORBIT_AGENT_UPDATES` | what the people at the hall allow (actions, plugin updates, updates of the agent itself) |
 | `FLOORBIT_AGENT_SWITCH_NETS`, `_GAME_NETS`, `_PROBE_NETS` | which networks it may reach |
 | `FLOORBIT_AGENT_TLS_CERT`, `FLOORBIT_AGENT_TLS_KEY` | a certificate of your own, instead of the one Floorbit signs (below) |
 | `FLOORBIT_AGENT_HEARTBEAT` | where the heartbeat file for `health` goes (next to its settings file by default) |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
-The limits (actions, plugin updates, networks) are only ever set in the hall, and the agent's page
+The limits (actions, plugin and agent updates, networks) are only ever set in the hall, and the agent's page
 shows them read-only as the agent reports them: a stolen Floorbit login must not widen what an agent
 can reach or do.
 
@@ -396,10 +423,34 @@ agent in the last two minutes, 1 otherwise. It reads a heartbeat file the agent 
 poll that gets through, so it needs no network and no settings. The Compose file uses it as the
 container's health check, so `docker ps` shows the agent as *unhealthy* while the uplink is down.
 
-To update the agent, pull the new image and start it again (`docker compose -f
-docker-compose.agent.yml pull && docker compose -f docker-compose.agent.yml up -d`). The
-**Local agents** page shows each agent's version, and **Update** next to one that speaks an older
-agent protocol than this Floorbit.
+### Updates
+
+An agent updates itself (floorbit-agent #98). Each agent release carries a signed update: the agent's
+code and the Floorbit code it runs. Every hour this Floorbit looks for the newest one on the agent's
+GitHub releases, keeps it in its state folder (`agent-releases/`) and offers it to its agents with
+their plugin config. The agent installs it only when the signature verifies against the agent key in
+its image (a key apart from the plugin key, held only by the agent's release workflow), it is newer
+than what runs and it was built for that very image. Then it stops cleanly and starts again on the new
+code in the same container: no new image, and no Docker access. Floorbit holds no key, so a stolen
+Floorbit login can at most offer a release that was already signed.
+
+- **Probation.** A new version that doesn't reach Floorbit within five minutes, or crashes at start,
+  goes back to the version before (or the image's own code) and isn't tried again on that agent.
+- **One at a time.** In a group of agents for the same devices, Floorbit offers it to one agent, waits
+  until that one is back and through its probation, then the next; the primary last, so the lease
+  moves to an agent already updated while it restarts. Agents of other groups update side by side.
+- **A new image.** A release that needs other Python packages or another Telegraf than the agent's
+  image isn't installed: the page says **Needs a new image** and shows the pull command. So does it
+  for an agent from before #98, which can't update itself (capability `self_update`).
+- **In the hall.** `FLOORBIT_AGENT_UPDATES` on the agent: `auto` (default), `approve` (the crew runs
+  `docker compose exec agent python -m floorbit_agent_boot update approve`) or `off`. Floorbit can't
+  change it.
+
+Each agent's **Updates** tab shows the version it runs, the newest release, where its update stands
+and its last steps; every step is in the [audit log](audit.md). Without a release (Floorbit can't
+reach GitHub), or for a new image, pull it and start the agent again (`docker compose pull &&
+docker compose up -d`). The **Local agents** page shows **Update** next to an agent that speaks an
+older agent protocol than this Floorbit.
 
 ## Ports
 

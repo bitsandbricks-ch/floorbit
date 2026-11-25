@@ -1,0 +1,6 @@
+{
+ "{}: installed agent update {}": "{}: Agent-Update {} installiert",
+ "{}: kept agent update {}": "{}: Agent-Update {} behalten",
+ "{}: refused agent update {} ({})": "{}: Agent-Update {} abgelehnt ({})",
+ "{}: rolled back agent update {} ({})": "{}: Agent-Update {} zurückgenommen ({})"
+}

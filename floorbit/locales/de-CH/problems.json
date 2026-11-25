@@ -13,16 +13,17 @@
   "Seat {}, on the incident board": "Platz {}, bei den Störungen",
   "Security finding": "Sicherheitsfund",
   "Switch status is frozen at the last good data": "Der Switch-Status steht auf den letzten guten Daten",
+  "That problem is not raised.": "Dieses Problem ist nicht höher eingestuft.",
   "That switch is not muted.": "Dieser Switch ist nicht stummgeschaltet.",
   "There is no such access point.": "Diesen Access Point gibt es nicht.",
   "There is no such problem.": "Dieses Problem gibt es nicht.",
   "There is no such service.": "Diesen Dienst gibt es nicht.",
   "There is no such switch.": "Diesen Switch gibt es nicht.",
+  "This problem is over.": "Dieses Problem ist vorbei.",
   "{} does not load": "{} lädt nicht",
   "{} has not answered yet": "{} hat noch nicht geantwortet",
   "{} is offline": "{} ist offline",
   "{} keeps failing": "{} schlägt immer wieder fehl",
   "{} {} was withdrawn": "{} {} wurde zurückgezogen",
-  "{}: full in about {} min": "{}: in etwa {} Min. voll",
-  "This problem is over.": "Dieses Problem ist vorbei."
+  "{}: full in about {} min": "{}: in etwa {} Min. voll"
 }

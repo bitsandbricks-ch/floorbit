@@ -46,6 +46,7 @@ const SwitchAreas = lazy(() => import('@/pages/SwitchAreas'))
 const SwitchSwap = lazy(() => import('@/pages/SwitchSwap'))
 const Telemetry = lazy(() => import('@/pages/Telemetry'))
 const Endpoints = lazy(() => import('@/pages/Endpoints'))
+const Applications = lazy(() => import('@/pages/Applications'))
 const ViewPage = lazy(() => import('@/pages/monitoring/ViewPage'))
 const Timeline = lazy(() => import('@/pages/Timeline'))
 const NetworkStatus = lazy(() => import('@/pages/NetworkStatus'))
@@ -57,6 +58,7 @@ const Login = lazy(() => import('@/pages/Login'))
 const Checkin = lazy(() => import('@/pages/Checkin'))
 const Agents = lazy(() => import('@/pages/Agents'))
 const AgentDetail = lazy(() => import('@/pages/AgentDetail'))
+const AgentGroup = lazy(() => import('@/pages/AgentGroup'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
 const Forbidden = lazy(() => import('@/pages/Forbidden'))
@@ -143,6 +145,7 @@ export default function App() {
             <Route path="/settings/:section?" element={<Settings />} />
             <Route path="/settings/agents" element={<Agents />} />
             <Route path="/settings/agents/:id" element={<AgentDetail />} />
+            <Route path="/settings/agents/groups/:gid" element={<AgentGroup />} />
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/endpoints" element={<Endpoints />} />
             <Route path="/wifi" element={<ViewPage key="wifi" view="wifi" />} />
@@ -150,6 +153,7 @@ export default function App() {
             <Route path="/lancache" element={<ViewPage key="lancache" view="lancache" />} />
             <Route path="/traffic" element={<ViewPage key="traffic" view="traffic" />} />
             <Route path="/games" element={<ViewPage key="games" view="games" />} />
+            <Route path="/applications" element={<Applications />} />
             <Route path="/stats" element={<ViewPage key="stats" view="stats" />} />
             <Route path="/speedtests" element={<ViewPage key="speedtests" view="speedtests" />} />
             <Route path="*" element={<NotFound />} />

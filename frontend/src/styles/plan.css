@@ -90,21 +90,18 @@
 .fb-pl-swatch.pl-info { border-color: var(--color-trace); }
 .fb-plan .num { fill: var(--color-fg); font: 700 var(--seat-num, 11px) var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; }
 .fb-plan .cell[data-state="online"] .num { fill: var(--color-ink); stroke-width: 0; }
-/* Zoomed out (pages/plan/labels.ts): only the row ends keep a number, larger than the seat, with a halo
-   so it reads over the neighbouring seats in every state. */
-.fb-plan .num.end, .fb-plan .cell[data-state="online"] .num.end { font-size: var(--seat-end, 11px); fill: var(--color-fg); stroke: var(--color-surface); stroke-width: .3em; stroke-linejoin: round; }
 .fb-plan .cell.sel .seat { stroke: var(--color-fg); stroke-width: 4; }
 .fb-plan .sw-focus { fill: none; stroke: var(--color-trace); stroke-width: 3; }
 .fb-plan .sw-trace { stroke: var(--color-trace); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
 .fb-plan .kb-ring { fill: none; stroke: var(--color-bit); stroke-width: 3; stroke-dasharray: 6 3; pointer-events: none; }
 .fb-plan .cell.dim { opacity: .18; }
 .fb-plan .cell:hover .seat { stroke: var(--color-bit); stroke-width: 3; }
-.fb-plan .name { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: 6px; }
-/* Live stats on the block label: seats with problems, and a red outline when a quarter or more have them. */
-.fb-plan .name .name-bad { fill: var(--color-down); font-size: 0.8em; }
 .fb-plan .blk.alarm { stroke: var(--color-down); stroke-width: 2px; fill: color-mix(in srgb, var(--color-down) 10%, transparent); }
-.fb-plan .sum text { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; }
-.fb-plan .sum .sub { font-weight: 600; }
+/* Block tags (SeatMap): the block's name on its corner, and a red count when it has problems. */
+.fb-plan .btag > rect { fill: var(--color-raised); stroke: color-mix(in srgb, var(--color-muted) 55%, transparent); }
+.fb-plan .btag text { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 700; text-anchor: middle; pointer-events: none; }
+.fb-plan .btag-bad rect { fill: var(--color-down); }
+.fb-plan .btag-bad text { fill: var(--color-ink); }
 .fb-marks .wall { fill: none; stroke: var(--color-fg); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
 .fb-marks .wall.dashed { stroke-dasharray: 22 14; }
 .fb-marks .zone rect { fill: color-mix(in srgb, var(--zone) 12%, transparent); stroke: color-mix(in srgb, var(--zone) 55%, transparent); stroke-width: 2; }
@@ -117,7 +114,8 @@
 .fb-marks .label { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; letter-spacing: .08em; text-transform: uppercase; }
 .fb-marks .icon rect { fill: var(--color-raised); stroke: var(--tint, var(--color-line, var(--color-muted))); stroke-width: 1.5; }
 .fb-marks .icon svg { color: var(--tint, var(--color-fg)); }
-.fb-plan .rowlbl { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; font-size: var(--row-lbl, 19px); text-anchor: middle; paint-order: stroke; stroke: var(--color-raised); stroke-width: .25em; stroke-linejoin: round; }
+/* Row labels: small and quiet, a cue rather than a heading (#1471). */
+.fb-plan .rowlbl { fill: var(--color-muted); font-family: var(--font-mono); font-weight: 500; font-size: var(--row-lbl, 11px); text-anchor: middle; paint-order: stroke; stroke: var(--color-ink); stroke-width: .2em; stroke-linejoin: round; pointer-events: none; }
 .fb-plan .sw .body { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
 .fb-plan .sw-online .body, .fb-plan .sw-offline .body, .fb-plan .sw-warning .body { stroke-dasharray: none; }
 .fb-plan .sw-online .body { fill: var(--color-bit); }
@@ -249,8 +247,8 @@
 .fb-block-bar .on { background: var(--color-up); }
 .fb-block-bar .off { background: var(--color-down); }
 .fb-block-bar .unk { background: repeating-linear-gradient(45deg, var(--color-muted) 0 3px, transparent 3px 6px); }
-.fb-plan .name.link, .fb-plan .sum.link { cursor: pointer; }
-.fb-plan .name.link:hover { text-decoration: underline; }
+.fb-plan .btag.link { cursor: pointer; }
+.fb-plan .btag.link:hover > rect { stroke: var(--color-bit); }
 .fb-block-seat:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; border-radius: 6px; }
 .fb-plan .sw.link { cursor: pointer; }
 

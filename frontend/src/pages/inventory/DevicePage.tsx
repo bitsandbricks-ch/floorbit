@@ -20,6 +20,8 @@ import { DeviceForm } from './DeviceForm'
 import { DeviceIcon } from './icons'
 import { DeviceGraphs } from './DeviceGraphs'
 import { DeviceLogs } from './DeviceLogs'
+import { DeviceEndpoints } from './DeviceEndpoints'
+import { DeviceNetworks } from './DeviceNetworks'
 import { DriftPanel } from './DriftPanel'
 import { InterfacesPanel } from './InterfacesPanel'
 import { credentialBody, entryPath, roleIcon, scopePath, speedLabel, statusLabel, typeName, type Draft } from './model'
@@ -120,11 +122,15 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
   const telemetry = useDeviceTelemetry(dev.id)
   // Raw data only where there is any to read: telemetry on, and admins (the API is theirs).
   const rawTab = telemetryOn && canSetCreds
-  const tabIds = ['overview', 'interfaces', 'telemetry', ...(rawTab ? ['raw'] : []), 'graphs', ...(canLogs ? ['logs'] : []), 'settings', ...(canEdit ? ['credentials'] : [])]
+  const tabIds = ['overview', 'interfaces', 'networks', ...(canLogs ? ['macs'] : []), 'telemetry', ...(rawTab ? ['raw'] : []), 'graphs',
+    ...(canLogs ? ['logs'] : []), 'settings', ...(canEdit ? ['credentials'] : [])]
   const [tab, setTab] = usePageTab(tabIds)
   const tabs = [
     { id: 'overview', label: t('inventory.tabs.overview') },
     { id: 'interfaces', label: t('inventory.tabs.interfaces'), count: visible.length },
+    // What the device itself says (issue #903): its VLANs and networks, and the machines on its ports.
+    { id: 'networks', label: t('deviceNetworks.tab'), count: dev.discovered?.vlans.length || undefined },
+    ...(canLogs ? [{ id: 'macs', label: t('deviceNetworks.macTab') }] : []),
     { id: 'telemetry', label: t('inventory.tabs.telemetry') },
     ...(rawTab ? [{ id: 'raw', label: t('inventory.tabs.raw') }] : []),
     { id: 'graphs', label: t('deviceTabs.graphs.tab') },
@@ -164,7 +170,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
         {dev.mgmt_ip && <Chip label={t('inventory.page.mgmt')} mono>{dev.mgmt_ip}</Chip>}
         {agentName && <Chip label={t('inventory.telemetry.agent')}>{agentName}</Chip>}
         {dev.sources.length === 0 ? <Badge variant="outline" color="gray" tt="none">{t('inventory.manual')}</Badge>
-          : dev.sources.map((s) => <Badge key={s} variant="light" color="trace" tt="none">{sourceName(s)}</Badge>)}
+          : dev.sources.map((s) => <Badge key={s} variant="light" color="gray" tt="none">{sourceName(s)}</Badge>)}
         {dev.gone.map((s) => <Badge key={`gone-${s}`} variant="light" color="warn" tt="none">{t('inventory.gone', { source: sourceName(s) })}</Badge>)}
         {dev.hidden && <Badge variant="outline" color="gray" tt="none">{t('inventory.hidden')}</Badge>}
         {!!dev.drift?.length && (
@@ -350,6 +356,8 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
           </Panel>
         )}
 
+        {tab === 'networks' && <DeviceNetworks found={dev.discovered} />}
+        {tab === 'macs' && canLogs && <DeviceEndpoints name={dev.name} />}
         {tab === 'graphs' && <DeviceGraphs name={dev.name} interfaces={dev.interfaces} />}
 
         {tab === 'logs' && canLogs && <Panel><DeviceLogs name={dev.name} /></Panel>}

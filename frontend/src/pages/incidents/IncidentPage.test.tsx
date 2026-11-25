@@ -143,3 +143,13 @@ describe('Incident page (#887)', () => {
     expect(await screen.findByText('This incident is gone')).toBeInTheDocument()
   })
 })
+
+describe('Incident made from a problem (issue #882)', () => {
+  it('says when the problem it came from is over', async () => {
+    const over: IncidentBoard = { ...board, incidents: [{ ...board.incidents[0], from_problem: 'switch:s1', problem_over_at: now - 120 }] }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/incidents': over }).fn)
+    open('i1')
+    expect(await screen.findByText('Problem over · 2 minutes ago')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /problem/i, hidden: false })).toBeTruthy()
+  })
+})

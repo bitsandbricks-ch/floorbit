@@ -7,6 +7,7 @@ import { qk } from '@/api/keys'
 import type { CompareData, ComparePoint, CompareSide } from '@/api/types'
 import { bytes } from '../traffic/format'
 import { bps } from './format'
+import { Panel } from '@/components/ui'
 
 const W = 1000
 const H = 120
@@ -64,14 +65,12 @@ export function Compare({ only }: { only?: 'event' }) {
   const nowLabel = which === 'event' ? t('stats.compare.thisEvent') : t('stats.compare.today')
   const hours = Math.round((ev?.elapsed_s ?? 0) / 3600)
   return (
-    <section className="fb-stats-panel wide" aria-labelledby="stats-compare">
-      <Group justify="space-between" mb={6}>
-        <h2 id="stats-compare">{t('stats.compare.title')}</h2>
-        {!only && ev && (
-          <SegmentedControl size="xs" value={which} onChange={(v) => setView(v as 'day' | 'event')} aria-label={t('stats.compare.title')}
-            data={[{ value: 'day', label: t('stats.compare.dayView') }, { value: 'event', label: t('stats.compare.eventView', { name: ev.name }) }]} />
-        )}
-      </Group>
+    <Panel className="fb-wide" titleId="stats-compare" title={t('stats.compare.title')} actions={<>
+      {!only && ev && (
+        <SegmentedControl size="xs" value={which} onChange={(v) => setView(v as 'day' | 'event')} aria-label={t('stats.compare.title')}
+          data={[{ value: 'day', label: t('stats.compare.dayView') }, { value: 'event', label: t('stats.compare.eventView', { name: ev.name }) }]} />
+      )}
+    </>}>
       <Text size="sm" c="dimmed" mb="xs">
         {which === 'event' ? t('stats.compare.eventFair', { count: hours, name: ev?.name }) : t('stats.compare.dayFair')}
       </Text>
@@ -116,6 +115,6 @@ export function Compare({ only }: { only?: 'event' }) {
           </Group>
         </>
       )}
-    </section>
+    </Panel>
   )
 }

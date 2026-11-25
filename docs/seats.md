@@ -185,13 +185,14 @@ offline that might be fine.
 Drag to move, scroll or pinch to zoom; **+**, **-**, **0** and **Shift** with the arrow keys work
 when the plan has focus (see [Keyboard and screen readers](#keyboard-and-screen-readers)). What is drawn depends on how big a seat is on screen:
 
-- **Far** (a seat under 12 px): each block's name with its online and total seats and its
-  problems.
-- **Middle:** seat states and their marks, and next to each block's name how many of its seats have
-  problems ("C ! 7"). Seat numbers stay as long as they can be read: from about 18 px a seat, every
-  seat keeps its number, written smaller to fit; below that, only the first and last seat of each row
-  keep theirs, so you can count from the end of the row. Row letters grow to stay readable.
-- **Near** (a seat 30 px or more): seat numbers at full size and switch names too.
+Every block carries a small tag above its top-left corner with its name, and a red count when some of
+its seats have problems. Click the tag to open the block. The online counts are in the line above
+the plan and in the Needs attention list, so the plan doesn't repeat them.
+
+- **Far** (a seat under 12 px): the block tags, seat states and problem rings. No seat numbers:
+  nobody reads or counts to a seat this small, and hovering or tapping one names it.
+- **Middle** (12 to 30 px): seat states and their marks, plus small row labels before each row.
+- **Near** (a seat 30 px or more): every seat's number, and switch names.
 
 The status colours and shapes are the same at every level, so a 600-seat hall zoomed all the way
 out on a big screen still shows where the trouble is.
@@ -210,8 +211,9 @@ the plan is a shortcut: click it to show only those seats, and again to show all
 (`/plan?show=offline`), so a reload or a link sent to another tech keeps it, and switching halls does too. **Find a seat** takes `D-6`, `d6` or `D-06` and zooms to it.
 
 With more than one hall, the hall picker shows each hall's seats online and seats with problems,
-and the header says how many seats have problems in the other halls, so trouble there shows before
-you switch. The browser tab counts them too: "(3) Seats · Floorbit" means three seats with
+and the top bar says how many seats have problems in the other halls ("+2 in Annex", or "+5 in
+other halls" for several), so trouble there shows before you switch; clicking it opens the hall
+with the most. The browser tab counts them too: "(3) Seats · Floorbit" means three seats with
 problems in all halls, so a tab in the background still shows when something needs a look. A link with a seat or switch but no hall (`/plan?seat=E-3`) opens the hall that seat or
 switch is in.
 

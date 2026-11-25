@@ -233,6 +233,9 @@ def create_app(start_background=True):
     # The agents' Let's Encrypt certificate, once its name reaches Floorbit (docs/agent.md).
     from . import public_cert
     public_cert.init_app(app, start_background=start_background)
+    # The agents' own updates, from their signed releases (agent_updates.py).
+    from . import agent_updates
+    agent_updates.init_app(app, start_background=start_background)
 
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention
@@ -258,6 +261,9 @@ def create_app(start_background=True):
     # Inventory syncs on a schedule, off until INVENTORY_SYNC_MINUTES is set (docs/inventory.md).
     from . import inventory_schedule
     inventory_schedule.init_app(app, start_background=start_background)
+    # An incident made from a problem hears when the problem ends (docs/incidents.md).
+    from . import problem_watch
+    problem_watch.init_app(app, start_background=start_background)
     # Scheduled backups to an S3 bucket, off until one is set (docs/backup.md).
     from . import s3_backup
     s3_backup.init_app(app, start_background=start_background)

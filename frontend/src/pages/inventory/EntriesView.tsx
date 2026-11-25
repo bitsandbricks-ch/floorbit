@@ -62,7 +62,7 @@ export function EntriesView({ type, overview, group, tags, canEdit, onOpen, sour
                   <Group gap={6} wrap="nowrap">
                     <Anchor component="button" type="button" fw={600} ta="left" onClick={() => onOpen(e.id)}>{e.name}</Anchor>
                     {e.sources?.map((s) => (
-                      <Badge key={s} size="xs" variant={e.gone?.includes(s) ? 'outline' : 'light'} color={e.gone?.includes(s) ? 'warn' : 'trace'} tt="none">
+                      <Badge key={s} size="xs" variant={e.gone?.includes(s) ? 'outline' : 'light'} color={e.gone?.includes(s) ? 'warn' : 'gray'} tt="none">
                         {e.gone?.includes(s) ? t('inventory.gone', { source: sourceName(s) }) : sourceName(s)}
                       </Badge>
                     ))}

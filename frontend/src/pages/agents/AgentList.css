@@ -1,0 +1,22 @@
+/* The Local agents list (#1463): one bordered box, a strip per group, the same columns in every group. */
+.fb-agent-list { overflow: hidden; }
+.fb-agent-group {
+  padding: 8px 12px;
+  background: var(--mantine-color-default-hover);
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+.fb-agent-list > .fb-agent-group:first-child { border-top: 0; }
+.fb-agent-load { width: 96px; height: 24px; color: var(--mantine-color-up-6, currentColor); }
+.fb-agent-load.is-big { width: 100%; height: 56px; }
+.fb-agent-load svg { width: 100%; height: 100%; display: block; }
+/* Widths by class, not on the header: only the first group has a header row, and with a fixed
+   layout the first row sets them, so every group's columns line up. Phones get cards instead. */
+@media (min-width: 48em) {
+  .fb-agent-list table { table-layout: fixed; }
+  .fb-agent-list .fb-al-state { width: 36px; }
+  .fb-agent-list .fb-al-role { width: 112px; }
+  .fb-agent-list .fb-al-devices, .fb-agent-list .fb-al-syslog { width: 88px; }
+  .fb-agent-list .fb-al-load { width: 120px; }
+  .fb-agent-list .fb-al-version { width: 124px; }
+  .fb-agent-list .fb-al-look { width: 32%; }
+}

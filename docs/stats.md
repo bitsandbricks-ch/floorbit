@@ -9,10 +9,10 @@ Network dashboard) has the numbers people ask for during the event:
 | Peak, last hour / 24 hours | the busiest read in that time, and the average |
 | Peak of the event | the busiest read since the peak was last reset |
 | Seats online | seat ports that are up, and the most in the last 24 hours |
-| Ports | ports up, down and with errors |
+| Ports | ports in use (up) of all ports read, how many went down and how many have errors. "Went down" counts only ports that were up at some read of this event and are down now: an unused port is not an outage. **New event** starts that count again |
 
 Below them: traffic over the last hour or 24 hours, **Uplinks** (how full each switch's uplink is,
-amber from 60 %, red from 80 %) and **Top talkers** (the ten ports with the most traffic right now).
+amber from 60 %, red from 80 %) and **Busiest seats** (the ten seats with the most traffic right now; a port without a seat, such as a server or an access point, counts in the hall's total but is not listed).
 
 Code: [`floorbit/stats.py`](../floorbit/stats.py), [`floorbit/blueprints/stats.py`](../floorbit/blueprints/stats.py),
 [`frontend/src/pages/Stats.tsx`](../frontend/src/pages/Stats.tsx).
@@ -73,5 +73,5 @@ readable from across the hall. Replay, the report and resetting the peak are on 
 ## Who sees what
 
 Anyone with `floorplan.view` sees the page. Samples hold numbers, seats and ports, never who sits
-there. Accounts with `seats.view` see the player's nick next to a top talker; the big-screen version
+there. Accounts with `seats.view` see the player's nick next to a busy seat; the big-screen version
 never shows nicks, because everyone in the hall can read it. IPs and MACs are never shown here.

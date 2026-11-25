@@ -31,6 +31,7 @@ PAGES = (
     ('/lancache', 'lancache', 'LAN cache', lambda c, can: _lancache_on()),
     ('/traffic', 'traffic', 'Traffic', lambda c, can: c['feature_on']('traffic')),
     ('/games', 'games', 'Games', lambda c, can: c['feature_on']('games')),
+    ('/applications', 'applications', 'Applications', None),
     ('/stats', 'stats', 'Stats', None),
     ('/speedtests', 'speedtests', 'Speed tests',
      lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),

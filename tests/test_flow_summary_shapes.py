@@ -42,3 +42,13 @@ def test_odd_summaries_never_break_the_pages(client, app_module):
     agent.post("/api/agent/v1/flows", json={"snapshot": good}, headers={"Floorbit-Agent-Key": key})
     shown = client.get("/api/flows").get_json()
     assert shown["services"] == good["services"][:25] and shown["anomalies"][0]["seat"] == good["anomalies"][0]["seat"]
+
+
+def test_maps_inside_a_row_come_through():
+    from floorbit.blueprints.agent import _flow_value
+    rows = _flow_value([{"seat": "A-1", "bytes": 5, "mix": {"gaming": 5}},
+                        {"name": "Steam", "bytes": 5, "seats": 6, "trend": {"1800000000": 5}, "areas": {"A": 5}}])
+    assert rows[0]["mix"] == {"gaming": 5}
+    assert rows[1]["trend"] == {"1800000000": 5} and rows[1]["areas"] == {"A": 5}
+    # Deeper than that is not a shape any page reads.
+    assert _flow_value([{"seat": "A-1", "mix": {"gaming": {"x": 1}}}]) == [{"seat": "A-1", "mix": {}}]

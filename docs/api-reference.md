@@ -83,7 +83,18 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | PATCH | `/api/agents/<agent_id>/settings` | `settings.manage` |  |
 | GET | `/api/agents/ca.crl` | anyone |  |
 | GET | `/api/agents/ca.pem` | `settings.manage` |  |
+| GET | `/api/agents/load` | `settings.manage` |  |
 | POST | `/api/agents/roll` | `settings.manage` |  |
+
+## floorbit.blueprints.agent_groups
+
+One group of local agents: the agents with the same tags, which back each other up (#1405) and split their devices (#1441). For admins (``settings.manage``, as all of ``/api/agents``):
+
+Source: [`floorbit/blueprints/agent_groups.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent_groups.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/agents/groups/<path:group_id>` | `settings.manage` |  |
 
 ## floorbit.blueprints.agent_plugins
 
@@ -99,6 +110,16 @@ Source: [`floorbit/blueprints/agent_plugins.py`](https://github.com/bitsandbrick
 | GET | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 | POST | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 
+## floorbit.blueprints.agent_updates
+
+Updates of the agents themselves (floorbit/agent_updates.py), for the agent with its key:
+
+Source: [`floorbit/blueprints/agent_updates.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent_updates.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/agent/v1/agent-bundles/<name>` | anyone |  |
+
 ## floorbit.blueprints.api_tokens
 
 API tokens and the API's version (issue #40). Rules in auth/tokens.py, docs in docs/api.md.
@@ -111,6 +132,19 @@ Source: [`floorbit/blueprints/api_tokens.py`](https://github.com/bitsandbricks-c
 | POST | `/api/settings/api-tokens` | `settings.manage` |  |
 | DELETE | `/api/settings/api-tokens/<token_id>` | `settings.manage` |  |
 | GET | `/api/version` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
+## floorbit.blueprints.applications
+
+Applications (issue #1481): the games, launchers and site groups Floorbit recognises. Rules in floorbit/applications.py, docs in docs/applications.md.
+
+Source: [`floorbit/blueprints/applications.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/applications.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/applications` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/applications` | `settings.manage` |  |
+| DELETE | `/api/applications/<app_id>` | `settings.manage` |  |
+| PUT | `/api/applications/<app_id>` | `settings.manage` |  |
 
 ## floorbit.blueprints.audit
 
@@ -864,6 +898,8 @@ Source: [`floorbit/blueprints/problems.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/alerts/mutes` | `incidents.work` |  |
 | DELETE | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
 | PATCH | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
+| POST | `/api/alerts/raised` | `incidents.work` |  |
+| DELETE | `/api/alerts/raised/<path:problem_id>` | `incidents.work` |  |
 | GET | `/api/problems` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/problems/<path:problem_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 

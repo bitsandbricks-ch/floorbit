@@ -1,0 +1,19 @@
+{
+  "title_one": "{{count}} Platz: {{kind}}",
+  "title_other": "{{count}} Plätze: {{kind}}",
+  "kinds": {
+    "checkin_one": "{{count}} Platz online ohne Check-in",
+    "checkin_other": "{{count}} Plätze online ohne Check-in",
+    "flapping_one": "{{count}} Platz-Port flattert",
+    "flapping_other": "{{count}} Platz-Ports flattern",
+    "errors_one": "{{count}} Platz-Port mit steigenden Fehlern",
+    "errors_other": "{{count}} Platz-Ports mit steigenden Fehlern",
+    "duplex_one": "{{count}} Platz-Port im Halbduplex",
+    "duplex_other": "{{count}} Platz-Ports im Halbduplex"
+  },
+  "show": "Die {{count}} Plätze zeigen",
+  "hide": "Plätze ausblenden",
+  "linksDown_one": "Sein Link ist auch down: {{names}}",
+  "linksDown_other": "{{count}} seiner Links sind auch down: {{names}}",
+  "more": "Weitere Aktionen"
+}

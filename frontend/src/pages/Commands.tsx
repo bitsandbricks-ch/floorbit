@@ -83,11 +83,6 @@ export default function Commands() {
                 {t('commands.configs')}
               </Button>
             )}
-            {canTerminal && (
-              <Button variant="default" component="a" href="/terminal" leftSection={<IconTerminal2 size={16} />}>
-                {t('commands.terminal')}
-              </Button>
-            )}
             {info?.may_edit && (
               <Button variant="default" leftSection={<IconPlus size={16} />} onClick={() => setEditing(true)}>
                 {t('commands.newTemplate')}

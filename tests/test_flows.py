@@ -8,9 +8,10 @@ import struct
 import pytest
 
 from floorbit.flows import aggregate, classify, parse, store
+from floorbit.flows import collector as collector_mod
 from floorbit.flows.aggregate import Aggregator
 from floorbit.flows.classify import Classifier, compile_rules
-from floorbit.flows.collector import Collector
+from floorbit.flows.collector import RAW_LATE, Collector
 
 SEATS = {f"192.0.2.{10 + i}": f"A-{i + 1}" for i in range(8)}
 AREAS = dict.fromkeys(SEATS.values(), "A")
@@ -213,6 +214,21 @@ def test_a_service_is_only_named_once_enough_seats_used_it(agg, monkeypatch):
     assert "203.0.113" not in json.dumps(snap)   # no remote addresses anywhere
 
 
+def test_a_service_has_down_up_a_trend_and_blocks_of_enough_seats(agg, monkeypatch):
+    monkeypatch.setenv("FLOWS_MIN_SEATS", "3")
+    agg.set_seats(SEATS, {**AREAS, "A-6": "B", "A-7": "B"})
+    hour = NOW // 3600 * 3600
+    down = [rec("203.0.113.30", f"192.0.2.{10 + i}", 27015, 50000, size=1000) for i in range(7)]
+    up = rec("192.0.2.10", "203.0.113.30", 50000, 27015, size=300)
+    agg.add(down, now=hour + 10)
+    agg.add([up], now=hour + 3600 + 10)
+    [steam] = agg.snapshot(now=hour + 3600 + 20)["services"]
+    assert (steam["down"], steam["up"], steam["seats"]) == (7000, 300, 7)
+    assert steam["trend"] == {str(hour): 7000, str(hour + 3600): 300}
+    # Block B had two of its seats on Steam: under the floor of three, so it isn't named.
+    assert steam["areas"] == {"A": 5300}
+
+
 def test_per_seat_is_volume_and_mix_only(agg):
     agg.add([STEAM, rec("192.0.2.10", "203.0.113.9", 51000, 443, proto=6, size=1000)], now=NOW)
     [seat] = agg.snapshot(now=NOW + 1)["seats"]
@@ -232,7 +248,8 @@ def test_closed_hours_keep_no_seats(agg, monkeypatch):
     agg.tick(now=NOW + 3600)
     [(start, hour)] = agg.take_closed_hours()
     assert start == NOW // 3600 * 3600
-    assert hour["services"] == {"Steam": {"bytes": 5_001_000, "category": "gaming", "seats": 2}}
+    assert hour["services"] == {"Steam": {"bytes": 5_001_000, "down": 5_001_000, "up": 0, "category": "gaming",
+                                          "seats": 2}}
     assert "A-1" not in json.dumps(hour) and "192.0.2" not in json.dumps(hour)
 
 
@@ -277,20 +294,54 @@ def test_collector_reads_writes_raw_and_publishes(tmp_path, monkeypatch, app_mod
     assert col.receive(b"nonsense", "198.51.100.1", now=NOW) == 0 and col.errors == 1
     col.housekeeping(now=NOW + 1, refresh_seats=lambda: (SEATS, AREAS))   # seats come after the first packet
     col.receive(v5([STEAM]), "198.51.100.1", now=NOW + 2)
-    col._next["publish"] = col._next["raw"] = 0   # both are due (raw is written every RAW_EVERY s)
+    col._next["raw"] = 0
     col.housekeeping(now=NOW + 3, refresh_seats=lambda: (SEATS, AREAS))
+    assert not (tmp_path / "raw").exists()   # the minute waits RAW_LATE for late records of it
+    col._next["publish"] = col._next["raw"] = 0   # both are due (raw is written every RAW_EVERY s)
+    col.housekeeping(now=NOW + 60 + RAW_LATE, refresh_seats=lambda: (SEATS, AREAS))
     snap = store.latest()
     assert snap["mix_hour"] == {"gaming": 5_000_000} and snap["raw"]["files"] == 1 and snap["errors"] == 1
     [name] = os.listdir(tmp_path / "raw")
     with gzip.open(tmp_path / "raw" / name, "rt") as f:
-        assert len(f.readlines()) == 2   # raw keeps every flow, also the one before the seats were known
+        [row] = store.read_rows(f)   # raw keeps every flow, also the one before the seats were known
+    assert row["bytes"] == 10_000_000 and row["records"] == 2 and row["src"] == "203.0.113.30"
+
+
+def test_compacted_rows_keep_the_totals():
+    flows = [{**rec(f"192.0.2.{10 + i % 5}", "203.0.113.30", 50000 + i % 3, 443, size=1000 + i, packets=1 + i % 4),
+              "end": NOW + i} for i in range(300)]
+    rows = store.compact(flows, {}, now=NOW + 300)
+    assert len(rows) < len(flows)
+    assert sum(r[0] for r in rows.values()) == sum(f["bytes"] for f in flows)
+    assert sum(r[1] for r in rows.values()) == sum(f["packets"] for f in flows)
+    assert sum(r[2] for r in rows.values()) == len(flows)
+    assert {k[0] for k in rows} == {(NOW + i) // 60 * 60 for i in range(300)}   # each in its own minute
+
+
+def test_flood_writes_the_oldest_minutes_early(tmp_path, monkeypatch):
+    monkeypatch.setattr(collector_mod, "MAX_PENDING", 10)
+    col = Collector(Aggregator(Classifier()), store.RawStore(str(tmp_path)), log=lambda *_: None)
+    for minute in range(3):
+        col.receive(v5([rec(f"192.0.2.{10 + i}", "203.0.113.30", 50000, 443) for i in range(8)],
+                       secs=NOW + 60 * minute), "198.51.100.1", now=NOW + 60 * minute)
+    col._next["raw"] = 0
+    col.housekeeping(now=NOW + 61, refresh_seats=lambda: (SEATS, AREAS))
+    assert len(col._pending) == 8   # only the newest minute still waits, though the one before is not closed
+    col.flush()
+    assert not col._pending
+
+
+def test_raw_rows_go_to_the_file_of_their_hour(tmp_path):   # NOW starts an hour
+    raw = store.RawStore(str(tmp_path))
+    raw.write(store.compact([{**STEAM, "end": NOW - 60}, {**STEAM, "end": NOW}], {}, now=NOW))
+    assert raw.usage()["files"] == 2
 
 
 def test_raw_files_go_after_the_retention(tmp_path, monkeypatch):
     monkeypatch.setenv("FLOWS_RETENTION_DAYS", "7")
     raw = store.RawStore(str(tmp_path))
-    raw.write([STEAM], now=NOW - 8 * 86400)
-    raw.write([STEAM], now=NOW - 86400)
+    raw.write(store.compact([STEAM], {}, now=NOW - 8 * 86400))
+    raw.write(store.compact([STEAM], {}, now=NOW - 86400))
     assert raw.usage()["files"] == 2
     assert raw.prune(now=NOW) == 1 and raw.usage()["files"] == 1
 
@@ -301,7 +352,7 @@ def test_raw_files_keep_to_a_size_cap_oldest_first(tmp_path, monkeypatch):
     monkeypatch.setenv("FLOWS_RAW_MAX_MB", "1")
     raw = store.RawStore(str(tmp_path))
     for hour in range(4):
-        raw.write([STEAM], now=NOW - (4 - hour) * 3600)
+        raw.write(store.compact([STEAM], {}, now=NOW - (4 - hour) * 3600))
     names = sorted(os.listdir(tmp_path / "raw"))
     for name in names:
         (tmp_path / "raw" / name).write_bytes(os.urandom(400_000))
@@ -314,7 +365,7 @@ def test_raw_files_keep_to_a_size_cap_oldest_first(tmp_path, monkeypatch):
 def test_no_raw_flows_when_switched_off(tmp_path, monkeypatch):
     monkeypatch.setenv("FLOWS_KEEP_RAW", "false")
     raw = store.RawStore(str(tmp_path))
-    raw.write([STEAM], now=NOW)
+    raw.write(store.compact([STEAM], {}, now=NOW))
     assert raw.usage()["files"] == 0
 
 

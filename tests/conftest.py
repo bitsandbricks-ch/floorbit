@@ -249,6 +249,14 @@ def _librenms_answers_again():
 
 
 @pytest.fixture(autouse=True)
+def _no_agent_releases_from_github(monkeypatch):
+    """The app's hourly look at the agent's GitHub releases (floorbit/agent_updates.py) never runs
+    in tests: tests/test_agent_updates.py hands refresh() a fake instead."""
+    from floorbit import agent_updates
+    monkeypatch.setattr(agent_updates, "_loop", lambda: None)
+
+
+@pytest.fixture(autouse=True)
 def _no_wrong_pins_yet(monkeypatch):
     """Wrong check-in PINs count per PC for ten minutes; one test's guesses don't lock the next."""
     from integrations import checkin
@@ -350,3 +358,15 @@ def _agents_sign(monkeypatch):
         kwargs["headers"] = headers
         return real_open(self, *args, **kwargs)
     monkeypatch.setattr(FlaskClient, "open", signing_open)
+
+
+@pytest.fixture(autouse=True)
+def _agent_lease_fresh(monkeypatch):
+    """No lease holder remembered from another test, and Floorbit started long ago, so nothing
+    waits for a holder after a restart (floorbit/agent_ha.py, tests/test_agent_ha_lease.py)."""
+    from floorbit import agent_ha
+    kept = {}
+    monkeypatch.setattr(agent_ha, "_remembered", kept.get)
+    monkeypatch.setattr(agent_ha, "_remember", kept.__setitem__)
+    monkeypatch.setattr(agent_ha, "_started", -10 * agent_ha.STARTUP_GRACE)
+    monkeypatch.setattr(agent_ha, "_back", set())

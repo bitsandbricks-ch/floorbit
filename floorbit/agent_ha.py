@@ -18,6 +18,8 @@ with the plugin config they pull). Without the hosted side (uplink down too) VRR
 """
 from __future__ import annotations
 
+import time
+
 # How a group stands, worst first: what the Local agents page shows and colours.
 STATES = ('down', 'split', 'no_vrrp', 'no_primary', 'degraded', 'single', 'ok')
 FLOWS_FRESH = 120    # a primary's traffic summary this recent wins over a standby's
@@ -40,7 +42,11 @@ def groups(agents, tag_names=None):
         connected = [a for a in members if a.get('connected')]
         vrrp = {a['id']: _vrrp(a) for a in connected}
         # Agents that take Floorbit's lease (issue #1405): it picks the primary, VRRP only moves addresses.
-        leased = bool(connected) and all(_lease(a) is not None for a in connected)
+        # Right after a restart of this Floorbit no agent has reported yet: one that held the lease
+        # before (remembered) says the group takes leases, so the page doesn't fall back to VRRP.
+        reported = [a for a in connected if a.get('report')]
+        leased = bool(connected) and (all(_lease(a) is not None for a in reported) if reported
+                                      else _remembered('|'.join(key)) is not None)
         if leased:
             holder = lease_holder(members)
             primaries = [a for a in connected if a['id'] == holder]
@@ -107,29 +113,70 @@ def group_key(agent_id):
     return None if me is None else 'group:' + '|'.join(sorted(me.get('tags') or ()))
 
 
-_granted = {}    # group (its tags) -> the agent this pod last gave the lease, until its report says so
+# Who last held each group's lease, kept in the data (key LEASES, group's tags joined with "|"),
+# so a restart of this Floorbit, which forgets every report, doesn't hand it to whichever agent
+# reconnects first. For STARTUP_GRACE after the start it waits for that agent to come back.
+LEASES = 'agent_leases'
+STARTUP_GRACE = 60
+_started = time.monotonic()
+_back = set()    # agents connected since this start: one that leaves again isn't waited for
+
+
+def _remembered(key):
+    try:
+        from .store import load_shared
+        return (load_shared().get(LEASES) or {}).get(key)
+    except Exception:  # noqa: BLE001  # no data yet (tests, first start): nothing remembered
+        return None
+
+
+def _remember(key, agent_id):
+    if _remembered(key) == agent_id:
+        return
+    try:
+        from . import agent_link
+        from .store import load_data, save_data
+        with agent_link._lock:
+            data = load_data()
+            data.setdefault(LEASES, {})[key] = agent_id
+            save_data(data)
+    except Exception as exc:  # noqa: BLE001  # the lease still works, only a restart forgets it
+        print(f'[agent_ha] could not keep the lease holder: {exc}')
 
 
 def lease_holder(members):
     """The group's primary, picked here (issue #1405): the connected agent that holds the lease
-    already keeps it (sticky; the smallest id if two say so for a moment), else the group's VRRP
-    primary, else the smallest connected id. None when nobody of the group is connected.
+    already keeps it (sticky; the smallest id if two say so for a moment), else the one that held
+    it last, else the group's VRRP primary, else the smallest connected id. None when nobody of
+    the group is connected, or in the first minute after a start while the last holder has not
+    been back yet.
+    Only the members with the fewest plugins turned off are picked: the primary polls and logs in
+    for the group, so one without telemetry would leave the group's devices unpolled.
     Asked fresh on every pull, so every pod that hears the same reports picks the same agent."""
-    connected = sorted(a['id'] for a in members if a.get('connected'))
-    if not connected:
-        return None
     by_id = {a['id']: a for a in members}
+    every = sorted(a['id'] for a in members if a.get('connected'))
+    _back.update(every)
+    if not every:
+        return None
+    fewest = min(len(by_id[i].get('plugins_off') or ()) for i in every)
+    connected = [i for i in every if len(by_id[i].get('plugins_off') or ()) == fewest]
+    key = '|'.join(sorted(members[0].get('tags') or ()))
     holding = [i for i in connected if _lease(by_id[i])]
+    last = _remembered(key)
     if holding:
-        return holding[0]
-    # Given out but not reported yet (its report comes within half a minute): keep it there, or an
-    # agent that comes back in between would take it straight back.
-    key = tuple(sorted(members[0].get('tags') or ()))
-    if _granted.get(key) in connected:
-        return _granted[key]
-    vrrp = [i for i in connected if (_vrrp(by_id[i]) or {}).get('primary')]
-    _granted[key] = vrrp[0] if len(vrrp) == 1 else connected[0]
-    return _granted[key]
+        pick = holding[0]
+    elif last in connected:
+        # Given out but not reported yet (its report comes within half a minute), or held before
+        # a restart: keep it there, or an agent that comes back in between would take it.
+        pick = last
+    elif (last in by_id and last not in every and last not in _back
+          and time.monotonic() - _started < STARTUP_GRACE):
+        return None
+    else:
+        vrrp = [i for i in connected if (_vrrp(by_id[i]) or {}).get('primary')]
+        pick = vrrp[0] if len(vrrp) == 1 else connected[0]
+    _remember(key, pick)
+    return pick
 
 
 def lease_for(agent_id, agents=None, now=None):
@@ -141,7 +188,16 @@ def lease_for(agent_id, agents=None, now=None):
     me, members = _group_of(agent_id, agents)
     if me is None:
         return None
-    return {'primary': lease_holder(members) == agent_id, 'members': len(members)}
+    out = {'primary': lease_holder(members) == agent_id, 'members': len(members)}
+    connected = {a['id'] for a in members if a.get('connected')}
+    tags = {a['id']: set(a.get('tags') or ()) for a in members}
+    split = split_group(agent_id, connected, tags, {a['id']: a.get('report') for a in members}) \
+        if agent_id in connected and len(connected) > 1 else []
+    if split:
+        # The agent works out which devices are its own from these (split_owner): it logs in to
+        # those, primary or not (floorbit-agent's PluginHost.may_login).
+        out.update(split=split, me=agent_id)
+    return out
 
 
 def _claims_primary(agent):
@@ -180,6 +236,67 @@ def standby_with_primary(agent_id, now):
             if flows and now - flows['at'] < FLOWS_FRESH:
                 return True
     return False
+
+
+def split_owner(name, members):
+    """The agent of ``members`` that owns the device ``name`` (issue #1441): the highest hash of
+    agent and name (rendezvous hashing). When an agent goes, only its devices move, and every pod
+    picks the same owner without asking anyone. None without members."""
+    import hashlib
+    key = str(name or '').lower()
+    return max(sorted(members), key=lambda m: hashlib.sha256(f'{m}|{key}'.encode()).digest(), default=None)
+
+
+# What an agent can do, as it lists it in its report (``capabilities``), with what Floorbit falls
+# back to for an agent that can't: lease (else VRRP picks the primary), split (else the primary
+# collects every device), syslog_hold (else every agent sends every syslog line, kept once here),
+# self_update (else the agent's page shows the pull command; agent_updates.py).
+CAPABILITIES = ('lease', 'split', 'syslog_hold', 'self_update')
+
+
+def capabilities(report):
+    """The capabilities an agent has, from its list, or worked out from its report for an agent from
+    before the list."""
+    report = report or {}
+    listed = report.get('capabilities')
+    have = set(listed) if isinstance(listed, list) else set()
+    if isinstance(report.get('lease'), bool):
+        have.add('lease')
+    # A split needs both the agent (logins to its own devices) and its telemetry plugin (polls only
+    # those): the plugin says so with its "split" number, which it only reports on a host that can.
+    metrics = ((report.get('plugins') or {}).get('telemetry') or {}).get('metrics') or {}
+    if metrics.get('split') == 1 and (listed is None or 'split' in have):
+        have.add('split')
+    else:
+        have.discard('split')
+    return sorted(have & set(CAPABILITIES))
+
+
+def can(report, capability):
+    return capability in capabilities(report)
+
+
+def splits(report):
+    """Does the agent follow a split? One that doesn't would poll every device as primary, next to
+    the owners: its group isn't split until it does."""
+    return can(report, 'split')
+
+
+def split_members(agent_id, connected, agent_tags):
+    """The connected agents that share the device work with ``agent_id``: its group (the same
+    tags), itself included."""
+    mine = sorted(agent_tags.get(agent_id, ()))
+    # Only agents Floorbit knows: a link that outlived its agent (revoked a moment ago) owns nothing.
+    return sorted({agent_id, *(a for a in connected if a in agent_tags and sorted(agent_tags[a]) == mine)})
+
+
+def split_group(agent_id, connected, agent_tags, reports):
+    """The members to split devices between, or [] when the group doesn't split: one agent alone,
+    or one of them too old to follow (splits()). ``reports``: agent id -> its last report."""
+    members = split_members(agent_id, connected, agent_tags)
+    if len(members) < 2 or not all(splits(reports.get(m)) for m in members):
+        return []
+    return members
 
 
 def one_per_group(agent_ids, now=None):

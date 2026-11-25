@@ -1,3 +1,4 @@
+import type { AgentSelfUpdateReport, SelfUpdateStatus } from './agentUpdates'
 import type { OwnCheck, ServiceTags } from './serviceChecks'
 // Shapes the Flask API returns. Keep in step with floorbit/plugins and auth.
 
@@ -304,6 +305,15 @@ export interface DeviceDetail extends Omit<Device, 'drift'> {
   interfaces: DeviceInterface[]
   own_credentials: CredentialInfo[]
   blocks: LoginBlock[]
+  /** What discovery read from the device (issue #919): its VLANs, the networks on its interfaces,
+   *  the VLAN interfaces with an address, and a firewall's routes; ``at`` is when. */
+  discovered?: {
+    vlans: { id: number; name: string }[]
+    networks: string[]
+    svis?: { vlan: number; network: string; if_index?: number | null }[]
+    routes: { network: string; next_hop?: string | null; interface?: string | null; proto?: string | null }[]
+    at: string | null
+  }
   /** What goes down with this device: VMs on it, and game servers on it or on those VMs. */
   runs_here?: { kind: 'device' | 'game-server'; id: string; name: string; role?: string; via?: string }[]
   /** What is wired to it: cables on its ports, circuits that feed it, internet lines on it. */
@@ -526,6 +536,8 @@ export interface Incident {
   problem: string | null
   /** The problem on the Problems page it was made from (issue #882). */
   from_problem?: string | null
+  /** When that problem ended; gone again if it came back (issue #882). */
+  problem_over_at?: number | null
   team: string | null
   status: IncidentStatus
   assignee: string | null
@@ -686,7 +698,15 @@ export interface Circuit {
   state: PowerState
   load_pct: number | null
   fed: { seats: string[]; switches: { id: string; name: string }[] }
+  /** English, for logs and incidents; the page words feeds_parts (power/feeds.ts). */
   feeds_label: string
+  feeds_parts: CircuitFeedParts[]
+}
+/** One feed of a circuit: the block's label (null once removed) and the rows' names. */
+export interface CircuitFeedParts {
+  block: string | null
+  rows: string[]
+  by_rows: boolean
 }
 export interface PowerOverview {
   enabled: boolean
@@ -740,11 +760,19 @@ export interface Problem {
   behind?: string[]
   /** The down switch this one is behind: the place to start. */
   cause?: string
+  /** A link's two boxes, so the page can hang it under one that is down (issue #1415). */
+  ends?: string[]
   /** A LibreNMS alert: what DELETE /api/alerts/librenms/<id> takes when its recovery got lost (issue #951). */
   clear_id?: string
   ports?: string[]
   /** The switch it is on, when it is on one: what the page groups by (issue #883). */
   device?: string | null
+  /** 1 down and cutting off more than itself, 2 down, 3 to look at; 1 too when raised by hand (issue #1364). */
+  priority?: 1 | 2 | 3
+  raised?: { by: string | null; at: number } | null
+  /** The hall its switch or seat is in, and its switch's tags: what the page groups and filters by. */
+  hall?: string | null
+  tags?: string[]
 }
 
 /** GET /api/problems/<id> (issue #882): one problem, and the device it is on. */
@@ -815,7 +843,11 @@ export interface StatsData {
   monitoring: boolean
   interval: number
   last_poll: number | null
-  now: (StatsSample & { ports_up: number; ports_down: number; ports_errors: number }) | null
+  now: (StatsSample & {
+    ports_up: number; ports_down: number; ports_errors: number
+    /** Every port read, and those up at some read of this event that are down now (#1421). */
+    ports_total?: number; ports_lost?: number
+  }) | null
   hour: StatsWindow | null
   day: StatsWindow | null
   peak: { bps: number; at: number } | null
@@ -837,6 +869,19 @@ export interface FlowAnomaly {
   first_seen: number
   last_seen: number
 }
+/** A service on the Traffic page: down (to the seats) and up, bytes per hour (unix hour start as text)
+ *  and per seat block. An older agent sends only name, category, bytes and seats. */
+export interface FlowService {
+  name: string
+  category: FlowCategory
+  bytes: number
+  seats: number
+  down?: number
+  up?: number
+  trend?: Record<string, number>
+  areas?: Record<string, number>
+}
+
 export interface FlowsData {
   collector: boolean
   can_see_seats: boolean
@@ -852,7 +897,7 @@ export interface FlowsData {
   mix_day?: FlowMix
   series?: ({ t: number } & FlowMix)[]
   areas?: { area: string; bytes: number; mix: FlowMix }[]
-  services?: { name: string; category: FlowCategory; bytes: number; seats: number }[]
+  services?: FlowService[]
   other_services?: number
   seats?: { seat: string; area: string | null; bytes: number; mix: FlowMix }[] | null
   anomalies?: FlowAnomaly[]
@@ -1233,19 +1278,26 @@ export interface LancacheOverview extends LancacheData {
 export interface LauncherRow {
   id: string
   name: string
+  kind: 'game' | 'launcher' | 'sitegroup'
+  part_of: string | null
+  category: string
   lookups: number | null
-  dns_seats_max: number
+  dns_seats_max: number | null
   traffic_bytes: number | null
   traffic_seats: number | null
   cache_hit_bytes: number | null
   cache_miss_bytes: number | null
+  players: number | null
+  seats: number
 }
 export interface GamesData {
   launchers: LauncherRow[]
+  titles: LauncherRow[]
+  sitegroups: LauncherRow[]
   games: { name: string; bytes: number; seats: number }[]
   other_caches: CacheRow[]
   cache: LancacheData
-  sources: { dns: boolean; traffic: boolean; cache: boolean }
+  sources: { dns: boolean; traffic: boolean; cache: boolean; servers: boolean }
   min_seats: { dns: number; traffic: number | null }
 }
 
@@ -1849,6 +1901,8 @@ export interface Agent {
   report?: AgentReport | null
   /** Plugins that are on here but this agent leaves off (another agent runs them). */
   plugins_off?: string[]
+  /** What it can do (floorbit/agent_ha.py CAPABILITIES); Floorbit falls back for the rest. */
+  capabilities?: string[]
   /** How it reaches this Floorbit right now: protocol 2's WebSocket link or the HTTPS long poll
    *  (null: not connected, or connected to another instance). */
   transport?: 'websocket' | 'poll' | null
@@ -1857,6 +1911,8 @@ export interface Agent {
   old_works_until?: number | null
   /** One of the demo's made-up agents (floorbit/agent_demo.py): connected, but takes no calls. */
   demo?: boolean
+  /** Where its own update stands (floorbit/agent_updates.py). */
+  self_update?: SelfUpdateStatus
 }
 
 /** An agent's plugin updates (docs/agent-plugins.md, "Updates"). */
@@ -1910,6 +1966,8 @@ export interface AgentReport {
   /** Agent plugins (docs/agent-plugins.md): how each one that should run is doing. */
   plugins?: Record<string, AgentPluginHealth>
   updates?: AgentUpdates
+  /** Its own updates (floorbit-agent's self_update.py). */
+  agent_update?: AgentSelfUpdateReport
   /** With VRRP: whether it is its hall's primary, and the addresses it holds. */
   vrrp?: { primary: boolean; holds: string[] }
   /** Where each of its settings came from (floorbit/agent_settings.py ``clean_report``). */

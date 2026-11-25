@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Circuit, PowerOverview } from '@/api/types'
+import { feedsText } from '@/pages/power/feeds'
 import { nextName } from './tools'
 
 const STATE_COLOR: Record<string, string> = { ok: 'up', warn: 'warn', crit: 'down', tripped: 'down', unknown: 'gray' }
@@ -76,7 +77,7 @@ export function BoardFields({ board, feedable, onAddCircuit, onFeed }: {
             <Group key={c.id} justify="space-between" wrap="nowrap" gap="xs">
               <div style={{ minWidth: 0 }}>
                 <Text size="sm" truncate>{c.name}</Text>
-                <Text size="xs" c="dimmed" truncate>{c.feeds_label || t('plan.edit.board.feedsNothing')}</Text>
+                <Text size="xs" c="dimmed" truncate>{feedsText(t, c) || t('plan.edit.board.feedsNothing')}</Text>
               </div>
               <Badge variant="light" color={STATE_COLOR[c.state] ?? 'gray'}>{c.state === 'tripped' ? t('plan.power.tripped') : c.load_pct == null ? '–' : `${Math.round(c.load_pct)} %`}</Badge>
             </Group>

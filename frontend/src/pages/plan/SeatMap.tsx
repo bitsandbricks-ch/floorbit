@@ -13,12 +13,12 @@ import { CableLines, CablePlugs, PanelGlyphs } from './NetworkLayer'
 import { followPlan } from './cableRoute'
 import { PowerLayer } from './PowerLayer'
 import { blockAlarm } from './blockTop'
-import { blockSums, placeLabels, placesAround, shapeLabel, shapeRect, textWidth } from './blockSums'
+import { blockSums, shapeLabel, shapeRect, textWidth } from './blockSums'
 import { Minimap } from './Minimap'
 import { useSize } from './useSize'
 import { showMinimap } from './minimap'
 import { WifiLayer } from './WifiLayer'
-import { type LabelMode, type SeatLabels, labelPlan, labelStyle, rowEnds } from './labels'
+import { type LabelMode, type SeatLabels, labelPlan, labelStyle } from './labels'
 import { UPLINK_WIDTH } from './linkLook'
 
 /** One seat, in its block's coordinates. Every state has its own shape, not only its own colour:
@@ -170,7 +170,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   const level: Density = forced ?? density(drawing.cell, view, px)
   const s = scale(view, px) || 1
   // Paper ('near' forced) numbers every seat at the classic size; screens follow the zoom.
-  const named = forced === 'near' ? labelPlan(drawing.cell, 2, labelMode) : labelPlan(drawing.cell, scale(view, px) || 0.75, labelMode)
+  const named = forced === 'near' ? labelPlan(drawing.cell, 2, labelMode, true) : labelPlan(drawing.cell, scale(view, px) || 0.75, labelMode)
   const seatLabels: SeatLabels = level === 'far' && labelMode !== 'all' ? 'none' : named.seats
   const [hover, setHover] = useState<{ seat: string; x: number; y: number } | null>(null)
   const [cursor, setCursor] = useState<string | null>(null)
@@ -306,30 +306,19 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
     seat.note ? t('plan.hasNote') : null,
   ].filter(Boolean).join(' · '), [t])
 
-  const label = 14 / s   // block labels stay about 14 px tall at every zoom
   const sums = useMemo(() => blockSums(drawing.shapes, data.blocks), [drawing.shapes, data.blocks])
-  // Block labels that fit: far out a name and counts, closer the name only (row letters do the rest).
-  // A label goes above its block, else beside it, else not at all, so none covers another (#1323).
-  const blockLabels = useMemo(() => {
-    const rects = drawing.shapes.map(shapeRect)
-    const far = level === 'far'
-    const size = far ? label : Math.max(18, label)
-    const items = drawing.shapes.map((b, i) => {
-      const sum = sums[i]
-      const name = far ? shapeLabel(b) : b.name
-      if (far ? !sum : !name) return { places: [], rank: 0, name, sub: '' }
-      const sub = far && sum ? `${sum.online}/${sum.seats}${sum.problems ? ` · ! ${sum.problems}` : ''}` : ''
-      const bad = !far && sum?.problems ? `  ! ${sum.problems}` : ''
-      const w = Math.max(textWidth(name + bad, size * 1.08), textWidth(sub, size))
-      const h = far ? size * 2.3 : size * 1.2
-      return { places: placesAround(rects[i], w, h, far ? 4 : 8), rank: (sum?.problems ? 1e6 : 0) + (sum?.seats ?? 0), name, sub }
-    })
-    const at = placeLabels(items, rects)
-    return drawing.shapes.map((_, i) => {
-      const k = at.get(i)
-      return k === undefined ? null : { ...items[i].places[k], name: items[i].name, sub: items[i].sub, size }
-    })
-  }, [drawing.shapes, sums, level, label])
+  // One screen pixel in drawing units, for the block tags; on paper a tag is about a seat tall.
+  const tagPx = forced === 'near' ? drawing.cell / 16 : 1 / s
+  // Shapes and colour first (#1471): a block is named by a small tag above its top-left corner, with a red
+  // count when it has problems. No counts or big names: the header and Needs attention list have them.
+  const blockTags = useMemo(() => drawing.shapes.map((b, i) => {
+    const name = shapeLabel(b)
+    if (!name) return null
+    const [x, y] = shapeRect(b)
+    const h = 16 * tagPx
+    // Just above the block's left end: clear of its seats and of the cable counts on its sides.
+    return { x, y: y - h - 2 * tagPx, w: textWidth(name, 11 * tagPx) + 10 * tagPx, h, name, problems: sums[i]?.problems ?? 0 }
+  }), [drawing.shapes, sums, tagPx])
   const ringed = useMemo(() => (rings ? Object.keys(data.seats).filter((k) => data.seats[k].problems)
     .map((k) => seatCenter(drawing, k)).filter((c): c is { x: number; y: number } => !!c) : []), [rings, data.seats, drawing])
   const network = layers.on.has('network')
@@ -394,26 +383,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                 cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} problems={layers.on.has('problems')} firewalls={firewalls} marks={pluginSeats}
                 checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} labels={seatLabels} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
             </g>
-            {level !== 'far' && blockLabels[bi] && (() => {
-              const l = blockLabels[bi]!
-              return (
-                <text className={onBlock ? 'name link' : 'name'} onClick={onBlock ? () => onBlock(b.id ?? b.name) : undefined} x={l.x} y={l.y + l.size * 0.9} fontSize={l.size}>
-                  {l.name}
-                  {sum?.problems ? <tspan className="name-bad" dx="0.4em">! {sum.problems}</tspan> : null}
-                </text>
-              )
-            })()}
           </g>
-          )
-        })}
-        {level === 'far' && drawing.shapes.map((b, bi) => {
-          const l = blockLabels[bi]
-          if (!l) return null
-          return (
-            <g key={`sum${bi}`} className={onBlock ? 'sum link' : 'sum'} onClick={onBlock ? () => onBlock(b.id ?? b.name) : undefined} transform={`translate(${l.x} ${l.y})`} fontSize={l.size}>
-              <text y={l.size * 0.95}>{l.name}</text>
-              <text y={l.size * 2.05} className="sub">{l.sub}</text>
-            </g>
           )
         })}
         {ringed.map((c, i) => <circle key={`ring${i}`} className="seat-ring" cx={c.x} cy={c.y} r={Math.max(drawing.cell * 0.8, 9 / s)} vectorEffect="non-scaling-stroke" />)}
@@ -430,6 +400,20 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
           </g>
         ))}</g>}
         {network && data.panels?.length ? <g opacity={opacity(layers, 'network')}><PanelGlyphs panels={data.panels} near={level === 'near'} /></g> : null}
+        {/* Over the switches, so a switch just above a block never hides its name. */}
+        {blockTags.map((tag, bi) => tag && (
+          <g key={`tag${bi}`} className={onBlock ? 'btag link' : 'btag'} transform={`translate(${tag.x} ${tag.y})`}
+            onClick={onBlock ? () => onBlock(drawing.shapes[bi].id ?? drawing.shapes[bi].name) : undefined}>
+            <rect width={tag.w} height={tag.h} rx={4 * tagPx} strokeWidth={tagPx} />
+            <text x={tag.w / 2} y={tag.h / 2} dy="0.35em" fontSize={11 * tagPx}>{tag.name}</text>
+            {tag.problems > 0 && (
+              <g className="btag-bad" transform={`translate(${tag.w + 3 * tagPx} 0)`}>
+                <rect width={textWidth(String(tag.problems), 10.5 * tagPx) + 10 * tagPx} height={tag.h} rx={tag.h / 2} />
+                <text x={(textWidth(String(tag.problems), 10.5 * tagPx) + 10 * tagPx) / 2} y={tag.h / 2} dy="0.35em" fontSize={10.5 * tagPx}>{tag.problems}</text>
+              </g>
+            )}
+          </g>
+        ))}
         {/* toPlan reads the svg's box, but overlays call it only from pointer events, never while drawing. */}
         {/* eslint-disable-next-line react-hooks/refs */}
         {overlay?.({ toPlan, scale: s, shown: px.w && px.h ? { x: view.x + view.w / 2 - px.w / s / 2, y: view.y + view.h / 2 - px.h / s / 2, w: px.w / s, h: px.h / s } : view })}
@@ -439,7 +423,7 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
             width={drawing.cell + 2} height={drawing.cell + 2} rx={6} transform={`rotate(${ring.rotation} ${ring.at.x} ${ring.at.y})`} />
         )}
       </svg>
-      {tip && hover && level !== 'far' && (
+      {tip && hover && (
         <div className="fb-plan-tip" aria-hidden="true" style={{ left: hover.x + 14, top: hover.y + 14 }}>
           <b>{hover.seat}</b> {stateText(tip)}
         </div>
@@ -469,7 +453,6 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
   onEnter: (seat: string, clientX: number, clientY: number) => void; onLeave: () => void; onClick: (seat: string) => void
   describe: (seat: PlanSeat) => string
 }) {
-  const ends = useMemo(() => (labels === 'ends' ? rowEnds(cells) : null), [labels, cells])
   return (
     <>
       {cells.map((c) => {
@@ -490,8 +473,8 @@ const BlockSeats = memo(function BlockSeats({ cells, rotation, seats, cell, filt
             {/* The chair, on the side people sit (floorbit/seat_rows.py): left of the way the row runs is up.
                 Just outside the seat, so it never covers its number or state (Mike, issue #1342). */}
             {c.side && level !== 'far' && <rect className="chair" x={cell * 0.28} y={c.side === 'left' ? -cell * 0.38 : cell * 1.06} width={cell * 0.44} height={cell * 0.32} rx={cell * 0.08} />}
-            {(labels === 'all' || ends?.has(c.seat)) && (
-              <text className={labels === 'ends' ? 'num end' : 'num'} x={cell / 2} y={cell / 2} dy="0.35em"
+            {labels === 'all' && (
+              <text className="num" x={cell / 2} y={cell / 2} dy="0.35em"
                 transform={rotation || c.a ? `rotate(${-rotation - (c.a ?? 0)} ${cell / 2} ${cell / 2})` : undefined}>
                 {c.seat.split('-').pop()}
               </text>

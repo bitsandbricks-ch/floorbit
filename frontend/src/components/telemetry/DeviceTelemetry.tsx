@@ -1,7 +1,8 @@
-import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, Loader, Modal, ScrollArea, Stack, Switch, Text, TextInput, VisuallyHidden } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Code, CopyButton, Group, Loader, Modal, Stack, Switch, Text, TextInput, VisuallyHidden } from '@mantine/core'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useMoreLines } from '@/components/MoreLines'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { DataTable } from '@bitsandbricks/ui'
@@ -58,13 +59,16 @@ export function DeviceProblems({ problems }: { problems?: DeviceProblem[] }) {
   return <>{problems.map((p) => <ProblemLine key={`${p.driver}-${p.kind}-${p.vlan ?? ''}`} p={p} />)}</>
 }
 
-function RawLines({ lines, height = 360 }: { lines: string[]; height?: number | string }) {
+/** The first lines, then "Show all": no scroll box inside the dialog (#935). */
+function RawLines({ lines, first = 40 }: { lines: string[]; first?: number }) {
   const { t } = useTranslation()
+  const { limit, more } = useMoreLines(lines.length, first)
   if (!lines.length) return <Text size="sm" c="dimmed">{t('telemetry.raw.none')}</Text>
   return (
-    <ScrollArea.Autosize mah={height} type="auto">
-      <Code block style={{ whiteSpace: 'pre', fontSize: 11 }}>{lines.join('\n')}</Code>
-    </ScrollArea.Autosize>
+    <Stack gap={4} align="flex-start">
+      <Code block w="100%" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: 11 }}>{lines.slice(0, limit).join('\n')}</Code>
+      {more}
+    </Stack>
   )
 }
 
@@ -152,7 +156,7 @@ export function DeviceRawData({ name }: { name: string }) {
         </Group>
       )}
       {lines.length && !shown.length ? <Text size="sm" c="dimmed">{t('telemetry.raw.noMatch')}</Text>
-        : <RawLines lines={shown} height="calc(100vh - 360px)" />}
+        : <RawLines key={only ?? ''} lines={shown} first={80} />}
     </Stack>
   )
 }

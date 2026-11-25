@@ -1,0 +1,30 @@
+{
+  "tab": "Networks and VLANs",
+  "macTab": "MAC and IP",
+  "readAt": "As the device said at its last discovery, {{when}}.",
+  "vlans_one": "{{count}} VLAN",
+  "vlans_other": "{{count}} VLANs",
+  "vlansLabel": "VLANs on the device",
+  "networks_one": "{{count}} network on its interfaces",
+  "networks_other": "{{count}} networks on its interfaces",
+  "networksLabel": "Networks on the device",
+  "routes_one": "{{count}} route",
+  "routes_other": "{{count}} routes",
+  "routesLabel": "Routes on the device",
+  "col": {
+    "id": "VLAN",
+    "name": "Name",
+    "networks": "Networks",
+    "network": "Network",
+    "vlan": "VLAN",
+    "nextHop": "Next hop",
+    "interface": "Interface",
+    "proto": "From"
+  },
+  "noneTitle": "Nothing discovered yet",
+  "none": "Discovery reads the VLANs, networks and routes from the device through telemetry. Turn on telemetry on the Telemetry tab and the \"VLANs and networks\" discovery action in Inventory.",
+  "noMacs": "No machine seen on its ports",
+  "macsHint": "Every machine seen on its ports, newest first.",
+  "macsLabel": "Machines seen on {{name}}",
+  "allHistory": "All of the IP and MAC history"
+}

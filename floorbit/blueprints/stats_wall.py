@@ -13,6 +13,7 @@ from flask import Blueprint, current_app, jsonify
 from .. import features, games, incidents, stats_wall
 from ..store import load_data
 from .flows import current as current_flows
+from .games import servers_now
 
 bp = Blueprint('stats_wall', __name__)
 
@@ -46,7 +47,7 @@ def _facts(now=None):
     try:
         dns_stats = ext.get('floorbit_dns') if features.on('dns') else None
         flows = current_flows() if features.on('traffic') else None
-        insights = games.insights(dns_stats, flows, ext.get('floorbit_lancache'), hours, now)
+        insights = games.insights(dns_stats, flows, ext.get('floorbit_lancache'), hours, now, servers=servers_now())
     except Exception as exc:  # noqa: BLE001  # a broken source must not take the wall down
         print(f'[wall] no game numbers: {exc}')
         insights = None

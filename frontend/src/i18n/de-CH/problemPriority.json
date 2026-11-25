@@ -1,0 +1,12 @@
+{
+  "urgent": "Dringend",
+  "urgentWhy": "Ausgefallen, und es schneidet mehr als sich selbst ab",
+  "raised": "Höher eingestuft",
+  "raisedBy": "Höher eingestuft von {{who}}",
+  "raise": "Höher einstufen",
+  "lower": "Wieder normal",
+  "groupHall": "Halle",
+  "noHall": "Keine Halle",
+  "tag": "Tag",
+  "anyTag": "Jeder Tag"
+}

@@ -25,9 +25,9 @@
 .fb-stat-warn { border-left: 4px solid var(--color-warn); }
 .fb-stat-down { border-left: 4px solid var(--color-down); }
 .fb-stat-row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
-.fb-stats-panel { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 14px 16px; min-width: 0; }
-.fb-stats-panel.wide { grid-column: 1 / -1; }
-.fb-stats-panel h2 { margin: 0 0 8px; font-size: 16px; }
+.fb-stats > * { min-width: 0; }
+/* A shared Panel (components/ui.tsx) that runs across the whole monitoring grid. */
+.fb-stats > .fb-wide { grid-column: 1 / -1; }
 .fb-stats-chart { margin: 0; }
 .fb-stats-chart svg { width: 100%; height: 160px; display: block; }
 .fb-stats-chart .total { fill: var(--color-bit-soft); stroke: none; }
@@ -72,12 +72,9 @@
 .fb-flow-anomalies .when { color: var(--color-muted); margin-left: auto; font-size: 13px; }
 
 /* Event replay (pages/Replay.tsx): the hall plan drawn like the attendee view. */
-.fb-replay-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: var(--radius-card); }
-.fb-replay-plan .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
 .fb-replay-plan .cell { fill: var(--color-surface); stroke: var(--color-line); transition: fill .25s; }
 .fb-replay-plan .cell.on { fill: var(--color-up); stroke: var(--color-up); }
 .fb-replay-plan .ring { fill: none; stroke: var(--color-down); stroke-width: 4; }
-.fb-replay-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
 .fb-replay-chart { width: 100%; height: 120px; display: block; cursor: pointer; }
 .fb-replay-chart .area { fill: color-mix(in srgb, var(--color-bit) 18%, transparent); }
 .fb-replay-chart .line { fill: none; stroke: var(--color-bit); stroke-width: 2; vector-effect: non-scaling-stroke; }
@@ -96,10 +93,7 @@
 .fb-report-chart .incidents { fill: var(--color-warn); }
 .fb-report-key.incidents { background: var(--color-warn); }
 .fb-report-key.bar { background: color-mix(in srgb, var(--color-bit) 30%, transparent); }
-.fb-job-plan { width: 100%; height: auto; max-height: 55vh; background: var(--color-raised); border-radius: var(--radius-card); }
-.fb-job-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
 .fb-job-plan .cell.hit { fill: var(--color-down); stroke: var(--color-down); }
-.fb-job-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
 .fb-job-plan .target { fill: none; stroke: var(--color-down); stroke-width: 5; }
 .fb-job-plan .route { stroke: var(--color-trace); stroke-width: 5; stroke-dasharray: 14 10; stroke-linecap: round; }
 .fb-job-plan .you { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 4; }
@@ -128,9 +122,6 @@
 /* Logs page on phones (pages/Logs.tsx) */
 .fb-log-lines { list-style: none; margin: 0; padding: 0; }
 .fb-log-line { padding: 8px 0; border-bottom: 1px solid var(--mantine-color-default-border); }
-.fb-wifi-plan { width: 100%; height: auto; max-height: 70vh; background: var(--color-raised); border-radius: var(--radius-card); display: block; }
-.fb-wifi-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
-.fb-wifi-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
 .fb-wifi-plan .heat { pointer-events: none; }
 .fb-wifi-plan .ap { stroke: var(--color-surface); stroke-width: 4; }
 .fb-wifi-plan .ap.down { stroke-dasharray: 6 4; stroke: var(--color-down); }
@@ -141,8 +132,8 @@
 .fb-timeline-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
 
 /* The dashboard on a kiosk or ops screen (pages/Dashboard.tsx, ?screen=1): no header, edge to edge. */
-.fb-stats-panel .name a { color: inherit; text-decoration: none; }
-.fb-stats-panel .name a:hover, .fb-stats-panel .name a:focus-visible { color: var(--color-bit); text-decoration: underline; }
+.fb-stats .name a { color: inherit; text-decoration: none; }
+.fb-stats .name a:hover, .fb-stats .name a:focus-visible { color: var(--color-bit); text-decoration: underline; }
 .fb-heatmap-scroll { overflow-x: auto; }
 .fb-heatmap { width: 100%; min-width: 640px; height: auto; display: block; }
 .fb-heatmap rect { fill: var(--color-up); cursor: pointer; }

@@ -513,7 +513,8 @@ def demo_history(now=None, step=120):
         online = min(taken, round(taken * (0.8 + 0.2 * busy(t)) / end_busy * arrived))
         share = level(t) / end * max(0.05, arrived)
         out.append({'t': t, 'down': round(live_down * share), 'up': round(live_up * share), 'online': online,
-                    'ports_up': online + links, 'ports_down': ports - online - links, 'ports_errors': 0})
+                    'ports_up': online + links, 'ports_down': ports - online - links, 'ports_errors': 0,
+                    'ports_total': ports, 'ports_lost': 0})
     return out
 
 

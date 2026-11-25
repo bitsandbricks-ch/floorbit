@@ -50,6 +50,10 @@ export function IncidentBadges({ i, board, now, full = false }: { i: Incident; b
           {t('incidents.backUp', { switch: i.back_up.switch, ago: ago(i.back_up.since) })}
         </Badge>
       )}
+      {/* The problem it was made from ended by itself (issue #882): it may work again already. */}
+      {i.problem_over_at && i.status !== 'fixed' && (
+        <Badge variant="light" color="up" tt="none" title={t('incidentProblem.overHint')}>{t('incidentProblem.over', { ago: ago(i.problem_over_at) })}</Badge>
+      )}
       {/* Saves a walk: the attendee says it fixed itself. Only the crew marks it fixed (issue #372). */}
       {i.seat_ok_at && i.status !== 'fixed' && (
         <Badge variant="light" color="up" tt="none" title={t('incidents.seatOkHint')}>{t('incidents.seatOk', { ago: ago(i.seat_ok_at) })}</Badge>

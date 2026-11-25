@@ -9,6 +9,7 @@ import type { ViewProps } from '@/pages/monitoring/pages'
 import { type DataColumn, DataTable, ErrorBanner, LoadingState, StatGrid, StatTile } from '@bitsandbricks/ui'
 import { clock, dayClock } from '@/lib/time'
 import './DnsView.css'
+import { Panel as SharedPanel } from '@/components/ui'
 
 const W = 1000
 const H = 140
@@ -26,14 +27,12 @@ function Chart({ hours, label }: { hours: DnsData['hours']; label: string }) {
   const w = W / Math.max(1, hours.length)
   const stamp = (ts: number) => dayClock(ts, i18n.language)
   return (
-    <section className="fb-stats-panel wide" aria-labelledby="dns-hours">
-      <Group justify="space-between" mb={6}>
-        <h2 id="dns-hours">{t('dns.perHour')}</h2>
-        <Group gap="sm">
-          <Text size="xs" c="dimmed"><span className="fb-dns-key" /> {t('dns.answered')}</Text>
-          <Text size="xs" c="dimmed"><span className="fb-dns-key blocked" /> {t('dns.blockedKey')}</Text>
-        </Group>
+    <SharedPanel className="fb-wide" titleId="dns-hours" title={t('dns.perHour')} actions={<>
+      <Group gap="sm">
+        <Text size="xs" c="dimmed"><span className="fb-dns-key" /> {t('dns.answered')}</Text>
+        <Text size="xs" c="dimmed"><span className="fb-dns-key blocked" /> {t('dns.blockedKey')}</Text>
       </Group>
+    </>}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="fb-dns-chart" role="img" aria-label={label}>
         {[0.25, 0.5, 0.75].map((f) => <line key={f} className="grid" x1={0} x2={W} y1={H * f} y2={H * f} />)}
         {hours.map((h, i) => {
@@ -53,7 +52,7 @@ function Chart({ hours, label }: { hours: DnsData['hours']; label: string }) {
           <Text size="xs" c="dimmed">{stamp(hours[hours.length - 1].t + 3600)}</Text>
         </Group>
       )}
-    </section>
+    </SharedPanel>
   )
 }
 
@@ -75,10 +74,9 @@ function TopList({ sites, value }: { sites: DnsSite[]; value: (s: DnsSite) => st
 /** One panel of the page: a heading over a list or a sortable, paged table. */
 function Panel({ id, title, wide, children }: { id: string; title: string; wide?: boolean; children: ReactNode }) {
   return (
-    <section className={`fb-stats-panel${wide ? ' wide' : ''}`} aria-labelledby={id}>
-      <h2 id={id}>{title}</h2>
+    <SharedPanel className={wide ? 'fb-wide' : undefined} titleId={id} title={title}>
       {children}
-    </section>
+    </SharedPanel>
   )
 }
 

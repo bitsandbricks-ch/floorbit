@@ -174,6 +174,21 @@ Under **Numbers and colours** in a tile pane's settings:
 Hover a bar, a slice or the gauge for its value and share. **Size** pins small, medium or large
 instead of picking it from the box. Any box size works.
 
+## Finding a dashboard
+
+The Dashboards list is one table (#897): a small preview of the grid, the name with its badges and
+tags, the group, where it shows (**Public**, on how many screen accounts, or only **Inside the app**),
+when it last changed and who changed it, a pin for the sidebar and **⋯** (open, big screen, edit, export as file).
+
+- **Search** looks in the names, tags and groups.
+- **Show** keeps the pinned ones, your own, the ready-made ones, the public ones or the ones from
+  plugins.
+- **Tag** and **Group** narrow the list once a dashboard has one. A click on a tag in a row filters by it.
+- Search and filters stay in the address, so a link shows the same list.
+
+Tags (up to 8 short words, such as `noc` or `hall-a`) and a group (such as *Network crew*) are set
+under **Dashboard settings** in the editor. A public screen doesn't get them.
+
 ## Saved widgets
 
 **Widgets** (`/widgets`, also a button on the Dashboards list) has two tabs (#1009):

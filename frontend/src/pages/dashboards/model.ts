@@ -119,13 +119,19 @@ export interface Board {
   changed?: boolean
   /** Opens without signing in, showing only what anyone may see. */
   public?: boolean
+  /** For finding it in the list (#897): short tags and one group heading. */
+  tags?: string[]
+  group?: string
+  /** How many screen accounts are limited to it (Settings > Users); missing is none. */
+  screens?: number
 }
 
 /** A dashboard's own settings as PUT wants them, defaults left out: the one place that lists them,
  *  so a save from anywhere (editor, copy, "Add to", "Make it a Screen") keeps every one. */
-export const boardSettings = (b: Pick<Board, 'cycle' | 'range' | 'frame' | 'sound'>) => ({
+export const boardSettings = (b: Pick<Board, 'cycle' | 'range' | 'frame' | 'sound' | 'tags' | 'group'>) => ({
   ...(b.cycle ? { cycle: b.cycle } : {}), ...(b.range ? { range: b.range } : {}),
   ...(b.frame === false ? { frame: false as const } : {}), ...(b.sound ? { sound: true as const } : {}),
+  ...(b.tags?.length ? { tags: b.tags } : {}), ...(b.group ? { group: b.group } : {}),
 })
 
 /** A dashboard's name to show: the ready-made ones have theirs in every language. */
@@ -241,7 +247,7 @@ export const slug = (name: string) =>
 
 /** Everything drawn on a hall (seat blocks, zones, walls, labels), in drawing units, for "the whole
  *  hall" on a big screen: the drawing's own box leaves room for editing that a screen doesn't need. */
-export function contentBox(drawing: PlanDrawing, margin = 40): View | null {
+export function contentBox(drawing: Pick<PlanDrawing, 'shapes'> & Partial<Pick<PlanDrawing, 'marks'>>, margin = 40): View | null {
   const xs: number[] = [], ys: number[] = []
   for (const b of drawing.shapes) {
     const r = ((b.rotation % 180) + 180) % 180

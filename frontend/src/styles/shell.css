@@ -66,6 +66,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .fb-topbar-count.is-down { background: var(--color-down); color: #fff; }
+.fb-topbar-dot { position: absolute; top: 5px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-warn); }
 
 /* The status line under every page (components/StatusLine.tsx), with the attribution at its end. */
 /* Desktops: pinned to the window's foot like the top bar to its head, so the network state stays in
@@ -96,8 +97,8 @@ a.fb-status-item:hover { color: var(--color-fg); }
   .fb-status-grow { display: none; }
 }
 
-/* A sidebar row's pages as tabs under the top bar (components/HubTabs.tsx): links, one row that
-   wraps on phones instead of scrolling sideways. */
+/* A sidebar row's pages as tabs under the top bar (components/HubTabs.tsx): links in one row that
+   scrolls sideways on phones, like the shared SubTabs (.bnb-subtabs), instead of wrapping (#1438). */
 .fb-hubtabs { display: flex; flex-wrap: wrap; gap: 4px 20px; padding: 0 28px; border-bottom: 1px solid var(--color-line); background: var(--color-ink); }
 .fb-hubtab {
   padding: 10px 0 9px; border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -105,7 +106,12 @@ a.fb-status-item:hover { color: var(--color-fg); }
 }
 .fb-hubtab:hover { color: var(--color-fg); }
 .fb-hubtab[aria-current="page"] { color: var(--color-fg); font-weight: 600; border-bottom-color: var(--color-bit); }
-@media (max-width: 767.98px) { .fb-hubtabs { padding: 0 16px; gap: 2px 16px; } }
+@media (max-width: 767.98px) {
+  .fb-hubtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 0 16px; gap: 16px; }
+  .fb-hubtabs::-webkit-scrollbar { display: none; }
+  /* A scrolling row clips what hangs below it, so the underline stays inside. */
+  .fb-hubtab { margin-bottom: 0; }
+}
 
 .bnb-main { padding: 24px 28px 48px; }
 /* Every page uses the whole width next to the sidebar (Mike, 2026-11-19): no reading column. */

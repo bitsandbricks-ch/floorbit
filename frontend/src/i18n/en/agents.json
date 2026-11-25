@@ -383,6 +383,11 @@
         "help": "Whether the agent installs signed plugin updates itself (auto), waits for an approval in the hall (approve) or takes none (off).",
         "unset": "auto"
       },
+      "FLOORBIT_AGENT_UPDATES": {
+        "label": "Agent updates",
+        "help": "Whether the agent installs signed updates of itself (auto), waits for an approval in the hall (approve) or takes none (off).",
+        "unset": "auto"
+      },
       "FLOORBIT_AGENT_SWITCH_NETS": {
         "label": "Networks for switch logins",
         "help": "Where port actions, commands, config backups and the terminal may log in.",

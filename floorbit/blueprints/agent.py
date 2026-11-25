@@ -79,13 +79,36 @@ def agent_page(agent_id):
 @bp.route('/api/agents', methods=['GET'])
 def list_agents():
     server = current_app.config.get('FLOORBIT_VERSION') or '0'
-    agents = [{**a, 'outdated': agent_link.outdated(a.get('protocol'))} for a in agent_link.all_agents()]
-    from .. import agent_ha, cluster, inventory_scope
+    from .. import agent_ha, agent_updates, cluster, inventory_scope
+    release = agent_updates.latest()
+    # What each can do, so the pages say what falls back for an older agent (agent_ha.CAPABILITIES).
+    agents = [{**a, 'outdated': agent_link.outdated(a.get('protocol')),
+               'capabilities': agent_ha.capabilities(a.get('report')),
+               # Where its own update stands: the newest release this Floorbit has (agent_updates.py).
+               'self_update': agent_updates.status(a, release)} for a in agent_link.all_agents()]
     names = {t['id']: t['name'] for t in inventory_scope.tags(agent_link.load_data())}
     return jsonify({'agents': agents, 'connected': agent_link.tunnel.connected(),
                     'max': agent_link.MAX_AGENTS, 'server_version': server, 'protocol': agent_link.PROTOCOL,
                     'newest_version': agent_link.newest_version(agents),
+                    'agent_release': release['version'] if release else None,
                     'groups': agent_ha.groups(agents, names), 'hosted': cluster.status()})
+
+
+@bp.route('/api/agents/load', methods=['GET'])
+def load():
+    """Every agent's work over the last hour in one answer, for the sparklines in the Local agents
+    list (one request instead of one per agent): ``{"hours", "agents": {agent id: {"load": [[time,
+    per minute]], "syslog": lines per minute}}}`` (agent_history.add_up)."""
+    from .. import agent_demo, agent_history
+    from ..database import DatabaseUnavailable
+    series = {}
+    try:
+        for a in agent_link.all_agents():
+            series[a['id']] = (agent_history.add_up(agent_demo.history(a['id'], 1)) if a.get('demo')
+                               else agent_history.load(a['id'], 1))
+    except DatabaseUnavailable:
+        return jsonify({'error': 'The database is not answering.', 'code': 'database_unavailable'}), 503
+    return jsonify({'hours': 1, 'agents': series})
 
 
 @bp.route('/api/agents/<agent_id>/history', methods=['GET'])
@@ -661,7 +684,8 @@ def _flow_value(value, depth=0):
             return None
         return [row for row in (_flow_value(v, 1) for v in value[:5000]) if isinstance(row, dict)]
     if isinstance(value, dict):
-        if depth > 1:
+        # A row is depth 1, so a map inside it (a seat's mix) is depth 2.
+        if depth > 2:
             return None
         out = {}
         for k, v in list(value.items())[:500]:

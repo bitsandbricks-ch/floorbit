@@ -323,8 +323,8 @@ def _pinned_agent(hostname, everyone, scoped):
 
 def agent_for(hostname):
     """The one connected agent that should talk to this switch: one serving one of its tags, else
-    any. The first by id, so the same agent keeps it while it is there (sticky), and the next one
-    takes over when it goes.
+    any. Its group's primary, or the switch's owner when the group splits its devices (both sticky
+    while the agent is there); the next one takes over when it goes.
     For calls that hold something open on the agent (an SSH shell) or must not run twice (a port
     bounce), where ``ask()`` would ask every agent. Raises AgentUnavailable."""
     scoped, everyone, by_name = _routing()
@@ -341,7 +341,13 @@ def agent_for(hostname):
     # Two agents sharing VIPs: only the primary logs in to switches (the agent's docs/vrrp.md), so
     # an SSH shell or port action from the standby would be the second login the primary avoids.
     from . import agent_ha
-    return sorted(agent_ha.action_targets(connected) or connected)[0]
+    first = sorted(agent_ha.action_targets(connected) or connected)[0]
+    # A group that splits its devices (issue #1441): the device's owner logs in, as it polls it.
+    tags = {a['id']: set(a.get('tags') or ()) for a in all_agents()}
+    members = [a for a in agent_ha.split_members(first, connected, tags) if a in connected]
+    group = agent_ha.split_group(first, set(members), tags, {a: tunnel.reported(a) for a in members}) \
+        if len(members) > 1 else []
+    return agent_ha.split_owner(hostname, group) or first
 
 
 HEDGE_AFTER = 3.0      # seconds: a lookup burst answers in under 2; longer means that agent hangs
@@ -763,8 +769,6 @@ class Tunnel:
             self._relayed.clear()
             self._reports.clear()
             self.last_seen = None
-            from . import agent_ha
-            agent_ha._granted.clear()
             # A long poll still waiting from before must not take calls made after the reset.
             self._era += 1
             self._cond.notify_all()
@@ -1057,12 +1061,19 @@ class Tunnel:
                     clean[key] = max(clean.get(key) or 0, value)
         from .agent_plugins import clean_updates, clean_vrrp
         from .agent_settings import clean_report
-        for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report)):
+        from .agent_updates import clean as clean_agent_update
+        for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report),
+                             ('agent_update', clean_agent_update)):
             value = cleaner(raw.get(key))
             if value is not None:
                 clean[key] = value
         if isinstance(raw.get('lease'), bool):
             clean['lease'] = raw['lease']      # it holds its group's lease (agent_ha.lease_holder)
+        caps = raw.get('capabilities')
+        if isinstance(caps, list):
+            # What it can do (agent_ha.CAPABILITIES); names Floorbit doesn't know yet are kept to show.
+            clean['capabilities'] = sorted({c for c in caps[:32]
+                                            if isinstance(c, str) and re.match(r'^[a-z][a-z0-9_]{0,31}$', c)})
         # Where laptops on the event network reach the agent (the seat walk-through, seat_walk.py).
         lan_url = raw.get('lan_url')
         if isinstance(lan_url, str) and re.match(r'^https?://[A-Za-z0-9.:\[\]-]{1,120}(/[^\s]{0,60})?$', lan_url):
@@ -1086,8 +1097,20 @@ class Tunnel:
         if clean.get('updates'):
             from .agent_plugins import note_updates
             note_updates(agent, before, clean, now=clean['at'])
+        if clean.get('agent_update'):
+            from .agent_updates import note as note_agent_update
+            note_agent_update(agent, before, clean, now=clean['at'])
+        from .agent_ha import splits
+
+        def step(report):
+            mine = (report or {}).get('agent_update') or {}
+            return mine.get('running'), mine.get('trial')
         if (((before or {}).get('vrrp') or {}).get('primary') != (clean.get('vrrp') or {}).get('primary')
-                or (before or {}).get('lease') != clean.get('lease')):
+                or (before or {}).get('lease') != clean.get('lease')
+                or splits(before) != splits(clean)
+                or (before or {}).get('capabilities') != clean.get('capabilities')
+                # An agent of an HA group finished its update: the next one gets it now (agent_updates.py).
+                or (before is not None and step(before) != step(clean))):
             # An agent became primary or stopped being it: a split (two primaries) or its end must reach
             # the agents' plugin config now, not at their next minute's pull (agent_ha.stand_by_for).
             from .agent_plugins import reload_agents

@@ -1,14 +1,13 @@
-import { ActionIcon, Alert, Anchor, Badge, Box, Button, Group, Stack, Tabs, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
+import { ActionIcon, Alert, Anchor, Badge, Box, Button, Group, Stack, Tabs, Text, Tooltip, VisuallyHidden } from '@mantine/core'
 import { IconPlugConnectedX, IconRefresh, IconTrash, IconUnlink } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ApiError, del, get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { CheckinConflict, CheckinOverview, CrewCheckin, WiredState } from '@/api/types'
-import { ConfirmIcon, DataTable, EmptyState, ErrorBanner, LoadingState, PageHead, StatTile } from '@bitsandbricks/ui'
+import { ConfirmIcon, DataTable, EmptyState, ErrorBanner, FilterBar, LoadingState, PageHead, StatTile, useFilters } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
 import { Link } from 'react-router-dom'
 import { Panel } from '@/components/ui'
@@ -40,8 +39,10 @@ export default function Checkins() {
   const qc = useQueryClient()
   const canEdit = useCan('seats.edit')
   const canSettings = useCan('settings.manage')
-  const [q, setQ] = useState('')
-  const [state, setState] = useState<WiredState | null>(null)
+  // The shared filter row like every other list, kept in the address (issue #1423).
+  const filters = useFilters({ state: 'all' })
+  const q = filters.search
+  const state = filters.values.state === 'all' ? null : filters.values.state
   const query = useQuery({
     queryKey: qk.checkinOverview,
     queryFn: () => get<CheckinOverview>('/api/checkins/overview'),
@@ -67,7 +68,6 @@ export default function Checkins() {
   const d = query.data
   const disabled = off(query.error)
   const rows = (d?.rows ?? []).filter((r) => (!state || r.wired === state) && matches(r, q))
-  const pick = (s: WiredState) => () => setState((cur) => (cur === s ? null : s))
   const num = (n: number) => n.toLocaleString(lang)
 
   return (
@@ -116,15 +116,14 @@ export default function Checkins() {
                 <History />
               </Tabs.Panel>
               <Tabs.Panel value="checkins" pt="md">
-                <Group gap="xs" mb="sm" wrap="wrap">
-                  <TextInput aria-label={t('crewCheckin.search')} placeholder={t('crewCheckin.search')} value={q}
-                    onChange={(e) => setQ(e.currentTarget.value)} w={260} />
-                  {(['pending', 'verified', 'unverified', 'not_wired'] as WiredState[]).map((s) => (
-                    <Button key={s} size="xs" variant={state === s ? 'filled' : 'default'} onClick={pick(s)} aria-pressed={state === s}>
-                      {t(`crewCheckin.state.${s}`)} · {d.counts[s]}
-                    </Button>
-                  ))}
-                </Group>
+                <FilterBar search={filters.search} onSearchChange={filters.setSearch} searchLabel={t('crewCheckin.search')} onClear={filters.clear}
+                  groups={filters.groups([
+                    { key: 'state', label: t('listFilters.state'), options: [
+                      { value: 'all', label: t('listFilters.all'), count: d.rows.length },
+                      ...(['pending', 'verified', 'unverified', 'not_wired'] as WiredState[])
+                        .map((s) => ({ value: s, label: t(`crewCheckin.state.${s}`), count: d.counts[s] })),
+                    ] },
+                  ])} />
                 {d.rows.length === 0 ? (
                   <EmptyState title={t('crewCheckin.empty')} description={t('crewCheckin.emptyDesc')} />
                 ) : (

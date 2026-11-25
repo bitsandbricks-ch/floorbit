@@ -19,10 +19,16 @@ The page uses whichever of these the event has. Each one adds a column.
 | [Traffic](flows.md) | Bytes and seats per launcher (by its ports), and the gaming services the event named in `FLOWS_SERVICES` (tournament servers, a game's ports). Always the last 24 hours. | The flow collector |
 | [DNS analytics](dns.md) | Lookups of each launcher's sites, under the five-seat rule. | A `dns` plugin |
 
+| The event's game servers | Players right now, for the game each server runs. | Settings › Game servers |
+
 Launchers no source has seen are left out. A launcher can be in one column and not another: the
 built-in traffic rules only know the ports Steam, Battle.net, Riot Games and Minecraft publish, and
-the LAN cache only carries launchers that [cache-domains](https://github.com/uklans/cache-domains)
-lists.
+the LAN cache only carries launchers that cache-domains lists.
+
+**Games played** shows, per game, the most seats any source saw: DNS lookups of its sites, traffic to
+its ports and servers, players on the event's game servers. Several Steam games share Valve's ports,
+so a game's own sites and server addresses tell more than ports; a game only the LAN cache saw
+shows its downloads instead.
 
 ## The LAN cache's log
 
@@ -69,11 +75,12 @@ answer 404 and the log is no longer read.
 
 `GET /api/games?hours=24` (1 to 168) answers:
 
-- `launchers`: per launcher `lookups`, `dns_seats_max`, `traffic_bytes`, `traffic_seats`,
-  `cache_hit_bytes` and `cache_miss_bytes` (`null` where a source has nothing);
+- `launchers`, `titles` (games) and `sitegroups`: per application `id`, `name`, `kind`, `part_of`,
+  `lookups`, `dns_seats_max`, `traffic_bytes`, `traffic_seats`, `cache_hit_bytes`,
+  `cache_miss_bytes`, `players` (`null` where a source has nothing) and `seats`, the most of them;
 - `games`: the gaming services from `FLOWS_SERVICES`;
 - `other_caches`: caches no launcher owns (Windows Update, drivers);
 - `cache`: the hourly series, totals, hit ratio, and the last read or error;
-- `sources`: which of the three sources had data.
+- `sources`: which of the sources had data (`dns`, `traffic`, `cache`, `servers`).
 
 Anyone who may see the floor plan may read it.

@@ -12,6 +12,7 @@ import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { FirewallSeats, IncidentMarkers, PlayerHit, PowerMarkers, SeatDetails, SeatViewData, SwitchDetails, WifiData } from '@/api/types'
 import { Attribution } from '@/components/Attribution'
+import { Elsewhere } from './plan/Elsewhere'
 import { Layout } from '@/components/Layout'
 import { BlockPanel } from './plan/BlockPanel'
 import { SwitchPanel } from './plan/SwitchPanel'
@@ -423,7 +424,7 @@ export default function FloorPlan() {
             {editing && !list && <SnapToggles layers={layers} onLayers={setLayers} />}
             <div className="fb-ws-bar-end">
               {!topo && <>
-              {elsewhere > 0 && <Text size="sm" c="down" fw={600} className="fb-ws-elsewhere" title={t('plan.elsewhere', { count: elsewhere })}>{t('plan.elsewhere', { count: elsewhere })}</Text>}
+              <Elsewhere halls={data.halls} current={data.hall} onHall={toHall} />
               {data.last_read && <Text c="dimmed" size="xs" className="fb-ws-read">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
               <StaleNotice updatedAt={q.dataUpdatedAt} failing={q.isRefetchError} />
               <form onSubmit={go} role="search">

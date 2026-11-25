@@ -11,6 +11,7 @@
   screen nobody signed in to, trimmed to what anyone may see (dashboards.public_board). Open to all.
 """
 import json
+from collections import Counter
 
 from flask import Blueprint, abort, current_app, g, jsonify, redirect, request, url_for
 
@@ -112,7 +113,16 @@ def list_layouts():
     # A screen account limited to some dashboards (Settings > Users) sees only those.
     allowed = dashboards.allowed_for(current_user())
     layouts = _plugin_names([x for x in dashboards.all_layouts() if allowed is None or x['id'] in allowed])
+    if allowed is None:
+        # How many screen accounts show each one (#897), for "Shows on" in the list. A count, no names.
+        screens = Counter(i for u in _accounts() for i in u.get('dashboards') or [])
+        layouts = [{**x, 'screens': screens[x['id']]} if screens[x['id']] else x for x in layouts]
     return jsonify({'layouts': layouts, 'limited': allowed is not None})
+
+
+def _accounts():
+    auth = current_app.extensions['auth']
+    return auth.users.list() if auth.enabled else []
 
 
 @bp.route('/api/dashboards/<layout_id>', methods=['GET'])

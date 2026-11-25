@@ -9,6 +9,11 @@ EVERY = 10         # seconds between the numbers in the report
 
 class AgentPlugin(Base):
     relay = None
+    restart_on_configure = False
+
+    def _keep(self):
+        others = frozenset(self.settings.get('others') or ())
+        return (lambda sender: sender not in others) if others else None
 
     def start(self):
         port = int(self.settings.get('port') or 0)
@@ -16,8 +21,12 @@ class AgentPlugin(Base):
             self.ctx.health('off', 'No port set: the agent does not listen for syslog.')
             return
         from floorbit_agent.syslog_relay import Relay  # this part only ever runs in the agent
-        self.relay = Relay(self._send, port, (self.settings.get('bind') or '').strip() or '0.0.0.0',
-                           log=self.ctx.log)
+        bind = (self.settings.get('bind') or '').strip() or '0.0.0.0'
+        try:
+            self.relay = Relay(self._send, port, bind, log=self.ctx.log, keep=self._keep())
+        except TypeError:   # an agent from before the split: it sends every line, as before
+            self.relay = Relay(self._send, port, bind, log=self.ctx.log)
+        self.listening = (port, bind)
         try:
             self.port = self.relay.start()
         except (OSError, OverflowError) as exc:
@@ -26,6 +35,18 @@ class AgentPlugin(Base):
         self.ctx.on_stop(self.relay.stop)
         self.ctx.health('ok', f'listening on UDP {self.port}')
         self.ctx.thread(self._numbers, name='syslog-relay-numbers')
+
+    def configure(self, settings):
+        """New owners keep the relay running, so the held minute survives; a new port restarts it."""
+        settings = settings or {}
+        same = (int(settings.get('port') or 0), (settings.get('bind') or '').strip() or '0.0.0.0')
+        if self.relay is None or getattr(self, 'listening', None) != same or not hasattr(self.relay, 'take_over'):
+            return False
+        self.ctx.settings = settings
+        taken = self.relay.take_over(self._keep() or (lambda sender: True))
+        if taken:
+            self.ctx.log(f"took over {taken} held syslog lines of devices now this agent's own")
+        return True
 
     def _send(self, lines, dropped):
         # The spool keeps them on disk until the hosted side has them; this never waits on the link.
@@ -40,6 +61,7 @@ class AgentPlugin(Base):
             self.ctx.gauge('received', relay.received)
             self.ctx.gauge('dropped', relay.all_dropped)
             self.ctx.gauge('waiting', len(relay.lines))
+            self.ctx.gauge('held', len(getattr(relay, 'held', ())))
 
     def check(self):
         if self.relay is None:

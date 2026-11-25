@@ -18,10 +18,10 @@ def test_a_block_named_by_rows_is_called_by_its_row_letters():
 
 def test_power_feeds_name_the_rows_not_a_question_mark():
     blocks = {'b1': _rows_block(), 'b2': {'id': 'b2', 'name': 'A', 'rows': 2, 'cols': 4}}
-    assert power._feed_label({'block': 'b1', 'rows': [2]}, blocks) == 'row D'
-    assert power._feed_label({'block': 'b1', 'rows': []}, blocks) == 'rows C\u2013D'
-    assert power._feed_label({'block': 'b2', 'rows': [1, 2]}, blocks) == 'block A rows 1, 2'
-    assert power._feed_label({'block': 'gone'}, blocks) == 'a removed block'
+    assert power._feed_label({'block': 'b1', 'rows': [2]}, blocks) == 'Row D'
+    assert power._feed_label({'block': 'b1', 'rows': []}, blocks) == 'Rows C\u2013D'
+    assert power._feed_label({'block': 'b2', 'rows': [1, 2]}, blocks) == 'A \u00b7 rows 1, 2'
+    assert power._feed_label({'block': 'gone'}, blocks) == 'A removed block'
 
 
 def test_the_blocks_api_gives_each_block_a_label(client):

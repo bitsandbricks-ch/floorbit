@@ -84,12 +84,14 @@ def test_insights_join_dns_traffic_and_the_cache(cache, tmp_path):
         {"name": "Web", "category": "web", "bytes": 9000, "seats": 80}]}
     out = games.insights(stats, flows, cache, hours=1, now=HOUR + 600)
     steam = out["launchers"][0]
-    assert steam == {"id": "steam", "name": "Steam", "lookups": 6, "dns_seats_max": 6, "traffic_bytes": 5000,
-                     "traffic_seats": 30, "cache_hit_bytes": 900, "cache_miss_bytes": 100}
+    assert steam == {"id": "steam", "name": "Steam", "kind": "launcher", "part_of": None, "category": "gaming",
+                     "lookups": 6, "dns_seats_max": 6, "traffic_bytes": 5000, "traffic_seats": 30,
+                     "cache_hit_bytes": 900, "cache_miss_bytes": 100, "players": None, "seats": 30}
     assert [r["id"] for r in out["launchers"]] == ["steam"]       # one seat's Battle.net lookup isn't named
     assert out["games"] == [{"name": "Tournament servers", "bytes": 2000, "seats": 12}]
-    assert [c["cache"] for c in out["other_caches"]] == ["wsus"]
-    assert out["sources"] == {"dns": True, "traffic": True, "cache": True}
+    # Windows updates is a site group now (cache-domains' wsus), not a cache nobody owns.
+    assert [r["id"] for r in out["sitegroups"]] == ["wsus"] and out["other_caches"] == []
+    assert out["sources"] == {"dns": True, "traffic": True, "cache": True, "servers": False}
 
 
 def test_api(client, app_module):
@@ -100,3 +102,15 @@ def test_api(client, app_module):
     client.put("/api/settings/features", json={"games": False})
     assert client.get("/api/games").status_code == 404
     client.put("/api/settings/features", json={"games": True})
+
+
+def test_top_sites_name_their_application(cache, tmp_path):
+    stats = dns.DnsStats(path=str(tmp_path / "dns.json"))
+    stats.add([{"ts": HOUR + 60 + i, "domain": d, "client": f"198.51.100.{i}"}
+               for i in range(7) for d in ("www.twitch.tv", "playvalorant.com")]
+              + [{"ts": HOUR + 60 + i, "domain": "example.com", "client": f"198.51.100.{i}"} for i in range(5)]
+              + [{"ts": HOUR + 60, "domain": "example.org", "client": "198.51.100.1"}], now=HOUR + 600)
+    sites = games.insights(stats, None, None, hours=1, now=HOUR + 600)["sites"]
+    assert [(s["site"], s["seats"], s["application"], s["category"]) for s in sites] == [
+        ("playvalorant.com", 7, "Valorant", "gaming"), ("twitch.tv", 7, "Streaming", "streaming"),
+        ("example.com", 5, None, None)]   # example.org: one seat, not named

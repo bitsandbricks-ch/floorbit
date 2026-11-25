@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import type { Circuit } from '@/api/types'
 import { DataTable } from '@bitsandbricks/ui'
 import { ago } from '@/lib/time'
+import { feedsText } from './feeds'
 import { circuitPath, TONE } from './state'
 
 
@@ -30,7 +31,7 @@ export function Load({ c }: { c: Circuit }) {
 /** What a circuit feeds: its rows and switches, and how many seats. */
 export function Feeds({ c }: { c: Circuit }) {
   const { t } = useTranslation()
-  const parts = [c.feeds_label, ...c.fed.switches.map((s) => s.name)].filter(Boolean)
+  const parts = [feedsText(t, c), ...c.fed.switches.map((s) => s.name)].filter(Boolean)
   if (!parts.length) return <Text size="sm" c="dimmed">{t('power.nothingFed')}</Text>
   return (
     <Stack gap={0}>
@@ -57,7 +58,8 @@ export function CircuitTable({ circuits }: { circuits: Circuit[] }) {
     <DataTable label={t('power.circuits')} rows={circuits} rowKey={(c) => c.id} urlState={false} pageSize={0} bare
       className="fb-table-stack"
       columns={[
-        { id: 'name', header: t('power.circuit'), sort: (c) => c.name, cell: (c) => (
+        // Fixed shares, so the columns of every board's table line up down the page (issue #1427).
+        { id: 'name', header: t('power.circuit'), width: '32%', sort: (c) => c.name, cell: (c) => (
           <div data-circuit={c.id}>
             <Anchor component={Link} to={circuitPath(c.id)} fw={600} size="sm">{c.name}</Anchor>
             <Group gap={4} mt={2}>
@@ -66,8 +68,8 @@ export function CircuitTable({ circuits }: { circuits: Circuit[] }) {
             </Group>
           </div>
         ) },
-        { id: 'load', header: t('power.load'), sort: (c) => c.load_pct ?? -1, cell: (c) => <Load c={c} /> },
-        { id: 'feeds', header: t('power.feeds'), cell: (c) => <Feeds c={c} /> },
+        { id: 'load', header: t('power.load'), width: '32%', sort: (c) => c.load_pct ?? -1, cell: (c) => <Load c={c} /> },
+        { id: 'feeds', header: t('power.feeds'), wrap: true, cell: (c) => <Feeds c={c} /> },
       ]} />
   )
 }

@@ -25,6 +25,10 @@ fixed or reopen it, bounce the seat's port, send it to the nearest tech, give it
 another team, and add a note. **Incident open** on the Problems page and on a problem's page links
 here. An incident that is no longer on the board says so.
 
+When the problem an incident was made from ends (Floorbit no longer sees it), the incident gets a
+green **Problem over** tag, on its card and its page, within a minute. It stays open: check the
+seat or switch works, then mark it fixed. If the same problem comes back, the tag goes again.
+
 ### Dismiss
 
 **Dismiss** on an incident's page closes it or puts it aside (issue #887):

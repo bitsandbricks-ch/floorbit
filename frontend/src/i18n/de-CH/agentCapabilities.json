@@ -1,0 +1,22 @@
+{
+  "title": "Fähigkeiten",
+  "help": "Was dieser Agent kann. Wo er etwas nicht kann, macht Floorbit es wie bei älteren Agents; ein Update des Agents schaltet es ein.",
+  "name": {
+    "lease": "Primary von Floorbit bestimmt",
+    "split": "Teilt die Geräte mit seiner Gruppe",
+    "syslog_hold": "Behält Syslog anderer Agents für eine Übernahme",
+    "self_update": "Aktualisiert sich selbst"
+  },
+  "yes": {
+    "lease": "Fragt Geräte ab und meldet sich an, nur solange Floorbit ihn zum Primary macht.",
+    "split": "Fragt nur seine eigenen Geräte ab, meldet sich nur dort an und verarbeitet nur deren Daten.",
+    "syslog_hold": "Sendet nur die Zeilen seiner eigenen Geräte und behält eine Minute vom Rest.",
+    "self_update": "Installiert die signierten Agent-Versionen, die Floorbit anbietet, ohne neues Image."
+  },
+  "no": {
+    "lease": "Wie früher mit VRRP: Primary ist der Agent mit der ersten geteilten Adresse.",
+    "split": "Wie früher: Ein Primary sammelt alle Geräte der Gruppe.",
+    "syslog_hold": "Wie früher: Er sendet jede Zeile, Floorbit behält jede nur einmal.",
+    "self_update": "Fällt auf den Pull-Befehl zurück: Die Crew holt das neue Image von Hand."
+  }
+}

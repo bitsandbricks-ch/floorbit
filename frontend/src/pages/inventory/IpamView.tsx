@@ -53,7 +53,7 @@ export function IpamView({ types, sub, onSub, canEdit, sourceName }: {
     <Group gap={4} wrap="nowrap">
       {!e.sources?.length && <Badge variant="outline" color="gray" tt="none">{t('inventory.manual')}</Badge>}
       {e.sources?.map((s) => (
-        <Badge key={s} variant={e.gone?.includes(s) ? 'outline' : 'light'} color={e.gone?.includes(s) ? 'warn' : 'trace'} tt="none">
+        <Badge key={s} variant={e.gone?.includes(s) ? 'outline' : 'light'} color={e.gone?.includes(s) ? 'warn' : 'gray'} tt="none">
           {e.gone?.includes(s) ? t('inventory.gone', { source: sourceName(s) }) : sourceName(s)}
         </Badge>
       ))}

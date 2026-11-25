@@ -1,0 +1,16 @@
+{
+ "\"{}\" is not a Steam depot id (a number).": "\"{}\" ist keine Steam-Depot-ID (eine Zahl).",
+ "\"{}\" is not a domain Floorbit can count.": "\"{}\" ist keine Domain, die Floorbit zählen kann.",
+ "\"{}\" is not an address or network.": "\"{}\" ist keine Adresse und kein Netz.",
+ "Floorbit keeps at most {} own applications.": "Floorbit speichert höchstens {} eigene Anwendungen.",
+ "Give the application a name (up to 60 characters).": "Gib der Anwendung einen Namen (bis 60 Zeichen).",
+ "No such application, or nothing changed on it.": "Diese Anwendung gibt es nicht, oder an ihr wurde nichts geändert.",
+ "No such application.": "Diese Anwendung gibt es nicht.",
+ "Only a game is part of something, and that is a launcher.": "Nur ein Game gehört zu etwas, und zwar zu einem Launcher.",
+ "Port \"{}\" should look like udp/27015 or tcp/6881-6889.": "Port \"{}\" sollte wie udp/27015 oder tcp/6881-6889 aussehen.",
+ "Send the application as a JSON object.": "Sende die Anwendung als JSON-Objekt.",
+ "The category is one of {}.": "Die Kategorie ist eine von {}.",
+ "The kind is game, launcher or sitegroup.": "Die Art ist game, launcher oder sitegroup.",
+ "There is already an application called {}.": "Es gibt schon eine Anwendung namens {}.",
+ "{} is a list of up to {} entries.": "{} ist eine Liste mit bis zu {} Einträgen."
+}

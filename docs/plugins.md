@@ -253,7 +253,7 @@ this site.
 | --- | --- |
 | `stat` | `value`, `unit`, `tone` (`ok`, `warn`, `err` or empty); optional `min`, `max` (shows as a gauge) |
 | `status` | `items`: `label`, `state` (`up`, `down`, `warn`, `unknown`), `detail` |
-| `list` | `items`: `label`, `value`, `tone`; optional `number` and `max` (shows as bars or a pie) |
+| `list` | `items`: `label`, `value`, `tone`; optional `number` and `max` (shows as bars or a pie) and `sub` (a second line under the label) |
 | `table` | `columns`: `key`, `label`; `rows` |
 | `sparkline` | `points`, `value`, `unit`, `min`, `max` |
 | `series` | `series`: up to 4 of `label`, `points` (`[unix seconds, value]`, oldest first) and optional `ghost: true` (a comparison line, drawn dotted, such as yesterday at the same times); `unit`; optional `marks`: up to 50 of `t` (unix seconds), `label` and `tone` (`ok`, `warn`, `err` or empty), drawn as lines across the graph |

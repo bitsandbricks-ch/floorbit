@@ -17,6 +17,8 @@ import { AgentDevices } from './agents/AgentDevices'
 import { AgentGraphs } from './agents/AgentGraphs'
 import { AgentRename, NewKeyButton, PluginsOff, Updates } from './agents/AgentTools'
 import { AgentSettingsForm, CertPanel, KeyPanel } from './agents/AgentSettings'
+import { Capabilities } from './agents/Capabilities'
+import { SelfUpdate } from './agents/SelfUpdate'
 import { useAgentSettings, useAgents, useAgentTags } from './agents/data'
 import { Blocked, PluginTable, Report } from './agents/Details'
 import { HintAnchor } from './agents/HintAnchor'
@@ -27,7 +29,7 @@ const TABS = ['overview', 'devices', 'graphs', 'plugins', 'updates', 'settings']
 type Tab = (typeof TABS)[number]
 
 /** One local agent: a header with what it is and how it connects, then tabs for what needs a
- *  look and its numbers, the devices it collects, its numbers over time, its plugins, its plugin updates, and its settings (tags, key, revoke). */
+ *  look and its numbers, the devices it collects, its numbers over time, its plugins, its own and its plugins' updates, and its settings (tags, key, revoke). */
 export default function AgentDetail() {
   const { t, i18n } = useTranslation()
   const lang = i18n.language
@@ -149,6 +151,11 @@ export default function AgentDetail() {
                       {a.old_works_until && <Text size="xs" c="warn">{t('agents.oldKeyWorks', { when: dateOnly(a.old_works_until, lang) })}</Text>}
                     </Stack>
                   </Panel>
+                  {a.connected && (
+                    <Panel title={t('agentCapabilities.title')} desc={t('agentCapabilities.help')}>
+                      <Capabilities have={a.capabilities} />
+                    </Panel>
+                  )}
                   {r && (
                     <Panel title={t('agents.reportTitle')}>
                       <Report report={r} lang={lang} />
@@ -175,9 +182,14 @@ export default function AgentDetail() {
           </Tabs.Panel>
 
           <Tabs.Panel value="updates" pt="md">
-            <Panel>
-              {r?.updates ? <Updates updates={r.updates} /> : <Text size="sm" c="dimmed">{t('agents.updates.none')}</Text>}
-            </Panel>
+            <Stack gap="md">
+              <Panel title={t('agentSelfUpdate.title')}>
+                <SelfUpdate status={a.self_update} report={r?.agent_update} version={a.version} />
+              </Panel>
+              <Panel title={t('agents.updates.title')}>
+                {r?.updates ? <Updates updates={r.updates} /> : <Text size="sm" c="dimmed">{t('agents.updates.none')}</Text>}
+              </Panel>
+            </Stack>
           </Tabs.Panel>
 
           <Tabs.Panel value="settings" pt="md">
