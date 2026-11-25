@@ -1,5 +1,5 @@
 import {
-  Alert, Anchor, Badge, Button, Checkbox, Code, CopyButton, Group, NumberInput, Select, Stack, Text, TextInput,
+  Alert, Anchor, Badge, Button, Checkbox, Group, NumberInput, Select, Stack, Text, TextInput,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -9,7 +9,7 @@ import { qk } from '@/api/keys'
 import { useRoles } from '@/api/queries'
 import type { ApiToken } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
+import { OneTimeSecret, PageHead } from '@bitsandbricks/ui'
 import { Panel } from '@/components/ui'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { dateOnly } from '@/lib/time'
@@ -72,19 +72,10 @@ export default function ApiTokens() {
       <Stack gap="md">
         <ErrorBanner error={error} />
         {made && (
-          <Alert color="up" role="status" withCloseButton onClose={() => setMade(null)} title={t('api.madeTitle', { name: made.token.name })}>
-            <Stack gap="xs">
-              <Text size="sm">{t('api.madeHelp')}</Text>
-              <Group gap="xs" wrap="nowrap">
-                <Code style={{ overflowWrap: 'anywhere', minWidth: 0 }}>{made.secret}</Code>
-                <CopyButton value={made.secret}>
-                  {({ copied, copy }) => (
-                    <Button size="compact-sm" variant="default" onClick={copy}>{copied ? t('api.copied') : t('api.copy')}</Button>
-                  )}
-                </CopyButton>
-              </Group>
-            </Stack>
-          </Alert>
+          <OneTimeSecret secret={made.secret} label={t('api.tokenLabel')} onDone={() => setMade(null)}
+            title={t('api.madeTitle', { name: made.token.name })}>
+            {t('api.madeHelp')}
+          </OneTimeSecret>
         )}
         {query.isPending ? <LoadingState rows={3} /> : d && (
           <>

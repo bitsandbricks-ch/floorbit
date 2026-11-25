@@ -78,7 +78,7 @@ describe('Agents', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enrol an agent' }))
     fireEvent.change(await screen.findByLabelText(/^Name/), { target: { value: 'Autumn LAN' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enrol' }))
-    expect(await screen.findByText('fba_e5f6a7b8_example-key-0123456789')).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('fba_e5f6a7b8_example-key-0123456789')).toBeInTheDocument()
     expect(screen.getByText(/FLOORBIT_AGENT_KEY=fba_e5f6a7b8_example-key-0123456789/)).toBeInTheDocument()
     expect(api.calls.find((c) => c.method === 'POST' && c.path === '/api/agents')?.body).toEqual({ name: 'Autumn LAN' })
   })

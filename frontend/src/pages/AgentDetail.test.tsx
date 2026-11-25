@@ -175,7 +175,7 @@ describe('AgentDetail', () => {
     expect(screen.getByRole('tab', { name: 'Key and certificate' })).toHaveAttribute('aria-selected', 'true')
     fireEvent.click(await screen.findByRole('button', { name: 'New key' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Yes, go ahead' }))
-    expect(await screen.findByText('fba_a1b2c3d4_another-example-key-012345')).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('fba_a1b2c3d4_another-example-key-012345')).toBeInTheDocument()
     expect(screen.getByText(`New key for ${a.name}`)).toBeInTheDocument()
   })
 
