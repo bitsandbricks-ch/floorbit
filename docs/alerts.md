@@ -89,7 +89,9 @@ Each problem's title opens **its own page** (`/problems/<id>`): what it is and w
 the seats it cuts off, and links to look further (where it was seen, the device in the inventory,
 the seat or switch on the floor plan, and for `seats.view` its logs and the machines seen at the
 seat). With `seats.view` it also lists the newest 20 syslog lines of the seat (or the switch,
-when the problem has no seat), every 15 seconds, with **Open in Logs** for more. **Make an incident** works there and in the list for every problem on a seat or a switch:
+when the problem has no seat), every 15 seconds, with **Open in Logs** for more. **What happened here**
+lists the device's (and, for `seats.view`, the seat's) outages, incidents and alerts from the
+[event changelog](timeline.md), from six hours before the problem started. **Make an incident** works there and in the list for every problem on a seat or a switch:
 the incident remembers the problem it came from and links back to it, and the problem shows
 **Incident open** while it is. A problem that is over says so; its incident stays on the board.
 A problem is what Floorbit sees and ends by itself; an incident is the work someone does about it.

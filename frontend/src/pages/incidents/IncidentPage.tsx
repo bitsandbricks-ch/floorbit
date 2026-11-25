@@ -8,10 +8,12 @@ import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useIncidentPeople, useIncidents, useMe } from '@/api/queries'
-import type { CrewMember, Incident, SeatDetails } from '@/api/types'
+import type { CrewMember, Incident, SeatDetails, TimelineEntry } from '@/api/types'
 import { BouncePort } from '@/components/BouncePort'
 import { Layout } from '@/components/Layout'
 import { RecentLogs } from '@/components/RecentLogs'
+import { PlaceHistory } from '@/components/PlaceHistory'
+import { useCanOpenTimeline } from '@/components/useCanOpenTimeline'
 import { LinkHistory } from '../plan/Inspector'
 import { Panel } from '@/components/ui'
 import { EmptyState, ErrorBanner, LoadingState, PageHead, PanelField } from '@bitsandbricks/ui'
@@ -39,6 +41,12 @@ export default function IncidentPage() {
   const now = useNowSeconds()
   const [note, setNote] = useState('')
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  const canAudit = useCanOpenTimeline()
+  // What happened at its seat or switch lately (issue #913); every incident change may add a line.
+  const history = useQuery({
+    queryKey: qk.incidentHistory(id), queryFn: () => get<{ entries: TimelineEntry[] }>(`/api/incidents/${encodeURIComponent(id)}/history`),
+    refetchInterval: 30_000, enabled: !!id,
+  })
   // The plan's seat details carry the link history; refreshed like the plan's inspector.
   const seatId = board.data?.incidents.find((x) => x.id === id)?.seat ?? ''
   const seat = useQuery({
@@ -193,6 +201,9 @@ export default function IncidentPage() {
             )}
           </Stack>
         </Panel>
+        {/* Where it happens, without leaving the incident (issue #913). */}
+        <PlaceHistory entries={history.data?.entries} loading={history.isPending} error={history.error}
+          search={i.switch_name ?? i.seat} canOpen={canAudit} />
         {/* Where it happens, without leaving the incident (issue #913): the seat's link over the last hours. */}
         {i.seat && seat.data?.history && seat.data.switch && (
           <Panel><LinkHistory history={seat.data.history} /></Panel>
