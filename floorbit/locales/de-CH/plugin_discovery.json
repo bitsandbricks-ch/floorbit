@@ -1,0 +1,4 @@
+{
+  "discover({}) returns {device_id: facts}": "discover({}) gibt {device_id: facts} zurück",
+  "this plugin lists discovery areas but has no discover() for {}": "Dieses Plugin nennt Discovery-Bereiche, hat aber kein discover() für {}"
+}

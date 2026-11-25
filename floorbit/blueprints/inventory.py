@@ -377,10 +377,20 @@ def discovery_run():
         if inventory.find(load_data(), str(body['device'])) is None:
             return jsonify({'error': 'No such device'}), 404
         devices = {str(body['device'])}
-    if not inventory_discovery.available():
-        return jsonify({'error': 'No monitoring source is set up, so there is nothing to discover.'}), 400
+    from .. import plugin_discovery
+    plugged = {a['id'] for a in plugin_discovery.areas()}
+    builtin = None if wanted is None else {a for a in wanted if a in inventory_discovery.ACTION_IDS}
+    mine = plugged if wanted is None else {a for a in wanted if a in plugged}
+    if builtin != set() and not inventory_discovery.available():
+        if not mine or wanted is not None:
+            return jsonify({'error': 'No monitoring source is set up, so there is nothing to discover.'}), 400
+        builtin = set()
     with inventory_discovery.running:
-        report = inventory_discovery.run(set(wanted) if wanted else None, devices)
+        report = inventory_discovery.run(builtin, devices) if builtin != set() else None
+        if mine:
+            # A plugin's areas (#968): asked through its agent part.
+            done = plugin_discovery.run(mine, devices)
+            report = {**report, 'plugins': done} if report else done
     return jsonify({'report': report, 'actions': inventory_discovery.actions(load_data())})
 
 
