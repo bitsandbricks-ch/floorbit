@@ -51,6 +51,16 @@ def test_a_core_switch_down_ranks_above_an_access_switch(client):
     assert ids.index("switch:core1") < ids.index("switch:acc1")
 
 
+def test_an_access_switch_with_many_seats_is_urgent_too(client, monkeypatch):
+    def reach(items, data):
+        for p in items:
+            if p["id"] == "switch:acc1":
+                p["seats"], p["behind"] = [f"A-{n}" for n in range(1, problems.MANY_SEATS + 1)], []
+    monkeypatch.setattr(problems, "_reach", reach)
+    _, access = _get(client, "switch:acc1")
+    assert access["priority"] == 1
+
+
 def test_hall_and_tags_come_from_the_switch_or_the_seat(client):
     body, core = _get(client, "switch:core1")
     assert core["hall"] == "Hall 2" and core["tags"] == ["stage", "core"]

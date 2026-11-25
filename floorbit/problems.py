@@ -25,7 +25,8 @@ Each problem is ``{id, kind, level, title, where, since, link, device}`` with ``
 ``device`` is the switch it is on, when it is on one.
 
 Each also carries (issue #1364) a ``priority``: 1 when it is down and cuts off more than itself (a
-switch or link with switches behind it, or a router, firewall, core or distribution box), 2 for the
+switch or link with switches behind it or with ``MANY_SEATS`` seats or more, or a router, firewall,
+core or distribution box), 2 for the
 rest that is down, 3 for everything to look at. Someone working the problems can raise one to 1 by
 hand (``raised``: who, when), stored under ``problem_raised``. ``hall`` is the hall its switch or seat
 is in and ``tags`` its switch's tags, so the page can group and filter by them.
@@ -323,6 +324,8 @@ RAISED = 'problem_raised'
 RAISED_KEEP = 7 * 24 * 3600
 # Boxes that carry more than one row of seats: down, they come first even with nothing mapped behind them.
 UPLINK_ROLES = ('router', 'firewall', 'core', 'distribution')
+# An access switch that takes this many seats with it is urgent too (Mike, 2026-11-25).
+MANY_SEATS = 20
 _raise_lock = threading.Lock()
 
 
@@ -371,7 +374,8 @@ def _place(items, data):
         hid = halls.hall_of(dev, data, hall_ids) if dev else seat_hall.get(p.get('seat'))
         p['hall'] = hall_names.get(hid) if hid else None
         p['tags'] = list(dev.get('tags') or []) if dev else []
-        wide = bool(p.get('behind')) or bool(dev and str(dev.get('role') or '').lower() in UPLINK_ROLES)
+        wide = (bool(p.get('behind')) or len(p.get('seats') or []) >= MANY_SEATS
+                or bool(dev and str(dev.get('role') or '').lower() in UPLINK_ROLES))
         p['priority'] = (1 if wide else 2) if p['level'] == 'down' else 3
         up = ups.get(p['id'])
         p['raised'] = {'by': up.get('by'), 'at': up['at']} if up else None

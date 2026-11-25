@@ -35,8 +35,9 @@ list. The list is a table: type, the problem (title, where, what it cuts off, it
 started and the actions. It is sorted by **priority**, then muted ones last, and within each the
 longest standing first:
 
-1. **Urgent**: down and cutting off more than itself: a switch or link with switches behind it, or
-   a router, firewall, core or distribution box (its role in the inventory);
+1. **Urgent**: down and cutting off more than itself: a switch or link with switches behind it or
+   with 20 seats or more on it, or a router, firewall, core or distribution box (its role in the
+   inventory);
 2. the rest that is down;
 3. what needs a look.
 
