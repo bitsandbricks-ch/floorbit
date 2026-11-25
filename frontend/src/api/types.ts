@@ -1360,6 +1360,8 @@ export interface LogStatus {
   retention_hours: number
   demo: boolean
   last_id: number
+  /** When the oldest kept line came (unix seconds): where the volume chart starts. */
+  first_ts?: number | null
   /** Local agents that send the event network's syslog on (issue #2). */
   relayed?: { agent: string; at: number; lines: number; dropped: number; recent: boolean }[]
   sources: LogSource[]

@@ -624,7 +624,9 @@ Source: [`floorbit/blueprints/logs.py`](https://github.com/bitsandbricks-ch/floo
 | --- | --- | --- | --- |
 | GET | `/api/logs` | `seats.view` | `syslog` |
 | GET | `/api/logs/alerts` | `seats.view` | `syslog` |
+| GET | `/api/logs/download` | `seats.view` | `syslog` |
 | GET | `/api/logs/markers` | `seats.view` | `syslog` |
+| GET | `/api/logs/volume` | `seats.view` | `syslog` |
 
 ## floorbit.blueprints.marketplace
 
