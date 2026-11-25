@@ -1,8 +1,10 @@
 {
  "Ended mute": "Stummschaltung beendet",
  "Extended mute": "Stummschaltung verlängert",
+ "Lowered a problem": "Problem wieder normal eingestuft",
  "Muted a problem": "Problem stummgeschaltet",
  "Muted access point alerts": "Access-Point-Alarme stummgeschaltet",
  "Muted service alerts": "Dienst-Alarme stummgeschaltet",
- "Muted switch alerts": "Switch-Alarme stummgeschaltet"
+ "Muted switch alerts": "Switch-Alarme stummgeschaltet",
+ "Raised a problem": "Problem höher eingestuft"
 }

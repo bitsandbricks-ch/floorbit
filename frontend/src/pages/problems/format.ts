@@ -26,9 +26,9 @@ export function problemsText(problems: Problem[], mutes: AlertMute[], t: T, ago:
   return lines.join('\n')
 }
 
-/** Worst first (issue #883): down, then to look at, then muted; within each the longest standing first. */
+/** Worst first (issue #883): by priority (issue #1364), then muted; within each the longest standing first. */
 export const rank = (p: Problem, now: number) =>
-  (p.muted ? 2 : p.level === 'down' ? 0 : 1) * 1e11 + (p.since ?? now)
+  (p.muted ? 4 : p.priority ?? (p.level === 'down' ? 2 : 3)) * 1e11 + (p.since ?? now)
 
 /** An incident is about one seat or one switch: a problem on neither can't become one. */
 export const canReport = (p: Problem) => !!(p.seat || p.switch_id)

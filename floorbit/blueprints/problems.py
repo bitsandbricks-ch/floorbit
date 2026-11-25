@@ -13,7 +13,9 @@
   a Wi-Fi access point (issue #1064), ``{"problem_id", ...}`` any other problem on the list (issue #887).
 - ``PATCH /api/alerts/mutes/<id>``: ``{"minutes"}`` makes a running mute last longer (issue #264).
 - ``DELETE /api/alerts/mutes/<id>``: ends a mute (a switch id, ``health:<service id>`` or ``wifi:<ap>``).
-Mutes need ``incidents.work`` (auth/roles.py): the people working problems decide what pages them.
+- ``POST /api/alerts/raised``: ``{"problem_id"}`` raises a problem to priority 1 (issue #1364);
+  ``DELETE /api/alerts/raised/<problem id>`` takes that back.
+Mutes and raises need ``incidents.work`` (auth/roles.py): the people working problems decide what pages them.
 """
 from flask import Blueprint, current_app, g, jsonify, request
 
@@ -172,5 +174,25 @@ def end_mute(switch_id):
     if not found:
         return jsonify({'error': 'That switch is not muted.'}), 404
     audit.record('alerts', 'Ended mute', user=g.get('audit_user'), target=found.get('name'))
+    events.publish('alerts.changed', {})
+    return jsonify({'ok': True})
+
+
+@bp.route('/api/alerts/raised', methods=['POST'])
+def raise_problem():
+    found = problems.find(_can('seats.view'), str((request.get_json(silent=True) or {}).get('problem_id') or ''))
+    if not found:
+        return jsonify({'error': 'There is no such problem.'}), 400
+    if problems.set_raised(found['id'], g.get('audit_user')):
+        audit.record('alerts', 'Raised a problem', user=g.get('audit_user'), target=found.get('title') or found['id'])
+        events.publish('alerts.changed', {})
+    return jsonify({'ok': True}), 201
+
+
+@bp.route('/api/alerts/raised/<path:problem_id>', methods=['DELETE'])
+def lower_problem(problem_id):
+    if not problems.set_raised(problem_id, g.get('audit_user'), on=False):
+        return jsonify({'error': 'That problem is not raised.'}), 404
+    audit.record('alerts', 'Lowered a problem', user=g.get('audit_user'), target=problem_id)
     events.publish('alerts.changed', {})
     return jsonify({'ok': True})
