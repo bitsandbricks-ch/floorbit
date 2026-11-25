@@ -13,7 +13,7 @@ incident's own page.
 
 **Show as Table** lists every incident in one sortable table instead: title, state, where, who has
 it, team and when it was filed, open ones first, 50 to a page. A row opens the incident's page,
-where the actions are. The filter and the switches above apply to both views, and the choice stays
+where the actions are. The filter and the menus above apply to both views, and the choice stays
 in the address (`?view=table`), so a link opens the same view.
 
 ### One incident's page
@@ -58,8 +58,18 @@ on average.
 
 **Filter** narrows the columns to incidents whose title, seat, switch, circuit, assignee, team or
 notes contain the text, ignoring case. `seat:D-2` matches that seat only (not D-20), `switch:sw-a-01` one switch by name or id (not sw-a-010), and `with:kim` the incidents kim is on (not those that only mention kim in a note). It is kept in the address (`/incidents?q=B-7`), so a link can
-open the board filtered, and it works together with **Only what I can work**. **/** anywhere on the
+open the board filtered, and it works together with the menus next to it. **/** anywhere on the
 board puts the cursor in it, as on the [Seats page](seats.md#keyboard-and-screen-readers).
+
+The menus next to the filter narrow the board further, each with how many incidents it leaves:
+
+- **Who**: everyone, **Assigned to me** (`?mine=1`, the link Discord's `/jobs` sends) or **Only what I
+  can work** (`?mine=can`).
+- **Team**: one team's incidents, when the board has more than one team on it.
+- **State**: open, being worked or fixed; handy with **Show as Table**.
+- **Where**: seats, switches or power circuits, when the board has more than one kind.
+
+They stay in the address like the filter, so a link opens the same view; **Clear** resets them all.
 
 An open incident at a seat has **Bounce port** on its page, for
 accounts that may work it and have `ports.act` while a [port actions plugin](ports.md) is on. It asks

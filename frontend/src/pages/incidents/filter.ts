@@ -19,3 +19,16 @@ export function matchesFilter(i: Incident, filter: string, teamNames: Record<str
     ...i.notes.map((n) => n.text)]
   return fields.some((f) => typeof f === 'string' && f.toLowerCase().includes(q))
 }
+
+/** The board's menus (issue #887): who has it, team, state and where. Empty or ``all`` lets everything through. */
+export interface Facets { mine: string; team: string; state: string; where: string }
+
+export const whereKind = (i: Incident) => i.seat ? 'seat' : i.circuit_id ? 'circuit' : 'switch'
+
+export function matchesFacets(i: Incident, f: Facets, me: string | undefined): boolean {
+  if (f.mine === '1' && (!me || i.assignee !== me)) return false
+  if (f.mine === 'can' && !i.can_work) return false
+  if (f.team && i.team !== f.team) return false
+  if (f.state !== 'all' && i.status !== f.state) return false
+  return f.where === 'all' || whereKind(i) === f.where
+}
