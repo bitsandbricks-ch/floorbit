@@ -134,6 +134,7 @@
     "problems_one": "{{count}} with problems",
     "problems_other": "{{count}} with problems",
     "tileGone": "This tile is gone (plugin off or removed).",
+    "tileNeeds": "This tile needs the {{plugin}} plugin. Install it or turn it on under Plugins.",
     "empty": "Empty pane",
     "noText": "Write something in the pane's settings.",
     "private": "Needs an account: not shown on a public screen.",
@@ -358,5 +359,13 @@
     "close": "Close the widget settings",
     "resetAsk": "Reset {{name}} to its default? Your changes are lost.",
     "deleteAsk": "Delete {{name}}? This can’t be undone."
+  },
+  "file": {
+    "import": "Import",
+    "export": "Export as file",
+    "imported": "Imported “{{name}}”.",
+    "missing": "Some tiles need plugins this Floorbit doesn’t have on: {{plugins}}.",
+    "notJson": "That file is not a dashboard file.",
+    "fromPlugin": "From {{plugin}}"
   }
 }

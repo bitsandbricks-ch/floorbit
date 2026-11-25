@@ -1,5 +1,5 @@
 import { ActionIcon, Anchor, Badge, Group, Menu, Stack, Text, Tooltip, VisuallyHidden } from '@mantine/core'
-import { IconArrowRight, IconDeviceTv, IconDots, IconPencil, IconPin, IconPinFilled } from '@tabler/icons-react'
+import { IconArrowRight, IconDeviceTv, IconDots, IconDownload, IconPencil, IconPin, IconPinFilled } from '@tabler/icons-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
@@ -45,7 +45,7 @@ export function BoardTable({ boards, loading, canEdit, onEdit }: { boards: Board
           <Anchor component={Link} to={boardHref(b.id)} fw={600} c="inherit">{boardName(t, b)}</Anchor>
           <Group gap={4}>
             {b.plugin
-              ? <Badge size="xs" variant="light" color="trace">{t('dashboardList.fromPlugin', { plugin: b.plugin_name ?? b.plugin })}</Badge>
+              ? <Badge size="xs" variant="light" color="trace">{t('dashboards.file.fromPlugin', { plugin: b.plugin_name ?? b.plugin })}</Badge>
               : (b.builtin || b.changed) && <Badge size="xs" variant="light" color="gray">{t('dashboards.builtin')}</Badge>}
             {b.changed && <Badge size="xs" variant="light" color="warn">{t('dashboards.changed')}</Badge>}
             {b.public && <Badge size="xs" variant="light" color="up">{t('dashboards.publicBadge')}</Badge>}
@@ -91,6 +91,7 @@ export function BoardTable({ boards, loading, canEdit, onEdit }: { boards: Board
             {/* The big screen is the second way in, without the app around it. */}
             <Menu.Item component="a" href={`/dashboards/${encodeURIComponent(b.id)}`} leftSection={<IconDeviceTv size={16} />}>{t('board.bigScreen')}</Menu.Item>
             {canEdit && <Menu.Item leftSection={<IconPencil size={16} />} onClick={() => onEdit(b.id)}>{t('dashboards.editOne')}</Menu.Item>}
+            <Menu.Item component="a" href={`/api/dashboards/${encodeURIComponent(b.id)}/export`} download leftSection={<IconDownload size={16} />}>{t('dashboards.file.export')}</Menu.Item>
           </Menu.Dropdown>
         </Menu>
       ) },

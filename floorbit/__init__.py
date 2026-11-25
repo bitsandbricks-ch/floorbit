@@ -55,6 +55,9 @@ def create_app(start_background=True):
     app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024
     from .static_files import init_static_files
     init_static_files(app)   # first, so its after_request runs last (floorbit/static_files.py)
+    # Server-Timing on every answer and a log line for slow ones (floorbit/request_timing.py).
+    from . import request_timing
+    request_timing.init_request_timing(app)
 
     from . import database
     # Before waiting for it: SQLite in a folder this process can't write never comes up.
@@ -270,6 +273,9 @@ def create_app(start_background=True):
     # First-run setup for a new install, after the demo so a demo hall counts as set up (docs/install.md).
     from .blueprints.setup import init_setup
     init_setup(app)
+
+    # Last, so the timing's start runs before every other request hook.
+    request_timing.start_first(app)
 
     # Several pods: share live updates, agent calls and one leader through Redis (docs/kubernetes.md).
     if start_background:

@@ -19,7 +19,6 @@
     "public": "Öffentlich",
     "plugins": "Aus Plugins"
   },
-  "fromPlugin": "Aus {{plugin}}",
   "byTag": "Dashboards mit Tag {{tag}} zeigen",
   "screenLayout": "Bildschirm-Layout",
   "pageLayout": "Seiten-Layout",

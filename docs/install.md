@@ -203,6 +203,13 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
   them at most (24 for attendees who aren't signed in), so pages keep loading. For more screens,
   add `GUNICORN_CMD_ARGS=--threads 200` to `.env` (150 live tabs).
 - `docker compose logs -f floorbit` shows what it is doing; `/healthz` answers when it is up.
+- Slow pages: every answer carries a `Server-Timing` header, which the browser's network panel
+  (Timing tab) and a HAR export show. `total` is the time inside Floorbit, `cpu` the part it spent
+  computing, `db` the part spent with the database, and `pool` waiting for a free database
+  connection. Whatever the browser measured on top of `total` went to the proxy, the network or
+  waiting for a free thread. A request over a second is logged too
+  (`[timing] Slow request: GET /api/problems 200 took 1840 ms (...)`, on the Logs page as well);
+  `FLOORBIT_SLOW_REQUEST_MS` changes that limit, `0` turns the line off.
 - Set `TZ` in `.env` to the event's time zone (for example `TZ=Europe/Zurich`). Without it the
   container runs on UTC, and what the server works out by the clock itself is an hour or two
   off: quiet hours, the bandwidth forecast's hours, times on the public status page,

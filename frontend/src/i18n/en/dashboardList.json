@@ -19,7 +19,6 @@
     "public": "Public",
     "plugins": "From plugins"
   },
-  "fromPlugin": "From {{plugin}}",
   "byTag": "Show dashboards tagged {{tag}}",
   "screenLayout": "Screen layout",
   "pageLayout": "Page layout",

@@ -5,9 +5,12 @@
 - ``PUT``/``DELETE /api/dashboards/<id>``: floorplan.edit (auth/roles.py).
 - ``GET /api/widgets``: the saved widgets, with the dashboards that show each; ``POST /api/widgets`` and
   ``PUT``/``DELETE /api/widgets/<id>``: floorplan.edit, like the dashboards (floorbit/saved_widgets.py).
+- ``GET /api/dashboards/<id>/export``: the dashboard as a file for another Floorbit, for whoever may open
+  it; ``POST /api/dashboards/import``: such a file as a new dashboard, floorplan.edit (#938).
 - ``GET /api/dashboards/<id>/public`` and its ``/plan`` and ``/tiles/<tile>``: a public dashboard for a
   screen nobody signed in to, trimmed to what anyone may see (dashboards.public_board). Open to all.
 """
+import json
 from collections import Counter
 
 from flask import Blueprint, abort, current_app, g, jsonify, redirect, request, url_for
@@ -109,7 +112,7 @@ def public_tile(layout_id, tile):
 def list_layouts():
     # A screen account limited to some dashboards (Settings > Users) sees only those.
     allowed = dashboards.allowed_for(current_user())
-    layouts = [x for x in dashboards.all_layouts() if allowed is None or x['id'] in allowed]
+    layouts = _plugin_names([x for x in dashboards.all_layouts() if allowed is None or x['id'] in allowed])
     if allowed is None:
         # How many screen accounts show each one (#897), for "Shows on" in the list. A count, no names.
         screens = Counter(i for u in _accounts() for i in u.get('dashboards') or [])
@@ -129,6 +132,45 @@ def get_layout(layout_id):
     if not layout or not (layout.get('public') or dashboards.may_open(current_user(), layout_id)):
         return _error('No such dashboard.', 404)
     return jsonify(layout)
+
+
+def _plugin_names(layouts):
+    """Plugin dashboards' names in the reader's language, from the plugin's own texts."""
+    from .. import i18n
+    registry = current_app.extensions['floorbit_plugins']
+    lang = i18n.language(request.headers.get('Accept-Language'))
+    out = []
+    for x in layouts:
+        spec = registry.specs.get(x.get('plugin')) if x.get('builtin') else None
+        out.append({**x, 'name': registry.text(spec, x['name'], lang)} if spec else x)
+    return out
+
+
+@bp.route('/api/dashboards/<layout_id>/export', methods=['GET'])
+def export_layout(layout_id):
+    layout = dashboards.get(layout_id)
+    if not layout or not dashboards.may_open(current_user(), layout_id):
+        return _error('No such dashboard.', 404)
+    from .. import downloads
+    body = json.dumps(dashboards.export(layout), indent=2, ensure_ascii=False)
+    return current_app.response_class(body, mimetype='application/json', headers={
+        'Content-Disposition': downloads.disposition(f'{layout_id}.dashboard.json')})
+
+
+@bp.route('/api/dashboards/import', methods=['POST'])
+def import_layout():
+    user = g.get('audit_user')
+    try:
+        layout = dashboards.import_file(request.get_json(silent=True), user)
+    except dashboards.LayoutError as exc:
+        return _error(str(exc), exc.status)
+    audit.record('settings', 'Imported dashboard', user, layout['name'])
+    # The plugins its tiles come from that are not on here: the screen says so on each pane.
+    registry = current_app.extensions['floorbit_plugins']
+    on = {s.id for s in registry.specs.values() if registry.enabled(s)} | {'floorbit'}
+    needs = sorted({t.split('/w/')[0] for p in dashboards.layout_panes(layout)
+                    for t in dashboards.pane_tiles(p)} - on)
+    return jsonify({'layout': layout, 'missing': needs}), 201
 
 
 @bp.route('/api/dashboards/<layout_id>', methods=['PUT'])
