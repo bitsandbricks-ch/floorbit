@@ -73,6 +73,9 @@ Nothing has to be set up for it. Floorbit works out how the laptop reaches an ag
   front door answers it.
 - **No check-in name set:** the address browsers in the hall last reached an agent at. Each agent's
   front door learns it from the requests it answers and reports it.
+- **Nothing learnt yet:** what the connected agents say about themselves: a VIP the pair holds,
+  else a private address on the certificate Floorbit's CA signed for an agent. Nothing to type in;
+  the page only warns when no agent is connected at all.
 
 When the agent's host publishes the front door on another port than 443/80 (`HTTPS_PUBLISH_PORT`,
 `HTTP_PUBLISH_PORT` in the agent's compose), the agent says so and the check-in name gets that
