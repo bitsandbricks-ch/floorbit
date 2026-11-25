@@ -31,7 +31,7 @@ from datetime import datetime
 
 from integrations import config
 
-from . import dhcp_leases, features, inventory, log_alerts, store
+from . import dhcp_leases, features, inventory, log_alerts, store, unknown_senders
 
 MAX_LINE = 2048
 LATE = 120               # seconds: a relayed line older than this was kept by the agent (#465)
@@ -344,15 +344,22 @@ class SyslogReceiver:
         return True
 
     # ── receiving ───────────────────────────────────────────────────────────────────
-    def receive(self, raw, sender, now=None, check=True, device=None, late=False):
+    def receive(self, raw, sender, now=None, check=True, device=None, late=False, agent=''):
         """One datagram or TCP line from ``sender``. Returns the kept line, or None. ``late``: a line
-        an agent kept while the uplink was down, sent long after it came."""
+        an agent kept while the uplink was down, sent long after it came. ``agent``: the one that relayed it."""
         now = time.time() if now is None else now
         with self._lock:
             self.counts['received'] += 1
             if check and not self.sender_ok(sender):
                 self.counts['not_allowed'] += 1
-                return None
+                refused = True
+            else:
+                refused = False
+        if refused:
+            # Still dropped, but listed: a switch missing from the inventory looks silent otherwise (#1443).
+            self._unknown(raw, sender, now, agent)
+            return None
+        with self._lock:
             # Late lines come oldest first behind the live ones: on a bucket of their own, their
             # times refill it as the switch's own pace did, and they can't eat the live lines' share.
             if not self._rate_ok((sender, 'late') if late else sender, now):
@@ -360,6 +367,8 @@ class SyslogReceiver:
                 return None
         line = parse(raw, now)
         _nets, switches = self._allowed()
+        if sender not in switches and not device:
+            unknown_senders.syslog.note('syslog', sender, name=line['host'], agent=agent, now=now)
         device = device or switches.get(sender) or line['host'] or sender
         ports = ports_in(line['message'])
         port = ports[0] if ports else None
@@ -376,6 +385,11 @@ class SyslogReceiver:
             # A lease line hours old could undo a newer one; the lease ran out by now anyway.
             dhcp_leases.leases.observe(line['message'], now)
         return line
+
+    def _unknown(self, raw, sender, now, agent):
+        _nets, switches = self._allowed()
+        if sender not in switches:
+            unknown_senders.syslog.note('syslog', sender, name=parse(raw[:MAX_LINE], now)['host'], agent=agent, now=now)
 
     def relay(self, agent_name, lines, now=None, dropped=0, offset=0.0):
         """Lines a local agent received on the event network (issue #2): ``[{"raw", "from", "at", "id"}]``.
@@ -413,7 +427,7 @@ class SyslogReceiver:
             if self._duplicate(item.get('id'), at):
                 continue
             late = now - at > LATE
-            if self.receive(item['raw'][:MAX_LINE], sender, now=at, late=late) is not None:
+            if self.receive(item['raw'][:MAX_LINE], sender, now=at, late=late, agent=agent_name) is not None:
                 kept += 1
         with self._lock:
             seen = self.relayed.setdefault(str(agent_name)[:80], {'lines': 0, 'dropped': 0})

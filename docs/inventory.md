@@ -65,6 +65,16 @@ the kiosk and the attendee hall view draw them in the icon's colour. Removing an
 devices, groups and tags that showed it back on their default icon, and turns plan icons that used
 it into the info icon.
 
+### Unknown senders
+
+A device that sends syslog, traps, streams (gNMI, MDT) or flows to the agents without being in the
+inventory would look silent although it talks. The list's **Unknown senders** chip opens each address
+heard from in the last 24 hours that matches no device (by management address or name): what it sent
+and how often, first and last heard, through which agent, and the name it gives (the syslog host name
+or the trap's `sysName`). **Add to inventory** makes the device with that address; **Ignore** leaves it
+out of the count and the Problems page, where the rest show as one row to look at. Only these counts
+leave the agents, never the lines. Up to 200 addresses are kept per kind.
+
 ## Interfaces
 
 A device's interfaces are its ports: switch ports, a server's NICs, a firewall's interfaces, a VM's

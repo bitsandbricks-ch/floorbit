@@ -30,7 +30,8 @@
     "portconfig": "Port config",
     "range": "IP range",
     "shared": "Shared port",
-    "librenms": "LibreNMS"
+    "librenms": "LibreNMS",
+    "unknown-senders": "Unknown sender"
   },
   "since": "started {{ago}}",
   "open": "Open",

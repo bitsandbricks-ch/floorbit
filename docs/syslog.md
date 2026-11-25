@@ -221,3 +221,9 @@ last 10 minutes counted per seat and per switch (what the floor plan shows). Bot
 With `FLOORBIT_DEMO=1` the app makes up lines from the demo hall itself (no receiver needed): the
 loose cable on seat C-9 going down and up, a MAC flapping between two ports, DHCP snooping drops,
 DHCP leases, a port in err-disable, spanning tree changes and firewall blocks. The receiver stays off unless `SYSLOG_ENABLED` is set.
+
+## Senders that aren't in the inventory
+
+A sender outside the allow-list is still dropped, but noted, and so is an allowed one whose address no
+inventory device has. Both show under [Unknown senders](inventory.md#unknown-senders), with the host
+name the lines give.

@@ -552,5 +552,31 @@
       "label": "Andere Agenten übernehmen",
       "hint": "Aus: Solange der Agent (oder jeder Agent mit dem Tag) weg ist, sammelt niemand."
     }
+  },
+  "unknown": {
+    "chip_one": "{{count}} unbekannter Absender",
+    "chip_other": "{{count}} unbekannte Absender",
+    "title": "Unbekannte Absender",
+    "desc": "Adressen, die in den letzten 24 Stunden Syslog, Traps, Streams oder Flows an die Agenten geschickt haben, aber zu keinem Gerät passen. Nur Zahlen, keine Zeilen.",
+    "showIgnored": "Ignoriert ({{count}})",
+    "none": "Nichts Unbekanntes",
+    "noneDesc": "Jede Adresse, die in den letzten 24 Stunden gesendet hat, ist ein Gerät im Inventar.",
+    "ignored": "Ignoriert",
+    "heard": "Zuletzt {{last}}, zuerst {{first}}",
+    "via": "über {{agents}}",
+    "add": "Ins Inventar aufnehmen",
+    "addNow": "Aufnehmen",
+    "ignore": "Ignorieren",
+    "unignore": "Nicht mehr ignorieren",
+    "kind": {
+      "syslog_one": "Syslog, {{count}} Zeile",
+      "syslog_other": "Syslog, {{count}} Zeilen",
+      "trap_one": "Traps, {{count}}",
+      "trap_other": "Traps, {{count}}",
+      "stream_one": "Streams, {{count}} Punkt",
+      "stream_other": "Streams, {{count}} Punkte",
+      "flow_one": "Flows, {{count}}",
+      "flow_other": "Flows, {{count}}"
+    }
   }
 }
