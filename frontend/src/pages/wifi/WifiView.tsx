@@ -10,7 +10,7 @@ import type { WifiAp, WifiBand, WifiData, WifiRadio } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { type DataColumn, DataTable, ErrorBanner, LoadingState, StatTile } from '@bitsandbricks/ui'
 import { channelColor, loadColor } from './colors'
-import { blockTop } from '@/pages/plan/blockTop'
+import { MiniPlan } from '@/components/MiniPlan'
 import { WifiHistory } from './WifiHistory'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/wifi.md'
@@ -41,26 +41,19 @@ function Plan({ data, band, mode, label }: { data: WifiData; band: WifiBand; mod
     if (mode === 'clients') return String(r.clients)
     return r.utilization == null ? '?' : `${r.utilization}%`
   }
-  return (
-    <svg viewBox={drawing.box} role="img" aria-label={label} className="fb-wifi-plan">
-      <defs>
-        {aps.map((ap, i) => (
-          <radialGradient key={ap.name} id={`wifi-heat-${i}`}>
-            <stop offset="0%" style={{ stopColor: colorOf(ap), stopOpacity: 0.55 }} />
-            <stop offset="100%" style={{ stopColor: colorOf(ap), stopOpacity: 0 }} />
-          </radialGradient>
-        ))}
-      </defs>
-      {drawing.shapes.map((b, i) => (
-        <g key={i}>
-          <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
-            {b.cells.map((c) => (
-              <rect key={c.seat} className="cell" x={c.x + 1} y={c.y + 1} width={drawing.cell - 2} height={drawing.cell - 2} rx={3} />
-            ))}
-          </g>
-          {b.name && <text className="name" x={b.cx} y={blockTop(b) - 12}>{b.name}</text>}
-        </g>
+  const heat = (
+    <>
+      {aps.map((ap, i) => (
+        <radialGradient key={ap.name} id={`wifi-heat-${i}`}>
+          <stop offset="0%" style={{ stopColor: colorOf(ap), stopOpacity: 0.55 }} />
+          <stop offset="100%" style={{ stopColor: colorOf(ap), stopOpacity: 0 }} />
+        </radialGradient>
       ))}
+    </>
+  )
+  return (
+    <MiniPlan drawing={drawing} label={label} className="fb-wifi-plan" defs={heat}
+      points={aps.map((ap): [number, number] => [ap.px!, ap.py!])}>
       {aps.map((ap, i) => ap.status === 'up' && radioOn(ap, band) && (
         <circle key={ap.name} cx={ap.px!} cy={ap.py!} r={RADIUS * 2.2} fill={`url(#wifi-heat-${i})`} className="heat" />
       ))}
@@ -74,7 +67,7 @@ function Plan({ data, band, mode, label }: { data: WifiData; band: WifiBand; mod
           <text className="ap-name" x={ap.px!} y={ap.py! + 58}>{ap.name}</text>
         </g>
       ))}
-    </svg>
+    </MiniPlan>
   )
 }
 

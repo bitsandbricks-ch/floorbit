@@ -241,7 +241,7 @@ export const slug = (name: string) =>
 
 /** Everything drawn on a hall (seat blocks, zones, walls, labels), in drawing units, for "the whole
  *  hall" on a big screen: the drawing's own box leaves room for editing that a screen doesn't need. */
-export function contentBox(drawing: PlanDrawing, margin = 40): View | null {
+export function contentBox(drawing: Pick<PlanDrawing, 'shapes'> & Partial<Pick<PlanDrawing, 'marks'>>, margin = 40): View | null {
   const xs: number[] = [], ys: number[] = []
   for (const b of drawing.shapes) {
     const r = ((b.rotation % 180) + 180) % 180

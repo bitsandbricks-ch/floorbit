@@ -1,6 +1,6 @@
 import type { PlanDrawing } from '@/api/types'
 import { chartPath } from './model'
-import { blockTop } from '@/pages/plan/blockTop'
+import { MiniPlan } from '@/components/MiniPlan'
 
 export const CHART_W = 1000
 export const CHART_H = 120
@@ -8,25 +8,11 @@ export const CHART_H = 120
 /** The hall's seat blocks: seats that were on filled, open incidents ringed. */
 export function Plan({ drawing, on, rings, label }: { drawing: PlanDrawing; on: Set<string>; rings: Set<string>; label: string }) {
   return (
-    <svg viewBox={drawing.box} role="img" aria-label={label} className="fb-replay-plan">
-      {drawing.shapes.map((b, i) => (
-        <g key={i}>
-          <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
-            <rect className="blk" x={-b.w / 2 - 6} y={-b.h / 2 - 6} width={b.w + 12} height={b.h + 12} rx={6} />
-            {b.cells.map((c) => (
-              <g key={c.seat}>
-                <rect className={on.has(c.seat) ? 'cell on' : 'cell'} data-seat={c.seat} x={c.x + 1} y={c.y + 1}
-                  width={drawing.cell - 2} height={drawing.cell - 2} rx={3}>
-                  <title>{c.seat}</title>
-                </rect>
-                {rings.has(c.seat) && <circle className="ring" cx={c.x + drawing.cell / 2} cy={c.y + drawing.cell / 2} r={drawing.cell * 0.9} />}
-              </g>
-            ))}
-          </g>
-          {b.name && <text className="name" x={b.cx} y={blockTop(b) - 12}>{b.name}</text>}
-        </g>
-      ))}
-    </svg>
+    <MiniPlan drawing={drawing} label={label} className="fb-replay-plan" frames
+      seat={(id, at) => ({
+        className: on.has(id) ? 'on' : undefined,
+        children: rings.has(id) ? <circle className="ring" cx={at.x} cy={at.y} r={drawing.cell * 0.9} /> : undefined,
+      })} />
   )
 }
 
