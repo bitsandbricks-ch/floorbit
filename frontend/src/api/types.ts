@@ -745,6 +745,12 @@ export interface Problem {
   ports?: string[]
   /** The switch it is on, when it is on one: what the page groups by (issue #883). */
   device?: string | null
+  /** 1 down and cutting off more than itself, 2 down, 3 to look at; 1 too when raised by hand (issue #1364). */
+  priority?: 1 | 2 | 3
+  raised?: { by: string | null; at: number } | null
+  /** The hall its switch or seat is in, and its switch's tags: what the page groups and filters by. */
+  hall?: string | null
+  tags?: string[]
 }
 
 /** GET /api/problems/<id> (issue #882): one problem, and the device it is on. */

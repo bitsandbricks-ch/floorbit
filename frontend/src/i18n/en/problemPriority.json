@@ -1,0 +1,12 @@
+{
+  "urgent": "Urgent",
+  "urgentWhy": "Down, and it cuts off more than itself",
+  "raised": "Raised",
+  "raisedBy": "Raised by {{who}}",
+  "raise": "Raise",
+  "lower": "Lower again",
+  "groupHall": "Hall",
+  "noHall": "No hall",
+  "tag": "Tag",
+  "anyTag": "Any tag"
+}
