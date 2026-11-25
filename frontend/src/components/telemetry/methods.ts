@@ -10,9 +10,10 @@ export type MethodState = 'ok' | 'late' | 'err' | 'never' | 'off'
 
 export interface MethodCell { method: Method; state: MethodState; at: number | null; problem?: DeviceProblem }
 
-// Which collection types (targets.DRIVERS) each column stands for.
+// Which collection types (targets.DRIVERS) each column stands for. A firewall's own Telegraf
+// (push) reports through its API, so it is that column.
 const DRIVERS: Record<Method, string[]> = {
-  snmp: ['snmp'], traps: ['traps'], syslog: [], api: ['nxapi', 'restconf', 'opnsense'], gnmi: ['gnmi'], mdt: ['mdt'],
+  snmp: ['snmp'], traps: ['traps'], syslog: [], api: ['nxapi', 'restconf', 'opnsense', 'push'], gnmi: ['gnmi'], mdt: ['mdt'],
 }
 // Traps and MDT only come when something happens or on the device's own schedule: quiet is fine.
 const EVENTS: Method[] = ['traps', 'mdt']
