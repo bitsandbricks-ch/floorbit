@@ -1,14 +1,9 @@
 {
-  "button": "Go to",
-  "title": "Go to a page",
   "placeholder": "Type a page, seat, switch, IP or MAC",
-  "none": "Nothing matches.",
   "close": "Close",
-  "recent": "recent",
   "seat": "Seat",
   "switch": "Switch",
   "player": "Player",
-  "action": "Action",
   "actions": {
     "notice": "Put up a crew notice",
     "notify": "Notification settings"
@@ -97,5 +92,10 @@
     "checkins": "PIN, arrivals",
     "firewalls": "routing, uplinks",
     "networkStatus": "status page, attendees, outage, announcement"
+  },
+  "groups": {
+    "pages": "Pages",
+    "places": "Seats, switches and players",
+    "actions": "Actions"
   }
 }
