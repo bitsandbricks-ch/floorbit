@@ -1,7 +1,18 @@
 """Floorbit picks each group's primary (issue #1405): a sticky lease, VRRP optional."""
+import pytest
 from test_agent import clean_tunnel, enrol, head  # noqa: F401  # clean_tunnel is autouse there
 
 from floorbit import agent_ha, agent_link
+
+
+@pytest.fixture(autouse=True)
+def long_since_started(monkeypatch):
+    """This Floorbit started long ago: no wait for the last holder (test_a_restart_waits_...)."""
+    monkeypatch.setattr(agent_ha, "_started", -10 * agent_ha.STARTUP_GRACE)
+    # Each test starts with no holder remembered.
+    kept = {}
+    monkeypatch.setattr(agent_ha, "_remembered", kept.get)
+    monkeypatch.setattr(agent_ha, "_remember", kept.__setitem__)
 
 
 def agent(aid, connected=True, tags=(), lease=None, vrrp=None):
@@ -89,3 +100,25 @@ def test_the_lease_goes_to_an_agent_that_runs_every_plugin():
     assert agent_ha.lease_holder([agent("a"), b]) == "a"
     assert agent_ha.lease_holder([{**agent("a", connected=False)}, b]) == "b"
     assert agent_ha.lease_holder([{**agent("a"), "plugins_off": ["x"]}, b]) == "b"
+
+
+def test_a_restart_waits_a_minute_for_the_last_holder(monkeypatch):
+    # agent-b held the lease before this Floorbit restarted, which forgot every report.
+    assert agent_ha.lease_holder([agent("a"), agent("b")]) == "a"
+    assert agent_ha.lease_holder([agent("a"), agent("b", lease=True)]) == "b"
+    monkeypatch.setattr(agent_ha, "_started", agent_ha.time.monotonic())
+    # agent-a reconnects first: it must not take the lease while agent-b may still come back.
+    assert agent_ha.lease_holder([agent("a"), agent("b", connected=False)]) is None
+    # agent-b is back and hasn't reported yet: it keeps the lease.
+    assert agent_ha.lease_holder([agent("a"), agent("b")]) == "b"
+    # A minute on, agent-b gone for good: agent-a takes over.
+    monkeypatch.setattr(agent_ha, "_started", -10 * agent_ha.STARTUP_GRACE)
+    assert agent_ha.lease_holder([agent("a"), agent("b", connected=False)]) == "a"
+
+
+def test_the_last_holder_is_kept_in_the_data(client, monkeypatch):
+    monkeypatch.undo()      # the real store, not the fixture's dict
+    agent_ha._remember("h1|h2", "b")
+    assert agent_ha._remembered("h1|h2") == "b"
+    agent_ha._remember("h1|h2", "a")
+    assert agent_ha._remembered("h1|h2") == "a"
