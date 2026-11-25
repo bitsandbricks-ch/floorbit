@@ -42,7 +42,7 @@ def answer(app, agent=None):
         done.update(ip for ip, seat in dict(finder.seat_ips).items() if seat in checked_in)
     # Through the check-in name the page goes through an agent, which names the PC's address; the
     # public URL only sees the hall's NAT, so check-in from there can't find the seat's port.
-    public = checkin.hall_url() or str(config.get('PUBLIC_URL', '') or '').rstrip('/')
+    public = checkin.hall_url() or config.public_url()
     with _lock:
         _fetches.append({'at': time.time(), 'agent': agent, 'done': len(done)})
     return {'done': sorted(done), 'portal_url': f'{public}/checkin' if public else ''}

@@ -281,8 +281,10 @@ export function SettingsForm({ ed, children }: { ed: SettingsEditor; children: R
 }
 
 /** One section's fields; ``only`` limits it to some of them (search results). */
-export function SectionPanel({ ed, section, only, title, desc, actions }: {
+export function SectionPanel({ ed, section, only, title, desc, actions, folded = false }: {
   ed: SettingsEditor; section: SettingsAnswer['sections'][number]; only?: Set<string>; title?: ReactNode
+  /** ``only`` picks part of a section for a Settings entry (#1433), not search hits: Advanced stays folded. */
+  folded?: boolean
   /** null leaves the section's description out (a page that already says it, like a plugin's). */
   desc?: ReactNode | null; actions?: ReactNode
 }) {
@@ -312,7 +314,7 @@ export function SectionPanel({ ed, section, only, title, desc, actions }: {
         {basic.map(row)}
       </Stack>
       {advanced.length > 0 && (
-        <Advanced count={advanced.length} open={!!only || advanced.some((f) => ed.changes[f.key] !== undefined)} alone={!basic.length}>
+        <Advanced count={advanced.length} open={(!!only && !folded) || advanced.some((f) => ed.changes[f.key] !== undefined)} alone={!basic.length}>
           <Stack gap={0} className="fb-setting-rows">{advanced.map(row)}</Stack>
         </Advanced>
       )}

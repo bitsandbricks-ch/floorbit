@@ -26,6 +26,12 @@ def set_provider(fn):
         _provider = fn
 
 
+def public_url():
+    """The Public URL setting, else where the crew last opened Floorbit (floorbit/public_url.py)."""
+    from floorbit import public_url as learnt
+    return learnt.get()
+
+
 def get(key, default=None):
     provider = _provider
     if provider is not None:
@@ -372,7 +378,8 @@ SCHEMA = [
      'help': 'How often inventory devices are filled from the monitoring source (model, serial, software, memory, '
              'disks, location, interfaces), 5 or more. Values set by hand stay. 0 is off: only Sync now.'},
     {'key': 'PUBLIC_URL', 'group': 'general', 'type': 'string', 'default': '',
-     'label': 'Public URL', 'help': 'Where people open the floor plan; used for links in alerts.'},
+     'label': 'Public URL', 'help': 'Where people open the floor plan; used for links in alerts. Empty: the address '
+             'the crew last opened Floorbit at.'},
     {'key': 'QR_URL', 'group': 'general', 'type': 'string', 'default': '',
      'label': 'Address on the seat QR codes',
      'help': 'Where the QR codes on the seat cards point, e.g. http://help.lan when attendees reach Floorbit '

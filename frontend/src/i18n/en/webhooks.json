@@ -27,7 +27,8 @@
   "secretHelp": "Give this to the receiver to check the Floorbit-Signature header. Copy it now: it isn't shown again.",
   "copy": "Copy",
   "copied": "Copied",
-  "docs": "How to check the signature, and what each event sends: docs/api.md#webhooks.",
+  "docs": "How to check the signature, and what each event sends:",
+  "docsLink": "Webhooks in the docs",
   "event": {
     "switch.down": "Switch down",
     "switch.up": "Switch back up",

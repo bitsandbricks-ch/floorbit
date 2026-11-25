@@ -27,5 +27,6 @@
   "neverUsed": "nie genutzt",
   "revoke": "Widerrufen",
   "revokeQuestion": "«{{name}}» widerrufen? Was ihn nutzt, funktioniert sofort nicht mehr.",
-  "docs": "Die API ist in docs/api.md beschrieben."
+  "docs": "Die API ist in der Doku beschrieben:",
+  "docsLink": "API-Referenz"
 }

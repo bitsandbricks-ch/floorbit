@@ -311,26 +311,31 @@
     "results_other": "{{count}} settings match",
     "whereFrom": "A value saved here wins over its environment variable; clear it to go back to the environment or the default. The database, Valkey, keys and time zone are set in the environment only.",
     "groups": {
-      "event": "Event and look",
-      "sources": "Sources",
-      "monitoring": "Monitoring",
-      "alerts": "Alerts and Discord",
-      "access": "Sign-in and access",
-      "other": "Other",
-      "accounts": "Accounts",
-      "tenants": "Tenants",
-      "system": "System"
+      "event": "Event",
+      "people": "People",
+      "alerts": "Alerts",
+      "floorbit": "Floorbit"
     },
     "status": "Status",
     "sourcesMoved": "NetBox, LibreNMS and the other plugins have their settings on their own page:",
-    "toPlugins": "Plugins"
+    "toPlugins": "Plugins",
+    "entries": {
+      "appearance": "Event and look",
+      "inventory": "Inventory",
+      "monitor": "Monitoring",
+      "floorplan": "Floor plan",
+      "checkin": "Seats and check-in",
+      "power": "Electrics",
+      "switchtools": "Switch tools",
+      "public": "Attendee pages",
+      "discord": "Alerts and Discord",
+      "backup": "Backups",
+      "status": "Server"
+    },
+    "parts": {
+      "inventory": "Sync and discovery",
+      "status": "Addresses"
+    }
   },
-  "kicker": "How this Floorbit works: the event, its people, alerts and the system",
-  "tabs": {
-    "general": "General",
-    "people": "People",
-    "alerts": "Alerts",
-    "tenants": "Tenants",
-    "system": "System"
-  }
+  "kicker": "How this Floorbit works: the event, its people, alerts and the system"
 }
