@@ -1,0 +1,12 @@
+{
+  "search": "Search a switch, seat or text",
+  "type": "Type",
+  "muted": "Muted",
+  "mutedShown": "Shown",
+  "mutedHidden": "Hidden",
+  "anyTag": "Any",
+  "foldAll": "Fold all",
+  "unfoldAll": "Unfold all",
+  "groupPages": "{{from}}–{{to}} of {{total}} groups",
+  "downCount": "{{count}} down"
+}

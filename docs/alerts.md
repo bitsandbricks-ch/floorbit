@@ -59,20 +59,25 @@ The list folds what belongs together (issue #1415):
 - Each row keeps to one line of actions: **Open**, its incident or **Report**, and the rest
   (**Mute**, **Raise**, **Swap**, **Clear**) under **…**.
 
-When the list holds more than one kind, a row above it shows one kind at a time (switches,
-services, power, …) with how many of each; **Seats** shows everything about a seat, whatever its
-kind. The choice is kept in the address (`/problems?kind=power`), so a reload or a shared link shows
-the same. Next to it:
+Above the list, one row holds a search and the filters, each a menu that names its choice, like
+every other list in Floorbit. **Search** looks through the title, where it is, the switch, the seat
+and the hall (`?q=sw-a`). The filters, all kept in the address so a reload or a shared link shows
+the same:
 
+- **Type**: one kind at a time (switches, services, power, …) with how many of each (`?kind=power`);
+  **Seats** shows everything about a seat, whatever its kind;
 - **Severity**: all, only what is down, or only what needs a look (`?level=down`, `?level=warn`);
 - **Group by**: nothing, type, switch (`?group=device`) or, with more than one hall, hall
-  (`?group=hall`). Grouped, each gets its own table under its name with a count; problems on no
-  switch (a service, the forecast) come last under **Not on a switch** (or **No hall**). The hall is
-  the one the switch is placed in, or for seat trouble the seat's block;
+  (`?group=hall`). Grouped, each gets its own table under its name with a count and how many are
+  down; problems on no switch (a service, the forecast) come last under **Not on a switch** (or
+  **No hall**). The hall is the one the switch is placed in, or for seat trouble the seat's block;
 - **Tag**: only problems on a switch with that tag in the inventory (`?tag=stage`);
-- **Hide muted** (`?muted=hide`).
+- **Muted**: shown or hidden (`?muted=hide`).
 
-The list comes in pages of 25, the page and the sort in the address too (`/problems?page=2`).
+A group's name folds it away, for one someone is already on: it stays folded in this browser across
+reloads, and **Fold all** / **Unfold all** next to the filters fold every group at once. Grouped,
+the list comes in pages of 10 groups (25 or 50 on demand), so a group never splits across pages;
+ungrouped it comes in pages of 50 rows, the page and the sort in the address too (`/problems?page=2`).
 
 For people who see the [incident board](incidents.md), an offline switch has **Make an incident**:
 one click puts it on the board with the switch and the problem's title. Once an incident for that

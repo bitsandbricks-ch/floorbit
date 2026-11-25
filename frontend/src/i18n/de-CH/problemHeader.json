@@ -1,0 +1,12 @@
+{
+  "search": "Switch, Platz oder Text suchen",
+  "type": "Art",
+  "muted": "Stummgeschaltete",
+  "mutedShown": "Anzeigen",
+  "mutedHidden": "Ausblenden",
+  "anyTag": "Alle",
+  "foldAll": "Alle einklappen",
+  "unfoldAll": "Alle ausklappen",
+  "groupPages": "{{from}}–{{to}} von {{total}} Gruppen",
+  "downCount": "{{count}} ausgefallen"
+}
