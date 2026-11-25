@@ -12,9 +12,14 @@ class _Link:
 
     def __init__(self, ctx):
         self.ctx = ctx
+        self.classifier = None   # the collector's, once the relay exists
 
     def flow_seats(self):
-        return self.ctx.fetch('seats') or {}
+        body = self.ctx.fetch('seats') or {}
+        # The applications' rules come with the seats (floorbit/applications.py).
+        if self.classifier is not None and isinstance(body.get('applications'), list):
+            self.classifier.set_applications(body['applications'])
+        return body
 
     def send_flows(self, snapshot):
         self.ctx.send('summary', snapshot)
@@ -29,8 +34,10 @@ class AgentPlugin(Base):
             self.ctx.health('off', 'No port set: the agent does not collect flows.')
             return
         from floorbit_agent.flows_relay import FlowsRelay  # this part only ever runs in the agent
-        self.relay = FlowsRelay(_Link(self.ctx), port, (self.settings.get('bind') or '').strip() or '0.0.0.0',
+        link = _Link(self.ctx)
+        self.relay = FlowsRelay(link, port, (self.settings.get('bind') or '').strip() or '0.0.0.0',
                                 log=self.ctx.log)
+        link.classifier = getattr(getattr(self.relay.collector, 'agg', None), 'classify', None)
         try:
             self.port = self.relay.start()
         except (OSError, OverflowError) as exc:

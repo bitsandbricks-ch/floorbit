@@ -84,12 +84,14 @@ def test_insights_join_dns_traffic_and_the_cache(cache, tmp_path):
         {"name": "Web", "category": "web", "bytes": 9000, "seats": 80}]}
     out = games.insights(stats, flows, cache, hours=1, now=HOUR + 600)
     steam = out["launchers"][0]
-    assert steam == {"id": "steam", "name": "Steam", "lookups": 6, "dns_seats_max": 6, "traffic_bytes": 5000,
-                     "traffic_seats": 30, "cache_hit_bytes": 900, "cache_miss_bytes": 100}
+    assert steam == {"id": "steam", "name": "Steam", "kind": "launcher", "part_of": None, "category": "gaming",
+                     "lookups": 6, "dns_seats_max": 6, "traffic_bytes": 5000, "traffic_seats": 30,
+                     "cache_hit_bytes": 900, "cache_miss_bytes": 100, "players": None, "seats": 30}
     assert [r["id"] for r in out["launchers"]] == ["steam"]       # one seat's Battle.net lookup isn't named
     assert out["games"] == [{"name": "Tournament servers", "bytes": 2000, "seats": 12}]
-    assert [c["cache"] for c in out["other_caches"]] == ["wsus"]
-    assert out["sources"] == {"dns": True, "traffic": True, "cache": True}
+    # Windows updates is a site group now (cache-domains' wsus), not a cache nobody owns.
+    assert [r["id"] for r in out["sitegroups"]] == ["wsus"] and out["other_caches"] == []
+    assert out["sources"] == {"dns": True, "traffic": True, "cache": True, "servers": False}
 
 
 def test_api(client, app_module):

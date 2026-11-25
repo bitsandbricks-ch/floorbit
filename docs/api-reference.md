@@ -123,6 +123,19 @@ Source: [`floorbit/blueprints/api_tokens.py`](https://github.com/bitsandbricks-c
 | DELETE | `/api/settings/api-tokens/<token_id>` | `settings.manage` |  |
 | GET | `/api/version` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.applications
+
+Applications (issue #1481): the games, launchers and site groups Floorbit recognises. Rules in floorbit/applications.py, docs in docs/applications.md.
+
+Source: [`floorbit/blueprints/applications.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/applications.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/applications` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/applications` | `settings.manage` |  |
+| DELETE | `/api/applications/<app_id>` | `settings.manage` |  |
+| PUT | `/api/applications/<app_id>` | `settings.manage` |  |
+
 ## floorbit.blueprints.audit
 
 Settings > Audit log: the page, its JSON and a CSV download (admins only, under /settings).

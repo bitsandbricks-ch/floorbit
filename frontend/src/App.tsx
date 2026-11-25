@@ -46,6 +46,7 @@ const SwitchAreas = lazy(() => import('@/pages/SwitchAreas'))
 const SwitchSwap = lazy(() => import('@/pages/SwitchSwap'))
 const Telemetry = lazy(() => import('@/pages/Telemetry'))
 const Endpoints = lazy(() => import('@/pages/Endpoints'))
+const Applications = lazy(() => import('@/pages/Applications'))
 const ViewPage = lazy(() => import('@/pages/monitoring/ViewPage'))
 const Timeline = lazy(() => import('@/pages/Timeline'))
 const NetworkStatus = lazy(() => import('@/pages/NetworkStatus'))
@@ -152,6 +153,7 @@ export default function App() {
             <Route path="/lancache" element={<ViewPage key="lancache" view="lancache" />} />
             <Route path="/traffic" element={<ViewPage key="traffic" view="traffic" />} />
             <Route path="/games" element={<ViewPage key="games" view="games" />} />
+            <Route path="/applications" element={<Applications />} />
             <Route path="/stats" element={<ViewPage key="stats" view="stats" />} />
             <Route path="/speedtests" element={<ViewPage key="speedtests" view="speedtests" />} />
             <Route path="*" element={<NotFound />} />

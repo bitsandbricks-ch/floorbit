@@ -405,7 +405,7 @@ def test_the_agent_fetches_from_the_hosted_part(client, anon_client):
     client.put("/api/settings/features", json={"traffic": True})
     try:
         res = anon_client.get("/api/agent/v1/plugins/netflow-relay/seats", headers=head(key))
-        assert res.status_code == 200 and set(res.get_json()["data"]) == {"seat_of", "area_of"}
+        assert res.status_code == 200 and set(res.get_json()["data"]) == {"seat_of", "area_of", "applications"}
         assert res.headers["Cache-Control"] == "no-store"
         assert anon_client.get("/api/agent/v1/plugins/netflow-relay/other", headers=head(key)).status_code == 422
         assert anon_client.get("/api/agent/v1/plugins/netflow-relay/seats").status_code == 401

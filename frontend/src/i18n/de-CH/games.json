@@ -35,5 +35,10 @@
   "games": "Games und Server",
   "gamesText": "Gaming-Dienste, die der Event in seinen Traffic-Regeln (FLOWS_SERVICES) benannt hat.",
   "otherCaches": "Andere Caches",
-  "cacheName": { "wsus": "Windows Update", "windowsupdates": "Windows Update", "apple": "Apple-Updates", "nvidia": "NVIDIA-Treiber", "amd": "AMD-Treiber" }
+  "cacheName": { "wsus": "Windows Update", "windowsupdates": "Windows Update", "apple": "Apple-Updates", "nvidia": "NVIDIA-Treiber", "amd": "AMD-Treiber" },
+  "titles": "Gespielte Games",
+  "manage": "Anwendungen verwalten",
+  "noTitles": "Noch kein Game von 5 oder mehr Plätzen gesehen.",
+  "titlesText": "Die meisten Plätze, die eine Quelle gesehen hat: DNS-Abfragen der Seiten des Games ({{count}}+ Plätze), Traffic zu seinen Ports und Servern, Spieler auf den Gameservern des Events und seine Downloads aus dem LAN-Cache.",
+  "via": { "dns": "DNS", "traffic": "Traffic", "servers": "unsere Server", "cache": "LAN-Cache" }
 }

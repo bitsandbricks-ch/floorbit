@@ -35,5 +35,10 @@
   "games": "Games and servers",
   "gamesText": "Gaming services the event named in its traffic rules (FLOWS_SERVICES).",
   "otherCaches": "Other caches",
-  "cacheName": { "wsus": "Windows Update", "windowsupdates": "Windows Update", "apple": "Apple updates", "nvidia": "NVIDIA drivers", "amd": "AMD drivers" }
+  "cacheName": { "wsus": "Windows Update", "windowsupdates": "Windows Update", "apple": "Apple updates", "nvidia": "NVIDIA drivers", "amd": "AMD drivers" },
+  "titles": "Games played",
+  "manage": "Manage applications",
+  "noTitles": "No game seen by 5 or more seats yet.",
+  "titlesText": "Most seats any source saw: DNS lookups of the game's sites ({{count}}+ seats), traffic to its ports and servers, players on the event's game servers, and its LAN cache downloads.",
+  "via": { "dns": "DNS", "traffic": "traffic", "servers": "our servers", "cache": "LAN cache" }
 }

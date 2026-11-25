@@ -69,6 +69,7 @@
     "dns": "DNS",
     "traffic": "Traffic",
     "games": "Games",
+    "applications": "Applications",
     "stats": "Stats",
     "speedtests": "Speed tests"
   },

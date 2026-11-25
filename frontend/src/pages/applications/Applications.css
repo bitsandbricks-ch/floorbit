@@ -1,0 +1,4 @@
+/* The Applications page: the open row stays marked while its side panel shows. */
+tr.is-selected td {
+  background: var(--color-trace-soft, color-mix(in srgb, var(--mantine-color-cyan-5) 14%, transparent));
+}

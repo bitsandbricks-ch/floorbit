@@ -38,6 +38,7 @@
     "schedule": "Schedule",
     "tournament": "Tournament",
     "games": "Games",
+    "applications": "Applications",
     "agents": "Local agents",
     "commands": "Switch commands",
     "configs": "Switch configs",

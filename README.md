@@ -105,8 +105,10 @@ each seat is plugged into.
 - **Wi-Fi view:** how busy each access point is, clients per AP and which channel it is on, drawn
   on the floor plan, with access points on the same channel near each other flagged. From UniFi
   (or any plugin with `uses: [wifi]`); client counts only. See [docs/wifi.md](docs/wifi.md).
-- **Games:** what the hall plays and downloads per launcher (Steam, Battle.net, Riot, Epic and
-  more), and how much the LAN cache saved, from its access log. See [docs/games.md](docs/games.md).
+- **Games:** which games the hall plays and what it downloads per launcher (Steam, Battle.net, Riot,
+  Epic and more), and how much the LAN cache saved, from its access log. See [docs/games.md](docs/games.md).
+- **Applications:** the games, launchers and site groups Floorbit recognises in DNS, traffic and
+  the LAN cache, from open lists, extendable per event. See [docs/applications.md](docs/applications.md).
 - **Logs:** a syslog receiver for the switches, firewalls and DHCP servers: search by device, seat,
   port and level, and follow along live. Off until turned on, allow-listed and capped. See
   [docs/syslog.md](docs/syslog.md).
