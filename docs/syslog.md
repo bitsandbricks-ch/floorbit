@@ -91,6 +91,9 @@ line whose time is far off (a switch with a wrong clock) gets the time it arrive
   200 and jumps to them.
 - The line above the list says whether the receiver is listening, how many lines are kept and how
   many were dropped.
+- **Firewall lines:** a pfSense or OPNsense packet filter line (`filterlog`) reads as what the rule
+  did, for example `block in · igb1 · UDP 203.0.113.9:123 → 198.51.100.1:123` (red when blocked),
+  instead of its comma list; **Whole line** shows the line as it came.
 
 ## Floorbit's own log and the audit log
 
