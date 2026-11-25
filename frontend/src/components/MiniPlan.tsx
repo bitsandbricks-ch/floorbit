@@ -9,7 +9,7 @@ import './MiniPlan.css'
  *  hall's shape, never taller than the screen below the top bar (#936), the same on every page.
  *  It shows only the part of the hall with something in it (the blocks and ``points``),
  *  not the empty floor around. ``seat`` gives a seat's extra classes and children; ``children`` are
- *  drawn on top. */
+ *  drawn on top, under the block names. */
 export function MiniPlan({ drawing, label, className, frames, seat, points = [], defs, children }: {
   drawing: Pick<PlanDrawing, 'box' | 'cell' | 'shapes'>; label: string; className?: string
   /** More places to keep in view, such as access points or where the tech stands. */
@@ -40,10 +40,11 @@ export function MiniPlan({ drawing, label, className, frames, seat, points = [],
               )
             })}
           </g>
-          {b.name && <text className="name" x={b.cx} y={blockTop(b) - 12}>{b.name}</text>}
         </g>
       ))}
       {children}
+      {/* Block names last, with a halo, so access points and other marks never cover them (#1418). */}
+      {drawing.shapes.map((b, i) => b.name && <text key={i} className="name" x={b.cx} y={blockTop(b) - 12}>{b.name}</text>)}
     </svg>
   )
 }
