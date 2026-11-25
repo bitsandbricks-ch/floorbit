@@ -1,0 +1,17 @@
+{
+  "title": "Fläche füllen",
+  "intro": "Füllt das Rechteck mit Sitzblöcken, mit Gängen dazwischen. Blöcke und Gänge werden eine Gruppe.",
+  "seats": "Plätze pro Reihe",
+  "rows": "Reihen pro Block",
+  "rowsHint": "2 Reihen Rücken an Rücken sind ein Block.",
+  "walkway": "Gang",
+  "walkwayHint": "Zwischen den Blöcken; 0 stellt sie direkt aneinander.",
+  "labels": "Reihenbuchstaben",
+  "preview_one": "{{count}} Block, {{seats}} Plätze, {{walkways}} Gänge",
+  "preview_other": "{{count}} Blöcke, {{seats}} Plätze, {{walkways}} Gänge",
+  "tooSmall": "Die Fläche ist zu klein für einen Block.",
+  "create": "Füllen",
+  "step_one": "Fläche mit {{count}} Block füllen",
+  "step_other": "Fläche mit {{count}} Blöcken füllen",
+  "group": "Fläche {{n}}"
+}

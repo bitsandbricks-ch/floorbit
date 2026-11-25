@@ -53,6 +53,7 @@ import { type Box, type ItemRef, type Point, allItems, fromPct, movePatch, moved
 import { type CableEnds, type CableLook, CableFields, PanelFields, PlacePanelDialog } from './NetworkFields'
 import { BoardFields, PlaceBoardDialog } from './PowerFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
+import { type AreaBox, FillAreaDialog, type FillOptions } from './FillAreaDialog'
 import { ToolRail } from './ToolRail'
 import { canTurnOne, quarterTurns } from './turn'
 import { frameOf } from './frame'
@@ -132,6 +133,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const [space, setSpace] = useState(false)
   const [tool, setTool] = useState<Tool>(startTool)
   // Where a click with the block, text or icon tool asked for something, while its dialog is open.
+  // The box the Fill area tool just drew (in % of the plan), while its dialog is open (#1565).
+  const [filling, setFilling] = useState<AreaBox | null>(null)
   const [placing, setPlacing] = useState<{ kind: 'block' | 'switch' | 'text' | 'icon' | 'panel' | 'board'; at: Point } | null>(null)
   // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
   const [cableForm, setCableForm] = useState<{ cable: Cable | null; initial?: Partial<CableDraft> } | null>(null)
@@ -750,6 +753,47 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     const kind = tool === 'walkway' ? 'walkway' : 'wall'
     void create('mark', '/api/plan-marks', { kind, x: p.x, y: p.y, x2: q.x, y2: q.y }, t(`plan.edit.step.add.${kind}`))
   }
+  const fillArea = async (opts: FillOptions) => {
+    if (!filling) return false
+    let n = groups.length + 1
+    while (groups.some((g) => g.name === t('fillArea.group', { n }))) n++
+    type Filled = { blocks: { id: string }[]; marks: { id: string }[]; group: { id: string } | null }
+    const body = { ...filling, ...opts, hall_id: data.hall, group: t('fillArea.group', { n }) }
+    const refsOf = (out: Filled): ItemRef[] => [...out.blocks.map((b) => ({ kind: 'block' as const, id: b.id })), ...out.marks.map((m) => ({ kind: 'mark' as const, id: m.id }))]
+    const after = async () => {
+      await refresh()
+      void qc.invalidateQueries({ queryKey: qk.seatBlocks })
+      void qc.invalidateQueries({ queryKey: qk.planGroups(data.hall) })
+    }
+    try {
+      const out = await post<Filled>('/api/seat-blocks/fill', body)
+      const made = refsOf(out)
+      let group = out.group?.id
+      history.push({
+        label: t('fillArea.step', { count: out.blocks.length }),
+        // Undo takes the runs, walkways and their group away; redo lays them out again, with new ids.
+        undo: async () => {
+          await Promise.all(made.map((r) => del(`${PATH[r.kind]}/${encodeURIComponent(idOf(r))}`)))
+          if (group) await del(`/api/plan-groups/${encodeURIComponent(group)}`)
+          await after()
+        },
+        redo: async () => {
+          const again = await post<Filled>('/api/seat-blocks/fill', body)
+          refsOf(again).forEach((r, i) => { if (made[i]) alias.current.set(`${r.kind}:${idOf(made[i])}`, r.id) })
+          group = again.group?.id
+          await after()
+        },
+      })
+      await after()
+      setFilling(null)
+      setTool('select')
+      setSelection(made)
+      return true
+    } catch (err) {
+      fail(err)
+      return false
+    }
+  }
   const drawZone = async (box: Box) => {
     const p = pct(box), size = toPct(data.size, { x: box.w, y: box.h })
     const made = await create('mark', '/api/plan-marks', { kind: 'zone', ...p, w: Math.round(size.x * 100) / 100, h: Math.round(size.y * 100) / 100 },
@@ -823,7 +867,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   }
   const onKeyUp = (e: React.KeyboardEvent) => { if (e.key === ' ') setSpace(false) }
   // A dialog that closed hands the keys back to the plan, so Ctrl+Z undoes what it just did.
-  const dialogOpen = !!placing || !!cableForm
+  const dialogOpen = !!placing || !!cableForm || !!filling
   const wasOpen = useRef(false)
   useEffect(() => {
     if (wasOpen.current && !dialogOpen) document.querySelector<SVGSVGElement>('.fb-plan-editor svg.fb-plan')?.focus()
@@ -923,6 +967,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const rowCount = oneBlock ? data.drawing?.shapes.find((b) => b.id === oneBlock)?.row_list?.length ?? 0 : 0
   const rail = useMemo(() => <ToolRail tool={tool} onTool={setTool} onView={onDone} />, [tool, onDone])
   const panel = (<>
+    <FillAreaDialog box={filling} hall={data.hall} onClose={() => setFilling(null)} onFill={fillArea} />
     <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
     <PlaceMarkDialog kind={placing && (placing.kind === 'text' || placing.kind === 'icon') ? placing.kind : null} onClose={() => setPlacing(null)} onCreate={placeMark} />
     <PlacePanelDialog opened={placing?.kind === 'panel'} names={(data.panels ?? []).map((p) => p.name)} onClose={() => setPlacing(null)} onCreate={placePanel} />
@@ -1090,7 +1135,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               if (tool === 'block' || tool === 'switch' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
               else if (tool === 'cable') startCable(raw)
             }}
-            onLine={drawLine} onBox={(b) => void drawZone(b)} onMeasure={setMeasured}
+            onLine={drawLine} onBox={(b) => { if (tool === 'fill') { const size = toPct(data.size, { x: b.w, y: b.h }); setFilling({ ...pct(b), w: size.x, h: size.y }) } else void drawZone(b) }} onMeasure={setMeasured}
             onPointer={(p) => { pointer.current = pct(p) }}
             onMenu={(item, x, y) => setMenu({ item, x, y, at: pointer.current })}
             onDouble={pickRowAt}
