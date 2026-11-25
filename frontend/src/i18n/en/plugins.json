@@ -162,5 +162,9 @@
     "text": "Its data is here already. Install the plugin from the Marketplace to change its settings.",
     "install": "Install",
     "from": "from the Marketplace"
+  },
+  "builtin": {
+    "tab": "Built in",
+    "intro": "The parts that come with Floorbit. Turn off what your event doesn't use: a part that is off leaves the menus, its pages and API answer \"not found\", and its background checks stop. Nothing is deleted."
   }
 }

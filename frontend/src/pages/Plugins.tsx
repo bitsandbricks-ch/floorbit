@@ -1,6 +1,6 @@
-import { Alert, Anchor, Badge, Button, Group, Paper, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconSearch } from '@tabler/icons-react'
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { usePlugins } from '@/api/queries'
 import type { MissingPlugin, PluginInfo } from '@/api/types'
@@ -9,10 +9,12 @@ import { PageHead } from '@bitsandbricks/ui'
 import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { LoadingState } from '@bitsandbricks/ui'
+import BuiltIn from './plugins/BuiltIn'
 import Marketplace from './plugins/Marketplace'
 import { useMarketplace } from './plugins/market'
 import { pluginName } from '@/lib/pluginName'
 import { PluginIcon } from './plugins/icon'
+import { PluginCard as Card } from './plugins/Card'
 import { Meta, OnOff, StateBadge } from './plugins/parts'
 import './Plugins.css'
 import { describe, useToggle } from './plugins/toggle'
@@ -45,23 +47,6 @@ function PluginRow({ plugin }: { plugin: PluginInfo }) {
   )
 }
 
-function Card({ id, head, badge, about, foot, children, ...rest }: {
-  id: string; head: ReactNode; badge: ReactNode; about: string; foot: ReactNode; children?: ReactNode
-  'data-plugin'?: string
-}) {
-  return (
-    <Paper withBorder radius="lg" p="md" component="li" id={id} className="fb-plugin-card" {...rest}>
-      <Group justify="space-between" wrap="nowrap" gap="sm" align="center">
-        <Group gap="sm" wrap="nowrap" miw={0}>{head}</Group>
-        {badge}
-      </Group>
-      <Text size="sm" c="dimmed" lineClamp={1} title={about}>{about}</Text>
-      {children}
-      <Group justify="space-between" wrap="nowrap" gap="sm" className="fb-plugin-card-foot">{foot}</Group>
-    </Paper>
-  )
-}
-
 /** A Marketplace plugin whose data is here without it (the LAN cache an agent reads), in the same card. */
 function MissingRow({ plugin, onInstall }: { plugin: MissingPlugin; onInstall: () => void }) {
   const { t } = useTranslation()
@@ -84,7 +69,7 @@ export default function Plugins() {
   const [query, setQuery] = useState('')
   const [show, setShow] = useState<Show>('all')
   // ?tab=marketplace opens the marketplace straight away, e.g. from a link in the docs.
-  const [tab, setTab] = usePageTab(['installed', 'marketplace', 'updates'])
+  const [tab, setTab] = usePageTab(['installed', 'builtin', 'marketplace', 'updates'])
   const updates = (useMarketplace().data?.plugins ?? []).filter((p) => p.installed && p.update).length
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
   const shown = (data?.plugins ?? []).filter((p) => {
@@ -101,6 +86,7 @@ export default function Plugins() {
       />
       <PageTabs label={t('plugins.title')} active={tab} onChange={setTab} tabs={[
         { id: 'installed', label: t('plugins.installedTitle'), count: data?.plugins.length ?? null },
+        { id: 'builtin', label: t('plugins.builtin.tab') },
         { id: 'marketplace', label: t('marketplace.title') },
         { id: 'updates', label: t('plugins.updates'), count: updates || null, alert: updates ? 'warn' : null },
       ]} />
@@ -133,6 +119,7 @@ export default function Plugins() {
             </Stack>
           )}
         </>}
+        {tab === 'builtin' && <BuiltIn />}
         {tab === 'marketplace' && <Marketplace />}
         {tab === 'updates' && <Marketplace updates />}
       </div>

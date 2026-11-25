@@ -46,7 +46,7 @@ The forecast is checked every 5 minutes.
 | `FORECAST_LEAD_HOURS` | `3` | How far ahead a forecast warns. |
 | `DISCORD_FORECAST_ALERTS` | `true` | Post forecast warnings to Discord. |
 
-The feature switch is **Bandwidth forecast** (Settings > Features).
+The feature switch is **Bandwidth forecast** (Settings > Plugins > Built in).
 
 ## API
 

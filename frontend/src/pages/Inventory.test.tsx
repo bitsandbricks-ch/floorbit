@@ -6,6 +6,7 @@ import { Route, Routes } from 'react-router-dom'
 import Inventory from './Inventory'
 import DevicePage from './inventory/DevicePage'
 import EntryPage from './inventory/EntryPage'
+import NewDevicePage from './inventory/NewDevicePage'
 import ScopePage from './inventory/ScopePage'
 import { matches } from './inventory/model'
 
@@ -94,6 +95,7 @@ function app(route = '/inventory') {
   return renderWithApp(
     <Routes>
       <Route path="/inventory" element={<Inventory />} />
+      <Route path="/inventory/devices/new" element={<NewDevicePage />} />
       <Route path="/inventory/devices/:id" element={<DevicePage />} />
       <Route path="/inventory/groups/:id" element={<ScopePage kind="group" />} />
       <Route path="/inventory/entries/:type/:id" element={<EntryPage />} />
@@ -232,6 +234,36 @@ describe('Inventory page', () => {
     fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'X1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ model: 'X1' }))
+  })
+
+  it('adds a device on a page of its own and opens it (#877)', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': editor,
+      'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'POST /api/inventory': () => ({ status: 201, body: { ...hand, id: 'h2', name: 'sw-new' } }),
+      'GET /api/inventory/h2': { ...fedDetail, ...hand, id: 'h2', name: 'sw-new', blocks: [] },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    app()
+    fireEvent.click(await screen.findByRole('button', { name: 'Add device' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect((await screen.findAllByRole('heading', { name: 'New device' })).length).toBeGreaterThan(0)
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'sw-new' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add device' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toMatchObject({ name: 'sw-new' }))
+    expect((await screen.findAllByRole('heading', { name: 'sw-new' })).length).toBeGreaterThan(0)
+  })
+
+  it('edits a device on its Settings tab, not in a dialog (#877)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'GET /api/inventory/h1': { ...fedDetail, ...hand, blocks: [] },
+    }).fn)
+    app('/inventory/devices/h1')
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }))
+    expect(await screen.findByLabelText('Model')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('tab', { name: 'Settings', selected: true })).toBeInTheDocument()
   })
 
   it('lets admins upload SVG icons to the shared library', async () => {

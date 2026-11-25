@@ -6,7 +6,7 @@ or posted in Discord. `/status.json` has the same as JSON. `/hall`, where the ol
 was, leads here.
 
 It is **off** until an admin turns on **Network status page** under **Settings > Attendee pages**
-(or `STATUS_PAGE=true`). The feature can also be switched off entirely under Settings > Features.
+(or `STATUS_PAGE=true`). The feature can also be switched off entirely under Settings > Plugins > Built in.
 
 ## What the page shows
 

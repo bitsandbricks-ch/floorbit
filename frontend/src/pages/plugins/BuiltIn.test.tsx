@@ -2,15 +2,16 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { FeatureState } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
-import Features from './Features'
-import StatsView from './stats/StatsView'
+import Plugins from '../Plugins'
+import StatsView from '../stats/StatsView'
+import BuiltIn from './BuiltIn'
 
 afterEach(() => vi.unstubAllGlobals())
 
 const admin = { enabled: true, user: { username: 'ada', display_name: 'Ada', role: 'admin', permissions: ['floorplan.view', 'settings.manage'] } }
 const f = (id: string, over: Partial<FeatureState> = {}): FeatureState => ({ id, on: true, chosen: true, forced_off: false, needs: [], ...over })
 
-describe('Features', () => {
+describe('Built in (#1436)', () => {
   it('turns a feature off and explains the ones that are off for another reason', async () => {
     const list = [
       f('incidents', { on: false, chosen: false }),
@@ -25,7 +26,7 @@ describe('Features', () => {
       'PUT /api/settings/features': { features: list.map((x) => (x.id === 'cables' ? { ...x, on: false, chosen: false } : x)), env: 'FLOORBIT_FEATURES_OFF' },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Features />)
+    renderWithApp(<BuiltIn />)
     expect(await screen.findByText('Off while Incidents is off.')).toBeInTheDocument()
     expect(screen.getByText(/Turned off on the server \(FLOORBIT_FEATURES_OFF\)/)).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'DNS analytics' })).toBeDisabled()
@@ -52,15 +53,31 @@ describe('Features', () => {
       'PUT /api/settings/capabilities/logs': cap('on'),
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Features />)
-    expect(await screen.findByText('Some parts are off: its plugin. Switch it on to turn them all on.')).toBeInTheDocument()
+    renderWithApp(<BuiltIn />)
+    expect(await screen.findByText('Some parts are off: its plugin.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'A local agent connected' })).toHaveAttribute('href', '/settings/agents')
     expect(screen.getByText("Option 114 in the event's DHCP, pointing at the agent")).toBeInTheDocument()
-    const sw = screen.getByRole('switch', { name: 'Logs from the hall' })
-    expect(sw).not.toBeChecked()
-    fireEvent.click(sw)
+    // Partly on reads as on (#1436), with a way to turn the rest on.
+    expect(screen.getByRole('switch', { name: 'Logs from the hall' })).toBeChecked()
+    expect(screen.getByText('Partly on')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Turn all on' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ on: true }))
-    await waitFor(() => expect(screen.getByRole('switch', { name: 'Logs from the hall' })).toBeChecked())
+    await waitFor(() => expect(screen.queryByText('Partly on')).toBeNull())
+    expect(screen.getByRole('switch', { name: 'Logs from the hall' })).toBeChecked()
+  })
+
+  it('is a tab of Plugins, and badges read On and Off alike', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin,
+      'GET /api/settings/plugins': { plugins: [] },
+      'GET /api/settings/features': { features: [f('cables'), f('replay', { on: false, chosen: false })], env: 'FLOORBIT_FEATURES_OFF' },
+      'GET /api/settings/capabilities': { capabilities: [] },
+    }).fn)
+    renderWithApp(<Plugins />, '/settings/plugins?tab=builtin')
+    expect(await screen.findByRole('heading', { name: 'Cables and patching' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Built in' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getAllByText('On')).toHaveLength(1)
+    expect(screen.getAllByText('Off')).toHaveLength(1)
   })
 
   it('hides the links of features that are off', async () => {

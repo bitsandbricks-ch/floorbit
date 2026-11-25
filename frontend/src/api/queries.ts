@@ -36,7 +36,7 @@ export function useMe() {
   return useQuery({ queryKey: qk.me, queryFn: () => get<Me>('/api/auth/me'), staleTime: 60_000 })
 }
 
-/** Is this feature switched on (Settings > Features)? On until the server says otherwise, so a slow
+/** Is this feature switched on (Settings > Plugins > Built in)? On until the server says otherwise, so a slow
  *  answer never hides a link. Only hides links: a feature that is off answers 404 anyway. */
 export function useFeature(feature: string) {
   return !useFeaturesOff().includes(feature)
