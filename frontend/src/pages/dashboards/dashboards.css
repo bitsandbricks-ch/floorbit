@@ -19,8 +19,6 @@
    fixed grey (#1219), so they follow whatever the pane's colour is. The custom theme mixes the same way. */
 .fb-pane, .fb-widget-preview {
   --bnb-raised: color-mix(in srgb, var(--bnb-surface), var(--bnb-fg) 5%);
-  /* Older Floorbit styles (static/css) read the same step under its old name. */
-  --color-raised: var(--bnb-raised);
   --mantine-color-default-hover: var(--bnb-raised);
   --mantine-color-gray-light: var(--bnb-raised);
   --mantine-color-dark-6: var(--bnb-raised);
