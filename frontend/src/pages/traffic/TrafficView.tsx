@@ -1,4 +1,4 @@
-import { Alert, Anchor, Badge, Group, Loader, Text, TextInput } from '@mantine/core'
+import { Alert, Anchor, Badge, Loader, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFlows } from '@/api/queries'
@@ -8,6 +8,7 @@ import { DataTable, ErrorBanner } from '@bitsandbricks/ui'
 import { bytes, CATEGORIES, mostly, total } from './format'
 import { onPlan } from '../plan/links'
 import { clock } from '@/lib/time'
+import { Panel } from '@/components/ui'
 
 
 /** One bar split by category, with the shares as its accessible name. */
@@ -41,12 +42,10 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
   const [filter, setFilter] = useState('')
   const shown = seats.filter((s) => !filter || s.seat.toLowerCase().includes(filter.toLowerCase()))
   return (
-    <section className="fb-stats-panel wide" aria-labelledby="traffic-seats">
-      <Group justify="space-between" mb={6}>
-        <h2 id="traffic-seats">{t('traffic.seats')}</h2>
-        <TextInput size="xs" placeholder={t('traffic.seatFilter')} aria-label={t('traffic.seatFilter')} value={filter}
-          onChange={(e) => setFilter(e.currentTarget.value)} />
-      </Group>
+    <Panel className="fb-wide" titleId="traffic-seats" title={t('traffic.seats')} actions={<>
+      <TextInput size="xs" placeholder={t('traffic.seatFilter')} aria-label={t('traffic.seatFilter')} value={filter}
+        onChange={(e) => setFilter(e.currentTarget.value)} />
+    </>}>
       <Text size="sm" c="dimmed" mb="xs">{t('traffic.seatsText')}</Text>
       <DataTable rows={shown} rowKey={(s) => s.seat} label={t('traffic.seats')} urlState={false} pageSize={25} bare striped density="compact"
         defaultSort={{ id: 'volume', desc: true }}
@@ -58,7 +57,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
           } },
           { id: 'mix', header: t('traffic.mix'), width: '45%', cell: (s) => <MixBar mix={s.mix} label={s.seat} /> },
         ]} />
-    </section>
+    </Panel>
   )
 }
 
@@ -68,8 +67,7 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
   return (
     <div className="fb-stats">
       {!!data.anomalies?.length && (
-        <section className="fb-stats-panel wide" aria-labelledby="traffic-anomalies">
-          <h2 id="traffic-anomalies">{t('traffic.anomalies')}</h2>
+        <Panel className="fb-wide" titleId="traffic-anomalies" title={t('traffic.anomalies')}>
           <ul className="fb-flow-anomalies">
             {data.anomalies.map((a) => (
               <li key={a.id} className={a.kind}>
@@ -80,20 +78,18 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
               </li>
             ))}
           </ul>
-        </section>
+        </Panel>
       )}
 
-      <section className="fb-stats-panel wide" aria-labelledby="traffic-mix">
-        <h2 id="traffic-mix">{t('traffic.hall')}</h2>
+      <Panel className="fb-wide" titleId="traffic-mix" title={t('traffic.hall')}>
         <Text size="sm" c="dimmed" mb={4}>{t('traffic.lastHour', { volume: bytes(total(data.mix_hour)) })}</Text>
         <MixBar mix={data.mix_hour} label={t('traffic.hall')} big />
         <Legend mix={data.mix_hour} />
         <Text size="sm" c="dimmed" mt="sm" mb={4}>{t('traffic.lastDay', { volume: bytes(total(data.mix_day)) })}</Text>
         <MixBar mix={data.mix_day} label={t('traffic.day')} />
-      </section>
+      </Panel>
 
-      {!compact && <section className="fb-stats-panel" aria-labelledby="traffic-areas">
-        <h2 id="traffic-areas">{t('traffic.areas')}</h2>
+      {!compact && <Panel titleId="traffic-areas" title={t('traffic.areas')}>
         <ul className="fb-flow-areas">
           {(data.areas ?? []).map((a) => (
             <li key={a.area}>
@@ -104,10 +100,9 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
           ))}
         </ul>
         <Text size="xs" c="dimmed" mt={6}>{t('traffic.areasText')}</Text>
-      </section>}
+      </Panel>}
 
-      <section className="fb-stats-panel" aria-labelledby="traffic-services">
-        <h2 id="traffic-services">{t('traffic.services')}</h2>
+      <Panel titleId="traffic-services" title={t('traffic.services')}>
         <ol className="fb-stats-top">
           {services.map((s) => (
             <li key={s.name}>
@@ -119,7 +114,7 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
         <Text size="xs" c="dimmed" mt={6}>
           {t('traffic.servicesText', { count: data.min_seats ?? 5, volume: bytes(data.other_services) })}
         </Text>
-      </section>
+      </Panel>
 
       {!compact && data.seats && <Seats seats={data.seats} />}
     </div>

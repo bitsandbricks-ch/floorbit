@@ -17,6 +17,7 @@ import { onPlan } from '../plan/links'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { ConfirmButton } from '@bitsandbricks/ui'
+import { Panel } from '@/components/ui'
 
 const HOUR = 3600
 
@@ -78,21 +79,18 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
           sub={t('stats.portsRest', { down: now.ports_down, errors: now.ports_errors })} />
       </div>
 
-      <section className="fb-stats-panel wide" aria-labelledby="stats-traffic">
-        <Group justify="space-between" mb={6}>
-          <h2 id="stats-traffic">{t('stats.traffic')}</h2>
-          <SegmentedControl size="xs" value={range} onChange={(v) => setRange(v as 'hour' | 'day')}
-            data={[{ value: 'hour', label: t('stats.lastHour') }, { value: 'day', label: t('stats.lastDay') }]} />
-        </Group>
+      <Panel className="fb-wide" titleId="stats-traffic" title={t('stats.traffic')} actions={<>
+        <SegmentedControl size="xs" value={range} onChange={(v) => setRange(v as 'hour' | 'day')}
+          data={[{ value: 'hour', label: t('stats.lastHour') }, { value: 'day', label: t('stats.lastDay') }]} />
+      </>}>
         <Chart series={series} label={t('stats.chartLabel')} />
         <OnlineLine series={series} />
-      </section>
+      </Panel>
 
       {forecastOn && !screen && <Forecast />}
       {!screen && <Compare />}
 
-      <section className="fb-stats-panel" aria-labelledby="stats-uplinks">
-        <h2 id="stats-uplinks">{t('stats.uplinks')}</h2>
+      <Panel titleId="stats-uplinks" title={t('stats.uplinks')}>
         {!data.uplinks.length ? <Text c="dimmed" size="sm">{t('stats.noUplinks')}</Text> : (
           <ul className="fb-stats-bars">
             {data.uplinks.slice(0, rows).map((u) => {
@@ -109,10 +107,9 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
           </ul>
         )}
         {data.uplinks.length > rows && <Text c="dimmed" size="sm" mt={6}>{t('stats.moreUplinks', { count: data.uplinks.length - rows })}</Text>}
-      </section>
+      </Panel>
 
-      <section className="fb-stats-panel" aria-labelledby="stats-top">
-        <h2 id="stats-top">{t('stats.top')}</h2>
+      <Panel titleId="stats-top" title={t('stats.top')}>
         {!data.top.length ? <Text c="dimmed" size="sm">{t('stats.noTop')}</Text> : (
           <ol className="fb-stats-top">
             {data.top.slice(0, rows).map((r) => (
@@ -130,7 +127,7 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
             ))}
           </ol>
         )}
-      </section>
+      </Panel>
     </div>
   )
 }

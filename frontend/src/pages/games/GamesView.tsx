@@ -9,6 +9,7 @@ import type { ViewProps } from '@/pages/monitoring/pages'
 import { DataTable, ErrorBanner, StatTile } from '@bitsandbricks/ui'
 import { bytes } from '../traffic/format'
 import { dayClock } from '@/lib/time'
+import { Panel } from '@/components/ui'
 
 const W = 1000
 const H = 140
@@ -26,14 +27,12 @@ function CacheChart({ cache }: { cache: LancacheData }) {
   const w = W / Math.max(1, hours.length)
   const stamp = (ts: number) => dayClock(ts, i18n.language)
   return (
-    <section className="fb-stats-panel wide" aria-labelledby="games-cache">
-      <Group justify="space-between" mb={6}>
-        <h2 id="games-cache">{t('games.cachePerHour')}</h2>
-        <Group gap="sm">
-          <Text size="xs" c="dimmed"><span className="fb-dns-key hit" /> {t('games.hit')}</Text>
-          <Text size="xs" c="dimmed"><span className="fb-dns-key miss" /> {t('games.miss')}</Text>
-        </Group>
+    <Panel className="fb-wide" titleId="games-cache" title={t('games.cachePerHour')} actions={<>
+      <Group gap="sm">
+        <Text size="xs" c="dimmed"><span className="fb-dns-key hit" /> {t('games.hit')}</Text>
+        <Text size="xs" c="dimmed"><span className="fb-dns-key miss" /> {t('games.miss')}</Text>
       </Group>
+    </>}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="fb-dns-chart" role="img"
         aria-label={t('games.chartLabel', { hit: bytes(cache.hit_bytes), miss: bytes(cache.miss_bytes) })}>
         {[0.25, 0.5, 0.75].map((f) => <line key={f} className="grid" x1={0} x2={W} y1={H * f} y2={H * f} />)}
@@ -54,7 +53,7 @@ function CacheChart({ cache }: { cache: LancacheData }) {
           <Text size="xs" c="dimmed">{stamp(hours[hours.length - 1].t + 3600)}</Text>
         </Group>
       )}
-    </section>
+    </Panel>
   )
 }
 
@@ -64,8 +63,7 @@ function Launchers({ data }: { data: GamesData }) {
   const { t, i18n } = useTranslation()
   const num = (n: number | null) => (n == null ? '–' : n.toLocaleString(i18n.language))
   return (
-    <section className="fb-stats-panel wide" aria-labelledby="games-launchers">
-      <h2 id="games-launchers">{t('games.launchers')}</h2>
+    <Panel className="fb-wide" titleId="games-launchers" title={t('games.launchers')}>
       {data.launchers.length === 0 ? <Text size="sm" c="dimmed">{t('games.noLaunchers')}</Text> : (
         <DataTable rows={data.launchers} rowKey={(l) => l.id} label={t('games.launchers')} urlState={false} pageSize={0} bare striped
           density="compact" minWidth={620} defaultSort={{ id: data.sources.cache ? 'cache' : data.sources.traffic ? 'traffic' : 'launcher', desc: !!(data.sources.cache || data.sources.traffic) }}
@@ -88,15 +86,14 @@ function Launchers({ data }: { data: GamesData }) {
           ]} />
       )}
       <Text size="xs" c="dimmed" mt={6}>{t('games.launchersText', { count: data.min_seats.dns })}</Text>
-    </section>
+    </Panel>
   )
 }
 
 function Caches({ caches }: { caches: CacheRow[] }) {
   const { t } = useTranslation()
   return (
-    <section className="fb-stats-panel" aria-labelledby="games-other">
-      <h2 id="games-other">{t('games.otherCaches')}</h2>
+    <Panel titleId="games-other" title={t('games.otherCaches')}>
       <ol className="fb-stats-top">
         {caches.map((c) => (
           <li key={c.cache}>
@@ -106,7 +103,7 @@ function Caches({ caches }: { caches: CacheRow[] }) {
           </li>
         ))}
       </ol>
-    </section>
+    </Panel>
   )
 }
 
@@ -126,8 +123,7 @@ function Board({ data, compact }: { data: GamesData; compact: boolean }) {
         {!compact && data.sources.cache && <CacheChart cache={c} />}
         {!compact && <Launchers data={data} />}
         {data.games.length > 0 && (
-          <section className="fb-stats-panel" aria-labelledby="games-games">
-            <h2 id="games-games">{t('games.games')}</h2>
+          <Panel titleId="games-games" title={t('games.games')}>
             <ol className="fb-stats-top">
               {data.games.slice(0, compact ? 8 : undefined).map((g) => (
                 <li key={g.name}>
@@ -137,7 +133,7 @@ function Board({ data, compact }: { data: GamesData; compact: boolean }) {
               ))}
             </ol>
             <Text size="xs" c="dimmed" mt={6}>{t('games.gamesText')}</Text>
-          </section>
+          </Panel>
         )}
         {!compact && data.other_caches.length > 0 && <Caches caches={data.other_caches} />}
       </div>
