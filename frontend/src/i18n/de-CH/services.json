@@ -127,6 +127,9 @@
     "fullIn_other": "In etwa {{count}} Minuten voll, bei {{rate}} pro Minute"
   },
   "check": {
+    "from": "Geprüft von",
+    "fromHelp": "Ohne Wahl: dort, wo das geprüfte Gerät erfasst wird, sonst vom primären Agenten. Ist der gewählte weg, übernimmt ein anderer.",
+    "fromAny": "Automatisch",
     "add": "Eigenen Check hinzufügen",
     "edit": "Eigenen Check ändern",
     "namePlaceholder": "Stream-Encoder",

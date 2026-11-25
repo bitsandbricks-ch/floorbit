@@ -32,6 +32,6 @@
     "export": "Export",
     "json": "Download JSON",
     "exportHint": "The JSON has every frame of every hall.",
-    "kept": "The whole-event recording keeps a frame every 5 minutes for the last day, every 30 minutes for the last week, then one an hour. It starts over with Start a new event on the report page."
+    "kept": "The whole-event recording keeps a frame every 5 minutes for the last day, every 30 minutes for the last week, then one an hour. It starts over when the event is closed on the Events page."
   }
 }

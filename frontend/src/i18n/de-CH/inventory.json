@@ -4,7 +4,7 @@
   "search": "Suchen",
   "searchPlaceholder": "Name, Modell, Seriennummer, IP…",
   "allRoles": "Alle Rollen",
-  "showHidden": "Ausgeblendete zeigen",
+  "hiddenLabel": "Ausgeblendete",
   "add": "Gerät hinzufügen",
   "sync": "Jetzt synchronisieren",
   "syncing": "Wird synchronisiert…",
@@ -462,6 +462,9 @@
   "more": "Mehr",
   "groupsAndTags": "Gruppen und Tags",
   "anyGroup": "Jede Gruppe",
+  "anyRole": "Jede Rolle",
+  "hiddenOff": "Nicht gezeigt",
+  "hiddenOn": "Gezeigt",
   "anyTag": "Jeder Tag",
   "allCount": "Alle {{count}}",
   "manualOnly": "Von Hand erfasst",
@@ -552,5 +555,21 @@
       "label": "Andere Agenten übernehmen",
       "hint": "Aus: Solange der Agent (oder jeder Agent mit dem Tag) weg ist, sammelt niemand."
     }
+  },
+  "agent": "Agent",
+  "agentAuto": "Automatisch",
+  "uplink": {
+    "title": "Uplink",
+    "where": "{{port}} zu {{peer}} {{peerPort}}",
+    "down": "down",
+    "slow": "{{speed}} von {{planned}}"
+  },
+  "lastDay": {
+    "title": "Letzte 24 h",
+    "none": "Nicht vom Statusmonitor beobachtet",
+    "up": "vor {{ago}} h: up",
+    "down": "vor {{ago}} h: {{minutes}} min down",
+    "label_one": "{{count}} Stunde mit Ausfall in den letzten 24 Stunden",
+    "label_other": "{{count}} Stunden mit Ausfall in den letzten 24 Stunden"
   }
 }

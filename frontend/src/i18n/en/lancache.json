@@ -15,6 +15,7 @@
   "fromInternetSub": "fetched once, then cached",
   "clients": "Players",
   "clientsSub": "most in one hour",
+  "clientsNone": "counted by the agent's LAN cache plugin",
   "perHour": "Per hour",
   "hit": "From the cache",
   "miss": "From the internet",

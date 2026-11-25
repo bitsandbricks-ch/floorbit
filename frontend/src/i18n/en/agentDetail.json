@@ -1,0 +1,38 @@
+{
+  "checkNow": "Check now",
+  "more": "More",
+  "role": {
+    "primary": "Primary",
+    "standby": "Standby",
+    "active": "Active"
+  },
+  "tab": {
+    "logs": "Logs",
+    "certificate": "Key and certificate",
+    "settings": "Settings"
+  },
+  "failover": {
+    "title": "Failover",
+    "alone": "No other agent has the same tags: nothing takes over while this one is away.",
+    "takesOver_one": "If it stops, {{names}} takes over.",
+    "takesOver_other": "If it stops, one of {{names}} takes over.",
+    "noStandby": "No standby is online: nothing takes over if it stops.",
+    "standsBy": "{{name}} is the primary. This agent takes over when it stops.",
+    "noPrimary": "The group has no primary right now.",
+    "shares": "Shares the work with {{names}}.",
+    "coveredBy": "{{name}} does its work while it is away.",
+    "uncovered": "No agent of its group is online: its devices go unwatched.",
+    "unknown": "Not in a group yet.",
+    "group": "Group page"
+  },
+  "events": {
+    "title": "Recent events",
+    "all": "All events",
+    "none": "Nothing logged about this agent yet.",
+    "help": "What the audit log holds about this agent: its key and certificate, settings, and the updates of its plugins and of the agent itself.",
+    "when": "When",
+    "what": "What",
+    "who": "Who",
+    "byAgent": "the agent"
+  }
+}

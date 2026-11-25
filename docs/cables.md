@@ -182,8 +182,8 @@ grey when the type is not known) and a thicker line a faster cable.
   known: from the cables here, from NetBox, and from the port descriptions on the switches. The cables
   of one seat block run together down the end of the block nearer the switch, then along each
   straight row in a lane and into its seats from that side (see **Where seat cables plug in** below).
-  Rows without a lane (bent rows, U and L, paths, a row on its own without chairs, seats placed
-  freely) are reached along the side of the block that faces the switch; coming from above or below,
+  A bent row, a U or an L with chairs has a lane that bends with it. Rows without a lane (paths, a
+  row on its own without chairs, seats placed freely) are reached along the side of the block that faces the switch; coming from above or below,
   the far half is reached round the end of the block, so no cable crosses the near row. A dot on the
   seat's edge shows where each cable plugs in. Cables that share a run are drawn side by side like a
   ribbon, each its own thin line, with the number of cables on each run; the cables that turn off
@@ -218,7 +218,14 @@ that side. Pick it per row under **Cables connect**, or for every row of a block
 - **Chair side**: where the player sits.
 
 The lane runs in the middle of the gap to the next row, on the seam when the rows touch, and half a seat
-out at the block's edge. **Set chairs automatically** on the Block tab sets the chairs of all straight
+out at the block's edge.
+
+A bent row (an arc, a U, an L) with chairs has a lane that follows it, half a seat out from its seats
+on the side **Cables connect** picks, square round a U's or an L's corners. Its cables come in at the
+end of the row that makes them shorter and run along it to their seat. A path row has no chairs of its
+own, so it keeps the route along the block until it gets some.
+
+**Set chairs automatically** on the Block tab sets the chairs of all straight
 rows: rows that share a table (touching, or with a gap of a seat or less) sit on its outer sides; a row on
 its own faces its bigger gap. A row in the middle of three or more keeps its side. Undo puts them back.
 

@@ -15,7 +15,7 @@ different features touch different files.
    **`floorbit/theme.py`**: the preset and colours every page renders with, `?theme=` per
    screen and the event logo at `/brand/logo` (see [themes.md](themes.md)).
    **`floorbit/audit.py`**: appends every successful change and sign-in to the audit log.
-4. **`floorbit/blueprints/`**: one blueprint per area, listed in `blueprints/__init__.py`:
+4. **`floorbit/blueprints/`**: one blueprint per area; each module with a `bp` registers itself (`blueprints/_discover.py`):
 
    | Module | Routes |
    | --- | --- |

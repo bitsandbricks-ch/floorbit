@@ -103,9 +103,25 @@ def plugin_page(plugin_id):
     return spa.render('Plugins')
 
 
+def _listed():
+    """Every plugin with what it is doing (#1435), and the Marketplace plugins whose data is
+    already here without them (the LAN cache read by an agent or the demo)."""
+    from .. import plugin_activity
+    registry = _registry()
+    states = plugin_activity.states(registry)
+    plugins = [{**p, 'activity': states.get(p['id'], {'state': 'on', 'values': {}})}
+               for p in registry.as_list(_language())]
+    missing = []
+    if 'lancache' not in registry.specs:
+        from .lancache import _has_data
+        if _has_data():
+            missing.append({'id': 'lancache', 'name': 'LAN cache', 'icon': 'storage', 'href': '/lancache'})
+    return {'plugins': plugins, 'missing': missing}
+
+
 @bp.route('/api/settings/plugins', methods=['GET'])
 def list_plugins():
-    return jsonify({'plugins': _registry().as_list(_language())})
+    return jsonify(_listed())
 
 
 @bp.route('/api/settings/plugins/<plugin_id>', methods=['PUT'])
@@ -124,8 +140,7 @@ def update_plugin(plugin_id):
         # The agents pull it within a minute anyway; this only saves the wait.
         from .. import agent_plugins
         agent_plugins.reload_agents()
-    return jsonify({'plugins': _registry().as_list(_language()),
-                    'name': _registry().text(spec, spec.name, _language())})
+    return jsonify({**_listed(), 'name': _registry().text(spec, spec.name, _language())})
 
 
 @bp.route('/api/settings/plugins/<plugin_id>/test', methods=['POST'])
@@ -509,7 +524,11 @@ def _down_tile(user):
 
 
 def _switch_states_tile(user):
-    return core.switch_states_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].statuses)
+    from .. import inventory
+    from ..store import load_data
+    roles = {d['id']: d.get('role') or '' for d in inventory.devices(load_data())}
+    return core.switch_states_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].statuses,
+                                     roles=roles)
 
 
 def _open_incidents_tile(user):
@@ -554,9 +573,10 @@ def _flows(user):
 
 
 @once_per_batch
-def _health():
-    from .health import _wall, _with_mutes
-    return _with_mutes(_wall().fresh())
+def _service_summary():
+    # The Services page's own list, so the tile can't count or colour a service differently (#1411).
+    from .services import _summary
+    return _summary(translate=True)
 
 
 @once_per_batch
@@ -621,7 +641,7 @@ CORE_TILES = {'problems': _problems_tile, 'incidents': _incidents_tile, 'switche
               'flow_services': lambda user: core.flow_services_widget(_lang(), _flows(user)),
               'traffic_areas': lambda user: core.traffic_areas_widget(_lang(), _flows(user)),
               'anomalies': lambda user: core.anomalies_widget(_lang(), _flows(user)),
-              'service_health': lambda user: core.service_health_widget(_lang(), _health()),
+              'service_health': lambda user: core.service_health_widget(_lang(), _service_summary()),
               'internet_uplinks': lambda user: core.internet_uplinks_widget(_lang(), _services()),
               'lancache': lambda user: core.lancache_widget(_lang(), _lancache()),
               'power_circuits': lambda user: core.power_circuits_widget(_lang(), _power()),

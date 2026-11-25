@@ -8,9 +8,10 @@ description: "The local agent collects NetFlow and IPFIX on the event network an
 author: Floorbit
 uses: [agent, settings]
 settings:
-  - {key: port, label: UDP port on the agent, type: int, default: 0, min: 0, max: 65535,
-     help: "Where the switches and routers export NetFlow or IPFIX to, on the agent machine (2055 is usual). 0: off."}
-  - {key: bind, label: Listen address, type: string, placeholder: 0.0.0.0,
+  # Fixed like the agent's other ports (#1436): the compose file and the pod publish 2055/udp to it.
+  - {key: port, label: UDP port on the agent, type: int, default: 2055, min: 0, max: 65535, advanced: true,
+     help: "Where the agent listens for NetFlow and IPFIX. The compose file publishes the machine's udp/2055 to it. 0: off."}
+  - {key: bind, label: Listen address, type: string, placeholder: 0.0.0.0, advanced: true,
      help: "The agent's address to listen on. Empty: all of them."}
 agent:
   sends:
