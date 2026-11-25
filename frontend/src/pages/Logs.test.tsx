@@ -103,8 +103,9 @@ describe('Logs', () => {
       'GET /api/logs?q=uplink': logs([line(2, { message: 'uplink flapped' })]) })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<><Logs /><Where /></>)
+    // Typing waits 300 ms before it asks (useSettled); a busy CI runner needs more than 2 s for that and the render.
     fireEvent.change(await screen.findByPlaceholderText('Words that all have to be in the line'), { target: { value: 'uplink' } })
-    expect(await screen.findByText('uplink flapped', {}, { timeout: 2000 })).toBeInTheDocument()
+    expect(await screen.findByText('uplink flapped', {}, { timeout: 4000 })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('?q=uplink'))
   })
 
