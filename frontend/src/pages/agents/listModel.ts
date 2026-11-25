@@ -13,8 +13,11 @@ export const STATE_COLOR: Record<AgentGroup['state'], string> = {
 export interface AgentLoad { hours: number; agents: Record<string, { load: [number, number][]; syslog: number | null }> }
 
 export type Role = 'primary' | 'active' | 'standby' | 'alone' | 'offline'
-export interface ListRow extends AgentRow { role: Role; devices: number | null; syslog: number | null; load: number[]; old: boolean }
-export interface ListGroup { id: string; label: string; state: AgentGroup['state'] | null; tags: string[]; rows: ListRow[]; tone: Tone }
+export interface ListRow extends AgentRow { role: Role; devices: number | null; syslog: number | null; load: number[]; old: boolean; holds: string[] }
+export interface ListGroup {
+  id: string; label: string; state: AgentGroup['state'] | null; mode: AgentGroup['mode']; vips: string[]
+  tags: string[]; rows: ListRow[]; tone: Tone
+}
 
 /** The look of a filter: who is shown. */
 export const SHOW = ['all', 'look', 'offline', 'old'] as const
@@ -42,20 +45,21 @@ export function groupRows(rows: AgentRow[], groups: AgentGroup[] | undefined, ne
   return all.filter((x) => x.members.length).map(({ g, members }) => {
     const list = members.map((r): ListRow => {
       const a = r.agent
-      const said = g?.agents.find((m) => m.id === a.id)?.role
+      const member = g?.agents.find((m) => m.id === a.id)
+      const said = member?.role
       const role: Role = !a.connected ? 'offline' : members.length === 1 ? 'alone' : said && said !== 'offline' ? said : 'active'
       const heard = a.report?.plugins?.telemetry?.metrics?.devices_heard
       const mine = load?.agents[a.id]
       return {
         ...r, role, devices: typeof heard === 'number' ? heard : null,
         syslog: a.connected && mine?.syslog != null ? mine.syslog / 60 : null,
-        load: (mine?.load ?? []).map(([, v]) => v), old: !!a.outdated || behind(a, newest),
+        load: (mine?.load ?? []).map(([, v]) => v), old: !!a.outdated || behind(a, newest), holds: member?.holds ?? [],
       }
     }).sort(byTone)
     const tone = list[0]?.tone ?? 'up'
     return {
       id: g?.id ?? `agent:${members[0].agent.id}`, label: g?.label || (g ? unnamed : members[0].agent.name),
-      state: g?.state ?? null, tags: g?.tags ?? [], rows: list, tone,
+      state: g?.state ?? null, mode: g?.mode ?? null, vips: g?.vips ?? [], tags: g?.tags ?? [], rows: list, tone,
     }
   }).sort((a, b) => SEVERITY[a.tone] - SEVERITY[b.tone] || worstCount(b) - worstCount(a) || a.label.localeCompare(b.label))
 }

@@ -114,22 +114,32 @@ function GroupHead({ group: g }: { group: ListGroup }) {
   const { t } = useTranslation()
   const href = g.state ? groupHref(g.id) : null
   return (
-    <Group className="fb-agent-group" justify="space-between" gap="xs" wrap="wrap" role="heading" aria-level={3}>
-      <Group gap="xs" wrap="wrap" style={{ minWidth: 0 }}>
-        <Text fw={600} size="sm">{href ? <Anchor component={Link} to={href} c="inherit">{g.label}</Anchor> : g.label}</Text>
-        {g.state && (
-          <Tooltip label={t(`agents.ha.help.${g.state}`)} multiline w={300} withArrow>
-            <Badge variant="light" color={g.state === 'single' ? 'gray' : STATE_COLOR[g.state]} tt="none" tabIndex={0}>
-              {t(`agents.ha.state.${g.state}`)}
-            </Badge>
-          </Tooltip>
-        )}
+    <div className="fb-agent-group">
+      <Group justify="space-between" gap="xs" wrap="wrap" role="heading" aria-level={3}>
+        <Group gap="xs" wrap="wrap" style={{ minWidth: 0 }}>
+          <Text fw={600} size="sm">{href ? <Anchor component={Link} to={href} c="inherit">{g.label}</Anchor> : g.label}</Text>
+          {g.state && (
+            <Tooltip label={t(`agents.ha.help.${g.state}`)} multiline w={300} withArrow>
+              <Badge variant="light" color={g.state === 'single' ? 'gray' : STATE_COLOR[g.state]} tt="none" tabIndex={0}>
+                {t(`agents.ha.state.${g.state}`)}
+              </Badge>
+            </Tooltip>
+          )}
+          {g.mode && <Badge variant="outline" color="gray" tt="none">{t(`agents.ha.mode.${g.mode}`)}</Badge>}
+          {g.vips.length > 0 && (
+            <Text size="xs" c="dimmed">{t('agentList.addresses')}{' '}<Text span size="xs" ff="monospace">{g.vips.join(', ')}</Text></Text>
+          )}
+        </Group>
+        <Group gap="sm" wrap="nowrap">
+          <Text size="xs" c="dimmed">{t('agentList.agents', { count: g.rows.length })}</Text>
+          {href && <Anchor component={Link} to={href} size="xs">{t('agentList.groupPage')}</Anchor>}
+        </Group>
       </Group>
-      <Group gap="sm" wrap="nowrap">
-        <Text size="xs" c="dimmed">{t('agentList.agents', { count: g.rows.length })}</Text>
-        {href && <Anchor component={Link} to={href} size="xs">{t('agentList.groupPage')}</Anchor>}
-      </Group>
-    </Group>
+      {/* What's wrong with the failover says itself; a fine or single group keeps it in the tooltip. */}
+      {g.state && !['ok', 'single'].includes(g.state) && (
+        <Text size="xs" c={STATE_COLOR[g.state]} mt={2}>{t(`agents.ha.help.${g.state}`)}</Text>
+      )}
+    </div>
   )
 }
 
@@ -151,7 +161,12 @@ function AgentTable({ group, head, selected, onSelect, newest }: {
       </div>
     ) },
     { id: 'role', className: 'fb-al-role', header: t('agentList.col.role'), card: 'label',
-      cell: (r) => <Badge variant="light" color={ROLE_COLOR[r.role]} tt="none">{t(`agentList.role.${r.role}`)}</Badge> },
+      cell: (r) => (
+        <Stack gap={2} align="flex-start">
+          <Badge variant="light" color={ROLE_COLOR[r.role]} tt="none">{t(`agentList.role.${r.role}`)}</Badge>
+          {r.holds.length > 0 && <Text size="xs" c="dimmed" ff="monospace" title={t('agentList.holds')}>{r.holds.join(', ')}</Text>}
+        </Stack>
+      ) },
     { id: 'devices', className: 'fb-al-devices', header: t('agentList.col.devices'), numeric: true, card: 'label',
       cell: (r) => (r.devices == null ? '–' : num(r.devices)) },
     { id: 'syslog', className: 'fb-al-syslog', header: t('agentList.col.syslog'), numeric: true, card: 'label', hideOnPhone: true,
@@ -212,6 +227,12 @@ function AgentPanel({ row, group, onClose, onPrev, onNext }: {
       <PanelSection>
         <SimpleGrid cols={2} spacing="sm" verticalSpacing="xs">
           <PanelField label={t('agentList.col.role')}>{t(`agentList.role.${row.role}`)}</PanelField>
+          {(group?.mode || row.holds.length > 0) && (
+            <PanelField label={t('agentList.holds')}>
+              <Text span size="sm" ff="monospace">{row.holds.length ? row.holds.join(', ') : '–'}</Text>
+            </PanelField>
+          )}
+          {group?.mode && <PanelField label={t('agentList.mode')}>{t(`agents.ha.mode.${group.mode}`)}</PanelField>}
           <PanelField label={t('agentList.address')}><Text span size="sm" ff="monospace">{a.address ?? '–'}</Text></PanelField>
           <PanelField label={t('agentList.col.devices')}>{row.devices == null ? '–' : row.devices.toLocaleString(lang)}</PanelField>
           <PanelField label={t('agents.fact.version')}>

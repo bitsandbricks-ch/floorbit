@@ -58,5 +58,8 @@
   "nothing": "Nothing. It runs as it should.",
   "update_one": "Update 1 agent",
   "update_other": "Update {{count}} agents",
-  "updateTitle": "Show the agents with an older version, and how to update them"
+  "updateTitle": "Show the agents with an older version, and how to update them",
+  "addresses": "Shared addresses:",
+  "holds": "Holds",
+  "mode": "Failover mode"
 }
