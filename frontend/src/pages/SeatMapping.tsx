@@ -1,6 +1,6 @@
-import { Alert, Badge, Button, Group, Select, Switch, Text, TextInput, Tooltip } from '@mantine/core'
+import { Alert, Badge, Button, Group, Text, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconDownload, IconPlugConnected, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react'
+import { IconDownload, IconPlugConnected, IconPlus, IconUpload } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +8,7 @@ import { del, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan, useSeatMap } from '@/api/queries'
 import type { ResolvePortsResult, SeatRow } from '@/api/types'
-import { ConfirmButton, DataTable, LoadingState, PageHead } from '@bitsandbricks/ui'
+import { ConfirmButton, DataTable, FilterBar, LoadingState, PageHead, useFilters } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
 import { ImportDialog } from './seatmap/ImportDialog'
 import { choices, matches } from './seatmap/model'
@@ -85,12 +85,12 @@ export default function SeatMapping() {
   // Techs see the mapping (seats.view) but only leads and admins change it (seats.edit).
   const canEdit = useCan('seats.edit')
   // ?q= from the floor plan's right-click menu ("Edit seat mapping", "Show in inventory")
-  const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
-  const [onlyManual, setOnlyManual] = useState(false)
-  const [onlyOffPlan, setOnlyOffPlan] = useState(false)
-  const [block, setBlock] = useState<string | null>(null)
-  const [onSwitch, setOnSwitch] = useState<string | null>(null)
-  const [source, setSource] = useState<string | null>(null)
+  // The shared filter row like every other list, kept in the address (issue #1423).
+  const filters = useFilters({ block: '', switch: '', source: '', show: 'all' })
+  const query = filters.search
+  const { block, switch: onSwitch, source, show } = filters.values
+  const onlyManual = show === 'manual'
+  const onlyOffPlan = show === 'offPlan'
   const [editing, setEditing] = useState<SeatRow | null>(null)
   const [formOpen, form] = useDisclosure(false)
   const [importOpen, importDialog] = useDisclosure(false)
@@ -180,37 +180,25 @@ export default function SeatMapping() {
       <Text size="sm" role="status" mb="sm" className={message ? (message.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
         {message ? `${message.ok ? '✓' : '✕'} ${message.text}` : ''}
       </Text>
-      <Group gap="sm" mb="md" align="flex-end" wrap="wrap">
-        <TextInput
-          label={t('seatmap.search')}
-          placeholder={t('seatmap.searchPlaceholder')}
-          leftSection={<IconSearch size={16} />}
-          value={query}
-          onChange={(e) => setQuery(e.currentTarget.value)}
-          style={{ flex: '1 1 260px' }}
-        />
-        {blocks.length > 1 && (
-          <Select label={t('seatmap.block')} placeholder={t('seatmap.any')} data={blocks} value={block} onChange={setBlock}
-            clearable searchable w={130} />
-        )}
-        {switches.length > 1 && (
-          <Select label={t('seatmap.switch')} placeholder={t('seatmap.any')} data={switches} value={onSwitch} onChange={setOnSwitch}
-            clearable searchable w={160} />
-        )}
-        {sourceIds.length > 1 && (
-          <Select label={t('seatmap.source')} placeholder={t('seatmap.any')} data={sourceIds.map((s) => ({ value: s, label: label(s) }))}
-            value={source} onChange={setSource} clearable w={170} />
-        )}
-        <Switch label={t('seatmap.onlyManual')} checked={onlyManual} onChange={(e) => setOnlyManual(e.currentTarget.checked)} mb={8} />
-        {(offPlan > 0 || onlyOffPlan) && (
-          <Switch label={t('seatmap.onlyOffPlan')} checked={onlyOffPlan} onChange={(e) => setOnlyOffPlan(e.currentTarget.checked)} mb={8} />
-        )}
-        {canEdit && portless > 0 && (
+      <FilterBar search={filters.search} onSearchChange={filters.setSearch} searchLabel={t('seatmap.searchPlaceholder')} onClear={filters.clear}
+        groups={filters.groups([
+          { key: 'block', label: t('seatmap.block'), hidden: blocks.length < 2,
+            options: [{ value: '', label: t('seatmap.any') }, ...blocks.map((v) => ({ value: v, label: v }))] },
+          { key: 'switch', label: t('seatmap.switch'), hidden: switches.length < 2,
+            options: [{ value: '', label: t('seatmap.any') }, ...switches.map((v) => ({ value: v, label: v }))] },
+          { key: 'source', label: t('seatmap.source'), hidden: sourceIds.length < 2,
+            options: [{ value: '', label: t('seatmap.any') }, ...sourceIds.map((v) => ({ value: v, label: label(v) }))] },
+          { key: 'show', label: t('listFilters.show'), options: [
+            { value: 'all', label: t('listFilters.all'), count: all.length },
+            { value: 'manual', label: t('seatmap.onlyManual'), count: all.filter((r) => r.manual).length },
+            ...(offPlan > 0 || onlyOffPlan ? [{ value: 'offPlan', label: t('seatmap.onlyOffPlan'), count: offPlan }] : []),
+          ] },
+        ])}
+        actions={canEdit && portless > 0 && (
           <Button variant="light" leftSection={<IconPlugConnected size={16} />} loading={resolve.isPending} onClick={() => resolve.mutate()}>
             {t('seatmap.resolve', { count: portless })}
           </Button>
-        )}
-      </Group>
+        )} />
       {isPending && <LoadingState rows={3} />}
       {error && (
         <Alert color="down" role="alert">

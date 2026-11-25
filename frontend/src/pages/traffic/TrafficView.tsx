@@ -47,7 +47,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
         onChange={(e) => setFilter(e.currentTarget.value)} />
     </>}>
       <Text size="sm" c="dimmed" mb="xs">{t('traffic.seatsText')}</Text>
-      <DataTable rows={shown} rowKey={(s) => s.seat} label={t('traffic.seats')} urlState={false} pageSize={25} bare striped density="compact"
+      <DataTable rows={shown} rowKey={(s) => s.seat} label={t('traffic.seats')} urlState={false} bare striped density="compact"
         defaultSort={{ id: 'volume', desc: true }}
         columns={[
           { id: 'seat', header: t('traffic.seat'), sort: (s) => s.seat, cell: (s) => <Anchor href={onPlan({ seat: s.seat })}>{s.seat}</Anchor> },
