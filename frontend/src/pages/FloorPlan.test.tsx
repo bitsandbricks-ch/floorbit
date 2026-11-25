@@ -600,7 +600,8 @@ describe('Seats page', () => {
     const halls = [data.halls[0], { id: 'annex', name: 'Annex', seats: 40, online: 38, problems: 2 }]
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': { ...data, halls } }).fn)
     renderWithApp(<FloorPlan />, '/plan?hall=main')
-    expect(await screen.findByText('2 seats with problems in other halls')).toBeInTheDocument()
+    // Short in the top bar, the full sentence as its name (issue #874).
+    expect(await screen.findByRole('button', { name: '2 seats with problems in other halls' })).toHaveTextContent('+2 in Annex')
     fireEvent.click(screen.getByLabelText('Hall', { selector: 'input' }))
     // The dropdown is still fading in under jsdom, so look the options up by their text.
     const option = async (name: string) => (await screen.findByText(name, { selector: 'p' })).closest('[role=option]')

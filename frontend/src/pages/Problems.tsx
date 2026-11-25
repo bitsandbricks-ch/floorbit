@@ -1,5 +1,5 @@
 import { Alert, Anchor, Badge, Button, Checkbox, CopyButton, Group, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
-import { IconBellOff, IconCheck, IconCopy, IconReplace } from '@tabler/icons-react'
+import { IconArrowDown, IconArrowUp, IconBellOff, IconCheck, IconCopy, IconReplace } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -30,7 +30,7 @@ const ENDING_SOON = 10 * 60
 
 type Actions = {
   canMute: boolean; canSwap?: boolean; busy: boolean
-  onMute: (p: Problem) => void; onReport?: (p: Problem) => void; onClear: (p: Problem) => void
+  onMute: (p: Problem) => void; onRaise: (p: Problem, on: boolean) => void; onReport?: (p: Problem) => void; onClear: (p: Problem) => void
 }
 
 /** What a problem is: its title, where, what it cuts off and its mute. */
@@ -78,6 +78,13 @@ function RowActions({ p, a }: { p: Problem; a: Actions }) {
       {a.canMute && (!!p.mute_id || p.kind === 'switch') && !p.muted && (
         <Button size="compact-sm" variant="subtle" leftSection={<IconBellOff size={14} />} onClick={() => a.onMute(p)} disabled={a.busy}>{t('problems.mute')}</Button>
       )}
+      {/* Ahead of the rest by hand, when the rules don't know it matters more (issue #1364). */}
+      {a.canMute && !p.muted && (p.raised || p.priority !== 1) && (
+        <Button size="compact-sm" variant="subtle" leftSection={p.raised ? <IconArrowDown size={14} /> : <IconArrowUp size={14} />}
+          onClick={() => a.onRaise(p, !p.raised)} disabled={a.busy}>
+          {p.raised ? t('problemPriority.lower') : t('problemPriority.raise')}
+        </Button>
+      )}
       {/* A LibreNMS alert whose recovery never came (issue #951). */}
       {a.canMute && p.clear_id && (
         <Button size="compact-sm" variant="subtle" onClick={() => a.onClear(p)} disabled={a.busy}>{t('problems.clear')}</Button>
@@ -86,14 +93,23 @@ function RowActions({ p, a }: { p: Problem; a: Actions }) {
   )
 }
 
-const GROUPS = ['none', 'kind', 'device'] as const
+const GROUPS = ['none', 'kind', 'device', 'hall'] as const
 type GroupBy = typeof GROUPS[number]
 
 function ProblemTable({ rows, actions, now, label, urlState }: { rows: Problem[]; actions: Actions; now: number; label: string; urlState: boolean }) {
   const { t } = useTranslation()
   const columns: DataColumn<Problem>[] = [
     { id: 'level', header: t('problems.col.level'), width: 130, card: 'inline', sort: (p) => rank(p, now),
-      cell: (p) => <StatusBadge size="sm" state={p.muted ? 'unknown' : p.level === 'down' ? 'down' : 'warn'} label={t(`problems.kind.${p.kind}`)} /> },
+      cell: (p) => (
+        <Stack gap={2} align="flex-start">
+          <StatusBadge size="sm" state={p.muted ? 'unknown' : p.level === 'down' ? 'down' : 'warn'} label={t(`problems.kind.${p.kind}`)} />
+          {p.priority === 1 && !p.muted && (
+            <Text size="xs" fw={600} c="down" title={p.raised ? t('problemPriority.raisedBy', { who: p.raised.by ?? '?' }) : t('problemPriority.urgentWhy')}>
+              {p.raised ? t('problemPriority.raised') : t('problemPriority.urgent')}
+            </Text>
+          )}
+        </Stack>
+      ) },
     { id: 'what', header: t('problems.col.what'), wrap: true, card: 'inline', sort: (p) => p.title, cell: (p) => <What p={p} /> },
     { id: 'since', header: t('problems.col.since'), width: 140, card: 'label', descFirst: true, sort: (p) => p.since ?? 0,
       cell: (p) => p.since ? <Text size="sm" c="dimmed">{ago(p.since)}</Text> : '' },
@@ -171,6 +187,12 @@ export default function Problems() {
     mutationFn: (p: Problem) => post('/api/incidents', reportBody(p)),
     onSuccess: refresh,
   })
+  const raise = useMutation({
+    mutationFn: (v: { id: string; on: boolean }) => v.on
+      ? post('/api/alerts/raised', { problem_id: v.id })
+      : del(`/api/alerts/raised/${encodeURIComponent(v.id)}`),
+    onSuccess: refresh,
+  })
   const clearAlert = useMutation({
     mutationFn: (id: string) => del(`/api/alerts/librenms/${encodeURIComponent(id)}`),
     onSuccess: refresh,
@@ -198,6 +220,10 @@ export default function Problems() {
   // The filters live in the address, so a reload or a shared link keeps them (issues #276, #883).
   const level = params.get('level') ?? 'all'
   const hideMuted = params.get('muted') === 'hide'
+  // Hall and tag come from the switch's inventory entry, or the seat's block (issue #1364).
+  const hallNames = [...new Set(all.map((p) => p.hall).filter((h): h is string => !!h))]
+  const tags = [...new Set(all.flatMap((p) => p.tags ?? []))].sort((x, y) => x.localeCompare(y))
+  const tag = params.get('tag') ?? ''
   const groupBy: GroupBy = (GROUPS as readonly string[]).includes(params.get('group') ?? '') ? params.get('group') as GroupBy : 'none'
   const setParam = (key: string, value: string | null) => setParams((prev) => {
     const next = new URLSearchParams(prev)
@@ -207,18 +233,19 @@ export default function Problems() {
   }, { replace: true })
   const matches = (p: Problem) => (shown === SEATS ? !!p.seat : !kinds.includes(shown) || p.kind === shown)
     && (level === 'all' || (level === 'down' ? p.level === 'down' : p.level !== 'down'))
-    && !(hideMuted && p.muted)
+    && !(hideMuted && p.muted) && (!tag || (p.tags ?? []).includes(tag))
   const visible = all.filter(matches).sort((x, y) => rank(x, now) - rank(y, now))
-  const groupKey = (p: Problem) => groupBy === 'kind' ? t(`problems.kind.${p.kind}`) : p.device ?? ''
+  const groupKey = (p: Problem) => groupBy === 'kind' ? t(`problems.kind.${p.kind}`) : groupBy === 'hall' ? p.hall ?? '' : p.device ?? ''
   const groups = groupBy === 'none' ? [] : [...new Set(visible.map(groupKey))]
     .sort((x, y) => (x === '' ? 1 : 0) - (y === '' ? 1 : 0) || x.localeCompare(y, undefined, { numeric: true }))
   const actions: Actions = {
-    canMute: !!data?.can_mute, canSwap, busy: mute.isPending || report.isPending || clearAlert.isPending,
+    canMute: !!data?.can_mute, canSwap, busy: mute.isPending || report.isPending || clearAlert.isPending || raise.isPending,
     onReport: data?.can_report ? (p) => report.mutate(p) : undefined,
     onClear: (p) => clearAlert.mutate(p.clear_id ?? ''),
     onMute: (p) => { setDialogError(null); setTarget(muteTarget(p)) },
+    onRaise: (p, on) => raise.mutate({ id: p.id, on }),
   }
-  const error = list.error ?? unmute.error ?? extend.error ?? report.error ?? clearAlert.error
+  const error = list.error ?? unmute.error ?? extend.error ?? report.error ?? clearAlert.error ?? raise.error
 
   return (
     // Muted problems stay out of the tab count: someone is already on them (issue #214).
@@ -263,7 +290,12 @@ export default function Problems() {
                 data={['all', 'down', 'warn'].map((v) => ({ value: v, label: t(`problems.filter.levels.${v}`) }))} />
               <Select size="xs" w={170} label={t('problems.filter.group')} allowDeselect={false} value={groupBy}
                 onChange={(v) => setParam('group', v === 'none' ? null : v)}
-                data={GROUPS.map((v) => ({ value: v, label: t(`problems.filter.groups.${v}`) }))} />
+                data={GROUPS.filter((v) => v !== 'hall' || hallNames.length > 1 || groupBy === 'hall')
+                  .map((v) => ({ value: v, label: v === 'hall' ? t('problemPriority.groupHall') : t(`problems.filter.groups.${v}`) }))} />
+              {tags.length > 0 && (
+                <Select size="xs" w={150} label={t('problemPriority.tag')} value={tag || null} clearable placeholder={t('problemPriority.anyTag')}
+                  onChange={(v) => setParam('tag', v)} data={tags} />
+              )}
               <Checkbox size="xs" mb={6} label={t('problems.filter.hideMuted')} checked={hideMuted}
                 onChange={(e) => setParam('muted', e.currentTarget.checked ? 'hide' : null)} />
             </div>
@@ -277,7 +309,7 @@ export default function Problems() {
           ) : (
             groups.map((g) => {
               const rows = visible.filter((p) => groupKey(p) === g)
-              const name = g || t(groupBy === 'device' ? 'problems.noDevice' : 'problems.all')
+              const name = g || (groupBy === 'hall' ? t('problemPriority.noHall') : t(groupBy === 'device' ? 'problems.noDevice' : 'problems.all'))
               return (
                 <section key={g || '-'} aria-label={name}>
                   <Title order={2} size="h5" mb={6}>{name} <Text span c="dimmed" size="sm">{rows.length}</Text></Title>

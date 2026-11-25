@@ -65,6 +65,8 @@ import { PlanIconSelect } from './IconSelect'
 import { PanelResize } from './PanelResize'
 import { usePanelWidth } from './panelWidth'
 import { blockName } from './blockName'
+import { MergeBlocks, SplitBlock } from './BlockJoin'
+import { useBlockJoin } from './useBlockJoin'
 
 /** The bends a cable has of its own, also while it is drawn straight. */
 const bendsOf = (c: PlanCable): [number, number][] => c.bends ?? c.points.slice(1, -1)
@@ -228,6 +230,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const fail = useCallback((err: unknown) => {
     notifications.show({ color: 'down', title: t('plan.edit.failed'), message: err instanceof Error ? err.message : String(err) })
   }, [t])
+  const join = useBlockJoin({ hall: data.hall, push: history.push, refresh, fail, select: setSelection, idOf, alias })
 
   const setLocked = useCallback(async (items: ItemRef[], locked: boolean) => {
     const refs = items.filter((r) => r.kind !== 'cable' && lockedKeys.has(refKey(r)) !== locked)
@@ -863,6 +866,15 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   const gapRows = gapShape ? storedBlocks.data?.find((b) => b.id === gapShape.id && !b.seat_at)?.rows ?? null : null
   // The picked row, when it has a shape to change on the plan (RowShapeHandles.tsx).
   // The Rows tab always has a row open (the first until another is picked), so the plan shows its handles too.
+  // Where the Rows tab's split button cuts the block: above the picked row (#1208).
+  const splitAt = useMemo(() => {
+    const stored = oneBlock ? storedBlocks.data?.find((b) => b.id === oneBlock) : undefined
+    const id = pickedRow?.block === oneBlock ? pickedRow.row : null
+    const index = stored && id ? stored.rows.findIndex((r) => r.id === id) : -1
+    if (!stored || index <= 0 || isLocked({ kind: 'block', id: stored.id })) return null
+    const names = (stored as { row_names?: string[] }).row_names ?? []
+    return { index, name: names[index] ?? String(index + 1), freely: !!stored.seat_at && Object.keys(stored.seat_at as object).length > 0 }
+  }, [oneBlock, storedBlocks.data, pickedRow, isLocked])
   const rowPicked = gapShape && gapRows ? (pickedRow?.block === gapShape.id ? pickedRow!.row : tab === 'rows' ? gapRows[0]?.id ?? null : null) : null
   const shapedRow = gapRows && rowPicked ? gapRows.findIndex((r) => r.id === rowPicked && r.shape !== 'line') : -1
   // The picked row of any shape, for its letter (RowLabelHandle.tsx).
@@ -978,6 +990,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                     onDistribute={(axis) => void moveEach(distributeMoves(data, movable, axis), t('plan.edit.step.distribute'))}
                     onGroup={(join) => void regroup(selected, join)} />
                 )}
+                {selected.length > 1 && selected.every((r) => r.kind === 'block') && (
+                  <MergeBlocks count={selected.length} disabled={lockedSel.length > 0} onMerge={() => void join.merge(selected.map((r) => r.id))} />
+                )}
                 {selected.length > 0 && (
                   <QuickActions canTurn={canTurn} locked={movable.length ? allLocked : null} onLock={() => void setLocked(selected, !allLocked)} onDuplicate={() => void duplicate(selected)} onRotate={() => void rotate(selected, false)}
                     onFront={() => void restack(selected, true)} onBack={() => void restack(selected, false)} onFrame={() => frame(selected)} />
@@ -1012,6 +1027,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               <Stack gap="sm">
                 <ItemFields key={`${refKey(one!)}-rows`} section="rows" data={data} item={one!} onChange={change} arranging={arranging === one!.id} onArrange={(on) => setArranging(on ? one!.id : null)}
               picked={pickedRow?.block === one!.id ? pickedRow.row : null} onPick={(id) => setPickedRow(id ? { block: one!.id, row: id } : null)} />
+                {splitAt && (
+                  <SplitBlock index={splitAt.index} name={splitAt.name} freely={splitAt.freely}
+                    onSplit={() => void join.split(oneBlock, splitAt.index)} />
+                )}
               </Stack>
             </Tabs.Panel>
           )}

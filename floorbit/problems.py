@@ -23,7 +23,15 @@ is how many seats have trouble, counted like the floor plan's "!" (check-in left
 
 Each problem is ``{id, kind, level, title, where, since, link, device}`` with ``level`` ``down`` or ``warn``;
 ``device`` is the switch it is on, when it is on one.
+
+Each also carries (issue #1364) a ``priority``: 1 when it is down and cuts off more than itself (a
+switch or link with switches behind it or with ``MANY_SEATS`` seats or more, or a router, firewall,
+core or distribution box), 2 for the
+rest that is down, 3 for everything to look at. Someone working the problems can raise one to 1 by
+hand (``raised``: who, when), stored under ``problem_raised``. ``hall`` is the hall its switch or seat
+is in and ``tags`` its switch's tags, so the page can group and filter by them.
 """
+import threading
 import time
 from urllib.parse import quote
 
@@ -311,6 +319,70 @@ def _mute_rest(items, muted):
             p['muted'] = _muted(muted.get(p['mute_id']))
 
 
+RAISED = 'problem_raised'
+# A raise is for this event's trouble: one older than this is forgotten.
+RAISED_KEEP = 7 * 24 * 3600
+# Boxes that carry more than one row of seats: down, they come first even with nothing mapped behind them.
+UPLINK_ROLES = ('router', 'firewall', 'core', 'distribution')
+# An access switch that takes this many seats with it is urgent too (Mike, 2026-11-25).
+MANY_SEATS = 20
+_raise_lock = threading.Lock()
+
+
+def raised(data, now=None):
+    now = now or time.time()
+    return {k: v for k, v in (data.get(RAISED) or {}).items()
+            if isinstance(v, dict) and float(v.get('at') or 0) > now - RAISED_KEEP}
+
+
+def set_raised(problem_id, user, on=True):
+    """Raise a problem to priority 1, or take that back. Returns whether anything changed."""
+    from .store import load_data, save_data
+    now = time.time()
+    with _raise_lock:
+        data = load_data()
+        kept = raised(data, now)
+        if on == (problem_id in kept):
+            return False
+        if on:
+            kept[problem_id] = {'by': user, 'at': now}
+        else:
+            kept.pop(problem_id)
+        data[RAISED] = kept
+        save_data(data)
+    return True
+
+
+def _place(items, data):
+    """Hall, tags and priority of each problem (issue #1364)."""
+    from . import halls, inventory
+    from .seat_names import block_rows
+    devices = inventory.devices(data, include_hidden=True)
+    hall_ids = {h['id'] for h in halls.halls(data)}
+    hall_names = {h['id']: h.get('name') or h['id'] for h in halls.halls(data)}
+    by_id = {d['id']: d for d in devices}
+    by_name = {str(d.get('name') or '').lower(): d for d in devices}
+    seat_hall = {}
+    for block in data.get('seat_blocks') or []:
+        hid = halls.hall_of(block, data, hall_ids)
+        for row in block_rows(block):
+            for seat in row:
+                seat_hall[seat] = hid
+    ups = raised(data)
+    for p in items:
+        dev = by_id.get(p.get('switch_id')) or by_name.get(str(p.get('device') or '').lower())
+        hid = halls.hall_of(dev, data, hall_ids) if dev else seat_hall.get(p.get('seat'))
+        p['hall'] = hall_names.get(hid) if hid else None
+        p['tags'] = list(dev.get('tags') or []) if dev else []
+        wide = (bool(p.get('behind')) or len(p.get('seats') or []) >= MANY_SEATS
+                or bool(dev and str(dev.get('role') or '').lower() in UPLINK_ROLES))
+        p['priority'] = (1 if wide else 2) if p['level'] == 'down' else 3
+        up = ups.get(p['id'])
+        p['raised'] = {'by': up.get('by'), 'at': up['at']} if up else None
+        if up:
+            p['priority'] = 1
+
+
 def _wifi(muted, data):
     from . import features, wifi
     registry = current_app.extensions.get('floorbit_plugins')
@@ -331,7 +403,6 @@ def current(may_see_people):
     _reach(items, data)
     _mute_rest(items, muted)
     now = time.time()
-    items.sort(key=lambda p: (p['level'] != 'down', bool(p.get('muted')), p.get('since') or now))
     counts = {'down': sum(p['level'] == 'down' and not p.get('muted') for p in items),
               'warn': sum(p['level'] == 'warn' and not p.get('muted') for p in items),
               'muted': sum(bool(p.get('muted')) for p in items)}
@@ -349,6 +420,10 @@ def current(may_see_people):
     names = {d['id']: d['name'] for d in inventory.devices(data, include_hidden=True)}
     for p in items + attention:
         p.setdefault('device', p.get('name') if p['kind'] == 'switch' else names.get(p.get('switch_id')))
+    _place(items + attention, data)
+    # Most urgent first (issue #1364); a raised one with them, muted ones last.
+    items.sort(key=lambda p: (bool(p.get('muted')), p['priority'], p.get('since') or now))
+    attention.sort(key=lambda p: (bool(p.get('muted')), p['priority']))   # stable: newest first within
     # One count for every place that shows one (#884): the sidebar shows `down`, the footer `down`
     # and `look`, the bell, tab titles and the handover `total`; seat and port trouble is a look too.
     counts['look'] = counts['warn'] + counts['attention']

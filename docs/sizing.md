@@ -78,3 +78,28 @@ another minute. This ran in a 4-CPU container with Python 3.13 (load generator i
 
 Run the script again after changing check-in or the seat mapping, and update this page when the
 numbers move.
+
+## More than one worker
+
+The image runs one gunicorn worker with 64 threads. Python runs one thread at a time per process, so
+when many tabs ask at once (doors open, a dashboard wall reloading) their requests queue behind each
+other. Measured with crew tabs that each load a page's reads at once (sign-in check, pages, problems,
+a dashboard batch, plan, inventory, seat map, stats, incidents: 12 requests), demo data, Postgres and
+Valkey, in a 4-CPU container with the load generator on the same machine:
+
+| Tabs at once | 1 worker: p50 / p95 | 4 workers: p50 / p95 |
+| --- | --- | --- |
+| 1 | 28 / 77 ms | 11 / 32 ms |
+| 5 | 121 / 484 ms | 31 / 168 ms |
+| 15 | 184 / 1482 ms | 92 / 317 ms |
+
+Several workers in one container need what [several pods](kubernetes.md#more-than-one-pod) need,
+except the shared volume, which they already have:
+
+- `FLOORBIT_CLUSTER=valkey` and `REDIS_HOST`, so live updates and agent calls reach every worker and
+  only one sends alerts. Without it Floorbit logs a warning at start.
+- **Not yet:** the [switch terminal](terminal.md) keeps its sessions in the worker that opened them,
+  so with several workers a terminal can lose its output. Stay on one worker if the crew uses it.
+
+To try it: `GUNICORN_CMD_ARGS=--workers 2` (or up to the number of CPUs) in `.env` or the pod's
+environment. `GUNICORN_CMD_ARGS=--threads 200` raises the threads the same way.

@@ -864,6 +864,8 @@ Source: [`floorbit/blueprints/problems.py`](https://github.com/bitsandbricks-ch/
 | POST | `/api/alerts/mutes` | `incidents.work` |  |
 | DELETE | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
 | PATCH | `/api/alerts/mutes/<path:switch_id>` | `incidents.work` |  |
+| POST | `/api/alerts/raised` | `incidents.work` |  |
+| DELETE | `/api/alerts/raised/<path:problem_id>` | `incidents.work` |  |
 | GET | `/api/problems` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 | GET | `/api/problems/<path:problem_id>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
@@ -943,6 +945,7 @@ Source: [`floorbit/blueprints/seat_blocks.py`](https://github.com/bitsandbricks-
 | POST | `/api/seat-blocks` | `floorplan.edit` |  |
 | DELETE | `/api/seat-blocks/<block_id>` | `floorplan.edit` |  |
 | PUT | `/api/seat-blocks/<block_id>` | `floorplan.edit` |  |
+| POST | `/api/seat-blocks/<block_id>/split` | `floorplan.edit` |  |
 | POST | `/api/seat-blocks/many` | `floorplan.edit` |  |
 | POST | `/api/seat-blocks/merge` | `floorplan.edit` |  |
 | GET | `/api/seat-rows` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |

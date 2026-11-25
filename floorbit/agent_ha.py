@@ -39,13 +39,19 @@ def groups(agents, tag_names=None):
     for key, members in sorted(by_key.items(), key=lambda kv: (bool(kv[0]), kv[0])):
         connected = [a for a in members if a.get('connected')]
         vrrp = {a['id']: _vrrp(a) for a in connected}
-        primaries = [a for a in connected if (vrrp[a['id']] or {}).get('primary', vrrp[a['id']] is None)]
+        # Agents that take Floorbit's lease (issue #1405): it picks the primary, VRRP only moves addresses.
+        leased = bool(connected) and all(_lease(a) is not None for a in connected)
+        if leased:
+            holder = lease_holder(members)
+            primaries = [a for a in connected if a['id'] == holder]
+        else:
+            primaries = [a for a in connected if (vrrp[a['id']] or {}).get('primary', vrrp[a['id']] is None)]
         holders = {a['id']: list((vrrp[a['id']] or {}).get('holds') or []) for a in connected}
         if not connected:
             state = 'down'
-        elif len([a for a in connected if vrrp[a['id']] and vrrp[a['id']].get('primary')]) > 1:
+        elif not leased and len([a for a in connected if vrrp[a['id']] and vrrp[a['id']].get('primary')]) > 1:
             state = 'split'
-        elif len(connected) > 1 and any(vrrp[a['id']] is None for a in connected):
+        elif not leased and len(connected) > 1 and any(vrrp[a['id']] is None for a in connected):
             state = 'no_vrrp'
         elif not primaries:
             state = 'no_primary'
@@ -61,12 +67,12 @@ def groups(agents, tag_names=None):
             mode = 'active-active' if len(holding) > 1 else 'active-passive'
         primary = primaries[0]['id'] if len(primaries) == 1 else None
 
-        def role(a, vrrp=vrrp, primary=primary):
+        def role(a, vrrp=vrrp, primary=primary, leased=leased):
             if not a.get('connected'):
                 return 'offline'
-            if a['id'] == primary or (vrrp.get(a['id']) or {}).get('primary'):
+            if a['id'] == primary or (not leased and (vrrp.get(a['id']) or {}).get('primary')):
                 return 'primary'
-            return 'standby' if vrrp.get(a['id']) else 'active'
+            return 'standby' if leased or vrrp.get(a['id']) else 'active'
         out.append({
             'id': '|'.join(key) or '*', 'tags': list(key),
             'label': ', '.join(tag_names.get(h, h) for h in key),
@@ -76,6 +82,66 @@ def groups(agents, tag_names=None):
             'vips': sorted({v for h in holders.values() for v in h}),
         })
     return out
+
+
+def _lease(agent):
+    """True or False when the agent says whether it holds its group's lease, None for an agent that
+    knows no leases (before floorbit-agent #94): VRRP alone makes those primary."""
+    value = (agent.get('report') or {}).get('lease')
+    return value if isinstance(value, bool) else None
+
+
+def _group_of(agent_id, agents):
+    me = next((a for a in agents if a['id'] == agent_id), None)
+    if me is None:
+        return None, []
+    mine = sorted(me.get('tags') or ())
+    return me, [a for a in agents if sorted(a.get('tags') or ()) == mine]
+
+
+def group_key(agent_id):
+    """A stable name for the agent's group (its tags), or None for an agent Floorbit doesn't know.
+    What one agent of a group passes on stands for the group (librenms_alerts.take)."""
+    from . import agent_link
+    me = next((a for a in agent_link.load_data().get(agent_link.KEY) or [] if a['id'] == agent_id), None)
+    return None if me is None else 'group:' + '|'.join(sorted(me.get('tags') or ()))
+
+
+_granted = {}    # group (its tags) -> the agent this pod last gave the lease, until its report says so
+
+
+def lease_holder(members):
+    """The group's primary, picked here (issue #1405): the connected agent that holds the lease
+    already keeps it (sticky; the smallest id if two say so for a moment), else the group's VRRP
+    primary, else the smallest connected id. None when nobody of the group is connected.
+    Asked fresh on every pull, so every pod that hears the same reports picks the same agent."""
+    connected = sorted(a['id'] for a in members if a.get('connected'))
+    if not connected:
+        return None
+    by_id = {a['id']: a for a in members}
+    holding = [i for i in connected if _lease(by_id[i])]
+    if holding:
+        return holding[0]
+    # Given out but not reported yet (its report comes within half a minute): keep it there, or an
+    # agent that comes back in between would take it straight back.
+    key = tuple(sorted(members[0].get('tags') or ()))
+    if _granted.get(key) in connected:
+        return _granted[key]
+    vrrp = [i for i in connected if (_vrrp(by_id[i]) or {}).get('primary')]
+    _granted[key] = vrrp[0] if len(vrrp) == 1 else connected[0]
+    return _granted[key]
+
+
+def lease_for(agent_id, agents=None, now=None):
+    """``{"primary", "members"}`` for the agent's plugin config: whether it is its group's primary
+    now, and how many agents the group has (one alone is always primary, uplink or not)."""
+    if agents is None:
+        from . import agent_link
+        agents = agent_link.all_agents(now=now)
+    me, members = _group_of(agent_id, agents)
+    if me is None:
+        return None
+    return {'primary': lease_holder(members) == agent_id, 'members': len(members)}
 
 
 def _claims_primary(agent):
@@ -114,6 +180,31 @@ def standby_with_primary(agent_id, now):
             if flows and now - flows['at'] < FLOWS_FRESH:
                 return True
     return False
+
+
+def one_per_group(agent_ids, now=None):
+    """``agent_ids`` (connected agents) by group: ``[(stable id, [the ids to ask, primary first])]``.
+    For what each agent of a pair would only fetch twice, like a NetBox inventory feed. The stable
+    id is the group's smallest member id, connected or not, so the feed keeps its id on failover."""
+    import time
+
+    from . import agent_link
+    wanted = set(agent_ids)
+    agents = agent_link.all_agents(now=now or time.time())
+    known = {a['id'] for a in agents}
+    out, seen = [], set()
+    for a in sorted(agents, key=lambda a: a['id']):
+        if a['id'] in seen:
+            continue
+        _me, members = _group_of(a['id'], agents)
+        seen |= {m['id'] for m in members}
+        ask = sorted(m['id'] for m in members if m['id'] in wanted)
+        if not ask:
+            continue
+        first = lease_holder([{**m, 'connected': m['id'] in wanted} for m in members])
+        out.append((min(m['id'] for m in members), sorted(ask, key=lambda i: (i != first, i))))
+    out += [(i, [i]) for i in sorted(wanted - known)]
+    return out
 
 
 def action_targets(agent_ids, now=None):
