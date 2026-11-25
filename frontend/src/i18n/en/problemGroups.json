@@ -1,0 +1,19 @@
+{
+  "title_one": "{{count}} seat: {{kind}}",
+  "title_other": "{{count}} seats: {{kind}}",
+  "kinds": {
+    "checkin_one": "{{count}} seat online without a check-in",
+    "checkin_other": "{{count}} seats online without a check-in",
+    "flapping_one": "{{count}} seat port flapping",
+    "flapping_other": "{{count}} seat ports flapping",
+    "errors_one": "{{count}} seat port with rising errors",
+    "errors_other": "{{count}} seat ports with rising errors",
+    "duplex_one": "{{count}} seat port at half duplex",
+    "duplex_other": "{{count}} seat ports at half duplex"
+  },
+  "show": "Show the {{count}} seats",
+  "hide": "Hide the seats",
+  "linksDown_one": "Its link is down too: {{names}}",
+  "linksDown_other": "{{count}} of its links are down too: {{names}}",
+  "more": "More actions"
+}

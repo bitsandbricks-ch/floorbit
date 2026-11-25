@@ -283,7 +283,9 @@ def problems(data=None):
         else:
             title = f'Link {ends} is down'
         out.append({'id': f"link:{link['id']}", 'kind': 'link', 'level': 'down' if live['issue'] == 'down' else 'warn',
-                    'title': title, 'where': what, 'since': None, 'link': '/plan?view=topology'})
+                    'title': title, 'where': what, 'since': None, 'link': '/plan?view=topology',
+                    # The page hangs a link under a down box at either end (issue #1415).
+                    'ends': [link['a'], link['b']]})
     return out
 
 

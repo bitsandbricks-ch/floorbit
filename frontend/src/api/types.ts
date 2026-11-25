@@ -751,6 +751,8 @@ export interface Problem {
   behind?: string[]
   /** The down switch this one is behind: the place to start. */
   cause?: string
+  /** A link's two boxes, so the page can hang it under one that is down (issue #1415). */
+  ends?: string[]
   /** A LibreNMS alert: what DELETE /api/alerts/librenms/<id> takes when its recovery got lost (issue #951). */
   clear_id?: string
   ports?: string[]

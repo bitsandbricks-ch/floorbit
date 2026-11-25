@@ -43,10 +43,21 @@ longest standing first:
 
 People with `incidents.work` can **Raise** any problem to urgent by hand when the rules don't know
 it matters more (it shows **Raised**, with who did it), and **Lower again**. A raise is forgotten
-after 7 days. **Started** and **Problem** sort it the other ways; **Started** and **Problem** sort it the other
-ways. The cards on top count what is down, what
+after 7 days. **Started** and **Problem** sort it the other ways. The cards on top count what is down, what
 needs a look, the **seats with trouble** (counted like the floor plan's "!": check-in left out) and
 what is muted.
+
+The list folds what belongs together (issue #1415):
+
+- The same problem on three seats or more is **one row**, e.g. **9 seats online without a check-in**;
+  **Show the 9 seats** lists them, each opening its own page. Picking that kind or **Seats** above
+  the list shows them one row each again, and a muted or raised one keeps its own row.
+- A link that is down because the box at one of its ends is down hangs **under that box**
+  (**Its link is down too: …**) instead of being a row of its own: the box is where to start.
+- **Started** is when the problem was first seen and stays so across a restart of Floorbit, so
+  rows don't all say "now" after an update.
+- Each row keeps to one line of actions: **Open**, its incident or **Report**, and the rest
+  (**Mute**, **Raise**, **Swap**, **Clear**) under **…**.
 
 When the list holds more than one kind, a row above it shows one kind at a time (switches,
 services, power, …) with how many of each; **Seats** shows everything about a seat, whatever its
