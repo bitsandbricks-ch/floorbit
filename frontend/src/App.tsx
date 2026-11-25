@@ -16,6 +16,7 @@ const PluginSettings = lazy(() => import('@/pages/PluginSettings'))
 const PluginPage = lazy(() => import('@/pages/PluginPage'))
 const Inventory = lazy(() => import('@/pages/Inventory'))
 const DevicePage = lazy(() => import('@/pages/inventory/DevicePage'))
+const NewDevicePage = lazy(() => import('@/pages/inventory/NewDevicePage'))
 const ScopePage = lazy(() => import('@/pages/inventory/ScopePage'))
 const EntryPage = lazy(() => import('@/pages/inventory/EntryPage'))
 const PropertiesPage = lazy(() => import('@/pages/inventory/PropertiesPage'))
@@ -106,6 +107,7 @@ export default function App() {
             <Route path="/settings/plugins/:id" element={<PluginSettings />} />
             <Route path="/plugins/:plugin/:page" element={<PluginPage />} />
             <Route path="/inventory" element={<Inventory />} />
+            <Route path="/inventory/devices/new" element={<NewDevicePage />} />
             <Route path="/inventory/devices/:id" element={<DevicePage />} />
             <Route path="/inventory/groups/:id" element={<ScopePage kind="group" />} />
             <Route path="/inventory/tags/:id" element={<ScopePage kind="tag" />} />

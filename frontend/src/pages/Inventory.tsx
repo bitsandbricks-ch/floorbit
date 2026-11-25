@@ -13,11 +13,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan, useInventory } from '@/api/queries'
-import type { Device, InventoryField, InventorySource, SyncReport } from '@/api/types'
+import type { Device, InventorySource, SyncReport } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { DataTable, FilterBar, LoadingState, PageHead, useFilters } from '@bitsandbricks/ui'
 import { useDriftAll } from '@/api/inventoryDrift'
-import { DeviceForm } from './inventory/DeviceForm'
 import { DriftAll } from './inventory/DriftPanel'
 import { IpamView } from './inventory/IpamView'
 import { ipamSubOf, type IpamSub } from './inventory/ipam'
@@ -27,7 +26,7 @@ import { EntriesView } from './inventory/EntriesView'
 import { IconLibrary } from './inventory/IconLibrary'
 import { TypesEditor } from './inventory/TypesEditor'
 import { DeviceIcon } from './inventory/icons'
-import { devicePath, effectiveLook, entryPath, matches, roleIcon, scopePath, typeName, type Draft } from './inventory/model'
+import { devicePath, effectiveLook, entryPath, matches, roleIcon, scopePath, typeName } from './inventory/model'
 import { groupAndBelow, groupTree, useInventoryGroups, useInventoryTypes } from './inventory/scope'
 import { dateTime } from '@/lib/time'
 
@@ -106,13 +105,10 @@ export default function Inventory() {
   const showHidden = filters.values.hidden === 'shown'
   const driftView = filters.values.view === 'drift'
   const setDriftView = (on: boolean) => filters.set('view', on ? 'drift' : '')
-  const [editing, setEditing] = useState<Device | null>(null)
   const driftAll = useDriftAll(driftView)
   const [removing, setRemoving] = useState<Device | null>(null)
   const groupsQuery = useInventoryGroups()
   const overview = groupsQuery.data
-  const [formOpen, form] = useDisclosure(false)
-  const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const { data, error, isPending } = useInventory(showHidden)
 
@@ -123,21 +119,6 @@ export default function Inventory() {
 
   const refresh = () => client.invalidateQueries({ queryKey: qk.inventoryAll })
 
-  const save = useMutation({
-    mutationFn: (changes: Partial<Draft> & { unlock?: InventoryField[]; hidden?: boolean; [k: string]: unknown }) =>
-      editing ? patch<Device>(`/api/inventory/${encodeURIComponent(editing.id)}`, changes) : post<Device>('/api/inventory', changes),
-    onSuccess: (device, changes) => {
-      void refresh()
-      setFormError(null)
-      if ('unlock' in changes) {
-        setEditing(device)
-        return
-      }
-      form.close()
-      setMessage({ ok: true, text: t('inventory.saved') })
-    },
-    onError: (e) => setFormError(e.message),
-  })
   const remove = useMutation({
     mutationFn: (device: Device) => del<{ result: string }>(`/api/inventory/${encodeURIComponent(device.id)}`),
     onSuccess: () => void refresh(),
@@ -194,11 +175,6 @@ export default function Inventory() {
       : target.item ? scopePath(target.kind, target.item.id)
         : target.kind === 'group' ? `/inventory/groups/new${target.parent ? `?parent=${encodeURIComponent(target.parent)}` : ''}` : '/inventory/tags/new')
 
-  function openForm(device: Device | null) {
-    setEditing(device)
-    setFormError(null)
-    form.open()
-  }
 
   return (
     <Layout title={t('inventory.title')} back={{ href: '/', label: t('common.floorPlan') }}>
@@ -214,7 +190,7 @@ export default function Inventory() {
                 </Button>
               )}
               {typeTab === 'device' && (
-                <Button leftSection={<IconPlus size={16} />} onClick={() => openForm(null)}>
+                <Button leftSection={<IconPlus size={16} />} onClick={() => navigate('/inventory/devices/new')}>
                   {t('inventory.add')}
                 </Button>
               )}
@@ -387,21 +363,6 @@ export default function Inventory() {
         )}
       </Modal>
 
-      {formOpen && data && (
-        <DeviceForm
-          key={editing?.id ?? 'new'}
-          device={editing}
-          roles={data.roles}
-          overview={overview}
-          sourceName={sourceName}
-          opened={formOpen}
-          busy={save.isPending}
-          error={formError}
-          onClose={form.close}
-          onSave={(changes) => save.mutate(changes)}
-          onUnlock={(f) => save.mutate({ unlock: [f] })}
-        />
-      )}
       <>
         <IconLibrary opened={libraryOpen} canManage={canManage} onClose={library.close} />
       {typesOpen && overview && <TypesEditor opened={typesOpen} overview={overview} start={typeTab} onClose={typesEditor.close} />}
