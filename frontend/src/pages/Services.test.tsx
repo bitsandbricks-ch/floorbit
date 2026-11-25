@@ -177,3 +177,23 @@ describe('Services counts what the health panes count (#1037)', () => {
     expect(screen.getAllByRole('group', { name: 'Provider A' })).toHaveLength(1)
   })
 })
+
+describe('Services says things once (#1419)', () => {
+  it('shows the LAN cache once, and where firewalls are set up once for the group', async () => {
+    const summary = {
+      rows: [
+        { id: 'firewall:1', name: 'fw-01', kind: 'firewall', status: 'up', summary: 'Serves 1 range', link: '/firewalls' },
+        { id: 'firewall:2', name: 'fw-02', kind: 'firewall', status: 'up', summary: 'Serves 1 range', link: '/firewalls' },
+        { id: 'cache', name: 'LAN cache', kind: 'cache', status: 'up', summary: '65 % hit rate', link: '' },
+      ],
+      total: 3, counts: { up: 3, warn: 0, down: 0, unknown: 0 }, by_kind: {},
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/services': data, 'GET /api/game-servers': noGames,
+      'GET /api/services/summary': summary }).fn)
+    renderWithApp(<Services />)
+    const firewalls = await screen.findByRole('region', { name: 'Firewalls' })
+    expect(within(firewalls).getAllByText('Set up under Network > Firewalls')).toHaveLength(1)
+    expect(within(screen.getByRole('group', { name: 'fw-01' })).queryByText('Set up under Network > Firewalls')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('group', { name: 'LAN cache' })).toHaveLength(1)
+  })
+})

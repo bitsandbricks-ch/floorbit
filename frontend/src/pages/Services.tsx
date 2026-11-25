@@ -78,10 +78,13 @@ export default function Services() {
     check: canEdit ? (c) => setEditing({ kind: 'checks', item: c }) : undefined,
   })
   const ownIds = new Set(own.map((r) => r.sid))
+  const ownTypes = new Set(own.map((r) => r.type))
   // What plugins and other pages watch (DHCP, firewalls, an HTTP check plugin, ...): listed from the
   // shared summary (#1037), so this page counts what the dashboards count and nothing is only on one.
   const elsewhere: ServiceRowData[] = (summary.data?.rows ?? [])
     .filter((r) => !ownIds.has(r.id) && r.id !== 'sites' && !r.id.startsWith('site:'))
+    // The event has one LAN cache: the page's own row already shows it, with more numbers (#1419).
+    .filter((r) => !(typeOfKind(r.kind) === 'lancache' && ownTypes.has('lancache')))
     .map((r) => ({
       key: `h-${r.id}`, sid: r.id, type: typeOfKind(r.kind), name: r.name, status: r.status, target: r.summary,
       value: null, unit: null, note: null, points: [],

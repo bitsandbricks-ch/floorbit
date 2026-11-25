@@ -4,7 +4,8 @@ Monitoring › Services (`/services`, issues #471, #889, #1337): every service t
 in one list. The internet lines, the DNS resolvers, the internet sites players need, the LAN cache,
 the [game servers](game-servers.md) and the crew's [own checks](#own-checks) are set up here; DHCP,
 the [firewalls](firewalls.md) and what health plugins watch are listed too, set up where they come
-from. Each also shows on the [service health](health.md) widget and so in its alerts (the sites as one tile).
+from: a group whose services all come from one place (the firewalls, DHCP) says where once, by its
+title. A plugin's LAN cache is not listed a second time next to the page's own LAN cache row. Each also shows on the [service health](health.md) widget and so in its alerts (the sites as one tile).
 
 The page is one list, one row per service: its state, name and address, its tags, the number that
 matters (how full, how fast, how many players), the last half hour as a line, and what can be done
