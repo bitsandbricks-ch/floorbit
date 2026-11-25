@@ -119,13 +119,19 @@ export interface Board {
   changed?: boolean
   /** Opens without signing in, showing only what anyone may see. */
   public?: boolean
+  /** For finding it in the list (#897): short tags and one group heading. */
+  tags?: string[]
+  group?: string
+  /** How many screen accounts are limited to it (Settings > Users); missing is none. */
+  screens?: number
 }
 
 /** A dashboard's own settings as PUT wants them, defaults left out: the one place that lists them,
  *  so a save from anywhere (editor, copy, "Add to", "Make it a Screen") keeps every one. */
-export const boardSettings = (b: Pick<Board, 'cycle' | 'range' | 'frame' | 'sound'>) => ({
+export const boardSettings = (b: Pick<Board, 'cycle' | 'range' | 'frame' | 'sound' | 'tags' | 'group'>) => ({
   ...(b.cycle ? { cycle: b.cycle } : {}), ...(b.range ? { range: b.range } : {}),
   ...(b.frame === false ? { frame: false as const } : {}), ...(b.sound ? { sound: true as const } : {}),
+  ...(b.tags?.length ? { tags: b.tags } : {}), ...(b.group ? { group: b.group } : {}),
 })
 
 /** A dashboard's name to show: the ready-made ones have theirs in every language. */

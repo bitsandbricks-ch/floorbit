@@ -594,6 +594,34 @@ def clean(body):
     # screen, so off unless the dashboard asks for it.
     if body.get('sound'):
         out['sound'] = True
+    # For finding a dashboard in a long list (#897): a few short tags and one group heading.
+    tags = _tags(body.get('tags'))
+    if tags:
+        out['tags'] = tags
+    group = _text(body.get('group'), 40)
+    if group:
+        out['group'] = group
+    return out
+
+
+MAX_TAGS = 8
+TAG_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,23}\Z')
+
+
+def _tags(raw):
+    if raw in (None, '', []):
+        return []
+    if not isinstance(raw, list):
+        raise LayoutError('Tags are a list of words.')
+    out = []
+    for tag in raw:
+        tag = str(tag or '').strip().lower().replace(' ', '-')
+        if not TAG_RE.match(tag):
+            raise LayoutError('A tag is up to 24 lower-case letters, digits or -, for example hall-a.')
+        if tag not in out:
+            out.append(tag)
+    if len(out) > MAX_TAGS:
+        raise LayoutError(f'A dashboard has at most {MAX_TAGS} tags.')
     return out
 
 
