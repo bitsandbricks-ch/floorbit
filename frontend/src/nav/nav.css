@@ -114,6 +114,9 @@
   background: var(--color-down); color: #fff; font-size: var(--fs-sm); font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums;
 }
+/* Set up's progress (4/7) beside its row: quiet, not an alert (#1437). */
+.fb-nav-count { flex: none; margin-left: auto; color: var(--color-muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.fb-nav[data-state="rail"] .fb-nav-count { display: none; }
 .fb-nav-dot {
   position: absolute; top: -2px; right: -4px; width: 9px; height: 9px; border-radius: 50%;
   background: var(--color-down); box-shadow: 0 0 0 2px var(--color-surface);

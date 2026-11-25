@@ -48,6 +48,7 @@
     "events": "Events",
     "templates": "Floor plan templates",
     "settings": "Settings",
+    "setup": "Set up",
     "plugins": "Plugins",
     "features": "Features",
     "sidebarSections": "Sidebar sections",
@@ -92,6 +93,7 @@
     "agents": "agent, on-site",
     "audit": "who changed, history",
     "preflight": "pre-flight check, go or no-go",
+    "setup": "checklist, first steps, get started",
     "checkins": "PIN, arrivals",
     "firewalls": "routing, uplinks",
     "networkStatus": "internet, ISP, uplinks"

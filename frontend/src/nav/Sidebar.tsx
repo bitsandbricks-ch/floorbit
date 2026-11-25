@@ -39,6 +39,8 @@ export interface SidebarProps {
   /** Problems to look at (warn plus seat and port trouble), for the badge's tooltip (#884). */
   look?: number | null
   actions?: MenuAction[]
+  /** The event's setup steps done of all (#1437): Set up shows at the foot while some are open. */
+  setup?: { done: number; count: number } | null
 }
 
 const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
@@ -155,8 +157,10 @@ function Panel(props: PanelProps) {
   const { boot, rail, lit, prefs } = props
   const { pinned, sections } = group(boot.pages)
   const byId = new Map([...withParents(boot.pages), ...pinnedBoards(props.dashboards)].map((p) => [p.id, p]))
-  // Plugins and Settings sit at the foot as named rows, so they can't be missed (issue #892).
-  const admin = ['plugins', 'settings'].map((id) => byId.get(id) ?? rowsOf(boot.pages).find((p) => p.id === id))
+  // Plugins and Settings sit at the foot as named rows, so they can't be missed (issue #892); Set
+  // up joins them while the event's setup has open steps (#1437).
+  const setupOpen = !!props.setup && props.setup.done < props.setup.count
+  const admin = [...(setupOpen ? ['setup'] : []), 'plugins', 'settings'].map((id) => byId.get(id) ?? rowsOf(boot.pages).find((p) => p.id === id))
     .filter((p): p is NavPage => !!p)
   // Plugins lives under /settings, so it lights on its own pages and Settings on the rest.
   const adminLit = admin.find((p) => p.id === 'plugins' && (props.path === p.href || props.path.startsWith(`${p.href}/`)))?.id
@@ -183,6 +187,11 @@ function Panel(props: PanelProps) {
             <>
               <Icon size={18} className="fb-nav-icon" aria-hidden="true" />
               <span className="fb-nav-text">{label}</span>
+              {p.id === 'setup' && props.setup && (
+                <span className="fb-nav-count" title={t('nav.setupCount', { done: props.setup.done, count: props.setup.count })}>
+                  {`${props.setup.done}/${props.setup.count}`}
+                </span>
+              )}
               {badge !== null && (
                 <span className="fb-nav-badge" title={props.look ? t('nav.problemsSplit', { count: badge, look: props.look }) : t('nav.problemsDown', { count: badge })}>
                   <span className="fb-sr-only">{t('nav.problemsDown', { count: badge })}</span>

@@ -1,62 +1,20 @@
-import { Alert, Anchor, Group, Loader, SegmentedControl, SimpleGrid, Text } from '@mantine/core'
+import { Alert, Anchor, Group, Loader, SegmentedControl, Text } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import type { CacheRow, GamesData, LancacheData } from '@/api/types'
+import type { GamesData } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
-import { DataTable, ErrorBanner, StatTile } from '@bitsandbricks/ui'
+import { DataTable, ErrorBanner } from '@bitsandbricks/ui'
 import { bytes } from '../traffic/format'
-import { dayClock } from '@/lib/time'
 import { Panel } from '@/components/ui'
 
-const W = 1000
-const H = 140
 const RANGES = [6, 24, 168]
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/games.md'
 const pct = (n: number | null | undefined) => (n == null ? '–' : `${Math.round(n * 100)} %`)
 const ratio = (hit: number, miss: number) => (hit + miss ? hit / (hit + miss) : null)
-
-
-/** Bytes the cache served per hour: from disk at the bottom, from the internet on top. */
-function CacheChart({ cache }: { cache: LancacheData }) {
-  const { t, i18n } = useTranslation()
-  const hours = cache.hours
-  const top = Math.max(1, ...hours.map((h) => h.hit_bytes + h.miss_bytes))
-  const w = W / Math.max(1, hours.length)
-  const stamp = (ts: number) => dayClock(ts, i18n.language)
-  return (
-    <Panel className="fb-wide" titleId="games-cache" title={t('games.cachePerHour')} actions={<>
-      <Group gap="sm">
-        <Text size="xs" c="dimmed"><span className="fb-dns-key hit" /> {t('games.hit')}</Text>
-        <Text size="xs" c="dimmed"><span className="fb-dns-key miss" /> {t('games.miss')}</Text>
-      </Group>
-    </>}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="fb-dns-chart" role="img"
-        aria-label={t('games.chartLabel', { hit: bytes(cache.hit_bytes), miss: bytes(cache.miss_bytes) })}>
-        {[0.25, 0.5, 0.75].map((f) => <line key={f} className="grid" x1={0} x2={W} y1={H * f} y2={H * f} />)}
-        {hours.map((h, i) => {
-          const hit = (h.hit_bytes / top) * H
-          const miss = (h.miss_bytes / top) * H
-          return (
-            <g key={h.t}>
-              <rect className="hit" x={i * w + w * 0.1} width={w * 0.8} y={H - hit} height={hit} />
-              <rect className="miss" x={i * w + w * 0.1} width={w * 0.8} y={H - hit - miss} height={miss} />
-            </g>
-          )
-        })}
-      </svg>
-      {hours.length > 0 && (
-        <Group justify="space-between">
-          <Text size="xs" c="dimmed">{stamp(hours[0].t)}</Text>
-          <Text size="xs" c="dimmed">{stamp(hours[hours.length - 1].t + 3600)}</Text>
-        </Group>
-      )}
-    </Panel>
-  )
-}
 
 type Launcher = GamesData['launchers'][number]
 
@@ -115,37 +73,18 @@ function Titles({ data, compact }: { data: GamesData; compact: boolean }) {
   )
 }
 
-function Caches({ caches }: { caches: CacheRow[] }) {
-  const { t } = useTranslation()
-  return (
-    <Panel titleId="games-other" title={t('games.otherCaches')}>
-      <ol className="fb-stats-top">
-        {caches.map((c) => (
-          <li key={c.cache}>
-            <span className="name">{t(`games.cacheName.${c.cache}`, { defaultValue: c.cache })}
-              <br /><small>{t('games.ratio', { pct: pct(ratio(c.hit_bytes, c.miss_bytes)) })}</small></span>
-            <span className="value">{bytes(c.hit_bytes + c.miss_bytes)}</span>
-          </li>
-        ))}
-      </ol>
-    </Panel>
-  )
-}
-
 function Board({ data, compact }: { data: GamesData; compact: boolean }) {
   const { t } = useTranslation()
   const c = data.cache
   return (
     <>
+      {/* The cache's own numbers live on the LAN cache page (#1420); here only what each game fetched. */}
       {data.sources.cache && (
-        <SimpleGrid cols={{ base: 1, sm: 3 }} mb="md">
-          <StatTile label={t('games.servedLocally')} value={bytes(c.hit_bytes)} sub={t('games.servedLocallySub')} />
-          <StatTile label={t('games.fromInternet')} value={bytes(c.miss_bytes)} sub={t('games.fromInternetSub')} />
-          <StatTile label={t('games.hitRatio')} value={pct(c.hit_ratio)} sub={t('games.hitRatioSub')} />
-        </SimpleGrid>
+        <Text size="sm" c="dimmed" mb="md">
+          {t('games.cacheLink', { saved: bytes(c.hit_bytes) })} <Anchor href="/lancache">{t('games.cacheLinkOpen')}</Anchor>
+        </Text>
       )}
       <div className="fb-stats">
-        {!compact && data.sources.cache && <CacheChart cache={c} />}
         <Titles data={data} compact={compact} />
         {!compact && <Launchers data={data} />}
         {data.games.length > 0 && (
@@ -161,7 +100,6 @@ function Board({ data, compact }: { data: GamesData; compact: boolean }) {
             <Text size="xs" c="dimmed" mt={6}>{t('games.gamesText')}</Text>
           </Panel>
         )}
-        {!compact && data.other_caches.length > 0 && <Caches caches={data.other_caches} />}
       </div>
     </>
   )

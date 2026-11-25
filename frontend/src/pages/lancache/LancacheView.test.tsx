@@ -57,7 +57,7 @@ describe('LancacheView', () => {
   it('says when the plugin is off', async () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': admin,
-      'GET /api/lancache?hours=24': { ...data, plugin_on: false, agents: [], downloads: [], suspects: [], dns_services: [] },
+      'GET /api/lancache?hours=24': { ...data, configured: false, plugin_on: false, agents: [], downloads: [], suspects: [], dns_services: [] },
     }).fn)
     renderWithApp(<LancacheView expanded={false} />)
     expect(await screen.findByText(/The LAN cache plugin is off/)).toBeInTheDocument()
@@ -67,11 +67,22 @@ describe('LancacheView', () => {
   it('points to the Marketplace when the plugin is not installed', async () => {
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': admin,
-      'GET /api/lancache?hours=24': { ...data, plugin_on: false, plugin_installed: false, agents: [], downloads: [], suspects: [], dns_services: [] },
+      'GET /api/lancache?hours=24': { ...data, configured: false, plugin_on: false, plugin_installed: false, agents: [], downloads: [], suspects: [], dns_services: [] },
     }).fn)
     renderWithApp(<LancacheView expanded={false} />)
     expect(await screen.findByText(/The LAN cache plugin is not installed/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/settings/plugins?tab=marketplace')
+  })
+
+  it('says nothing about the plugin while a cache log comes in, and no players without the agent (#1420)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin,
+      'GET /api/lancache?hours=24': { ...data, plugin_on: false, plugin_installed: false, agents: [], clients: [] },
+    }).fn)
+    renderWithApp(<LancacheView expanded />)
+    expect(await screen.findByText('75 %')).toBeInTheDocument()
+    expect(screen.queryByText(/The LAN cache plugin is not installed/)).not.toBeInTheDocument()
+    expect(screen.getByText("counted by the agent's LAN cache plugin")).toBeInTheDocument()
   })
 
   it('keeps clearing for the expanded view', async () => {
