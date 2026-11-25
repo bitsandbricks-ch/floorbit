@@ -960,6 +960,8 @@ export interface PlanCell {
   /** Where its seat cables run, across the row from the seat's centre (drawing units, in the block's
    *  own frame; floorbit/cable_lanes.py); missing when they come along the block instead. */
   lane?: number
+  /** On a bent row with a lane: this seat's point in its row's lane (``PlanShape.lanes``). */
+  li?: number
 }
 
 export interface PlanShape {
@@ -979,6 +981,9 @@ export interface PlanShape {
   row_list?: { id: string; name: string; row?: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
+  /** Bent rows' cable lanes by row (a cell's rc[0]): points in the block's own frame, drawing units,
+   *  one past each end (floorbit/cable_lanes.py ``paths``). Missing when no row bends. */
+  lanes?: Record<string, [number, number][]>
 }
 
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */

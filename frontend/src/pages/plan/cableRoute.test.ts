@@ -49,6 +49,30 @@ describe('followPlan with lanes', () => {
   })
 })
 
+describe('followPlan along a bent row', () => {
+  // The U of tests/test_cable_lanes_bent.py: 8 seats at 40 %, 40 %, its lane outside (issue #1208).
+  const lane: [number, number][] = [[-112, -64], [-112, -32], [-112, 0], [-112, 64], [-48, 64], [-16, 64], [16, 64], [48, 64], [112, 64], [112, 0], [112, -32], [112, -64]]
+  const u = [
+    { seat: 'U-1', x: -96, y: -48, a: 90, li: 1 }, { seat: 'U-2', x: -96, y: -16, a: 90, li: 2 },
+    { seat: 'U-3', x: -64, y: 16, li: 4 }, { seat: 'U-4', x: -32, y: 16, li: 5 }, { seat: 'U-5', x: 0, y: 16, li: 6 },
+    { seat: 'U-6', x: 32, y: 16, li: 7 }, { seat: 'U-7', x: 64, y: -16, a: -90, li: 9 }, { seat: 'U-8', x: 64, y: -48, a: -90, li: 10 },
+  ].map((c, n) => ({ ...c, hit: false, on: null, side: 'left', rc: [0, n] }))
+  const bent = { shapes: [{ cx: 640, cy: 400, rotation: 0, w: 192, h: 96, name: 'U', cells: u, lanes: { 0: lane } }], box: '0 0 1600 1000', cell: 32 } as unknown as PlanDrawing
+
+  it('runs round the U to the seat the way the server does', () => {
+    const c = cable('U-4', [[50, 20], [39, 43.2]])
+    const [moved] = followPlan([c], { drawing: bent, switches: [at(10, 20)], size })
+    expect(moved.points).toEqual([[10, 20], [33, 20], [33, 46.4], [39, 46.4], [39, 43.2]])
+  })
+
+  it('comes in at the end nearer the switch', () => {
+    const c = cable('U-8', [[50, 20], [45, 36.8]])
+    const [moved] = followPlan([c], { drawing: bent, switches: [at(60, 20)], size })
+    expect(moved.points[moved.points.length - 1]).toEqual([45, 36.8])
+    expect(moved.points.slice(1).every(([x]) => x >= 47 - 1e-6 || x === 45)).toBe(true)
+  })
+})
+
 describe('spread', () => {
   const run = (x: number) => cable(`A-${x}`, [[36, 20], [36, 35.2], [x, 35.2], [x, 38.4]], { key: `k${x}` })
   const px = (c: PlanCable) => c.points.map(([x, y]) => [Math.round((x / 100) * 1600 * 10) / 10, Math.round((y / 100) * 1000 * 10) / 10])
