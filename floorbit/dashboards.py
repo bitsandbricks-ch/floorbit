@@ -156,6 +156,15 @@ BUILTIN = {
         _at(0, 20, 8, 8, _tile('top_ports', type='bar', limit=8)),
         _at(8, 20, 8, 8, _tile('traffic_mix', type='pie')),
         _at(16, 20, 8, 8, _tile('anomalies', type='status')),
+    ]}, {'title': 'During the event', 'panels': [
+        # The event report's numbers (#898); the printable report stays on Events > Report.
+        _at(0, 0, 6, 3, _tile('event_online')),
+        _at(6, 0, 6, 3, _tile('event_checked_in')),
+        _at(12, 0, 4, 3, _tile('event_moved')),
+        _at(16, 0, 4, 3, _tile('event_incidents')),
+        _at(20, 0, 4, 3, _tile('event_outages')),
+        _at(0, 3, 12, 8, _tile('traffic', type='graph', style='area', range='event')),
+        _at(12, 3, 12, 8, _tile('event_problem_ports')),
     ]}]},
     # Each check's numbers and mutes stay on the Health page; here, what is up and down.
     'health': {'name': 'Service health', 'fit': False, 'sections': [{'panels': [
