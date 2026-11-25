@@ -60,8 +60,9 @@ def take(device_id):
         value = row['other']['value'] if row['other']['source'] == source else row['deciding']['value']
         try:
             dev, changed = inventory.update(data, device_id, {field: value})
-        except inventory.InventoryError as exc:
-            return jsonify({'error': str(exc)}), 400
+        except inventory.InventoryError:
+            # A fixed text: the reading is the device's, not something the editor typed.
+            return jsonify({'error': "That source's value is not a valid value for this field."}), 400
         save_data(data)
     audit.record('inventory', "Took a discovery source's value", user=g.get('audit_user'),
                  target=f"{dev['name']} {field}", fields={field: value, 'source': source})
