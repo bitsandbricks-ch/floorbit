@@ -4,7 +4,7 @@ from floorbit import features
 from floorbit.plugins.base import Plugin as Base
 from floorbit.plugins.base import PluginError
 
-OFF = 'Traffic is turned off on this Floorbit (Settings > Features).'
+OFF = 'Traffic is turned off on this Floorbit (Settings > Plugins > Built in).'
 
 
 class Plugin(Base):

@@ -514,7 +514,7 @@ def syslog():
         return _refused()
     receiver = current_app.extensions.get('floorbit_syslog')
     if receiver is None or not features.on('syslog'):
-        return jsonify({'error': 'Syslog is turned off on this Floorbit (Settings > Features).'}), 409
+        return jsonify({'error': 'Syslog is turned off on this Floorbit (Settings > Plugins > Built in).'}), 409
     body = _agent_body()
     lines = body.get('lines') if isinstance(body.get('lines'), list) else []
     dropped = body.get('dropped') if isinstance(body.get('dropped'), int) else 0
@@ -542,7 +542,7 @@ FLOW_MAPS = {'mix_hour', 'mix_day', 'raw'}
 
 
 def _traffic_off():
-    return jsonify({'error': 'Traffic is turned off on this Floorbit (Settings > Features).'}), 409
+    return jsonify({'error': 'Traffic is turned off on this Floorbit (Settings > Plugins > Built in).'}), 409
 
 
 @bp.route('/api/agent/v1/seats', methods=['GET'])

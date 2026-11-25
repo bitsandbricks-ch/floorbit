@@ -3,7 +3,7 @@ import { useHotkeys } from '@mantine/hooks'
 import {
   IconAdjustmentsHorizontal, IconAlertTriangle, IconArmchair, IconBell, IconBolt, IconBuildingCommunity, IconCalendarEvent,
   IconCircleCheck, IconCircleDashed, IconDatabase, IconDeviceDesktopAnalytics, IconHistory, IconKey, IconLayoutSidebar,
-  IconLogin, IconMap, IconSearch, IconServer, IconSettings, IconTerminal2, IconToggleRight, IconUsers, IconUsersGroup,
+  IconLogin, IconMap, IconSearch, IconServer, IconSettings, IconTerminal2, IconUsers, IconUsersGroup,
   IconWebhook, IconWorld, type Icon,
 } from '@tabler/icons-react'
 import { lazy, Suspense, useMemo, useRef, useState, type ComponentType, type LazyExoticComponent } from 'react'
@@ -31,7 +31,6 @@ const PAGES: Record<string, { page: string; title: string; Body: LazyExoticCompo
   api: { page: 'apiTokens', title: 'api.title', Body: lazy(() => import('./ApiTokens')) },
   webhooks: { page: 'webhooks', title: 'webhooks.title', Body: lazy(() => import('./Webhooks')) },
   tenants: { page: 'tenants', title: 'tenants.title', Body: lazy(() => import('./Tenants')) },
-  features: { page: 'features', title: 'features.title', Body: lazy(() => import('./Features')) },
   sidebar: { page: 'sidebarSections', title: 'sidebarSections.title', Body: lazy(() => import('./SidebarSections')) },
   audit: { page: 'audit', title: 'audit.title', Body: lazy(() => import('./Audit')) },
 }
@@ -80,7 +79,6 @@ const GROUPS: { id: GroupId; entries: EntryDef[] }[] = [
       { id: 'backup', icon: IconDatabase, parts: [{ section: 'backup' }] },
       { id: 'tenants', icon: IconBuildingCommunity },
       { id: STATUS, icon: IconAdjustmentsHorizontal, parts: [{ section: 'cache' }, { section: 'general', except: GENERAL_INVENTORY }] },
-      { id: 'features', icon: IconToggleRight },
       { id: 'sidebar', icon: IconLayoutSidebar },
       { id: 'audit', icon: IconHistory },
     ],

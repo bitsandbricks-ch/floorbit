@@ -41,7 +41,7 @@ Floorbit host and port 514, and pick the applications (firewall, DHCP).
 A DHCP server on Linux (ISC dhcpd or Kea) logs through rsyslog: `*.* @192.0.2.10:514` in a file
 under `/etc/rsyslog.d/`.
 
-The feature can also be turned off as a whole under *Settings > Features* (`syslog`); then the page
+The feature can also be turned off as a whole under *Settings > Plugins > Built in* (`syslog`); then the page
 and the API answer 404 and nothing is received.
 
 ## Secure by design
