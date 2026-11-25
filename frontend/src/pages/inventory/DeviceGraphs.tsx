@@ -6,11 +6,10 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { DeviceInterface } from '@/api/types'
-import { HoverTimeChart } from '@/components/HoverTimeChart'
+import { TimeChart, type TimePoint } from '@bitsandbricks/widgets'
 import { stats } from '@/components/timeSeries'
 import { Panel } from '@/components/ui'
 import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
-import type { TimePoint } from '@bitsandbricks/widgets'
 import { BITS, scaled } from '@/lib/units'
 
 /** GET /api/telemetry/series (floorbit/telemetry/storage.py): one series, oldest first. */
@@ -57,7 +56,7 @@ export function DeviceGraphs({ name, interfaces }: { name: string; interfaces: D
       <Panel key={`${metric}-${p ?? ''}`} title={label} desc={points.length ? value(points[points.length - 1][1]) : undefined}>
         {points.length ? (
           <>
-            <HoverTimeChart points={points} since={since} until={until} label={label} value={value}
+            <TimeChart points={points} since={since} until={until} label={label} value={value}
               format={metric === 'up'
                 ? () => t('deviceTabs.graphs.upShare', { pct: Math.round(s.avg * 100) })
                 : (v) => t('deviceTabs.graphs.max', { value: value(v) })} />
