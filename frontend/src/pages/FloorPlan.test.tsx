@@ -707,7 +707,7 @@ describe('Seats page', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data }).fn)
     renderWithApp(<FloorPlan />, '/plan?hall=main')
     await screen.findByRole('application', { name: 'Seat map' })
-    expect(screen.getByRole('main')).toHaveClass('fb-main-full')
+    expect(document.querySelector('.fb-page-full')).not.toBeNull()
     // Each layer's key sits under its switch in Layers; the floating key shows while Layers isn't in view.
     expect(screen.getByRole('list', { name: 'Legend: Seats' })).toHaveTextContent('Online: port up')
     expect(screen.queryByRole('region', { name: 'Legend' })).toBeNull()
