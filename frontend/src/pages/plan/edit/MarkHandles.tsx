@@ -5,6 +5,7 @@ import type { OverlayContext } from '../SeatMap'
 import type { Point } from './geometry'
 import { type Handle, handlesOf, reshape } from './reshape'
 import { WallHandles } from './WallHandles'
+import { isLine } from '../lineMarks'
 
 const CURSOR: Record<Handle, string> = { scale: 'nwse-resize', nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize', a: 'move', b: 'move' }
 
@@ -21,7 +22,7 @@ export function MarkHandles({ ctx, mark, corner, size, cell = 32, anchors = [], 
   onDraft: (m: PlanMark | null) => void
   onDone: (m: PlanMark) => void
 }) {
-  if (mark.kind === 'wall') return <WallHandles ctx={ctx} mark={mark} size={size} cell={cell} anchors={anchors} snapGrid={snapGrid} seatM={seatM} onDraft={onDraft} onDone={onDone} />
+  if (isLine(mark)) return <WallHandles ctx={ctx} mark={mark} size={size} cell={cell} anchors={anchors} snapGrid={snapGrid} seatM={seatM} onDraft={onDraft} onDone={onDone} />
   return <BoxHandles ctx={ctx} mark={mark} corner={corner} size={size} snapGrid={snapGrid} onDraft={onDraft} onDone={onDone} />
 }
 
@@ -64,7 +65,7 @@ function BoxHandles({ ctx, mark, corner, size, snapGrid, onDraft, onDone }: {
           <title>{t(h === 'a' || h === 'b' ? 'plan.edit.mark.handleEnd' : 'plan.edit.mark.handleSize')}</title>
         </rect>
       ))}
-      {mark.kind !== 'wall' && mark.kind !== 'zone' && (mark.scale ?? 1) !== 1 && (
+      {!isLine(mark) && mark.kind !== 'zone' && (mark.scale ?? 1) !== 1 && (
         <text className="fb-edit-handle-label" x={handlesOf(mark, corner)[0][1].x + 8 * px} y={handlesOf(mark, corner)[0][1].y + 16 * px}
           fontSize={12 * px}>{`${Math.round((mark.scale ?? 1) * 100)} %`}</text>
       )}

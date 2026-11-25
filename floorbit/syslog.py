@@ -166,6 +166,7 @@ def _tail(path, count, block=1 << 20):
 
 PRUNE_EVERY = 60              # seconds; a busy hall fills SYSLOG_MAX_MB in minutes
 RCVBUF = 8 * 1024 * 1024      # a burst waits in the kernel while one line is handled
+HEARD_MAX = 5000            # devices whose last syslog line is remembered
 MAX_TCP = 256                 # senders at once; more are closed (a switch reconnects)
 
 
@@ -209,6 +210,9 @@ class SyslogReceiver:
         self.lines = deque()
         self.next_id = 1
         self.counts = {'received': 0, 'kept': 0, 'not_allowed': 0, 'rate_limited': 0, 'duplicates': 0}
+        # device name, lower case -> when its last line came: the Syslog square of Agents >
+        # Telemetry collector (issue #904). Capped, so a flood of made-up host names can't grow it.
+        self.heard = {}
         self._buckets = {}      # sender (or (sender, 'late')) -> [tokens, last]
         self._seen_ids = OrderedDict()   # a relayed line's id -> its time, to drop copies
         self._servers = []
@@ -376,6 +380,10 @@ class SyslogReceiver:
         with self._lock:
             line.update(id=self.next_id, sender=sender, device=device, port=port, seat=seat)
             self.next_id += 1
+            if not late:
+                key = str(device).lower()
+                if key in self.heard or len(self.heard) < HEARD_MAX:
+                    self.heard[key] = now
             self.lines.append(line)
             self.counts['kept'] += 1
             self._trim(now)

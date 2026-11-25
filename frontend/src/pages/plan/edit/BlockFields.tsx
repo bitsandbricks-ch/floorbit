@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { SeatViewData } from '@/api/types'
-import { type Gap, GAP_MAX, GAP_MIN, cleanGaps, freeGapSpot } from './gaps'
+import { RowSeatStrip } from './RowSeatStrip'
 import type { ItemRef } from './geometry'
 import { mirrorBlock } from './rowShapes'
 import { type BlockRow, MAX_ROWS, MAX_SEATS, ROW_LABELS, type RowLabel, type RowShape, SHAPES, moveRow, newRow, withLabel, withSeats, withShape, withUSide } from './rows'
@@ -185,6 +185,7 @@ function RowFields({ row, name, first, letters, onSave }: {
   return (
     <Stack gap="xs" className="fb-row-fields">
       <Text size="sm" fw={600}>{t('blockRows.rowTitle', { name })}</Text>
+      <RowSeatStrip seats={row.seats} gaps={row.col_gaps} onSave={(col_gaps) => onSave({ ...row, col_gaps })} />
       <NumberInput label={t('blockRows.seats')} min={1} max={MAX_SEATS} value={seats ?? row.seats} onChange={(v) => setSeats(Number(v) || null)}
         onBlur={saveSeats} onKeyDown={(e) => { if (e.key === 'Enter') saveSeats() }} />
       <Select label={t('blockRows.shape')} allowDeselect={false} value={row.shape} onChange={(v) => v && v !== row.shape && onSave(withShape(row, v as RowShape))}
@@ -255,37 +256,6 @@ function RowFields({ row, name, first, letters, onSave }: {
           data={['block', ...ROW_LABELS, ...(row.label === 'moved' ? ['moved'] : [])].map((v) => ({ value: v, label: t(`blockRows.rowLabels.${v}`) }))} />
       )}
       <Checkbox label={t('blockRows.reverse')} checked={row.reverse} onChange={(e) => onSave({ ...row, reverse: e.currentTarget.checked })} />
-      <GapList kind="col" gaps={row.col_gaps} count={row.seats} onSave={(next) => onSave({ ...row, col_gaps: cleanGaps(next, row.seats) })} />
     </Stack>
-  )
-}
-
-/** Room in a row after a seat (fiber rolls), or a lane after a row; seat numbers carry on across. */
-function GapList({ kind, gaps, count, onSave }: { kind: 'col' | 'row'; gaps: Gap[]; count: number; onSave: (gaps: Gap[]) => void }) {
-  const { t } = useTranslation()
-  const spot = freeGapSpot(gaps, count)
-  const set = (i: number, g: Partial<Gap>) => onSave(gaps.map((x, k) => (k === i ? { ...x, ...g } : x)))
-  return (
-    <div>
-      <Group justify="space-between" mb={4} wrap="nowrap">
-        <Text size="sm" fw={500}>{t(`plan.edit.gaps.${kind}`)}</Text>
-        <Button size="compact-xs" variant="subtle" leftSection={<IconPlus size={12} />} disabled={spot == null}
-          onClick={() => spot != null && onSave([...gaps, { after: spot, size: kind === 'row' ? 2 : 1 }])}>{t('plan.edit.gaps.add')}</Button>
-      </Group>
-      {!gaps.length && <Text size="xs" c="dimmed">{t(`plan.edit.gaps.none_${kind}`)}</Text>}
-      <Stack gap={6}>
-        {gaps.map((g, i) => (
-          <Group key={`${g.after}-${i}`} gap="xs" wrap="nowrap" align="flex-end">
-            <NumberInput size="xs" style={{ flex: 1 }} label={t(`plan.edit.gaps.after_${kind}`)} min={1} max={count - 1} defaultValue={g.after}
-              onBlur={(e) => set(i, { after: Number(e.currentTarget.value) || g.after })} />
-            <NumberInput size="xs" style={{ flex: 1 }} label={t(`plan.edit.gaps.size_${kind}`)} min={GAP_MIN} max={GAP_MAX} step={0.5} decimalScale={2} defaultValue={g.size}
-              onBlur={(e) => set(i, { size: Number(e.currentTarget.value) || g.size })} />
-            <ActionIcon variant="subtle" color="gray" mb={4} aria-label={t('plan.edit.gaps.remove')} onClick={() => onSave(gaps.filter((_, k) => k !== i))}>
-              <IconX size={14} />
-            </ActionIcon>
-          </Group>
-        ))}
-      </Stack>
-    </div>
   )
 }

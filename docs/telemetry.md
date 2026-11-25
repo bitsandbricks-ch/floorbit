@@ -125,12 +125,21 @@ VLAN's or one table's problem only goes away by not coming back, since the devic
 coming in. Such a device doesn't count as failing: the agent's health says "answer only in part"
 instead. A device that only sends traps isn't listed as silent when a minute passes without one.
 
-The Telemetry page and an agent's **Devices** tab show the same thing in the same way: one row per
-device with its state (**Sends nothing**, **Never heard**, **Partly**, **Waits for traps**, **Sends**),
-what needs a look first. Each problem sits in its device's row: the kind, where (the whole device, one
-VLAN or one table), when it started and how often, then what to check. **Collector's line** opens the
-line the collector printed. The Telemetry page filters by agent and by collector, and its
-**Need a look** card counts devices that never reported as well as those with an error.
+**Agents › Telemetry collector** (`/telemetry`, issue #904) shows the whole fleet at a glance. Four
+figures: devices heard (and how many were never heard or went quiet), points received, writes the
+storage refused, and how long the numbers are kept. Below, one row per device and one square per way
+it reports: **SNMP**, **Traps**, **Syslog**, **API** (NX-API, RESTCONF, the OPNsense API), **gNMI** and
+**MDT**. A square is green when heard, amber when the device went quiet, red when the collector logs an
+error for that method, an outline when it is set up but nothing came yet, and grey when it is not set
+up for the device. Traps and MDT come only with events, so a quiet one stays green. Syslog is green
+once a line from the device came in. Hovering a square says when it was last heard or the error; the
+**Last problem** column has the kind, where (the whole device, one VLAN or one table), when it started
+and how often, then what to check, and **Collector's line** opens the line the collector printed. The
+filters are **With problems** (the default), **Never heard** and the agent; the device opens its
+Telemetry tab in the inventory.
+
+An agent's **Devices** tab lists the same devices with their state (**Sends nothing**, **Never heard**,
+**Partly**, **Waits for traps**, **Sends**), what needs a look first.
 
 **Test now** collects from one device once, through the agent, and shows what came back or the exact
 error; **Raw data** shows the last lines Telegraf sent for it. On the agent machine,

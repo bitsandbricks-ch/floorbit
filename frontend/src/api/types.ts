@@ -148,6 +148,8 @@ export const SPEC_FIELDS = ['platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk
 export interface DeviceUplink {
   port: string; peer: string; peer_port: string; speed_bps: number | null; planned_gbps: number | null
   state: 'up' | 'down' | 'unknown'; issue: '' | 'down' | 'slow'
+  /** How full the busiest direction is, 0 to 1 (Network › Switches, #902); null when not read. */
+  load?: number | null
 }
 
 export interface Device extends Record<InventoryField, string> {
@@ -181,6 +183,9 @@ export interface Device extends Record<InventoryField, string> {
   uplink?: DeviceUplink | null
   last_day?: number[] | null
   agent?: string
+  /** In the list only (issue #902): seats on its ports, and its PoE budget and draw in watts. */
+  seats?: number
+  poe?: { budget_w: number; used_w: number } | null
 }
 
 /** Icon, colour, tags, properties and feature switches: what devices, groups and tags all carry. */
@@ -1020,7 +1025,7 @@ export interface PlanGroup {
 
 export interface PlanMark {
   id?: string
-  kind: 'text' | 'icon' | 'wall' | 'zone'
+  kind: 'text' | 'icon' | 'wall' | 'walkway' | 'zone'
   /** Drawing order, higher on top (floorbit/stacking.py). */
   z?: number
   x: number
@@ -1036,6 +1041,8 @@ export interface PlanMark {
   /** A wall's bends between its ends, [x, y] each (drawing units in the plan, % from /api/plan-marks). */
   points?: [number, number][]
   style?: 'solid' | 'dashed'
+  /** A walkway's width, in seats (0.5 to 20; #1564). */
+  width?: number
   w?: number
   h?: number
   label?: string

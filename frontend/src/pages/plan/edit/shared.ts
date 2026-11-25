@@ -1,5 +1,6 @@
 import type { PlanMark, SeatViewData } from '@/api/types'
 import type { ItemRef } from './geometry'
+import { isLine } from '../lineMarks'
 
 export const LAYER_IDS = ['overview', 'safety', 'network', 'electrical', 'services'] as const
 export const ZONE_COLORS = ['muted', 'bit', 'trace', 'warn', 'down'] as const
@@ -15,7 +16,7 @@ const HAS: Record<SharedField, (m: PlanMark) => boolean> = {
   style: (m) => m.kind === 'wall',
   color: (m) => m.kind === 'zone',
   size: (m) => m.kind === 'text' || m.kind === 'icon',
-  rotation: (m) => m.kind !== 'wall',
+  rotation: (m) => !isLine(m),
   tint: () => true,
 }
 

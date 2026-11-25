@@ -2,14 +2,14 @@ import { type BlockRow, rowCount } from './rows'
 /** The Edit mode's tools. Each keeps going after placing something (sticky, like the older editor);
  *  Esc or V goes back to Select. Hand only moves the view, like Space + drag;
  *  Measure draws a line that only shows its length and angle. */
-export const TOOLS = ['select', 'hand', 'measure', 'block', 'switch', 'text', 'icon', 'wall', 'zone', 'panel', 'cable', 'board'] as const
+export const TOOLS = ['select', 'hand', 'measure', 'block', 'switch', 'text', 'icon', 'wall', 'walkway', 'zone', 'panel', 'cable', 'board'] as const
 export type Tool = (typeof TOOLS)[number]
 
-export const TOOL_KEYS: Record<Tool, string> = { select: 'v', hand: 'h', measure: 'm', block: 'b', switch: 's', text: 't', icon: 'i', wall: 'w', zone: 'z', panel: 'p', cable: 'c', board: 'e' }
+export const TOOL_KEYS: Record<Tool, string> = { select: 'v', hand: 'h', measure: 'm', block: 'b', switch: 's', text: 't', icon: 'i', wall: 'w', walkway: 'k', zone: 'z', panel: 'p', cable: 'c', board: 'e' }
 
 /** How a tool takes the pointer: a click places, a drag draws a line or a box, or pans the view. */
 export const TOOL_GESTURE: Record<Tool, 'select' | 'pan' | 'click' | 'line' | 'box' | 'measure'> = {
-  select: 'select', hand: 'pan', measure: 'measure', block: 'click', switch: 'click', text: 'click', icon: 'click', wall: 'line', zone: 'box', panel: 'click', cable: 'click', board: 'click',
+  select: 'select', hand: 'pan', measure: 'measure', block: 'click', switch: 'click', text: 'click', icon: 'click', wall: 'line', walkway: 'line', zone: 'box', panel: 'click', cable: 'click', board: 'click',
 }
 
 /** Row letters like the server's (floorbit/seat_names.py): 0 -> A, 25 -> Z, 26 -> AA. */
@@ -44,12 +44,12 @@ export function nextFreeRow(blocks: { naming?: string; row_start?: string; rows?
 
 /** How far apart (in % of the plan) copies of a new block go: its size plus the gap. Seats are 2 %
  *  wide and 3.2 % tall (32 drawing units on 1600 x 1000), with room for row letters and a name. */
-export function blockStep(v: { cols: number; rows: number; naming: string; row_labels: string; name: string; rotation: number },
+export function blockStep(v: { cols: number; rows: number; naming: string; row_labels: string; name: string; rotation: number; spacer?: number },
   gap: number, direction: 'down' | 'right') {
   const labelled = v.naming === 'rows' && v.row_labels !== 'none'
   const extra = labelled ? (v.row_labels === 'both' ? 2 : 1) : 0
   let w = (v.cols + extra) * 2 + 1
-  let h = v.rows * 3.2 + 1.6 + (v.name ? 2.2 : 0)
+  let h = (v.rows + (v.rows - 1) * (v.spacer ?? 0)) * 3.2 + 1.6 + (v.name ? 2.2 : 0)
   if ([90, 270].includes(((v.rotation % 360) + 360) % 360)) [w, h] = [h * (1000 / 1600), w * (1600 / 1000)]
   return direction === 'right' ? { dx: w + gap, dy: 0 } : { dx: 0, dy: h + gap }
 }

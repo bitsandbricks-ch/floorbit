@@ -32,6 +32,7 @@ const Problems = lazy(() => import('@/pages/Problems'))
 const ProblemPage = lazy(() => import('@/pages/ProblemPage'))
 const Setup = lazy(() => import('@/pages/Setup'))
 const Firewalls = lazy(() => import('@/pages/Firewalls'))
+const Switches = lazy(() => import('@/pages/Switches'))
 const Services = lazy(() => import('@/pages/Services'))
 const Logs = lazy(() => import('@/pages/Logs'))
 const Commands = lazy(() => import('@/pages/Commands'))
@@ -126,6 +127,7 @@ export default function App() {
             <Route path="/problems" element={<Problems />} />
             <Route path="/problems/:id" element={<ProblemPage />} />
             <Route path="/setup" element={<Setup />} />
+            <Route path="/switches" element={<Switches />} />
             <Route path="/firewalls" element={<Firewalls />} />
             <Route path="/services" element={<Services />} />
             <Route path="/logs" element={<Logs />} />

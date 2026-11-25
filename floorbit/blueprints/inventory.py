@@ -220,6 +220,35 @@ def _live():
     return states, ports
 
 
+def _switch_facts(data):
+    """Seats per switch and the busiest direction on each port, for the Network > Switches tab
+    (issue #902): {name lower: seats}, {(name lower, canonical port): 0..1}. Seats come from the
+    seat mapping (hand entries, cables, check-ins) and the port descriptions the last read saw."""
+    from .. import cables
+    watch = current_app.extensions.get('floorbit_attention')
+    seats = {}
+    try:
+        mapped = cables.port_seats(data)
+    except Exception as exc:  # noqa: BLE001  # the list must show even when the mapping can't be read
+        print(f'[inventory] seats per switch: {exc}')
+        mapped = {}
+    for (switch, _port), seat in mapped.items():
+        seats.setdefault(str(switch).lower(), set()).add(seat)
+    for (switch, _port), seat in (getattr(watch, 'port_seats', None) or {}).items():
+        seats.setdefault(str(switch).lower(), set()).add(seat)
+    load = {key: read.get('utilization') for key, read in (getattr(watch, 'port_reads', None) or {}).items()
+            if isinstance(read.get('utilization'), (int, float))}
+    return {k: len(v) for k, v in seats.items()}, load
+
+
+def _with_load(name, uplink, load):
+    """The uplink with how full its busiest direction is (0..1), None when the port wasn't read."""
+    if not uplink:
+        return uplink
+    from ..syslog import canonical_port
+    return {**uplink, 'load': load.get((name, canonical_port(uplink.get('port') or '')))}
+
+
 def _monitored():
     """The monitoring source's devices from the status monitor's last good poll, or None."""
     from integrations.monitor import StatusMonitor
@@ -265,10 +294,14 @@ def list_devices():
     devices = inventory.devices(data, include_hidden=hidden)
     state_of = {d['id']: _state(d, states, found) for d in devices}
     up, day, agents = _columns(data, {str(d['name']).lower(): state_of[d['id']] for d in devices})
+    seats, load = _switch_facts(data)
+    found_by = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
     return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or []),
                                  'state': state_of[d['id']],
                                  'ports': ports.get(str(d['name']).lower()),
-                                 'uplink': up.get(str(d['name']).lower()),
+                                 'uplink': _with_load(str(d['name']).lower(), up.get(str(d['name']).lower()), load),
+                                 'seats': seats.get(str(d['name']).lower(), 0),
+                                 'poe': (found_by.get(d['id']) or {}).get('poe') or None,
                                  'last_day': day.get(str(d['name']).lower()),
                                  'agent': agents.get(str(d['name']).lower(), '')}
                                 for d in devices],
