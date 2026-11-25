@@ -28,7 +28,7 @@ export const rawAnchor = (r: Raw): Point => ({ x: num(r.body.x), y: num(r.body.y
 
 function shifted(r: Raw, d: Point): Raw {
   const b: Record<string, unknown> = { ...r.body, x: round2(num(r.body.x) + d.x), y: round2(num(r.body.y) + d.y) }
-  if (r.kind === 'mark' && r.body.kind === 'wall') {
+  if (r.kind === 'mark' && (r.body.kind === 'wall' || r.body.kind === 'walkway')) {
     Object.assign(b, { x2: round2(num(r.body.x2) + d.x), y2: round2(num(r.body.y2) + d.y) })
     if (Array.isArray(r.body.points)) b.points = (r.body.points as [number, number][]).map(([x, y]) => [round2(x + d.x), round2(y + d.y)])
   }

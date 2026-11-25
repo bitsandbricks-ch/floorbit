@@ -33,7 +33,7 @@ A local agent gets the devices and sends its series through the telemetry plugin
 import base64
 import zlib
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from .. import audit, spa, telemetry, vault
 from ..database import DatabaseUnavailable
@@ -184,8 +184,16 @@ def overview():
         status.update(devices=sum(1 for d in seen.values() if d.get('seen')), points=None, agents=_agent_numbers())
         if status['agents']:
             status['points'] = sum(a['points'] for a in status['agents'])
-    return jsonify({'devices': [{k: t.get(k) for k in SHOWN} for t in targets.listing()],
-                    'seen': seen, 'status': status, 'ports': {'traps': 162, 'mdt': telegraf.MDT_PORT}})
+    listed = [{k: t.get(k) for k in SHOWN} for t in targets.listing()]
+    return jsonify({'devices': listed, 'seen': seen, 'status': status, 'syslog': _syslog_heard(listed),
+                    'ports': {'traps': 162, 'mdt': telegraf.MDT_PORT}})
+
+
+def _syslog_heard(listed):
+    """{device name: when its last syslog line came} for the devices listed (issue #904)."""
+    receiver = current_app.extensions.get('floorbit_syslog')
+    heard = dict(getattr(receiver, 'heard', None) or {})
+    return {d['name']: heard[d['name'].lower()] for d in listed if d.get('name') and d['name'].lower() in heard}
 
 
 @bp.route('/api/telemetry/devices', methods=['GET'])

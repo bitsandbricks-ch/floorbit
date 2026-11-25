@@ -1,0 +1,7 @@
+{
+  "width": "Breite",
+  "widthHint": "Sitzblöcke rasten an seinen Rändern ein, also ist das der Abstand zwischen ihnen.",
+  "seats_one": "Platz",
+  "seats_other": "Plätze",
+  "help": "Die Quadrate an den Enden verschieben die Enden, die Punkte in der Mitte einer Strecke knicken den Gang. Er erscheint auf den Ebenen Übersicht und Sicherheit; auf dem Live-Plan ist er freie Fläche."
+}

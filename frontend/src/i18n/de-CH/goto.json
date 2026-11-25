@@ -63,7 +63,7 @@
     "switches": "Switches",
     "services": "Dienste",
     "topology": "Topologie",
-    "telemetry": "Telemetrie",
+    "telemetry": "Telemetrie-Sammler",
     "endpoints": "IP- und MAC-Verlauf",
     "widgets": "Widgets",
     "health": "Dienste-Status",

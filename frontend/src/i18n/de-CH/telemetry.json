@@ -1,5 +1,5 @@
 {
-  "title": "Telemetrie",
+  "title": "Telemetrie-Sammler",
   "intro": "Was Switches, Router und Firewalls selbst melden: SNMP, Traps, gNMI, Cisco Model-Driven Telemetry, NX-API, RESTCONF und die OPNsense-API, gesammelt von Telegraf auf dem lokalen Agent. Geräte richtest du im Inventar ein: Schalte Telemetrie für ein Gerät, eine Gruppe oder einen Tag ein und hinterlege dort das SNMP- oder API-Login.",
   "collector": "Gesammelt von",
   "collectorIs": {

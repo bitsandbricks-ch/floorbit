@@ -11,6 +11,9 @@ Each mark is in one hall (``hall_id``) at ``x``/``y`` in percent of the plan, li
 sets it when someone drags the corner handle. Missing means 1.
 - ``wall``: a line from ``x``/``y`` to ``x2``/``y2``, ``style`` solid or dashed (a wall, a fence, a door gap),
   with optional ``points``: the bends between the ends, ``[[x, y], …]`` (up to :data:`BENDS_MAX`);
+- ``walkway``: a walkway or aisle, drawn like a wall (``x``/``y`` to ``x2``/``y2``, optional ``points``) with a
+  ``width`` in seats (:data:`WALKWAY_WIDTH`, missing is :data:`WALKWAY_DEFAULT`). Seat blocks snap to its
+  edges, so it sets the space between blocks (#1564);
 - ``zone``: a box ``w`` by ``h`` from its top left corner ``x``/``y``, with an optional ``label``, ``color``
   and ``rotation`` (turned round its middle; missing is 0).
 
@@ -31,7 +34,8 @@ from . import halls, icon_library, stacking
 from .plan_icons import ICONS
 
 KEY = 'plan_marks'
-KINDS = ('text', 'icon', 'wall', 'zone')
+KINDS = ('text', 'icon', 'wall', 'walkway', 'zone')
+LINES = ('wall', 'walkway')   # drawn from one end to the other, with bends
 SIZES = ('s', 'm', 'l')
 STYLES = ('solid', 'dashed')
 BENDS_MAX = 50
@@ -42,6 +46,7 @@ LAYERS = ('overview', 'safety', 'network', 'electrical', 'services')
 PUBLIC_LAYERS = ('overview', 'safety')   # what attendee pages show; the rest is for the crew
 TEXT_MAX, LABEL_MAX = 60, 40
 SCALE = (0.25, 8)
+WALKWAY_WIDTH, WALKWAY_DEFAULT = (0.5, 20), 2
 MAX_MARKS = 2000
 
 class MarkError(ValueError):
@@ -83,7 +88,7 @@ def clean(body, old=None):
     m = {**(old or {}), **{k: v for k, v in body.items() if k not in ('id', 'hall_id')}}
     kind = m.get('kind')
     if kind not in KINDS:
-        raise MarkError('A mark is text, icon, wall or zone')
+        raise MarkError('A mark is text, icon, wall, walkway or zone')
     out = {'id': (old or {}).get('id') or uuid.uuid4().hex[:12], 'kind': kind,
            'x': _pct(m.get('x'), 'x'), 'y': _pct(m.get('y'), 'y'),
            'layer': _pick(m.get('layer'), LAYERS, 'overview', 'layer')}
@@ -108,14 +113,19 @@ def clean(body, old=None):
         out.update(icon=icon or _missing('icon'),
                    size=_pick(m.get('size'), SIZES, 'm', 'size'), rotation=_int(m.get('rotation')) or 0)
         _scale(out, m.get('scale'))
-    elif kind == 'wall':
-        out.update(x2=_pct(m.get('x2'), 'x2'), y2=_pct(m.get('y2'), 'y2'),
-                   style=_pick(m.get('style'), STYLES, 'solid', 'style'))
+    elif kind in LINES:
+        out.update(x2=_pct(m.get('x2'), 'x2'), y2=_pct(m.get('y2'), 'y2'))
+        if kind == 'wall':
+            out['style'] = _pick(m.get('style'), STYLES, 'solid', 'style')
+        else:
+            out['width'] = _width(m.get('width'))
         bends = _bends(m.get('points'))
         if bends:
             out['points'] = bends
         if (out['x'], out['y']) == (out['x2'], out['y2']) and not bends:
-            raise MarkError('A wall needs two different ends')
+            if kind == 'wall':
+                raise MarkError('A wall needs two different ends')
+            raise MarkError('A walkway needs two different ends')
     else:
         w, h = _pct(m.get('w'), 'w'), _pct(m.get('h'), 'h')
         if not w or not h:
@@ -137,6 +147,18 @@ def _tint(value):
     if not isinstance(value, str) or not TINT.fullmatch(value):
         raise MarkError('tint is a colour like #3fb950')
     return value.lower()
+
+
+def _width(value):
+    if value in (None, ''):
+        return WALKWAY_DEFAULT
+    try:
+        n = round(float(value), 2)
+        if not WALKWAY_WIDTH[0] <= n <= WALKWAY_WIDTH[1]:   # also false for NaN
+            raise ValueError(value)
+    except (TypeError, ValueError):
+        raise MarkError('A walkway is {} to {} seats wide'.format(*WALKWAY_WIDTH)) from None
+    return n
 
 
 def _bends(value):

@@ -1,0 +1,45 @@
+{
+  "label": "Devices by way of reporting",
+  "device": "Device",
+  "agent": "Agent",
+  "lastProblem": "Last problem",
+  "legend": "Legend",
+  "waits": "waits for events",
+  "allGood": "Every device reports as set up. Showing nothing to look at; pick All to see them.",
+  "foot": "Hover a square for when it was last heard and the last error. A device opens its Telemetry tab in the inventory.",
+  "method": {
+    "snmp": "SNMP",
+    "traps": "Traps",
+    "syslog": "Syslog",
+    "api": "API",
+    "gnmi": "gNMI",
+    "mdt": "MDT"
+  },
+  "state": {
+    "ok": "Heard",
+    "late": "Late",
+    "err": "Error",
+    "never": "Never heard",
+    "off": "Not set up"
+  },
+  "tip": {
+    "ok": "{{what}}: heard {{when}}",
+    "late": "{{what}}: late, last heard {{when}}",
+    "err": "{{what}}: {{error}}",
+    "never": "{{what}}: never heard",
+    "off": "{{what}}: not set up"
+  },
+  "filter": {
+    "all": "All",
+    "look": "With problems",
+    "never": "Never heard"
+  },
+  "fig": {
+    "heard": "Devices heard",
+    "heardSub": "{{never}} never heard, {{late}} late",
+    "refused": "Refused writes",
+    "refusedNone": "Storage accepts everything",
+    "kept": "Kept",
+    "days": "{{count}} d"
+  }
+}

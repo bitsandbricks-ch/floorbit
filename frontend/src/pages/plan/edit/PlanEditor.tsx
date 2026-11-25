@@ -58,6 +58,8 @@ import { canTurnOne, quarterTurns } from './turn'
 import { frameOf } from './frame'
 import { similar } from './similar'
 import { TOOL_KEYS, TOOLS, type Tool } from './tools'
+import { WalkwayFields } from './WalkwayFields'
+import { isLine } from '../lineMarks'
 import { useHistory } from './history'
 import { type Raw, copies, deltaTo, rawOf } from './clipboard'
 import { type AlignHow, type Guide, alignMoves, distributeMoves, groupsOf, regrouped, snapToGuides, withGroups } from './arrange'
@@ -743,9 +745,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     await refresh()
   }, [history, refresh, fail])
 
-  const drawWall = (a: Point, b: Point) => {
+  const drawLine = (a: Point, b: Point) => {
     const p = pct(a), q = pct(b)
-    void create('mark', '/api/plan-marks', { kind: 'wall', x: p.x, y: p.y, x2: q.x, y2: q.y }, t('plan.edit.step.add.wall'))
+    const kind = tool === 'walkway' ? 'walkway' : 'wall'
+    void create('mark', '/api/plan-marks', { kind, x: p.x, y: p.y, x2: q.x, y2: q.y }, t(`plan.edit.step.add.${kind}`))
   }
   const drawZone = async (box: Box) => {
     const p = pct(box), size = toPct(data.size, { x: box.w, y: box.h })
@@ -1087,7 +1090,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               if (tool === 'block' || tool === 'switch' || tool === 'text' || tool === 'icon' || tool === 'panel' || tool === 'board') setPlacing({ kind: tool, at })
               else if (tool === 'cable') startCable(raw)
             }}
-            onLine={drawWall} onBox={(b) => void drawZone(b)} onMeasure={setMeasured}
+            onLine={drawLine} onBox={(b) => void drawZone(b)} onMeasure={setMeasured}
             onPointer={(p) => { pointer.current = pct(p) }}
             onMenu={(item, x, y) => setMenu({ item, x, y, at: pointer.current })}
             onDouble={pickRowAt}
@@ -1102,7 +1105,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           {oneMark && markBox && tool === 'select' && !drag && !isLocked(one!) && (
             <MarkHandles key={handlesKey(oneMark.id!)} ctx={ctx} mark={oneMark}
               corner={{ x: markBox.x + markBox.w, y: markBox.y + markBox.h }} size={data.size} cell={data.drawing?.cell ?? 32}
-              anchors={oneMark.kind === 'wall' && snapping.items ? wallCorners(data, oneMark.id) : undefined} snapGrid={snapping.grid} seatM={data.seat_m}
+              anchors={isLine(oneMark) && snapping.items ? wallCorners(data, oneMark.id) : undefined} snapGrid={snapping.grid} seatM={data.seat_m}
               onDraft={(m) => setShaping(m ? { mark: m, data } : null)} onDone={reshaped} />
           )}
           {one && turnable && tool === 'select' && !drag && (
@@ -1296,6 +1299,16 @@ function ItemFields({ data, item, onChange, arranging, onArrange, picked, onPick
             </Group>
           </div>
         )}
+        {tint}
+        {layer}
+      </>
+    )
+  }
+  if (mark.kind === 'walkway') {
+    return (
+      <>
+        <WalkwayFields mark={mark} onWidth={(before, after) => set('width', before, after)}
+          onStraighten={() => void onChange(item, { points: shapeBody(mark, data.size).points }, { points: [] })} />
         {tint}
         {layer}
       </>
