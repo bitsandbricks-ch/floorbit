@@ -72,10 +72,28 @@
   .fb-page-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) var(--fb-edit-w, 360px); }
   .fb-page-full .fb-plan-layout.with-inspector { grid-template-columns: minmax(0, 1fr) 320px; }
 }
-/* Too narrow for a side panel: the panel goes under the plan and the plan keeps most of the height. */
+/* Too narrow for a side panel: the panel goes under the plan and the plan keeps most of the height.
+   The panel scrolls inside its own row (it used to grow past it, under the tab bar, out of reach);
+   its bar on top folds it down to its title, undo and redo. */
 @media (max-width: 1099.98px) {
   .fb-page-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 40%); }
-  .fb-page-full .fb-plan-editor .fb-edit-panel { height: auto; border-left: 0; border-top: 1px solid var(--color-line); }
+  .fb-page-full .fb-plan-layout.with-inspector.fb-plan-editor.is-folded { grid-template-rows: minmax(0, 1fr) auto; }
+  .fb-page-full .fb-plan-editor .fb-edit-side { display: flex; flex-direction: column; background: var(--color-surface); border-top: 1px solid var(--color-line); }
+  .fb-page-full .fb-plan-editor .fb-edit-panel { flex: 1; height: auto; min-height: 0; border: 0; padding-top: 0; }
+  .fb-page-full .fb-plan-editor.is-folded .fb-edit-side { height: auto; }
+}
+.fb-edit-grab { display: flex; justify-content: center; align-items: center; flex: none; width: 100%; height: 20px; touch-action: manipulation; }
+.fb-edit-grab > span { width: 40px; height: 4px; border-radius: 2px; background: var(--color-line); }
+.fb-edit-grab:hover > span, .fb-edit-grab:focus-visible > span { background: var(--color-muted); }
+.fb-edit-grab:focus-visible { outline: 2px solid var(--color-bit); outline-offset: -2px; }
+/* Phones: the plan takes the whole height and the open panel is a sheet over its lower part, like
+   the dashboard editor's; folded, it is a slim bar under the plan. */
+@media (max-width: 767.98px) {
+  .fb-page-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-rows: minmax(0, 1fr) auto; }
+  .fb-page-full .fb-plan-editor:not(.is-folded) .fb-edit-side {
+    position: fixed; z-index: 30; left: 0; right: 0; bottom: calc(var(--fb-tabbar-h, 0px) + env(safe-area-inset-bottom)); height: 60dvh;
+    border: 1px solid var(--color-line); border-bottom: 0; border-radius: 16px 16px 0 0; box-shadow: 0 -10px 40px rgb(0 0 0 / 35%); overflow: hidden;
+  }
 }
 @media (max-width: 767.98px) {
   .fb-ws-bar { padding: 6px 8px; gap: 6px 8px; }
@@ -101,4 +119,11 @@
 .fb-layer-legend .heat { flex-wrap: nowrap; white-space: nowrap; }
 .fb-layer-legend .heat i { width: 72px; }
 .fb-side-foot { padding: 8px 12px; border-top: 1px solid var(--color-line); }
+.fb-side-close { align-self: center; margin-left: 4px; }
+/* Phones: the same panel in a sheet from below (FloorPlan.tsx); the sheet scrolls nothing itself. */
+.fb-plan-sheet { display: flex; flex-direction: column; border-radius: 16px 16px 0 0; }
+.fb-plan-sheet-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; }
+.fb-plan-sheet-body > .fb-ws-panel { flex: 1; min-height: 0; border-left: 0; background: transparent; }
+/* Layers in a popover (Edit, or with the side panel hidden): never taller than the screen. */
+.fb-layers-pop { max-height: min(75dvh, 680px); overflow-y: auto; }
 .fb-side-foot .fb-attribution--compact { padding: 0; }

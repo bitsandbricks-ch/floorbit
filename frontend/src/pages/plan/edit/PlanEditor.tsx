@@ -1,4 +1,4 @@
-import { ActionIcon, Anchor, Badge, Button, ColorSwatch, Group, Kbd, Menu, NumberInput, Paper, SegmentedControl, Select, Stack, Tabs, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core'
+import { ActionIcon, Anchor, Badge, Button, ColorSwatch, Group, Kbd, Menu, NumberInput, Paper, SegmentedControl, Select, Stack, Tabs, Text, TextInput, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
@@ -189,6 +189,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // Selected items that are gone (deleted elsewhere, another hall) drop out of the selection.
   const present = useMemo(() => [...allItems(data), ...cables.map((c) => ({ kind: 'cable' as const, id: c.ref.cable! }))], [data, cables])
   const selected = useMemo(() => selection.filter((r) => present.some((p) => sameRef(p, r))), [selection, present])
+  // Phones and tablets, where the panel is under the plan: its bar folds it away to give the plan
+  // the room. Picking something else opens it again, since its fields are what you want next.
+  const under = useMediaQuery('(max-width: 1099.98px)')
+  const selKey = selected.map(refKey).join(' ')
+  // Phones start with the plan in full: the sheet comes up once something is picked.
+  const [foldedAt, setFoldedAt] = useState<string | null>(() => (window.matchMedia?.('(max-width: 767.98px)').matches ? '' : null))
+  const folded = !!under && foldedAt === selKey
   // The row picked in a seat block's panel, kept here so a double-click on the plan can pick one.
   const [pickedRow, setPickedRow] = useState<{ block: string; row: string } | null>(null)
   // The panel's tab (Mike picked tabs and sub tabs): Rows and Seats are there for one seat block.
@@ -925,6 +932,10 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
       onClose={() => setCableForm(null)} onDone={(c) => void cableDone(c)} />}
     <div className="fb-edit-side">
     <PanelResize width={panelWidth} onWidth={setPanelWidth} />
+    {under && (
+      <UnstyledButton className="fb-edit-grab" aria-expanded={!folded} aria-label={t(folded ? 'planSheet.show' : 'planSheet.hide')}
+        onClick={() => setFoldedAt(folded ? null : selKey)}><span aria-hidden="true" /></UnstyledButton>
+    )}
     <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
       <Stack gap="sm">
         <Group justify="space-between" wrap="nowrap">
@@ -955,6 +966,7 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             </Menu>
           </Group>
         </Group>
+        {!folded && <>
         <Tabs value={tabNow} onChange={(v) => v && setTab(v as PanelTab)} keepMounted={false} className="fb-edit-tabs">
           <Tabs.List grow>
             <Tabs.Tab value="edit">{t(oneBlock ? 'editPanel.block' : selected.length ? 'editPanel.selection' : 'editPanel.plan')}</Tabs.Tab>
@@ -1057,12 +1069,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
           <Anchor component="button" type="button" size="xs" onClick={onShortcuts}>{t('plan.shortcuts.allKeys')}</Anchor> <Kbd size="xs">?</Kbd>
         </Text>
         <Attribution compact />
+        </>}
       </Stack>
     </Paper>
     </div>
   </>)
   return (
-    <div className="fb-plan-layout with-inspector fb-plan-editor" onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}
+    <div className={`fb-plan-layout with-inspector fb-plan-editor${folded ? ' is-folded' : ''}`} onKeyDownCapture={onKey} onKeyUpCapture={onKeyUp}
       style={panelWidth ? ({ '--fb-edit-w': `${panelWidth}px` } as React.CSSProperties) : undefined}>
       <div className="fb-edit-stage">
       {rail}

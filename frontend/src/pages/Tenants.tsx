@@ -178,7 +178,7 @@ export default function Tenants() {
               </Stack>
             </Panel>
             <NewTenant onMade={(m) => { setMade(m); refresh() }} />
-            <Text size="sm" c="dimmed">{t('tenants.docs')}</Text>
+            <Text size="sm" c="dimmed">{t('tenants.docs')} <Anchor href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/tenancy.md" target="_blank" rel="noopener noreferrer" inherit>{t('tenants.docsLink')}</Anchor></Text>
           </>
         )}
       </Stack>

@@ -189,6 +189,8 @@ export default function FloorPlan() {
   // The docked right panel (Live and Network): open or folded away, and which tab; kept per browser.
   const [side, setSideState] = useState(() => readSide())
   const setSide = (next: Partial<typeof side>) => setSideState((was) => { const v = { ...was, ...next }; saveSide(v); return v })
+  // Phones have no room beside the plan: the side panel opens as a sheet from below, from Layers.
+  const [sheet, setSheet] = useState(false)
   const showShortcuts = () => setShortcuts(true)
   // Esc closes the open seat, block or switch panel (the editor has its own Esc; dialogs close themselves).
   // Page keys stay out of the way while a dialog (the shortcut list, a form) is open.
@@ -420,7 +422,8 @@ export default function FloorPlan() {
                 }))} /></div>}
             {!editing && <SegmentedControl size="xs" value={topo ? 'topology' : list ? 'list' : 'map'} onChange={(v) => set('view', v === 'map' ? null : v)}
               aria-label={t('plan.list.view')} data={[{ value: 'map', label: t('plan.list.map') }, { value: 'list', label: t('plan.list.list') }, { value: 'topology', label: t('topology.title') }]} />}
-            {!list && !topo && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} extra={pluginPicker} />}
+            {!list && !topo && (editing || phone || !side.open) && <LayersPanel state={layers} onChange={setLayers} available={available} legends={legends} extra={pluginPicker}
+              onOpen={phone && !editing ? () => { setSide({ tab: 'layers' }); setSheet(true) } : undefined} />}
             {editing && !list && <SnapToggles layers={layers} onLayers={setLayers} />}
             <div className="fb-ws-bar-end">
               {!topo && <>
@@ -506,10 +509,18 @@ export default function FloorPlan() {
             </div>}
           </div>
           <Shortcuts opened={shortcuts} onClose={() => setShortcuts(false)} editing={editing} canEdit={canEdit} />
+          {/* Phones: the side panel as a sheet from below, its tabs or the open seat, block or switch.
+              Closing the open thing goes back to the tabs while the sheet was open, as on wide screens. */}
           {phone && !topo && (
-            <Drawer opened={panel} onClose={() => set(selected ? 'seat' : blockSel ? 'block' : 'switch', null)} position="bottom" size="55%" withCloseButton={false}
-              title={null} aria-label={selected ?? blockSel ?? switchSel ?? ''}>
-              {inspector}
+            <Drawer opened={panel || (sheet && !editing)} position="bottom" size={panel ? '55%' : '75%'} withCloseButton={false} title={null}
+              onClose={() => { setSheet(false); if (panel) set(selected ? 'seat' : blockSel ? 'block' : 'switch', null) }}
+              aria-label={selected ?? blockSel ?? switchSel ?? t('plan.side.label')}
+              classNames={{ content: 'fb-plan-sheet', body: 'fb-plan-sheet-body' }}>
+              {editing || !data.drawing ? inspector : (
+                <SidePanel data={data} tab={side.tab} onTab={(tab) => setSide({ tab })} layers={layers} onLayers={setLayers} available={available}
+                  inspector={inspector} legends={legends} extraLayers={pluginPicker} onSeat={(s) => jump(s)} onBlock={(b) => set('block', b)} onSwitch={(w) => set('switch', w)}
+                  onClose={panel ? undefined : () => setSheet(false)} />
+              )}
             </Drawer>
           )}
         </div>

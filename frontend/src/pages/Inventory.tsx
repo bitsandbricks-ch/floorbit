@@ -19,6 +19,7 @@ import { DataTable, FilterBar, LoadingState, PageHead, useFilters } from '@bitsa
 import { useDriftAll } from '@/api/inventoryDrift'
 import { DriftAll } from './inventory/DriftPanel'
 import { IpamView } from './inventory/IpamView'
+import { UnknownSenders } from './inventory/UnknownSenders'
 import { ipamSubOf, type IpamSub } from './inventory/ipam'
 import type { ScopeTarget } from './inventory/ScopeEditor'
 import { GroupTree, type GroupFilter } from './inventory/GroupTree'
@@ -262,6 +263,7 @@ export default function Inventory() {
               </Chip>
             )}
             {data && <SyncChip sources={data.sources} every={data.every} />}
+            {data && <UnknownSenders canEdit={canEdit} roles={data.roles} />}
           </>
         )} />
       {isPending && <LoadingState rows={3} />}

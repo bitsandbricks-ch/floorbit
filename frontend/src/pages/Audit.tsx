@@ -112,7 +112,8 @@ export default function Audit() {
                     {e.target && <Text size="xs" c="dimmed">{e.target}</Text>}
                   </>
                 ) },
-                { id: 'fields', header: t('audit.fields'), wrap: true, cell: (e) => <Text size="xs" c="dimmed">{fieldsText(t, e.area, e.fields)}</Text> },
+                // Only while some entry names fields: an empty column says nothing (#1433).
+                ...(rows.some((e) => e.fields?.length) ? [{ id: 'fields', header: t('audit.fields'), wrap: true, cell: (e: AuditEntry) => <Text size="xs" c="dimmed">{fieldsText(t, e.area, e.fields)}</Text> }] : []),
               ]} />
           </Box>
           {query.hasNextPage && (
