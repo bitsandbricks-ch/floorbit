@@ -541,6 +541,17 @@ Source: [`floorbit/blueprints/inventory_drift.py`](https://github.com/bitsandbri
 | --- | --- | --- | --- |
 | POST | `/api/inventory/<device_id>/drift/take` | `floorplan.edit` |  |
 
+## floorbit.blueprints.inventory_found
+
+Inventory > Discovery (issues #891, #968): what discovery found that the inventory doesn't have. Rules in floorbit/inventory_found.py.
+
+Source: [`floorbit/blueprints/inventory_found.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_found.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/inventory/found` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/found/ignore` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.inventory_groups
 
 Inventory groups, tags, defaults, credentials and login blocks (floorbit/inventory_scope.py).

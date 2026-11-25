@@ -37,8 +37,11 @@ export function DeviceForm({
   onCancel,
   onSave,
   onUnlock,
+  start,
 }: {
   device: Device | null
+  /** A new device's first values, as discovery found them (Inventory › Discovery, #891). */
+  start?: Partial<Draft>
   roles: string[]
   overview?: InventoryOverview
   sourceName: (id: string) => string
@@ -50,7 +53,7 @@ export function DeviceForm({
   onUnlock: (field: InventoryField) => void
 }) {
   const { t } = useTranslation()
-  const [draft, setDraft] = useState<Draft>(() => draftOf(device))
+  const [draft, setDraft] = useState<Draft>(() => ({ ...draftOf(device), ...start }))
   const original = draftOf(device)
   const [place, setPlace] = useState<Placement>(() => placementOf(device))
   const placeBefore = placementOf(device)
