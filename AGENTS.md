@@ -75,9 +75,11 @@ pull request.
    the pull request ready. Leave it a draft only while work is open or you are blocked, and say why
    in the description.
 7. **Auto-merge** (handbook decision 0017): once the pull request is ready, turn on squash auto-merge
-   (`gh pr merge <n> --auto --squash`); GitHub merges it when the required check passes. Leave it off,
-   for the maintainer to merge, on pull requests that touch keys, signing, sign-in, the plugin sandbox or
-   release workflows, and on version pull requests from `mason bump`. Never merge by hand, never
+   (`gh pr merge <n> --auto --squash`); GitHub merges it when the required check passes. GitHub refuses
+   auto-merge on a pull request whose checks have all passed already: then squash-merge it directly
+   (`gh pr merge <n> --squash`), which is what auto-merge would have done. Leave both off, for the
+   maintainer to merge, on pull requests that touch keys, signing, sign-in, the plugin sandbox or
+   release workflows, and on version pull requests from `mason bump`. Never merge any other way, never
    force-push to a branch someone else works on, never push a tag. Releasing is the maintainer's call.
 8. Keep the pull request description current when you push more commits.
 9. **Keep it mergeable:** when `master` moves while your pull request is open, merge `master` into
