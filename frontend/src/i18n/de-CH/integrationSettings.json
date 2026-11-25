@@ -577,7 +577,7 @@
     },
     "plugin_syslog-relay_port": {
       "label": "UDP-Port auf dem Agenten",
-      "help": "Wohin die Switches und Firewalls Syslog schicken, auf der Agent-Maschine (üblich ist 514; der Agent braucht das Recht dazu). 0: aus."
+      "help": "Wo der Agent auf Syslog hört. Die Compose-Datei leitet udp/514 der Maschine dorthin. 0: aus."
     },
     "plugin_syslog-relay_bind": {
       "label": "Adresse zum Hören",
@@ -597,7 +597,7 @@
     },
     "plugin_netflow-relay_port": {
       "label": "UDP-Port auf dem Agenten",
-      "help": "Wohin die Switches und Router NetFlow oder IPFIX exportieren, auf der Agent-Maschine (üblich ist 2055). 0: aus."
+      "help": "Wo der Agent auf NetFlow und IPFIX hört. Die Compose-Datei leitet udp/2055 der Maschine dorthin. 0: aus."
     },
     "plugin_netflow-relay_bind": {
       "label": "Adresse zum Hören",

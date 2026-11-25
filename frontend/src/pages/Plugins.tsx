@@ -1,9 +1,9 @@
-import { Alert, Anchor, Button, Group, Paper, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Group, Paper, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
 import { IconSearch } from '@tabler/icons-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { usePlugins } from '@/api/queries'
-import type { PluginInfo } from '@/api/types'
+import type { MissingPlugin, PluginInfo } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { PageTabs } from '@bitsandbricks/ui'
@@ -13,39 +13,66 @@ import Marketplace from './plugins/Marketplace'
 import { useMarketplace } from './plugins/market'
 import { pluginName } from '@/lib/pluginName'
 import { PluginIcon } from './plugins/icon'
-import { Badges, OnOff } from './plugins/parts'
+import { Meta, OnOff, StateBadge } from './plugins/parts'
+import './Plugins.css'
 import { describe, useToggle } from './plugins/toggle'
 
 type Result = { ok: boolean; text: string } | null
 
 
-/** One line of the list: what it is, whether it's on, and the way to its own page. */
+/** One card of the list, the same slots on each (#1435): name and state at the top, one line on
+ *  what it does, then where it comes from and its switch at the foot. */
 function PluginRow({ plugin }: { plugin: PluginInfo }) {
   const { t } = useTranslation()
   const [result, setResult] = useState<Result>(null)
   const toggle = useToggle(plugin, (ok, text) => setResult({ ok, text }))
   const href = `/settings/plugins/${encodeURIComponent(plugin.id)}`
+  const about = plugin.description ? describe(plugin, t) : ''
   return (
-    <Paper withBorder radius="lg" p="md" component="li" id={`pl-${plugin.id}`}>
-      <Stack gap={6}>
-        <Group gap="sm" wrap="wrap">
-          <PluginIcon name={plugin.icon} />
-          <Title order={2} fz="md"><Anchor href={href} inherit>{pluginName(t, plugin.id, plugin.name)}</Anchor></Title>
-          <Badges plugin={plugin} />
-          <OnOff plugin={plugin} toggle={toggle} />
-        </Group>
-        {plugin.description && <Text size="sm" c="dimmed" lineClamp={2}>{describe(plugin, t)}</Text>}
-        {plugin.error && <Alert color="down" role="alert" py="xs">✕ {plugin.error}</Alert>}
-        <Group gap="xs" justify="space-between" wrap="wrap">
-          <Text size="sm" role="status" className={result ? (result.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
-            {result ? `${result.ok ? '✓' : '✕'} ${result.text}` : ''}
-          </Text>
-          <Button component="a" href={href} variant="default" size="xs">
-            {plugin.settings_section ? t('plugins.settings') : t('plugins.open')}
-          </Button>
-        </Group>
-      </Stack>
+    <Card id={`pl-${plugin.id}`} data-plugin={plugin.id}
+      head={<><PluginIcon name={plugin.icon} />
+        <Title order={2} fz="md" className="fb-plugin-card-name"><Anchor href={href} inherit>{pluginName(t, plugin.id, plugin.name)}</Anchor></Title></>}
+      badge={<StateBadge plugin={plugin} />}
+      about={about}
+      foot={<><Meta plugin={plugin} /><OnOff plugin={plugin} toggle={toggle} bare /></>}>
+      {plugin.error && <Alert color="down" role="alert" py="xs">✕ {plugin.error}</Alert>}
+      {result && (
+        <Text size="sm" role="status" className={result.ok ? 'fb-tone-ok' : 'fb-tone-err'}>
+          {`${result.ok ? '✓' : '✕'} ${result.text}`}
+        </Text>
+      )}
+    </Card>
+  )
+}
+
+function Card({ id, head, badge, about, foot, children, ...rest }: {
+  id: string; head: ReactNode; badge: ReactNode; about: string; foot: ReactNode; children?: ReactNode
+  'data-plugin'?: string
+}) {
+  return (
+    <Paper withBorder radius="lg" p="md" component="li" id={id} className="fb-plugin-card" {...rest}>
+      <Group justify="space-between" wrap="nowrap" gap="sm" align="center">
+        <Group gap="sm" wrap="nowrap" miw={0}>{head}</Group>
+        {badge}
+      </Group>
+      <Text size="sm" c="dimmed" lineClamp={1} title={about}>{about}</Text>
+      {children}
+      <Group justify="space-between" wrap="nowrap" gap="sm" className="fb-plugin-card-foot">{foot}</Group>
     </Paper>
+  )
+}
+
+/** A Marketplace plugin whose data is here without it (the LAN cache an agent reads), in the same card. */
+function MissingRow({ plugin, onInstall }: { plugin: MissingPlugin; onInstall: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <Card id={`pl-${plugin.id}`} data-plugin={plugin.id}
+      head={<><PluginIcon name="storage" />
+        <Title order={2} fz="md" className="fb-plugin-card-name"><Anchor href={plugin.href} inherit>{pluginName(t, plugin.id, plugin.name)}</Anchor></Title></>}
+      badge={<Badge variant="light" color="gray" tt="none" style={{ flex: 'none' }}>{t('plugins.missing.label')}</Badge>}
+      about={t('plugins.missing.text')}
+      foot={<><Text size="xs" c="dimmed">{t('plugins.missing.from')}</Text>
+        <Button size="xs" variant="default" onClick={onInstall}>{t('plugins.missing.install')}</Button></>} />
   )
 }
 
@@ -99,6 +126,9 @@ export default function Plugins() {
               {data.plugins.length > 0 && !shown.length && <Text c="dimmed">{t('plugins.noMatch')}</Text>}
               <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md" component="ul" className="fb-plain-list">
                 {shown.map((p) => <PluginRow key={p.id} plugin={p} />)}
+                {!words.length && show !== 'on' && (data.missing ?? []).map((m) => (
+                  <MissingRow key={m.id} plugin={m} onInstall={() => setTab('marketplace')} />
+                ))}
               </SimpleGrid>
             </Stack>
           )}

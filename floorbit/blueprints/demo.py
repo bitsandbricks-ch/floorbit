@@ -95,9 +95,18 @@ def _seed_agents():
     from .. import agent_demo, agent_link
     with data_lock:
         data = load_data()
-        if agent_demo.seed(data):
+        seeded = agent_demo.seed(data)
+        if seeded:
             save_data(data)
             agent_link._forget_cache()
+    if seeded:
+        # What the demo agents report (syslog, flows, telemetry) comes through these plugins, so they
+        # read as on and receiving (#1435). One someone already switched is left alone.
+        registry = _registry()
+        for pid in agent_demo.PLUGINS:
+            spec = registry.specs.get(pid)
+            if spec is not None and not spec.error and 'enabled' not in (registry._all_shared().get(pid) or {}):
+                registry.set_enabled(pid, True)
 
 
 def _import_cables():

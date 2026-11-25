@@ -15,7 +15,7 @@ import type {
   OidcList,
   Me,
   Permission,
-  PluginInfo,
+  PluginList,
   QrSeat,
   HealthWall,
   SecurityList,
@@ -107,7 +107,7 @@ export function useWidgets(tiles: WidgetTile[]) {
 }
 
 export function usePlugins() {
-  return useQuery({ queryKey: qk.plugins, queryFn: () => get<{ plugins: PluginInfo[] }>('/api/settings/plugins') })
+  return useQuery({ queryKey: qk.plugins, queryFn: () => get<PluginList>('/api/settings/plugins') })
 }
 
 export function usePluginLog(id: string, enabled: boolean) {

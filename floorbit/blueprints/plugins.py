@@ -103,9 +103,25 @@ def plugin_page(plugin_id):
     return spa.render('Plugins')
 
 
+def _listed():
+    """Every plugin with what it is doing (#1435), and the Marketplace plugins whose data is
+    already here without them (the LAN cache read by an agent or the demo)."""
+    from .. import plugin_activity
+    registry = _registry()
+    states = plugin_activity.states(registry)
+    plugins = [{**p, 'activity': states.get(p['id'], {'state': 'on', 'values': {}})}
+               for p in registry.as_list(_language())]
+    missing = []
+    if 'lancache' not in registry.specs:
+        from .lancache import _has_data
+        if _has_data():
+            missing.append({'id': 'lancache', 'name': 'LAN cache', 'icon': 'storage', 'href': '/lancache'})
+    return {'plugins': plugins, 'missing': missing}
+
+
 @bp.route('/api/settings/plugins', methods=['GET'])
 def list_plugins():
-    return jsonify({'plugins': _registry().as_list(_language())})
+    return jsonify(_listed())
 
 
 @bp.route('/api/settings/plugins/<plugin_id>', methods=['PUT'])
@@ -124,8 +140,7 @@ def update_plugin(plugin_id):
         # The agents pull it within a minute anyway; this only saves the wait.
         from .. import agent_plugins
         agent_plugins.reload_agents()
-    return jsonify({'plugins': _registry().as_list(_language()),
-                    'name': _registry().text(spec, spec.name, _language())})
+    return jsonify({**_listed(), 'name': _registry().text(spec, spec.name, _language())})
 
 
 @bp.route('/api/settings/plugins/<plugin_id>/test', methods=['POST'])
