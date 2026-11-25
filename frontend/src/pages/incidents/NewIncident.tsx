@@ -74,7 +74,7 @@ export function NewIncident({
             value={team} onChange={setTeam} clearable={board.can_assign_any} />
           <Textarea label={t('incidents.note')} value={note} maxLength={2000} autosize minRows={2} onChange={(e) => setNote(e.currentTarget.value)} />
           {error && (
-            <Text c="var(--color-down)" size="sm" role="alert">
+            <Text c="var(--bnb-err)" size="sm" role="alert">
               {error}
             </Text>
           )}

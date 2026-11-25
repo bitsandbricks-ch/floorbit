@@ -1338,7 +1338,7 @@ function ItemFields({ data, item, onChange, arranging, onArrange, picked, onPick
                 <Tooltip key={c} label={t(`plan.edit.colors.${c}`)}>
                   <ColorSwatch component="button" type="button" color={`var(--color-${c === 'muted' ? 'muted' : c})`} size={26}
                     aria-label={t(`plan.edit.colors.${c}`)} aria-pressed={(mark.color ?? 'muted') === c} onClick={() => set('color', mark.color ?? 'muted', c)}
-                    style={{ outline: (mark.color ?? 'muted') === c ? '2px solid var(--color-fg)' : undefined, outlineOffset: 2 }} />
+                    style={{ outline: (mark.color ?? 'muted') === c ? '2px solid var(--bnb-fg)' : undefined, outlineOffset: 2 }} />
                 </Tooltip>
               ))}
             </Group>

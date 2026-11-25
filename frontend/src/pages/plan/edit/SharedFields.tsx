@@ -34,7 +34,7 @@ export function SharedFields({ fields, onChange }: {
               <Tooltip key={c} label={t(`plan.edit.colors.${c}`)}>
                 <ColorSwatch component="button" type="button" color={`var(--color-${c})`} size={26}
                   aria-label={t(`plan.edit.colors.${c}`)} aria-pressed={fields.color === c} onClick={() => onChange('color', c)}
-                  style={{ outline: fields.color === c ? '2px solid var(--color-fg)' : undefined, outlineOffset: 2 }} />
+                  style={{ outline: fields.color === c ? '2px solid var(--bnb-fg)' : undefined, outlineOffset: 2 }} />
               </Tooltip>
             ))}
           </Group>
