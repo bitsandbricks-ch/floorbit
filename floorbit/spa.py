@@ -10,7 +10,6 @@ import os
 from flask import current_app, render_template
 
 ENTRY = 'index.html'
-NAV_ENTRY = 'src/nav/entry.tsx'
 
 
 def _manifest_path():
@@ -18,10 +17,7 @@ def _manifest_path():
 
 
 def assets(entry=ENTRY):
-    """{'js': [...], 'css': [...]} for a build entry, or None when the app isn't built.
-
-    Entries: the React app (``index.html``) and the sidebar alone (``NAV_ENTRY``) for the pages
-    Flask draws itself (templates/_nav.html)."""
+    """{'js': [...], 'css': [...]} for a build entry, or None when the app isn't built."""
     path = _manifest_path()
     cache = current_app.extensions.setdefault('floorbit_spa', {})
     try:
@@ -39,7 +35,7 @@ def assets(entry=ENTRY):
 def _collect(manifest, entry):
     item = manifest.get(entry) or {}
     css, preload, seen, todo = [], [], set(), [entry]
-    # Shared chunks bring their own styles (the sidebar's sit in a chunk both entries import).
+    # Shared chunks bring their own styles.
     while todo:
         name = todo.pop(0)
         if name in seen:

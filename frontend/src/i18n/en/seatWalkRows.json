@@ -3,7 +3,7 @@
   "all": "All {{count}}",
   "open": "Open {{count}}",
   "mine": "Mine {{count}}",
-  "summary": "{{rows}} rows · {{found}} of {{seats}} seats have their port",
+  "summary": "{{rows}} rows · {{found}} of {{seats}} seats know their port: {{walked}} walked, {{checkin}} from check-in",
   "walkingNow": "Walking now",
   "stopped": "stopped",
   "takeOver": "Take over",

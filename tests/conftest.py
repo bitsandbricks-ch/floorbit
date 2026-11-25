@@ -27,6 +27,9 @@ os.environ.setdefault("FLOORBIT_TELEGRAF_CONF", os.path.join(_TELEGRAF_DIR, "tel
 # into seat_ports.json in the checkout (and a run once committed that file).
 os.environ.setdefault("CHECKIN_FILE", os.path.join(tempfile.mkdtemp(prefix="floorbit-checkins-"), "checkins.json"))
 
+# Names a failing test before its report is built, and keeps that report quick (issue #1464).
+pytest_plugins = ["tests.failure_report"]
+
 
 def login_page(client):
     """What the sign-in page (React, issue #46) shows: its options and the last error, once."""

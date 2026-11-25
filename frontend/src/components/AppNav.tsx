@@ -1,7 +1,7 @@
 import { IconBell, IconSpeakerphone } from '@tabler/icons-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { get } from '@/api/client'
 import { boardName, type Board } from '@/pages/dashboards/model'
@@ -11,21 +11,14 @@ import { useCan, useCustomSections, useMe, usePageList, useProblems } from '@/ap
 import { readBoot } from '@/nav/boot'
 import { GOTO_EVENT } from '@/nav/goto'
 import { inApp } from '@/nav/sections'
-import { Sidebar, type LinkProps, type MenuAction } from '@/nav/Sidebar'
+import { useShellNav, type MenuAction } from '@/nav/ShellNav'
+import { useChecklist } from '@/pages/setup/checklist'
 import { CrewNoticeEditor } from './CrewNotice'
 import { GoTo } from './GoTo'
 import { NotifySettings } from './NotifySettings'
 
-// Inside the React app a page is a route: the sidebar stays, only the page changes.
-function RouteLink({ href, children, ...rest }: LinkProps) {
-  if (!inApp(href)) return <a href={href} {...rest}>{children}</a>
-  return <Link to={href} {...rest}>{children}</Link>
-}
-const renderLink = (p: LinkProps) => <RouteLink {...p} />
-
-
-/** The sidebar, "Go to" and the account menu's dialogs for the React pages. */
-export function AppNav() {
+/** The sidebar's parts for the shared AppShell, plus "Go to" and the account menu's dialogs. */
+export function useAppNav() {
   const { t } = useTranslation()
   const path = useLocation().pathname
   const me = useMe().data
@@ -58,19 +51,23 @@ export function AppNav() {
   }, [me, listed, custom])
 
   useInAppLinks(boot.pages)
+  // Set up's progress beside its row, for the accounts that may open it (#1437).
+  const steps = useChecklist(boot.pages.some((p) => p.id === 'setup')).data?.steps
+  const setup = useMemo(() => (steps ? { done: steps.filter((s) => s.state === 'done' || s.state === 'skipped').length, count: steps.length } : null), [steps])
 
   const actions: MenuAction[] = []
   if (me?.user) actions.push({ id: 'notify', label: t('common.notify.menu'), icon: IconBell, run: () => setNotify(true) })
   if (me?.user && lead) actions.push({ id: 'notice', label: t('notice.menu'), icon: IconSpeakerphone, run: () => setNotice(true) })
 
-  return (
+  const shell = useShellNav({ boot, path, down: problems?.counts.down ?? null, look: problems?.counts.look ?? null, actions, dashboards, setup })
+  const dialogs = (
     <>
-      <Sidebar boot={boot} path={path} renderLink={renderLink} onGoTo={open} down={problems?.counts.down ?? null} look={problems?.counts.look ?? null} actions={actions} dashboards={dashboards} />
       <GoTo opened={goTo} onOpen={open} onClose={close} />
       {notify && <NotifySettings opened onClose={() => setNotify(false)} />}
       {notice && <CrewNoticeEditor onClose={() => setNotice(false)} />}
     </>
   )
+  return { shell, dialogs }
 }
 
 /** Plain links inside the pages (``<a href="/incidents?q=…">``) open as routes too, so the

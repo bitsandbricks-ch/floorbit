@@ -119,5 +119,48 @@
     "settingsTitle": "Settings per agent",
     "settingsIntro": "Where an agent needs a different value, set it here. Empty fields use the plugin's settings.",
     "same": "uses the plugin's settings"
+  },
+  "activity": {
+    "broken": {
+      "label": "Not loaded",
+      "text": "It could not be loaded."
+    },
+    "off": {
+      "label": "Off",
+      "text": "Switched off."
+    },
+    "no_agent": {
+      "label": "No agent",
+      "text": "It runs on the local agent, and none is connected."
+    },
+    "failing": {
+      "label": "Failing",
+      "text": "Fails on {{names}}."
+    },
+    "not_configured": {
+      "label": "Not configured",
+      "text": "On, but it still needs its settings."
+    },
+    "receiving": {
+      "label": "Receiving",
+      "text": "Data arrives through {{count}} of {{total}} local agents."
+    },
+    "waiting": {
+      "label": "Waiting",
+      "text": "On; nothing has arrived yet."
+    },
+    "on": {
+      "label": "On",
+      "text": "On and set up."
+    }
+  },
+  "meta": {
+    "agent": "runs on the agent"
+  },
+  "missing": {
+    "label": "Not installed",
+    "text": "Its data is here already. Install the plugin from the Marketplace to change its settings.",
+    "install": "Install",
+    "from": "from the Marketplace"
   }
 }

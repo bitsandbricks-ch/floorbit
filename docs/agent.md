@@ -659,8 +659,8 @@ only has data when the hosted Floorbit has a Wi-Fi plugin of its own.
 
 Syslog is UDP, unencrypted and unauthenticated: the switches shouldn't send it across the internet
 to a hosted Floorbit. Let the agent take it instead: turn on the **Syslog from the hall** plugin
-under Settings > Plugins and set its UDP port (such as `5514`); every agent picks it up within a
-minute (docs/agent-plugins.md). Publish the port (in `docker-compose.agent.yml`, uncomment the
+under Settings > Plugins; every agent picks it up within a minute (docs/agent-plugins.md) and
+listens on udp/5514, a fixed port like its others (Advanced on the plugin's page changes it). Publish the port (in `docker-compose.agent.yml`, uncomment the
 `ports` lines, which map the host's udp/514 to it) and point the switches, firewalls and DHCP
 servers at the agent's machine, as [Syslog](syslog.md) describes for a Floorbit of your own.
 
@@ -700,7 +700,7 @@ times are taken as they are.
 
 Flows are too many, and too revealing, to send across the internet one by one. So the agent runs
 the [flow collector](flows.md) itself: turn on the **Traffic from the hall** plugin under
-Settings > Plugins and set its UDP port (such as `2055`), publish the port (the `ports` lines in
+Settings > Plugins (the agent listens on udp/2055, a fixed port like its others), publish the port (the `ports` lines in
 `docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or IPFIX export at the
 agent's machine. Only the newest summary waits while the hosted side is away.
 

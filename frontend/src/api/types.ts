@@ -124,7 +124,15 @@ export interface PluginInfo {
   /** ``schema:`` of this version, and the schema this tenant's data is at (0: none). */
   schema?: number
   data_schema?: number
+  /** What it is doing (#1435): receiving data, not set up, off, ... (floorbit/plugin_activity.py). */
+  activity?: PluginActivity
 }
+
+export type PluginActivityState = 'broken' | 'off' | 'no_agent' | 'failing' | 'not_configured' | 'receiving' | 'waiting' | 'on'
+export interface PluginActivity { state: PluginActivityState; values: Record<string, string | number> }
+/** A Marketplace plugin whose data is here without it (the LAN cache read by an agent). */
+export interface MissingPlugin { id: string; name: string; href: string }
+export interface PluginList { plugins: PluginInfo[]; missing?: MissingPlugin[] }
 
 export interface LogLine {
   time: string
@@ -960,6 +968,8 @@ export interface PlanCell {
   /** Where its seat cables run, across the row from the seat's centre (drawing units, in the block's
    *  own frame; floorbit/cable_lanes.py); missing when they come along the block instead. */
   lane?: number
+  /** On a bent row with a lane: this seat's point in its row's lane (``PlanShape.lanes``). */
+  li?: number
 }
 
 export interface PlanShape {
@@ -979,6 +989,9 @@ export interface PlanShape {
   row_list?: { id: string; name: string; row?: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
+  /** Bent rows' cable lanes by row (a cell's rc[0]): points in the block's own frame, drawing units,
+   *  one past each end (floorbit/cable_lanes.py ``paths``). Missing when no row bends. */
+  lanes?: Record<string, [number, number][]>
 }
 
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */
@@ -1486,6 +1499,8 @@ export interface WalkPort { switch: string; port: string; learned_at?: number; s
 export interface SeatWalkInfo {
   /** Where laptops in the hall reach the local agent, which identifies them (null: not known). */
   agent_url: string | null; through_agent?: boolean; switch_lookup: boolean; monitoring: boolean; keep_hours: number
+  /** Local agents connected now (#1424): the "no agent" warning only shows at 0. */
+  agents_connected?: number
   event: { id: string; name: string; status: string }
   rows?: string[]; row_names?: string[]; seats?: { seat: string; port: WalkPort | null }[]
   /** Every hall row: how far the walk got and who walks it now (#1000). */

@@ -1,9 +1,9 @@
 import {
   IconActivityHeartbeat, IconAlertCircle,
   IconDeviceDesktopSearch, IconAlertTriangle, IconApps, IconArmchair, IconArrowsExchange, IconBolt, IconBook,
-  IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck,
+  IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck, IconListCheck,
   IconBell, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart, IconLink, IconMap,
-  IconBuildingCommunity, IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
+  IconBuildingCommunity, IconDeviceGamepad2, IconFileDiff, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
   IconHierarchy2, IconLifebuoy, IconListSearch, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport,
   IconServer, IconServerBolt, IconSettings, IconShield, IconStar, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
   IconTools, IconTrophy, IconUserCheck, IconUsers, IconUsersGroup, IconWalk, IconWall, IconWebhook, IconWifi, IconWorldWww,
@@ -53,7 +53,7 @@ export const HUBS: Record<string, string[]> = {
   traffic: ['games', 'applications', 'stats', 'speedtests'],
   seats: ['seatMapping', 'checkins', 'seatWalk', 'switchAreas', 'endpoints'],
   inventory: ['cables', 'power'],
-  console: ['commands', 'terminal'],
+  console: ['commands', 'terminal', 'configs'],
   dashboards: ['widgets'],
   settings: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'features', 'sidebarSections', 'audit'],
   events: ['schedule', 'timeline', 'replay', 'report', 'templates'],
@@ -65,7 +65,7 @@ export const OWN_TABS = ['settings']
 /** Rows outside the sidebar's groups: Settings sits at the foot, the checks before doors open
  *  are a panel on Set up (#1049) and the topology a view of the floor plan (#1330), which "Go to"
  *  still finds. */
-export const OFF_LIST = ['settings', 'preflight', 'topology']
+export const OFF_LIST = ['settings', 'setup', 'preflight', 'topology']
 
 /** Pages that are a tab of another row: page -> its row. */
 export const INSIDE: Record<string, string> = Object.fromEntries(
@@ -111,8 +111,8 @@ const ICONS: Record<string, Icon> = {
   incidents: IconAlertCircle, jobs: IconClipboardCheck, handover: IconArrowsExchange,
   checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
   dns: IconWorldWww, games: IconDeviceGamepad2, applications: IconApps, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, lancache: IconServer, power: IconBolt,
-  commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk, switchAreas: IconHierarchy2,
-  preflight: IconChecklist, templates: IconTemplate,
+  commands: IconTerminal2, terminal: IconTerminal, configs: IconFileDiff, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk, switchAreas: IconHierarchy2,
+  preflight: IconChecklist, setup: IconListCheck, templates: IconTemplate,
   schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
   report: IconReport, events: IconCalendarEvent, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight, sidebarSections: IconLayoutSidebar,
   apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
