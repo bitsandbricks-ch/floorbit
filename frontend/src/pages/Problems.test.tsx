@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProblemList } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -16,7 +16,11 @@ async function pick(button: string, item: string | RegExp) {
 afterEach(() => vi.unstubAllGlobals())
 
 /** The problem rows, without the header. */
-const bodyRows = () => screen.queryAllByRole('row').filter((r) => r.closest('tbody'))
+const bodyRows = () => screen.queryAllByRole('row').filter((r) => r.closest('tbody') && !r.classList.contains('bnb-dt-group-head'))
+/** A group of the grouped list: its header cell, and the problems shown under it. */
+const groupHead = (name: string) => screen.getAllByRole('rowheader').find((h) => h.textContent?.startsWith(name))
+const groupRows = (name: string) => within(groupHead(name)!.closest('tbody')!).queryAllByRole('row')
+  .filter((r) => !r.classList.contains('bnb-dt-group-head')).map((r) => r.getAttribute('aria-label'))
 
 const now = Date.now() / 1000
 const list = (over: Partial<ProblemList> = {}): ProblemList => ({
@@ -314,12 +318,11 @@ describe('Problems', () => {
     expect(bodyRows().map((r) => r.getAttribute('aria-label'))).toEqual(['sw-c-02 is offline'])
     await pick('Muted: Hidden', 'Shown')
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(2))
-    const grouped = renderWithApp(<Problems />, '/problems?group=device')
-    const sw = await within(grouped.container).findByRole('region', { name: 'sw-c-02' })
-    expect(within(sw).getAllByRole('row').filter((r) => r.closest('tbody')).map((r) => r.getAttribute('aria-label')))
-      .toEqual(['sw-c-02 is offline', 'Errors rising on Gi1/0/9'])
-    const loose = within(grouped.container).getByRole('region', { name: 'Not on a switch' })
-    expect(within(loose).getByRole('row', { name: /Circuit B row 2/ })).toBeInTheDocument()
+    cleanup()
+    renderWithApp(<Problems />, '/problems?group=device')
+    await screen.findByRole('button', { name: /^sw-c-02/ })
+    expect(groupRows('sw-c-02')).toEqual(['sw-c-02 is offline', 'Errors rising on Gi1/0/9'])
+    expect(groupRows('Not on a switch')).toContainEqual(expect.stringMatching(/Circuit B row 2/))
   })
 
   it('searches, folds a group and remembers it, and pages by groups (issue #1472)', async () => {
@@ -333,17 +336,17 @@ describe('Problems', () => {
     expect(head).toHaveAttribute('aria-expanded', 'true')
     // 13 switches and the rest: ten groups on a page, the rest on the next.
     expect(screen.getByText('1–10 of 13 groups')).toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: 'sw-21' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^sw-21/ })).not.toBeInTheDocument()
     fireEvent.click(head)
-    await vi.waitFor(() => expect(within(screen.getByRole('region', { name: 'sw-10' })).queryByRole('table')).not.toBeInTheDocument())
+    await vi.waitFor(() => expect(groupRows('sw-10')).toHaveLength(0))
     fireEvent.click(screen.getAllByRole('button', { name: '2' }).at(-1)!)
-    expect(await screen.findByRole('region', { name: 'sw-21' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^sw-21/ })).toBeInTheDocument()
     view.unmount()
     // Folded stays folded after a reload.
     renderWithApp(<Problems />, '/problems?group=device')
     expect(await screen.findByRole('button', { name: /^sw-10/ })).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(screen.getByRole('button', { name: 'Fold all' }))
-    await vi.waitFor(() => expect(screen.queryAllByRole('table')).toHaveLength(0))
+    await vi.waitFor(() => expect(bodyRows()).toHaveLength(0))
     fireEvent.click(screen.getByRole('button', { name: 'Unfold all' }))
     fireEvent.change(screen.getByPlaceholderText('Search a switch, seat or text'), { target: { value: 'sw-12' } })
     await vi.waitFor(() => expect(bodyRows().map((r) => r.getAttribute('aria-label'))).toEqual(['Errors rising on sw-12']))
