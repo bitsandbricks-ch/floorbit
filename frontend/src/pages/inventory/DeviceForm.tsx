@@ -2,6 +2,7 @@ import { ActionIcon, Button, Collapse, Group, Modal, Select, Stack, Text, Textar
 import { IconChevronDown, IconLock, IconLockOpen } from '@tabler/icons-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SaveBar } from '@/pages/settings/editor'
 import { INVENTORY_FIELDS, SPEC_FIELDS, type Device, type InventoryField, type InventoryOverview } from '@/api/types'
 import { EntitySelect } from '@/components/EntitySelect'
 import { FieldInputs } from './FieldInputs'
@@ -193,19 +194,28 @@ export function DeviceForm({
             minRows={2}
             maxLength={1000}
           />
-          {error && (
-            <Text className="fb-tone-err" role="alert">
-              ✕ {error}
-            </Text>
+          {device ? (
+            // Changes to a device save the way every settings page does (#993): the shared bar.
+            <SaveBar count={Object.keys(changes).length} bad={!draft.name.trim()} saving={busy}
+              error={error ? new Error(error) : null}
+              onDiscard={() => { setDraft(original); setPlace(placeBefore) }} />
+          ) : (
+            <>
+              {error && (
+                <Text className="fb-tone-err" role="alert">
+                  ✕ {error}
+                </Text>
+              )}
+              <Group justify="flex-end">
+                <Button variant="default" onClick={onClose}>
+                  {t('common.cancel')}
+                </Button>
+                <Button type="submit" loading={busy}>
+                  {t('inventory.add')}
+                </Button>
+              </Group>
+            </>
           )}
-          <Group justify="flex-end">
-            <Button variant="default" onClick={onClose}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" loading={busy} disabled={!!device && Object.keys(changes).length === 0}>
-              {t('inventory.save')}
-            </Button>
-          </Group>
         </Stack>
       </form>
     </Modal>

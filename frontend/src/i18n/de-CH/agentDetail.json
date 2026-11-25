@@ -1,0 +1,38 @@
+{
+  "checkNow": "Jetzt prüfen",
+  "more": "Mehr",
+  "role": {
+    "primary": "Primary",
+    "standby": "Standby",
+    "active": "Aktiv"
+  },
+  "tab": {
+    "logs": "Logs",
+    "certificate": "Schlüssel und Zertifikat",
+    "settings": "Einstellungen"
+  },
+  "failover": {
+    "title": "Failover",
+    "alone": "Kein anderer Agent hat dieselben Tags: Fällt dieser aus, übernimmt niemand.",
+    "takesOver_one": "Fällt er aus, übernimmt {{names}}.",
+    "takesOver_other": "Fällt er aus, übernimmt einer von {{names}}.",
+    "noStandby": "Kein Standby ist online: Fällt er aus, übernimmt niemand.",
+    "standsBy": "{{name}} ist der Primary. Dieser Agent übernimmt, wenn er ausfällt.",
+    "noPrimary": "Die Gruppe hat gerade keinen Primary.",
+    "shares": "Teilt die Arbeit mit {{names}}.",
+    "coveredBy": "{{name}} übernimmt seine Arbeit, solange er weg ist.",
+    "uncovered": "Kein Agent seiner Gruppe ist online: Seine Geräte überwacht niemand.",
+    "unknown": "Noch in keiner Gruppe.",
+    "group": "Gruppenseite"
+  },
+  "events": {
+    "title": "Letzte Ereignisse",
+    "all": "Alle Ereignisse",
+    "none": "Zu diesem Agent ist noch nichts protokolliert.",
+    "help": "Was das Audit-Log zu diesem Agent enthält: Schlüssel und Zertifikat, Einstellungen sowie die Updates seiner Plugins und des Agents selbst.",
+    "when": "Wann",
+    "what": "Was",
+    "who": "Wer",
+    "byAgent": "der Agent"
+  }
+}

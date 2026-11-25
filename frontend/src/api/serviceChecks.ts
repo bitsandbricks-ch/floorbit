@@ -9,6 +9,8 @@ export const UDP_ASKS: UdpAsk[] = ['dns', 'ntp', 'a2s', 'none']
 export interface OwnCheckFields {
   name: string; kind: CheckKind; host: string; port: number | null; ask: UdpAsk | ''; url: string
   expect: string; contains: string; cert_warn_days: number | null; slow_ms: number
+  /** "Checked from" (issue #1444): '' any agent, ``tag:<id>`` the agents with a tag, or an agent id. */
+  from?: string
 }
 
 /** What the last run saw, next to it. */

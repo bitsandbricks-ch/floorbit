@@ -68,6 +68,19 @@ the kiosk and the attendee hall view draw them in the icon's colour. Removing an
 devices, groups and tags that showed it back on their default icon, and turns plan icons that used
 it into the info icon.
 
+### In the list
+
+Besides name, role, model and state, the device list shows per device:
+
+- **Uplink**: its link towards the core, as the [topology](topology.md) draws it (the core is where
+  the internet lines come in, else the routers). It shows the speed the port runs at, amber "1G of
+  10G" when it runs slower than planned, and red when the link is down. The tooltip names both ports.
+- **Last 24 h**: one block per hour from the status monitor's changes, amber when the device was
+  down for part of the hour, red for half an hour or more. A device the monitor doesn't track stays grey.
+- **Agent**: who reads it, from its `telemetry.agent` property: Auto, the agents with a tag, or one agent.
+
+All three come with the one list call; sort by them to find the devices that need a look.
+
 ### Unknown senders
 
 A device that sends syslog, traps, streams (gNMI, MDT) or flows to the agents without being in the
