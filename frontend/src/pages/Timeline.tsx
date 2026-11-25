@@ -18,7 +18,8 @@ import { clockSeconds, dateOnly } from '@/lib/time'
 const KINDS: TimelineKind[] = ['change', 'outage', 'incident', 'alert', 'deploy', 'sign-in']
 const RANGES = ['6', '24', '0'] as const
 const KIND_COLOR: Record<TimelineKind, string> = {
-  change: 'trace', 'sign-in': 'gray', outage: 'down', incident: 'warn', alert: 'warn', deploy: 'bit',
+  // Trace Cyan is kept for selection (issue #1431): a change is neutral.
+  change: 'gray', 'sign-in': 'gray', outage: 'down', incident: 'warn', alert: 'warn', deploy: 'bit',
 }
 const SEVERITY_COLOR = { up: 'var(--color-up)', down: 'var(--color-down)', warn: 'var(--color-warn)', info: 'var(--color-muted)' }
 
