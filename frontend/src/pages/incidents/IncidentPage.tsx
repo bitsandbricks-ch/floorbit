@@ -1,5 +1,5 @@
 import { Anchor, Button, Group, Menu, Select, SimpleGrid, Stack, Text, Textarea } from '@mantine/core'
-import { IconArrowLeft, IconChevronDown } from '@tabler/icons-react'
+import { IconArrowLeft, IconChevronDown, IconTerminal2 } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,7 +7,7 @@ import { Link, useParams } from 'react-router-dom'
 import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
-import { useCan, useIncidentPeople, useIncidents, useMe } from '@/api/queries'
+import { useCan, useFeature, useIncidentPeople, useIncidents, useMe } from '@/api/queries'
 import type { CrewMember, Incident, SeatDetails, TimelineEntry } from '@/api/types'
 import { BouncePort } from '@/components/BouncePort'
 import { Layout } from '@/components/Layout'
@@ -53,6 +53,8 @@ export default function IncidentPage() {
     queryKey: qk.planSeat(seatId), queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(seatId)}`),
     enabled: !!seatId, refetchInterval: 30_000,
   })
+  const consoleOn = useFeature('terminal')
+  const mayConsole = useCan('terminal.open')
   const crew = useQuery({
     queryKey: qk.crew, queryFn: () => get<{ crew: CrewMember[]; auto?: boolean }>('/api/dispatch/crew'),
     enabled: !!board.data?.can_assign_any, refetchInterval: 30_000,
@@ -92,6 +94,8 @@ export default function IncidentPage() {
   const busy = change.isPending || send.isPending
   const assignable = (people.data?.[i.team ?? ''] ?? []).map((p) => ({ value: p.username, label: p.display_name }))
   const title = incidentTitle(i.title, t)
+  // A circuit's incident has no switch; a seat's switch comes with its link history.
+  const consoleSwitch = consoleOn && mayConsole && !i.circuit_id ? (i.switch_name ?? seat.data?.switch ?? null) : null
   const addNote = () => {
     if (!note.trim()) return
     change.mutate({ note: note.trim() }, { onSuccess: () => setNote('') })
@@ -142,8 +146,17 @@ export default function IncidentPage() {
               <IncidentBadges i={i} board={data} now={now} full />
               <IncidentDetails i={i} />
               {/* The usual first try for a seat without internet; what it did goes in the notes. */}
-              {i.seat && i.can_work && i.status !== 'fixed' && (
-                <Group><BouncePort seat={i.seat} onBounced={(text) => change.mutate({ note: text })} /></Group>
+              {((i.seat && i.can_work && i.status !== 'fixed') || consoleSwitch) && (
+                <Group gap="xs">
+                  {i.seat && i.can_work && i.status !== 'fixed' && <BouncePort seat={i.seat} onBounced={(text) => change.mutate({ note: text })} />}
+                  {/* The switch's console a click away (issue #913), for those who may open it. */}
+                  {consoleSwitch && (
+                    <Button variant="default" leftSection={<IconTerminal2 size={16} />}
+                      component={Link} to={`/terminal?switch=${encodeURIComponent(consoleSwitch)}`}>
+                      {t('incidentConsole.open', { name: consoleSwitch })}
+                    </Button>
+                  )}
+                </Group>
               )}
             </Stack>
           </Panel>
