@@ -44,12 +44,12 @@ export function nextFreeRow(blocks: { naming?: string; row_start?: string; rows?
 
 /** How far apart (in % of the plan) copies of a new block go: its size plus the gap. Seats are 2 %
  *  wide and 3.2 % tall (32 drawing units on 1600 x 1000), with room for row letters and a name. */
-export function blockStep(v: { cols: number; rows: number; naming: string; row_labels: string; name: string; rotation: number },
+export function blockStep(v: { cols: number; rows: number; naming: string; row_labels: string; name: string; rotation: number; spacer?: number },
   gap: number, direction: 'down' | 'right') {
   const labelled = v.naming === 'rows' && v.row_labels !== 'none'
   const extra = labelled ? (v.row_labels === 'both' ? 2 : 1) : 0
   let w = (v.cols + extra) * 2 + 1
-  let h = v.rows * 3.2 + 1.6 + (v.name ? 2.2 : 0)
+  let h = (v.rows + (v.rows - 1) * (v.spacer ?? 0)) * 3.2 + 1.6 + (v.name ? 2.2 : 0)
   if ([90, 270].includes(((v.rotation % 360) + 360) % 360)) [w, h] = [h * (1000 / 1600), w * (1600 / 1000)]
   return direction === 'right' ? { dx: w + gap, dy: 0 } : { dx: 0, dy: h + gap }
 }

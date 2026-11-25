@@ -104,7 +104,10 @@ one is refused with the seat it clashes on. `POST /api/seat-blocks/many` does th
 
 ## Rows in a seat block
 
-A seat block is a group of rows: one row or many. The edit panel has a tab for each part of a block:
+A seat block is a run of rows that are placed, turned and named together. **Add block** makes the usual run:
+two rows back to back with a one-seat spacer between them for the switch (**Spacer between rows**; 0 for
+rows that touch). A block can hold one row or many; for a whole hall, add several runs at once and group
+them. The edit panel has a tab for each part of a block:
 **Block** (name, rotation, mirror and flip, duplicate, lock, delete), **Rows**, **Seats** (seat names,
 seats placed freely, where seat 1 is) and **Items** (everything on the plan). The panel is 440 pixels wide
 (520 on screens 1600 pixels wide and more); drag its left edge to make it wider or narrower, and
@@ -116,11 +119,16 @@ its tab. The picked row shows the space above it and its fields:
 - **+** puts a row under the others, as long as the last one. The arrows move a row earlier or later and
   **×** takes it out. With a letter per row the letters follow the order, so moving row D above row C
   makes it C.
-- **Space above** a row is the aisle between it and the row above, in seats (0 to 20): room for a switch
-  between two rows. Drop a switch into it like anywhere else on the plan.
-- **On the plan**, the selected block shows a bar between each two rows. Drag a bar up or down to change
-  the space above the lower row, in quarter seats (hold Alt, or turn snapping off, to place it freely).
-  The rows above stay where they are; the rows below move. Clicking a bar picks the row under it.
+- **Spacers** are the room between two rows, for a switch. They have no label: a small hatched cue
+  between two row tabs, and a hatched band between the rows on the plan while you edit (empty space on the
+  live plan). **Spacer above …** under the tabs adds one to the picked row (one seat); its size field and
+  **×** change or remove it (0 to 20 seats). Drop a switch into a spacer like anywhere else on the plan.
+- **On the plan**, the selected block shows a bar or spacer between each two rows. Drag it up or down to
+  change the space above the lower row, in quarter seats (hold Alt, or turn snapping off, to place it
+  freely). The rows above stay where they are; the rows below move. Clicking it picks the row under it.
+- **Seats and gaps**, at the top of the picked row's fields, shows the row's seats in a line. Click between
+  two seats to add a gap there (one seat, for a fiber roll or a post); click a gap to size or remove it.
+  Seat numbers carry on across a gap, and gaps show hatched on the plan while you edit.
 - **Mirror block** turns the whole block over left to right where it stands: every row, their line-up
   and shift, and seats placed freely. **Flip block** turns it upside down (mirrored and turned half
   round, so it shows 180° under Rotation); like any turned block it then numbers from where a reader
