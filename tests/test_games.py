@@ -102,3 +102,15 @@ def test_api(client, app_module):
     client.put("/api/settings/features", json={"games": False})
     assert client.get("/api/games").status_code == 404
     client.put("/api/settings/features", json={"games": True})
+
+
+def test_top_sites_name_their_application(cache, tmp_path):
+    stats = dns.DnsStats(path=str(tmp_path / "dns.json"))
+    stats.add([{"ts": HOUR + 60 + i, "domain": d, "client": f"198.51.100.{i}"}
+               for i in range(7) for d in ("www.twitch.tv", "playvalorant.com")]
+              + [{"ts": HOUR + 60 + i, "domain": "example.com", "client": f"198.51.100.{i}"} for i in range(5)]
+              + [{"ts": HOUR + 60, "domain": "example.org", "client": "198.51.100.1"}], now=HOUR + 600)
+    sites = games.insights(stats, None, None, hours=1, now=HOUR + 600)["sites"]
+    assert [(s["site"], s["seats"], s["application"], s["category"]) for s in sites] == [
+        ("playvalorant.com", 7, "Valorant", "gaming"), ("twitch.tv", 7, "Streaming", "streaming"),
+        ("example.com", 5, None, None)]   # example.org: one seat, not named

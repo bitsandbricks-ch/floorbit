@@ -109,6 +109,8 @@ def check_widget(raw, item):
             if isinstance(i, dict):
                 item = {'label': _text(i.get('label'), 80), 'value': _text(i.get('value'), 80),
                         'tone': _tone(i.get('tone'))}
+                if i.get('sub'):   # a second line under the label (@bitsandbricks/widgets draws it)
+                    item['sub'] = _text(i['sub'], 80)
                 items.append(_device(i, _numbers(i, item, ('number', 'max'))))
         out['items'] = items
     elif kind == 'table':

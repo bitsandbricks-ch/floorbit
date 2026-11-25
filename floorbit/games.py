@@ -11,6 +11,8 @@ ports, server addresses and Steam depots to them. Four sources, each optional:
 """
 from . import applications, dns
 
+TOP_SITES = 50
+
 
 def _flow_services(flows):
     """{service: {"bytes", "seats", "category"}} from the traffic summary (24 hours)."""
@@ -46,12 +48,21 @@ def insights(dns_stats=None, flows=None, lancache=None, hours=24, now=None, serv
     games = sorted(({'name': s['name'], 'bytes': s['bytes'], 'seats': s['seats']} for s in services.values()
                     if s.get('category') == 'gaming' and s['name'] not in named),
                    key=lambda s: -s['bytes'])
+    owner = {}
+    # A game's own site is the game's, not its launcher's.
+    for app in sorted(apps, key=lambda a: applications.KINDS.index(a['kind'])):
+        for site in app['sites']:
+            owner.setdefault(site, app)
+    # The sites the hall looks up most, each already named under the five-seat rule.
+    top_sites = [{'site': site, 'lookups': n, 'seats': c, 'application': owner[site]['name'] if site in owner else None,
+                  'category': owner[site]['category'] if site in owner else None}
+                 for site, (n, c) in sorted(sites.items(), key=lambda kv: (-kv[1][1], -kv[1][0], kv[0]))[:TOP_SITES]]
     used_caches = {c for a in apps for c in a['caches']}
     other_caches = sorted((c for name, c in by_cache.items() if name not in used_caches),
                           key=lambda c: -(c['hit_bytes'] + c['miss_bytes']))
     return {
         'launchers': rows['launcher'], 'titles': titles, 'sitegroups': rows['sitegroup'],
-        'games': games, 'other_caches': other_caches,
+        'games': games, 'other_caches': other_caches, 'sites': top_sites,
         'cache': cache,
         'sources': {'dns': dns_stats is not None and bool(sites), 'traffic': bool(services),
                     'cache': bool(cache and cache['configured']),

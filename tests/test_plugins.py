@@ -283,6 +283,9 @@ def test_widget_shapes():
     item = {"id": "w", "label": "W"}
     ok = check_widget({"type": "status", "items": [{"label": "DNS", "state": "up"}]}, item)
     assert ok["items"][0]["state"] == "up"
+    rows = check_widget({"type": "list", "items": [{"label": "twitch.tv", "value": "9", "sub": "streaming"},
+                                                   {"label": "example.com", "value": "5"}]}, item)["items"]
+    assert rows[0]["sub"] == "streaming" and "sub" not in rows[1]
     for bad in ({"type": "html", "html": "<b>"}, {"type": "status", "items": [{"state": "on fire"}]},
                 {"type": "sparkline", "points": ["1"]}, {"type": "table", "columns": []}, "nope"):
         with pytest.raises(WidgetError):
