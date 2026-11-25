@@ -322,7 +322,7 @@ can reach or do.
 
 ### Rolling an agent's key
 
-**Roll key** on the agent's page (or for every agent at once, `POST /api/agents/roll`) makes a new
+**Roll key** in the header of the agent's page (or for every agent at once, `POST /api/agents/roll`) makes a new
 key; the agent fetches it on its next pull and keeps it in `agent-key` in its state folder, readable
 only by it. Nothing in its environment has to change: a stored key wins over `FLOORBIT_AGENT_KEY`,
 which only enrols it. The old key keeps working until the agent uses the new one, for 24 hours at
@@ -447,7 +447,8 @@ Floorbit login can at most offer a release that was already signed.
   change it.
 
 Each agent's **Updates** tab shows the version it runs, the newest release, where its update stands
-and its last steps; every step is in the [audit log](audit.md). Without a release (Floorbit can't
+and its last steps; every step is in the [audit log](audit.md), and the agent's **Logs** tab lists
+what the audit log holds about that agent (`GET /api/agents/<id>/events`). Without a release (Floorbit can't
 reach GitHub), or for a new image, pull it and start the agent again (`docker compose pull &&
 docker compose up -d`). The **Local agents** page shows **Update** next to an agent that speaks an
 older agent protocol than this Floorbit.
