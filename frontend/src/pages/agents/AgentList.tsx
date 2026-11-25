@@ -1,6 +1,6 @@
 import { Anchor, Badge, Group, Paper, SimpleGrid, Stack, Text, Tooltip, VisuallyHidden } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { get } from '@/api/client'
@@ -60,13 +60,8 @@ export function AgentList({ data, rows }: { data: AgentsAnswer; rows: AgentRow[]
           ] },
         ])} />
       {shown.length === 0 ? <Text c="dimmed">{t('agentList.noMatch')}</Text> : (
-        <Paper withBorder radius="md" className="fb-agent-list" aria-label={t('agentList.label')}>
-          {shown.map((g, i) => (
-            <Fragment key={g.id}>
-              <GroupHead group={g} />
-              <AgentTable group={g} head={i === 0} selected={selected} onSelect={setSelected} newest={data.newest_version} />
-            </Fragment>
-          ))}
+        <Paper withBorder radius="md" className="fb-agent-list">
+          <AgentTable groups={shown} selected={selected} onSelect={setSelected} newest={data.newest_version} />
         </Paper>
       )}
       {picked && (
@@ -143,12 +138,15 @@ function GroupHead({ group: g }: { group: ListGroup }) {
   )
 }
 
-function AgentTable({ group, head, selected, onSelect, newest }: {
-  group: ListGroup; head: boolean; selected: string | null; onSelect: (id: string) => void; newest?: string | null
+/** Every shown agent in one table, a header row per agent group (the shared DataTable's groups),
+ *  so the columns line up across groups by themselves. */
+function AgentTable({ groups, selected, onSelect, newest }: {
+  groups: ListGroup[]; selected: string | null; onSelect: (id: string) => void; newest?: string | null
 }) {
   const { t, i18n } = useTranslation()
   const lang = i18n.language
   const num = (n: number, digits = 0) => n.toLocaleString(lang, { maximumFractionDigits: digits })
+  const groupOf = new Map(groups.flatMap((g) => g.rows.map((r) => [r.agent.id, g.id] as const)))
   const columns: DataColumn<ListRow>[] = [
     { id: 'state', className: 'fb-al-state', header: <VisuallyHidden>{t('agentList.col.state')}</VisuallyHidden>, card: 'inline',
       cell: (r) => <StatusBit tone={TONE_BIT[r.tone]} label={t(`agents.state.${stateKey(r.agent, r.tone)}`)} /> },
@@ -190,8 +188,10 @@ function AgentTable({ group, head, selected, onSelect, newest }: {
     } },
   ]
   return (
-    <DataTable rows={group.rows} columns={columns} rowKey={(r) => r.agent.id} label={t('agentList.groupLabel', { group: group.label })}
-      urlState={false} pageSize={0} bare cards head={head} density="compact" minWidth={860}
+    <DataTable rows={groups.flatMap((g) => g.rows)} columns={columns} rowKey={(r) => r.agent.id} label={t('agentList.label')}
+      groupBy={(r) => groupOf.get(r.agent.id) ?? ''} groupOrder={groups.map((g) => g.id)}
+      groupHeader={(id) => { const g = groups.find((x) => x.id === id); return g ? <GroupHead group={g} /> : id }}
+      urlState={false} pageSize={0} bare cards density="compact" minWidth={860}
       selected={selected} onSelect={(id) => onSelect(id)} onRowClick={(r) => onSelect(r.agent.id)}
       rowLabel={(r) => r.agent.name}
       />
