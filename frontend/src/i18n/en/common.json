@@ -43,5 +43,11 @@
   },
   "retry": "Try again",
   "close": "Close",
-  "nothingYet": "Nothing here yet."
+  "nothingYet": "Nothing here yet.",
+  "leave": {
+    "title": "Leave without saving?",
+    "text": "This page has changes that are not saved yet. They are lost if you leave now.",
+    "stay": "Stay",
+    "go": "Leave without saving"
+  }
 }

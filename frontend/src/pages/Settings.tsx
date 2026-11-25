@@ -13,7 +13,7 @@ import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { readBoot } from '@/nav/boot'
 import { BackupPanel, Connections, SectionPanel, SettingsForm } from './settings/editor'
 import { S3BackupPanel } from './settings/S3Backups'
-import { k, keys, sectionTitle, useSettingsEditor, type SettingsAnswer, type SettingsEditor } from './settings/model'
+import { inSettings, k, keys, sectionTitle, useSettingsEditor, type SettingsAnswer, type SettingsEditor } from './settings/model'
 
 export type { SettingsAnswer }
 
@@ -125,7 +125,7 @@ export default function Settings() {
   // list (it failed), try: the server says no if it must.
   const list = usePageListSettled()
   const mayEdit = list.settled && (list.failed || listed.has('settings'))
-  const ed = useSettingsEditor({ enabled: mayEdit })
+  const ed = useSettingsEditor({ enabled: mayEdit, keep: inSettings })
   const d = ed.d
   const several = useMemo(() => !!readBoot().tenants, [])
   const { tabs, byId } = useTabs(d, listed, several)
