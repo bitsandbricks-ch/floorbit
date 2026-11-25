@@ -3,6 +3,7 @@ import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { SaveBar } from '@/pages/settings/editor'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { FieldDef, InventoryOverview, InventoryType } from '@/api/types'
@@ -84,7 +85,6 @@ function TypeForm({ type, types, overview, onRemoved }: {
   if (color !== type.color) body.color = color
   if (JSON.stringify(fields) !== JSON.stringify(type.own_fields)) body.fields = fields
   const setField = (i: number, patchIt: Partial<FieldDef>) => { setSaved(false); setFields(fields.map((f, j) => (j === i ? { ...f, ...patchIt } : f))) }
-  const err = save.error || remove.error
   return (
     <Stack gap="md">
       <PanelSection label={t('inventory.types.basics')}>
@@ -140,18 +140,18 @@ function TypeForm({ type, types, overview, onRemoved }: {
           </Button>
         </Stack>
       </PanelSection>
-      {err && <Alert color="down" role="alert">{err.message}</Alert>}
-      {saved && !Object.keys(body).length && <Text size="sm" className="fb-tone-ok" role="status">✓ {t('inventory.saved')}</Text>}
-      <Group justify="space-between">
-        {!type.builtin ? (
+      {remove.error && <Alert color="down" role="alert">{remove.error.message}</Alert>}
+      {!type.builtin && (
+        <Group>
           <ConfirmButton variant="subtle" danger label={t('inventory.types.remove')} disabled={type.count > 0}
             question={t('inventory.types.removeQ', { name: type.name })} onConfirm={() => remove.mutate()} />
-        ) : <span />}
-        <Button loading={save.isPending} disabled={!Object.keys(body).length}
-          onClick={() => save.mutate({ ...body, ...(body.fields ? { fields: fields.map((f) => ({ ...f, choices: f.choices.map((c) => c.trim()).filter(Boolean) })) } : {}) })}>
-          {t('inventory.save')}
-        </Button>
-      </Group>
+        </Group>
+      )}
+      {/* The shared bar (#993): "N unsaved changes, Discard, Save", then "Saved". */}
+      <SaveBar count={Object.keys(body).length} bad={!type.builtin && !name.trim()} saving={save.isPending} error={save.error}
+        saved={saved && !Object.keys(body).length ? t('inventory.saved') : null}
+        onDiscard={() => { setName(type.name); setIcon(type.icon); setColor(type.color); setFields(type.own_fields) }}
+        onSave={() => save.mutate({ ...body, ...(body.fields ? { fields: fields.map((f) => ({ ...f, choices: f.choices.map((c) => c.trim()).filter(Boolean) })) } : {}) })} />
       <PanelSection label={t('inventory.types.inherit')}>
         <PropertiesEditor value={type.properties} canEdit busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
       </PanelSection>
