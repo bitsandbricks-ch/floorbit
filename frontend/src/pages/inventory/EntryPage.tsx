@@ -22,6 +22,8 @@ import { LookFields, PropertiesEditor, TagPicker } from './ScopeEditors'
 
 /** One cable, circuit, rack, ... on its own page (/inventory/entries/<type>/<id>): its fields and
  *  what it gets from its type, groups and tags. */
+const LIST_OF: Record<string, string> = { cable: '/cables', circuit: '/power', 'power-board': '/power' }
+
 export default function EntryPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -34,15 +36,17 @@ export default function EntryPage() {
   const { data: entry, error } = useEntryDetail(typeId, id)
   const icon = entry ? entry.resolved.look.icon.value || type?.default_icon || 'other' : type?.default_icon ?? 'other'
   const color = entry?.resolved.look.color.value ?? ''
+  // Cables and power are listed on their own tabs (Cables, Electrics), not in Inventory's type tabs (#1426).
+  const list = type ? LIST_OF[type.id] ?? `/inventory?type=${encodeURIComponent(type.id)}` : '/inventory'
   return (
     <ItemPage title={entry && type && overview ? entry.name : undefined} fallbackTitle={t('inventory.title')}
-      back={{ href: type ? `/inventory?type=${encodeURIComponent(type.id)}` : '/inventory', label: t('inventory.page.back') }}
+      back={{ href: list, label: t('inventory.page.back') }}
       loading={!entry || !type || !overview} missing={error ? { title: t('inventory.page.notFound'), desc: error.message } : null}
       icon={<DeviceIcon icon={icon} color={color} size={28} />}
       kicker={entry && type ? [typeName(t, type), ...entry.resolved.group_path.map((g) => g.name)].join(' · ') : undefined}>
       {entry && type && overview && (
         <EntryForm key={JSON.stringify(entry)} type={type} entry={entry} overview={overview} canEdit={canEdit}
-          onClose={() => navigate(`/inventory?type=${encodeURIComponent(type.id)}`)} />
+          onClose={() => navigate(list)} />
       )}
     </ItemPage>
   )
