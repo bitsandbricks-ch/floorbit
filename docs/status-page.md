@@ -58,7 +58,8 @@ halls, blocks and rows. The crew's own page names the switches.
 ## For the crew
 
 **Status updates** (`/network-status`, a tab of the Helpdesk) shows what the public page says now,
-the affected areas with the switch names, and the updates.
+the affected areas with the switch names, and the updates in a table: when each was posted, the
+area it is about (or *Everywhere*) and its text, newest first, ten to a page.
 
 - Reading it needs `incidents.work`.
 - Posting and removing updates and setting the state need `incidents.assign` (lead and admin).
