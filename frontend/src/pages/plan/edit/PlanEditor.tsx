@@ -45,7 +45,7 @@ import { TintField } from './TintField'
 import { hallIsEmpty } from './emptyHall'
 import { EmptyHall, PlanDialogs, type PlanDialog } from './PlanMenu'
 import { type PlanPreset, SavePresetDialog } from './Presets'
-import { LAYER_IDS, type SharedField, ZONE_COLORS, sharedEdits, sharedFields } from './shared'
+import { LAYER_IDS, type SharedField, ZONE_COLORS, ZONE_SWATCH, sharedEdits, sharedFields } from './shared'
 import { PlaceSwitchDialog, type SwitchPick } from './SwitchDialog'
 import { type Route, bendsPct } from './bends'
 import { EditOverlay } from './EditOverlay'
@@ -1336,7 +1336,7 @@ function ItemFields({ data, item, onChange, arranging, onArrange, picked, onPick
             <Group gap="xs">
               {ZONE_COLORS.map((c) => (
                 <Tooltip key={c} label={t(`plan.edit.colors.${c}`)}>
-                  <ColorSwatch component="button" type="button" color={`var(--color-${c === 'muted' ? 'muted' : c})`} size={26}
+                  <ColorSwatch component="button" type="button" color={ZONE_SWATCH[c]} size={26}
                     aria-label={t(`plan.edit.colors.${c}`)} aria-pressed={(mark.color ?? 'muted') === c} onClick={() => set('color', mark.color ?? 'muted', c)}
                     style={{ outline: (mark.color ?? 'muted') === c ? '2px solid var(--bnb-fg)' : undefined, outlineOffset: 2 }} />
                 </Tooltip>
