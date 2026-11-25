@@ -93,10 +93,13 @@ def config(registry=None, agent_id=None):
     # Split brain (agent_ha.py): tell the agent which other one keeps polling and logging in.
     ha = {}
     if agent_id is not None:
-        from .agent_ha import stand_by_for
+        from .agent_ha import lease_for, stand_by_for
         other = stand_by_for(agent_id)
         if other:
-            ha['stand_by_for'] = other
+            ha['stand_by_for'] = other         # agents before the lease (floorbit-agent #94)
+        lease = lease_for(agent_id)
+        if lease is not None:
+            ha['lease'] = lease                # who polls and logs in (agent_ha.lease_holder)
     # The agent's own settings, a new key to fetch, its certificate's names (agent_settings.py).
     agent = {}
     if agent_id is not None:

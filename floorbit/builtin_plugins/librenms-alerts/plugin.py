@@ -12,7 +12,9 @@ class Plugin(Base):
 
     def agent_alert(self, agent, payload):
         try:
-            return {'result': librenms_alerts.take(payload, agent=agent.get('name'))}
+            from floorbit import agent_ha
+            return {'result': librenms_alerts.take(payload, agent=agent.get('name'),
+                                                   scope=agent_ha.group_key(agent.get('id')))}
         except librenms_alerts.AlertError as exc:
             # Declined, not retried: the same body would fail again. The plugin log says why.
             raise PluginError(str(exc)) from exc

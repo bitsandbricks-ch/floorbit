@@ -278,17 +278,19 @@ The controller's client list is never subscribed to. Should a controller stream 
 <!-- TODO(Mike): checked against the YANG models only; confirm the field names on a live 9800-CL
 with "Raw data" before the first event (docs: floorbit-wlc-telemetry). -->
 
-## Two agents (VRRP)
+## Two agents for the same devices
 
-With two or more local agents sharing virtual IPs (the agent's `docs/vrrp.md`, active/passive or
-active/active), only one collects: the agent that holds the **first** VIP. It runs Telegraf's
+With two or more local agents for the same tags (a group, [agent.md](agent.md#two-agents-for-the-same-devices-failover)),
+only one collects: the group's **primary**, which this Floorbit picks (agents from before the lease:
+the one holding the **first** VRRP address). It runs Telegraf's
 polling (SNMP, gNMI) and the NX-API, RESTCONF and OPNsense pollers, and sends the numbers and the
 IP and MAC history. The others write a Telegraf config with the listeners only, answer nothing
 about the devices, and send nothing. So a device is never polled or logged into by two agents,
-and the hosted Floorbit gets each minute once. When the first VIP moves, the agent that now holds
-it starts collecting within about 5 seconds; its picture fills within a polling round.
+and the hosted Floorbit gets each minute once. When the primary goes, the agent that gets the lease
+starts collecting within about 5 seconds; its picture fills within a polling round.
 
-Point the devices' traps, model-driven telemetry and a firewall's own Telegraf at the first VIP.
+Point the devices' traps, model-driven telemetry and a firewall's own Telegraf at the first VIP:
+a standby listens, but drops what it hears (issue #1447 changes that).
 
 Nothing comes in twice on the hosted side either:
 

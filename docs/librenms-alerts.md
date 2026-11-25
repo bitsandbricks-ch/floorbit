@@ -25,8 +25,9 @@ the built-in plugin [`librenms-alerts`](../floorbit/builtin_plugins/librenms-ale
   alone (LibreNMS may not list it yet), and a list that can't be read clears nothing. People with
   `incidents.work` can still clear one at once with **Clear** on the Problems page.
 
-Each alert is kept under its agent, its device and LibreNMS's alert id, which stays the same from
-the alert to its recovery. An update older than the one Floorbit has (the agent can send queued
+Each alert is kept under its agent's group (the agents with the same tags), its device and
+LibreNMS's alert id, which stays the same from the alert to its recovery. So an alert that reaches
+Floorbit through one agent of a pair is cleared by a recovery through the other. An update older than the one Floorbit has (the agent can send queued
 alerts late) changes nothing. Alerts hold device and port names only, never people.
 
 ## Setting it up

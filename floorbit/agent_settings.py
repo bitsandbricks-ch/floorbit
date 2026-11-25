@@ -271,7 +271,7 @@ def agent_block(agent_id):
         return {}
     settings = values(agent_id, reveal=True)
     out = {'settings': settings, 'roll_key': bool(record.get('roll_asked'))}
-    names = settings.get('cert_names') or []
+    names = cert_names(agent_id, settings.get('cert_names') or [])
     if names:
         out['cert'] = {'names': names, 'asked': record.get('cert_asked') or 0}
     from . import public_cert
@@ -331,13 +331,34 @@ def ask_cert(agent_id, now=None):
     return _change(agent_id, lambda a: a.__setitem__('cert_asked', now))['name']
 
 
+def cert_names(agent_id, own):
+    """The names on the agent's certificate: its own, then those of the agents it shares a group
+    with (the same tags, agent_ha.py). Two agents behind one VIP or check-in name answer for the
+    same names, so the second one needs none typed in (issue #1405)."""
+    from .agent_link import KEY as AGENTS
+    out = [n for n in own if isinstance(n, str)]
+    try:
+        agents = [a for a in load_data().get(AGENTS) or [] if not a.get('demo')]
+        me = next((a for a in agents if a['id'] == agent_id), None)
+        mine = sorted((me or {}).get('tags') or ())
+        for other in sorted(agents, key=lambda a: a['id']):
+            if me is None or other['id'] == agent_id or sorted(other.get('tags') or ()) != mine:
+                continue
+            for name in values(other['id']).get('cert_names') or []:
+                if isinstance(name, str) and name not in out:
+                    out.append(name)
+    except AgentError:
+        pass
+    return out[:MAX_NAMES]
+
+
 def issue_cert(agent_id, csr_pem, now=None):
     """Sign the agent's request for the names set on its page. Returns the PEM chain."""
     import time
 
     from . import agent_ca
     now = time.time() if now is None else now
-    names = values(agent_id).get('cert_names') or []
+    names = cert_names(agent_id, values(agent_id).get('cert_names') or [])
     pem, not_after, serial = agent_ca.sign(csr_pem, names)
 
     def keep(a):
