@@ -93,18 +93,29 @@ def fed_by(circuit, data):
     return {'seats': list(dict.fromkeys(seats)), 'switches': switches}
 
 
-def _feed_label(feed, blocks):
+def _feed_parts(feed, blocks):
+    """What one feed reaches, in the plan's words: the block's label, the rows' names, and whether
+    the block is named by its rows (then the rows are the hall's rows and the block has no name).
+    The browser words it in the reader's language (issue #1427)."""
     block = blocks.get(feed.get('block'))
     if block is None:
-        return 'a removed block'
-    rows = feed.get('rows') or []
+        return {'block': None, 'rows': [], 'by_rows': False}
     names = dict(zip((str(r['id']) for r in seat_rows.rows_of(block)), seat_names.row_names(block), strict=False))
-    picked = [names.get(str(r), str(r)) for r in rows]
-    if block.get('naming') == 'rows' and not block.get('name'):
-        # The rows are the hall's rows: "rows C, D" says it; "block ?" said nothing.
-        return f"row{'s' if len(picked) != 1 else ''} {', '.join(picked) if picked else seat_names.label(block)}"
-    rows_text = f" row{'s' if len(picked) > 1 else ''} {', '.join(picked)}" if picked else ''
-    return f"block {seat_names.label(block)}{rows_text}"
+    return {'block': seat_names.label(block), 'rows': [names.get(str(r), str(r)) for r in feed.get('rows') or []],
+            'by_rows': block.get('naming') == 'rows' and not block.get('name')}
+
+
+def _feed_label(feed, blocks):
+    """The feed in English as the plan writes it: "B · row 2", "Block A", "Rows C-D"."""
+    part = _feed_parts(feed, blocks)
+    if part['block'] is None:
+        return 'A removed block'
+    rows = part['rows']
+    many = 's' if len(rows) != 1 else ''
+    if part['by_rows']:
+        # The rows are the hall's rows: "Rows C, D" says it; "Block ?" said nothing.
+        return f"Row{many} {', '.join(rows) if rows else part['block']}"
+    return f"{part['block']} · row{many} {', '.join(rows)}" if rows else f"Block {part['block']}"
 
 
 # ── Cleaning what the browser sends ───────────────────────────────────────────
@@ -429,7 +440,8 @@ class PowerWatch:
             state, pct = state_of(c, reading)
             feeds = fed_by(c, data)
             out.append({**c, 'reading': reading, 'state': state, 'load_pct': pct, 'fed': feeds,
-                        'feeds_label': '; '.join(_feed_label(f, blocks) for f in c.get('blocks') or [])})
+                        'feeds_label': '; '.join(_feed_label(f, blocks) for f in c.get('blocks') or []),
+                        'feeds_parts': [_feed_parts(f, blocks) for f in c.get('blocks') or []]})
         order = {s: i for i, s in enumerate(('tripped', 'crit', 'warn', 'unknown', 'ok'))}
         out.sort(key=lambda c: (order[c['state']], c['name'].lower()))
         warn, crit = thresholds()

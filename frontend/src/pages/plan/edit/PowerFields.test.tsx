@@ -26,12 +26,12 @@ describe('New distribution board dialog', () => {
 })
 
 const circuit = (id: string, board: string, extra: Partial<Circuit> = {}) =>
-  ({ id, board, name: id, state: 'ok', load_pct: 42, feeds_label: '', ...extra }) as unknown as Circuit
+  ({ id, board, name: id, state: 'ok', load_pct: 42, feeds_label: '', feeds_parts: [], ...extra }) as unknown as Circuit
 
 describe('Distribution board fields', () => {
   function fields(feedable: number) {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/power': { circuits: [
-      circuit('C1', 'DB-1', { feeds_label: 'Block A' } as Partial<Circuit>),
+      circuit('C1', 'DB-1', { feeds_parts: [{ block: 'A', rows: [], by_rows: false }] } as Partial<Circuit>),
       circuit('C2', 'DB-1', { state: 'tripped', load_pct: null }),
       circuit('C9', 'DB-2'),
     ] } }).fn)

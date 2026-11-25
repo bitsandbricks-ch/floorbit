@@ -22,13 +22,13 @@ const circuit = (over: Partial<Circuit> = {}): Circuit => ({
   id: 'c1', board: 'b1', name: 'A row 2', phase: 'L2', rating_a: 16, meter: '', switches: ['s1'],
   blocks: [{ block: 'blk', rows: [2] }], tripped: null,
   reading: { amps: 13.2, at: now - 120, source: 'manual', by: 'kim' }, state: 'warn', load_pct: 82.5,
-  fed: { seats: ['A-4', 'A-5', 'A-6'], switches: [{ id: 's1', name: 'sw-a-01' }] }, feeds_label: 'block A row 2',
+  fed: { seats: ['A-4', 'A-5', 'A-6'], switches: [{ id: 's1', name: 'sw-a-01' }] }, feeds_label: 'A · row 2', feeds_parts: [{ block: 'A', rows: ['2'], by_rows: false }],
   ...over,
 })
 const overview = (over: Partial<PowerOverview> = {}): PowerOverview => ({
   enabled: true, boards: [{ id: 'b1', name: 'DB-1', location: 'West wall', x: 4, y: 40 }],
   circuits: [circuit(), circuit({ id: 'c2', name: 'Network rack', state: 'tripped', load_pct: null, reading: null,
-    tripped: { by: 'kim', at: now - 60 }, feeds_label: '', fed: { seats: [], switches: [{ id: 'core', name: 'core-01' }] } })],
+    tripped: { by: 'kim', at: now - 60 }, feeds_label: '', feeds_parts: [], fed: { seats: [], switches: [{ id: 'core', name: 'core-01' }] } })],
   counts: { ok: 0, warn: 1, crit: 0, tripped: 1, unknown: 0 }, warn: 80, crit: 95, last_poll: null, plugins: 0,
   blocks: [{ id: 'blk', name: 'A', rows: 2, label: 'A', row_names: ['1', '2'] }], can_edit: false, can_read: true, ...over,
 })
@@ -45,7 +45,7 @@ describe('Electrics', () => {
     const row = link.closest('tr') as HTMLElement
     expect(within(row).getByText('Getting close')).toBeInTheDocument()
     expect(within(row).getByText('13.2 A of 16 A (82.5 %)')).toBeInTheDocument()
-    expect(within(row).getByText('block A row 2, sw-a-01')).toBeInTheDocument()
+    expect(within(row).getByText('A · row 2, sw-a-01')).toBeInTheDocument()
     expect(within(row).getByText('3 seats')).toBeInTheDocument()
     // No buttons on the rows: everything is done on the circuit's page (issue #877).
     expect(within(row).queryByRole('button')).toBeNull()

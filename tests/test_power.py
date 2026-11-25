@@ -67,7 +67,7 @@ def test_a_circuit_feeds_rows_and_switches(client, floor):
     c = body["circuits"][0]
     assert c["fed"]["seats"] == ["A-4", "A-5", "A-6"]
     assert c["fed"]["switches"] == [{"id": floor["switch"], "name": "sw-a-01"}]
-    assert c["state"] == "unknown" and c["feeds_label"] == "block A row 2"
+    assert c["state"] == "unknown" and c["feeds_label"] == "A · row 2"
     assert body["can_edit"] and body["blocks"] == [{"id": floor["block"], "name": "A", "label": "A",
                                                  "row_names": ["1", "2"], "rows": 2, "row_ids": [1, 2]}]
 
@@ -170,7 +170,9 @@ def test_demo_meters_feed_the_circuits(client, watch):
     body = client.post("/api/power/check").get_json()
     assert body["plugins"] == 1 and len(body["boards"]) == 2 and len(body["circuits"]) == 9
     by_name = {c["name"]: c for c in body["circuits"]}
-    assert by_name["B row 2"]["state"] == "warn" and by_name["B row 2"]["reading"]["source"] == "plugin"
+    # C row 2 is the demo's row near its limit (its open incident); it peaks over 95 % now and then.
+    assert by_name["C row 2"]["state"] in ("warn", "crit") and by_name["C row 2"]["reading"]["source"] == "plugin"
+    assert by_name["B row 2"]["state"] == "ok"
     assert by_name["Network rack"]["fed"]["switches"][0]["name"] == "core-01"
     assert len(by_name["A row 1"]["fed"]["seats"]) == 12
 
