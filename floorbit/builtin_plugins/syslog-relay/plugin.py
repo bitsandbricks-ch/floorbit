@@ -10,6 +10,18 @@ BATCH = 2000
 
 
 class Plugin(Base):
+    def agent_settings(self, settings, agent_id=None):
+        """In a group that splits its devices (#1441), the addresses of those another agent owns:
+        the agent part holds their lines for a takeover instead of sending them."""
+        if agent_id is None:
+            return settings
+        from floorbit.telemetry import targets
+        connected = agent_link.tunnel.connected_agents()
+        given = targets.for_agent(targets.listing(), agent_id, connected)
+        others = sorted({str(t[k]) for t in given if t.get('split') and not t.get('mine')
+                         for k in ('address', 'name') if t.get(k)})
+        return {**settings, 'others': others}
+
     def agent_lines(self, agent, payload):
         receiver = current_app.extensions.get('floorbit_syslog')
         if receiver is None or not features.on('syslog'):

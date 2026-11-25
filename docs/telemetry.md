@@ -307,6 +307,10 @@ device name (rendezvous hashing). Floorbit and the agent compute the same owner,
   the group (both VIPs, or each agent's address). The owner handles what comes in. Every other
   agent keeps the last minute of it (up to 20,000 points) and drops the rest. When a device
   becomes its own, it handles that minute first, so a failover loses nothing.
+- Syslog works the same way: devices log to every agent, only the owner sends a device's lines
+  on, and the others hold the last minute for a takeover (the "Syslog from the hall" plugin, with
+  floorbit-agent's `syslog_relay.py`). An agent from before this sends every line, which the
+  hosted side keeps once, as before.
 
 A group with one agent, or with an agent from before the split, works as above: the primary
 collects everything. Devices pinned to one agent or a tag (below) are left alone.
