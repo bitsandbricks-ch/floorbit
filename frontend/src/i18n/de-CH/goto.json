@@ -1,14 +1,9 @@
 {
-  "button": "Gehe zu",
-  "title": "Zu einer Seite",
   "placeholder": "Seite, Platz, Switch, IP oder MAC eingeben",
-  "none": "Nichts passt.",
   "close": "Schliessen",
-  "recent": "zuletzt",
   "seat": "Platz",
   "switch": "Switch",
   "player": "Spieler",
-  "action": "Aktion",
   "actions": {
     "notice": "Crew-Hinweis aufhängen",
     "notify": "Benachrichtigungen einstellen"
@@ -97,5 +92,10 @@
     "checkins": "PIN, Ankunft",
     "firewalls": "Routing, Uplinks",
     "networkStatus": "Statusseite, Teilnehmende, Störung, Meldung"
+  },
+  "groups": {
+    "pages": "Seiten",
+    "places": "Plätze, Switches und Spieler",
+    "actions": "Aktionen"
   }
 }
