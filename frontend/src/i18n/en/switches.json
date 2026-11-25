@@ -1,0 +1,31 @@
+{
+  "title": "Switches",
+  "intro": "The inventory's switches with what they do right now. A row opens the switch's page.",
+  "search": "Search switches",
+  "inInventory": "Open in Inventory",
+  "none": "No switches in the inventory yet.",
+  "noMatch": "No switch matches the filters.",
+  "foot": "The same switches as in Inventory, with live columns. Tier comes from the topology: core has no uplink, access has seats.",
+  "poe": "{{used}} / {{budget}} W",
+  "col": {
+    "name": "Switch", "state": "State", "seats": "Seats", "ports": "Ports up", "uplink": "Uplink",
+    "load": "Uplink load", "poe": "PoE", "lastDay": "Last 24 h"
+  },
+  "tier": { "core": "core", "distribution": "distribution", "access": "access" },
+  "state": { "up": "Up", "errors": "Uplink issue", "down": "Down", "unknown": "Not read" },
+  "filter": { "tier": "Tier", "state": "State", "hall": "Hall", "any": "Any" },
+  "fig": {
+    "up": "Switches up",
+    "down_one": "{{names}} down: {{count}} seat offline",
+    "down_other": "{{names}} down: {{count}} seats offline",
+    "allUp": "All switches answer",
+    "notRead": "Not read yet",
+    "ports": "Ports up",
+    "portsSub": "On switches with seats",
+    "busiest": "Busiest uplink",
+    "noLoad": "No uplink read yet",
+    "poe": "PoE in use",
+    "poeSub": "Of {{budget}} W budget",
+    "noPoe": "No switch reported PoE"
+  }
+}
