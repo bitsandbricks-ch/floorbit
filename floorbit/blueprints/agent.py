@@ -88,6 +88,23 @@ def list_agents():
                     'groups': agent_ha.groups(agents, names), 'hosted': cluster.status()})
 
 
+@bp.route('/api/agents/load', methods=['GET'])
+def load():
+    """Every agent's work over the last hour in one answer, for the sparklines in the Local agents
+    list (one request instead of one per agent): ``{"hours", "agents": {agent id: {"load": [[time,
+    per minute]], "syslog": lines per minute}}}`` (agent_history.add_up)."""
+    from .. import agent_demo, agent_history
+    from ..database import DatabaseUnavailable
+    series = {}
+    try:
+        for a in agent_link.all_agents():
+            series[a['id']] = (agent_history.add_up(agent_demo.history(a['id'], 1)) if a.get('demo')
+                               else agent_history.load(a['id'], 1))
+    except DatabaseUnavailable:
+        return jsonify({'error': 'The database is not answering.', 'code': 'database_unavailable'}), 503
+    return jsonify({'hours': 1, 'agents': series})
+
+
 @bp.route('/api/agents/<agent_id>/history', methods=['GET'])
 def history(agent_id):
     """One agent's numbers over time, for the graphs on its page (agent_history.py)."""

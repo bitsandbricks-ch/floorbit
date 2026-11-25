@@ -86,3 +86,26 @@ def history(agent_id, hours=6, now=None):
     now = time.time() if now is None else now
     store = storage.storage()
     return {m: store.series(device(agent_id), None, m, hours, now) for m in METRICS}
+
+
+
+LOAD = ('points', 'syslog')   # what an agent works through: telemetry points and syslog lines
+
+
+def add_up(series):
+    """``{"load": [[time, points + syslog lines per minute]], "syslog": latest syslog lines per
+    minute or None}`` from one agent's {metric: [[time, value]]}."""
+    total = {}
+    for name in LOAD:
+        for at, value in series.get(name) or ():
+            total[at] = total.get(at, 0.0) + value
+    syslog = series.get('syslog') or []
+    return {'load': [[at, round(v, 2)] for at, v in sorted(total.items())],
+            'syslog': syslog[-1][1] if syslog else None}
+
+
+def load(agent_id, hours=1, now=None):
+    """One agent's work over the last hours: the Local agents list's sparkline and syslog rate."""
+    now = time.time() if now is None else now
+    store = storage.storage()
+    return add_up({m: store.series(device(agent_id), None, m, hours, now) for m in LOAD})

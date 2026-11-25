@@ -35,6 +35,13 @@ export function useAgentTags() {
 
 export const agentHref = (id: string) => `/settings/agents/${encodeURIComponent(id)}`
 
+/** Where a group's own page is (its failover and shared addresses, #1405): the group row on the
+ *  Local agents list links its name and "Group page" here. None yet: the row shows plain text. */
+export function groupHref(id: string): string | null {
+  void id
+  return null
+}
+
 /** One agent's settings page: fields, values with their source, plugin overrides, key and certificate state. */
 export function useAgentSettings(agentId: string) {
   return useQuery({ queryKey: [...qk.agents, agentId, 'settings'], queryFn: () => get<AgentSettingsPage>(`/api/agents/${agentId}/settings`) })

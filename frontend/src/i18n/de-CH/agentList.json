@@ -1,0 +1,62 @@
+{
+  "label": "Agents nach Gruppe",
+  "groupLabel": "Agents in {{group}}",
+  "search": "Agent, Adresse oder Gerät suchen",
+  "show": "Zeigen",
+  "group": "Gruppe",
+  "anyGroup": "Alle Gruppen",
+  "filter": {
+    "all": "Alle",
+    "look": "Zu prüfen",
+    "offline": "Offline",
+    "old": "Ältere Version"
+  },
+  "noMatch": "Kein Agent passt zur Suche oder zu den Filtern.",
+  "namesMore_one": "{{names}} und 1 weiterer",
+  "namesMore_other": "{{names}} und {{count}} weitere",
+  "fig": {
+    "online": "Online",
+    "offline": "Offline: {{names}}",
+    "allOnline": "Alle verbunden",
+    "look": "Zu prüfen",
+    "allGood": "Nichts zu tun",
+    "failover": "Ausfallsicher",
+    "failoverSub": "Gruppen mit zwei oder mehr Agents",
+    "noPairs": "Noch keine Gruppe hat zwei Agents",
+    "current": "Aktuell",
+    "older_one": "1 läuft mit einer älteren Version, neuste {{newest}}",
+    "older_other": "{{count}} laufen mit einer älteren Version, neuste {{newest}}",
+    "newest": "Alle auf {{newest}}"
+  },
+  "agents_one": "1 Agent",
+  "agents_other": "{{count}} Agents",
+  "groupPage": "Seite der Gruppe",
+  "col": {
+    "state": "Zustand",
+    "agent": "Agent",
+    "role": "Rolle",
+    "devices": "Geräte",
+    "syslog": "Syslog/s",
+    "load": "Last, 1 h",
+    "version": "Version",
+    "look": "Zu prüfen"
+  },
+  "role": {
+    "primary": "Primär",
+    "active": "Aktiv",
+    "standby": "Bereitschaft",
+    "alone": "Allein",
+    "offline": "Offline"
+  },
+  "more_one": "und 1 weiteres",
+  "more_other": "und {{count}} weitere",
+  "newest": "Der neuste Agent läuft mit {{newest}}",
+  "loadNow": "Jetzt {{n}} Telemetrie-Punkte und Syslog-Zeilen pro Minute",
+  "loadTitle": "Last in der letzten Stunde",
+  "address": "Adresse",
+  "openPage": "Seite des Agents öffnen",
+  "nothing": "Nichts. Er läuft, wie er soll.",
+  "update_one": "1 Agent aktualisieren",
+  "update_other": "{{count}} Agents aktualisieren",
+  "updateTitle": "Die Agents mit einer älteren Version zeigen, und wie man sie aktualisiert"
+}
