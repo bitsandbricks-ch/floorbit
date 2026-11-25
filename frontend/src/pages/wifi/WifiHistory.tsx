@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
-import type { TimePoint } from '@bitsandbricks/widgets'
-import { HoverTimeChart } from '@/components/HoverTimeChart'
+import { TimeChart, type TimePoint } from '@bitsandbricks/widgets'
 
 /** GET /api/wifi/history: clients on the controllers that stream to Telemetry (floorbit/wifi.py). */
 export interface WifiHistoryData { controllers: string[]; points: TimePoint[]; hours: number }
@@ -37,7 +36,7 @@ export function WifiHistory() {
         <Text size="sm" c="dimmed">{t('wifi.historyNone')}</Text>
       ) : (
         <>
-          <HoverTimeChart points={q.data.points} since={since} until={until} label={t('wifi.history')}
+          <TimeChart points={q.data.points} since={since} until={until} label={t('wifi.history')}
             format={(v) => t('wifi.historyMax', { n: num(v) })} value={num} />
           <Text size="xs" c="dimmed" mt="xs">{t('wifi.historyFrom', { controllers: q.data.controllers.join(', ') })}</Text>
         </>

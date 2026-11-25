@@ -24,6 +24,7 @@ PAGES = (
      lambda c, can: c['feature_on']('incidents') and c.get('incidents_board')),
     ('/handover', 'handover', 'Shift handover', lambda c, can: c['feature_on']('handover') and can('incidents.work')),
     ('/plan?view=topology', 'topology', 'Topology', None),
+    ('/switches', 'switches', 'Switches', None),
     ('/firewalls', 'firewalls', 'Firewalls', None),
     ('/services', 'services', 'Services', None),
     ('/wifi', 'wifi', 'Wi-Fi', lambda c, can: c['feature_on']('wifi') and c.get('wifi_on')),
