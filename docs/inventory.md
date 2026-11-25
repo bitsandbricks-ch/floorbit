@@ -104,6 +104,22 @@ or the trap's `sysName`). **Add to inventory** makes the device with that addres
 out of the count and the Problems page, where the rest show as one row to look at. Only these counts
 leave the agents, never the lines. Up to 200 addresses are kept per kind.
 
+### The Discovery tab
+
+**Discovery** (the last tab, issue #891) lists what the agents found that the inventory doesn't have
+yet. Nothing is added on its own.
+
+- **Devices**: boxes the switches see by LLDP or CDP whose name or address matches no device, with
+  the switch ports that see them, and the [unknown senders](#unknown-senders). **Add** opens a new
+  device prefilled with the name and address; **Ignore** leaves the row out.
+- **Links**: links LLDP or CDP sees between two inventory devices that no planned link explains.
+  **Confirm link** adds it as a planned link (`POST /api/links`); until then the topology view of
+  the floor plan lists it under *Found by LLDP* instead of drawing it.
+
+`GET /api/inventory/found` lists both (viewers and up); `POST /api/inventory/found/ignore`
+`{"kind": "device"|"link", "key", "ignored"}` leaves one out or takes it back (editors, audit-logged).
+Devices plugins report through their own discovery areas (#968) will land here too.
+
 ## Interfaces
 
 A device's interfaces are its ports: switch ports, a server's NICs, a firewall's interfaces, a VM's
