@@ -54,7 +54,7 @@ PAGES = (
     ('/schedule', 'schedule', 'Schedule', lambda c, can: c['feature_on']('schedule')),
     ('/timeline', 'timeline', 'Event changelog', lambda c, can: c['feature_on']('timeline') and can('audit.read')),
     ('/telemetry', 'telemetry', 'Telemetry', None),
-    ('/network-status', 'networkStatus', 'Network status',
+    ('/network-status', 'networkStatus', 'Status updates',
      lambda c, can: c['feature_on']('status_page') and can('incidents.work')),
     ('/replay', 'replay', 'Event replay', lambda c, can: c['feature_on']('replay')),
     ('/report', 'report', 'Event report', lambda c, can: c['feature_on']('report')),
