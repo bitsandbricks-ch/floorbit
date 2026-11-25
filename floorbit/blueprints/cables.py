@@ -126,6 +126,7 @@ def import_cables():
 @bp.route('/api/cables/check', methods=['GET'])
 def check_cables():
     watch = current_app.extensions.get('floorbit_attention')
+    watch = watch.view() if watch is not None else None
     if watch is None or not watch.last_poll:
         return jsonify({'last_poll': None, 'rows': [], 'missing': {'count': 0, 'rows': []},
                         'down': {'count': 0, 'rows': []}, 'unplanned': {'count': 0, 'rows': []},

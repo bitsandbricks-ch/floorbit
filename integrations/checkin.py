@@ -909,7 +909,10 @@ class CheckinRefresher:
         while True:
             interval = config.get_int('CHECKIN_REFRESH_INTERVAL', 300, minimum=30)
             try:
-                if _monitoring().enabled() and config.get_bool('CHECKIN_ENABLED', False) and load_all():
+                from floorbit import cluster
+                # Several pods: one refreshes, the others read what it saved (issue #1417).
+                if cluster.leading() and _monitoring().enabled() and config.get_bool('CHECKIN_ENABLED', False) \
+                        and load_all():
                     refresh_once()
                     self.last_run, self.last_error = time.time(), None
             except Exception as exc:  # noqa: BLE001  # keep the refresh thread alive

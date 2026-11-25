@@ -21,7 +21,7 @@ import threading
 import time
 from collections import deque
 
-from . import database, store
+from . import database, shared_state, store
 
 DAY = 24 * 3600
 HOUR = 3600
@@ -62,9 +62,17 @@ def link_ports(data):
     return out
 
 
+SHARED = 'stats'
+FOLLOW_EVERY = 30   # seconds: how stale the saved stats may get on a pod that doesn't lead
+
+
 class Stats:
+    """With several pods only the leader records (floorbit/attention.py reads the ports there). The
+    others read what it saved now and then, and the latest numbers it shares (issue #1417)."""
+
     def __init__(self):
         self._lock = threading.Lock()
+        self._followed = 0.0
         self.reset()
 
     def reset(self):
@@ -90,8 +98,47 @@ class Stats:
         self._saved_at = 0.0
         self._path = None
 
+    # ── several pods ──────────────────────────────────────────────────────────
+    def reload(self):
+        """Read the saved stats again (this pod took the lead: what the old one saved last)."""
+        with self._lock:
+            path = self._path
+            self.reset()
+            self._path = path
+            self._read_saved()
+
+    def _share(self, sample):
+        shared_state.put(SHARED, {'sample': sample, 'peak': self.peak, 'uplinks': self.uplinks, 'top': self.top,
+                                  'seat_bps': self.seat_bps, 'last': self.last})
+
+    def _follow(self):
+        """On a pod that doesn't lead: the saved stats, at most FOLLOW_EVERY old, and the leader's
+        latest read on top. Called with the lock held."""
+        now = time.time()
+        if not 0 <= now - self._followed < FOLLOW_EVERY:
+            path = self._path
+            self.reset()
+            self._path = path
+            self._read_saved()
+            self._followed = now
+        live = shared_state.get(SHARED)
+        if not isinstance(live, dict):
+            return
+        sample = live.get('sample')
+        if isinstance(sample, dict) and (not self.samples or sample.get('t', 0) > self.samples[-1]['t']):
+            self.samples.append(sample)
+        self.peak = live.get('peak') or self.peak
+        self.uplinks, self.top = live.get('uplinks') or [], live.get('top') or []
+        self.seat_bps, self.last = live.get('seat_bps') or {}, live.get('last')
+
     # ── storage ───────────────────────────────────────────────────────────────
     def _load(self):
+        if shared_state.follower():
+            self._follow()
+        else:
+            self._read_saved()
+
+    def _read_saved(self):
         """Read what was kept before. While the database is away this stays undone and nothing is
         saved: a day that started from nothing would overwrite the stored one once it is back."""
         if self._loaded:
@@ -125,8 +172,8 @@ class Stats:
             self.seen_up = set(saved.get('seen_up') or [])
 
     def _save(self, now=None, force=False):
-        if not self._loaded or self._path is None:
-            return
+        if not self._loaded or self._path is None or shared_state.follower():
+            return       # only the leader writes: a follower's copy is older than what it holds
         now = time.time() if now is None else now
         if not force and 0 <= now - self._saved_at < SAVE_EVERY:
             return
@@ -207,6 +254,7 @@ class Stats:
             self._hour(sample)
             self.last = now
             self._save(now)
+            self._share(sample)
         return sample
 
     def _seat_changes(self, online, now):
@@ -357,6 +405,7 @@ class Stats:
         """The seats that went online (1) or offline (0) at the read at ``t``, as [[seat, 1|0]]
         (issue #178). The first read is not a change."""
         with self._lock:
+            self._load()
             if self.seat_base['t'] is not None and t <= self.seat_base['t']:
                 return []
             out = []
@@ -383,6 +432,8 @@ class Stats:
     def seats(self):
         """Traffic per online seat from the latest read: seat numbers and numbers, nothing else."""
         with self._lock:
+            if shared_state.follower():
+                self._follow()
             return {'seats': dict(self.seat_bps), 'last_poll': self.last}
 
     def reset_peak(self):
@@ -405,6 +456,14 @@ class Stats:
         out['day'] = _window(samples, now - DAY)
         out['series'] = [{k: s[k] for k in ('t', 'down', 'up', 'online')} for s in samples]
         return out
+
+
+def on_leader(stats, method):
+    """``new_event`` or ``reset_peak`` where the stats are recorded, then read again here."""
+    if not shared_state.follower():
+        return getattr(stats, method)()
+    shared_state.ask(f'stats.{method}')
+    stats._followed = 0.0
 
 
 def _replay(base, events, until=None):
@@ -439,6 +498,9 @@ def init_stats(app):
     from integrations import events
     stats = Stats()
     app.extensions['floorbit_stats'] = stats
+    # A new event or a peak reset from a page changes what the leader records (issue #1417).
+    shared_state.answer('stats.new_event', stats.new_event)
+    shared_state.answer('stats.reset_peak', stats.reset_peak)
     # One subscription for the process: the newest app's stats take the switch changes.
     _current = stats
     events.subscribe_once('switch.status', _on_switch_status)

@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from integrations import config
 
-from . import game_query, probes, vault
+from . import game_query, probes, shared_state, vault
 from .store import load_data, save_data
 
 KEY = 'game_servers'
@@ -234,7 +234,12 @@ def _info(raw):
             'ping_ms': round(float(ping), 1) if isinstance(ping, (int, float)) and not isinstance(ping, bool) else None}
 
 
-class Poller:
+class Poller(shared_state.Shared):
+    # With several pods only the leader asks the servers; the others show this (issue #1417).
+    shared_name = 'game_servers'
+    shared_fields = ('_state', 'last_poll')
+    leader_calls = ('check_now',)
+
     def __init__(self):
         self._lock = threading.Lock()
         self._state = {}          # server id -> {status, info, error, checked_at, since, history}
@@ -275,6 +280,12 @@ class Poller:
             self._state[server['id']] = state
         return state
 
+    def check_now(self, server):
+        """One server asked for by a page (just added, "check"): on the leader, and shared."""
+        state = self.check(server)
+        self.share()
+        return state
+
     def poll_once(self, now=None):
         servers = _all()
         if servers:
@@ -285,10 +296,12 @@ class Poller:
             for gone in set(self._state) - known:
                 self._state.pop(gone)
             self.last_poll = time.time() if now is None else now
+        self.share()
 
     def state(self, server_id):
+        seen = self.view()
         with self._lock:
-            return dict(self._state.get(server_id) or {'status': 'unknown', 'info': None, 'error': '',
+            return dict(seen._state.get(server_id) or {'status': 'unknown', 'info': None, 'error': '',
                                                         'checked_at': None, 'since': None, 'history': []})
 
     def running(self):
@@ -308,7 +321,7 @@ class Poller:
     def _run(self):
         while not self._stop.is_set():
             try:
-                if _all():
+                if shared_state.my_turn(self) and _all():
                     self.poll_once()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 print(f'[game-servers] poll failed: {exc}')
@@ -321,10 +334,10 @@ poller = Poller()
 def overview():
     """Every server with how it was the last time it was asked."""
     servers = listing()
-    if servers and poller.last_poll is None and not poller.running():
+    if servers and poller.last_poll is None and not poller.running() and not shared_state.follower():
         poller.poll_once()          # no background thread (tests, a one-off): ask now rather than show all grey
     rows = [{**s, **poller.state(s['id'])} for s in servers]
-    return {'servers': rows, 'interval': poller.interval(), 'last_poll': poller.last_poll,
+    return {'servers': rows, 'interval': poller.interval(), 'last_poll': poller.view().last_poll,
             'via_agent': _via_agent(),
             'counts': {k: sum(r['status'] == k for r in rows) for k in ('up', 'down', 'unknown')},
             'players': sum((r['info'] or {}).get('players') or 0 for r in rows if r['status'] == 'up')}

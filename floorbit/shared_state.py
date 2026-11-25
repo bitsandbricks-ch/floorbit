@@ -107,3 +107,91 @@ def serve(method, args, targets=None, timeout=None):
     if fn is None:
         raise ValueError('Unknown leader request.')
     return fn(*(args or []))
+
+
+def my_turn(poller):
+    """Should this pod's ``poller`` poll now? Only on the leader. The first time after this pod took
+    the lead, the poller carries on from what the old leader shared (``take_over``)."""
+    from . import cluster
+    if not cluster.leading():
+        poller._shared_led = False
+        return False
+    if not getattr(poller, '_shared_led', False):
+        poller._shared_led = True
+        poller.answer_calls()
+        poller.take_over()
+    return True
+
+
+class _View:
+    """A poller as the leader last shared it: its shared fields from there, the rest its own."""
+
+    def __init__(self, own, seen):
+        self._own, self._seen = own, seen
+
+    def __getattr__(self, name):
+        if name in self._own.shared_fields and name in self._seen:
+            return self._own.shared_restore(name, self._seen[name])
+        return getattr(self._own, name)
+
+
+class Shared:
+    """For a poller whose read side the other pods show. Set ``shared_name`` and ``shared_fields``
+    (attributes that survive JSON: dict keys become text, tuples and sets lists), call ``share()``
+    at the end of each poll, read through ``view()``, and ask ``poll_now()`` from requests.
+    ``leader_calls`` names more methods a request runs on the leader with ``on_leader``."""
+    shared_name = None
+    shared_fields = ()
+    leader_calls = ()
+
+    def answer_calls(self):
+        for method in ('poll_once', *self.leader_calls):
+            if hasattr(self, method):
+                answer(f'{self.shared_name}.{method}', getattr(self, method))
+
+    def share(self):
+        # The leader shares after each poll: from now on the other pods' "check now" reaches it.
+        self.answer_calls()
+        put(self.shared_name, {f: self.shared_dump(f, getattr(self, f)) for f in self.shared_fields})
+
+    def take_over(self):
+        seen = get(self.shared_name)
+        if isinstance(seen, dict):
+            for f in self.shared_fields:
+                if f in seen:
+                    setattr(self, f, self.shared_restore(f, seen[f]))
+
+    @staticmethod
+    def shared_dump(field, value):
+        """A field as it goes to Valkey (a subclass flattens dicts with tuple keys)."""
+        return _plain(value)
+
+    @staticmethod
+    def shared_restore(field, value):
+        """A shared field back as the poller keeps it (a subclass turns lists back into sets)."""
+        return value
+
+    def view(self):
+        if not follower():
+            return self
+        seen = get(self.shared_name)
+        return _View(self, seen if isinstance(seen, dict) else {})
+
+    def poll_now(self, *args):
+        """A "check now" from a request: polls on the leader, wherever the request landed."""
+        return self.on_leader('poll_once', *args)
+
+    def on_leader(self, method, *args):
+        """``method`` run on the leader (here without the cluster); its answer."""
+        self.answer_calls()
+        try:
+            return ask(f'{self.shared_name}.{method}', *args)
+        finally:
+            with _lock:
+                _read.pop(self.shared_name, None)    # show what that poll found, not the last read
+
+
+def _plain(value):
+    if isinstance(value, (set, frozenset)):
+        return sorted(value, key=str)
+    return value

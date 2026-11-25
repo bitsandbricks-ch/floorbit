@@ -39,7 +39,7 @@ def answer(app, agent=None):
     if finder is not None:
         finder.request()      # at most every two minutes, in the background
         checked_in = {str(seat).upper() for seat in rows}
-        done.update(ip for ip, seat in dict(finder.seat_ips).items() if seat in checked_in)
+        done.update(ip for ip, seat in dict(finder.view().seat_ips).items() if seat in checked_in)
     # Through the check-in name the page goes through an agent, which names the PC's address; the
     # public URL only sees the hall's NAT, so check-in from there can't find the seat's port.
     public = checkin.hall_url() or str(config.get('PUBLIC_URL', '') or '').rstrip('/')

@@ -115,34 +115,34 @@ def circuit(circuit_id=None):
     except power.PowerError as exc:
         return _error(exc)
     _changed('Changed circuit' if circuit_id else 'Added circuit', found['name'])
-    _watch().evaluate()   # a lower rating can turn it red
+    _watch().on_leader('evaluate')   # a lower rating can turn it red
     return jsonify(found), 200 if circuit_id else 201
 
 
 @bp.route('/api/power/circuits/<circuit_id>/reading', methods=['POST'])
 def reading(circuit_id):
     _need(reading=True)
-    _watch().ensure_baseline()
+    _watch().on_leader('ensure_baseline')
     try:
         found = power.set_reading(circuit_id, request.get_json(silent=True) or {}, g.get('audit_user'))
     except power.PowerError as exc:
         return _error(exc)
     _changed('Entered reading', found['name'])
-    alerts = _watch().evaluate()
+    alerts = _watch().on_leader('evaluate')
     return jsonify({'circuit': found, 'alerts': alerts})
 
 
 @bp.route('/api/power/circuits/<circuit_id>/trip', methods=['POST'])
 def trip(circuit_id):
     _need(reading=True)
-    _watch().ensure_baseline()
+    _watch().on_leader('ensure_baseline')
     tripped = bool((request.get_json(silent=True) or {}).get('tripped', True))
     try:
         found = power.set_tripped(circuit_id, tripped, g.get('audit_user'))
     except power.PowerError as exc:
         return _error(exc)
     _changed('Breaker tripped' if tripped else 'Breaker back on', found['name'])
-    alerts = _watch().evaluate()
+    alerts = _watch().on_leader('evaluate')
     return jsonify({'circuit': found, 'alerts': alerts})
 
 
@@ -150,5 +150,5 @@ def trip(circuit_id):
 def check_now():
     if not power.enabled():
         abort(409, description='The power layer is off (Settings > Electrics).')
-    _watch().poll_once()
+    _watch().poll_now()
     return jsonify(_watch().snapshot())

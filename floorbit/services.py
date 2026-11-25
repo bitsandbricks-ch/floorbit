@@ -30,7 +30,7 @@ from flask import current_app, has_app_context
 
 from integrations import config
 
-from . import inventory, lancache, links, probes
+from . import inventory, lancache, links, probes, shared_state
 from .store import load_data, save_data
 
 KEY = 'services'
@@ -482,7 +482,11 @@ def test_check(body):
 CHECK = {'uplinks': check_uplink, 'resolvers': check_resolver, 'sites': check_site, 'checks': check_own}
 
 
-class Poller:
+class Poller(shared_state.Shared):
+    # With several pods only the leader checks; the others show this (issue #1417).
+    shared_name = 'services'
+    shared_fields = ('_state', 'last_poll')
+
     def __init__(self):
         self._lock = threading.Lock()
         self._state = {}          # id -> {status, since, checked_at, history, **values}
@@ -526,10 +530,12 @@ class Poller:
             for gone in set(self._state) - known:
                 self._state.pop(gone)
             self.last_poll = time.time() if now is None else now
+        self.share()
 
     def state(self, item_id):
+        seen = self.view()
         with self._lock:
-            found = self._state.get(item_id)
+            found = seen._state.get(item_id)
             return dict(found) if found else {'status': 'unknown', 'checked_at': None, 'since': None, 'history': [],
                                               'error': ''}
 
@@ -551,7 +557,7 @@ class Poller:
         while not self._stop.is_set():
             try:
                 stored = _stored(load_data())
-                if any(stored.values()):
+                if shared_state.my_turn(self) and any(stored.values()):
                     self.poll_once()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 print(f'[services] poll failed: {exc}')
@@ -591,12 +597,14 @@ def overview(now=None):
     data = load_data()
     stored = _stored(data)
     new = [(kind, item) for kind in KINDS for item in stored[kind] if poller.state(item['id'])['checked_at'] is None]
-    if new:
+    if new and shared_state.follower():
+        poller.poll_now()           # the leader checks (issue #1417)
+    elif new:
         # Just added, or no background thread (tests, a one-off): check now rather than show them grey.
         with ThreadPoolExecutor(min(8, len(new))) as pool:
             list(pool.map(lambda j: poller.check(*j, now), new))
     out = {kind: [{**item, **poller.state(item['id'])} for item in stored[kind]] for kind in KINDS}
-    out.update(lan_cache=lan_cache(now), interval=poller.interval(), last_poll=poller.last_poll,
+    out.update(lan_cache=lan_cache(now), interval=poller.interval(), last_poll=poller.view().last_poll,
                via_agent=_via_agent(), probe_ports=list(probes.PROBE_PORTS),
                # Where a line can come in, for the form: routers and firewalls first.
                devices=[d['name'] for d in sorted((d for d in inventory.devices(data) if d.get('name')),

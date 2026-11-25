@@ -9,11 +9,11 @@ Redis (``REDIS_HOST``) for four things that otherwise live in one pod's memory:
   pod through a Redis list and the answer comes back the same way.
 - **Switch terminals.** A terminal's SSH connection lives in the pod that opened it; the other pods
   pass its requests there the same way (floorbit/terminal_cluster.py).
-- **One leader.** The status monitor polls on the leader only and shares what it saw
-  (floorbit/shared_state.py). Automatic side effects (Discord alerts, webhooks, the event timeline, plugin
-  hooks, replay frames) come from background loops that run on every pod. Only the pod holding the
-  leader lease acts on them, so an alert goes out once. Events caused by a request still act on
-  the pod that took the request.
+- **One leader.** Only the pod holding the leader lease runs the background checks (status
+  monitor, port watch, health, security, power, ...) and shares what they saw with the others
+  (floorbit/shared_state.py). Their automatic side effects (Discord alerts, webhooks, the event
+  timeline, plugin hooks, replay frames) come from there too, so an alert goes out once. Events
+  caused by a request still act on the pod that took the request.
 
 The documents and logs are shared through the database (``FLOORBIT_DATABASE_URL``), which several
 pods need anyway.

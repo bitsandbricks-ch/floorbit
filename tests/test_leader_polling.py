@@ -4,6 +4,7 @@ Two Cluster objects on an in-memory bus play two pods. Which one ``cluster.curre
 which pod the code under test runs on.
 """
 import threading
+import types
 
 import pytest
 
@@ -42,6 +43,14 @@ def pods(monkeypatch):
 
 def on(monkeypatch, pod):
     monkeypatch.setattr(cluster, "current", pod)
+
+
+@pytest.fixture(autouse=True)
+def state_in_tmp(tmp_path, monkeypatch):
+    # Saved stats and DNS hours go to the state folder: keep them out of the checkout, where a
+    # later test would find them (tests/test_stats.py backfills only an empty day).
+    from floorbit import store
+    monkeypatch.setattr(store, "DATA_FILE", str(tmp_path / "data.json"))
 
 
 @pytest.fixture(autouse=True)
@@ -158,3 +167,125 @@ def test_the_source_outage_shows_on_every_pod(pods, monkeypatch):
     finally:
         on(monkeypatch, None)
         sources.mark_off()
+
+
+# ── the other loops ──────────────────────────────────────────────────────────
+def test_security_findings_show_on_every_pod_and_only_the_leader_asks(pods, monkeypatch):
+    from floorbit import security
+    _bus, a, b = pods
+    asked = []
+
+    class Registry:
+        def feeders(self, area):
+            return [type("Spec", (), {"id": "demo", "name": "Demo"})()]
+
+        def call(self, spec, method, *args):
+            asked.append(cluster.current.pod)
+            return [{"id": "loop-1", "kind": "loop", "severity": "high", "title": "Loop on sw-a-01",
+                     "switch": "sw-a-01", "port": "Gi1/0/1"}]
+    monkeypatch.setattr(security, "_seat_index", lambda: {})
+    leader, other = security.SecurityWatch(Registry()), security.SecurityWatch(Registry())
+    on(monkeypatch, a)
+    assert shared_state.my_turn(leader)
+    leader.poll_once()
+    on(monkeypatch, b)
+    assert not shared_state.my_turn(other)
+    snap = other.fresh()           # a pod that doesn't lead never polls, even when its own copy is old
+    assert [f["id"] for f in snap["findings"]] == ["demo:loop-1"]
+    assert other.get("demo:loop-1")["switch"] == "sw-a-01"
+    assert asked == ["pod-a"]
+
+
+def test_the_port_watch_keeps_its_switch_and_port_keys_across_pods(pods, monkeypatch):
+    from floorbit import attention
+    _bus, a, b = pods
+    leader, other = attention.AttentionWatch(), attention.AttentionWatch()
+    leader.port_seats = {("sw-a-01", "Gi1/0/4"): "A-4"}
+    leader.port_reads = {("sw-a-01", "gi1/0/4"): {"switch": "sw-a-01", "port": "Gi1/0/4", "state": "up"}}
+    leader.read_switches = {"sw-a-01"}
+    leader.items = {"errors:1:Gi1/0/4": {"id": "errors:1:Gi1/0/4", "since": 5}}
+    leader.last_poll = 10
+    on(monkeypatch, a)
+    leader.share()
+    on(monkeypatch, b)
+    seen = other.view()
+    assert seen.port_seats == {("sw-a-01", "Gi1/0/4"): "A-4"}
+    assert seen.port_reads[("sw-a-01", "gi1/0/4")]["state"] == "up"
+    assert seen.read_switches == {"sw-a-01"}
+    assert [i["id"] for i in other.snapshot()["items"]] == ["errors:1:Gi1/0/4"]
+    # And a pod that takes the lead starts from it.
+    fresh = attention.AttentionWatch()
+    fresh.take_over()
+    assert fresh.port_seats == leader.port_seats and fresh.read_switches == {"sw-a-01"}
+
+
+def test_the_dns_open_hour_crosses_as_counts_only(pods, monkeypatch, tmp_path):
+    from floorbit import dns
+    from tests.test_dns import HOUR, lookups
+    _bus, a, b = pods
+    bus = pods[0]
+    leader = dns.DnsStats(path=str(tmp_path / "dns.json"))
+    other = dns.DnsStats(path=str(tmp_path / "dns.json"))
+    on(monkeypatch, a)
+    leader.add(lookups("cdn.steamcontent.com", 5) + lookups("www.hobby.example", 4), now=HOUR + 600)
+    leader.last_poll = HOUR + 600
+    leader.share()
+    raw = bus.values[shared_state.KEY + "dns"]
+    assert "hobby" not in raw and "198.51.100" not in raw, "only sites enough clients looked up, no clients"
+    on(monkeypatch, b)
+    snap = other.snapshot(hours=1, now=HOUR + 600)
+    assert [s["site"] for s in snap["sites"]] == ["steamcontent.com"]
+    assert snap["lookups"] == 9 and snap["last_poll"] == HOUR + 600
+
+
+def test_traffic_on_a_pod_that_does_not_lead_comes_from_the_leader(pods, monkeypatch):
+    from floorbit import stats
+    _bus, a, b = pods
+    leader, other = stats.Stats(), stats.Stats()
+    on(monkeypatch, a)
+    dev = {"id": "1", "name": "sw-a-01"}
+    port = {"name": "Gi1/0/4", "state": "up", "in_bps": 4_000_000, "out_bps": 1_000_000}
+    leader.record([(dev, port, "A-4")], ["sw-a-01"], now=1000)
+    on(monkeypatch, b)
+    saved = []
+    monkeypatch.setattr(stats.store, "write_json", lambda *a, **k: saved.append(a))
+    assert other.seats()["seats"] == leader.seat_bps and other.seats()["last_poll"] == 1000
+    assert other.snapshot(now=1000)["now"]["t"] == 1000
+    other.reset_peak()
+    assert saved == [], "only the leader writes the stats"
+
+
+def test_what_an_agent_sends_goes_to_the_leader(pods, monkeypatch):
+    from floorbit import agent_plugins
+    _bus, _a, b = pods
+    on(monkeypatch, b)
+    sent = []
+    monkeypatch.setattr(shared_state, "ask", lambda name, *args, **kw: sent.append((name, args)) or {"ok": True})
+
+    spec = types.SimpleNamespace(id="shelly", name="Shelly", error=None, agent={"sends": {"readings": {}}},
+                                 plugin_class=lambda: type("P", (), {"agent_readings": lambda *a: None}))
+
+    class Registry:
+        def __init__(self):
+            self.specs = {"shelly": spec}
+
+        def enabled(self, spec):
+            return True
+
+        def call(self, *a):
+            pytest.fail("a pod that doesn't lead hands it on")
+    monkeypatch.setattr(agent_plugins, "check_payload", lambda *a: None)
+    answer = agent_plugins.take({"id": "ag1", "name": "hall-a"}, "shelly", "readings", {"meters": []}, Registry())
+    assert answer == {"ok": True}
+    assert sent == [(agent_plugins.TAKE, ({"id": "ag1", "name": "hall-a"}, "shelly", "readings", {"meters": []}))]
+
+
+def test_every_loop_can_take_the_lead(monkeypatch, tmp_path):
+    """my_turn() on each loop that waits for it: the first turn as leader takes over."""
+    from floorbit import attention, dns, game_servers, health, links, port_clients, power, security, services
+    monkeypatch.setattr(cluster, "current", None)
+    loops = [attention.AttentionWatch(), dns.DnsStats(path=str(tmp_path / "dns.json")), game_servers.Poller(),
+             health.HealthWall(None), links.Refresher(), port_clients.Finder(), power.PowerWatch(None),
+             security.SecurityWatch(None), services.Poller()]
+    for loop in loops:
+        assert shared_state.my_turn(loop), type(loop).__name__

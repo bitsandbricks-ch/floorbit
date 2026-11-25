@@ -20,7 +20,7 @@ from collections import deque
 
 from integrations import checkin, config, events
 
-from . import cables, inventory, recording, sources, status_page
+from . import cables, inventory, recording, shared_state, sources, status_page
 from .seat_names import block_rows
 from .store import load_data
 
@@ -61,7 +61,30 @@ def _record_frame(sample, seat_bps, data):
 SINCE_FILE = 'attention_since.json'
 
 
-class AttentionWatch:
+class AttentionWatch(shared_state.Shared):
+    # With several pods only the leader reads the ports; the others show this (issue #1417).
+    shared_name = 'attention'
+    shared_fields = ('items', 'port_seats', 'port_reads', 'read_switches', 'last_poll')
+    _PAIRS = ('port_seats', 'port_reads')      # dicts keyed by (switch, port)
+
+    @classmethod
+    def shared_dump(cls, field, value):
+        if field in cls._PAIRS:
+            return [[*k, v] for k, v in value.items()]
+        return shared_state.Shared.shared_dump(field, value)
+
+    @classmethod
+    def shared_restore(cls, field, value):
+        if field in cls._PAIRS:
+            return {(a, b): v for a, b, v in value}
+        return set(value) if field == 'read_switches' else value
+
+    def take_over(self):
+        super().take_over()
+        stats = (_app_ext() or {}).get('floorbit_stats') if self.app else None
+        if stats is not None:
+            stats.reload()        # what the old leader saved last
+
     def __init__(self):
         self._lock = threading.Lock()
         self._thread = None
@@ -100,7 +123,8 @@ class AttentionWatch:
                 if sources.monitoring().enabled():
                     # In an app context: the switch statuses live in the app's extensions.
                     with self.app.app_context():
-                        self.poll_once()
+                        if shared_state.my_turn(self):
+                            self.poll_once()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 print(f'[attention] poll failed: {exc}')
             self._stop.wait(self.interval())
@@ -164,6 +188,7 @@ class AttentionWatch:
             self.port_seats = port_seats
             self.port_reads, self.read_switches = port_reads, read_switches
             self.last_poll = now
+        self.share()
         status_page.learn_seats(port_seats)
         if changed:
             self._write_kept({k: e['since'] for k, e in found.items()})
@@ -234,9 +259,10 @@ class AttentionWatch:
             print(f'[attention] could not keep the start times: {exc}')
 
     def snapshot(self):
+        seen = self.view()
         with self._lock:
-            items = sorted(self.items.values(), key=lambda i: -i['since'])
-            return {'items': items, 'last_poll': self.last_poll, 'interval': self.interval()}
+            items = sorted(seen.items.values(), key=lambda i: -i['since'])
+            return {'items': items, 'last_poll': seen.last_poll, 'interval': self.interval()}
 
 
 MAPPING_TITLES = {
