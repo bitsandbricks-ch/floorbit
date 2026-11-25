@@ -92,7 +92,8 @@ describe('Logs', () => {
     expect(screen.getByText('120 lines loaded')).toBeInTheDocument()
     expect(screen.getAllByRole('row')).toHaveLength(51)   // the header and 50 lines
     expect(screen.queryByText('the worst one')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Level/ }))
+    // The column's sort button, not the Level filter ("Level: All").
+    fireEvent.click(screen.getByRole('button', { name: /^Level(?!:)/ }))
     expect(await screen.findByText('the worst one')).toBeInTheDocument()
     expect(screen.getByText('Live, paused')).toBeInTheDocument()
   })
@@ -102,17 +103,18 @@ describe('Logs', () => {
       'GET /api/logs?q=uplink': logs([line(2, { message: 'uplink flapped' })]) })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<><Logs /><Where /></>)
-    fireEvent.change(await screen.findByLabelText('Search'), { target: { value: 'uplink' } })
+    fireEvent.change(await screen.findByPlaceholderText('Words that all have to be in the line'), { target: { value: 'uplink' } })
     expect(await screen.findByText('uplink flapped', {}, { timeout: 2000 })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('?q=uplink'))
   })
 
   it('opens filtered from a link', async () => {
-    const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs?seat=A-4': logs([line(5, { seat: 'A-4', message: 'on A-4' })]) })
+    const fake = fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs?seat=A-4': logs([line(5, { seat: 'A-4', message: 'on A-4' })]),
+      'GET /api/options/seats': { options: [{ value: 'A-4', label: 'A-4' }] } })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Logs />, '/logs?seat=A-4')
     expect(await screen.findByText('on A-4')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('A-4')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^Seat: A-4/ })).toBeInTheDocument()
   })
 
   it('switches to Floorbit\'s own log and the audit log', async () => {
@@ -189,4 +191,18 @@ describe('Logs', () => {
     expect(await screen.findByText(/The syslog receiver is off/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'docs/syslog.md' })).toBeInTheDocument()
   })
+
+  it('shows port and seat in columns of their own and one line a message until the row is clicked (#1048)', async () => {
+    const long = line(3, { message: 'a long message '.repeat(20).trim(), port: 'gi1/0/7', seat: 'B-2' })
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/logs': logs([long]) }).fn)
+    renderWithApp(<Logs />)
+    const text = await screen.findByText(long.message)
+    expect(screen.getByRole('columnheader', { name: /Port/ })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /Seat/ })).toBeInTheDocument()
+    const box = text.closest('[data-line-clamp]')
+    expect(box).not.toBeNull()
+    fireEvent.click(text)
+    await waitFor(() => expect(screen.getByText(long.message).closest('[data-line-clamp]')).toBeNull())
+  })
 })
+
