@@ -40,7 +40,8 @@
     "state": "Status",
     "changeHour": "zu vor einer Stunde",
     "changeSince": "seit {{time}}",
-    "changeStart": "seit Beginn"
+    "changeStart": "seit Beginn",
+    "open": "Öffnen"
   },
   "state": {
     "up": "Läuft",

@@ -23,7 +23,8 @@ Older frames are thinned out once an hour, so a long event stays small:
 | older | hour (at most 5,000 frames) |
 
 The frames go to `recording.jsonl` next to `data.json` (or the file `RECORDING_FILE` names) and
-start over with **Start a new event** on the [report](report.md) page.
+start over when the event is closed on the [Events](events.md) page, or with **Only start the figures
+again** there.
 
 Below the plan, the **heatmap** shows every seat block over time: seats online (share of the
 block), traffic, or open incidents. Click a column to jump there.

@@ -1,15 +1,11 @@
 import { Alert, Anchor, Chip, Collapse, Group, SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
 import { SaveBar } from '@/pages/settings/editor'
 import { useTranslation } from 'react-i18next'
-import { get } from '@/api/client'
-import { qk } from '@/api/keys'
 import type { Origin } from '@/api/types'
-import type { EntityOption } from '@/components/EntitySelect'
+import { useAgentChoices } from '@/components/agentChoices'
 import { FromLabel } from './ScopeEditors'
-import { useInventoryGroups } from './scope'
 import type { DeviceTelemetryInfo } from './telemetry'
 
 const DRIVERS = ['snmp', 'traps', 'nxapi', 'restconf', 'opnsense', 'gnmi', 'mdt', 'push'] as const
@@ -56,17 +52,8 @@ export function TelemetrySettings({ own, ownFeatures, inherited, resolvedOn, inf
     const v = inherited?.[PROP[k]]
     return v && v.from.type !== 'device' ? v : null
   }
-  const agents = useQuery({ queryKey: qk.options('agents', ''), queryFn: () => get<{ options: EntityOption[] }>('/api/options/agents') })
-  const tags = useInventoryGroups().data?.tags ?? []
   // "Collected by" (issue #869): any agent, the agents with a tag (tag:<id>), or one agent.
-  const collectorName = (v: string) => (v.startsWith('tag:')
-    ? t('inventory.telemetry.byTag', { tag: tags.find((x) => x.id === v.slice(4))?.name ?? v.slice(4) })
-    : agents.data?.options.find((o) => o.value === v)?.label ?? v)
-  const collectors = [
-    ...(tags.length ? [{ group: t('inventory.telemetry.tagsGroup'),
-      items: tags.map((x) => ({ value: `tag:${x.id}`, label: t('inventory.telemetry.byTag', { tag: x.name }) })) }] : []),
-    { group: t('inventory.telemetry.agentsGroup'), items: (agents.data?.options ?? []).map((o) => ({ value: o.value, label: o.label })) },
-  ]
+  const { data: collectors, name: collectorName } = useAgentChoices()
   const collectorNow = form.agent || above('agent')?.value || ''
   const driverName = (d: string) => t(`telemetry.driver.${d}`, { defaultValue: d })
   const fdbName = (f: string) => t(`inventory.telemetry.fdb.${f}`, { defaultValue: f })

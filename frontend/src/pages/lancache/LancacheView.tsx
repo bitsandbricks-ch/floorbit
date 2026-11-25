@@ -228,7 +228,8 @@ export default function LancacheView({ expanded }: ViewProps) {
     refetchInterval: 30_000,
   })
   const data = query.data
-  const peak = data?.clients.reduce((m, c) => Math.max(m, c.clients), 0) ?? 0
+  // Only the agent's plugin counts players; the log Floorbit reads has no client addresses kept.
+  const peak = data?.clients.length ? data.clients.reduce((m, c) => Math.max(m, c.clients), 0) : null
   return (
     <>
       {expanded && (
@@ -240,7 +241,8 @@ export default function LancacheView({ expanded }: ViewProps) {
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : (
         <>
-          {!data.plugin_on && (
+          {/* Only when nothing comes in: a log Floorbit reads itself needs no plugin (#1420). */}
+          {!data.plugin_on && !data.configured && (
             <Alert color="gray" variant="light" mb="md">
               {data.plugin_installed === false ? (
                 <>
@@ -260,7 +262,8 @@ export default function LancacheView({ expanded }: ViewProps) {
             <StatTile label={t('lancache.hitRatio')} value={pct(data.hit_ratio)} sub={t('lancache.hitRatioSub')}
               tone={data.hit_ratio != null && data.hit_ratio < 0.5 ? 'warn' : undefined} />
             <StatTile label={t('lancache.fromInternet')} value={bytes(data.miss_bytes)} sub={t('lancache.fromInternetSub')} />
-            <StatTile label={t('lancache.clients')} value={String(peak)} sub={t('lancache.clientsSub')} />
+            <StatTile label={t('lancache.clients')} value={peak == null ? '–' : String(peak)}
+              sub={peak == null ? t('lancache.clientsNone') : t('lancache.clientsSub')} />
           </SimpleGrid>
           <div className="fb-stats">
             <Machines data={data} expanded={expanded} />

@@ -4,7 +4,7 @@
   "search": "Search",
   "searchPlaceholder": "Name, model, serial, IP…",
   "allRoles": "All roles",
-  "showHidden": "Show hidden",
+  "hiddenLabel": "Hidden ones",
   "add": "Add device",
   "sync": "Sync now",
   "syncing": "Syncing…",
@@ -462,6 +462,9 @@
   "more": "More",
   "groupsAndTags": "Groups and tags",
   "anyGroup": "Any group",
+  "anyRole": "Any role",
+  "hiddenOff": "Not shown",
+  "hiddenOn": "Shown",
   "anyTag": "Any tag",
   "allCount": "All {{count}}",
   "manualOnly": "Added by hand",
@@ -552,5 +555,21 @@
       "label": "Other agents take over",
       "hint": "Off: while the agent (or every agent with the tag) is away, nobody collects."
     }
+  },
+  "agent": "Agent",
+  "agentAuto": "Auto",
+  "uplink": {
+    "title": "Uplink",
+    "where": "{{port}} to {{peer}} {{peerPort}}",
+    "down": "down",
+    "slow": "{{speed}} of {{planned}}"
+  },
+  "lastDay": {
+    "title": "Last 24 h",
+    "none": "Not watched by the status monitor",
+    "up": "{{ago}} h ago: up",
+    "down": "{{ago}} h ago: down for {{minutes}} min",
+    "label_one": "{{count}} hour with an outage in the last 24 hours",
+    "label_other": "{{count}} hours with an outage in the last 24 hours"
   }
 }

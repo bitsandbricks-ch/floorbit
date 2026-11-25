@@ -20,7 +20,8 @@ export interface WalkSeat {
   failed?: { at: number; why: string | null; who: string } | null
 }
 
-export type WalkRow = WalkHallRow & { marked?: number; failed?: number }
+/** ``walked``: the part of ``found`` a walk found; the rest came from check-in (#1424). */
+export type WalkRow = WalkHallRow & { marked?: number; failed?: number; walked?: number }
 
 export type SeatWalkOverview = Omit<SeatWalkInfo, 'seats' | 'hall'> & {
   seats?: WalkSeat[]; hall?: WalkRow[]

@@ -32,6 +32,7 @@
     "power": "Elektrik",
     "commands": "Switch-Befehle",
     "terminal": "Switch-Terminal",
+    "configs": "Switch-Konfigs",
     "inventory": "Inventar",
     "seatMapping": "Platzzuordnung",
     "cables": "Kabel",
@@ -47,6 +48,7 @@
     "events": "Events",
     "templates": "Hallenplan-Vorlagen",
     "settings": "Einstellungen",
+    "setup": "Einrichten",
     "plugins": "Plugins",
     "features": "Funktionen",
     "sidebarSections": "Bereiche in der Seitenleiste",
@@ -91,6 +93,7 @@
     "agents": "Agent, vor Ort",
     "audit": "wer hat geändert, Verlauf",
     "preflight": "Pre-Flight-Check, Go oder No-Go",
+    "setup": "Checkliste, erste Schritte, loslegen",
     "checkins": "PIN, Ankunft",
     "firewalls": "Routing, Uplinks",
     "networkStatus": "Internet, Provider, Uplinks"

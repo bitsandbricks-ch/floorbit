@@ -82,14 +82,18 @@ function RenameModal({ event, onClose, onDone }: { event: PastEvent; onClose: ()
   )
 }
 
-function CloseEvent({ name, onDone }: { name: string; onDone: (archived: PastEvent) => void }) {
+function CloseEvent({ name, onDone, onReset }: { name: string; onDone: (archived: PastEvent) => void; onReset: () => void }) {
   const { t } = useTranslation()
-  const [confirm, setConfirm] = useState('')
   const [next, setNext] = useState('')
-  const word = name || 'close'
+  // The server still wants the name back, so a stray API call can't close the event; the shared
+  // confirm dialog asks the person instead of a typed word (#1430).
   const close = useMutation({
-    mutationFn: () => post<{ archived: PastEvent }>('/api/past-events/close', { confirm, next_name: next.trim() }),
-    onSuccess: (r) => { setConfirm(''); setNext(''); onDone(r.archived) },
+    mutationFn: () => post<{ archived: PastEvent }>('/api/past-events/close', { confirm: name || 'close', next_name: next.trim() }),
+    onSuccess: (r) => { setNext(''); onDone(r.archived) },
+  })
+  const reset = useMutation({
+    mutationFn: () => post('/api/report/new-event'),
+    onSuccess: () => { toastDone(t('events.resetFiguresDone')); onReset() },
   })
   return (
     <Paper withBorder radius="lg" p="md">
@@ -98,13 +102,14 @@ function CloseEvent({ name, onDone }: { name: string; onDone: (archived: PastEve
       <Stack gap="sm">
         <TextInput label={t('events.nextName')} description={t('events.nextNameHelp')} value={next} maxLength={120}
           onChange={(e) => setNext(e.currentTarget.value)} />
-        <TextInput label={t('events.typeToConfirm', { word })} value={confirm} onChange={(e) => setConfirm(e.currentTarget.value)} />
         {close.error && <Alert color="down" role="alert">{close.error.message}</Alert>}
-        <Group justify="flex-end">
-          <Button color="down" loading={close.isPending} disabled={confirm.trim().toLowerCase() !== word.toLowerCase()}
-            onClick={() => close.mutate()}>
-            {t('events.close')}
-          </Button>
+        {reset.error && <Alert color="down" role="alert">{reset.error.message}</Alert>}
+        <Group justify="flex-end" gap="xs">
+          {/* After the load tests, before doors open: the figures begin again, nothing is archived. */}
+          <ConfirmButton danger variant="default" loading={reset.isPending} label={t('events.resetFigures')}
+            question={t('events.resetFiguresQuestion')} onConfirm={() => reset.mutate()} />
+          <ConfirmButton danger loading={close.isPending} label={t('events.close')}
+            question={t('events.closeQuestion', { name: name || t('events.unnamed') })} onConfirm={() => close.mutate()} />
         </Group>
       </Stack>
     </Paper>
@@ -139,7 +144,8 @@ export default function Events() {
         <TenantEvents isAdmin={isAdmin} />
         {!pastOn ? null : query.isPending ? <LoadingState rows={3} /> : d && (
           <>
-            <Comparison columns={columns} />
+            {/* Side by side needs two events; with one the bars compare nothing (#1430). */}
+            {columns.length > 1 && <Comparison columns={columns} />}
             <Paper withBorder radius="lg" p="md">
               <Title order={2} size="h4" mb="xs">{t('events.past')}</Title>
               {d.archived.length === 0 ? <EmptyState icon={<IconArchive size={24} />} title={t('events.noneTitle')} description={t('events.none')} /> : (
@@ -181,7 +187,8 @@ export default function Events() {
               )}
             </Paper>
             {isAdmin && (
-              <CloseEvent name={d.current.name} onDone={(a) => { toastDone(t('events.closed', { name: a.name })); refresh() }} />
+              <CloseEvent name={d.current.name} onDone={(a) => { toastDone(t('events.closed', { name: a.name })); refresh() }}
+                onReset={() => { void qc.invalidateQueries({ queryKey: qk.reports }); refresh() }} />
             )}
           </>
         )}

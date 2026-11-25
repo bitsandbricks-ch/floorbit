@@ -240,13 +240,21 @@ def incidents_widget(lang, now=None):
 STATE_OF = {'online': 'up', 'offline': 'down'}
 
 
-def switch_states_widget(lang, statuses, now=None):
-    """Every switch with its state, down ones first: the state grid's data."""
+# Devices the "Switch states" tile lists: access points, servers and firewalls have their own
+# pages, and a hall of green access points pushed the switches out of the start page (#1407).
+SWITCH_ROLES = {'switch', 'router', ''}
+
+
+def switch_states_widget(lang, statuses, now=None, roles=None):
+    """Every switch with its state, down ones first: the state grid's data. ``roles`` (device id ->
+    inventory role) leaves out devices that aren't switches; a device without a role stays."""
     text = TEXTS.get(lang, TEXTS['en'])
     now = time.time() if now is None else now
     order = {'down': 0, 'unknown': 1, 'up': 2}
     items = []
     for s in statuses.values():
+        if roles is not None and (roles.get(s.get('id')) or '') not in SWITCH_ROLES:
+            continue
         state = STATE_OF.get(s.get('status'), 'unknown')
         detail = text['down_for'].format(t=_down_for(text, now - (s.get('since') or now))) if state == 'down' else ''
         items.append({'label': str(s.get('name') or s.get('id')), 'state': state, 'detail': detail,
@@ -487,18 +495,19 @@ def anomalies_widget(lang, flows, now=None):
 HEALTH_STATES = ('up', 'down', 'warn', 'unknown')
 
 
-def service_health_widget(lang, wall):
-    """The health wall's checks (DHCP, DNS, firewalls, ...), worst first, with each one's summary.
-    ``wall`` is /api/health's, already in the reader's language."""
+def service_health_widget(lang, summary):
+    """Every service the Services page lists (floorbit/service_summary.py: each internet site a row
+    of its own), worst first, with each one's summary, so the tile and the page count the same
+    (issue #1411). ``summary`` is /api/services/summary's, already in the reader's language."""
     text = TEXTS.get(lang, TEXTS['en'])
-    checks = wall.get('checks') or []
+    checks = summary.get('rows') or []
     if not checks:
-        return {'type': 'status', 'items': [], 'sub': text['no_checks'], 'link': '/dashboards/health'}
+        return {'type': 'status', 'items': [], 'sub': text['no_checks'], 'link': '/services'}
     order = {'down': 0, 'warn': 1, 'unknown': 2, 'up': 3}
     items = [{'label': c.get('name') or '', 'detail': c.get('summary') or '',
               'state': c.get('status') if c.get('status') in HEALTH_STATES else 'unknown'} for c in checks]
     items.sort(key=lambda i: order[i['state']])
-    return {'type': 'status', 'items': items, 'link': '/dashboards/health'}
+    return {'type': 'status', 'items': items, 'link': '/services'}
 
 
 def internet_uplinks_widget(lang, overview):

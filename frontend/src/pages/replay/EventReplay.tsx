@@ -1,6 +1,6 @@
 import { ActionIcon, Button, Group, SegmentedControl, SimpleGrid, Slider, Stack, Text, Title } from '@mantine/core'
 import { IconDownload, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlayerSkipBack } from '@tabler/icons-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EventReplayData } from '@/api/types'
 import { StatTile } from '@bitsandbricks/ui'
@@ -8,13 +8,11 @@ import { Panel } from '@/components/ui'
 import { bps } from '../stats/format'
 import { heatmap, sampleAt, when, type HeatMetric } from './model'
 import { Chart, Plan } from './Plan'
+import './EventReplay.css'
 
 const TICK = 200
 const EVENT_SPEEDS = [900, 3600, 14400] as const
 const METRICS: HeatMetric[] = ['online', 'traffic', 'incidents']
-const CELL_W = 10
-const ROW_H = 22
-const LABEL_W = 56
 
 function Heatmap({ data, metric, t, onSeek, label }: {
   data: EventReplayData; metric: HeatMetric; t: number; onSeek: (t: number) => void; label: string
@@ -22,26 +20,21 @@ function Heatmap({ data, metric, t, onSeek, label }: {
   const { names, cols } = useMemo(() => heatmap(data.frames, metric), [data.frames, metric])
   const { t: tr } = useTranslation()
   if (!names.length) return <Text size="sm" c="dimmed">{tr('replay.event.noBlocks')}</Text>
-  const w = LABEL_W + cols.length * CELL_W
-  const h = names.length * ROW_H
   const at = cols.findIndex((c) => t >= c.t && t <= c.end + 1)
   const fmt = (v: number) => (metric === 'online' ? `${Math.round(v * 100)} %` : metric === 'traffic' ? bps(v) : String(v))
+  // Plain boxes, not an SVG scaled to the width: with only a few frames the scaling blew the
+  // block names and the cursor up to the whole page (#1432).
   return (
-    <div className="fb-heatmap-scroll">
-    <svg viewBox={`0 0 ${w} ${h}`} className={`fb-heatmap ${metric}`} role="img" aria-label={label}>
+    <div className={`fb-heatmap ${metric}`} role="img" aria-label={label}>
       {names.map((n, r) => (
-        <g key={n}>
-          <text x={LABEL_W - 8} y={r * ROW_H + ROW_H / 2 + 4} className="label">{n}</text>
+        <div key={n} className="row">
+          <span className="label">{n}</span>
           {cols.map((c, i) => (
-            <rect key={c.t} x={LABEL_W + i * CELL_W} y={r * ROW_H + 1} width={CELL_W - 1} height={ROW_H - 2}
-              style={{ fillOpacity: 0.08 + c.values[r] * 0.92 }} onClick={() => onSeek(c.t)}>
-              <title>{`${n} · ${when(c.t)} · ${fmt(c.raw[r])}`}</title>
-            </rect>
+            <span key={c.t} className={`cell${i === at ? ' at' : ''}`} style={{ '--v': `${Math.round(8 + c.values[r] * 92)}%` } as CSSProperties}
+              title={`${n} · ${when(c.t)} · ${fmt(c.raw[r])}`} onClick={() => onSeek(c.t)} />
           ))}
-        </g>
+        </div>
       ))}
-      {at >= 0 && <rect className="cursor" x={LABEL_W + at * CELL_W - 1} y={0} width={CELL_W + 1} height={h} />}
-    </svg>
     </div>
   )
 }
@@ -56,7 +49,8 @@ export function EventReplay({ data }: { data: EventReplayData }) {
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState<string>(String(EVENT_SPEEDS[1]))
   const [metric, setMetric] = useState<HeatMetric>('online')
-  const time = at ?? start
+  // Opens on the latest frame, as the clock says (#1432); Play starts over from the beginning.
+  const time = at ?? end
 
   useEffect(() => {
     if (!playing) return
@@ -74,8 +68,6 @@ export function EventReplay({ data }: { data: EventReplayData }) {
   }, [playing, speed, start, end])
 
   const frame = sampleAt(frames, time)
-  const on = useMemo(() => new Set(frame?.seats ?? []), [frame])
-  const rings = useMemo(() => new Set(frame?.incidents ?? []), [frame])
   const peak = useMemo(() => frames.reduce<{ bps: number; at: number } | null>(
     (best, f) => (!best || f.down + f.up > best.bps ? { bps: f.down + f.up, at: f.t } : best), null), [frames])
   const seats = data.drawing?.shapes.reduce((n, b) => n + b.cells.length, 0) ?? 0
@@ -102,27 +94,25 @@ export function EventReplay({ data }: { data: EventReplayData }) {
         </Group>
       </Panel>
 
-      <SimpleGrid cols={{ base: 2, sm: 4 }}>
-        <StatTile label={t('replay.online')} value={t('replay.ofSeats', { on: on.size, total: seats })} />
-        <StatTile label={t('replay.bandwidth')} value={frame ? bps(frame.down + frame.up) : '–'} />
-        <StatTile label={t('replay.peak')} value={peak ? bps(peak.bps) : '–'} sub={peak ? when(peak.at) : undefined} />
-        <StatTile label={t('replay.incidents')} value={String(rings.size)} />
-      </SimpleGrid>
-
-      <Panel>
-        {data.drawing ? <Plan drawing={data.drawing} on={on} rings={rings} label={t('replay.planLabel', { time: when(time) })} />
-          : <Text c="dimmed">{t('replay.noPlan')}</Text>}
-        <Group gap="md" mt="xs">
-          <Text size="xs" c="dimmed"><span className="fb-replay-key on" /> {t('replay.online')}</Text>
-          <Text size="xs" c="dimmed"><span className="fb-replay-key ring" /> {t('replay.openIncident')}</Text>
-        </Group>
-      </Panel>
-
-      {frames.length > 1 && (
-        <Panel title={t('replay.chart')}>
-          <Chart samples={frames} peak={peak} start={start} end={end} t={time} onSeek={seek} label={t('replay.chartLabel')} />
+      <div className="fb-replay-body">
+        <Panel className="fb-replay-plan-box">
+          {data.drawing ? <Plan hall={data.hall} drawing={data.drawing} frame={frame} label={t('replay.planLabel', { time: when(time) })} />
+            : <Text c="dimmed">{t('replay.noPlan')}</Text>}
         </Panel>
-      )}
+        <Stack gap="md" className="fb-replay-side">
+          <SimpleGrid cols={2} spacing="md">
+            <StatTile label={t('replay.online')} value={t('replay.ofSeats', { on: frame?.seats.length ?? 0, total: seats })} />
+            <StatTile label={t('replay.bandwidth')} value={frame ? bps(frame.down + frame.up) : '–'} />
+            <StatTile label={t('replay.peak')} value={peak ? bps(peak.bps) : '–'} sub={peak ? when(peak.at) : undefined} />
+            <StatTile label={t('replay.incidents')} value={String(frame?.incidents.length ?? 0)} />
+          </SimpleGrid>
+          {frames.length > 1 && (
+            <Panel title={t('replay.chart')}>
+              <Chart samples={frames} peak={peak} start={start} end={end} t={time} onSeek={seek} label={t('replay.chartLabel')} />
+            </Panel>
+          )}
+        </Stack>
+      </div>
 
       <Panel title={t('replay.event.heatmap')} actions={
         <SegmentedControl size="xs" value={metric} onChange={(v) => setMetric(v as HeatMetric)} aria-label={t('replay.event.metric')}

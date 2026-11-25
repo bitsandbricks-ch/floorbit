@@ -16,7 +16,7 @@ floorbit/services.py, docs in docs/services.md.
 """
 from flask import Blueprint, abort, current_app, g, jsonify, request
 
-from .. import audit, i18n, service_summary, services, spa
+from .. import audit, game_servers, i18n, service_summary, services, spa
 
 bp = Blueprint('services', __name__)
 WHAT = {'uplinks': 'ISP uplink', 'resolvers': 'DNS resolver', 'sites': 'internet site', 'checks': 'own check'}
@@ -34,19 +34,26 @@ def get_services():
     return jsonify(i18n.translate_fields(services.overview(), lang))
 
 
-def _summary():
+def _summary(translate=False):
+    """The one list of services; ``translate``: in the reader's language (the page, the tiles)."""
     wall = current_app.extensions.get('floorbit_health')
     checks = wall.fresh()['checks'] if wall is not None else []
+    # The wall polls once a minute; the page reads the pollers now. Their rows come straight from the
+    # pollers, so the tile and the page never show one service in two states (#1411).
+    live = {c['id']: c for c in services.health_checks() + game_servers.health_checks()}
+    checks = [live.get(c.get('id'), c) for c in checks]
     sites = [{**site, **services.poller.state(site['id'])} for site in services.stored_sites()]
     tags = services.tags()
     # Every service's tags, also of one the wall hasn't polled yet (just added), for the page.
-    return {**service_summary.summary(checks, sites, tags), 'tags': tags}
+    out = {**service_summary.summary(checks, sites, tags), 'tags': tags}
+    if translate:
+        out = i18n.translate_fields(out, i18n.language(request.headers.get('Accept-Language')), ('error', 'summary'))
+    return out
 
 
 @bp.route('/api/services/summary', methods=['GET'])
 def get_summary():
-    lang = i18n.language(request.headers.get('Accept-Language'))
-    return jsonify(i18n.translate_fields(_summary(), lang))
+    return jsonify(_summary(translate=True))
 
 
 @bp.route('/api/services/check', methods=['POST'])

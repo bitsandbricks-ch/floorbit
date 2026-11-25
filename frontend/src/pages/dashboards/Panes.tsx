@@ -1,5 +1,5 @@
-import { ActionIcon, Loader, Stack, Text, Tooltip } from '@mantine/core'
-import { IconArrowsMaximize, IconExternalLink } from '@tabler/icons-react'
+import { ActionIcon, Anchor, Loader, Stack, Text, Tooltip } from '@mantine/core'
+import { IconArrowsMaximize } from '@tabler/icons-react'
 import { useContext, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDashboard, useWidgets } from '@/api/queries'
@@ -12,6 +12,7 @@ import { Markdown } from '@/components/Markdown'
 import { publicUrl, useScreen } from './screen'
 import { followed } from '../widgets/saved'
 import { LargeContext, useMakeLarge } from './large'
+import './Panes.css'
 
 const tileKey = (tile: Tile) => `${tile.plugin}/${tile.kind === 'action' ? 'a' : 'w'}/${tile.id}`
 
@@ -103,16 +104,16 @@ function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>
   return (
     <Framed title={title} hide={pane.hide_title} fit alert={alert} actions={data && (
       <>
+        {/* One quiet "Open" on tiles that lead somewhere; the big view's button only on hover or
+            focus, so a row of tiles doesn't carry an icon pair each (#1407). */}
         {link && (
-          <Tooltip label={t('common.details')}>
-            <ActionIcon component="a" href={link} variant="subtle" color="gray" size="sm" aria-label={t('widgets.kind.detailsNamed', { name: title })}>
-              <IconExternalLink size={15} />
-            </ActionIcon>
-          </Tooltip>
+          <Anchor href={link} size="xs" c="dimmed" className="fb-pane-open" aria-label={t('widgets.kind.detailsNamed', { name: title })}>
+            {t('widgets.kind.open')}
+          </Anchor>
         )}
         {makeLarge && (
           <Tooltip label={t('dashboards.pane.openBig')}>
-            <ActionIcon variant="subtle" color="gray" size="sm" aria-label={t('dashboards.pane.openBigNamed', { name: title })} onClick={makeLarge}>
+            <ActionIcon variant="subtle" color="gray" size="sm" className="fb-pane-hover" aria-label={t('dashboards.pane.openBigNamed', { name: title })} onClick={makeLarge}>
               <IconArrowsMaximize size={15} />
             </ActionIcon>
           </Tooltip>

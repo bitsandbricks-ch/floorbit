@@ -1,0 +1,19 @@
+{
+  "time": "Zeit",
+  "any": "Alles Gespeicherte",
+  "last": {
+    "15m": "Letzte 15 Minuten",
+    "1h": "Letzte Stunde",
+    "6h": "Letzte 6 Stunden",
+    "24h": "Letzte 24 Stunden"
+  },
+  "between": "{{from}} bis {{to}}",
+  "chart": "Zeilen über die Zeit, Fehler in Rot",
+  "bar": "{{time}}: {{count}} Zeilen, {{errors}} Fehler",
+  "zoom": "Klick auf einen Balken zeigt nur seine Zeit",
+  "max": "max. {{n}} pro {{step}}",
+  "pause": "Pausieren",
+  "resume": "Weiter",
+  "download": "Herunterladen",
+  "downloadHint": "Die Zeilen, auf die die Filter passen, als Textdatei"
+}

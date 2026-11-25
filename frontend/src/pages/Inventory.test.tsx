@@ -138,6 +138,26 @@ describe('Inventory page', () => {
     expect(screen.queryByRole('table')).toBeNull()
   })
 
+  it("shows each device's uplink, its last 24 hours and who reads it (#981)", async () => {
+    const day = Array.from({ length: 24 }, (_, i) => (i === 20 ? 2400 : 0))
+    const cols = { ...list, devices: [
+      { ...list.devices[0], agent: 'a1', last_day: day,
+        uplink: { port: 'Gi1/0/48', peer: 'dist-01', peer_port: 'Te1/1/1', speed_bps: 1e9, planned_gbps: 10, state: 'up', issue: 'slow' } },
+      { ...hand, agent: '' },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': cols, 'GET /api/inventory/groups': overview,
+      'GET /api/options/agents': { options: [{ value: 'a1', label: 'Hall agent' }] },
+    }).fn)
+    app()
+    const row = (await screen.findByRole('link', { name: 'Stage switch' })).closest('tr')!
+    expect(within(row).getByText('1G of 10G')).toBeInTheDocument()
+    expect(within(row).getByLabelText('1 hour with an outage in the last 24 hours')).toBeInTheDocument()
+    expect(await within(row).findByText('Hall agent')).toBeInTheDocument()
+    const handRow = screen.getByRole('link', { name: 'sw-hand' }).closest('tr')!
+    expect(within(handRow).getByText('Auto')).toBeInTheDocument()
+  })
+
   it('says when the inventory syncs on its own', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': { ...list, every: 15 }, 'GET /api/inventory/groups': overview }).fn)
     app()
@@ -223,6 +243,20 @@ describe('Inventory page', () => {
     fireEvent.change(height, { target: { value: '47' } })
     fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0])
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ fields: { height_u: '47' } }))
+  })
+
+  it('leaves cables and power to their own tabs: one row of type tabs (#1426)', async () => {
+    const deviceType = { id: 'device', name: 'Device', sort: 'device', builtin: true, icon: '', default_icon: 'other', color: '',
+      fields: [], own_fields: [], properties: {}, features: {}, count: 2 }
+    const linked = (id: string, name: string) => ({ ...deviceType, id, name, sort: 'linked', count: 3 })
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'GET /api/inventory/types': { types: [deviceType, linked('cable', 'Cable'), linked('circuit', 'Circuit'),
+        linked('power-board', 'Power board'), linked('patch-panel', 'Patch panel')], field_kinds: [] },
+    }).fn)
+    app()
+    expect(await screen.findByRole('tab', { name: /Patch panel/ })).toBeInTheDocument()
+    for (const name of [/^Cable/, /^Circuit/, /^Power board/]) expect(screen.queryByRole('tab', { name })).toBeNull()
   })
 
   it('shows viewers the list without edit buttons', async () => {

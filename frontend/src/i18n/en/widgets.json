@@ -40,7 +40,8 @@
     "state": "State",
     "changeHour": "vs an hour ago",
     "changeSince": "since {{time}}",
-    "changeStart": "since the start"
+    "changeStart": "since the start",
+    "open": "Open"
   },
   "state": {
     "up": "Up",
