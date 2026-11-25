@@ -182,7 +182,7 @@ export function InterfacesPanel({ device, canEdit, sourceName, onChanged }: {
                   <Table.Td>
                     <Text size="sm" lineClamp={1}>{i.description}</Text>
                     <Group gap={4}>
-                      {i.sources.map((s) => <Badge key={s} size="xs" variant="light" color="trace" tt="none">{sourceName(s)}</Badge>)}
+                      {i.sources.map((s) => <Badge key={s} size="xs" variant="light" color="gray" tt="none">{sourceName(s)}</Badge>)}
                       {i.gone.map((s) => <Badge key={`g-${s}`} size="xs" variant="light" color="warn" tt="none">{t('inventory.gone', { source: sourceName(s) })}</Badge>)}
                       {i.hidden && <Badge size="xs" variant="outline" color="gray" tt="none">{t('inventory.hidden')}</Badge>}
                     </Group>

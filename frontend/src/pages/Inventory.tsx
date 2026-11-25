@@ -349,7 +349,7 @@ export default function Inventory() {
             { id: 'source', header: t('inventory.fedBy'), hideOnPhone: true, cell: (d) => (
               <Group gap={4} wrap="nowrap">
                 {d.sources.length === 0 && <Badge variant="outline" color="gray" tt="none">{t('inventory.manual')}</Badge>}
-                {d.sources.map((src) => <Badge key={src} variant="light" color="trace" tt="none">{sourceName(src)}</Badge>)}
+                {d.sources.map((src) => <Badge key={src} variant="light" color="gray" tt="none">{sourceName(src)}</Badge>)}
                 {d.gone.map((src) => <Badge key={`gone-${src}`} variant="light" color="warn" tt="none">{t('inventory.gone', { source: sourceName(src) })}</Badge>)}
                 {d.hidden && <Badge variant="outline" color="gray" tt="none">{t('inventory.hidden')}</Badge>}
               </Group>
