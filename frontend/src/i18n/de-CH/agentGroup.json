@@ -15,10 +15,7 @@
     "owns": "Eigene Geräte",
     "ownsValue": "{{n}} von {{total}}",
     "pinned": "Fest zugewiesen",
-    "version": "Version",
-    "split": "Folgt der Aufteilung",
-    "yes": "ja",
-    "no": "nein, Agent aktualisieren"
+    "version": "Version"
   },
   "roleHelp": {
     "primary": "Macht, was nur ein Agent tun soll (LANcache, DHCP, Plugin-Aktionen), und sammelt alle Geräte, wenn die Gruppe nicht aufteilt.",

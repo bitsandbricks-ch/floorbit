@@ -10,7 +10,7 @@ afterEach(() => vi.unstubAllGlobals())
 
 const member = (over: Partial<AgentGroupMember>): AgentGroupMember => ({
   id: 'a', name: 'Rack A', connected: true, role: 'primary', holds: [], address: '', version: '0.9.0',
-  follows_split: true, owns: 0, pinned: 0, ...over,
+  follows_split: true, owns: 0, pinned: 0, capabilities: ['lease', 'split', 'syslog_hold'], ...over,
 })
 
 function open(group: Partial<AgentGroupDetail>) {
@@ -47,9 +47,12 @@ describe('AgentGroup', () => {
   it('says which agent keeps the group from splitting', async () => {
     open({
       split: false, devices: 100,
-      agents: [member({ owns: 100 }), member({ id: 'b', name: 'Rack B', role: 'standby', follows_split: false })],
+      agents: [member({ owns: 100 }), member({ id: 'b', name: 'Rack B', role: 'standby', follows_split: false, capabilities: ['lease'] })],
     })
     expect(await screen.findByText(/Rack B can't follow it yet/)).toBeInTheDocument()
+    const b = within(screen.getByRole('article', { name: 'Rack B' })).getByLabelText('Capabilities')
+    expect(within(b).getByText('Falls back to one primary collecting every device of the group.')).toBeInTheDocument()
+    expect(within(b).getByText('Polls and logs in only while Floorbit says it is the primary.')).toBeInTheDocument()
     expect(screen.getByText('No shared addresses. Without them, give the check-in name every agent\'s address in the event DNS.')).toBeInTheDocument()
   })
 })

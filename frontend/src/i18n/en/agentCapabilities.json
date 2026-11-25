@@ -1,0 +1,19 @@
+{
+  "title": "Capabilities",
+  "help": "What this agent can do. For what it can't, Floorbit falls back to what older agents do; updating the agent turns it on.",
+  "name": {
+    "lease": "Primary picked by Floorbit",
+    "split": "Splits devices with its group",
+    "syslog_hold": "Keeps other agents' syslog for a takeover"
+  },
+  "yes": {
+    "lease": "Polls and logs in only while Floorbit says it is the primary.",
+    "split": "Polls, logs in to and handles only its own devices.",
+    "syslog_hold": "Sends only its own devices' lines and keeps a minute of the rest."
+  },
+  "no": {
+    "lease": "Falls back to VRRP: the agent holding the first shared address is primary.",
+    "split": "Falls back to one primary collecting every device of the group.",
+    "syslog_hold": "Falls back to sending every line; Floorbit keeps each line once."
+  }
+}

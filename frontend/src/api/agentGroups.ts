@@ -6,7 +6,7 @@ import { qk } from './keys'
 import type { AgentGroup } from './types'
 
 export type AgentGroupMember = AgentGroup['agents'][number] & {
-  address: string; version: string; follows_split: boolean; owns: number; pinned: number
+  address: string; version: string; follows_split: boolean; owns: number; pinned: number; capabilities?: string[]
 }
 export type AgentGroupDetail = Omit<AgentGroup, 'agents'> & { agents: AgentGroupMember[]; split: boolean; devices: number }
 

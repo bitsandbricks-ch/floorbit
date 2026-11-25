@@ -114,11 +114,15 @@ def lease_holder(members):
     """The group's primary, picked here (issue #1405): the connected agent that holds the lease
     already keeps it (sticky; the smallest id if two say so for a moment), else the group's VRRP
     primary, else the smallest connected id. None when nobody of the group is connected.
+    Only the members with the fewest plugins turned off are picked: the primary polls and logs in
+    for the group, so one without telemetry would leave the group's devices unpolled.
     Asked fresh on every pull, so every pod that hears the same reports picks the same agent."""
+    by_id = {a['id']: a for a in members}
     connected = sorted(a['id'] for a in members if a.get('connected'))
     if not connected:
         return None
-    by_id = {a['id']: a for a in members}
+    fewest = min(len(by_id[i].get('plugins_off') or ()) for i in connected)
+    connected = [i for i in connected if len(by_id[i].get('plugins_off') or ()) == fewest]
     holding = [i for i in connected if _lease(by_id[i])]
     if holding:
         return holding[0]
@@ -200,11 +204,38 @@ def split_owner(name, members):
     return max(sorted(members), key=lambda m: hashlib.sha256(f'{m}|{key}'.encode()).digest(), default=None)
 
 
+# What an agent can do, as it lists it in its report (``capabilities``), with what Floorbit falls
+# back to for an agent that can't: lease (else VRRP picks the primary), split (else the primary
+# collects every device), syslog_hold (else every agent sends every syslog line, kept once here).
+CAPABILITIES = ('lease', 'split', 'syslog_hold')
+
+
+def capabilities(report):
+    """The capabilities an agent has, from its list, or worked out from its report for an agent from
+    before the list."""
+    report = report or {}
+    listed = report.get('capabilities')
+    have = set(listed) if isinstance(listed, list) else set()
+    if isinstance(report.get('lease'), bool):
+        have.add('lease')
+    # A split needs both the agent (logins to its own devices) and its telemetry plugin (polls only
+    # those): the plugin says so with its "split" number, which it only reports on a host that can.
+    metrics = ((report.get('plugins') or {}).get('telemetry') or {}).get('metrics') or {}
+    if metrics.get('split') == 1 and (listed is None or 'split' in have):
+        have.add('split')
+    else:
+        have.discard('split')
+    return sorted(have & set(CAPABILITIES))
+
+
+def can(report, capability):
+    return capability in capabilities(report)
+
+
 def splits(report):
-    """Does the agent's telemetry follow a split (it says so in its report)? One that doesn't would
-    poll every device as primary, next to the owners: its group isn't split until it does."""
-    metrics = (((report or {}).get('plugins') or {}).get('telemetry') or {}).get('metrics') or {}
-    return metrics.get('split') == 1
+    """Does the agent follow a split? One that doesn't would poll every device as primary, next to
+    the owners: its group isn't split until it does."""
+    return can(report, 'split')
 
 
 def split_members(agent_id, connected, agent_tags):

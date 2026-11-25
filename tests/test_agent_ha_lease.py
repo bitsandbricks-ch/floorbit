@@ -81,3 +81,11 @@ def test_agents_of_a_group_share_their_certificate_names(client):
         "agent-b.example.com", "agents.example.com", "192.0.2.10"]
     assert agent_settings.agent_block(a["id"])["cert"]["names"] == [
         "agents.example.com", "192.0.2.10", "agent-b.example.com"]
+
+
+def test_the_lease_goes_to_an_agent_that_runs_every_plugin():
+    # agent-b has telemetry turned off: as primary it would leave the group's devices unpolled.
+    b = {**agent("b", lease=True), "plugins_off": ["telemetry"]}
+    assert agent_ha.lease_holder([agent("a"), b]) == "a"
+    assert agent_ha.lease_holder([{**agent("a", connected=False)}, b]) == "b"
+    assert agent_ha.lease_holder([{**agent("a"), "plugins_off": ["x"]}, b]) == "b"

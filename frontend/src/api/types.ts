@@ -1887,6 +1887,8 @@ export interface Agent {
   report?: AgentReport | null
   /** Plugins that are on here but this agent leaves off (another agent runs them). */
   plugins_off?: string[]
+  /** What it can do (floorbit/agent_ha.py CAPABILITIES); Floorbit falls back for the rest. */
+  capabilities?: string[]
   /** How it reaches this Floorbit right now: protocol 2's WebSocket link or the HTTPS long poll
    *  (null: not connected, or connected to another instance). */
   transport?: 'websocket' | 'poll' | null

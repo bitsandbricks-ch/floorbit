@@ -69,6 +69,8 @@ def live(row, now, protocol):
         'captive_shown': 18, 'captive_done': 160,
         'plugins': {'telemetry': _telemetry(index, now, spec['primary'])},
         'vrrp': {'primary': spec['primary'], 'holds': [VIP] if spec['primary'] else []},
+        # No "lease": the demo's pair is picked by VRRP, so its pages show that fallback too.
+        'capabilities': ['split', 'syslog_hold'],
         'settings': {'values': {}, 'key': 'stored',
                      'cert': {'not_after': now + 80 * 86400, 'names': [spec['address']], 'source': 'floorbit',
                               'floorbit_ca': True, 'public': False}},

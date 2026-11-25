@@ -51,7 +51,8 @@ def detail(found, agents):
                 elif t.get('mine') or ('mine' not in t and member['id'] == found['primary']):
                     owns += 1
         rows.append({**member, 'address': a.get('address') or '', 'version': a.get('version') or '',
-                     'follows_split': agent_ha.splits(a.get('report')), 'owns': owns, 'pinned': pinned})
+                     'follows_split': agent_ha.splits(a.get('report')), 'owns': owns, 'pinned': pinned,
+                     'capabilities': agent_ha.capabilities(a.get('report'))})
     live = [m['id'] for m in found['agents'] if m['id'] in connected]
     split = split or bool(live and agent_ha.split_group(live[0], connected, tags, reports))
     return {**found, 'agents': rows, 'split': split, 'devices': sum(r['owns'] + r['pinned'] for r in rows)}
