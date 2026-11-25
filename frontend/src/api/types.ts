@@ -821,7 +821,11 @@ export interface StatsData {
   monitoring: boolean
   interval: number
   last_poll: number | null
-  now: (StatsSample & { ports_up: number; ports_down: number; ports_errors: number }) | null
+  now: (StatsSample & {
+    ports_up: number; ports_down: number; ports_errors: number
+    /** Every port read, and those up at some read of this event that are down now (#1421). */
+    ports_total?: number; ports_lost?: number
+  }) | null
   hour: StatsWindow | null
   day: StatsWindow | null
   peak: { bps: number; at: number } | null
