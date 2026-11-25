@@ -26,7 +26,8 @@ needs **See seats** too.
 
 The **Inventory** page is one list with a tab per type (Devices, then any other type that has
 entries) and a **Groups and tags** tab. The device list shows each device's live state (the status
-monitor's dot), its role, group, model, management IP, how many of its ports are up (from the last
+monitor's dot; a firewall, server or switch not on the plan is looked up by name in the same poll,
+as the Firewalls page does), its role, group, model, management IP, how many of its ports are up (from the last
 read of the placed switches) and which plugin feeds it. Every column sorts; search, group, tag,
 state and role filter it, 50 rows to a page, and the sort and page stay in the address (`?sort=-ports&page=2`). A small chip next to the filters says when the
 plugins last synced (red when a sync failed; hover for each plugin and the schedule). Picking a
