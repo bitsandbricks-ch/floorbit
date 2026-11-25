@@ -284,6 +284,7 @@ RULES = (
     ('/api/inventory/credentials', WRITE, 'settings.manage'),
     # How often each discovery action runs is a setting; running one now is any editor's.
     ('/api/inventory/discovery/actions', WRITE, 'settings.manage'),
+    ('/api/inventory/discovery/deciding', WRITE, 'settings.manage'),   # which source decides an area (#965)
     ('/api/inventory/credentials', READ, 'floorplan.edit'),
     # A device blocked after a failed login: any tech clears it once the login is fixed.
     ('/api/inventory/blocks', None, 'ports.act'),

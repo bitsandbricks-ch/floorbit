@@ -234,8 +234,10 @@ def _identity(data, dev, a, facts, now):
     """The plugin's reading of the device: its fields by the fill rules, the reading next to each
     field, and drift where they disagree."""
     from . import inventory, inventory_properties
-    values = facts.get('fields') or {}
-    inventory_properties.record_readings(data, dev['id'], a['plugin'], values, {'sysDescr': facts.get('descr')}, now)
+    read = facts.get('fields') or {}
+    inventory_properties.record_readings(data, dev['id'], a['plugin'], read, {'sysDescr': facts.get('descr')}, now)
+    # Where another source decides the device's identity, only what it didn't read (#965).
+    values = inventory_discovery.mine(data, dev, read, a['plugin'])
     changed, _kept = inventory_discovery.fill(dev, values, inventory_discovery.fed_key(a['plugin']))
     if changed:
         dev['updated_at'] = inventory.now()
@@ -263,18 +265,26 @@ def facts_of(data, device_id):
 
 
 def builtin_fill(data, device_id, record):
-    """The built-in keys the monitoring source has none of, from the plugins that read them (in
-    plugin order). ``record``: discovery's own for the device."""
+    """The built-in keys from the plugins that read them: the deciding source's (#965), and what
+    the deciding one has none of from the others, in plugin order. ``record``: discovery's own
+    (the monitoring source's) for the device."""
+    from . import discovery_sources, inventory
     out = dict(record)
-    for area_id, got in sorted(facts_of(data, device_id).items()):
-        area_name = area_id.split('.', 1)[-1]
+    plugged = facts_of(data, device_id)
+    if not plugged:
+        return out
+    dev = inventory.find(data, device_id) or {}
+    role = dev.get('role') or 'switch'
+    for area_id, got in sorted(plugged.items(), key=lambda kv: kv[0]):
+        plugin, _, area_name = area_id.partition('.')
         facts = got.get('facts') if isinstance(got, dict) else None
         if area_name not in KEYS or area_name == 'identity' or not isinstance(facts, dict):
             continue
+        leads = discovery_sources.deciding(data, role, area_name)[0] == plugin
         for key in KEYS[area_name]:
-            if not out.get(key) and facts.get(key):
+            if facts.get(key) and (leads or not out.get(key)):
                 out[key] = facts[key]
-                out['at'] = out.get('at') or got.get('at')
+                out['at'] = got.get('at') if leads else (out.get('at') or got.get('at'))
     return out
 
 

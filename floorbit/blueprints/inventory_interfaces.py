@@ -38,6 +38,8 @@ def detail(data, dev):
     out['connected'] = connected(data, dev)
     from .. import inventory_discovery
     out['drift'] = inventory_discovery.drift_of(data, dev['id'])
+    from .. import discovery_sources
+    out['conflicts'] = discovery_sources.conflicts_of(data, dev)
     out['discovered'] = inventory_discovery.discovered_of(data, dev['id'])
     from .. import inventory_properties
     out['property_view'] = inventory_properties.view(data, dev, resolved)

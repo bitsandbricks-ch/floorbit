@@ -20,6 +20,7 @@ const NewDevicePage = lazy(() => import('@/pages/inventory/NewDevicePage'))
 const ScopePage = lazy(() => import('@/pages/inventory/ScopePage'))
 const EntryPage = lazy(() => import('@/pages/inventory/EntryPage'))
 const PropertiesPage = lazy(() => import('@/pages/inventory/PropertiesPage'))
+const ReadsPage = lazy(() => import('@/pages/inventory/ReadsPage'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
 const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
@@ -115,6 +116,7 @@ export default function App() {
             <Route path="/inventory/defaults" element={<ScopePage kind="defaults" />} />
             <Route path="/inventory/entries/:type/:id" element={<EntryPage />} />
             <Route path="/inventory/properties" element={<PropertiesPage />} />
+            <Route path="/inventory/reads/:role" element={<ReadsPage />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />
             <Route path="/incidents" element={<Incidents />} />
             <Route path="/incidents/qr" element={<HelpdeskQr />} />
