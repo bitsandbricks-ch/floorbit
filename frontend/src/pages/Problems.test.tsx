@@ -13,6 +13,14 @@ async function pick(button: string, item: string | RegExp) {
   fireEvent.click(await screen.findByRole('menuitem', { name: item, hidden: true }))
 }
 
+/** Ticks or unticks a choice of the multi-select Type menu (issue #1472), then closes the menu. */
+async function tick(button: string, item: string | RegExp) {
+  const start = new RegExp(`^${button.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+  fireEvent.click(screen.getByRole('button', { name: start }))
+  fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: item, hidden: true }))
+  fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+}
+
 afterEach(() => vi.unstubAllGlobals())
 
 /** The problem rows, without the header. */
@@ -98,7 +106,7 @@ describe('Problems', () => {
     expect(within(incident).getByText('Incident')).toBeInTheDocument()
     expect(within(incident).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/incidents?q=seat%3AB-4')
     expect(await rowActions(incident)).not.toContain('Mute')
-    await pick('Type: All', /Seats/)
+    await tick('Type: All', /Seats/)
     await vi.waitFor(() => expect(names()).toEqual(['No internet at the seat', 'Seat A-12 is online without a check-in']))
   })
 
@@ -138,16 +146,28 @@ describe('Problems', () => {
     await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ minutes: 30 }))
   })
 
-  it('shows one kind at a time, with counts, and keeps it in the link', async () => {
+  it('shows the types ticked, several at once, and keeps them in the link (issue #1472)', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
     renderWithApp(<Problems />, '/problems?kind=power')
     expect(await screen.findByRole('row', { name: /Circuit B row 2/ })).toBeInTheDocument()
     expect(screen.queryByRole('row', { name: 'sw-c-02 is offline' })).not.toBeInTheDocument()
-    await pick('Type: Power', /^Switch/)
+    // Power and Switch together.
+    await tick('Type: Power', /^Switch/)
+    await vi.waitFor(() => expect(bodyRows()).toHaveLength(3))
+    // Only Switch.
+    await tick('Type: Switch, Power', /^Power/)
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(2))
     expect(screen.queryByRole('row', { name: /Circuit B row 2/ })).not.toBeInTheDocument()
-    await pick('Type: Switch', /^All/)
+    // None ticked shows everything.
+    await tick('Type: Switch', /^Switch/)
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(3))
+  })
+
+  it('ignores a type in an old link that is no longer on the list', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />, '/problems?kind=all')
+    await screen.findByRole('row', { name: /Circuit B row 2/ })
+    expect(bodyRows()).toHaveLength(3)
   })
 
   it('makes an incident from an offline switch, or links the open one', async () => {
