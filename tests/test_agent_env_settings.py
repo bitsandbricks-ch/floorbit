@@ -47,9 +47,9 @@ def test_only_plugins_that_work_on_an_agent_and_only_with_a_key(client, anon_cli
 def test_a_plugin_turned_on_here_keeps_its_own_settings(client, anon_client):
     key = enrol(client)["key"]
     client.put("/api/settings/plugins/netflow-relay", json={"enabled": True})
-    got = anon_client.post(URL, json={"settings": {"plugin.netflow-relay.port": 2055}}, headers=head(key)).get_json()
+    got = anon_client.post(URL, json={"settings": {"plugin.netflow-relay.port": 9999}}, headers=head(key)).get_json()
     assert got == {"imported": [], "skipped": {"netflow-relay": "already set up here"}}
-    assert sources.registry.settings_store.get("plugin.netflow-relay.port") == 0
+    assert sources.registry.settings_store.get("plugin.netflow-relay.port") == 2055   # the fixed default (#1436)
 
 
 def test_on_the_agent_its_environment_no_longer_sets_plugins(tmp_path):

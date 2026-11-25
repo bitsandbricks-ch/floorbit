@@ -487,18 +487,19 @@ def anomalies_widget(lang, flows, now=None):
 HEALTH_STATES = ('up', 'down', 'warn', 'unknown')
 
 
-def service_health_widget(lang, wall):
-    """The health wall's checks (DHCP, DNS, firewalls, ...), worst first, with each one's summary.
-    ``wall`` is /api/health's, already in the reader's language."""
+def service_health_widget(lang, summary):
+    """Every service the Services page lists (floorbit/service_summary.py: each internet site a row
+    of its own), worst first, with each one's summary, so the tile and the page count the same
+    (issue #1411). ``summary`` is /api/services/summary's, already in the reader's language."""
     text = TEXTS.get(lang, TEXTS['en'])
-    checks = wall.get('checks') or []
+    checks = summary.get('rows') or []
     if not checks:
-        return {'type': 'status', 'items': [], 'sub': text['no_checks'], 'link': '/dashboards/health'}
+        return {'type': 'status', 'items': [], 'sub': text['no_checks'], 'link': '/services'}
     order = {'down': 0, 'warn': 1, 'unknown': 2, 'up': 3}
     items = [{'label': c.get('name') or '', 'detail': c.get('summary') or '',
               'state': c.get('status') if c.get('status') in HEALTH_STATES else 'unknown'} for c in checks]
     items.sort(key=lambda i: order[i['state']])
-    return {'type': 'status', 'items': items, 'link': '/dashboards/health'}
+    return {'type': 'status', 'items': items, 'link': '/services'}
 
 
 def internet_uplinks_widget(lang, overview):

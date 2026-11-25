@@ -43,11 +43,8 @@ def test_it_says_what_it_still_needs(client):
     needs = {n['id']: n for n in _cap(client, 'checkin')['needs']}
     assert needs['dhcp114']['ok'] is None          # set in the event's DHCP, outside Floorbit
     assert 'cap.front_door' in needs
-    logs = {n['id']: n for n in _cap(client, 'logs')['needs']}
-    assert logs['port.syslog-relay']['ok'] is False
-    client.put('/api/settings', json={'plugin.syslog-relay.port': 514})
-    logs = {n['id']: n for n in _cap(client, 'logs')['needs']}
-    assert logs['port.syslog-relay']['ok'] is True
+    # The agent's syslog and flow ports are fixed (#1436): nothing to set.
+    assert [n['id'] for n in _cap(client, 'logs')['needs']] == ['agent']
 
 
 def test_bad_switches(client):
