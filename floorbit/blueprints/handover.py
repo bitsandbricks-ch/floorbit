@@ -52,7 +52,7 @@ def hand_over():
     posted = None
     notifier = current_app.extensions.get('floorbit_discord')
     if body.get('discord') and notifier is not None and notifier.enabled():
-        notifier.post(handover.discord_message(record, built, config.get('PUBLIC_URL', '') or '',
+        notifier.post(handover.discord_message(record, built, config.public_url(),
                                                config.get('DISCORD_USERNAME', 'Floorbit')))
         posted = True
     events.publish('handover.changed', {'id': record['id']})

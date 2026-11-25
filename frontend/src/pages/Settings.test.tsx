@@ -39,31 +39,41 @@ const answer: SettingsAnswer = {
 }
 
 describe('Settings', () => {
-  it('keeps changes across tabs and sections, and saves only the fields that changed', async () => {
+  it('keeps changes across entries, and saves only the fields that changed', async () => {
     const api = fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer, 'PUT /api/settings': answer })
     vi.stubGlobal('fetch', api.fn)
-    page()
-    // General opens first, on its first section; NetBox is a plugin, so not here.
-    fireEvent.click(await screen.findByRole('button', { name: 'Reset' }))
-    expect(screen.getByRole('tab', { name: /General/ })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.queryByRole('link', { name: 'NetBox' })).toBeNull()
-
-    fireEvent.click(screen.getByRole('tab', { name: /System/ }))
+    page('/settings/status')
+    // Server holds the status, Caching and the General fields Floorbit can't know itself; NetBox is a plugin.
     expect(await screen.findByText('Not configured, no live status')).toBeInTheDocument()
-    fireEvent.click(screen.getAllByRole('link', { name: 'Caching' })[0])
+    expect(screen.getByRole('link', { name: /Server/ })).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('link', { name: 'NetBox' })).toBeNull()
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset' }))
     fireEvent.change(await screen.findByLabelText('ARP table TTL'), { target: { value: '600' } })
     expect(await screen.findByText('2 unsaved changes')).toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('link', { name: /Alerts and Discord/ }))
+    expect(await screen.findByLabelText('Webhook URL')).toBeInTheDocument()
+    expect(screen.getByText('2 unsaved changes')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.some((c) => c.method === 'PUT')).toBe(true))
     expect(api.calls.find((c) => c.method === 'PUT')?.body).toEqual({ 'cache.ttl_arp': 600, 'event.name': null })
     expect(await screen.findByText('Saved. Changes apply immediately.')).toBeInTheDocument()
   })
 
+  it('lists the entries in four groups and opens an old section address on its entry (#1433)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer }).fn)
+    page('/settings/cache')
+    expect(await screen.findByLabelText('ARP table TTL')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Server/ })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getAllByText('Alerts').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Floorbit').length).toBeGreaterThan(0)
+    expect(screen.queryByRole('tab')).toBeNull()
+  })
+
   it('does not save a value the server would refuse', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer }).fn)
     page('/settings/discord')
-    expect(await screen.findByRole('tab', { name: /Alerts/ })).toHaveAttribute('aria-selected', 'true')
+    expect(await screen.findByRole('link', { name: /Alerts and Discord/ })).toHaveAttribute('aria-current', 'page')
     fireEvent.change(await screen.findByLabelText('Webhook URL'), { target: { value: 'discord.example.com' } })
     expect(await screen.findByText('Not a valid value')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
@@ -93,7 +103,7 @@ describe('Settings', () => {
     expect(await screen.findByText('No setting matches.')).toBeInTheDocument()
   })
 
-  it('opens an admin page inside its tab, and shows people pages to an account that may not change settings', async () => {
+  it('opens an admin page in the list, and shows people pages to an account that may not change settings', async () => {
     const people = { enabled: true, user: { username: 'ada', display_name: 'Ada', role: 'lead', permissions: ['floorplan.view', 'accounts.manage'] } }
     const api = fakeFetch({
       'GET /api/auth/me': people,
@@ -102,9 +112,9 @@ describe('Settings', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     page('/settings/teams')
-    expect(await screen.findByRole('tab', { name: /People/ })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.queryByRole('tab', { name: /General/ })).toBeNull()
-    expect(screen.getByRole('link', { name: 'Users' })).toHaveAttribute('href', '/settings/users')
+    expect(await screen.findByRole('link', { name: /Roles and teams/ })).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('link', { name: /Server/ })).toBeNull()
+    expect(screen.getByRole('link', { name: /Users/ })).toHaveAttribute('href', '/settings/users')
     expect(await screen.findByRole('heading', { name: 'Roles and teams', level: 3 })).toBeInTheDocument()
     expect(api.calls.some((c) => c.path === '/api/settings')).toBe(false)
   })
@@ -118,27 +128,17 @@ describe('Settings', () => {
     expect(screen.queryByText(/DISCORD_/)).toBeNull()
     fireEvent.mouseEnter(fromEnv.closest('span') as HTMLElement)
     expect(await screen.findByText(/environment variable DISCORD_TOKEN/)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: /General/ }))
+    fireEvent.click(screen.getByRole('link', { name: /Server/ }))
     expect(await screen.findByText('Set here')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
   })
 
-  it('keeps Tenants under System on one tenant, and gives it a tab only with several', async () => {
+  it('keeps Tenants under Floorbit', async () => {
     const pages = { pages: [{ href: '/settings', id: 'settings', label: 'Settings' }, { href: '/settings/tenants', id: 'tenants', label: 'Tenants' }] }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/settings': answer, 'GET /api/pages': pages }).fn)
-    const one = page('/settings/cache')
-    expect(await screen.findByRole('tab', { name: /System/ })).toHaveAttribute('aria-selected', 'true')
-    expect(await screen.findByRole('link', { name: 'Tenants' })).toHaveAttribute('href', '/settings/tenants')
-    expect(screen.queryByRole('tab', { name: /Tenants/ })).toBeNull()
-    one.unmount()
-
-    const el = document.createElement('script')
-    el.type = 'application/json'
-    el.id = 'fb-nav-data'
-    el.textContent = JSON.stringify({ tenants: true })
-    document.body.append(el)
     page('/settings/cache')
-    expect(await screen.findByRole('tab', { name: /Tenants/ })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /Tenants/ })).toHaveAttribute('href', '/settings/tenants')
+    expect(screen.queryByRole('tab', { name: /Tenants/ })).toBeNull()
   })
 
   it('works out the contrast like the server', () => {

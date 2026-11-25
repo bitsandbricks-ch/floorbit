@@ -240,7 +240,7 @@ stored.
 
 ### Syncing on its own
 
-Set **Inventory sync (minutes)** under Settings > General (`INVENTORY_SYNC_MINUTES`) and Floorbit
+Set **Inventory sync (minutes)** under Settings > Inventory (`INVENTORY_SYNC_MINUTES`) and Floorbit
 runs the same sync by itself, so a switch added in NetBox during setup shows up without anyone
 pressing **Sync now**. 0 (the default) is off; less than 5 counts as 5, at most once a day. The
 time counts from the newest sync, by hand or not, and a failed one waits the same time before the
@@ -273,7 +273,7 @@ LibreNMS call (an agent older than this asks nothing, and those areas stay as th
   | `poe`: the PoE budget | switches | Discovery (minutes) |
   | `routes` | firewalls | Discovery (minutes) |
 
-  **Discovery (minutes)** is under Settings > General (`DISCOVERY_MINUTES`, 15 by default; less
+  **Discovery (minutes)** is under Settings > Inventory (`DISCOVERY_MINUTES`, 15 by default; less
   than 5 counts as 5, 0 turns every action off). An admin sets one action's own interval with
   `PUT /api/inventory/discovery/actions/<id>` (`{"minutes": 30}`, 0 for off, `null` for the
   default). `GET /api/inventory/discovery` lists the actions with their last run (when, how many

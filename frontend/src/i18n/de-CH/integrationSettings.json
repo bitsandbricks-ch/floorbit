@@ -356,7 +356,7 @@
     },
     "integrations_public_url": {
       "label": "Öffentliche URL",
-      "help": "Wo man den Hallenplan öffnet; für Links in Meldungen."
+      "help": "Wo man den Hallenplan öffnet; für Links in Meldungen. Leer: die Adresse, unter der die Crew Floorbit zuletzt geöffnet hat."
     },
     "integrations_qr_url": {
       "label": "Adresse auf den QR-Codes der Plätze",

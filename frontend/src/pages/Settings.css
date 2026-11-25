@@ -1,0 +1,5 @@
+/* One search box on Settings (#1054): the page's own takes the global one's place in the top bar.
+   Ctrl K still opens "Go to". */
+.fb-topbar:has(.fb-settings-search) .fb-topbar-search { display: none; }
+/* Groups in the side list: a line between them, as in the round-5 H-2 mock (#1433). */
+.fb-settings-group { margin-top: var(--mantine-spacing-xs); padding-top: var(--mantine-spacing-xs); border-top: 1px solid var(--color-line); }
