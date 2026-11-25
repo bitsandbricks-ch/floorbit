@@ -233,6 +233,9 @@ def create_app(start_background=True):
     # The agents' Let's Encrypt certificate, once its name reaches Floorbit (docs/agent.md).
     from . import public_cert
     public_cert.init_app(app, start_background=start_background)
+    # The agents' own updates, from their signed releases (agent_updates.py).
+    from . import agent_updates
+    agent_updates.init_app(app, start_background=start_background)
 
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention

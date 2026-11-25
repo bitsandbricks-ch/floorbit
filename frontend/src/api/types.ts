@@ -1,3 +1,4 @@
+import type { AgentSelfUpdateReport, SelfUpdateStatus } from './agentUpdates'
 import type { OwnCheck, ServiceTags } from './serviceChecks'
 // Shapes the Flask API returns. Keep in step with floorbit/plugins and auth.
 
@@ -1910,6 +1911,8 @@ export interface Agent {
   old_works_until?: number | null
   /** One of the demo's made-up agents (floorbit/agent_demo.py): connected, but takes no calls. */
   demo?: boolean
+  /** Where its own update stands (floorbit/agent_updates.py). */
+  self_update?: SelfUpdateStatus
 }
 
 /** An agent's plugin updates (docs/agent-plugins.md, "Updates"). */
@@ -1963,6 +1966,8 @@ export interface AgentReport {
   /** Agent plugins (docs/agent-plugins.md): how each one that should run is doing. */
   plugins?: Record<string, AgentPluginHealth>
   updates?: AgentUpdates
+  /** Its own updates (floorbit-agent's self_update.py). */
+  agent_update?: AgentSelfUpdateReport
   /** With VRRP: whether it is its hall's primary, and the addresses it holds. */
   vrrp?: { primary: boolean; holds: string[] }
   /** Where each of its settings came from (floorbit/agent_settings.py ``clean_report``). */

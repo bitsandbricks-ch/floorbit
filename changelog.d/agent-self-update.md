@@ -1,0 +1,4 @@
+### Added
+
+- Agents update themselves without a new image (floorbit-agent #98). Floorbit looks for the newest signed agent release every hour and offers it to its agents. Each agent installs it only when it is signed with the agent key in its image and built for that image, then starts again on it in the same container. In a group of agents for the same devices, one updates at a time and the primary goes last. A version that doesn't reach Floorbit within five minutes is rolled back. Each agent's **Updates** tab shows the version it runs, the newest release, where its update stands (or the pull command when it needs a new image) and its last steps. Every step is in the audit log.
+- `FLOORBIT_AGENT_UPDATES` on the agent (`auto`, `approve` or `off`) is shown read-only with the hall's other limits, and only the hall can set it.

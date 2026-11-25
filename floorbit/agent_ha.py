@@ -249,8 +249,9 @@ def split_owner(name, members):
 
 # What an agent can do, as it lists it in its report (``capabilities``), with what Floorbit falls
 # back to for an agent that can't: lease (else VRRP picks the primary), split (else the primary
-# collects every device), syslog_hold (else every agent sends every syslog line, kept once here).
-CAPABILITIES = ('lease', 'split', 'syslog_hold')
+# collects every device), syslog_hold (else every agent sends every syslog line, kept once here),
+# self_update (else the agent's page shows the pull command; agent_updates.py).
+CAPABILITIES = ('lease', 'split', 'syslog_hold', 'self_update')
 
 
 def capabilities(report):

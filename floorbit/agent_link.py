@@ -1061,7 +1061,9 @@ class Tunnel:
                     clean[key] = max(clean.get(key) or 0, value)
         from .agent_plugins import clean_updates, clean_vrrp
         from .agent_settings import clean_report
-        for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report)):
+        from .agent_updates import clean as clean_agent_update
+        for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report),
+                             ('agent_update', clean_agent_update)):
             value = cleaner(raw.get(key))
             if value is not None:
                 clean[key] = value
@@ -1095,11 +1097,20 @@ class Tunnel:
         if clean.get('updates'):
             from .agent_plugins import note_updates
             note_updates(agent, before, clean, now=clean['at'])
+        if clean.get('agent_update'):
+            from .agent_updates import note as note_agent_update
+            note_agent_update(agent, before, clean, now=clean['at'])
         from .agent_ha import splits
+
+        def step(report):
+            mine = (report or {}).get('agent_update') or {}
+            return mine.get('running'), mine.get('trial')
         if (((before or {}).get('vrrp') or {}).get('primary') != (clean.get('vrrp') or {}).get('primary')
                 or (before or {}).get('lease') != clean.get('lease')
                 or splits(before) != splits(clean)
-                or (before or {}).get('capabilities') != clean.get('capabilities')):
+                or (before or {}).get('capabilities') != clean.get('capabilities')
+                # An agent of an HA group finished its update: the next one gets it now (agent_updates.py).
+                or (before is not None and step(before) != step(clean))):
             # An agent became primary or stopped being it: a split (two primaries) or its end must reach
             # the agents' plugin config now, not at their next minute's pull (agent_ha.stand_by_for).
             from .agent_plugins import reload_agents

@@ -3,7 +3,7 @@ import { IconCheck, IconMinus } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 
 /** The capabilities Floorbit knows (floorbit/agent_ha.py CAPABILITIES), in the order to show them. */
-const CAPABILITIES = ['lease', 'split', 'syslog_hold'] as const
+const CAPABILITIES = ['lease', 'split', 'syslog_hold', 'self_update'] as const
 
 /** What an agent can do, and for each thing it can't, what Floorbit does instead. */
 export function Capabilities({ have }: { have?: string[] }) {

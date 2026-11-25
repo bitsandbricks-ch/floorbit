@@ -110,6 +110,16 @@ Source: [`floorbit/blueprints/agent_plugins.py`](https://github.com/bitsandbrick
 | GET | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 | POST | `/api/agent/v1/plugins/<plugin_id>/<kind>` | anyone |  |
 
+## floorbit.blueprints.agent_updates
+
+Updates of the agents themselves (floorbit/agent_updates.py), for the agent with its key:
+
+Source: [`floorbit/blueprints/agent_updates.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/agent_updates.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/agent/v1/agent-bundles/<name>` | anyone |  |
+
 ## floorbit.blueprints.api_tokens
 
 API tokens and the API's version (issue #40). Rules in auth/tokens.py, docs in docs/api.md.
