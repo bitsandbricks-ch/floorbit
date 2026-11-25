@@ -1,5 +1,5 @@
 {
-  "title": "Telemetry",
+  "title": "Telemetry collector",
   "intro": "What the switches, routers and firewalls report themselves: SNMP, traps, gNMI, Cisco model-driven telemetry, NX-API, RESTCONF and the OPNsense API, collected by Telegraf on the local agent. Set devices up in the inventory: turn on Telemetry for a device, a group or a tag, and store its SNMP or API login there.",
   "collector": "Collected by",
   "collectorIs": {
