@@ -8,9 +8,10 @@ description: "The local agent listens for syslog on the event network and sends 
 author: Floorbit
 uses: [agent, settings]
 settings:
-  - {key: port, label: UDP port on the agent, type: int, default: 0, min: 0, max: 65535,
-     help: "Where the switches and firewalls send syslog, on the agent machine (514 is the usual one; the agent needs the right to use it). 0: off."}
-  - {key: bind, label: Listen address, type: string, placeholder: 0.0.0.0,
+  # Fixed like the agent's other ports (#1436): the compose file and the pod publish 514/udp to it.
+  - {key: port, label: UDP port on the agent, type: int, default: 5514, min: 0, max: 65535, advanced: true,
+     help: "Where the agent listens for syslog. The compose file publishes the machine's udp/514 to it. 0: off."}
+  - {key: bind, label: Listen address, type: string, placeholder: 0.0.0.0, advanced: true,
      help: "The agent's address to listen on. Empty: all of them."}
 agent:
   sends:
