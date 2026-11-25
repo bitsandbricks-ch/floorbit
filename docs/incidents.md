@@ -32,6 +32,9 @@ reads what the switch says without leaving the incident.
 (never the audit log's changes). Accounts with `audit.read` get **Open in the changelog** for the
 rest.
 
+Between the two, an incident at a seat shows the seat's **Link** over the last hours, the same strip as in the
+floor plan's seat panel: when the port went down or came back, and how often it changed.
+
 When the problem an incident was made from ends (Floorbit no longer sees it), the incident gets a
 green **Problem over** tag, on its card and its page, within a minute. It stays open: check the
 seat or switch works, then mark it fixed. If the same problem comes back, the tag goes again.
