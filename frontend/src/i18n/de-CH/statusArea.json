@@ -1,4 +1,5 @@
 {
   "halls": "Hallen",
-  "blocks": "Sitzblöcke"
+  "blocks": "Sitzblöcke",
+  "automatic": "Automatisch: {{state}}"
 }

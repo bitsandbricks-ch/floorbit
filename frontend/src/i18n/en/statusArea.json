@@ -1,4 +1,5 @@
 {
   "halls": "Halls",
-  "blocks": "Seat blocks"
+  "blocks": "Seat blocks",
+  "automatic": "Automatic: {{state}}"
 }

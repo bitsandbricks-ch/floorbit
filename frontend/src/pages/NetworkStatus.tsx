@@ -19,6 +19,7 @@ import { COLOR } from './status/state'
 import { ConfirmIcon } from '@bitsandbricks/ui'
 
 const BY_HAND: StatusState[] = ['operational', 'degraded', 'outage', 'maintenance']
+const AUTO = 'auto'
 
 type T = ReturnType<typeof useTranslation>['t']
 
@@ -76,9 +77,10 @@ export default function NetworkStatus() {
     { group: t('statusArea.halls'), items: [...new Set(hallNames)] },
     { group: t('statusArea.blocks'), items: [...new Set(blockNames)].filter((b) => !hallNames.includes(b)) },
   ].filter((g) => g.items.length)
-  // The picker starts on the state the page shows now, so Set works without choosing first (#1416).
-  const shown = d && BY_HAND.includes(d.state) ? d.state : null
-  const chosen = pick ?? shown
+  // The picker shows what decides the state now: "Automatic" or the state set by hand (#890, #1416).
+  // Choosing Automatic is how a state set by hand is lifted.
+  const current = d?.override?.state ?? AUTO
+  const chosen = pick ?? current
   // One-click starting points from what the public page shows (never switch names): edit, then post.
   const suggestions = d ? [
     ...d.areas.map((a) => ({ a, kind: 'Down', color: 'down' })),
@@ -127,18 +129,17 @@ export default function NetworkStatus() {
                 {canSet && (
                   <Stack gap="xs" mt="md">
                     <Group gap="xs" align="flex-end" wrap="wrap">
-                      <Select label={t('status.setState')} value={chosen} onChange={setPick} w={260} allowDeselect={false}
-                        data={BY_HAND.map((s) => ({ value: s, label: t(`status.state.${s}`) }))} />
+                      <Select label={t('status.setState')} value={chosen} onChange={setPick} w={300} allowDeselect={false}
+                        data={[
+                          { value: AUTO, label: t('statusArea.automatic', { state: t(`status.state.${d.auto_state}`) }) },
+                          ...BY_HAND.map((s) => ({ value: s, label: t(`status.state.${s}`) })),
+                        ]} />
                       <TextInput label={t('status.note')} value={note} onChange={(e) => setNote(e.currentTarget.value)}
                         maxLength={200} style={{ flex: 1, minWidth: 160 }} />
                     </Group>
                     <Group gap="xs">
-                      <Button disabled={!chosen} loading={override.isPending && override.variables !== null} onClick={() => override.mutate(chosen)}>{t('status.set')}</Button>
-                      {d.override && (
-                        <Button variant="default" loading={override.isPending && override.variables === null} onClick={() => override.mutate(null)}>
-                          {t('status.backToAuto')}
-                        </Button>
-                      )}
+                      <Button disabled={chosen === current && !note.trim()} loading={override.isPending}
+                        onClick={() => override.mutate(chosen === AUTO ? null : chosen)}>{t('status.set')}</Button>
                     </Group>
                   </Stack>
                 )}

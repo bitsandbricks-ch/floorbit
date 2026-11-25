@@ -67,7 +67,8 @@ the affected areas with the switch names, and the updates.
   attendees see, never switch names.
 - **Area** lists the halls and seat blocks to pick from; anything else (a service, the catering) can
   still be typed in.
-- **Set the state** starts on the state the page shows now, so pinning it takes one click.
+- **Set the state** shows what decides the state now: *Automatic* (with the state it works out) or the
+  state set by hand. Pick another and press **Set**; picking *Automatic* lifts a state set by hand.
 - Every change is in the audit log (area *status page*).
 
 ## Discord
