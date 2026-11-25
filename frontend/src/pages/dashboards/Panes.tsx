@@ -60,9 +60,16 @@ function SignedInTilePane({ pane }: { pane: Extract<Pane, { kind: 'tile' }> }) {
   if (tile) return <TileWidgetPane pane={pane} tiles={[tile, ...more]} />
   return (
     <Framed title={pane.title} hide={pane.hide_title}>
-      {isPending ? <Loader size="sm" aria-label={t('common.loading')} /> : <Note>{t('dashboards.pane.tileGone')}</Note>}
+      {isPending ? <Loader size="sm" aria-label={t('common.loading')} /> : <Note>{tileGone(t, pane.tile)}</Note>}
     </Framed>
   )
+}
+
+/** Why a tile isn't there. A plugin's tile (``<plugin>/w/<id>``), often on a dashboard brought from
+ *  another Floorbit (#938), says which plugin it needs. */
+function tileGone(t: (k: string, o?: Record<string, string>) => string, tile: string): string {
+  const plugin = tile.split('/w/')[0]
+  return plugin && plugin !== 'floorbit' ? t('dashboards.pane.tileNeeds', { plugin }) : t('dashboards.pane.tileGone')
 }
 
 /** The names a status or list widget shows as down. */

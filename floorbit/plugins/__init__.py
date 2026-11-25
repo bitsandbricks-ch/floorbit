@@ -85,6 +85,10 @@ LAYER_LEGEND_MAX = 8
 # A sidebar page: the plugin's own widgets and actions, laid out like a dashboard.
 PAGE_KEYS = ('id', 'label', 'permission', 'role', 'widgets', 'actions', 'columns')
 PAGE_TILES_MAX = 24
+# A ready-made dashboard of the plugin's own widgets (#938): one grid, no code (floorbit/dashboards.py).
+DASHBOARD_KEYS = ('id', 'label', 'fit', 'panels')
+DASHBOARD_PANEL_KEYS = ('widget', 'x', 'y', 'w', 'h', 'type', 'title')
+DASHBOARDS_MAX = 5
 # The methods each data area calls. A plugin must define them all, and only with the area listed.
 AREA_METHODS = {
     'inventory': ('inventory',),
@@ -121,7 +125,7 @@ BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
 MANIFEST_KEYS = frozenset({
     'id', 'name', 'icon', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
     'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', 'layers', 'pages',
-    'schema',
+    'dashboards', 'schema',
     *BUILTIN_ONLY})
 # Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
 MANIFEST_NEXT = ()
@@ -288,7 +292,7 @@ def _validate(m):
         return f"uses: unknown area(s) {', '.join(map(str, unknown))}"
     needs = {'settings': 'settings', 'actions': 'actions', 'widgets': 'widgets',
              'endpoints': 'endpoints', 'hooks': 'hooks', 'context_menu': 'context_menu', 'panels': 'panels',
-             'layers': 'layers', 'pages': 'pages'}
+             'layers': 'layers', 'pages': 'pages', 'dashboards': 'widgets'}
     for key, area in needs.items():
         if m.get(key) and area not in uses:
             return f'{key}: the plugin has {key} but "{area}" is not under uses:'
@@ -372,6 +376,9 @@ def _validate(m):
                 if refresh is None:
                     return f"{kind}.{item['id']}: refresh is a whole number of seconds, 10 to {REFRESH_MAX}"
                 item['refresh'] = refresh
+    err = _check_dashboards(m)
+    if err:
+        return err
     actions = {a['id'] for a in m.get('actions') or []}
     from .agent import check_agent_block
     err = check_agent_block(m)
@@ -386,6 +393,47 @@ def _validate(m):
         events = h.get('events') or []
         if not events or any(e not in EVENTS for e in events):
             return f"hooks: events must be some of {', '.join(EVENTS)}"
+    return ''
+
+
+def _check_dashboards(m):
+    """``dashboards:``: up to five ready-made dashboards made of the plugin's own widgets, each
+    checked like a dashboard someone saved, so a broken one fails at load and not on the screen."""
+    from .. import dashboards
+    items = m.get('dashboards') or []
+    if not isinstance(items, list) or len(items) > DASHBOARDS_MAX:
+        return f'dashboards: a list of up to {DASHBOARDS_MAX} dashboards'
+    own = {w.get('id') for w in m.get('widgets') or [] if isinstance(w, dict)}
+    ids = set()
+    for item in items:
+        if not isinstance(item, dict) or not _name(item.get('id')):
+            return f'dashboards: bad id {item!r}'
+        if item['id'] in ids:
+            return f"dashboards.{item['id']}: duplicate"
+        ids.add(item['id'])
+        where = f"dashboards.{item['id']}"
+        extra = sorted(str(k) for k in item if k not in DASHBOARD_KEYS)
+        if extra:
+            return f"{where}: unknown key(s) {', '.join(extra)}"
+        if item.get('label') is None:
+            item['label'] = item['id'].replace('_', ' ').capitalize()
+        if not isinstance(item['label'], str) or not 1 <= len(item['label']) <= 60:
+            return f'{where}: label is text, 1 to 60 characters'
+        if not isinstance(item.get('fit', False), bool):
+            return f'{where}: fit is true (fills the screen) or false (scrolls)'
+        panels = item.get('panels')
+        if not isinstance(panels, list) or not panels:
+            return f'{where}: panels lists the widgets it shows'
+        for p in panels:
+            if not isinstance(p, dict) or p.get('widget') not in own:
+                return f"{where}.panels: only ids from the plugin's own widgets:"
+            extra = sorted(str(k) for k in p if k not in DASHBOARD_PANEL_KEYS)
+            if extra:
+                return f"{where}.panels: unknown key(s) {', '.join(extra)}"
+        try:
+            dashboards.clean(dashboards.plugin_layout(m['id'], item))
+        except dashboards.LayoutError as exc:
+            return f'{where}: {exc}'
     return ''
 
 

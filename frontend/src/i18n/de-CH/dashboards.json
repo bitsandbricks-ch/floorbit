@@ -134,6 +134,7 @@
     "problems_one": "{{count}} mit Problemen",
     "problems_other": "{{count}} mit Problemen",
     "tileGone": "Diese Kachel gibt es nicht mehr (Plugin aus oder entfernt).",
+    "tileNeeds": "Diese Kachel braucht das Plugin {{plugin}}. Installiere es oder schalte es unter Plugins ein.",
     "empty": "Leerer Bereich",
     "noText": "Schreib etwas in die Einstellungen des Bereichs.",
     "private": "Braucht ein Konto: auf einem öffentlichen Bildschirm nicht gezeigt.",
@@ -358,5 +359,13 @@
     "close": "Widget-Einstellungen schliessen",
     "resetAsk": "{{name}} auf den Standard zurücksetzen? Deine Änderungen gehen verloren.",
     "deleteAsk": "{{name}} löschen? Das lässt sich nicht rückgängig machen."
+  },
+  "file": {
+    "import": "Importieren",
+    "export": "Als Datei exportieren",
+    "imported": "«{{name}}» importiert.",
+    "missing": "Einige Kacheln brauchen Plugins, die hier nicht eingeschaltet sind: {{plugins}}.",
+    "notJson": "Diese Datei ist keine Dashboard-Datei.",
+    "fromPlugin": "Von {{plugin}}"
   }
 }
