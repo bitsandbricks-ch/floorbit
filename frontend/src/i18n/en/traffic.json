@@ -13,7 +13,7 @@
   "nothing": "no traffic",
   "areas": "Per area, last hour",
   "areasText": "Areas are the seat blocks on the floor plan.",
-  "services": "Top services, 24 hours",
+  "services": "Applications, 24 hours",
   "seatCount_one": "{{count}} seat",
   "seatCount_other": "{{count}} seats",
   "servicesText_one": "A service is only named once {{count}} different seat used it. {{volume}} went to services fewer seats used.",
@@ -45,5 +45,18 @@
   },
   "dns": "DNS lookups",
   "games": "Games",
-  "viaAgent": "collected by the local agent {{agent}}"
+  "viaAgent": "collected by the local agent {{agent}}",
+  "svc": {
+    "application": "Application",
+    "seats": "Seats",
+    "down": "Down",
+    "up": "Up",
+    "trend": "6 hours",
+    "trendLabel": "{{name}}, bytes per hour over the last 6 hours",
+    "blocks": "Per seat block",
+    "noBlocks": "No block had enough seats on it to name it.",
+    "otherBlocks": "Blocks with fewer seats",
+    "hours": "Per hour",
+    "privacy": "Bytes per block and per hour, never per seat. A block is named only with {{count}} or more of its seats on this application."
+  }
 }

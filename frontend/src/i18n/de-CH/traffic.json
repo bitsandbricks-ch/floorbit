@@ -13,7 +13,7 @@
   "nothing": "kein Verkehr",
   "areas": "Pro Bereich, letzte Stunde",
   "areasText": "Bereiche sind die Sitzblöcke auf dem Hallenplan.",
-  "services": "Häufigste Dienste, 24 Stunden",
+  "services": "Anwendungen, 24 Stunden",
   "seatCount_one": "{{count}} Platz",
   "seatCount_other": "{{count}} Plätze",
   "servicesText_one": "Ein Dienst wird erst genannt, wenn ihn {{count}} verschiedener Platz genutzt hat. {{volume}} gingen an Dienste, die weniger Plätze nutzten.",
@@ -45,5 +45,18 @@
   },
   "dns": "DNS-Anfragen",
   "games": "Games",
-  "viaAgent": "gesammelt vom lokalen Agenten {{agent}}"
+  "viaAgent": "gesammelt vom lokalen Agenten {{agent}}",
+  "svc": {
+    "application": "Anwendung",
+    "seats": "Plätze",
+    "down": "Down",
+    "up": "Up",
+    "trend": "6 Stunden",
+    "trendLabel": "{{name}}, Bytes pro Stunde in den letzten 6 Stunden",
+    "blocks": "Pro Sitzblock",
+    "noBlocks": "Kein Block hatte genug Plätze darauf, um ihn zu nennen.",
+    "otherBlocks": "Blöcke mit weniger Plätzen",
+    "hours": "Pro Stunde",
+    "privacy": "Bytes pro Block und pro Stunde, nie pro Platz. Ein Block wird nur genannt, wenn {{count}} oder mehr seiner Plätze diese Anwendung nutzen."
+  }
 }

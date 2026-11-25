@@ -680,7 +680,8 @@ def _flow_value(value, depth=0):
             return None
         return [row for row in (_flow_value(v, 1) for v in value[:5000]) if isinstance(row, dict)]
     if isinstance(value, dict):
-        if depth > 1:
+        # A row is depth 1, so a map inside it (a seat's mix) is depth 2.
+        if depth > 2:
             return None
         out = {}
         for k, v in list(value.items())[:500]:
