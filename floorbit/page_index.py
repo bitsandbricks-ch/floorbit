@@ -42,6 +42,8 @@ PAGES = (
     ('/commands', 'commands', 'Switch commands',
      lambda c, can: c['feature_on']('commands') and c.get('commands_on') and can('ports.act')),
     ('/terminal', 'terminal', 'Switch terminal', lambda c, can: c['feature_on']('terminal') and can('terminal.open')),
+    # Nightly config backups and what changed: the third tab of the Switch console (#900, #1051).
+    ('/configs', 'configs', 'Switch configs', lambda c, can: can('configs.read')),
     ('/inventory', 'inventory', 'Inventory', None),
     ('/seat-mapping', 'seatMapping', 'Seat mapping', lambda c, can: can('seats.view')),
     ('/cables', 'cables', 'Cables', lambda c, can: c['feature_on']('cables')),
