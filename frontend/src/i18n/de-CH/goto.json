@@ -60,6 +60,7 @@
     "signIn": "Anmeldedienste",
     "audit": "Audit-Log",
     "firewalls": "Firewalls",
+    "switches": "Switches",
     "services": "Dienste",
     "topology": "Topologie",
     "telemetry": "Telemetrie-Sammler",
