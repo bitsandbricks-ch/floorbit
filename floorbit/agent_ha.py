@@ -18,6 +18,8 @@ with the plugin config they pull). Without the hosted side (uplink down too) VRR
 """
 from __future__ import annotations
 
+import time
+
 # How a group stands, worst first: what the Local agents page shows and colours.
 STATES = ('down', 'split', 'no_vrrp', 'no_primary', 'degraded', 'single', 'ok')
 FLOWS_FRESH = 120    # a primary's traffic summary this recent wins over a standby's
@@ -40,7 +42,11 @@ def groups(agents, tag_names=None):
         connected = [a for a in members if a.get('connected')]
         vrrp = {a['id']: _vrrp(a) for a in connected}
         # Agents that take Floorbit's lease (issue #1405): it picks the primary, VRRP only moves addresses.
-        leased = bool(connected) and all(_lease(a) is not None for a in connected)
+        # Right after a restart of this Floorbit no agent has reported yet: one that held the lease
+        # before (remembered) says the group takes leases, so the page doesn't fall back to VRRP.
+        reported = [a for a in connected if a.get('report')]
+        leased = bool(connected) and (all(_lease(a) is not None for a in reported) if reported
+                                      else _remembered('|'.join(key)) is not None)
         if leased:
             holder = lease_holder(members)
             primaries = [a for a in connected if a['id'] == holder]
@@ -107,33 +113,70 @@ def group_key(agent_id):
     return None if me is None else 'group:' + '|'.join(sorted(me.get('tags') or ()))
 
 
-_granted = {}    # group (its tags) -> the agent this pod last gave the lease, until its report says so
+# Who last held each group's lease, kept in the data (key LEASES, group's tags joined with "|"),
+# so a restart of this Floorbit, which forgets every report, doesn't hand it to whichever agent
+# reconnects first. For STARTUP_GRACE after the start it waits for that agent to come back.
+LEASES = 'agent_leases'
+STARTUP_GRACE = 60
+_started = time.monotonic()
+_back = set()    # agents connected since this start: one that leaves again isn't waited for
+
+
+def _remembered(key):
+    try:
+        from .store import load_shared
+        return (load_shared().get(LEASES) or {}).get(key)
+    except Exception:  # noqa: BLE001  # no data yet (tests, first start): nothing remembered
+        return None
+
+
+def _remember(key, agent_id):
+    if _remembered(key) == agent_id:
+        return
+    try:
+        from . import agent_link
+        from .store import load_data, save_data
+        with agent_link._lock:
+            data = load_data()
+            data.setdefault(LEASES, {})[key] = agent_id
+            save_data(data)
+    except Exception as exc:  # noqa: BLE001  # the lease still works, only a restart forgets it
+        print(f'[agent_ha] could not keep the lease holder: {exc}')
 
 
 def lease_holder(members):
     """The group's primary, picked here (issue #1405): the connected agent that holds the lease
-    already keeps it (sticky; the smallest id if two say so for a moment), else the group's VRRP
-    primary, else the smallest connected id. None when nobody of the group is connected.
+    already keeps it (sticky; the smallest id if two say so for a moment), else the one that held
+    it last, else the group's VRRP primary, else the smallest connected id. None when nobody of
+    the group is connected, or in the first minute after a start while the last holder has not
+    been back yet.
     Only the members with the fewest plugins turned off are picked: the primary polls and logs in
     for the group, so one without telemetry would leave the group's devices unpolled.
     Asked fresh on every pull, so every pod that hears the same reports picks the same agent."""
     by_id = {a['id']: a for a in members}
-    connected = sorted(a['id'] for a in members if a.get('connected'))
-    if not connected:
+    every = sorted(a['id'] for a in members if a.get('connected'))
+    _back.update(every)
+    if not every:
         return None
-    fewest = min(len(by_id[i].get('plugins_off') or ()) for i in connected)
-    connected = [i for i in connected if len(by_id[i].get('plugins_off') or ()) == fewest]
+    fewest = min(len(by_id[i].get('plugins_off') or ()) for i in every)
+    connected = [i for i in every if len(by_id[i].get('plugins_off') or ()) == fewest]
+    key = '|'.join(sorted(members[0].get('tags') or ()))
     holding = [i for i in connected if _lease(by_id[i])]
+    last = _remembered(key)
     if holding:
-        return holding[0]
-    # Given out but not reported yet (its report comes within half a minute): keep it there, or an
-    # agent that comes back in between would take it straight back.
-    key = tuple(sorted(members[0].get('tags') or ()))
-    if _granted.get(key) in connected:
-        return _granted[key]
-    vrrp = [i for i in connected if (_vrrp(by_id[i]) or {}).get('primary')]
-    _granted[key] = vrrp[0] if len(vrrp) == 1 else connected[0]
-    return _granted[key]
+        pick = holding[0]
+    elif last in connected:
+        # Given out but not reported yet (its report comes within half a minute), or held before
+        # a restart: keep it there, or an agent that comes back in between would take it.
+        pick = last
+    elif (last in by_id and last not in every and last not in _back
+          and time.monotonic() - _started < STARTUP_GRACE):
+        return None
+    else:
+        vrrp = [i for i in connected if (_vrrp(by_id[i]) or {}).get('primary')]
+        pick = vrrp[0] if len(vrrp) == 1 else connected[0]
+    _remember(key, pick)
+    return pick
 
 
 def lease_for(agent_id, agents=None, now=None):

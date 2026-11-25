@@ -769,8 +769,6 @@ class Tunnel:
             self._relayed.clear()
             self._reports.clear()
             self.last_seen = None
-            from . import agent_ha
-            agent_ha._granted.clear()
             # A long poll still waiting from before must not take calls made after the reset.
             self._era += 1
             self._cond.notify_all()
