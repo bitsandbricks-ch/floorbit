@@ -350,6 +350,37 @@ def agent_for(hostname):
     return agent_ha.split_owner(hostname, group) or first
 
 
+
+def check_agent(given='', host=''):
+    """The connected agent a service check runs from (issue #1444), so its numbers come from one
+    place and move only on failover. ``given`` is the check's "Checked from" (the same values as
+    telemetry.agent: '' any agent, ``tag:<id>`` the agents with that tag, or an agent id); while
+    nobody it names is connected, the default takes over. The default: a check of an inventory
+    device (by name or management address) runs where that device is collected
+    (``agent_for``), anything else on the group's primary. None when no agent is connected here:
+    then whoever answers, as before."""
+    from . import agent_ha, inventory
+    from .telemetry import targets
+    _scoped, everyone, _by_name = _routing()
+    connected = tunnel.connected_agents() & set(everyone)
+    if not connected:
+        return None
+    who = targets.collector(given)
+    tags = {a['id']: set(a.get('tags') or ()) for a in all_agents()}
+    owner, _given = targets.owner_of({'agent': who['agent'], 'agent_tag': who['tag']}, connected, tags)
+    if owner is not None:
+        return owner
+    host = str(host or '').strip().lower()
+    if host:
+        for dev in inventory.devices(load_data(), include_hidden=True):
+            name = str(dev.get('name') or '').lower()
+            if host in (name, str(dev.get('mgmt_ip') or '').lower()) or host.split('.')[0] == name:
+                try:
+                    return agent_for(dev['name'])
+                except AgentUnavailable:
+                    break
+    return sorted(agent_ha.action_targets(connected) or connected)[0]
+
 HEDGE_AFTER = 3.0      # seconds: a lookup burst answers in under 2; longer means that agent hangs
 _last_knew = [None]    # the agent that answered the last first-answer call
 FIRST_ANSWER = {'resolve_ip'}   # None when an agent doesn't know: the first real answer is the answer

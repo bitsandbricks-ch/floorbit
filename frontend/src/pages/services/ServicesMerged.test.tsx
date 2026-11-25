@@ -107,7 +107,7 @@ describe('Services with what Service health showed (#1337)', () => {
     expect(await screen.findByText('Up · Status 200 · 92 ms · certificate 61 days')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(fake.calls.find((c) => c.method === 'POST' && c.path === '/api/services/checks')?.body).toEqual({
-      name: 'Tournament site', kind: 'http', slow_ms: 1000, url: 'https://tournament.example.com/', expect: '200-399', contains: '',
+      name: 'Tournament site', kind: 'http', slow_ms: 1000, from: '', url: 'https://tournament.example.com/', expect: '200-399', contains: '',
       cert_warn_days: 14,
     }))
   })
