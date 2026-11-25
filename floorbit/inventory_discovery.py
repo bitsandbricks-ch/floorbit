@@ -574,7 +574,8 @@ def found_records(data):
     from . import plugin_discovery
     found = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
     plugged = data.get(plugin_discovery.KEY) if isinstance(data.get(plugin_discovery.KEY), dict) else {}
-    return [discovered_of(data, i) for i in sorted(set(found) | set(plugged))]
+    # In discovery's own order: an optic seen on two switches is where the later one says it is.
+    return [discovered_of(data, i) for i in [*found, *(i for i in plugged if i not in found)]]
 
 
 # ── drift ────────────────────────────────────────────────────────────────────────────────────
