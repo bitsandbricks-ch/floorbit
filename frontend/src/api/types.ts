@@ -526,6 +526,8 @@ export interface Incident {
   problem: string | null
   /** The problem on the Problems page it was made from (issue #882). */
   from_problem?: string | null
+  /** When that problem ended; gone again if it came back (issue #882). */
+  problem_over_at?: number | null
   team: string | null
   status: IncidentStatus
   assignee: string | null

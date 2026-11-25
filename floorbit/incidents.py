@@ -155,6 +155,21 @@ def stamp(incident_id, **fields):
         return incident
 
 
+def mark_problem_over(changes):
+    """``{incident id: time or None}``: when the problem an incident came from ended (issue #882),
+    or None once it is back. Leaves ``updated_at`` alone: nobody touched the incident."""
+    with _lock:
+        data = load_data()
+        items = _all(data)
+        for incident in items:
+            if incident['id'] in changes:
+                if changes[incident['id']] is None:
+                    incident.pop('problem_over_at', None)
+                else:
+                    incident['problem_over_at'] = changes[incident['id']]
+        _save(data, items)
+
+
 def _clean_text(value, limit):
     return ' '.join(str(value or '').split())[:limit]
 
