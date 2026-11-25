@@ -20,7 +20,7 @@ Floorbit's own parts in it.
   Incidents, Handover and Status updates; **Network** has Topology and Firewalls;
   **Seats** has Seat mapping, Check-in, the seat walk-through and IP and MAC history;
   **Inventory** has Cables and Electrics; **Switch console** has the switch commands and the
-  terminal; **Agents** has Telemetry; **Dashboards** has Widgets.
+  terminal; **Agents** has the Telemetry collector; **Dashboards** has Widgets.
   Each tab keeps its own address.
 - **Events** sits under Overview and Floor plan: the event list, with the event's own pages
   (schedule, changelog, replay, report, floor plan templates) as its tabs. The picker at the top

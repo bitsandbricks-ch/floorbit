@@ -53,7 +53,7 @@ PAGES = (
     ('/setup#doors', 'preflight', 'Before doors open', lambda c, can: c['feature_on']('preflight')),
     ('/schedule', 'schedule', 'Schedule', lambda c, can: c['feature_on']('schedule')),
     ('/timeline', 'timeline', 'Event changelog', lambda c, can: c['feature_on']('timeline') and can('audit.read')),
-    ('/telemetry', 'telemetry', 'Telemetry', None),
+    ('/telemetry', 'telemetry', 'Telemetry collector', None),
     ('/network-status', 'networkStatus', 'Status updates',
      lambda c, can: c['feature_on']('status_page') and can('incidents.work')),
     ('/replay', 'replay', 'Event replay', lambda c, can: c['feature_on']('replay')),
