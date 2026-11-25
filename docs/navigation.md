@@ -33,6 +33,10 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
 Above each page a bar shows where you are (group, page, sub page), **Go to** (**Ctrl K**, **⌘K** on
 a Mac) for any page, seat or switch, and the bell with what needs a look.
 
+The bell's number is what is down, the same number as the **Helpdesk** badge in the sidebar and
+the first one in the status line at the foot. When nothing is down but something needs a look, it
+shows an amber dot instead; hovering it says both counts.
+
 The bell (also in the phone header) opens the notifications: everything down, every warning and
 the seat and port trouble, worst first, 50 to a page, with a search and a **Show** filter. The
 picked one's details sit beside the list: since when, what it cuts off, its incident, **Mute**,
