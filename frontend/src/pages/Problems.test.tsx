@@ -7,7 +7,9 @@ import Problems from './Problems'
 
 /** Picks a choice from one of the filter row's menus. */
 async function pick(button: string, item: string | RegExp) {
-  fireEvent.click(screen.getByRole('button', { name: button }))
+  // The shared FilterBar adds a hint after the value to the button's name, so match its start.
+  const start = new RegExp(`^${button.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+  fireEvent.click(screen.getByRole('button', { name: start }))
   fireEvent.click(await screen.findByRole('menuitem', { name: item, hidden: true }))
 }
 
