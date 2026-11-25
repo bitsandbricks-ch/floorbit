@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
+import { PageError } from '@bitsandbricks/ui'
 import { AppShell } from '@/components/Layout'
 import { LeaveGuard } from '@/components/LeaveGuard'
-import { PageError } from '@/components/PageError'
 import { readServerPage } from '@/lib/serverPage'
 
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).

@@ -8,3 +8,5 @@
 .fb-row-tabs [role='tab']:hover { color: var(--color-fg); }
 .fb-row-tabs [role='tab'].on { background: var(--color-bit); border-color: var(--color-bit); color: var(--bnb-on-accent, #0b0b0f); font-weight: 600; }
 .fb-row-tabs .fb-row-tabs-add { width: 28px; height: 28px; border-style: dashed; }
+/* The spacer between two rows (#1547): a small cue between their tabs, wider for a bigger spacer. */
+.fb-row-tabs .fb-row-spacer-cue { align-self: stretch; margin: 2px -2px; border-left: 1px dashed var(--color-bit); border-right: 1px dashed var(--color-bit); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-bit) 14%, transparent) 0 3px, transparent 3px 6px); }

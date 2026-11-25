@@ -1,9 +1,0 @@
-.fb-hover-chart { position: relative; }
-.fb-hover-layer { position: absolute; inset: 0 0 auto 0; cursor: crosshair; outline-offset: 2px; }
-.fb-hover-mark { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--mantine-color-dimmed); pointer-events: none; }
-.fb-hover-note {
-  position: absolute; top: 4px; transform: translateX(8px); white-space: nowrap; pointer-events: none;
-  padding: 2px 6px; border-radius: 4px; font-size: var(--mantine-font-size-xs); font-variant-numeric: tabular-nums;
-  background: var(--mantine-color-body); border: 1px solid var(--mantine-color-default-border);
-}
-.fb-hover-note.is-left { transform: translateX(calc(-100% - 8px)); }
