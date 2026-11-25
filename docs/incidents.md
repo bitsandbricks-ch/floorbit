@@ -23,7 +23,9 @@ when the report came in, the speed test from the seat, the crew note on the seat
 made from, every note with who wrote it, and every action this account may take: take it, mark it
 fixed or reopen it, bounce the seat's port, send it to the nearest tech, give it to someone or
 another team, and add a note. **Incident open** on the Problems page and on a problem's page links
-here. An incident that is no longer on the board says so.
+here. An incident that is no longer on the board says so. With `seats.view`, **Recent logs** at the
+bottom lists the newest 20 syslog lines of the seat (or the switch), every 15 seconds, so the tech
+reads what the switch says without leaving the incident.
 
 When the problem an incident was made from ends (Floorbit no longer sees it), the incident gets a
 green **Problem over** tag, on its card and its page, within a minute. It stays open: check the
