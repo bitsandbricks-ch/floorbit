@@ -30,6 +30,16 @@ def _body_for(dev, action, value):
     return None if bool(dev.get('hidden')) == hidden else {'hidden': hidden}
 
 
+def _refused(exc):
+    """The inventory's own validation messages, written for people; nothing else is answered
+    this way, so no stack trace or library message reaches the client."""
+    return jsonify({'error': exc.args[0] if exc.args else 'Bad input'}), getattr(exc, 'status', 400)
+
+
+bp.register_error_handler(inventory.InventoryError, _refused)
+bp.register_error_handler(inventory_scope.ScopeError, _refused)
+
+
 @bp.route('/api/inventory/bulk', methods=['POST'])
 def bulk():
     body = request.get_json(silent=True) or {}
@@ -58,12 +68,9 @@ def bulk():
             patch = _body_for(found[device_id], action, value)
             if patch is None:
                 continue
-            try:
-                dev, changed = inventory.update(data, device_id, patch)
-            except (inventory.InventoryError, inventory_scope.ScopeError) as exc:
-                # Checked above, so this is a device the change can't apply to (too many tags):
-                # nothing is saved, the list stays as it was.
-                return jsonify({'error': str(exc), 'device': device_id}), 400
+            # A device the change can't apply to (too many tags) raises: nothing is saved, the
+            # list stays as it was, and _refused answers.
+            dev, changed = inventory.update(data, device_id, patch)
             if changed:
                 done.append((dev, changed))
         if done:

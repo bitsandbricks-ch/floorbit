@@ -276,16 +276,22 @@ def list_devices():
                     'roles': list(inventory.ROLES), 'fields': list(inventory.FIELDS)})
 
 
+def _bad_input(exc):
+    """An InventoryError a route lets through: its message is one the inventory wrote for people
+    ("A device needs a name"), never a library's or a stack trace."""
+    return jsonify({'error': exc.args[0] if exc.args else 'Bad input'}), 400
+
+
+bp.register_error_handler(inventory.InventoryError, _bad_input)
+
+
 @bp.route('/api/inventory', methods=['POST'])
 def create_device():
     body = request.get_json(silent=True) or {}
     body.pop('hall_id', None)   # placing in a hall goes through /api/switches, which checks the hall
     with data_lock:
         data = load_data()
-        try:
-            dev = inventory.create(data, body)
-        except inventory.InventoryError as exc:
-            return jsonify({'error': str(exc)}), 400
+        dev = inventory.create(data, body)      # bad input raises: _bad_input answers
         save_data(data)
     return jsonify(inventory.public(dev)), 201
 
@@ -302,8 +308,6 @@ def update_device(device_id):
             dev, changed = inventory.update(data, device_id, body)
         except KeyError:
             return jsonify({'error': 'No such device'}), 404
-        except inventory.InventoryError as exc:
-            return jsonify({'error': str(exc)}), 400
         save_data(data)
     return jsonify({**inventory.public(dev), 'changed': changed})
 

@@ -1,5 +1,5 @@
 """Acting on several inventory devices at once (issue #980)."""
-from floorbit import audit
+from floorbit import audit, inventory, inventory_scope
 
 
 def _devices(client, *names):
@@ -55,3 +55,28 @@ def test_bad_requests_change_nothing(client):
 def test_viewers_cannot(client, kiosk_client):
     a, = _devices(client, 'sw-a-01')
     assert kiosk_client.post('/api/inventory/bulk', json={'ids': [a], 'action': 'hide'}).status_code in (401, 403)
+
+
+def test_a_device_the_change_cannot_take_stops_it_all(client, monkeypatch):
+    """The inventory's own message comes back, and no device is changed."""
+    a, b = _devices(client, 'sw-a-01', 'sw-a-02')
+    tag = client.post('/api/inventory/tags', json={'name': 'Stage'}).get_json()['id']
+    update = inventory.update
+
+    def refuse_second(data, device_id, patch):
+        if device_id == b:
+            raise inventory_scope.ScopeError('At most 20 tags.')
+        return update(data, device_id, patch)
+
+    monkeypatch.setattr(inventory, 'update', refuse_second)
+    resp = client.post('/api/inventory/bulk', json={'ids': [a, b], 'action': 'tag-add', 'tag': tag})
+    assert resp.status_code == 400 and resp.get_json() == {'error': 'At most 20 tags.'}
+    assert [r['tags'] for r in _rows(client).values()] == [[], []]
+
+
+def test_bad_device_input_answers_with_the_inventory_message(client):
+    resp = client.post('/api/inventory', json={'name': '', 'role': 'switch'})
+    assert resp.status_code == 400 and resp.get_json() == {'error': 'A device needs a name'}
+    a, = _devices(client, 'sw-a-01')
+    resp = client.patch(f'/api/inventory/{a}', json={'mgmt_ip': 'not-an-ip'})
+    assert resp.status_code == 400 and 'is not an IP address' in resp.get_json()['error']
