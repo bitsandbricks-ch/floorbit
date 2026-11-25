@@ -555,5 +555,21 @@
       "label": "Other agents take over",
       "hint": "Off: while the agent (or every agent with the tag) is away, nobody collects."
     }
+  },
+  "agent": "Agent",
+  "agentAuto": "Auto",
+  "uplink": {
+    "title": "Uplink",
+    "where": "{{port}} to {{peer}} {{peerPort}}",
+    "down": "down",
+    "slow": "{{speed}} of {{planned}}"
+  },
+  "lastDay": {
+    "title": "Last 24 h",
+    "none": "Not watched by the status monitor",
+    "up": "{{ago}} h ago: up",
+    "down": "{{ago}} h ago: down for {{minutes}} min",
+    "label_one": "{{count}} hour with an outage in the last 24 hours",
+    "label_other": "{{count}} hours with an outage in the last 24 hours"
   }
 }
