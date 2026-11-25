@@ -11,6 +11,7 @@ import { qk } from '@/api/keys'
 import type { LogSeverity, LogSource, LogStatus, LogsData, SyslogLine } from '@/api/types'
 import { DataTable, ErrorBanner, PageHead } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
+import { Message } from './logs/Message'
 import { onPlan } from './plan/links'
 import { clockSeconds, formatWhen } from '@/lib/time'
 
@@ -104,9 +105,8 @@ export function LogTable({ lines, store, source, onDevice }: { lines: SyslogLine
           </>
         ) },
         { id: 'message', header: t('logs.message'), wrap: true, cell: (line) => (
-          <Text size="sm" ff="monospace">
-            {line.program && <Text span c="dimmed" inherit>{line.program}: </Text>}
-            {line.message}
+          <Text size="sm" ff="monospace" component="div">
+            <Message line={line} />
           </Text>
         ) },
       ]} />
@@ -128,9 +128,8 @@ function Compact({ line, onDevice }: { line: SyslogLine; onDevice?: (d: string) 
         {line.port && <Text size="xs" c="dimmed">{line.port}</Text>}
         {line.seat && <Anchor href={onPlan({ seat: line.seat })} size="xs" underline="always">{t('logs.seat', { seat: line.seat })}</Anchor>}
       </Group>
-      <Text size="sm" ff="monospace" style={{ overflowWrap: 'anywhere' }} mt={2}>
-        {line.program && <Text span c="dimmed" inherit>{line.program}: </Text>}
-        {line.message}
+      <Text size="sm" ff="monospace" style={{ overflowWrap: 'anywhere' }} mt={2} component="div">
+        <Message line={line} />
       </Text>
     </li>
   )
