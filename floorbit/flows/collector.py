@@ -4,6 +4,7 @@ The agent's netflow-relay plugin feeds it the packets it receives on the plugin'
 the seat addresses and sends the summary it makes every few seconds to Floorbit. The raw flows stay
 on the agent for ``FLOWS_RETENTION_DAYS``.
 """
+import collections
 import ipaddress
 import threading
 import time
@@ -20,7 +21,9 @@ PRUNE_EVERY = 3600
 FEATURE_EVERY = 30
 ALLOW_EVERY = 30
 RAW_EVERY = 5         # seconds between raw writes: one gzip member per packet cost more than the rest
-MAX_PENDING = 500_000  # raw flows waiting for the disk; past that the oldest go unwritten (counted)
+MAX_PENDING = 500_000  # merged rows waiting for the disk; past that the oldest minutes are written early
+RAW_LATE = 60         # a minute is written this long after it ended: exporters report a flow up to their
+                      # active timeout (often 60 s) late, and those records should merge into it
 
 
 class Collector:
@@ -33,9 +36,8 @@ class Collector:
         self.refused = 0
         self._allow = (None, None)     # (monotonic time read, networks or None for everyone)
         self._next = {'publish': 0, 'seats': 0, 'prune': 0, 'feature': 0, 'raw': 0}
-        self._pending = []
+        self._pending = {}   # (minute, src, dst, proto, sport, dport) -> [bytes, packets, records]
         self._lock = threading.Lock()   # receive() and housekeeping() may run in two threads
-        self.raw_skipped = 0
         self._on = True
         self.publish = lambda snap: False   # the agent sets where the summary goes
 
@@ -102,12 +104,35 @@ class Collector:
             return 0
         with self._lock:
             self.agg.add(flows, now=now, exporter=exporter)
-            self._pending += flows
-            if len(self._pending) > MAX_PENDING:
-                over = len(self._pending) - MAX_PENDING
-                del self._pending[:over]
-                self.raw_skipped += over
+            store.compact(flows, self._pending, now)
         return len(flows)
+
+    def _take_closed_minutes(self, now):
+        """The merged rows of minutes that ended at least RAW_LATE ago; more when too many wait."""
+        upto = now - 60 - RAW_LATE
+        per_minute = collections.Counter(key[0] for key in self._pending)
+        left = len(self._pending)
+        for minute in sorted(per_minute)[:-1]:     # never the newest: it is still being filled
+            if minute <= upto:
+                left -= per_minute[minute]
+            elif left > MAX_PENDING:
+                upto = minute   # a flood: write this minute early rather than run out of memory
+                left -= per_minute[minute]
+            else:
+                break
+        done = {k: v for k, v in self._pending.items() if k[0] <= upto}
+        for key in done:
+            del self._pending[key]
+        return done
+
+    def flush(self):
+        """Write every waiting minute, closed or not: the agent is stopping."""
+        with self._lock:
+            pending, self._pending = self._pending, {}
+        try:
+            self.raw.write(pending)
+        except OSError as exc:
+            self.log(f'[flows] could not write to {self.raw.root}: {exc}')
 
     def housekeeping(self, now=None, refresh_seats=None):
         now = time.time() if now is None else now
@@ -119,10 +144,10 @@ class Collector:
             except Exception as exc:  # noqa: BLE001  # keep counting with the old map
                 self.log(f'[flows] could not read the seat addresses: {exc}')
         # Only the hand-over holds the lock: the disk and the network are slow, packets aren't.
-        pending, hours, snap = [], [], None
+        pending, hours, snap = {}, [], None
         with self._lock:
             if self._due('raw', now, RAW_EVERY):
-                pending, self._pending = self._pending, []
+                pending = self._take_closed_minutes(now)
                 hours = self.agg.take_closed_hours()
             if self._due('publish', now, PUBLISH_EVERY):
                 snap = self.agg.snapshot(now=now)
@@ -138,5 +163,4 @@ class Collector:
             snap['templates_missing'] = self.templates.missing
             snap['errors'] = self.errors
             snap['refused'] = self.refused
-            snap['raw_skipped'] = self.raw_skipped
             self.publish(snap)
