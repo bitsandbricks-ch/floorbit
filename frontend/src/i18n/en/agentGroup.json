@@ -1,0 +1,49 @@
+{
+  "kicker": "Agent group",
+  "allDevices": "All devices",
+  "gone": "No agent is in this group",
+  "goneHelp": "Its agents got other tags or were revoked.",
+  "tags": "Tags: {{tags}}",
+  "noTags": "No tags: answers for every device",
+  "agents_one": "1 agent",
+  "agents_other": "{{count}} agents",
+  "intro": "These agents answer for the same tags, so they back each other up. Floorbit picks the primary and splits the devices between them. Nothing needs setting up for failover to work.",
+  "agentsTitle": "Agents",
+  "fact": {
+    "holds": "Shared addresses",
+    "none": "none",
+    "owns": "Devices it owns",
+    "ownsValue": "{{n}} of {{total}}",
+    "pinned": "Pinned to it",
+    "version": "Version",
+    "split": "Follows the split",
+    "yes": "yes",
+    "no": "no, update the agent"
+  },
+  "roleHelp": {
+    "primary": "Runs what only one agent should do (LANcache, DHCP, plugin actions) and collects every device when the group doesn't split.",
+    "standby": "Takes over within about a second if the primary's link closes.",
+    "active": "Collects its own devices.",
+    "offline": "Not connected: its devices are with the others."
+  },
+  "splitTitle": "Who handles which device",
+  "splitOn": "Each device belongs to one agent. Only that agent polls it, logs in to it and handles its syslog, traps and streams. The others hear them too and keep the last minute, so nothing is lost when one takes over.",
+  "splitOld": "The devices aren't split: {{names}} can't follow it yet, so the primary collects every device. Update the agents to split the load.",
+  "splitAlone": "One agent: it collects every device. Enrol a second agent with the same tags to split the load and have a backup.",
+  "splitOffline": "Only one agent is connected, so it collects every device.",
+  "splitWaiting": "The devices aren't split yet: Floorbit splits them once it has heard from every agent of the group.",
+  "share": "{{name}} · {{n}}",
+  "pinnedNote_one": "1 device is pinned to one agent under \"Collected by\" and stays there.",
+  "pinnedNote_other": "{{count}} devices are pinned to one agent under \"Collected by\" and stay there.",
+  "whenStops": "When {{name}} stops, its {{n}} devices move to the others. The rest stay where they are.",
+  "sendTitle": "Where devices send",
+  "sendHelp": "Point each device's syslog, SNMP traps and streaming telemetry at every agent of this group. Devices that can only send to one place use a shared address instead.",
+  "vipsTitle": "Shared addresses",
+  "vipsHelp": "A shared address sits on one agent and moves to another when that one stops (VRRP on the agents). Check-in and devices that can send to only one place use them.",
+  "vipsNone": "No shared addresses. Without them, give the check-in name every agent's address in the event DNS.",
+  "vip": {
+    "address": "Address",
+    "on": "Now on",
+    "nobody": "nobody"
+  }
+}

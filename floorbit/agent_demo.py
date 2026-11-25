@@ -53,7 +53,7 @@ def _telemetry(index, now, primary):
             'metrics': {'devices': devices, 'devices_heard': heard, 'devices_failing': 0,
                         'series': 2400 + 40 * index if primary else 0, 'points': points,
                         'polled_points': points // 3 if primary else 0, 'sent': points,
-                        'telegraf_restarts': 0}}
+                        'telegraf_restarts': 0, 'split': 1}}
 
 
 def live(row, now, protocol):

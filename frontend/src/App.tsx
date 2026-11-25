@@ -57,6 +57,7 @@ const Login = lazy(() => import('@/pages/Login'))
 const Checkin = lazy(() => import('@/pages/Checkin'))
 const Agents = lazy(() => import('@/pages/Agents'))
 const AgentDetail = lazy(() => import('@/pages/AgentDetail'))
+const AgentGroup = lazy(() => import('@/pages/AgentGroup'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
 const Forbidden = lazy(() => import('@/pages/Forbidden'))
@@ -143,6 +144,7 @@ export default function App() {
             <Route path="/settings/:section?" element={<Settings />} />
             <Route path="/settings/agents" element={<Agents />} />
             <Route path="/settings/agents/:id" element={<AgentDetail />} />
+            <Route path="/settings/agents/groups/:gid" element={<AgentGroup />} />
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/endpoints" element={<Endpoints />} />
             <Route path="/wifi" element={<ViewPage key="wifi" view="wifi" />} />
