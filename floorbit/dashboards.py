@@ -98,7 +98,7 @@ PUBLIC_TILES = ('floorbit/w/switches', 'floorbit/w/seats', 'floorbit/w/down',
                 # The stats wall's numbers, public as /wall.json is (dashboard_event.py).
                 *(f'floorbit/w/{t}' for t in ('event_downloaded', 'event_peak', 'event_online_max',
                                              'event_busiest_hour', 'event_loyal_block', 'event_cache_saved',
-                                             'event_games')))
+                                             'event_games', 'event_downloads', 'event_sites')))
 # The rich widgets ("views") are gone (#1045). A dashboard saved with one gets the tile that
 # shows the same thing, or an empty pane where the view's job moved to a page.
 RETIRED_VIEWS = {'health': 'service_health', 'services': 'service_health', 'lancache': 'lancache',
@@ -222,8 +222,11 @@ BUILTIN = {
         _at(18, 0, 6, 6, _tile('event_online_max')),
         _at(0, 6, 6, 6, _tile('event_busiest_hour')),
         _at(6, 6, 6, 6, _tile('event_loyal_block')),
-        _at(12, 6, 6, 6, _tile('event_cache_saved')),
-        _at(18, 6, 6, 6, _tile('event_games', type='bar')),
+        _at(12, 6, 12, 6, _tile('event_cache_saved')),
+        # What the hall plays (#1481): games by title, what the LAN cache served, the top sites.
+        _at(0, 12, 10, 8, _tile('event_games', type='list')),
+        _at(10, 12, 7, 8, _tile('event_downloads', type='bar')),
+        _at(17, 12, 7, 8, _tile('event_sites', type='list')),
     ]}]},
 }
 

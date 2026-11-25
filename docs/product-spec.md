@@ -208,7 +208,9 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 ## 5. Privacy and security
 
 - **Aggregates only** leave the event network for NetFlow, DNS and Wi-Fi. Stats about people need at
-  least 5 seats; per seat only volume and protocol mix. Raw data is kept about 7 days.
+  least 5 seats; per seat only volume and protocol mix. Raw data is kept about 7 days. Public
+  screens name only sites that belong to a known application (games, launchers, site groups), so a big
+  screen never shows whatever else enough seats looked up.
 - **ARP and MAC history is stored** per port and seat (7 days), visible with `seats.view` only.
 - **Device secrets** (SSH logins, RCON passwords, secret settings) are encrypted at rest, write-only
   in the UI, decrypted per call, limited by role and written to the audit log.
