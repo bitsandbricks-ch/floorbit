@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { AppShell } from '@/components/Layout'
+import { LeaveGuard } from '@/components/LeaveGuard'
 import { PageError } from '@/components/PageError'
 import { readServerPage } from '@/lib/serverPage'
 
@@ -87,6 +88,7 @@ export default function App() {
   return (
     // Outside the shell too (sign-in, check-in): an error there shows a way out, not a blank window.
     <PageError resetKey={pathname}>
+      <LeaveGuard />
       <Suspense fallback={null}>
         <Routes>
           <Route path="/login" element={<Login />} />

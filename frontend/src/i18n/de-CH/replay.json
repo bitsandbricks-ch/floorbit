@@ -32,6 +32,6 @@
     "export": "Export",
     "json": "JSON herunterladen",
     "exportHint": "Das JSON enthält jedes Bild jeder Halle.",
-    "kept": "Die Aufzeichnung des ganzen Events behält am letzten Tag alle 5 Minuten ein Bild, in der letzten Woche alle 30 Minuten, danach eines pro Stunde. Sie beginnt neu mit Neues Event beginnen auf der Berichtsseite."
+    "kept": "Die Aufzeichnung des ganzen Events behält am letzten Tag alle 5 Minuten ein Bild, in der letzten Woche alle 30 Minuten, danach eines pro Stunde. Sie beginnt neu, wenn das Event auf der Seite Events abgeschlossen wird."
   }
 }

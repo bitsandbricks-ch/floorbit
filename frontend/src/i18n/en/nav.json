@@ -51,5 +51,6 @@
     "checked": "checked {{ago}}"
   },
   "admin": "Plugins and settings",
+  "setupCount": "{{done}} of {{count}} setup steps done",
   "problemsSplit": "{{count}} down · {{look}} need a look"
 }

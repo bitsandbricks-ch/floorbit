@@ -234,10 +234,11 @@ def release(walker_id, now=None):
 
 def hall(data, learned, now=None, marks=None):
     """Every hall row with how far the walk got and who walks it:
-    ``[{"id", "name", "block_label", "naming", "seats", "found", "marked", "failed",
+    ``[{"id", "name", "block_label", "naming", "seats", "found", "walked", "marked", "failed",
     "walker": {"id", "who", "seat"} | None}]``. ``found``: the row's seats with a port from a walk or
-    a check-in this event; ``marked``: seats the crew marked (seat_marks.py); ``failed``: seats a
-    kept walk could not find."""
+    a check-in this event, ``walked`` the part of them a walk found (the rest came from check-in,
+    so the page can say where its count comes from, #1424); ``marked``: seats the crew marked
+    (seat_marks.py); ``failed``: seats a kept walk could not find."""
     from .seat_names import hall_rows
     now = time.time() if now is None else now
     marks = marks or {}
@@ -252,6 +253,7 @@ def hall(data, learned, now=None, marks=None):
     for r in hall_rows(data):
         out.append({'id': r['id'], 'name': r['name'], 'block_label': r['block_label'], 'naming': r['naming'],
                     'seats': len(r['seats']), 'found': sum(1 for s in r['seats'] if s in learned),
+                    'walked': sum(1 for s in r['seats'] if (learned.get(s) or {}).get('source') == 'walk'),
                     'marked': sum(1 for s in r['seats'] if s in marks),
                     'failed': sum(1 for s in r['seats'] if s in failing and s not in learned),
                     'walker': walking.get(r['id'])})

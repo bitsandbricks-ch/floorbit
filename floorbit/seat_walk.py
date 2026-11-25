@@ -389,7 +389,8 @@ def agent_url():
     connected agent's "Reached in the hall at" (its page, or FLOORBIT_AGENT_HALL_URL in the hall),
     else the check-in name (CHECKIN_ADDRESS, already on every seat card, and every agent's front door
     answers it) on the port the agent is published on, else where browsers in the hall last reached
-    an agent (each front door learns it from the requests it answers). '' while none is known."""
+    an agent (each front door learns it from the requests it answers), else a VIP or certificate
+    address the agents report. '' only while no agent is connected (or none said where it is)."""
     from integrations import checkin
 
     from . import agent_link, agent_settings
@@ -417,7 +418,46 @@ def agent_url():
         url = ((a.get('report') or {}).get('lan_url') or '').rstrip('/')
         if url:
             return url
+    # Nothing named or learnt yet: the agents still say where they sit (#1424, zero setup). A VIP the
+    # pair holds first (both front doors answer it), else an address on an agent's own certificate.
+    for key in ('vrrp', 'cert'):
+        for a in sorted(agents, key=lambda a: not ((a.get('report') or {}).get('vrrp') or {}).get('primary')):
+            report = a.get('report') or {}
+            for host in _hall_addresses(report, key):
+                return _with_port(f'https://{_bracket(host)}', report.get('front_door_ports'))
     return ''
+
+
+def agents_connected():
+    """How many local agents are connected now: the page only warns about agents when none is."""
+    from . import agent_link
+    try:
+        return sum(1 for a in agent_link.all_agents() if a.get('connected'))
+    except Exception:  # noqa: BLE001  # no agents to read: none connected
+        return 0
+
+
+def _hall_addresses(report, key):
+    """IP addresses an agent's report names for itself in the hall: the VIPs it holds, or the
+    addresses on the certificate Floorbit's CA signed for it. Only private or documentation ones:
+    a laptop in the hall never reaches an agent on a public address it reports."""
+    if key == 'vrrp':
+        names = (report.get('vrrp') or {}).get('holds') or []
+    else:
+        names = (((report.get('settings') or {}).get('cert') or {}).get('names')) or []
+    out = []
+    for name in names:
+        try:
+            ip = ipaddress.ip_address(str(name).strip())
+        except ValueError:
+            continue
+        if ip.is_private and not ip.is_loopback and not ip.is_link_local and not ip.is_unspecified:
+            out.append(str(ip))
+    return out
+
+
+def _bracket(host):
+    return f'[{host}]' if ':' in host else host
 
 
 def hello_here(token, ip, agent_name, now=None):

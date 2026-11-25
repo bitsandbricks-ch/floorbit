@@ -5,7 +5,10 @@ import { fakeFetch, renderWithApp } from '@/test/render'
 import { Layout } from './Layout'
 import { PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from './pageTab'
-import { TopBar } from './TopBar'
+import { TopBarCrumbs, TopBarEnd } from './TopBar'
+import type { NavPage } from '@/nav/sections'
+
+const TopBar = ({ pages }: { pages: NavPage[] }) => <><TopBarCrumbs pages={pages} /><TopBarEnd phone={false} /></>
 
 afterEach(() => vi.unstubAllGlobals())
 

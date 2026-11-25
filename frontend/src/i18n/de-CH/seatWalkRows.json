@@ -3,7 +3,7 @@
   "all": "Alle {{count}}",
   "open": "Offen {{count}}",
   "mine": "Meine {{count}}",
-  "summary": "{{rows}} Reihen · {{found}} von {{seats}} Plätzen haben ihren Port",
+  "summary": "{{rows}} Reihen · {{found}} von {{seats}} Plätzen kennen ihren Port: {{walked}} abgelaufen, {{checkin}} vom Check-in",
   "walkingNow": "Jetzt unterwegs",
   "stopped": "angehalten",
   "takeOver": "Übernehmen",

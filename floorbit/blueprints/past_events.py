@@ -14,7 +14,7 @@ from flask import Blueprint, Response, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import audit, event_archive, incidents, report, report_pdf, spa
+from .. import audit, event_archive, incidents, recording, report, report_pdf, seat_notes, spa
 from ..store import load_data
 from .backup import make_backup
 from .replay import _checkins
@@ -96,6 +96,9 @@ def close_event():
     saved = event_archive.archive(built, make_backup(data), _who())
     event_archive.reset_for_next(load_data())
     current_app.extensions['floorbit_stats'].new_event()
+    # The next event starts with an empty replay and no seat notes, as the report's reset did (#1430).
+    recording.clear()
+    seat_notes.clear()
     if next_name:
         current_app.extensions['floorbit_settings'].update({'theme.name': next_name})
     audit.record('report', 'Closed the event and started the next', user=g.get('audit_user'), target=saved['name'])

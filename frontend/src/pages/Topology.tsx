@@ -25,7 +25,9 @@ import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton, StatusBadge } from '@bitsandbricks/ui'
 
 const READABLE = 1 // the smallest scale the opening view shows names at: 11px, as on the plan
-const NEARLY = 0.7 // fitted at 70 % of READABLE or more, the opening view shows everything
+// Fitted at half of READABLE or more, the opening view shows everything, like the Map view (#1439):
+// names a little small beat a picture cut off at both edges. Only a big network opens at READABLE.
+const NEARLY = 0.5
 const ROOMY = 1.6 // the largest: a small network doesn't blow up to fill the page (#1331)
 const NAME_MAX = 10
 const short = (name: string) => (name.length > NAME_MAX ? `${name.slice(0, NAME_MAX - 1)}…` : name)

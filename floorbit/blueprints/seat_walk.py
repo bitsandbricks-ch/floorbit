@@ -65,6 +65,7 @@ def page():
 @bp.route('/api/seat-walk', methods=['GET'])
 def overview():
     body = {'agent_url': seat_walk.agent_url() or None, 'through_agent': bool(checkin.attendee_ip()),
+            'agents_connected': seat_walk.agents_connected(),
             'switch_lookup': seat_walk._ssh(_registry())[0] is not None,
             'monitoring': sources.monitoring().enabled(),
             'event': {k: tenancy.current().get(k) for k in ('id', 'name', 'status')},

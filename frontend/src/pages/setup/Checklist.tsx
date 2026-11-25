@@ -97,21 +97,3 @@ export function SetupChecklist() {
     </Panel>
   )
 }
-
-/** One line on Settings while the event setup has open steps, leading to the checklist. */
-export function SetupNudge({ enabled }: { enabled: boolean }) {
-  const { t } = useTranslation()
-  const q = useChecklist(enabled)
-  const steps = q.data?.steps ?? []
-  const open = steps.filter((s) => s.state === 'look' || s.state === 'todo')
-  if (!open.length) return null
-  return (
-    <Group gap="sm" className="fb-setup-nudge" mb="md" wrap="wrap">
-      <IconAlertTriangle size={18} color="var(--mantine-color-warn-filled)" aria-hidden />
-      <Text size="sm">
-        {t('setup.check.nudge', { done: steps.length - open.length, count: steps.length, next: t(`setup.check.${open[0].id}.title`) })}
-      </Text>
-      <Button size="compact-sm" variant="default" component={Link} to="/setup">{t('setup.check.continue')}</Button>
-    </Group>
-  )
-}

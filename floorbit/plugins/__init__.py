@@ -772,6 +772,8 @@ class Registry:
                                             for o in f['options']]
                 if ftype == 'int':
                     field_def['min'], field_def['max'] = f.get('min', 0), f.get('max', 10 ** 9)
+                if f.get('advanced'):
+                    field_def['advanced'] = True
                 settings_module.FIELDS.append(field_def)
                 settings_module.FIELDS_BY_KEY[key] = field_def
         self.settings_store.reload()

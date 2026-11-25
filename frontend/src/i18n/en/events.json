@@ -28,11 +28,14 @@
   "delete": "Delete",
   "deleteQuestion": "Delete {{name}} with its report and floor plan? This can't be undone.",
   "closeTitle": "Close this event and start the next",
-  "closeHelp": "The event is kept with its report and floor plan. The next one starts from it: the floor plan and settings stay; the report's history, incidents, handovers and pre-flight results start again.",
+  "closeHelp": "The event is kept with its report and floor plan. The next one starts from it: the floor plan and settings stay; the report's history, the replay, seat notes, incidents, handovers and pre-flight results start again.",
   "nextName": "Name of the next event",
   "nextNameHelp": "Optional. Becomes the event name in the theme settings.",
-  "typeToConfirm": "Type \"{{word}}\" to confirm",
   "close": "Close the event",
   "closed": "{{name}} is closed and kept. The next event has started.",
-  "noneTitle": "No event closed yet"
+  "noneTitle": "No event closed yet",
+  "closeQuestion": "Close \"{{name}}\" and start the next event? It is kept with its report and floor plan.",
+  "resetFigures": "Only start the figures again",
+  "resetFiguresQuestion": "Start the figures again without closing the event? The report's history (hours, outages, problem ports), the peak and the replay begin again; nothing is kept. Use it after the setup and load tests, before doors open.",
+  "resetFiguresDone": "The figures start again from now."
 }
