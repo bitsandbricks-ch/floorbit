@@ -6,5 +6,8 @@
   background: var(--color-raised); border-radius: var(--radius-card);
 }
 .fb-mini-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
-.fb-mini-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
+.fb-mini-plan .name {
+  fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; pointer-events: none;
+  paint-order: stroke; stroke: var(--color-raised); stroke-width: 8px; stroke-linejoin: round;
+}
 .fb-mini-plan .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
