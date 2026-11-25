@@ -1,0 +1,7 @@
+/* A tile's big-view button shows on hover or keyboard focus; touch screens, which can't hover, always
+   show it (#1407). */
+.fb-pane-open { white-space: nowrap; }
+@media (hover: hover) {
+  .fb-pane .fb-pane-hover { opacity: 0; transition: opacity .15s; }
+  .fb-pane:hover .fb-pane-hover, .fb-pane:focus-within .fb-pane-hover { opacity: 1; }
+}
