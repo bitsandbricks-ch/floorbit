@@ -1,11 +1,12 @@
 import {
-  Alert, Anchor, Badge, Button, Code, Grid, Group, Loader, MultiSelect, Paper, PasswordInput, ScrollArea, SimpleGrid, Stack,
+  Alert, Anchor, Badge, Button, Code, Grid, Group, Loader, MultiSelect, Paper, PasswordInput, SimpleGrid, Stack,
   Text, TextInput, Title,
 } from '@mantine/core'
 import { IconDownload, IconFlag, IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useMoreLines } from '@/components/MoreLines'
 import { useSearchParams } from 'react-router-dom'
 import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -235,21 +236,30 @@ function Detail({ sw, onBack }: { sw: string; onBack: () => void }) {
               </Group>
             </Group>
             {d.lines.length === 0 ? <Text c="dimmed">{t('configs.noChange')}</Text> : (
-              <ScrollArea.Autosize mah={620} type="auto">
-                <Code block fz="xs" style={{ whiteSpace: 'pre' }}>
-                  {d.lines.map((ln, i) => {
-                    const head = ln.startsWith('+++') || ln.startsWith('---')
-                    const color = head ? undefined : ln.startsWith('+') ? 'var(--mantine-color-up-text, green)'
-                      : ln.startsWith('-') ? 'var(--mantine-color-down-text, red)' : ln.startsWith('@@') ? 'var(--mantine-color-dimmed)' : undefined
-                    return <div key={i} style={{ color, fontWeight: head ? 700 : undefined }}>{ln || ' '}</div>
-                  })}
-                </Code>
-              </ScrollArea.Autosize>
+              <DiffLines lines={d.lines} />
             )}
           </Stack>
         )}
       </Paper>
       </Grid.Col>
     </Grid>
+  )
+}
+
+/** A config diff: the first lines, then "Show all", so the page scrolls instead of a box (#935). */
+function DiffLines({ lines }: { lines: string[] }) {
+  const { limit, more } = useMoreLines(lines.length, 200)
+  return (
+    <Stack gap={4} align="flex-start">
+      <Code block w="100%" fz="xs" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {lines.slice(0, limit).map((ln, i) => {
+          const head = ln.startsWith('+++') || ln.startsWith('---')
+          const color = head ? undefined : ln.startsWith('+') ? 'var(--mantine-color-up-text, green)'
+            : ln.startsWith('-') ? 'var(--mantine-color-down-text, red)' : ln.startsWith('@@') ? 'var(--mantine-color-dimmed)' : undefined
+          return <div key={i} style={{ color, fontWeight: head ? 700 : undefined }}>{ln || ' '}</div>
+        })}
+      </Code>
+      {more}
+    </Stack>
   )
 }
