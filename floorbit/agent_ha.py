@@ -114,11 +114,15 @@ def lease_holder(members):
     """The group's primary, picked here (issue #1405): the connected agent that holds the lease
     already keeps it (sticky; the smallest id if two say so for a moment), else the group's VRRP
     primary, else the smallest connected id. None when nobody of the group is connected.
+    Only the members with the fewest plugins turned off are picked: the primary polls and logs in
+    for the group, so one without telemetry would leave the group's devices unpolled.
     Asked fresh on every pull, so every pod that hears the same reports picks the same agent."""
+    by_id = {a['id']: a for a in members}
     connected = sorted(a['id'] for a in members if a.get('connected'))
     if not connected:
         return None
-    by_id = {a['id']: a for a in members}
+    fewest = min(len(by_id[i].get('plugins_off') or ()) for i in connected)
+    connected = [i for i in connected if len(by_id[i].get('plugins_off') or ()) == fewest]
     holding = [i for i in connected if _lease(by_id[i])]
     if holding:
         return holding[0]

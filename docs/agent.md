@@ -148,6 +148,9 @@ twice and no login is tried twice, which is what locks accounts.
 
 - **Sticky.** The agent that holds the lease keeps it while it is connected. A new one goes to the
   group's VRRP primary if there is one, else to the connected agent with the smallest id.
+- **Every plugin on.** Only the agents with the fewest plugins turned off (Local agents page) get
+  the lease, and a holder with more turned off hands it to one that runs them. A primary without
+  telemetry would leave the group's devices unpolled.
 - **Failover.** When the primary's link closes (the agent stops, its machine dies, the line is
   cut), the next agent of the group gets the lease at once: its config is reloaded within a
   second, and its plugins start polling. An agent on the HTTPS long poll counts as gone after a
