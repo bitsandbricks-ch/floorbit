@@ -10,12 +10,18 @@ publishes events when a switch changes status:
 The first poll only records a baseline, so restarting the app does not fire
 a wave of alerts. A change has to be seen ``STATUS_MONITOR_CONFIRM`` polls in
 a row before it counts, so a single missed SNMP poll does not page anyone.
+
+With several pods (or gunicorn workers) only the leader polls and shares what it saw through
+floorbit/shared_state.py; the other pods read that (issue #1417).
 """
 import threading
 import time
 from typing import ClassVar
 
 from . import config, events
+
+SHARED = 'monitor'
+FOLLOW_EVERY = 5      # how often a pod that doesn't lead checks whether it leads now
 
 
 class StatusMonitor:
@@ -50,13 +56,24 @@ class StatusMonitor:
         sources.wake_status_monitor()   # out of its wait
 
     def _run(self):
+        from floorbit import cluster
+        led = False
         while not self._stop.is_set():
             interval = config.get_int('STATUS_MONITOR_INTERVAL', 60, minimum=10)
+            leading = cluster.leading()
+            if not leading:
+                led = False
+                self._stop.wait(FOLLOW_EVERY)
+                continue
             try:
+                if not led:
+                    led = True
+                    self.take_over()
                 if self.enabled():
                     self.poll_once()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 self.last_error = str(exc)
+                self.share()
                 print(f"[integrations] status monitor poll failed: {exc}")
             from floorbit import sources
             if sources.status_wake.wait(interval):
@@ -192,29 +209,78 @@ class StatusMonitor:
         self.last_error = None
         self.tracked = len(seen)
 
+        self.share()
         for change in changes:
             events.publish('switch.status', change)
         events.publish('monitor.poll', {'changes': changes, 'counts': self.counts()})
         return changes
 
+    # ── several pods ─────────────────────────────────────────────────────────────────────
+    def share(self):
+        """What the other pods' pages read (only the leader polls)."""
+        from floorbit import shared_state, sources
+        shared_state.put(SHARED, {'statuses': self.statuses, 'baseline_done': self.baseline_done,
+                                  'last_poll': self.last_poll, 'last_error': self.last_error,
+                                  'tracked': self.tracked, 'latest': StatusMonitor.latest,
+                                  'source': sources.health(), 'at': time.time()})
+
+    def take_over(self):
+        """This pod leads now: carry on from what the old leader saw, so a switch that went down
+        before the handover is still down and comes back with its real outage time."""
+        from floorbit import shared_state
+        seen = shared_state.get(SHARED)
+        if not isinstance(seen, dict) or not isinstance(seen.get('statuses'), dict):
+            return
+        self.statuses = {sid: dict(s) for sid, s in seen['statuses'].items() if isinstance(s, dict)}
+        self._pending = {}
+        self.baseline_done = bool(seen.get('baseline_done')) and bool(self.statuses)
+        self.last_poll = seen.get('last_poll')
+
+    def _view(self):
+        """The leader's picture on a pod that doesn't lead, else this pod's own."""
+        from floorbit import shared_state
+        if shared_state.follower():
+            seen = shared_state.get(SHARED)
+            return seen if isinstance(seen, dict) else {'statuses': {}}
+        return {'statuses': self.statuses, 'last_poll': self.last_poll, 'last_error': self.last_error,
+                'tracked': self.tracked, 'latest': StatusMonitor.latest}
+
+    @classmethod
+    def latest_devices(cls):
+        """The device list of the last poll (see ``latest``), the leader's on another pod."""
+        from floorbit import shared_state
+        if shared_state.follower():
+            seen = shared_state.get(SHARED)
+            latest = seen.get('latest') if isinstance(seen, dict) else None
+            return latest if isinstance(latest, dict) else {'polled': None, 'at': None, 'devices': None}
+        return cls.latest
+
     # ── read side ────────────────────────────────────────────────────────────────────────
-    def counts(self):
+    def counts(self, view=None):
         out = {'online': 0, 'offline': 0, 'unknown': 0}
-        for s in self.statuses.values():
+        for s in (view or self._view())['statuses'].values():
             out[s['status']] = out.get(s['status'], 0) + 1
         return out
 
     def snapshot(self):
-        return {sid: s['status'] for sid, s in self.statuses.items()}
+        return {sid: s['status'] for sid, s in self._view()['statuses'].items()}
+
+    def status_of(self, sid):
+        """One switch's status as last seen, or None."""
+        return (self._view()['statuses'].get(sid) or {}).get('status')
+
+    def last_polled(self):
+        return self._view().get('last_poll')
 
     def info(self):
+        view = self._view()
         return {
             'enabled': self.enabled(),
             'running': bool(self._thread and self._thread.is_alive()),
             'interval': config.get_int('STATUS_MONITOR_INTERVAL', 60, minimum=10),
             'confirm_polls': config.get_int('STATUS_MONITOR_CONFIRM', 2, minimum=1),
-            'last_poll': self.last_poll,
-            'last_error': self.last_error,
-            'tracked': self.tracked,
-            'counts': self.counts(),
+            'last_poll': view.get('last_poll'),
+            'last_error': view.get('last_error'),
+            'tracked': view.get('tracked') or 0,
+            'counts': self.counts(view),
         }

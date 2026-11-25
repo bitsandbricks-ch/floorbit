@@ -38,3 +38,15 @@ def test_one_worker_needs_no_cluster(monkeypatch, capsys):
     monkeypatch.delenv("FLOORBIT_CLUSTER", raising=False)
     _conf()["when_ready"](types.SimpleNamespace(cfg=types.SimpleNamespace(workers=1)))
     assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize("workers,asked", [(1, False), (3, True)])
+def test_with_several_workers_each_starts_its_loops_at_once(workers, asked):
+    # Only the leader polls (issue #1417); its loops must not wait for a request to reach it.
+    got = []
+
+    class App:
+        def test_client(self):
+            return types.SimpleNamespace(get=got.append)
+    _conf()["post_worker_init"](types.SimpleNamespace(cfg=types.SimpleNamespace(workers=workers), wsgi=App()))
+    assert got == (["/healthz"] if asked else [])

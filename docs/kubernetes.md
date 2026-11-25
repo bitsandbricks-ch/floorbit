@@ -107,8 +107,12 @@ With `FLOORBIT_CLUSTER` set the pods share three things through Valkey:
   calls there and get the answers back, so it doesn't matter which pod a browser reaches. Calls
   and answers cross Redis sealed with the vault key every pod shares (a switch call carries its
   login), so the pods need the same `FLOORBIT_SECRET_KEY_FILE`.
-- **One leader.** Every pod polls the switches and runs its checks, so every page is current on
-  every pod. Only the pod holding the leader lease sends what those checks find: Discord alerts,
+- **One leader.** The pod holding the leader lease polls the switch status and shares what it saw
+  through Valkey; the other pods' pages read that, a second or two old at most, and a "poll now" on
+  them asks the leader. A pod that takes the lease carries on from that picture, so a switch that
+  was down stays down instead of starting from a fresh baseline. (The other checks still run on
+  every pod and move to the leader the same way, issue #1417.) Only the leader sends what the
+  checks find: Discord alerts,
   webhooks, the event timeline, plugin hooks, replay frames and the nightly config backup. When it
   stops, another pod takes the lease within about 20 seconds. What a crew member does (an
   incident, a notice, a handover) is
