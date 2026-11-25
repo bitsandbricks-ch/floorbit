@@ -42,7 +42,7 @@
     "switchAreas": "Switch areas",
     "schedule": "Schedule",
     "timeline": "Event changelog",
-    "networkStatus": "Network status",
+    "networkStatus": "Status updates",
     "replay": "Event replay",
     "report": "Event report",
     "events": "Events",
@@ -96,6 +96,6 @@
     "setup": "checklist, first steps, get started",
     "checkins": "PIN, arrivals",
     "firewalls": "routing, uplinks",
-    "networkStatus": "internet, ISP, uplinks"
+    "networkStatus": "status page, attendees, outage, announcement"
   }
 }

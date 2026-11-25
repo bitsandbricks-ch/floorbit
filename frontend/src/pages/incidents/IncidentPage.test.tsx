@@ -55,6 +55,25 @@ describe('Incident page (#887)', () => {
     expect(screen.getByRole('link', { name: /All incidents/ })).toHaveAttribute('href', '/incidents')
   })
 
+  it('shows the seat\'s newest log lines to those who may see people (issue #913)', async () => {
+    const line = { id: 7, ts: now - 30, facility: 23, severity: 'err', host: null, program: '%LINK-3-UPDOWN',
+      message: 'Interface Gi1/0/3, changed state to down', sender: '192.0.2.9', device: 'sw-a-01', port: 'gi1/0/3', seat: 'A-1' }
+    const lead = { ...tech, user: { ...tech.user, permissions: [...tech.user.permissions, 'seats.view'] } }
+    vi.stubGlobal('fetch', fakeFetch({ ...routes, 'GET /api/auth/me': lead, 'GET /api/logs?seat=A-1&limit=20': { lines: [line], status: {} } }).fn)
+    open('i1')
+    expect(await screen.findByText('Interface Gi1/0/3, changed state to down')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open in Logs' })).toHaveAttribute('href', '/logs?seat=A-1')
+  })
+
+  it('shows no logs without seats.view', async () => {
+    const api = fakeFetch(routes)
+    vi.stubGlobal('fetch', api.fn)
+    open('i1')
+    expect((await screen.findAllByRole('heading', { name: 'No internet at the seat' })).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Recent logs')).not.toBeInTheDocument()
+    expect(api.calls.some((c) => c.path.startsWith('/api/logs'))).toBe(false)
+  })
+
   it('adds a note and takes the incident', async () => {
     const api = fakeFetch({ ...routes, 'PATCH /api/incidents/i1': { ...board.incidents[0] } })
     vi.stubGlobal('fetch', api.fn)

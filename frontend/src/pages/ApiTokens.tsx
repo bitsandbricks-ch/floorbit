@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Checkbox, Code, CopyButton, Group, NumberInput, Select, Stack, Text, TextInput,
+  Alert, Anchor, Badge, Button, Checkbox, Code, CopyButton, Group, NumberInput, Select, Stack, Text, TextInput,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -114,7 +114,7 @@ export default function ApiTokens() {
               )}
             </Panel>
             <NewToken maxDays={d.max_days} onMade={(m) => { setMade(m); refresh() }} />
-            <Text size="sm" c="dimmed">{t('api.docs')}</Text>
+            <Text size="sm" c="dimmed">{t('api.docs')} <Anchor href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/api.md" target="_blank" rel="noopener noreferrer" inherit>{t('api.docsLink')}</Anchor></Text>
           </>
         )}
       </Stack>

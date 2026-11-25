@@ -1,5 +1,5 @@
 {
-  "title": "Network status",
+  "title": "Status updates",
   "intro": "What attendees see on the public status page, and the updates the crew posts there.",
   "open": "Open public page",
   "publicOff": "The public page /status is switched off. An admin turns it on under Settings > Attendee pages.",

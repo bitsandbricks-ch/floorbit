@@ -23,7 +23,9 @@ when the report came in, the speed test from the seat, the crew note on the seat
 made from, every note with who wrote it, and every action this account may take: take it, mark it
 fixed or reopen it, bounce the seat's port, send it to the nearest tech, give it to someone or
 another team, and add a note. **Incident open** on the Problems page and on a problem's page links
-here. An incident that is no longer on the board says so.
+here. An incident that is no longer on the board says so. With `seats.view`, **Recent logs** at the
+bottom lists the newest 20 syslog lines of the seat (or the switch), every 15 seconds, so the tech
+reads what the switch says without leaving the incident.
 
 When the problem an incident was made from ends (Floorbit no longer sees it), the incident gets a
 green **Problem over** tag, on its card and its page, within a minute. It stays open: check the
@@ -155,7 +157,7 @@ Reports go to a team by problem, if that team exists: no internet and slow → A
 Electrics, something else → Operations. Otherwise they wait without a team for someone with
 `incidents.assign`. (Routing rules per area come with issue #11.)
 
-Set **Public URL** (Settings › General, `PUBLIC_URL`) when Floorbit runs behind a reverse proxy, so the QR codes point
+Set **Public URL** (Settings › Server, Advanced, `PUBLIC_URL`) when Floorbit runs behind a reverse proxy, so the QR codes point
 at the address attendees can reach. When attendees reach Floorbit under another name than the crew (an event DNS
 name like `http://help.lan`), set **Address on the seat QR codes** (`QR_URL`) instead: it wins over the public URL for
 the seat cards only, the help and check-in links on them. A bare host gets `http://`; a path prefix is kept. The QR

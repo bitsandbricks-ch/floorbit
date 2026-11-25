@@ -73,6 +73,8 @@ the same:
   **No hall**). The hall is the one the switch is placed in, or for seat trouble the seat's block;
 - **Tag**: only problems on a switch with that tag in the inventory (`?tag=stage`);
 - **Muted**: shown or hidden (`?muted=hide`).
+- **Incident**: any, being worked on (an open incident) or nobody on it (`?incident=none`), for those
+  who see the incident board.
 
 A group's name folds it away, for one someone is already on: it stays folded in this browser across
 reloads, and **Fold all** / **Unfold all** next to the filters fold every group at once. Grouped,

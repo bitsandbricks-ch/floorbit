@@ -141,7 +141,7 @@
  "Fixed: {}": "Behoben: {}",
  "Posting status updates needs a Floorbit account that assigns incidents (lead or admin).": "Status-Updates posten braucht ein Floorbit-Konto, das Störungen zuweist (Lead oder Admin).",
  "Attendees see it on the status page.": "Die Teilnehmenden sehen es auf der Statusseite.",
- "The public status page is off, so only the crew sees it on Network status.": "Die öffentliche Statusseite ist aus, also sieht es nur die Crew unter Netzstatus.",
+ "The public status page is off, so only the crew sees it on Status updates.": "Die öffentliche Statusseite ist aus, also sieht es nur die Crew unter Statusmeldungen.",
  "Posted: {}": "Gepostet: {}",
  "You have it. Notes go on the incident board.": "Du hast sie. Notizen kommen aufs Störungsboard.",
  "Marked fixed. Thanks!": "Als behoben markiert. Danke!",

@@ -4,6 +4,4 @@
 .fb-problem-row.warn > td:first-child { box-shadow: inset 4px 0 0 var(--color-warn); }
 /* Muted: the grey edge says it, not faded text, which fell under WCAG contrast. */
 .fb-problem-row.muted > td:first-child { box-shadow: inset 4px 0 0 var(--color-unknown); }
-.fb-problem-group { display: flex; flex-direction: column; gap: 6px; }
-.fb-problem-group-head { display: inline-flex; align-items: center; gap: 8px; padding: 2px 4px; margin-left: -4px; border-radius: var(--mantine-radius-sm); }
-.fb-problem-group-head:hover { background: var(--mantine-color-default-hover); }
+.fb-problem-group-head { display: inline-flex; align-items: center; gap: 8px; }

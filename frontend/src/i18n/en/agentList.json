@@ -1,6 +1,5 @@
 {
   "label": "Agents by group",
-  "groupLabel": "Agents in {{group}}",
   "search": "Find an agent, address or device",
   "show": "Show",
   "group": "Group",

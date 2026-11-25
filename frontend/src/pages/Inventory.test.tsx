@@ -223,7 +223,13 @@ describe('Inventory page', () => {
     app()
     fireEvent.click(await screen.findByRole('link', { name: 'sw-hand' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }))
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()     // nothing changed yet
     fireEvent.change(await screen.findByLabelText('Model'), { target: { value: 'X1' } })
+    // The shared save bar, as on every settings page (#993); Discard puts the old value back.
+    expect(screen.getByText('1 unsaved change')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
+    expect(screen.getByLabelText('Model')).toHaveValue('')
+    fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'X1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ model: 'X1' }))
   })

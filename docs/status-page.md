@@ -35,7 +35,7 @@ It is **off** until an admin turns on **Network status page** under **Settings >
 - **Back up recently**: for half an hour after a switch comes back from being down, its areas are
   listed with "The network here has been back since 14:05.", so attendees who saw the outage see
   that it is over. A switch that was simply up since Floorbit started doesn't count. The crew's
-  **Network status** page lists the same areas with their switches.
+  **Status updates** page lists the same areas with their switches.
 - **Updates** the crew posts, newest first (at most 50 are kept).
 
 The page updates every minute and shows times in the reader's own time zone.
@@ -57,7 +57,7 @@ halls, blocks and rows. The crew's own page names the switches.
 
 ## For the crew
 
-**Network status** (`/network-status`, linked from Settings) shows what the public page says now,
+**Status updates** (`/network-status`, a tab of the Helpdesk) shows what the public page says now,
 the affected areas with the switch names, and the updates.
 
 - Reading it needs `incidents.work`.

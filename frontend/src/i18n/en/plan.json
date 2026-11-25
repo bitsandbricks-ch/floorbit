@@ -693,7 +693,7 @@
       "rename": "Group name",
       "renameHelp": "Click to select, double-click to rename"
     },
-    "smallScreen": "On a phone, tap to select and drag to move; the panel is under the plan. Drawing and arranging work best with a mouse on a larger screen.",
+    "smallScreen": "On a phone, tap to select and drag to move; the panel opens from below, and its bar folds it away. Drawing and arranging work best with a mouse on a larger screen.",
     "unplace_one": "Take off the plan",
     "unplace_other": "Take {{count}} off the plan",
     "locked": "Locked: it stays where it is until you unlock it (Ctrl+Shift+L)",
