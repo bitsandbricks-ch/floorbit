@@ -59,7 +59,7 @@ export default function Audit() {
   }
 
   return (
-    <Layout title={t('audit.title')} back={{ href: '/settings', label: t('audit.settings') }}>
+    <Layout title={t('audit.title')} back={{ href: '/settings', label: t('audit.settings') }} fill>
       <PageHead title={t('audit.title')} desc={t('audit.intro')} />
       <Paper withBorder radius="lg" p="md">
         <Stack gap="sm">
@@ -100,7 +100,7 @@ export default function Audit() {
           </Stack>
           <Box visibleFrom="sm">
             {/* Newest first, page by page from the server: the order is the log's, so no column sorts. */}
-            <DataTable label={t('audit.title')} rows={rows} rowKey={(e, i) => `${e.time}-${i}`} pageSize={0} bare striped minWidth={640}
+            <DataTable fill label={t('audit.title')} rows={rows} rowKey={(e, i) => `${e.time}-${i}`} pageSize={0} bare striped minWidth={640}
               empty={query.isSuccess && !total ? <Text c="dimmed" size="sm">{t('audit.empty')}</Text> : null}
               columns={[
                 { id: 'when', header: t('audit.when'), cell: (e) => <span title={e.time}>{when(e.time)}</span> },

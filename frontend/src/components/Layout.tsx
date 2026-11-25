@@ -80,9 +80,11 @@ export function AppShell({ children }: { children?: ReactNode }) {
  *  ``back`` names the parent page; the floor plan as parent needs no link, the sidebar has it.
  *  ``count`` goes in front of the tab title, so a background tab shows when something needs a look (issue #208).
  *  ``full`` makes the page a workspace like a map editor: no padding and no page scroll, the page
- *  fills every pixel next to the sidebar and sizes its own parts (the floor plan). */
-export function Layout({ title, back, count, full, children }: {
-  title: string; back?: { href: string; label: string }; count?: number; full?: boolean; children: ReactNode
+ *  fills every pixel next to the sidebar and sizes its own parts (the floor plan).
+ *  ``fill`` fits a list page to the screen on a desktop (issue #896, the shared ``FillPage``): the
+ *  head and filters stay put and its ``DataTable fill`` scrolls its rows. */
+export function Layout({ title, back, count, full, fill, children }: {
+  title: string; back?: { href: string; label: string }; count?: number; full?: boolean; fill?: boolean; children: ReactNode
 }) {
   const path = useLocation().pathname
   const inPanel = useInPanel()
@@ -95,7 +97,7 @@ export function Layout({ title, back, count, full, children }: {
   if (inPanel) return <>{children}</>
   const up = back && back.href !== '/' ? back : null
   return (
-    <div className={full ? 'fb-page fb-page-full' : 'fb-page'}>
+    <div className={full ? 'fb-page fb-page-full' : fill ? 'fb-page bnb-fill-page' : 'fb-page'}>
       <h1 className="fb-sr-only">{title}</h1>
       {up && (
         <nav className="fb-up" aria-label={up.label}>

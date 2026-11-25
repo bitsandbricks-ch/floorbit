@@ -83,7 +83,7 @@ export function LogTable({ lines, store, source, onDevice }: { lines: SyslogLine
   const { t, i18n } = useTranslation()
   return (
     <DataTable label={t('logs.title')} rows={lines} rowKey={(l, i) => (store ? `${l.id}-${i}` : String(l.id))} pageSize={PAGE_SIZE}
-      striped density="compact" minWidth={640} defaultSort={{ id: 'time', desc: true }}
+      fill striped density="compact" minWidth={640} defaultSort={{ id: 'time', desc: true }}
       count={(n) => t('logs.loaded', { count: n, n: n.toLocaleString(i18n.language) })}
       columns={[
         { id: 'time', header: t('logs.time'), mono: true, sort: (line) => line.ts, cell: (line) =>
@@ -227,7 +227,7 @@ export default function Logs() {
   }, { replace: true })
 
   return (
-    <Layout title={t('logs.title')} back={{ href: '/', label: t('logs.floorplan') }}>
+    <Layout title={t('logs.title')} back={{ href: '/', label: t('logs.floorplan') }} fill>
       <PageHead title={t('logs.title')} desc={t(syslog ? 'logs.intro' : store ? 'logs.intros.store' : `logs.intros.${source}`)}
         actions={<Switch label={live && browsing ? t('logs.livePaused') : t('logs.live')} checked={live}
           title={live && browsing ? t('logs.livePausedWhy') : undefined} onChange={(e) => setLive(e.currentTarget.checked)} />} />
