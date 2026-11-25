@@ -225,14 +225,17 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 
 - **Floorbit is a dev product,** not live anywhere. No redirects for moved pages, no
   backward-compatibility shims, no migrations for removed features.
-- **One topic per pull request, based on `master`.** No stacked branches. Threads that touch the same
-  files go one after the other.
+- **One topic per pull request, based on `master`.** A pull request may build on another open one
+  when the work needs it (Mike, 2026-11-25): base it on that branch and say so in the description.
+  GitHub moves it to `master` when the lower one merges and its branch goes; then merge `master` in.
+  Threads that touch the same files go one after the other.
 - **New files, not longer shared ones.** A feature adds its own files (German texts per area,
   blueprints that register themselves, types and styles next to their page) instead of adding lines
   to a list every pull request edits, so parallel pull requests don't conflict. The table is in
   AGENTS.md (Merge conflicts).
 - **Draft first,** fill in the template, ready only when the work is done and CI is green. Never skip
-  or weaken a check. The maintainer (Mike) merges and releases.
+  or weaken a check. A ready pull request merges itself through squash auto-merge (handbook decision
+  0017), except the ones AGENTS.md leaves to the maintainer; Mike releases.
 - **Screenshots on every pull request,** UI change or not; English and Swiss German where text
   changed, phone where layout changed.
 - **Changelog:** one `changelog.d/<topic>.md` fragment when people notice the change. `VERSION` and

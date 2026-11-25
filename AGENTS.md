@@ -128,7 +128,7 @@ happen. Add files, don't grow shared ones:
 | adding a new page's styles to `frontend/src/app.css` or `frontend/src/styles/` | a `<Page>.css` next to the page, imported by it |
 | one big test file for an area (`tests/test_cables.py`) | a new `tests/test_<area>_<topic>.py` for a new topic |
 | editing `docs/api-reference.md` by hand, or merging its conflict | run `python scripts/api_reference.py` after the merge; it writes the file from the routes |
-| a branch based on another open pull request | a branch from `master`; if it needs the other one, wait for it |
+| a long stack of branches, each on the one below | a branch from `master`; build on another open pull request only when the work needs it, say so in the description, and merge `master` in once GitHub moves it there |
 
 Two threads (or people) never work on the same page or area at the same time. When a conflict comes
 anyway: merge `master` in, resolve it yourself, never by taking one side wholesale for a file both
