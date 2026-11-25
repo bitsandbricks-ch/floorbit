@@ -15,10 +15,7 @@
     "owns": "Devices it owns",
     "ownsValue": "{{n}} of {{total}}",
     "pinned": "Pinned to it",
-    "version": "Version",
-    "split": "Follows the split",
-    "yes": "yes",
-    "no": "no, update the agent"
+    "version": "Version"
   },
   "roleHelp": {
     "primary": "Runs what only one agent should do (LANcache, DHCP, plugin actions) and collects every device when the group doesn't split.",

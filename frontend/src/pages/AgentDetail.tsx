@@ -17,6 +17,7 @@ import { AgentDevices } from './agents/AgentDevices'
 import { AgentGraphs } from './agents/AgentGraphs'
 import { AgentRename, NewKeyButton, PluginsOff, Updates } from './agents/AgentTools'
 import { AgentSettingsForm, CertPanel, KeyPanel } from './agents/AgentSettings'
+import { Capabilities } from './agents/Capabilities'
 import { useAgentSettings, useAgents, useAgentTags } from './agents/data'
 import { Blocked, PluginTable, Report } from './agents/Details'
 import { HintAnchor } from './agents/HintAnchor'
@@ -149,6 +150,11 @@ export default function AgentDetail() {
                       {a.old_works_until && <Text size="xs" c="warn">{t('agents.oldKeyWorks', { when: dateOnly(a.old_works_until, lang) })}</Text>}
                     </Stack>
                   </Panel>
+                  {a.connected && (
+                    <Panel title={t('agentCapabilities.title')} desc={t('agentCapabilities.help')}>
+                      <Capabilities have={a.capabilities} />
+                    </Panel>
+                  )}
                   {r && (
                     <Panel title={t('agents.reportTitle')}>
                       <Report report={r} lang={lang} />

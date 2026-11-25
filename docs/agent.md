@@ -188,6 +188,14 @@ in the event DNS: browsers try the next address when one doesn't answer.
 Agents of a group share their **certificate names**: names set on one agent's page go on the
 others' certificates too, so a second agent behind the same VIP or name needs none typed in.
 
+**Capabilities.** Each agent lists in its report what it can do (`capabilities`): `lease` (follows
+the primary Floorbit picks), `split` (splits devices with its group) and `syslog_hold` (sends only its
+own devices' syslog and keeps a minute of the rest). For an agent from before the list, Floorbit works
+them out from its report, and for what an agent can't do it falls back: VRRP picks the primary, one
+primary collects every device, every agent sends every syslog line (kept once). A group splits only
+when every connected agent of it can. The agent's page and its group's page show the list, and for
+each missing capability what Floorbit does instead.
+
 Each group has its own page (the group's name on the Local agents page, `/settings/agents/groups/<tags>`):
 its agents and their roles, which shared addresses each holds, how many devices each owns now and
 whether each follows the split, and what happens when the busiest one stops.

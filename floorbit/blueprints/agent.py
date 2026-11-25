@@ -79,8 +79,10 @@ def agent_page(agent_id):
 @bp.route('/api/agents', methods=['GET'])
 def list_agents():
     server = current_app.config.get('FLOORBIT_VERSION') or '0'
-    agents = [{**a, 'outdated': agent_link.outdated(a.get('protocol'))} for a in agent_link.all_agents()]
     from .. import agent_ha, cluster, inventory_scope
+    # What each can do, so the pages say what falls back for an older agent (agent_ha.CAPABILITIES).
+    agents = [{**a, 'outdated': agent_link.outdated(a.get('protocol')),
+               'capabilities': agent_ha.capabilities(a.get('report'))} for a in agent_link.all_agents()]
     names = {t['id']: t['name'] for t in inventory_scope.tags(agent_link.load_data())}
     return jsonify({'agents': agents, 'connected': agent_link.tunnel.connected(),
                     'max': agent_link.MAX_AGENTS, 'server_version': server, 'protocol': agent_link.PROTOCOL,

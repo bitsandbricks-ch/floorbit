@@ -1069,6 +1069,11 @@ class Tunnel:
                 clean[key] = value
         if isinstance(raw.get('lease'), bool):
             clean['lease'] = raw['lease']      # it holds its group's lease (agent_ha.lease_holder)
+        caps = raw.get('capabilities')
+        if isinstance(caps, list):
+            # What it can do (agent_ha.CAPABILITIES); names Floorbit doesn't know yet are kept to show.
+            clean['capabilities'] = sorted({c for c in caps[:32]
+                                            if isinstance(c, str) and re.match(r'^[a-z][a-z0-9_]{0,31}$', c)})
         # Where laptops on the event network reach the agent (the seat walk-through, seat_walk.py).
         lan_url = raw.get('lan_url')
         if isinstance(lan_url, str) and re.match(r'^https?://[A-Za-z0-9.:\[\]-]{1,120}(/[^\s]{0,60})?$', lan_url):
@@ -1095,7 +1100,8 @@ class Tunnel:
         from .agent_ha import splits
         if (((before or {}).get('vrrp') or {}).get('primary') != (clean.get('vrrp') or {}).get('primary')
                 or (before or {}).get('lease') != clean.get('lease')
-                or splits(before) != splits(clean)):
+                or splits(before) != splits(clean)
+                or (before or {}).get('capabilities') != clean.get('capabilities')):
             # An agent became primary or stopped being it: a split (two primaries) or its end must reach
             # the agents' plugin config now, not at their next minute's pull (agent_ha.stand_by_for).
             from .agent_plugins import reload_agents

@@ -6,6 +6,7 @@ import { useAgentGroup, type AgentGroupDetail, type AgentGroupMember } from '@/a
 import { Layout } from '@/components/Layout'
 import { Panel } from '@/components/ui'
 import { EmptyState, ErrorBanner, LoadingState, PanelField } from '@bitsandbricks/ui'
+import { Capabilities } from './agents/Capabilities'
 import { agentHref } from './agents/data'
 import { STATE_COLOR } from './agents/listModel'
 
@@ -85,9 +86,7 @@ function AgentCard({ agent: a, total }: { agent: AgentGroupMember; total: number
       <PanelField label={t('agentGroup.fact.holds')}>{a.holds.length ? a.holds.join(', ') : t('agentGroup.fact.none')}</PanelField>
       <PanelField label={t('agentGroup.fact.owns')}>{a.connected && total > 0 ? t('agentGroup.fact.ownsValue', { n: num(a.owns), total: num(total) }) : '–'}</PanelField>
       {a.pinned > 0 && <PanelField label={t('agentGroup.fact.pinned')}>{num(a.pinned)}</PanelField>}
-      <PanelField label={t('agentGroup.fact.split')}>
-        <Text span size="sm" c={a.follows_split ? undefined : 'warn'}>{t(a.follows_split ? 'agentGroup.fact.yes' : 'agentGroup.fact.no')}</Text>
-      </PanelField>
+      {a.connected && <PanelField label={t('agentCapabilities.title')}><Capabilities have={a.capabilities} /></PanelField>}
       {a.version && <PanelField label={t('agentGroup.fact.version')}>{a.version}</PanelField>}
     </Stack>
   )
