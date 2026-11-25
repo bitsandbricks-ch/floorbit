@@ -1,0 +1,13 @@
+{
+  "view": "Show as",
+  "board": "Board",
+  "table": "Table",
+  "title": "Incident",
+  "status": "State",
+  "where": "Where",
+  "owner": "Who has it",
+  "team": "Team",
+  "age": "Filed",
+  "count_one": "{{count}} incident",
+  "count_other": "{{count}} incidents"
+}

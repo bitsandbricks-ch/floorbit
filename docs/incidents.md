@@ -11,6 +11,11 @@ its title, where it is, how old it is, its tags, who has it and one main action 
 **Reopen**, or **Send to nearest tech** for leads while nobody has it). The title opens the
 incident's own page.
 
+**Show as Table** lists every incident in one sortable table instead: title, state, where, who has
+it, team and when it was filed, open ones first, 50 to a page. A row opens the incident's page,
+where the actions are. The filter and the switches above apply to both views, and the choice stays
+in the address (`?view=table`), so a link opens the same view.
+
 ### One incident's page
 
 `/incidents/<id>` has everything the card leaves out: what the network said about the seat's port
