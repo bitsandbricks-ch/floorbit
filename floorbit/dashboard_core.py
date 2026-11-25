@@ -240,13 +240,21 @@ def incidents_widget(lang, now=None):
 STATE_OF = {'online': 'up', 'offline': 'down'}
 
 
-def switch_states_widget(lang, statuses, now=None):
-    """Every switch with its state, down ones first: the state grid's data."""
+# Devices the "Switch states" tile lists: access points, servers and firewalls have their own
+# pages, and a hall of green access points pushed the switches out of the start page (#1407).
+SWITCH_ROLES = {'switch', 'router', ''}
+
+
+def switch_states_widget(lang, statuses, now=None, roles=None):
+    """Every switch with its state, down ones first: the state grid's data. ``roles`` (device id ->
+    inventory role) leaves out devices that aren't switches; a device without a role stays."""
     text = TEXTS.get(lang, TEXTS['en'])
     now = time.time() if now is None else now
     order = {'down': 0, 'unknown': 1, 'up': 2}
     items = []
     for s in statuses.values():
+        if roles is not None and (roles.get(s.get('id')) or '') not in SWITCH_ROLES:
+            continue
         state = STATE_OF.get(s.get('status'), 'unknown')
         detail = text['down_for'].format(t=_down_for(text, now - (s.get('since') or now))) if state == 'down' else ''
         items.append({'label': str(s.get('name') or s.get('id')), 'state': state, 'detail': detail,
