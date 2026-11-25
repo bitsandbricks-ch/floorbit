@@ -11,7 +11,7 @@ def asset(app_module, tmp_path, monkeypatch):
     (folder / "js").mkdir()
     body = b"console.log('floorbit');\n" * 400
     (folder / "app" / "assets" / "index-Ab12Cd34.js").write_bytes(body)
-    (folder / "js" / "notify.js").write_bytes(body)
+    (folder / "js" / "theme.js").write_bytes(body)
     monkeypatch.setattr(app_module.app, "static_folder", str(folder))
     return "/static/app/assets/index-Ab12Cd34.js", body
 
@@ -42,7 +42,7 @@ def test_the_weak_tag_still_gets_a_304(client, asset):
 
 
 def test_other_static_files_are_asked_for_each_time(client, asset):
-    r = client.get("/static/js/notify.js", headers={"Accept-Encoding": "gzip"})
+    r = client.get("/static/js/theme.js", headers={"Accept-Encoding": "gzip"})
     assert r.status_code == 200 and r.headers["Content-Encoding"] == "gzip"
     assert "immutable" not in (r.headers.get("Cache-Control") or "")
 

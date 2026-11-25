@@ -41,8 +41,7 @@ whoever runs the server sets them and an admin of the app must not be able to ch
 ## Live push updates
 
 Browsers subscribe to `GET /api/events` (Server-Sent Events). The React app handles it
-(`frontend/src/api/live.ts`); the kiosk (`static/js/kiosk.js`) and notifications (`static/js/notify.js`)
-listen on their own:
+(`frontend/src/api/live.ts`), browser notifications included (`frontend/src/notify/`):
 
 | Event | When | Frontend effect |
 |---|---|---|

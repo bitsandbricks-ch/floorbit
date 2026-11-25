@@ -24,22 +24,11 @@
   "seatMapping": "Platzzuordnung",
   "notify": {
     "menu": "Benachrichtigungen",
-    "title": "Benachrichtigungen auf diesem Gerät",
     "intro": "Floorbit zeigt eine Browser-Benachrichtigung, solange einer seiner Tabs offen ist, auch im Hintergrund. Die Einstellung gilt nur für diesen Browser.",
-    "on": "Benachrichtigungen auf diesem Gerät",
-    "denied": "Der Browser blockiert Benachrichtigungen für diese Seite. Erlaube sie in den Website-Einstellungen des Browsers und schalte sie dann wieder ein.",
     "jobs": "Ein Auftrag für mich",
     "incidents": "Jede neue Störung (braucht das Störungsboard)",
     "switches": "Ein Switch fällt aus",
-    "services": "Ein Dienst fällt aus (Dienste-Status)",
-    "done": "Fertig",
-    "unsupported": "Dieser Browser kann keine Benachrichtigungen zeigen.",
-    "quiet": "Ruhezeit",
-    "quietFrom": "Von",
-    "quietTo": "Bis",
-    "jobsInQuiet": "Aufträge für mich kommen trotzdem",
-    "quietNow": "Jetzt ist Ruhezeit: nur Aufträge für dich kommen durch.",
-    "quietNowAll": "Jetzt ist Ruhezeit: nichts kommt durch."
+    "services": "Ein Dienst fällt aus (Dienste-Status)"
   },
   "retry": "Nochmals versuchen",
   "close": "Schliessen",
