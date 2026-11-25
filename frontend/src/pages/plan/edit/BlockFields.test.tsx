@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SeatViewData } from '@/api/types'
 import { pick } from '@/test/options'
@@ -70,8 +70,7 @@ describe('Seat block fields', () => {
   it('adds a gap in the middle of a row, one seat wide', async () => {
     const onChange = fields()
     fireEvent.click(await screen.findByRole('button', { name: 'Row C: change it' }))
-    const section = (await screen.findByText('Gaps in this row')).closest('div')!.parentElement!
-    fireEvent.click(within(section).getByRole('button', { name: 'Add' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Add a gap after seat 6' }))
     await waitFor(() => expect(onChange).toHaveBeenCalledWith(item, { rows: [C, D] }, { rows: [{ ...C, col_gaps: [{ after: 6, size: 1 }] }, D] }))
   })
 })

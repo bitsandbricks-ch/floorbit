@@ -16,3 +16,8 @@
 /* The picked row's letter, to drag anywhere (RowLabelHandle.tsx). */
 .fb-row-label-handle { fill: color-mix(in srgb, var(--color-trace) 10%, transparent); stroke: var(--color-trace); stroke-width: 1.5; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; cursor: move; }
 .fb-row-label-handle:hover { fill: color-mix(in srgb, var(--color-trace) 28%, transparent); stroke-dasharray: none; }
+/* A spacer between rows and a gap in a row (#1547): hatched while editing, empty on the live plan. */
+.fb-row-gap-bar.spacer { fill: url(#fb-spacer-hatch); }
+.fb-row-gap-bar.spacer:hover, .fb-row-gap-bar.spacer.moving { fill: color-mix(in srgb, var(--color-bit) 24%, transparent); }
+.fb-row-col-gap { fill: url(#fb-spacer-hatch); stroke: var(--color-bit); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.fb-spacer-hatch-line { stroke: var(--color-bit); stroke-opacity: 0.35; stroke-width: 1.5; }

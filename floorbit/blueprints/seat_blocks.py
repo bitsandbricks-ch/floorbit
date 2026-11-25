@@ -7,7 +7,7 @@ import uuid
 
 from flask import Blueprint, jsonify, request
 
-from .. import block_merge, block_split, halls, seat_layout, seat_names, seat_rows, stacking
+from .. import block_merge, block_split, halls, seat_gaps, seat_layout, seat_names, seat_rows, stacking
 from ..plan_marks import on_plan
 from ..store import load_data, save_data
 from .inventory import data_lock
@@ -152,13 +152,18 @@ def get_seat_rows():
 
 def _new_rows(body):
     """A new block's rows: given as ``rows`` (a list), or as a rectangle of ``rows`` rows of ``cols``
-    seats, as the Block tool and the CSV import draw one."""
+    seats, as the Block tool and the CSV import draw one. ``spacer``: the space above every row but
+    the first, in seats (a run of two rows with room for the switch between them, #1547)."""
     if isinstance(body.get('rows'), list):
         return body['rows']
     cols, count = int(body.get('cols', 1)), int(body.get('rows', 1))
     if not (1 <= cols <= seat_rows.MAX_SEATS and 1 <= count <= seat_rows.MAX_ROWS):
         raise BlockError(f'A block has 1 to {seat_rows.MAX_ROWS} rows of 1 to {seat_rows.MAX_SEATS} seats')
-    return seat_rows.grid(cols, count)
+    spacer = float(body.get('spacer') or 0)
+    if not 0 <= spacer <= seat_gaps.MAX_SIZE:     # also false for NaN
+        raise BlockError(f'The space between rows is 0 to {seat_gaps.MAX_SIZE} seats')
+    above = [{'after': i, 'size': spacer} for i in range(1, count)] if spacer else None
+    return seat_rows.grid(cols, count, row_gaps=above)
 
 
 def make_block(body, hall_id):
