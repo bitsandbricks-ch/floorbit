@@ -1,15 +1,13 @@
 import { Alert, Anchor, Badge, Button, Group, Loader, Pagination, SegmentedControl, Select, Switch, Text, TextInput } from '@mantine/core'
-import { IconSearch } from '@tabler/icons-react'
 import { useMediaQuery } from '@mantine/hooks'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { EntitySelect } from '@/components/EntitySelect'
 import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { LogSeverity, LogSource, LogStatus, LogsData, SyslogLine } from '@/api/types'
-import { DataTable, ErrorBanner, PageHead } from '@bitsandbricks/ui'
+import { DataTable, ErrorBanner, FilterBar, PageHead, type FilterGroup } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
 import { Message } from './logs/Message'
 import { onPlan } from './plan/links'
@@ -81,8 +79,17 @@ function StatusLine({ status }: { status: LogStatus }) {
  *  device sort the lines loaded so far (issue #1206). */
 export function LogTable({ lines, store, source, onDevice }: { lines: SyslogLine[]; store: boolean; source: string; onDevice?: (d: string) => void }) {
   const { t, i18n } = useTranslation()
+  // A logs plugin's line id is its time in microseconds, shared by lines sent in one go.
+  const rowKey = (l: SyslogLine) => (store ? `${l.id}-${l.device}-${l.message}` : String(l.id))
+  const [open, setOpen] = useState<Set<string>>(() => new Set())
+  const toggle = (l: SyslogLine) => setOpen((o) => {
+    const next = new Set(o)
+    if (!next.delete(rowKey(l))) next.add(rowKey(l))
+    return next
+  })
   return (
     <DataTable label={t('logs.title')} rows={lines} rowKey={(l, i) => (store ? `${l.id}-${i}` : String(l.id))} pageSize={PAGE_SIZE}
+      onRowClick={toggle} rowProps={(l) => ({ title: open.has(rowKey(l)) ? undefined : t('logFilterBar.showAll') })}
       striped density="compact" minWidth={640} defaultSort={{ id: 'time', desc: true }}
       count={(n) => t('logs.loaded', { count: n, n: n.toLocaleString(i18n.language) })}
       columns={[
@@ -91,22 +98,21 @@ export function LogTable({ lines, store, source, onDevice }: { lines: SyslogLine
         { id: 'level', header: t('logs.level'), sort: (line) => SEVERITIES.indexOf(line.severity), cell: (line) =>
           <Badge size="sm" variant="light" color={COLOR[line.severity]} tt="none" miw="max-content">{t(`logs.sev.${line.severity}`)}</Badge> },
         { id: 'device', header: t(source === 'audit' ? 'logs.who' : 'logs.device'), sort: (line) => line.device, cell: (line) => (
-          <>
-            {onDevice ? (
-              <Anchor component="button" type="button" size="sm" onClick={() => onDevice(line.device)}
-                title={t('logs.onlyDevice', { device: line.device })}>{line.device}</Anchor>
-            ) : <Text size="sm">{line.device}</Text>}
-            {(line.port || line.seat) && (
-              <Text size="xs" c="dimmed">
-                {line.port}
-                {line.seat && <> · <Anchor href={onPlan({ seat: line.seat })} size="xs" underline="always">{t('logs.seat', { seat: line.seat })}</Anchor></>}
-              </Text>
-            )}
-          </>
+          onDevice ? (
+            <Anchor component="button" type="button" size="sm" onClick={() => onDevice(line.device)}
+              title={t('logs.onlyDevice', { device: line.device })}>{line.device}</Anchor>
+          ) : <Text size="sm">{line.device}</Text>
         ) },
+        // Port and seat get columns of their own in the syslog, so a line stays one line (#1048).
+        ...(source === 'syslog' ? [
+          { id: 'port', header: t('logs.port'), mono: true, sort: (line: SyslogLine) => line.port ?? '', cell: (line: SyslogLine) => line.port ?? '' },
+          { id: 'seat', header: t('logs.seatFilter'), sort: (line: SyslogLine) => line.seat ?? '', cell: (line: SyslogLine) => line.seat
+            ? <Anchor href={onPlan({ seat: line.seat })} size="sm" underline="always" aria-label={t('logs.seat', { seat: line.seat })}>{line.seat}</Anchor> : '' },
+        ] : []),
         { id: 'message', header: t('logs.message'), wrap: true, cell: (line) => (
-          <Text size="sm" ff="monospace" component="div">
-            <Message line={line} />
+          // One line until the row is clicked; the whole text stays there for screen readers.
+          <Text size="sm" ff="monospace" component="div" lineClamp={open.has(rowKey(line)) ? undefined : 1}>
+            <Message line={line} open={open.has(rowKey(line))} />
           </Text>
         ) },
       ]} />
@@ -218,6 +224,26 @@ export default function Logs() {
   // A logs plugin's line id is its time in microseconds: lines sent in one go share it, so it can't be the key alone.
   const storeName = (s: string) => data?.status.stores?.find((x) => `plugin:${x.id}` === s)?.name ?? s.slice('plugin:'.length)
   const phone = useMediaQuery('(max-width: 48em)')
+  // One filter row like every other list (#1048): device, seat and port only mean something in the syslog.
+  const seatList = useQuery({
+    queryKey: qk.options('seats', ''), enabled: syslog, staleTime: 60_000,
+    queryFn: () => get<{ options: { value: string; label?: string }[] }>('/api/options/seats'),
+  }).data?.options ?? []
+  const portList = useQuery({
+    queryKey: qk.options('ports', filters.device), enabled: syslog && !!filters.device, staleTime: 60_000,
+    queryFn: () => get<{ options: { value: string; label?: string }[] }>(`/api/options/ports?switch=${encodeURIComponent(filters.device)}`),
+  }).data?.options ?? []
+  const all = { value: '', label: t('logs.all') }
+  const groups: FilterGroup[] = [
+    { key: 'device', label: t('logs.device'), value: filters.device, defaultValue: '', onChange: (v) => setFilters((f) => ({ ...f, device: v, port: '' })), kind: 'select', hidden: !syslog,
+      options: [all, ...(data?.status.devices ?? []).map((d) => ({ value: d, label: d }))] },
+    { key: 'seat', label: t('logs.seatFilter'), value: filters.seat, defaultValue: '', onChange: set('seat'), kind: 'select', hidden: !syslog,
+      options: [all, ...seatList.map((o) => ({ value: o.value, label: o.label ?? o.value }))] },
+    { key: 'port', label: t('logs.port'), value: filters.port, defaultValue: '', onChange: set('port'), kind: 'select', hidden: !syslog || !filters.device,
+      options: [all, ...portList.map((o) => ({ value: o.value, label: o.label ?? o.value }))] },
+    { key: 'severity', label: t('logs.severity'), value: filters.severity, defaultValue: '', onChange: set('severity'),
+      options: [all, ...SEVERITIES.slice(0, -1).map((v) => ({ value: v, label: t('logs.atLeast', { level: t(`logs.sev.${v}`) }) }))] },
+  ]
   const pageCount = Math.max(1, Math.ceil(lines.length / PAGE_SIZE))
   const shownPage = Math.min(pageCount, Math.max(1, Number(search.get('page')) || 1))
   const setShownPage = (n: number) => setSearch((prev) => {
@@ -248,25 +274,8 @@ export default function Logs() {
           <Button onClick={() => setLogql(draft.trim())}>{t('logs.run')}</Button>
         </Group>
       ) : (
-        <Group gap="sm" mb="sm" align="flex-end" wrap="wrap">
-          <TextInput label={t('logs.search')} placeholder={t('logs.searchHint')} value={filters.q} style={{ flex: '2 1 220px' }}
-            leftSection={<IconSearch size={16} />} type="search"
-            onChange={(e) => set('q')(e.currentTarget.value)} />
-          {syslog && (
-            <>
-              <Select label={t('logs.device')} placeholder={t('logs.all')} data={data?.status.devices ?? []} value={filters.device || null}
-                onChange={set('device')} clearable searchable style={{ flex: '1 1 160px' }} />
-              <EntitySelect kind="seats" label={t('logs.seatFilter')} placeholder={t('logs.all')} value={filters.seat}
-                style={{ flex: '0 1 130px' }} onChange={set('seat')} />
-              <EntitySelect kind="ports" switchName={filters.device} showUsed label={t('logs.port')} placeholder={t('logs.all')}
-                value={filters.port} style={{ flex: '0 1 140px' }} onChange={set('port')} />
-            </>
-          )}
-          <Select label={t('logs.severity')} placeholder={t('logs.all')} value={filters.severity || null} onChange={set('severity')} clearable
-            data={SEVERITIES.slice(0, -1).map((s) => ({ value: s, label: t('logs.atLeast', { level: t(`logs.sev.${s}`) }) }))}
-            style={{ flex: '1 1 160px' }} />
-          {filtered && <Button variant="default" onClick={() => setFilters(EMPTY)}>{t('logs.clear')}</Button>}
-        </Group>
+        <FilterBar search={filters.q} onSearchChange={set('q')} searchLabel={t('logs.searchHint')} groups={groups}
+          onClear={() => setFilters(EMPTY)} />
       )}
       {store && data?.status.query_error && <Alert color="warn" mb="md">{data.status.query_error}</Alert>}
       {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : (

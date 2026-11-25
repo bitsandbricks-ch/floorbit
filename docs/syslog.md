@@ -80,8 +80,9 @@ line whose time is far off (a switch with a wrong clock) gets the time it arrive
 ## The page
 
 - **Search:** words that all have to be in the line (message, device, program or seat).
-- **Device, Seat, Port, Level:** filters. Level shows that level and worse. Clicking a device in the
-  list filters by it. The search, the filters and the log shown are kept in the address
+- **Device, Seat, Port, Level:** the filter row next to the search, like every other list. Port shows
+  once a device is picked. Level shows that level and worse. Clicking a device in the list filters by
+  it. The search, the filters and the log shown are kept in the address
   (`/logs?device=sw-a-01&severity=err`), so a reload or a pasted link shows the same lines.
 - **Pages and sorting:** 50 lines a page, newest first. Time, Level and Device sort the lines loaded
   so far; the page and the order are in the address too (`?page=2&sort=-level`).
@@ -89,11 +90,13 @@ line whose time is far off (a switch with a wrong clock) gets the time it arrive
   it pauses ("Live, paused"), so the lines don't move while you read.
 - **Older lines:** the page loads the newest 200; on the last page, **Older lines** reads the next
   200 and jumps to them.
+- **One line per entry:** port and seat have columns of their own, and a long message is cut to one
+  line. Click a row (or press Enter on it) to read the whole message; click it again to fold it.
 - The line above the list says whether the receiver is listening, how many lines are kept and how
   many were dropped.
 - **Firewall lines:** a pfSense or OPNsense packet filter line (`filterlog`) reads as what the rule
   did, for example `block in · igb1 · UDP 203.0.113.9:123 → 198.51.100.1:123` (red when blocked),
-  instead of its comma list; **Whole line** shows the line as it came.
+  instead of its comma list. Opening the row shows the line as it came (on a phone, **Whole line**).
 
 ## Floorbit's own log and the audit log
 
