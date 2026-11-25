@@ -25,11 +25,14 @@ machine seen on the device's ports, newest first, from the [IP and MAC history](
 needs **See seats** too.
 
 The **Inventory** page is one list with a tab per type (Devices, then any other type that has
-entries) and a **Groups and tags** tab. The device list shows each device's live state (the status
+entries, but cables, circuits and power boards, which have the **Cables** and **Electrics** tabs
+next to Inventory) and a **Groups and tags** tab (issue #1426). The device list shows each device's live state (the status
 monitor's dot; a firewall, server or switch not on the plan is looked up by name in the same poll,
 as the Firewalls page does), its role, group, model, management IP, how many of its ports are up (from the last
 read of the placed switches) and which plugin feeds it. Every column sorts; search, group, tag,
-state and role filter it, 50 rows to a page, and the sort and page stay in the address (`?sort=-ports&page=2`). A small chip next to the filters says when the
+state, role and hidden devices filter it on the shared filter row (each filter a chip, with how
+many devices it leaves), 50 rows to a page, and the filters, sort and page stay in the address
+(`?role=switch&state=offline&sort=-ports&page=2`). A small chip next to the filters says when the
 plugins last synced (red when a sync failed; hover for each plugin and the schedule). Picking a
 group or tag on the Groups and tags tab goes back to the list, filtered.
 
@@ -179,7 +182,8 @@ Handing out logins is in the audit log each time the set changes.
 
 ## Types and entries
 
-Devices are one **type** of inventory entry. The others sit in tabs on the Inventory page:
+Devices are one **type** of inventory entry. The others sit in tabs on the Inventory page, or on
+the Cables and Electrics tabs next to it:
 
 | Type | Where its entries live |
 | --- | --- |
