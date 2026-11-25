@@ -104,6 +104,10 @@
 .fb-plan .btag-bad text { fill: var(--color-ink); }
 .fb-marks .wall { fill: none; stroke: var(--color-fg); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
 .fb-marks .wall.dashed { stroke-dasharray: 22 14; }
+/* A walkway (#1564): a pale band as wide as the walkway, square at the ends so blocks snap to its edges. */
+.fb-marks .walkway { --walkway: var(--color-muted); }
+.fb-marks .walkway-band { fill: none; stroke: color-mix(in srgb, var(--walkway) 18%, transparent); stroke-linecap: butt; stroke-linejoin: miter; }
+.fb-marks .walkway-mid { fill: none; stroke: color-mix(in srgb, var(--walkway) 55%, transparent); stroke-width: 2; stroke-dasharray: 10 10; }
 .fb-marks .zone rect { fill: color-mix(in srgb, var(--zone) 12%, transparent); stroke: color-mix(in srgb, var(--zone) 55%, transparent); stroke-width: 2; }
 .fb-marks .zone text { fill: var(--zone); font-family: var(--font-sans); font-weight: 700; }
 .fb-marks .zone-muted { --zone: var(--color-muted); }

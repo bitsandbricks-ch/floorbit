@@ -142,12 +142,13 @@ def _marks(data, hall_id, xs, ys, public=False):
             continue
         d = {**m, 'x': m['x'] * sx, 'y': m['y'] * sy}
         d.pop('hall_id', None)
-        if m['kind'] == 'wall':
+        if m['kind'] in plan_marks.LINES:
             d.update(x2=m['x2'] * sx, y2=m['y2'] * sy)
             if m.get('points'):
                 d['points'] = [[x * sx, y * sy] for x, y in m['points']]
-            xs += [d['x'], d['x2'], *(p[0] for p in d.get('points', []))]
-            ys += [d['y'], d['y2'], *(p[1] for p in d.get('points', []))]
+            half = m.get('width', 0) * CELL / 2   # a walkway's band reaches past its middle line
+            xs += [v + e for v in (d['x'], d['x2'], *(p[0] for p in d.get('points', []))) for e in (-half, half)]
+            ys += [v + e for v in (d['y'], d['y2'], *(p[1] for p in d.get('points', []))) for e in (-half, half)]
         elif m['kind'] == 'zone':
             d.update(w=m['w'] * sx, h=m['h'] * sy)
             xs += [d['x'], d['x'] + d['w']]

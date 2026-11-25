@@ -266,6 +266,13 @@ change its text, size, colour, rotation or style, drag it to move it, <kbd>Delet
 show on the Seats view, the big screens and the attendee hall view as well. `GET /api/plan-marks?hall=<id>`
 lists them with the icon shapes; `POST`, `PUT` and `DELETE /api/plan-marks/<id>` change them (editors).
 
+**Walkways** (the **Walkway** tool, <kbd>K</kbd>) are the aisles between seat blocks. Draw one like a wall,
+from one end to the other, and set its **width** in seats (2 when new). It shows as a pale band with a
+dashed middle line on the Overview and Safety layers. With snapping on, a seat block dragged next to a
+walkway snaps with its seats right on the band's edge, so the walkway's width is the space between the
+blocks on either side. There is no separate gap item between blocks: draw a walkway instead. On the API a
+walkway is a mark with `kind: "walkway"`, `x`/`y` to `x2`/`y2`, optional `points` and `width` (0.5 to 20).
+
 **Example hall:** *Add an example hall* in the Halls dialog (`POST /api/halls/example`) creates a new hall
 with 8 pairs of 2×24 rows, a standing row turned on its side, outer walls with an entrance, a fenced side
 events area, bar and crew zones and a few icons. Its rows count on from the last row letter in use, so it
@@ -285,7 +292,7 @@ and sets how strong it is drawn; the seats themselves are always there.
 | Status | Each online seat filled by its traffic |
 | Firewall per seat | Seats on a fallback firewall, or with none up (needs firewall ranges) |
 | Wi-Fi | Access points placed on this hall, their rough coverage, coloured by load (counts only) |
-| Safety | Marks on the safety layer: exits, extinguishers, escape routes, the assembly point |
+| Safety | Marks on the safety layer: exits, extinguishers, escape routes, the assembly point, and every walkway |
 | Crew | Open incidents per seat and per switch |
 | Check-in | The check-in corner on seats |
 | Services | Marks on the services layer: server racks, LANcache, DNS |
