@@ -50,7 +50,7 @@ function IncidentTable({ rows, now, fixed }: { rows: HandoverIncident[]; now: nu
 function Note({ record, title }: { record: HandoverRecord; title: string }) {
   const { t } = useTranslation()
   return (
-    <Paper withBorder radius="lg" p="md" bg="var(--color-raised)">
+    <Paper withBorder radius="lg" p="md" bg="var(--bnb-raised)">
       <Text size="sm" fw={600} mb={4}>{title}</Text>
       <Text size="xs" c="dimmed" mb={6}>{t('handover.by', { who: record.by ?? '?', when: when(record.at) })}</Text>
       <Text style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{record.note || t('handover.noNote')}</Text>

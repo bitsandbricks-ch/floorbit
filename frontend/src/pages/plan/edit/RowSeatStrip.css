@@ -1,9 +1,9 @@
 /* A row's seats and gaps in the Rows tab (RowSeatStrip.tsx). */
 .fb-seat-strip { display: flex; flex-wrap: wrap; align-items: center; row-gap: 6px; }
-.fb-seat-strip-seat { width: 14px; height: 14px; border-radius: 3px; background: var(--color-bit); }
+.fb-seat-strip-seat { width: 14px; height: 14px; border-radius: 3px; background: var(--bnb-accent); }
 .fb-seat-strip-slot, .fb-seat-strip-gap { height: 22px; padding: 0; border: 0; background: none; cursor: pointer; }
 .fb-seat-strip-slot { width: 8px; position: relative; }
-.fb-seat-strip-slot:hover::after, .fb-seat-strip-slot:focus-visible::after { content: ''; position: absolute; inset: 2px 3px; border-radius: 1px; background: var(--color-bit); }
-.fb-seat-strip-gap { margin: 0 2px; border: 1px dashed var(--color-bit); border-radius: 3px;
-  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--color-bit) 16%, transparent) 0 3px, transparent 3px 6px); }
-.fb-seat-strip-gap.on { border-style: solid; outline: 2px solid var(--color-trace); outline-offset: 1px; }
+.fb-seat-strip-slot:hover::after, .fb-seat-strip-slot:focus-visible::after { content: ''; position: absolute; inset: 2px 3px; border-radius: 1px; background: var(--bnb-accent); }
+.fb-seat-strip-gap { margin: 0 2px; border: 1px dashed var(--bnb-accent); border-radius: 3px;
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--bnb-accent) 16%, transparent) 0 3px, transparent 3px 6px); }
+.fb-seat-strip-gap.on { border-style: solid; outline: 2px solid var(--bnb-info); outline-offset: 1px; }

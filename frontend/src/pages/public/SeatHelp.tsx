@@ -78,7 +78,7 @@ export default function SeatHelp() {
                 ))}
               </Stack>
               {s.report && ['open', 'sent', 'taken'].includes(s.report) && (
-                <Stack gap="xs" pt="sm" style={{ borderTop: '1px solid var(--color-line)' }}>
+                <Stack gap="xs" pt="sm" style={{ borderTop: '1px solid var(--bnb-line)' }}>
                   <Text c="dimmed" size="sm">{t('seatHelp.worksHint')}</Text>
                   <Button variant="light" color="up" fullWidth disabled={send.isPending} onClick={() => send.mutate({ works: true })}>{t('seatHelp.works')}</Button>
                 </Stack>
@@ -113,7 +113,7 @@ function SpeedTest({ seat, k, testMb }: { seat: string; k: string; testMb: numbe
   }
   const number = (n: number | undefined) => (n == null ? '–' : fmt(n, i18n.language))
   return (
-    <Stack gap="xs" pt="md" style={{ borderTop: '1px solid var(--color-line)' }} component="section" aria-labelledby="speed-title">
+    <Stack gap="xs" pt="md" style={{ borderTop: '1px solid var(--bnb-line)' }} component="section" aria-labelledby="speed-title">
       <Title order={2} size="h4" id="speed-title">{t('seatHelp.speed.title')}</Title>
       <Text c="dimmed" size="sm">{t('seatHelp.speed.intro')}</Text>
       <Button onClick={() => { void run() }} loading={state === 'running'}>
@@ -122,7 +122,7 @@ function SpeedTest({ seat, k, testMb }: { seat: string; k: string; testMb: numbe
       {figures && (
         <SimpleGrid cols={3} spacing="xs" component="dl" m={0}>
           {(['down', 'up', 'ping'] as const).map((f) => (
-            <Paper key={f} bg="var(--color-raised)" radius="md" p="xs" ta="center">
+            <Paper key={f} bg="var(--bnb-raised)" radius="md" p="xs" ta="center">
               <Text component="dt" size="xs" c="dimmed">{t(`seatHelp.speed.${f}`)}</Text>
               <Text component="dd" m={0} fw={700} fz="lg" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 {number(figures[f])} <Text span size="xs" fw={400} c="dimmed">{UNITS[f]}</Text>
