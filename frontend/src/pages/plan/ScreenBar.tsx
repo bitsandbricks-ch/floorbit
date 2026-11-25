@@ -21,7 +21,7 @@ export function ScreenBar({ blocks, elsewhere }: { blocks: PlanBlock[]; elsewher
       {shown.length > 0 && (
         <Group gap={6} justify="flex-end" className="fb-screen-blocks" aria-label={t('plan.screen.blocks')}>
           {shown.map((b) => (
-            <span key={b.name} className="fb-screen-block">{t('plan.screen.block', { name: b.name, count: b.problems })}</span>
+            <span key={b.id ?? b.name} className="fb-screen-block">{t('plan.screen.block', { name: b.label || b.name, count: b.problems })}</span>
           ))}
           {more > 0 && <span className="fb-screen-block more">{t('plan.screen.more', { count: more })}</span>}
         </Group>

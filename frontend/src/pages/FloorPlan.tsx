@@ -166,7 +166,7 @@ export default function FloorPlan() {
     if (switchSel && switchQ.data) return { switch: switchQ.data.name, seats: new Set(switchQ.data.seats.map((x) => x.seat)) }
     if (selected && seatSwitch) return { switch: seatSwitch, seat: selected }
     // An open block panel keeps that block bright.
-    const block = blockSel ? data?.drawing?.shapes.find((b) => b.name === blockSel) : undefined
+    const block = blockSel ? data?.drawing?.shapes.find((b) => b.id === blockSel || b.name === blockSel) : undefined
     if (block) return { seats: new Set(block.cells.map((c) => c.seat).filter((x): x is string => !!x)) }
     return undefined
   }, [switchSel, switchQ.data, selected, seatSwitch, blockSel, data])

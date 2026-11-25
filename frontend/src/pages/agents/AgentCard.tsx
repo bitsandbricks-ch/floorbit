@@ -2,7 +2,7 @@ import { Anchor, Badge, Group, Paper, SimpleGrid, Stack, Text, Title } from '@ma
 import { IconChevronRight } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { Field } from '@/components/ui'
+import { PanelField } from '@bitsandbricks/ui'
 import { ago } from '@/lib/time'
 import { agentHref, type AgentRow } from './data'
 import { HintAnchor } from './HintAnchor'
@@ -33,26 +33,26 @@ export function AgentCard({ row, newest, tagNames }: { row: AgentRow; newest?: s
         </Group>
 
         <SimpleGrid cols={{ base: 2, xs: 3 }} spacing="sm" verticalSpacing="xs">
-          <Field label={t('agents.fact.seen')}>
+          <PanelField label={t('agents.fact.seen')}>
             {a.connected ? t('agents.fact.now') : a.last_seen ? ago(a.last_seen, lang) : t('agents.neverSeen')}
-          </Field>
-          <Field label={t('agents.fact.version')}>
+          </PanelField>
+          <PanelField label={t('agents.fact.version')}>
             <Group gap={4} wrap="nowrap">
               <span>{a.version ?? '–'}</span>
               {(a.outdated || behind(a, newest)) && <Badge size="xs" variant="light" color="warn" tt="none">{t('agents.outdated')}</Badge>}
             </Group>
-          </Field>
-          <Field label={t('agents.fact.link')}>{a.connected ? t(`agents.transport.${a.transport ?? 'elsewhere'}`) : '–'}</Field>
-          <Field label={t('agents.fact.up')}>
+          </PanelField>
+          <PanelField label={t('agents.fact.link')}>{a.connected ? t(`agents.transport.${a.transport ?? 'elsewhere'}`) : '–'}</PanelField>
+          <PanelField label={t('agents.fact.up')}>
             <Stack gap={0}>
               <span>{upText(t, a)}</span>
               {drops > 0 && <Text size="xs" c="warn">{t('agents.reconnects', { count: drops })}</Text>}
             </Stack>
-          </Field>
-          <Field label={t('agents.fact.calls')}>
+          </PanelField>
+          <PanelField label={t('agents.fact.calls')}>
             {a.stats?.calls ? t('agents.fact.callsValue', { count: a.stats.calls, n: a.stats.calls.toLocaleString(lang), ms: a.stats.median_ms ?? '–' }) : '–'}
-          </Field>
-          <Field label={t('agents.tags')}>{tags}</Field>
+          </PanelField>
+          <PanelField label={t('agents.tags')}>{tags}</PanelField>
         </SimpleGrid>
 
         {list.length > 0 && (

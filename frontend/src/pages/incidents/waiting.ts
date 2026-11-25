@@ -2,24 +2,30 @@ import type { Incident } from '@/api/types'
 
 export const WAITING_AFTER = 10 * 60
 
-type Waits = Pick<Incident, 'status' | 'assignee' | 'created_at' | 'seat_ok_at'>
+type Waits = Pick<Incident, 'status' | 'assignee' | 'created_at' | 'seat_ok_at' | 'snoozed_until'>
+
+/** Put aside for a while (issue #887): still open, but nobody is waiting on it until the snooze ends. */
+export const isSnoozed = (i: Pick<Incident, 'status' | 'snoozed_until'>, now: number) =>
+  i.status !== 'fixed' && (i.snoozed_until ?? 0) > now
 
 /** Open, nobody on it, and opened at least WAITING_AFTER ago (issue #296). Not once the seat says it
- * works again (issue #376): nobody is waiting on it any more. */
+ * works again (issue #376), nor while snoozed (issue #887): nobody is waiting on it any more. */
 export function isWaiting(i: Waits, now: number) {
-  return i.status === 'open' && !i.assignee && !i.seat_ok_at && now - i.created_at >= WAITING_AFTER
+  return i.status === 'open' && !i.assignee && !i.seat_ok_at && !isSnoozed(i, now) && now - i.created_at >= WAITING_AFTER
 }
 
 /** The open column: waiting incidents on top, longest first, so the oldest job isn't at the bottom (issue #300). */
 export function openOrder<T extends Waits>(items: T[], now: number): T[] {
   const waiting = items.filter((i) => isWaiting(i, now)).sort((a, b) => a.created_at - b.created_at)
-  return [...waiting, ...items.filter((i) => !isWaiting(i, now))]
+  // Snoozed ones last: they are put aside on purpose.
+  const rest = items.filter((i) => !isWaiting(i, now))
+  return [...waiting, ...rest.filter((i) => !isSnoozed(i, now)), ...rest.filter((i) => isSnoozed(i, now))]
 }
 
 /** What "Take the next one" takes: the oldest open incident nobody has that this account may work (issue #306).
  * Ones the seat says work again come last (issue #376): someone still waits on the others. */
-export function nextToTake<T extends Waits & Pick<Incident, 'can_work'>>(items: T[]): T | undefined {
-  return items.filter((i) => i.status === 'open' && !i.assignee && i.can_work)
+export function nextToTake<T extends Waits & Pick<Incident, 'can_work'>>(items: T[], now = Date.now() / 1000): T | undefined {
+  return items.filter((i) => i.status === 'open' && !i.assignee && i.can_work && !isSnoozed(i, now))
     .sort((a, b) => Number(!!a.seat_ok_at) - Number(!!b.seat_ok_at) || a.created_at - b.created_at)[0]
 }
 

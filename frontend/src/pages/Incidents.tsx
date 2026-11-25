@@ -17,7 +17,7 @@ import { matchesFilter } from './incidents/filter'
 import { MyJobs } from './incidents/MyJobs'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
-import { nextToTake, openOrder } from './incidents/waiting'
+import { isSnoozed, nextToTake, openOrder } from './incidents/waiting'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 const COLUMNS: IncidentStatus[] = ['open', 'assigned', 'fixed']
@@ -111,7 +111,7 @@ export default function Incidents() {
   })
 
   const teamNames = Object.fromEntries((board.data?.teams ?? []).map((x) => [x.id, x.name]))
-  const next = nextToTake(board.data?.incidents ?? [])
+  const next = nextToTake(board.data?.incidents ?? [], now)
   const username = me.data?.user?.username
   const takeNext = () => {
     if (next && username && !change.isPending) change.mutate({ id: next.id, change: { status: 'assigned', assignee: username }, next: true })
@@ -122,7 +122,7 @@ export default function Incidents() {
     && (!assignedToMe || (!!username && i.assignee === username)) && matchesFilter(i, filter, teamNames))
   return (
     <Layout title={t('incidents.title')} back={{ href: '/', label: t('common.floorPlan') }}
-      count={(board.data?.incidents ?? []).filter((i) => i.status === 'open').length}>
+      count={(board.data?.incidents ?? []).filter((i) => i.status === 'open' && !isSnoozed(i, now)).length}>
       <PageHead
         title={t('incidents.title')}
         desc={t('incidents.intro')}

@@ -279,12 +279,22 @@ WAITING_AFTER = 10 * 60     # the board's "Waiting" tag (issue #296)
 FIXED_SHOWN_FOR = 30 * 60   # how long the help page still says "fixed"
 
 
+# Dismiss (issue #887): "not a problem" closes an incident with that reason; a snooze puts an open
+# one aside for up to a day, after which it is back in the queue by itself.
+DISMISS_REASONS = ('not_a_problem',)
+MAX_SNOOZE_MIN = 24 * 60
+
+
+def snoozed(incident, now):
+    return incident.get('status') != 'fixed' and (incident.get('snoozed_until') or 0) > now
+
+
 def is_waiting(incident, now):
     """Open, nobody on it, and opened at least WAITING_AFTER ago: the board's rule, shared.
 
-    Not once the seat says it works again (issue #376): nobody is waiting on it any more."""
+    Not once the seat says it works again (issue #376), nor while snoozed: nobody is waiting on it."""
     return incident.get('status') == 'open' and not incident.get('assignee') and not incident.get('seat_ok_at') \
-        and now - (incident.get('created_at') or now) >= WAITING_AFTER
+        and not snoozed(incident, now) and now - (incident.get('created_at') or now) >= WAITING_AFTER
 
 
 def seat_report_state(seat, now=None):
@@ -372,6 +382,28 @@ def update(user, incident_id, body):
                 incident['assignee'] = None
             incident['status'] = status
             incident['fixed_at'] = now if status == 'fixed' else None
+            incident.pop('dismissed', None)
+            incident.pop('snoozed_until', None)
+        if body.get('dismiss') is not None:
+            if body['dismiss'] not in DISMISS_REASONS:
+                raise IncidentError(f"Dismiss must be one of: {', '.join(DISMISS_REASONS)}.")
+            incident['status'] = 'fixed'
+            incident['fixed_at'] = now
+            incident['dismissed'] = {'reason': body['dismiss'], 'by': user['username'], 'at': now}
+            incident.pop('snoozed_until', None)
+        if 'snooze' in body:
+            try:
+                minutes = int(body['snooze'] or 0)
+            except (TypeError, ValueError):
+                raise IncidentError('Say for how many minutes.') from None
+            if not 0 <= minutes <= MAX_SNOOZE_MIN:
+                raise IncidentError('A snooze lasts at most a day.')
+            if minutes and incident['status'] == 'fixed':
+                raise IncidentError('A fixed incident cannot be snoozed.')
+            if minutes:
+                incident['snoozed_until'] = now + minutes * 60
+            else:
+                incident.pop('snoozed_until', None)
         note = _clean_text(body.get('note'), MAX_NOTE)
         if note:
             incident['notes'].append({'by': user['username'], 'at': now, 'text': note})
