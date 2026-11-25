@@ -81,6 +81,21 @@ def load_rules():
 class Classifier:
     def __init__(self, rules=None):
         self.rules = rules if rules is not None else load_rules()[0]
+        self._base = self.rules
+        self._cache = {}
+
+    def set_applications(self, rules):
+        """The rules Floorbit's applications and game servers make (floorbit/applications.py), checked
+        before the built-in ones. Broken ones are skipped: they were checked when they were saved."""
+        extra = []
+        for rule in rules or []:
+            try:
+                extra += compile_rules([rule])
+            except RuleError:
+                continue
+        builtin = compile_rules(BUILTIN)
+        own = self._base[:max(0, len(self._base) - len(builtin))]
+        self.rules = own + extra + self._base[len(own):]
         self._cache = {}
 
     def __call__(self, remote_ip, proto, remote_port, local_port):

@@ -2,6 +2,7 @@ import { Alert, Anchor, Group, Loader, SegmentedControl, SimpleGrid, Text } from
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { CacheRow, GamesData, LancacheData } from '@/api/types'
@@ -90,6 +91,30 @@ function Launchers({ data }: { data: GamesData }) {
   )
 }
 
+/** Games by title: the most seats any source saw, and where it was seen (issue #1481). */
+function Titles({ data, compact }: { data: GamesData; compact: boolean }) {
+  const { t } = useTranslation()
+  const rows = data.titles.filter((g) => g.seats > 0 || (g.cache_hit_bytes ?? 0) + (g.cache_miss_bytes ?? 0) > 0)
+  const seen = (g: Launcher) => [g.dns_seats_max && t('games.via.dns'), g.traffic_seats && t('games.via.traffic'),
+    g.players && t('games.via.servers'), g.cache_hit_bytes != null && t('games.via.cache')].filter(Boolean).join(' + ')
+  return (
+    <Panel titleId="games-titles" title={t('games.titles')}
+      actions={!compact ? <Anchor component={Link} to="/applications" size="sm">{t('games.manage')}</Anchor> : undefined}>
+      {rows.length === 0 ? <Text size="sm" c="dimmed">{t('games.noTitles')}</Text> : (
+        <ol className="fb-stats-top">
+          {rows.slice(0, compact ? 8 : undefined).map((g) => (
+            <li key={g.id}>
+              <span className="name">{g.name} <small>· {seen(g)}</small></span>
+              <span className="value">{g.seats ? t('games.seats', { count: g.seats }) : bytes((g.cache_hit_bytes ?? 0) + (g.cache_miss_bytes ?? 0))}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <Text size="xs" c="dimmed" mt={6}>{t('games.titlesText', { count: data.min_seats.dns })}</Text>
+    </Panel>
+  )
+}
+
 function Caches({ caches }: { caches: CacheRow[] }) {
   const { t } = useTranslation()
   return (
@@ -121,6 +146,7 @@ function Board({ data, compact }: { data: GamesData; compact: boolean }) {
       )}
       <div className="fb-stats">
         {!compact && data.sources.cache && <CacheChart cache={c} />}
+        <Titles data={data} compact={compact} />
         {!compact && <Launchers data={data} />}
         {data.games.length > 0 && (
           <Panel titleId="games-games" title={t('games.games')}>
@@ -147,7 +173,7 @@ export default function GamesView({ expanded }: ViewProps) {
   const [hours, setHours] = useState(24)
   const query = useQuery({ queryKey: qk.games(hours), queryFn: () => get<GamesData>(`/api/games?hours=${hours}`), refetchInterval: 60_000 })
   const data = query.data
-  const none = data && !data.sources.dns && !data.sources.traffic && !data.sources.cache
+  const none = data && !data.sources.dns && !data.sources.traffic && !data.sources.cache && !data.sources.servers
   return (
     <>
       {expanded && (

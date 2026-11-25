@@ -11,9 +11,12 @@ class Plugin(Base):
     def agent_get_seats(self, agent):
         if not features.on('traffic'):
             raise PluginError(OFF)
+        from floorbit import applications, game_servers
         from floorbit.flows import seat_maps
         seat_of, area_of = seat_maps()
-        return {'seat_of': seat_of, 'area_of': area_of}
+        # The applications' ports and addresses travel with the seats, so the agent names games too.
+        return {'seat_of': seat_of, 'area_of': area_of,
+                'applications': applications.flow_rules(servers=game_servers.listing())}
 
     def agent_summary(self, agent, payload):
         if not features.on('traffic'):
