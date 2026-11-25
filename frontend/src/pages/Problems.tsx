@@ -210,7 +210,7 @@ export default function Problems() {
   const now = useNowSeconds()
   // The filters live in the address, so a reload or a shared link keeps them (issues #276, #883),
   // on one row like every other list (issue #1472).
-  const filters = useFilters({ kind: 'all', level: 'all', group: 'none', tag: '', muted: 'show' })
+  const filters = useFilters({ kind: 'all', level: 'all', group: 'none', tag: '', muted: 'show', incident: 'all' })
   const shown = filters.values.kind
   const folds = useFolds()
   const [groupPage, setGroupPage] = useState(1)
@@ -264,6 +264,10 @@ export default function Problems() {
   const chips = seatCount && kinds.length > 1 ? ['all', SEATS, ...kinds] : ['all', ...kinds]
   const level = filters.values.level
   const hideMuted = filters.values.muted === 'hide'
+  // Whether someone works on it (#883): only those who see the board get the incident at all.
+  const seesIncidents = all.some((p) => p.incident !== undefined)
+  const incident = seesIncidents ? filters.values.incident : 'all'
+  const worked = (p: Problem) => incident === 'all' || (incident === 'open') === !!p.incident
   // Hall and tag come from the switch's inventory entry, or the seat's block (issue #1364).
   const hallNames = [...new Set(all.map((p) => p.hall).filter((h): h is string => !!h))]
   const tags = [...new Set(all.flatMap((p) => p.tags ?? []))].sort((x, y) => x.localeCompare(y))
@@ -273,7 +277,7 @@ export default function Problems() {
   const found = (p: Problem) => !query || [p.title, p.where, p.device, p.seat, p.hall].some((v) => v?.toLowerCase().includes(query))
   const matches = (p: Problem) => (shown === SEATS ? !!p.seat : !kinds.includes(shown) || p.kind === shown)
     && (level === 'all' || (level === 'down' ? p.level === 'down' : p.level !== 'down'))
-    && !(hideMuted && p.muted) && (!tag || (p.tags ?? []).includes(tag)) && found(p)
+    && !(hideMuted && p.muted) && (!tag || (p.tags ?? []).includes(tag)) && worked(p) && found(p)
   const matching = all.filter(matches).sort((x, y) => rank(x, now) - rank(y, now))
   // The same seat problem on many seats is one row, and a down link hangs under its down box
   // (issue #1415). A kind picked on purpose stays one row per seat.
@@ -339,6 +343,10 @@ export default function Problems() {
                   .map((v) => ({ value: v, label: v === 'hall' ? t('problemPriority.groupHall') : t(`problems.filter.groups.${v}`) })) },
                 { key: 'tag', label: t('problemPriority.tag'), hidden: !tags.length,
                   options: [{ value: '', label: t('problemHeader.anyTag') }, ...tags.map((v) => ({ value: v, label: v }))] },
+                { key: 'incident', label: t('problemIncident.label'), hidden: !seesIncidents, options: (['all', 'open', 'none'] as const).map((v) => ({
+                  value: v, label: t(`problemIncident.${v}`),
+                  count: v === 'all' ? all.length : all.filter((p) => !!p.incident === (v === 'open')).length,
+                })) },
                 { key: 'muted', label: t('problemHeader.muted'), options: [
                   { value: 'show', label: t('problemHeader.mutedShown') },
                   { value: 'hide', label: t('problemHeader.mutedHidden'), count: all.filter((p) => !p.muted).length },
