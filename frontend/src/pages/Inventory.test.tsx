@@ -225,6 +225,20 @@ describe('Inventory page', () => {
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ fields: { height_u: '47' } }))
   })
 
+  it('leaves cables and power to their own tabs: one row of type tabs (#1426)', async () => {
+    const deviceType = { id: 'device', name: 'Device', sort: 'device', builtin: true, icon: '', default_icon: 'other', color: '',
+      fields: [], own_fields: [], properties: {}, features: {}, count: 2 }
+    const linked = (id: string, name: string) => ({ ...deviceType, id, name, sort: 'linked', count: 3 })
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'GET /api/inventory/types': { types: [deviceType, linked('cable', 'Cable'), linked('circuit', 'Circuit'),
+        linked('power-board', 'Power board'), linked('patch-panel', 'Patch panel')], field_kinds: [] },
+    }).fn)
+    app()
+    expect(await screen.findByRole('tab', { name: /Patch panel/ })).toBeInTheDocument()
+    for (const name of [/^Cable/, /^Circuit/, /^Power board/]) expect(screen.queryByRole('tab', { name })).toBeNull()
+  })
+
   it('shows viewers the list without edit buttons', async () => {
     vi.stubGlobal(
       'fetch',

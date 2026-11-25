@@ -247,6 +247,6 @@ describe('SeatWalk', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<SeatWalk />)
-    expect(await screen.findByText(/No laptop in the hall has reached a local agent yet/)).toBeInTheDocument()
+    expect(await screen.findByText(/No local agent is connected/)).toBeInTheDocument()
   })
 })
