@@ -697,7 +697,15 @@ export interface Circuit {
   state: PowerState
   load_pct: number | null
   fed: { seats: string[]; switches: { id: string; name: string }[] }
+  /** English, for logs and incidents; the page words feeds_parts (power/feeds.ts). */
   feeds_label: string
+  feeds_parts: CircuitFeedParts[]
+}
+/** One feed of a circuit: the block's label (null once removed) and the rows' names. */
+export interface CircuitFeedParts {
+  block: string | null
+  rows: string[]
+  by_rows: boolean
 }
 export interface PowerOverview {
   enabled: boolean

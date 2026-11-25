@@ -15,7 +15,10 @@ and [`floorbit/blueprints/power.py`](../floorbit/blueprints/power.py).
   from the left and top), where the power layer draws it.
 - A **circuit** comes from one board and has a name, a phase (L1, L2, L3 or 3P for a three-phase
   feed), a fuse rating in amps and, when a meter reports it, the meter's id. It feeds whole seat
-  blocks, single rows of a block (counted from the top as drawn), and switches.
+  blocks, single rows of a block (counted from the top as drawn), and switches. The page names them
+  as the plan does, in the reader's language: "B · row 2", "A · rows 1, 2", "Block A", or "Rows C–D"
+  for a block named by the hall's row letters. Each board's table has the same column widths, so
+  the columns line up down the page.
 
 Boards and circuits are stored in `data.json` under `power`. A board keeps its circuits: remove or
 move them first.
@@ -68,7 +71,8 @@ def power_readings(self):
 
 A circuit with that meter id takes the reading. It is asked every `POWER_INTERVAL` seconds (60);
 a plugin that fails keeps its last readings, which age on the page. The **Demo data** plugin has
-meters for every demo row: B row 2 runs warm and C row 2 goes red two minutes in seven.
+meters for every demo row: C row 2, the row of the demo's open Electrics incident, runs amber and
+goes red two minutes in seven; the other rows stay well below their fuse.
 
 ### Shelly and Home Assistant
 

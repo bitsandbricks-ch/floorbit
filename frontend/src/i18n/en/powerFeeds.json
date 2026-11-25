@@ -1,0 +1,8 @@
+{
+  "removed": "A removed block",
+  "block": "Block {{block}}",
+  "rows_one": "{{block}} · row {{rows}}",
+  "rows_other": "{{block}} · rows {{rows}}",
+  "hallRows_one": "Row {{rows}}",
+  "hallRows_other": "Rows {{rows}}"
+}

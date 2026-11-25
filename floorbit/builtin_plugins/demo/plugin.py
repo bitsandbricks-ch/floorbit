@@ -837,16 +837,16 @@ class Plugin(Plugin):
 
     # power ------------------------------------------------------------------------------
     def power_readings(self):
-        """Load per meter in amps. B row 2 runs warm; C row 2 goes over the top two minutes in seven."""
+        """Load per meter in amps. C row 2 (the demo's open "near its limit" incident) runs warm and goes
+        over the top two minutes in seven; every other row stays well below its fuse (issue #1427)."""
         now = time.time()
         out = []
         for i, c in enumerate(LAYOUT['power']['circuits']):
             if c['meter'] == 'rack':
                 amps = 9 + 3 * _wave(20, now, period=600)
-            elif c['meter'] == 'b2':
-                amps = 13.2 + 0.8 * _wave(21, now, period=300)
             elif c['meter'] == 'c2':
-                amps = 15.6 + 0.4 * _wave(22, now) if int(now // 60) % 7 < 2 else 11 + _wave(22, now)
+                peak = int(now // 60) % 7 < 2
+                amps = 15.6 + 0.4 * _wave(22, now) if peak else 13.2 + 0.8 * _wave(21, now, period=300)
             else:
                 amps = 6 + 5 * _wave(30 + i, now, period=900)
             out.append({'meter': c['meter'], 'amps': round(amps, 1)})
