@@ -47,9 +47,12 @@ describe('Replay', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/replay/event': event }).fn)
     const { container } = renderWithApp(<Replay />)
     expect(await screen.findByRole('img', { name: /Heatmap of the seat blocks/ })).toBeInTheDocument()
-    expect(screen.getByText('1 / 3')).toBeInTheDocument()
+    // It opens on the latest frame, where the clock is (#1432).
+    expect(screen.getByText('2 / 3')).toBeInTheDocument()
     const slider = screen.getByRole('slider', { name: 'Time' })
     slider.focus()
+    fireEvent.keyDown(slider, { key: 'Home' })
+    expect(await screen.findByText('1 / 3')).toBeInTheDocument()
     for (let i = 0; i < 12; i++) fireEvent.keyDown(slider, { key: 'ArrowRight' })
     expect(await screen.findByText('3 / 3')).toBeInTheDocument()
     expect(container.querySelector('.fb-replay-plan .ring')).not.toBeNull()
@@ -57,6 +60,19 @@ describe('Replay', () => {
     expect(screen.queryByRole('button', { name: /video/i })).toBeNull()
     fireEvent.click(screen.getByRole('radio', { name: 'Traffic' }))
     expect(screen.getByRole('img', { name: /Traffic/ })).toBeInTheDocument()
+  })
+
+  it('draws the hall as the floor plan does, with the seats as they were then (#1055)', async () => {
+    const plan = {
+      halls: [{ id: 'main', name: 'Hall', seats: 3, online: 3, problems: 0 }], hall: 'main', drawing,
+      size: { w: 800, h: 600, cell: 32 }, background: null, switches: [{ id: 's1', name: 'sw-d-01', status: 'online', x: 400, y: 200 }],
+      seats: {}, blocks: [{ name: 'D', seats: 3, online: 3, problems: 0 }], monitoring: true, checkin: false, last_read: null,
+    }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/replay/event': event, 'GET /api/plan?hall=main': plan }).fn)
+    const { container } = renderWithApp(<Replay />)
+    await screen.findByRole('region', { name: /Hall plan at/ })
+    expect(container.querySelector('.fb-replay-plan')).toBeNull()
+    expect(container.querySelector('.sw-unknown')).not.toBeNull()
   })
 
   it('explains an empty recording', async () => {

@@ -22,6 +22,8 @@ export interface ShellNavProps {
   /** Problems to look at (warn plus seat and port trouble), for the badge's tooltip (#884). */
   look?: number | null
   actions?: MenuAction[]
+  /** The event's setup steps done of all (#1437): Set up shows at the foot while some are open. */
+  setup?: { done: number; count: number } | null
 }
 
 /** What Floorbit puts into the shared AppShell: its brand, the event picker above the links, the
@@ -50,6 +52,10 @@ export function useShellNav(props: ShellNavProps) {
 
   const labelOf = (p: NavPage) => (ownLabel(p.id) ? p.label : t(`goto.pages.${p.id}`, { defaultValue: p.label }))
   const badgeOf = (id: string): ReactNode => {
+    if (id === 'setup' && props.setup) {
+      const { done, count } = props.setup
+      return <span className="fb-nav-progress" title={t('nav.setupCount', { done, count })}>{`${done}/${count}`}</span>
+    }
     const down = (id === 'helpdesk' || id === 'problems') && props.down ? props.down : null
     if (down === null) return undefined
     return (
@@ -83,8 +89,10 @@ export function useShellNav(props: ShellNavProps) {
     return { id: `${x.kind}:${x.href}`, label, href: x.href, icon: <Icon size={18} />, active: lit === x.href, external: x.external }
   }
 
-  // Plugins and Settings sit at the foot as named rows, so they can't be missed (issue #892).
-  const admin = ['plugins', 'settings'].map((id) => byId.get(id) ?? rowsOf(boot.pages).find((p) => p.id === id))
+  // Plugins and Settings sit at the foot as named rows, so they can't be missed (issue #892); Set
+  // up joins them while the event's setup has open steps (#1437).
+  const setupOpen = !!props.setup && props.setup.done < props.setup.count
+  const admin = [...(setupOpen ? ['setup'] : []), 'plugins', 'settings'].map((id) => byId.get(id) ?? rowsOf(boot.pages).find((p) => p.id === id))
     .filter((p): p is NavPage => !!p)
   // Plugins lives under /settings, so it lights on its own pages and Settings on the rest.
   const adminLit = admin.find((p) => p.id === 'plugins' && (path === p.href || path.startsWith(`${p.href}/`)))?.id

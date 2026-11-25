@@ -276,3 +276,21 @@ describe('the phone bar', () => {
     expect(within(sheet).getByRole('link', { name: 'Settings' })).toBeInTheDocument()
   })
 })
+
+describe('Set up at the foot (#1437)', () => {
+  const withSetup = [...pages, { href: '/setup', id: 'setup', label: 'Set up' }]
+  it('shows Set up with its progress next to Settings while steps are open, and not in the groups', () => {
+    renderWithApp(<Shell boot={{ ...boot, pages: withSetup }} path="/problems" setup={{ done: 4, count: 7 }} />, '/problems')
+    const link = within(main()).getByRole('link', { name: /Set up/ })
+    expect(link).toHaveAttribute('href', '/setup')
+    expect(within(link).getByText('4/7')).toBeInTheDocument()
+    expect(within(main()).getAllByRole('link', { name: /Set up/ })).toHaveLength(1)
+    // At the foot with Plugins and Settings, not among the groups.
+    const names = within(main()).getAllByRole('link').map((a) => a.textContent)
+    expect(names.indexOf('Settings')).toBeGreaterThan(names.indexOf('Set up4/7'))
+  })
+  it('leaves it out once every step is done', () => {
+    renderWithApp(<Shell boot={{ ...boot, pages: withSetup }} path="/problems" setup={{ done: 7, count: 7 }} />, '/problems')
+    expect(within(main()).queryByRole('link', { name: /Set up/ })).not.toBeInTheDocument()
+  })
+})

@@ -29,6 +29,9 @@
 .fb-nav-row:hover { background: var(--fb-nav-hover); color: var(--color-fg); }
 .fb-nav-icon { flex: none; }
 .fb-nav-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Set up's progress (4/7) beside its row: quiet, not an alert (#1437). */
+.fb-nav-progress { flex: none; margin-left: auto; color: var(--color-muted); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.bnb-nav.is-folded .fb-nav-progress { display: none; }
 .fb-nav-me { padding: 0 6px; min-height: 40px; color: var(--color-fg); }
 .fb-nav-tenant { color: var(--color-fg); }
 .fb-nav-tenant-mark { flex: none; margin-left: auto; color: var(--color-muted); }
