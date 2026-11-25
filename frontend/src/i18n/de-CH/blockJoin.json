@@ -1,0 +1,12 @@
+{
+  "merge_one": "{{count}} Block zusammenführen",
+  "merge_other": "{{count}} Blöcke zusammenführen",
+  "mergeHint": "Gleich gedrehte Blöcke, die sich berühren oder in einer Linie stehen, werden einer; ihre Reihen und Platznummern laufen weiter.",
+  "split": "Block über Reihe {{name}} teilen",
+  "splitHint": "Reihe {{name}} und die Reihen danach werden ein neuer Block am selben Ort.",
+  "splitFreely": "Blöcke mit frei gestellten Plätzen lassen sich nicht teilen: «Zurück zu Reihen» stellt sie zuerst wieder in Reihen.",
+  "stepMerge_one": "{{count}} Block zusammenführen",
+  "stepMerge_other": "{{count}} Blöcke zusammenführen",
+  "stepSplit": "Block teilen",
+  "gone": "Ein Sitzblock ist weg: Der Plan wurde anderswo geändert."
+}

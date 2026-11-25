@@ -7,7 +7,7 @@ import uuid
 
 from flask import Blueprint, jsonify, request
 
-from .. import block_merge, halls, seat_layout, seat_names, seat_rows, stacking
+from .. import block_merge, block_split, halls, seat_layout, seat_names, seat_rows, stacking
 from ..plan_marks import on_plan
 from ..store import load_data, save_data
 from .inventory import data_lock
@@ -332,3 +332,29 @@ def merge_seat_blocks():
             break
     save_data(data)
     return jsonify({'block': with_hall([merged], data)[0], 'removed': gone})
+
+
+@bp.route('/api/seat-blocks/<block_id>/split', methods=['POST'])
+@_locked
+def split_seat_block(block_id):
+    """Splits the block in two before row ``at`` (its place in the block counted from 0, so 1 or more;
+    floorbit/block_split.py): the rows above stay, the rest become a new block. Answers both."""
+    body = request.get_json(silent=True) or {}
+    data = load_data()
+    block = next((b for b in data.get('seat_blocks', []) if b['id'] == block_id), None)
+    if block is None:
+        return jsonify({'error': 'Seat block not found'}), 404
+    taken = [b.get('name') or '' for b in data['seat_blocks']]
+    try:
+        kept, new = (_clean(part) for part in block_split.split(block, body.get('at'), taken))
+    except (block_split.SplitError, BlockError) as exc:
+        return jsonify({'error': str(exc)}), 400
+    seat = _clash([kept, new], data, skip={block_id}, had=seat_names.seats(block))
+    if seat:
+        return _clash_error(seat)
+    block.clear()
+    block.update(kept)
+    data['seat_blocks'].append(new)
+    save_data(data)
+    kept_out, new_out = with_hall([kept, new], data)
+    return jsonify({'block': kept_out, 'new': new_out}), 201
