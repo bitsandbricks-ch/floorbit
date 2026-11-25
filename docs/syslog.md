@@ -86,8 +86,16 @@ line whose time is far off (a switch with a wrong clock) gets the time it arrive
   (`/logs?device=sw-a-01&severity=err`), so a reload or a pasted link shows the same lines.
 - **Pages and sorting:** 50 lines a page, newest first. Time, Level and Device sort the lines loaded
   so far; the page and the order are in the address too (`?page=2&sort=-level`).
-- **Live:** on by default; new lines appear every 3 seconds. Past the first page or in another order
-  it pauses ("Live, paused"), so the lines don't move while you read.
+- **Time:** the last 15 minutes, hour, 6 or 24 hours, or everything kept (`?range=1h`).
+- **Lines over time:** a bar chart above the list counts the lines the filters match over the time
+  shown (everything kept when no time is picked), errors and worse in red. Clicking a bar shows only
+  its slice of time; the Time filter then names it, and resetting it goes back.
+- **Live and Pause:** live is on by default; new lines appear every 3 seconds. **Pause** holds the
+  list, **Resume** follows again. Past the first page or in another order it pauses by itself
+  ("Live, paused"), so the lines don't move while you read.
+- **Download:** every kept line the search and filters match, oldest first, as a text file
+  (`GET /api/logs/download`, up to 200,000 lines). The lines name MACs and IPs, so each download is
+  written to the audit log.
 - **Older lines:** the page loads the newest 200; on the last page, **Older lines** reads the next
   200 and jumps to them.
 - **One line per entry:** port and seat have columns of their own, and a long message is cut to one
