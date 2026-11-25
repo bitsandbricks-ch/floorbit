@@ -566,6 +566,17 @@ Source: [`floorbit/blueprints/inventory_interfaces.py`](https://github.com/bitsa
 | PATCH | `/api/inventory/<device_id>/interfaces/<iface_id>` | `floorplan.edit` |  |
 | POST | `/api/inventory/interfaces/sync` | `floorplan.edit` |  |
 
+## floorbit.blueprints.inventory_senders
+
+Devices that send but aren't in the inventory (issue #1443, floorbit/unknown_senders.py).
+
+Source: [`floorbit/blueprints/inventory_senders.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_senders.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/inventory/unknown-senders` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/unknown-senders/ignore` | `floorplan.edit` |  |
+
 ## floorbit.blueprints.inventory_types
 
 Inventory types and entries (floorbit/inventory_types.py).

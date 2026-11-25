@@ -121,6 +121,8 @@ def fresh_monitoring_state(tmp_path, monkeypatch):
     sources.mark_ok(None)
     from integrations import seat_sources  # its merged mapping is kept 30 s: one test's seats aren't the next's
     seat_sources.invalidate()
+    from floorbit import unknown_senders  # one test's syslog senders aren't the next's problems (#1443)
+    unknown_senders.syslog.clear()
     yield
     lastgood.clear()
     sources.mark_ok(None)

@@ -457,3 +457,9 @@ kind with `grep '\[telemetry\] \[traps\]'` (or `docker compose logs agent | grep
 
 These lines are at info level. `FLOORBIT_AGENT_LOG_LEVEL=debug` adds Telegraf's chatter and the
 details behind each line.
+
+## Senders that aren't in the inventory
+
+Traps and streams from an address no device here has are not taken (a spoofed sender can't add
+devices), but each agent counts them per address and lists them under
+[Unknown senders](inventory.md#unknown-senders).

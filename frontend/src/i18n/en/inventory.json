@@ -571,5 +571,31 @@
     "down": "{{ago}} h ago: down for {{minutes}} min",
     "label_one": "{{count}} hour with an outage in the last 24 hours",
     "label_other": "{{count}} hours with an outage in the last 24 hours"
+  },
+  "unknown": {
+    "chip_one": "{{count}} unknown sender",
+    "chip_other": "{{count}} unknown senders",
+    "title": "Unknown senders",
+    "desc": "Addresses that sent syslog, traps, streams or flows to the agents in the last 24 hours but match no device. Only counts, no lines.",
+    "showIgnored": "Ignored ({{count}})",
+    "none": "Nothing unknown",
+    "noneDesc": "Every address that sent in the last 24 hours is a device in the inventory.",
+    "ignored": "Ignored",
+    "heard": "Last {{last}}, first {{first}}",
+    "via": "through {{agents}}",
+    "add": "Add to inventory",
+    "addNow": "Add",
+    "ignore": "Ignore",
+    "unignore": "Stop ignoring",
+    "kind": {
+      "syslog_one": "Syslog, {{count}} line",
+      "syslog_other": "Syslog, {{count}} lines",
+      "trap_one": "Traps, {{count}}",
+      "trap_other": "Traps, {{count}}",
+      "stream_one": "Streams, {{count}} point",
+      "stream_other": "Streams, {{count}} points",
+      "flow_one": "Flows, {{count}}",
+      "flow_other": "Flows, {{count}}"
+    }
   }
 }
