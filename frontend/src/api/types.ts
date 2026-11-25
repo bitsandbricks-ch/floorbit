@@ -321,6 +321,8 @@ export interface LoginBlock {
 export interface DeviceDetail extends Omit<Device, 'drift'> {
   /** The list here; the inventory list has only the count. */
   drift?: import('./inventoryDrift').DriftRow[]
+  /** Where two discovery sources read different values (issue #965). */
+  conflicts?: import('./discoverySources').SourceConflict[]
   interfaces: DeviceInterface[]
   own_credentials: CredentialInfo[]
   blocks: LoginBlock[]

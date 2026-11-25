@@ -164,7 +164,8 @@ def fed_key(plugin_id):
 def fill(dev, values, key=PLUGIN):
     """Put discovered values on one device by the rules at the top. Returns (changed, kept).
     ``key``: whose values they are (a plugin's discovery area: fed_key)."""
-    before = (dev.get('fed') or {}).get(key) or {}
+    fed = dev.get('fed') or {}
+    before = fed.get(key) or {}
     owned = {}
     changed, kept = [], 0
     for field in FIELDS:
@@ -172,7 +173,11 @@ def fill(dev, values, key=PLUGIN):
         if not value:
             continue
         current = dev.get(field) or ''
-        if field in (dev.get('locked') or []) or (current and current != before.get(field)):
+        # Another discovery source's value gives way: only the deciding source fills a field the
+        # other one read too (discovery_sources.py).
+        theirs = any((fed.get(k) or {}).get(field) == current for k in fed
+                     if k != key and (k == PLUGIN or k.startswith('discovery:')))
+        if field in (dev.get('locked') or []) or (current and current != before.get(field) and not theirs):
             kept += current != value
             continue
         owned[field] = value
@@ -322,7 +327,7 @@ def run(only=None, device_ids=None):
             if not does('identity', dev):
                 continue
             report['actions']['identity']['devices'] += 1
-            changed, kept = fill(dev, values)
+            changed, kept = fill(dev, mine(data, dev, values))
             report['locked'] += kept
             if changed:
                 dev['updated_at'] = inventory.now()
@@ -369,7 +374,7 @@ def run(only=None, device_ids=None):
                 continue
             old = [r for r in before.get(dev_id) or [] if isinstance(r, dict) and not r.get('source')]
             theirs = [r for r in before.get(dev_id) or [] if isinstance(r, dict) and r.get('source')]  # a plugin area's
-            rows = drift(dev, values, row, mon.name if ports_ok and dev_id in polled else None)
+            rows = drift(dev, mine(data, dev, values), row, mon.name if ports_ok and dev_id in polled else None)
             if not does('identity', dev):
                 rows = [r for r in rows if r['kind'] == 'interface'] + [r for r in old if r.get('kind') != 'interface']
             if not (ports_ok and dev_id in polled):
@@ -579,6 +584,14 @@ def found_records(data):
 
 
 # ── drift ────────────────────────────────────────────────────────────────────────────────────
+
+def mine(data, dev, values, source=None):
+    """The fields a source may fill and show drift for: all of them when it decides the device's
+    identity, else those the deciding source didn't read (discovery_sources.py, issue #965)."""
+    from . import discovery_sources
+    lead = discovery_sources.deciders_reading(data, dev, source or discovery_sources.MONITORING)
+    return values if lead is None else {f: v for f, v in values.items() if not lead.get(f)}
+
 
 def _same(field, a, b):
     from . import inventory

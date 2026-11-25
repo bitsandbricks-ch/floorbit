@@ -315,6 +315,18 @@ Source: [`floorbit/blueprints/demo.py`](https://github.com/bitsandbricks-ch/floo
 | --- | --- | --- | --- |
 | POST | `/api/demo/layout` | `settings.manage` |  |
 
+## floorbit.blueprints.discovery_sources
+
+Which source decides each discovery area per kind of device, and source conflicts (issue #965, floorbit/discovery_sources.py).
+
+Source: [`floorbit/blueprints/discovery_sources.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/discovery_sources.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/inventory/<device_id>/conflicts/take` | `floorplan.edit` |  |
+| PUT | `/api/inventory/discovery/deciding` | `settings.manage` |  |
+| GET | `/api/inventory/discovery/types/<role>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.dispatch
 
 Tech dispatch (issue #30). Rules live in floorbit/dispatch.py; see docs/dispatch.md.

@@ -22,6 +22,7 @@ import { DeviceGraphs } from './DeviceGraphs'
 import { DeviceLogs } from './DeviceLogs'
 import { DeviceEndpoints } from './DeviceEndpoints'
 import { DeviceNetworks } from './DeviceNetworks'
+import { ConflictPanel } from './ConflictPanel'
 import { DriftPanel } from './DriftPanel'
 import { InterfacesPanel } from './InterfacesPanel'
 import { credentialBody, entryPath, roleIcon, scopePath, speedLabel, statusLabel, typeName, type Draft } from './model'
@@ -229,6 +230,11 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
               {!!dev.drift?.length && (
                 <Panel title={t('inventoryDrift.title')}>
                   <DriftPanel deviceId={dev.id} rows={dev.drift} canEdit={canEdit} />
+                </Panel>
+              )}
+              {!!dev.conflicts?.length && (
+                <Panel title={t('discoverySources.conflictTitle')}>
+                  <ConflictPanel deviceId={dev.id} role={dev.role || 'switch'} rows={dev.conflicts} canEdit={canEdit} />
                 </Panel>
               )}
               {dev.connected && (dev.connected.cables.length + dev.connected.circuits.length + dev.connected.uplinks.length
