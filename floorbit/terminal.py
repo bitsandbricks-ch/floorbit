@@ -1,7 +1,8 @@
 """A terminal in the browser for one switch (issue #95). See docs/terminal.md.
 
 The browser opens a session with the tech's own switch login, sends what they type and asks for
-the output with a long poll (one gunicorn worker keeps the sessions in memory). The login is
+the output with a long poll. The process that opened a session holds it; with several workers or
+pods, the others pass its requests on (floorbit/terminal_cluster.py). The login is
 used to open the one SSH connection and dropped: never stored, logged or cached.
 
 Every line the tech sends goes to the audit log, as typed, with the switch: the session's record.
@@ -19,7 +20,7 @@ import time
 
 from integrations import config
 
-from . import audit, credentials, ports, switch_link
+from . import audit, credentials, ports, switch_link, terminal_cluster
 from .plugins import PluginError
 from .store import load_data
 
@@ -97,6 +98,7 @@ class Session:
             self.shell.close()
         with _lock:
             _sessions.pop(self.id, None)
+        terminal_cluster.forget(self.id)
         audit.record('terminal', 'Closed terminal', user=self.account,
                      target=f'{self.switch}: {why}'[:120])
 
@@ -112,6 +114,9 @@ class Session:
         except Exception as exc:  # noqa: BLE001 - the switch or the agent's link went away
             self.end('The connection to the switch was lost.')
             raise TerminalError(f'The connection to the switch was lost ({type(exc).__name__}).', 410) from None
+
+    def resize(self, cols, rows):
+        self.shell.resize(cols, rows)
 
     def _record(self, data):
         """Collect the typed line and send it to the audit log on Enter."""
@@ -150,9 +155,11 @@ def open_session(registry, account, body):
         raise TerminalError('No plugin that can open a switch terminal is on. An admin turns on SSH port '
                             'actions under Settings > Plugins.', 409)
     prune()
+    others = terminal_cluster.elsewhere()
     with _lock:
-        mine = [s for s in _sessions.values() if s.account == account]
-        if len(_sessions) >= MAX_SESSIONS:
+        everyone = [s.account for s in _sessions.values()] + [r['account'] for r in others.values()]
+        mine = [a for a in everyone if a == account]
+        if len(everyone) >= MAX_SESSIONS:
             raise TerminalError('Too many terminals are open. Close one first.', 429)
         if len(mine) >= MAX_PER_ACCOUNT:
             raise TerminalError(f'You have {MAX_PER_ACCOUNT} terminals open. Close one first.', 429)
@@ -197,13 +204,18 @@ def open_session(registry, account, body):
     session = Session(secrets.token_urlsafe(18), account, dev['name'], shell)
     with _lock:
         _sessions[session.id] = session
+    terminal_cluster.announce(session)
     audit.record('terminal', 'Opened terminal', user=account, target=dev['name'])
     return session
 
 
-def get(sid, account):
+def get(sid, account, here_only=False):
+    """The session ``sid`` of ``account``: this process's own, or (``here_only`` False) one another
+    worker or pod holds."""
     with _lock:
         session = _sessions.get(sid)
+    if session is None and not here_only:
+        session = terminal_cluster.find(sid, account)
     # Someone else's session looks the same as one that doesn't exist.
     if not session or session.account != account:
         raise TerminalError('That terminal is closed.', 404)
@@ -224,5 +236,8 @@ def prune(now=None):
 def listing(account):
     prune()
     with _lock:
-        return [{'id': s.id, 'switch': s.switch, 'opened': s.opened} for s in _sessions.values()
+        here = [{'id': s.id, 'switch': s.switch, 'opened': s.opened} for s in _sessions.values()
                 if s.account == account]
+    there = [{'id': sid, 'switch': r['switch'], 'opened': r['opened']}
+             for sid, r in terminal_cluster.elsewhere().items() if r['account'] == account]
+    return sorted(here + there, key=lambda s: s['opened'])

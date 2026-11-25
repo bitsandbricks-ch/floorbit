@@ -98,8 +98,8 @@ except the shared volume, which they already have:
 
 - `FLOORBIT_CLUSTER=valkey` and `REDIS_HOST`, so live updates and agent calls reach every worker and
   only one sends alerts. Without it Floorbit logs a warning at start.
-- **Not yet:** the [switch terminal](terminal.md) keeps its sessions in the worker that opened them,
-  so with several workers a terminal can lose its output. Stay on one worker if the crew uses it.
+- The [switch terminal](terminal.md) works on every worker: the one that opened a terminal holds its
+  SSH connection, and the others pass its requests there through Valkey.
 
 To try it: `GUNICORN_CMD_ARGS=--workers 2` (or up to the number of CPUs) in `.env` or the pod's
 environment. `GUNICORN_CMD_ARGS=--threads 200` raises the threads the same way.
