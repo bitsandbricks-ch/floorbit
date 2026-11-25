@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { labelPlan, labelStyle, rowEnds } from './labels'
+import { labelPlan, labelStyle } from './labels'
 
 const CELL = 32
 
@@ -8,49 +8,44 @@ describe('labelPlan', () => {
     const p = labelPlan(CELL, 1)          // 32 px a seat
     expect(p.seats).toBe('all')
     expect(p.num).toBe(11)
+    expect(p.rows).toBe(true)
   })
 
-  it('shrinks the numbers to fit the seat while they stay readable', () => {
+  it('drops seat numbers below 30 px a seat but keeps the row labels (#1471)', () => {
     const p = labelPlan(CELL, 20 / CELL)  // 20 px a seat
-    expect(p.seats).toBe('all')
-    expect(p.num * (20 / CELL)).toBeGreaterThanOrEqual(9)
-    expect(p.num).toBeLessThanOrEqual(CELL / 2)
+    expect(p.seats).toBe('none')
+    expect(p.rows).toBe(true)
   })
 
-  it('keeps only the row ends when a number no longer fits', () => {
-    expect(labelPlan(CELL, 15 / CELL).seats).toBe('ends')
-    expect(labelPlan(CELL, 15 / CELL).rows).toBe(true)
-  })
-
-  it('writes nothing on specks, where the block summaries take over', () => {
+  it('writes nothing on specks, where only the block tags remain', () => {
     const p = labelPlan(CELL, 8 / CELL)
     expect(p.seats).toBe('none')
     expect(p.rows).toBe(false)
   })
 
-  it('row letters stay readable when zoomed out but never outgrow a seat', () => {
-    expect(labelPlan(CELL, 15 / CELL).row * (15 / CELL)).toBeGreaterThanOrEqual(12 * 0.99)
-    expect(labelPlan(CELL, 13 / CELL).row).toBeLessThanOrEqual(CELL)
+  it('keeps row labels small: at most 11 px and about half a seat', () => {
+    for (const seatPx of [12, 18, 40, 80]) {
+      const s = seatPx / CELL
+      const px = labelPlan(CELL, s).row * s
+      expect(px).toBeLessThanOrEqual(11.001)
+      expect(px).toBeLessThanOrEqual(seatPx * 0.55 + 0.001)
+    }
+  })
+
+  it('prints row labels at half a seat on paper', () => {
+    expect(labelPlan(CELL, 2, 'auto', true).row).toBeCloseTo(CELL * 0.55)
+    expect(labelPlan(CELL, 2, 'auto', true).rows).toBe(true)
   })
 
   it('follows a screen that asks for numbers always or never', () => {
     expect(labelPlan(CELL, 8 / CELL, 'all').seats).toBe('all')
     expect(labelPlan(CELL, 8 / CELL, 'all').num).toBe(CELL / 2)
     expect(labelPlan(CELL, 2, 'none').seats).toBe('none')
+    expect(labelPlan(CELL, 2, 'none').rows).toBe(false)
   })
 
   it('hands the sizes to CSS', () => {
     expect(labelStyle(labelPlan(CELL, 1))['--seat-num']).toBe('11.00px')
-  })
-})
-
-describe('rowEnds', () => {
-  it('picks the first and last seat of each row', () => {
-    const cells = [
-      { seat: 'A-3', x: 64, y: 0 }, { seat: 'A-1', x: 0, y: 0 }, { seat: 'A-2', x: 32, y: 0 },
-      { seat: 'A-4', x: 0, y: 32.2 }, { seat: 'A-5', x: 32, y: 31.9 },
-      { seat: 'A-6', x: 0, y: 64 },
-    ]
-    expect([...rowEnds(cells)].sort()).toEqual(['A-1', 'A-3', 'A-4', 'A-5', 'A-6'])
+    expect(labelStyle(labelPlan(CELL, 1))['--row-lbl']).toBe('11.00px')
   })
 })

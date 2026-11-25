@@ -1,72 +1,47 @@
-import type { PlanCell } from '@/api/types'
-
-/** Which seat numbers the plan writes: every seat, only the first and last of each row, or none. */
-export type SeatLabels = 'all' | 'ends' | 'none'
+/** Which seat numbers the plan writes: every seat or none. */
+export type SeatLabels = 'all' | 'none'
 /** A screen's choice (kiosk panes): follow the zoom, always number every seat, or never. */
 export type LabelMode = 'auto' | 'all' | 'none'
 
-// Screen pixels: below this a letter can't be read from a few metres away.
-const READABLE = 9
-// From this many pixels a seat holds its number at the classic size (model.ts NEAR_FROM).
+// From this many pixels a seat holds its number at the classic size (model.ts NEAR_FROM). Below it
+// nobody reads or counts to a seat: colour, rings and the tip say which one it is (Mike, #1471).
 const FULL_FROM = 30
-// A two or three digit number fits in a seat at about half its width.
+// From here a row can be picked out, so it gets its label (model.ts FAR_BELOW).
+const ROWS_FROM = 12
+// Row labels stay small and quiet: at most this many screen pixels, and about half a seat.
+const ROW_PX = 11
+const ROW_OF_SEAT = 0.55
+// A forced number on a small seat fills about half its width.
 const FIT = 0.5
-// Below this many pixels a seat is a speck (model.ts FAR_BELOW): the block summaries take over.
-const ENDS_FROM = 12
 
 export interface LabelPlan {
   seats: SeatLabels
   /** Font sizes in drawing units (they scale with the plan), for the svg's CSS variables. */
   num: number
-  end: number
   row: number
-  /** Row letters are written at all. */
+  /** Row labels are written at all. */
   rows: boolean
 }
 
 /** How to label a hall with seats of ``cell`` drawing units at ``s`` screen pixels per unit.
- *  Up close every seat has its number; zoomed out the numbers shrink to fit the seat as long as they
- *  stay readable, then only the row ends keep one (so a seat can still be counted to), and far out
- *  only the block summaries remain. Status colours never change with it. */
-export function labelPlan(cell: number, s: number, mode: LabelMode = 'auto'): LabelPlan {
+ *  Shapes and colour first (#1471): zoomed out only the block tags (SeatMap) remain, from about 12 px
+ *  a seat small row labels join them, and from 30 px every seat has its number. ``paper`` prints the
+ *  row labels at half a seat, since a printout has no zoom. Status colours never change with it. */
+export function labelPlan(cell: number, s: number, mode: LabelMode = 'auto', paper = false): LabelPlan {
   const seatPx = cell * s
   const classic = 11
-  const fitted = cell * FIT
-  // Big enough to read on screen, but never larger than what fits in the seat.
-  const num = seatPx >= FULL_FROM ? classic : Math.min(fitted, Math.max(classic, READABLE / s))
-  const row = Math.min(cell, Math.max(cell * 0.6, 12 / s))
-  const end = Math.max(classic, 11 / s)
+  const row = paper ? cell * ROW_OF_SEAT : Math.min(ROW_PX / s, cell * ROW_OF_SEAT)
   let seats: SeatLabels
   if (mode === 'none') seats = 'none'
-  else if (mode === 'all' || num * s >= READABLE) seats = 'all'
-  else if (seatPx >= ENDS_FROM) seats = 'ends'
+  else if (mode === 'all' || seatPx >= FULL_FROM) seats = 'all'
   else seats = 'none'
-  // Forced numbers on tiny seats: as big as the seat allows.
-  return { seats, num: mode === 'all' && seats === 'all' && num * s < READABLE ? fitted : num, end, row, rows: seatPx >= ENDS_FROM }
-}
-
-/** The first and last seat of each row of a block (cells on the same line, in block coordinates). */
-export function rowEnds(cells: Pick<PlanCell, 'seat' | 'x' | 'y' | 'rc'>[]): Set<string> {
-  // A row is the cells with the same rc[0] (a bent row isn't one line across); older answers by height.
-  const rows = new Map<number, { seat: string; at: number }[]>()
-  for (const c of cells) {
-    const key = c.rc ? c.rc[0] : Math.round(c.y)
-    const at = c.rc ? c.rc[1] : c.x
-    const row = rows.get(key)
-    if (row) row.push({ seat: c.seat, at })
-    else rows.set(key, [{ seat: c.seat, at }])
-  }
-  const out = new Set<string>()
-  for (const row of rows.values()) {
-    const sorted = [...row].sort((a, b) => a.at - b.at)
-    out.add(sorted[0].seat)
-    out.add(sorted[sorted.length - 1].seat)
-  }
-  return out
+  // Forced numbers on small seats: as big as the seat allows.
+  const num = seatPx >= FULL_FROM ? classic : cell * FIT
+  return { seats, num, row, rows: mode !== 'none' && (paper || seatPx >= ROWS_FROM) }
 }
 
 /** The CSS variables the plan's stylesheet reads for label sizes. Set on the svg, so zooming changes
  *  them without drawing the (memoised) seats again. */
 export function labelStyle(plan: LabelPlan): Record<string, string> {
-  return { '--seat-num': `${plan.num.toFixed(2)}px`, '--seat-end': `${plan.end.toFixed(2)}px`, '--row-lbl': `${plan.row.toFixed(2)}px` }
+  return { '--seat-num': `${plan.num.toFixed(2)}px`, '--row-lbl': `${plan.row.toFixed(2)}px` }
 }
