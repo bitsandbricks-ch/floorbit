@@ -16,7 +16,7 @@
 }
 .fb-ws-bar > .fb-filter-scroll { flex: 1 1 140px; min-width: 140px; }
 /* The long note about other halls stays short; its whole text is in the tooltip. */
-.fb-ws-elsewhere { max-width: 14em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fb-ws-elsewhere { flex-shrink: 0; }
 .fb-ws-bar .fb-filter-scroll .mantine-SegmentedControl-root { width: max-content; flex-wrap: nowrap; }
 @media (max-width: 1499.98px) { .fb-ws-read { display: none; } }
 .fb-ws-bar-end { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
@@ -80,7 +80,6 @@
   .fb-ws-bar { padding: 6px 8px; gap: 6px 8px; }
   .fb-ws-bar-end { margin-left: 0; width: 100%; }
   .fb-ws-bar-end form { flex: 1; }
-  .fb-ws-bar-end > .fb-ws-elsewhere { max-width: none; flex-basis: 100%; white-space: normal; }
   .fb-ws-bar-end form .mantine-TextInput-root { width: 100% !important; }
   .fb-ws-read { display: none; }
   .fb-ws-corner { max-width: calc(100% - 24px); }
