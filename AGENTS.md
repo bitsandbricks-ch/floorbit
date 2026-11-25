@@ -74,8 +74,11 @@ pull request.
 6. **Done** means the task is complete, the checklist is ticked and CI is green: then mark
    the pull request ready. Leave it a draft only while work is open or you are blocked, and say why
    in the description.
-7. **Never merge** your own pull request, never force-push to a branch someone else works on, and
-   never push a tag. Merging and releasing are the maintainer's call.
+7. **Auto-merge** (handbook decision 0017): once the pull request is ready, turn on squash auto-merge
+   (`gh pr merge <n> --auto --squash`); GitHub merges it when the required check passes. Leave it off,
+   for the maintainer to merge, on pull requests that touch keys, signing, sign-in, the plugin sandbox or
+   release workflows, and on version pull requests from `mason bump`. Never merge by hand, never
+   force-push to a branch someone else works on, never push a tag. Releasing is the maintainer's call.
 8. Keep the pull request description current when you push more commits.
 9. **Keep it mergeable:** when `master` moves while your pull request is open, merge `master` into
    your branch (no rebase, no force-push), resolve, run again what the conflict touched and push.
