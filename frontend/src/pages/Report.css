@@ -1,0 +1,4 @@
+/* With two charts in a row the incidents chart gets the next row to itself; from xl the three
+   share one row (#1430). */
+.fb-report-wide { grid-column: 1 / -1; }
+@media (min-width: 88em) { .fb-report-wide { grid-column: auto; } }
