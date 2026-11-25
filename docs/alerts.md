@@ -86,7 +86,8 @@ switch is open, the button becomes **Incident open**, which opens the board filt
 Each problem's title opens **its own page** (`/problems/<id>`): what it is and where, since when,
 the seats it cuts off, and links to look further (where it was seen, the device in the inventory,
 the seat or switch on the floor plan, and for `seats.view` its logs and the machines seen at the
-seat). **Make an incident** works there and in the list for every problem on a seat or a switch:
+seat). With `seats.view` it also lists the newest 20 syslog lines of the seat (or the switch,
+when the problem has no seat), every 15 seconds, with **Open in Logs** for more. **Make an incident** works there and in the list for every problem on a seat or a switch:
 the incident remembers the problem it came from and links back to it, and the problem shows
 **Incident open** while it is. A problem that is over says so; its incident stays on the board.
 A problem is what Floorbit sees and ends by itself; an incident is the work someone does about it.

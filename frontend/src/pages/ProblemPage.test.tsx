@@ -33,6 +33,22 @@ describe('a problem page (issue #882)', () => {
     expect(screen.getByRole('link', { name: 'Machines seen at the seat' })).toHaveAttribute('href', '/endpoints?seat=A-9')
   })
 
+  it('shows the seat\'s newest log lines', async () => {
+    const line = { id: 7, ts: now - 30, facility: 23, severity: 'err', host: null, program: '%LINK-3-UPDOWN',
+      message: 'Interface Gi1/0/9, changed state to down', sender: '192.0.2.9', device: 'sw-a-01', port: 'gi1/0/9', seat: 'A-9' }
+    const api = open({ [`GET ${path}`]: detail(), 'GET /api/logs?seat=A-9&limit=20': { lines: [line], status: {} } })
+    expect(await screen.findByText('Interface Gi1/0/9, changed state to down')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open in Logs' })).toHaveAttribute('href', '/logs?seat=A-9')
+    expect(api.calls.some((c) => c.path === '/api/logs?seat=A-9&limit=20')).toBe(true)
+  })
+
+  it('shows no logs to those who may not see people', async () => {
+    const api = open({ [`GET ${path}`]: { ...detail(), may_see_people: false } })
+    expect((await screen.findAllByRole('heading', { name: 'Errors rising on Gi1/0/9' })).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Recent logs')).not.toBeInTheDocument()
+    expect(api.calls.some((c) => c.path.startsWith('/api/logs'))).toBe(false)
+  })
+
   it('makes an incident for the seat, linked back to the problem', async () => {
     const api = open({ [`GET ${path}`]: detail(), 'POST /api/incidents': { status: 201, body: {} } })
     fireEvent.click(await screen.findByRole('button', { name: 'Make an incident' }))

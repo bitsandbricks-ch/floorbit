@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Group, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
+  Alert, Autocomplete, Badge, Button, Group, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
 } from '@mantine/core'
 import { IconExternalLink, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -19,6 +19,7 @@ import { COLOR } from './status/state'
 import { ConfirmIcon } from '@bitsandbricks/ui'
 
 const BY_HAND: StatusState[] = ['operational', 'degraded', 'outage', 'maintenance']
+const AUTO = 'auto'
 
 type T = ReturnType<typeof useTranslation>['t']
 
@@ -64,6 +65,22 @@ export default function NetworkStatus() {
     onSuccess: () => { setPick(null); setNote(''); refresh() },
   })
   const d = query.data
+  // Known places to pick from; still free text, so "LAN cache" or "Catering" can be typed too (#1416).
+  const places = (kind: 'halls' | 'blocks') => ({
+    queryKey: qk.options(kind, ''), staleTime: 60_000,
+    queryFn: () => get<{ options: { label: string }[] }>(`/api/options/${kind}`),
+  })
+  const hallNames = useQuery(places('halls')).data?.options.map((o) => o.label) ?? []
+  // Named as attendees read them elsewhere on the page: "Seat block A".
+  const blockNames = useQuery(places('blocks')).data?.options.map((o) => t('status.block', { name: o.label })) ?? []
+  const areaData = [
+    { group: t('statusArea.halls'), items: [...new Set(hallNames)] },
+    { group: t('statusArea.blocks'), items: [...new Set(blockNames)].filter((b) => !hallNames.includes(b)) },
+  ].filter((g) => g.items.length)
+  // The picker shows what decides the state now: "Automatic" or the state set by hand (#890, #1416).
+  // Choosing Automatic is how a state set by hand is lifted.
+  const current = d?.override?.state ?? AUTO
+  const chosen = pick ?? current
   // One-click starting points from what the public page shows (never switch names): edit, then post.
   const suggestions = d ? [
     ...d.areas.map((a) => ({ a, kind: 'Down', color: 'down' })),
@@ -112,18 +129,17 @@ export default function NetworkStatus() {
                 {canSet && (
                   <Stack gap="xs" mt="md">
                     <Group gap="xs" align="flex-end" wrap="wrap">
-                      <Select label={t('status.setState')} value={pick} onChange={setPick} w={200}
-                        data={BY_HAND.map((s) => ({ value: s, label: t(`status.state.${s}`) }))} />
+                      <Select label={t('status.setState')} value={chosen} onChange={setPick} w={300} allowDeselect={false}
+                        data={[
+                          { value: AUTO, label: t('statusArea.automatic', { state: t(`status.state.${d.auto_state}`) }) },
+                          ...BY_HAND.map((s) => ({ value: s, label: t(`status.state.${s}`) })),
+                        ]} />
                       <TextInput label={t('status.note')} value={note} onChange={(e) => setNote(e.currentTarget.value)}
                         maxLength={200} style={{ flex: 1, minWidth: 160 }} />
                     </Group>
                     <Group gap="xs">
-                      <Button disabled={!pick} loading={override.isPending && !!pick} onClick={() => override.mutate(pick)}>{t('status.set')}</Button>
-                      {d.override && (
-                        <Button variant="default" loading={override.isPending && !pick} onClick={() => override.mutate(null)}>
-                          {t('status.backToAuto')}
-                        </Button>
-                      )}
+                      <Button disabled={chosen === current && !note.trim()} loading={override.isPending}
+                        onClick={() => override.mutate(chosen === AUTO ? null : chosen)}>{t('status.set')}</Button>
                     </Group>
                   </Stack>
                 )}
@@ -159,8 +175,8 @@ export default function NetworkStatus() {
                   <Textarea label={t('status.newUpdate')} placeholder={t('status.placeholder')} autosize minRows={2} maxLength={500}
                     value={text} onChange={(e) => setText(e.currentTarget.value)} />
                   <Group gap="xs" align="flex-end">
-                    <TextInput label={t('status.area')} placeholder={t('status.areaPlaceholder')} value={area} maxLength={80}
-                      onChange={(e) => setArea(e.currentTarget.value)} style={{ flex: 1 }} />
+                    <Autocomplete label={t('status.area')} placeholder={t('status.areaPlaceholder')} value={area} maxLength={80}
+                      onChange={setArea} data={areaData} style={{ flex: 1 }} />
                     <Button disabled={!text.trim()} loading={postUpdate.isPending} onClick={() => postUpdate.mutate()}>{t('status.post')}</Button>
                   </Group>
                 </Stack>
