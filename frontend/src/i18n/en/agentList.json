@@ -1,0 +1,62 @@
+{
+  "label": "Agents by group",
+  "groupLabel": "Agents in {{group}}",
+  "search": "Find an agent, address or device",
+  "show": "Show",
+  "group": "Group",
+  "anyGroup": "Any group",
+  "filter": {
+    "all": "All",
+    "look": "Need a look",
+    "offline": "Offline",
+    "old": "Older version"
+  },
+  "noMatch": "No agent matches the search or filters.",
+  "namesMore_one": "{{names}} and 1 more",
+  "namesMore_other": "{{names}} and {{count}} more",
+  "fig": {
+    "online": "Online",
+    "offline": "Offline: {{names}}",
+    "allOnline": "All connected",
+    "look": "Need a look",
+    "allGood": "Nothing to do",
+    "failover": "Failover ready",
+    "failoverSub": "Groups with two or more agents",
+    "noPairs": "No group has two agents yet",
+    "current": "Up to date",
+    "older_one": "1 runs an older version, newest {{newest}}",
+    "older_other": "{{count}} run an older version, newest {{newest}}",
+    "newest": "All on {{newest}}"
+  },
+  "agents_one": "1 agent",
+  "agents_other": "{{count}} agents",
+  "groupPage": "Group page",
+  "col": {
+    "state": "State",
+    "agent": "Agent",
+    "role": "Role",
+    "devices": "Devices",
+    "syslog": "Syslog/s",
+    "load": "Load, 1 h",
+    "version": "Version",
+    "look": "Needs a look"
+  },
+  "role": {
+    "primary": "Primary",
+    "active": "Active",
+    "standby": "Standby",
+    "alone": "Alone",
+    "offline": "Offline"
+  },
+  "more_one": "and 1 more",
+  "more_other": "and {{count}} more",
+  "newest": "The newest agent runs {{newest}}",
+  "loadNow": "{{n}} telemetry points and syslog lines per minute now",
+  "loadTitle": "Load in the last hour",
+  "address": "Address",
+  "openPage": "Open agent page",
+  "nothing": "Nothing. It runs as it should.",
+  "update_one": "Update 1 agent",
+  "update_other": "Update {{count}} agents",
+  "updateTitle": "Show the agents with an older version, and how to update them"
+}

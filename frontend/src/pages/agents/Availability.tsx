@@ -3,10 +3,8 @@ import { useTranslation } from 'react-i18next'
 import type { AgentGroup, HostedState } from '@/api/types'
 import { ago } from '@/lib/time'
 import { StatusBadge } from '@bitsandbricks/ui'
+import { STATE_COLOR } from './listModel'
 
-const STATE_COLOR: Record<AgentGroup['state'], string> = {
-  ok: 'up', single: 'gray', degraded: 'warn', no_primary: 'down', no_vrrp: 'warn', split: 'down', down: 'down',
-}
 const ROLE_COLOR: Record<AgentGroup['agents'][number]['role'], string> = {
   primary: 'up', standby: 'gray', active: 'gray', offline: 'down',
 }

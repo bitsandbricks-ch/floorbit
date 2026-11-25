@@ -4,29 +4,26 @@ import { Link } from 'react-router-dom'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { StatTile } from '@bitsandbricks/ui'
 import type { ViewProps } from '@/pages/monitoring/pages'
-import { AgentCard } from './AgentCard'
-import { agentHref, useAgents, useAgentTags, type AgentRow } from './data'
+import { AgentList } from './AgentList'
+import { agentHref, useAgents, type AgentRow } from './data'
 import { stateKey } from './model'
 
-/** The body of the Local agents page: the four figures, then a card per agent. */
+/** The body of the Local agents page (the grouped list, #1463), or on a dashboard the four figures and
+ *  the agents that need a look. */
 export default function AgentsView({ expanded }: ViewProps) {
   const { t } = useTranslation()
   const { query, data: d, rows } = useAgents()
-  const tags = useAgentTags()
   if (query.isPending) return <LoadingState lines />
   if (!d) return <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
   if (!rows.length) {
     return <Paper withBorder radius="lg" p="md"><Text size="sm" c="dimmed">{t('agents.none')}</Text></Paper>
   }
+  if (expanded) return <AgentList data={d} rows={rows} />
   const look = rows.filter((r) => r.tone !== 'up')
   return (
     <Stack gap="md">
       <Overview rows={rows} />
-      {expanded ? (
-        <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md" aria-label={t('agents.agents')}>
-          {rows.map((r) => <AgentCard key={r.agent.id} row={r} newest={d.newest_version} tagNames={tags.names} />)}
-        </SimpleGrid>
-      ) : look.length > 0 && (
+      {look.length > 0 && (
         <Stack gap={6} aria-label={t('agents.needsLook')}>
           {look.map(({ agent: a, tone, problems }) => (
             <Group key={a.id} gap="xs" wrap="nowrap" align="flex-start">
