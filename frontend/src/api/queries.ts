@@ -167,8 +167,10 @@ export function usePower() {
   return useQuery({ queryKey: qk.power, queryFn: () => get<PowerOverview>('/api/power'), refetchInterval: 30_000 })
 }
 
+/** Kept current by useLiveRefresh (api/liveRefresh.ts), once per page: an interval here would run
+ *  once per component that shows the list, each on its own clock. */
 export function useProblems(enabled = true) {
-  return useQuery({ queryKey: qk.problems, queryFn: () => get<ProblemList>('/api/problems'), refetchInterval: 30_000, enabled })
+  return useQuery({ queryKey: qk.problems, queryFn: () => get<ProblemList>('/api/problems'), enabled })
 }
 
 export function useStats(screen = false) {
@@ -199,15 +201,23 @@ export function useSetup() {
   return useQuery({ queryKey: qk.setup, queryFn: () => get<SetupState>('/api/setup') })
 }
 
-/** The notice that is up, checked every 30 s: one more live-event connection per tab would cost
- *  more than the minute's delay is worth (issue #246). */
+/** The notice that is up. A new or cleared one comes with a live event (api/liveRefresh.ts, on the
+ *  page's one shared stream); the reads here are a safety net, and one just after it runs out. */
 export function useNotice() {
   const me = useMe().data
   return useQuery({
     queryKey: qk.notice,
     queryFn: () => get<{ notice: CrewNotice | null }>('/api/notice'),
-    refetchInterval: 30_000,
+    refetchInterval: (query) => noticeRecheck(query.state.data?.notice ?? null),
     // Signed-out pages (and the sign-in screen) have nothing to show.
     enabled: !!me && (!me.enabled || !!me.user),
   })
+}
+
+const NOTICE_RECHECK_MS = 5 * 60_000
+
+/** When to read the notice again: in five minutes, or a second after it runs out if that is sooner. */
+export function noticeRecheck(notice: CrewNotice | null, now = Date.now()): number {
+  if (!notice?.until) return NOTICE_RECHECK_MS
+  return Math.min(NOTICE_RECHECK_MS, Math.max(1000, notice.until * 1000 - now + 1000))
 }

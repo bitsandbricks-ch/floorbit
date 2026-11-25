@@ -9,6 +9,7 @@ import { qk } from '@/api/keys'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { useTenantEvents } from '@/api/tenantEvents'
 import { useCan, useProblems } from '@/api/queries'
+import { useLiveRefresh } from '@/api/liveRefresh'
 import type { Problem } from '@/api/types'
 import { StatusLine } from '@/components/StatusLine'
 import { ago, clock, formatWhen } from '@/lib/time'
@@ -55,6 +56,7 @@ export default function DashboardScreen() {
   // Down and nobody on it yet (no incident, not muted): the wall says so and stops rotating (#1137).
   // A public wall nobody signed in to can't read the problem list.
   const problems = useProblems(!open.isPending && !anonymous).data
+  useLiveRefresh()   // a wall hears of a new problem at once, not with the next minute's read
   const unhandled = (problems?.problems ?? []).filter(isUnhandled).sort((a, b) => (b.since ?? 0) - (a.since ?? 0))
   // A rotating wall waits on the dashboard whose pane pulses for it. It looks through the rotation
   // quicker while none does, and waits where it is once it went round without finding one.
