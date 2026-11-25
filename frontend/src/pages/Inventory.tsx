@@ -28,6 +28,7 @@ import { IconLibrary } from './inventory/IconLibrary'
 import { TypesEditor } from './inventory/TypesEditor'
 import { DeviceIcon } from './inventory/icons'
 import { LastDayCell, UplinkCell } from './inventory/ListCells'
+import { PickBar } from './inventory/PickBar'
 import { lastDaySort, uplinkSort, useAgentName } from './inventory/listColumns'
 import { devicePath, effectiveLook, entryPath, matches, roleIcon, scopePath, typeName, type Draft } from './inventory/model'
 import { groupAndBelow, groupTree, useInventoryGroups, useInventoryTypes } from './inventory/scope'
@@ -83,6 +84,7 @@ export default function Inventory() {
   const client = useQueryClient()
   const canEdit = useCan('floorplan.edit')
   const canManage = useCan('settings.manage')
+  const canRun = useCan('ports.act')
   const [libraryOpen, library] = useDisclosure(false)
   const [typesOpen, typesEditor] = useDisclosure(false)
   const navigate = useNavigate()
@@ -112,6 +114,7 @@ export default function Inventory() {
   const agentName = useAgentName()
   const driftAll = useDriftAll(driftView)
   const [removing, setRemoving] = useState<Device | null>(null)
+  const [picks, setPicks] = useState<string[]>([])
   const groupsQuery = useInventoryGroups()
   const overview = groupsQuery.data
   const [formOpen, form] = useDisclosure(false)
@@ -184,6 +187,8 @@ export default function Inventory() {
   const roleCounts = new Map<string, number>()
   for (const d of filtered) roleCounts.set(d.role, (roleCounts.get(d.role) ?? 0) + 1)
   const devices = filtered.filter((d) => !role || d.role === role)
+  // Only what the filters still show is acted on: a pick hidden by a filter would surprise.
+  const picked = devices.filter((d) => picks.includes(d.id))
   const driftCount = all.filter((d) => d.drift).length
   const groupName = (id?: string | null) => groups.find((g) => g.id === id)?.name ?? ''
   const tagOf = (id: string) => overview?.tags.find((x) => x.id === id)
@@ -303,6 +308,7 @@ export default function Inventory() {
           rowKey={(d) => d.id}
           defaultSort={{ id: 'name' }}
           minWidth={1180}
+          {...(canEdit || canRun ? { picked: picks, onPick: setPicks, rowLabel: (d: Device) => d.name } : {})}
           rowStyle={(d) => (d.hidden ? { opacity: 0.6 } : undefined)}
           empty={<Text c="dimmed">{data.devices.length ? t('inventory.noMatch') : t('inventory.empty')}</Text>}
           count={(n) => t('inventory.count', { count: n })}
@@ -374,6 +380,11 @@ export default function Inventory() {
             ) },
           ]}
         />
+      )}
+      {/* After the table, so it sticks to the bottom of the window while the list scrolls. */}
+      {data && !driftView && picked.length > 0 && (
+        <PickBar picked={picked} overview={overview} canEdit={canEdit} canRun={canRun} onClear={() => setPicks([])}
+          onDone={(text, ok) => setMessage({ ok, text })} />
       )}
       </>)}
       <Modal opened={!!removing} onClose={() => setRemoving(null)} centered

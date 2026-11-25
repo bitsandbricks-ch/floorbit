@@ -571,5 +571,19 @@
     "down": "{{ago}} h ago: down for {{minutes}} min",
     "label_one": "{{count}} hour with an outage in the last 24 hours",
     "label_other": "{{count}} hours with an outage in the last 24 hours"
+  },
+  "bulk": {
+    "label": "Act on the picked devices",
+    "picked_one": "{{count}} device picked",
+    "picked_other": "{{count}} devices picked",
+    "run": "Run command",
+    "tagAdd": "Add tag",
+    "tagRemove": "Remove tag",
+    "group": "Move to group",
+    "noGroup": "No group",
+    "hide": "Hide",
+    "clear": "Clear the picks",
+    "done_one": "Changed {{count}} device",
+    "done_other": "Changed {{count}} devices"
   }
 }

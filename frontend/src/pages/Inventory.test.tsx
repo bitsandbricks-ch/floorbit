@@ -158,6 +158,36 @@ describe('Inventory page', () => {
     expect(within(handRow).getByText('Auto')).toBeInTheDocument()
   })
 
+  it('picks devices and tags, groups or hides them in one request (#980)', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'POST /api/inventory/bulk': { changed: ['netbox-12', 'h1'], unchanged: 0 },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    app()
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Pick Stage switch' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Pick sw-hand' }))
+    const bar = screen.getByRole('toolbar', { name: 'Act on the picked devices' })
+    expect(within(bar).getByText('2 devices picked')).toBeInTheDocument()
+    // Without ports.act there is no console to open.
+    expect(within(bar).queryByRole('button', { name: 'Run command' })).toBeNull()
+    fireEvent.click(within(bar).getByRole('button', { name: 'Add tag' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'core' }))
+    await waitFor(() => expect(api.calls.find((c) => c.path === '/api/inventory/bulk')?.body)
+      .toEqual({ ids: ['netbox-12', 'h1'], action: 'tag-add', tag: 't1' }))
+    expect(await screen.findByText('✓ Changed 2 devices')).toBeInTheDocument()
+    fireEvent.click(within(bar).getByRole('button', { name: 'Clear the picks' }))
+    expect(screen.queryByRole('toolbar', { name: 'Act on the picked devices' })).toBeNull()
+  })
+
+  it('shows no pick boxes to viewers', async () => {
+    const viewer = { ...editor, user: { ...editor.user, role: 'viewer', permissions: ['floorplan.view'] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview }).fn)
+    app()
+    await screen.findByRole('link', { name: 'Stage switch' })
+    expect(screen.queryByRole('checkbox', { name: 'Pick Stage switch' })).toBeNull()
+  })
+
   it('says when the inventory syncs on its own', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': { ...list, every: 15 }, 'GET /api/inventory/groups': overview }).fn)
     app()

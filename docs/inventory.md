@@ -81,6 +81,15 @@ Besides name, role, model and state, the device list shows per device:
 
 All three come with the one list call; sort by them to find the devices that need a look.
 
+### Acting on several devices
+
+Tick the box in front of devices (shift-click picks a span, the header box every device the filters
+show) and a bar comes up under the list: **Add tag**, **Remove tag**, **Move to group** (or out of
+any group), **Hide** or **Show again**, and **Run command**, which opens the
+[switch console](commands.md) with the picked switches. Editing needs `floorplan.edit`, Run command
+the console's `ports.act`; viewers see no boxes. Each action is one request
+(`POST /api/inventory/bulk`), and every device it changed gets its own line in the audit log.
+
 ## Interfaces
 
 A device's interfaces are its ports: switch ports, a server's NICs, a firewall's interfaces, a VM's
