@@ -1,0 +1,30 @@
+{
+  "tab": "Netze und VLANs",
+  "macTab": "MAC und IP",
+  "readAt": "Wie das Gerät es bei der letzten Erkennung gemeldet hat, {{when}}.",
+  "vlans_one": "{{count}} VLAN",
+  "vlans_other": "{{count}} VLANs",
+  "vlansLabel": "VLANs auf dem Gerät",
+  "networks_one": "{{count}} Netz auf seinen Interfaces",
+  "networks_other": "{{count}} Netze auf seinen Interfaces",
+  "networksLabel": "Netze auf dem Gerät",
+  "routes_one": "{{count}} Route",
+  "routes_other": "{{count}} Routen",
+  "routesLabel": "Routen auf dem Gerät",
+  "col": {
+    "id": "VLAN",
+    "name": "Name",
+    "networks": "Netze",
+    "network": "Netz",
+    "vlan": "VLAN",
+    "nextHop": "Next Hop",
+    "interface": "Interface",
+    "proto": "Herkunft"
+  },
+  "noneTitle": "Noch nichts erkannt",
+  "none": "Die Erkennung liest VLANs, Netze und Routen über die Telemetrie vom Gerät. Schaltet im Tab Telemetrie die Telemetrie ein und im Inventar die Erkennung «VLANs and networks».",
+  "noMacs": "Kein Gerät an seinen Ports gesehen",
+  "macsHint": "Jedes Gerät, das an seinen Ports gesehen wurde, das neueste zuerst.",
+  "macsLabel": "Geräte an {{name}}",
+  "allHistory": "Ganze IP- und MAC-Historie"
+}

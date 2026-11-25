@@ -304,6 +304,15 @@ export interface DeviceDetail extends Omit<Device, 'drift'> {
   interfaces: DeviceInterface[]
   own_credentials: CredentialInfo[]
   blocks: LoginBlock[]
+  /** What discovery read from the device (issue #919): its VLANs, the networks on its interfaces,
+   *  the VLAN interfaces with an address, and a firewall's routes; ``at`` is when. */
+  discovered?: {
+    vlans: { id: number; name: string }[]
+    networks: string[]
+    svis?: { vlan: number; network: string; if_index?: number | null }[]
+    routes: { network: string; next_hop?: string | null; interface?: string | null; proto?: string | null }[]
+    at: string | null
+  }
   /** What goes down with this device: VMs on it, and game servers on it or on those VMs. */
   runs_here?: { kind: 'device' | 'game-server'; id: string; name: string; role?: string; via?: string }[]
   /** What is wired to it: cables on its ports, circuits that feed it, internet lines on it. */
