@@ -27,6 +27,9 @@ here. An incident that is no longer on the board says so. With `seats.view`, **R
 bottom lists the newest 20 syslog lines of the seat (or the switch), every 15 seconds, so the tech
 reads what the switch says without leaving the incident.
 
+An incident at a seat also shows the seat's **Link** over the last hours, the same strip as in the
+floor plan's seat panel: when the port went down or came back, and how often it changed.
+
 When the problem an incident was made from ends (Floorbit no longer sees it), the incident gets a
 green **Problem over** tag, on its card and its page, within a minute. It stays open: check the
 seat or switch works, then mark it fixed. If the same problem comes back, the tag goes again.

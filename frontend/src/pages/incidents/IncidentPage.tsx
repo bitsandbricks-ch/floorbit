@@ -8,10 +8,11 @@ import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useIncidentPeople, useIncidents, useMe } from '@/api/queries'
-import type { CrewMember, Incident } from '@/api/types'
+import type { CrewMember, Incident, SeatDetails } from '@/api/types'
 import { BouncePort } from '@/components/BouncePort'
 import { Layout } from '@/components/Layout'
 import { RecentLogs } from '@/components/RecentLogs'
+import { LinkHistory } from '../plan/Inspector'
 import { Panel } from '@/components/ui'
 import { EmptyState, ErrorBanner, LoadingState, PageHead, PanelField } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
@@ -38,6 +39,12 @@ export default function IncidentPage() {
   const now = useNowSeconds()
   const [note, setNote] = useState('')
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  // The plan's seat details carry the link history; refreshed like the plan's inspector.
+  const seatId = board.data?.incidents.find((x) => x.id === id)?.seat ?? ''
+  const seat = useQuery({
+    queryKey: qk.planSeat(seatId), queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(seatId)}`),
+    enabled: !!seatId, refetchInterval: 30_000,
+  })
   const crew = useQuery({
     queryKey: qk.crew, queryFn: () => get<{ crew: CrewMember[]; auto?: boolean }>('/api/dispatch/crew'),
     enabled: !!board.data?.can_assign_any, refetchInterval: 30_000,
@@ -186,7 +193,10 @@ export default function IncidentPage() {
             )}
           </Stack>
         </Panel>
-        {/* Where it happens, without leaving the incident (issue #913). */}
+        {/* Where it happens, without leaving the incident (issue #913): the seat's link over the last hours. */}
+        {i.seat && seat.data?.history && seat.data.switch && (
+          <Panel><LinkHistory history={seat.data.history} /></Panel>
+        )}
         {seesLogs && (i.seat || i.switch_name) && <RecentLogs seat={i.seat} device={i.switch_name} />}
       </Stack>
     </Layout>
