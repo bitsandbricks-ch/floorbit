@@ -17,7 +17,7 @@ Floorbit's own parts in it.
   **Screens** (Dashboards). A click on a group's name folds it, and this browser remembers it. The
   group of the page on screen is always open.
 - Most rows hold several pages, shown as tabs under the top bar: **Helpdesk** has Problems,
-  Incidents, Handover and Status updates; **Network** has Switches, Firewalls, Wi-Fi and Telemetry;
+  Incidents, Handover and Status updates; **Network** has Switches, Firewalls and Wi-Fi;
   **Seats** has Seat mapping, Check-in, the seat walk-through and IP and MAC history;
   **Inventory** has Cables and Electrics; **Switch console** has the switch commands and the
   terminal; **Agents** has the Telemetry collector; **Dashboards** has Widgets.
