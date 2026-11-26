@@ -14,7 +14,7 @@ import json
 
 from flask import Blueprint, current_app, g, jsonify, request
 
-from .. import application_sources, applications, audit, features, spa
+from .. import application_sources, applications, audit, features, spa, traffic_categories
 from .flows import current as current_flows
 from .games import servers_now
 
@@ -53,7 +53,7 @@ def list_applications():
     return jsonify({'applications': rows, 'sources': applications.builtin()['sources'], 'synced': synced,
                     'frozen': application_sources.frozen(), 'hours': hours,
                     'unrecognised': applications.unrecognised(apps, sites),
-                    'kinds': list(applications.KINDS), 'categories': list(applications.CATEGORIES)})
+                    'kinds': list(applications.KINDS), 'categories': list(traffic_categories.ids())})
 
 
 def _saved(app_id=None):

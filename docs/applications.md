@@ -140,6 +140,22 @@ With `settings.manage` you can:
 
 Changes are kept in the event (`applications` in data.json) and written to the audit log.
 
+## Categories
+
+Every application counts for one category: on the Traffic page's bars, the dashboard's "Traffic by
+kind", and as a column here. The built-in ones are gaming, streaming, social, downloads, updates, web
+and other. **Categories** on this page (`settings.manage`) adds the tenant's own, each with an English
+and a German name and a colour from a fixed palette. They hold for every event of the tenant
+(`traffic-categories.json` next to the tenant's accounts), and changes are audited.
+
+- Any application, built-in ones too, can be filed under an own category; for a built-in one that
+  changes only how this event counts it.
+- An application in a category that is removed later counts as other until someone picks another.
+  The same holds for a rules file or an import naming a category this tenant doesn't have.
+- Floorbit's own list and the pull requests Share opens keep to the built-in categories, so an entry
+  means the same on every Floorbit: an own category goes as other there. Export keeps it.
+- A local agent from before this change skips flow rules in an own category until it updates.
+
 ## Privacy
 
 Nothing here is per seat. An application's numbers are what DNS and traffic already show hall-wide:
@@ -152,7 +168,10 @@ used it. Players on the event's own game servers are the server's count.
   `builtin`, `edited`, `hidden`, what the event `added`, and `seen` (lookups, most seats in an hour
   by DNS, traffic bytes and seats, LAN cache bytes, players, and `seats`, the most of those).
 - `POST /api/applications`, `PUT /api/applications/<id>`: `{name, kind, category, part_of, sites,
-  ports, cidr, depots, hidden}`; a built-in one takes only the lists and `hidden`.
+  ports, cidr, depots, hidden}`; a built-in one takes only the lists, `category` and `hidden`.
+- `GET /api/traffic/categories`: every category (`id`, `name`, `name_de`, `colour`, `builtin`), the
+  `palette` an own one picks from and `max_own`. `PUT /api/traffic/categories` `{categories: [{id,
+  name, name_de, colour}]}` replaces the tenant's own ones (`settings.manage`).
 - `DELETE /api/applications/<id>`: removes an own one, or resets a built-in one.
 - `POST /api/applications/import` `{file}`: takes a rules file (another Floorbit's Export) into the
   event's own applications; answers `{added, changed}`.

@@ -17,6 +17,8 @@ import {
 import { Layout } from '@/components/Layout'
 import { ago } from '@/lib/time'
 import { RuleSources } from './applications/RuleSources'
+import { TrafficCategories } from './applications/TrafficCategories'
+import { useTrafficCategories } from '@/api/trafficCategories'
 import { ShareApplication } from './applications/ShareApplication'
 import { Unrecognised } from './applications/Unrecognised'
 import { bytes } from './traffic/format'
@@ -36,6 +38,8 @@ export default function Applications() {
   const [open, setOpen] = useState<string | null>(null)   // an id, or 'new'
   const [newSite, setNewSite] = useState<string | null>(null)
   const [sourcesOpen, setSourcesOpen] = useState(false)
+  const [categoriesOpen, setCategoriesOpen] = useState(false)
+  const cats = useTrafficCategories()
   const client = useQueryClient()
   const imported = useMutation({
     mutationFn: importApplications,
@@ -61,6 +65,8 @@ export default function Applications() {
       cell: (a) => <Text size="sm" fw={600} c={a.hidden ? 'dimmed' : undefined}>{a.name}</Text> },
     { id: 'kind', header: t('applications.col.kind'), sort: (a) => a.kind, card: 'inline',
       cell: (a) => <Badge variant="light" color={KIND_COLOR[a.kind]} tt="none">{t(`applications.kind.${a.kind}`)}</Badge> },
+    { id: 'category', header: t('trafficCategories.column'), hideOnPhone: true, sort: (a) => cats.label(a.category),
+      cell: (a) => <Badge variant="light" color="gray" tt="none">{cats.label(a.category)}</Badge> },
     { id: 'part', header: t('applications.col.partOf'), hideOnPhone: true, sort: (a) => (a.part_of ? names[a.part_of] ?? a.part_of : ''),
       cell: (a) => <Text size="sm" c="dimmed">{a.part_of ? names[a.part_of] ?? a.part_of : '–'}</Text> },
     { id: 'matches', header: t('applications.col.matches'), hideOnPhone: true, wrap: true,
@@ -79,13 +85,16 @@ export default function Applications() {
         actions={canEdit ? (
           <Group gap="xs">
             <Button variant="default" disabled={!exported.length} title={t('applicationShare.exportHelp')}
-              onClick={() => download('floorbit-applications.json', rulesFile(exported.map(sharedEntry)))}>
+              onClick={() => download('floorbit-applications.json', rulesFile(exported.map((a) => sharedEntry(a))))}>
               {t('applicationShare.export')}
             </Button>
             <FileButton accept=".json,application/json" onChange={(f) => f && imported.mutate(f)}>
               {(props) => <Button {...props} variant="default" loading={imported.isPending}>{t('applicationShare.import')}</Button>}
             </FileButton>
-            <Button variant="default" onClick={() => { setOpen(null); setSourcesOpen(true) }}>{t('applicationSources.open')}</Button>
+            <Button variant="default" onClick={() => { setOpen(null); setSourcesOpen(false); setCategoriesOpen(true) }}>
+              {t('trafficCategories.open')}
+            </Button>
+            <Button variant="default" onClick={() => { setOpen(null); setCategoriesOpen(false); setSourcesOpen(true) }}>{t('applicationSources.open')}</Button>
             <Button onClick={() => { setSourcesOpen(false); setNewSite(null); setOpen('new') }}>{t('applications.add')}</Button>
           </Group>
         ) : undefined} />
@@ -103,7 +112,7 @@ export default function Applications() {
           onMake={(site) => { setSourcesOpen(false); setNewSite(site); setOpen('new') }} />
         <DataTable rows={rows} columns={columns} rowKey={(a) => a.id} label={t('applications.title')}
           loading={q.isLoading} defaultSort={{ id: 'seats', desc: true }} cards urlState
-          onRowClick={(a) => { setSourcesOpen(false); setOpen(a.id) }}
+          onRowClick={(a) => { setSourcesOpen(false); setCategoriesOpen(false); setOpen(a.id) }}
           selected={open}
           count={(n) => t('applications.count', { count: n })}
           empty={<EmptyState title={t('applications.none')} />} />
@@ -123,6 +132,7 @@ export default function Applications() {
         )}
       </Stack>
       {sourcesOpen && canEdit && <RuleSources onClose={() => setSourcesOpen(false)} />}
+      {categoriesOpen && canEdit && <TrafficCategories onClose={() => setCategoriesOpen(false)} />}
       {open && (open === 'new' || current) && (
         <AppPanel key={`${open}-${newSite ?? ''}`} app={current ?? null} apps={apps} canEdit={canEdit}
           initialSites={open === 'new' && newSite ? [newSite] : undefined} onClose={() => setOpen(null)}
@@ -170,6 +180,8 @@ function AppPanel({ app, apps, canEdit, initialSites, onClose, onSaved, onPrev, 
   const [name, setName] = useState(app?.name ?? '')
   const [kind, setKind] = useState<AppKind>(app?.kind ?? 'game')
   const [partOf, setPartOf] = useState<string | null>(app?.part_of ?? null)
+  const cats = useTrafficCategories()
+  const [category, setCategory] = useState<string>(app?.category ?? 'gaming')
   const own = builtin ? app!.added : app
   const [sites, setSites] = useState<string[]>(own?.sites ?? initialSites ?? [])
   const [ports, setPorts] = useState<string[]>(own?.ports ?? [])
@@ -183,7 +195,7 @@ function AppPanel({ app, apps, canEdit, initialSites, onClose, onSaved, onPrev, 
     else onClose()
   }
   const body = (hidden?: boolean): ApplicationBody => ({
-    sites, ports, cidr, depots, hidden: hidden ?? app?.hidden ?? false,
+    sites, ports, cidr, depots, hidden: hidden ?? app?.hidden ?? false, category,
     ...(builtin ? {} : { name, kind, part_of: kind === 'game' ? partOf : null }),
   })
   const save = useMutation({ mutationFn: (hidden?: boolean) => saveApplication(app?.id ?? null, body(hidden)), onSuccess: done })
@@ -243,6 +255,11 @@ function AppPanel({ app, apps, canEdit, initialSites, onClose, onSaved, onPrev, 
           </Stack>
         </PanelSection>
       )}
+      <PanelSection>
+        <Select label={t('trafficCategories.column')} data={cats.list.map((c) => ({ value: c.id, label: cats.label(c.id) }))}
+          value={category} onChange={(v) => v && setCategory(v)} allowDeselect={false} disabled={!canEdit}
+          description={builtin ? t('trafficCategories.builtinApp') : undefined} />
+      </PanelSection>
       {builtin && app!.part_of && (
         <PanelSection><PanelField label={t('applications.col.partOf')}>{apps.find((a) => a.id === app!.part_of)?.name ?? app!.part_of}</PanelField></PanelSection>
       )}

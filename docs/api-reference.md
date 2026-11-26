@@ -1315,6 +1315,17 @@ Source: [`floorbit/blueprints/topology.py`](https://github.com/bitsandbricks-ch/
 | PUT | `/api/links/layout` | `floorplan.edit` |  |
 | GET | `/api/links/ports` | `floorplan.edit` |  |
 
+## floorbit.blueprints.traffic_categories
+
+Traffic categories (issue #1622): the built-in seven plus the tenant's own, for every event. Rules in floorbit/traffic_categories.py.
+
+Source: [`floorbit/blueprints/traffic_categories.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/traffic_categories.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/traffic/categories` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/traffic/categories` | `settings.manage` |  |
+
 ## floorbit.blueprints.webhooks
 
 Outgoing webhooks (issue #40). Rules in floorbit/webhooks.py, docs in docs/api.md#webhooks.

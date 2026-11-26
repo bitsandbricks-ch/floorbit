@@ -5,7 +5,8 @@ import { useFlows } from '@/api/queries'
 import type { FlowMix, FlowsData } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { DataTable, ErrorBanner } from '@bitsandbricks/ui'
-import { bytes, CATEGORIES, mostly, total } from './format'
+import { bytes, mostly, total } from './format'
+import { mixParts, useTrafficCategories } from '@/api/trafficCategories'
 import { onPlan } from '../plan/links'
 import { clock } from '@/lib/time'
 import { Panel } from '@/components/ui'
@@ -17,23 +18,22 @@ import { TrafficOwners } from './TrafficOwners'
 function MixBar({ mix, label, big }: { mix: FlowMix | undefined; label: string; big?: boolean }) {
   const { t } = useTranslation()
   const sum = total(mix)
-  const parts = CATEGORIES.filter((c) => (mix?.[c] ?? 0) > 0)
-  const name = `${label}: ${parts.map((c) => `${t(`traffic.cat.${c}`)} ${Math.round(((mix?.[c] ?? 0) / sum) * 100)} %`).join(', ')}`
+  const parts = mixParts(mix, useTrafficCategories())
+  const name = `${label}: ${parts.map((c) => `${c.label} ${Math.round((c.bytes / sum) * 100)} %`).join(', ')}`
   return (
     <div className={`fb-mix${big ? ' big' : ''}`} role="img" aria-label={sum ? name : `${label}: ${t('traffic.nothing')}`}>
-      {parts.map((c) => <i key={c} className={`cat-${c}`} style={{ width: `${((mix?.[c] ?? 0) / sum) * 100}%` }} />)}
+      {parts.map((c) => <i key={c.id} style={{ width: `${(c.bytes / sum) * 100}%`, background: c.colour }} />)}
     </div>
   )
 }
 
 function Legend({ mix }: { mix: FlowMix | undefined }) {
-  const { t } = useTranslation()
   const sum = total(mix)
   return (
     <ul className="fb-mix-legend">
-      {CATEGORIES.filter((c) => (mix?.[c] ?? 0) > 0).map((c) => (
-        <li key={c}><i className={`cat-${c}`} /> {t(`traffic.cat.${c}`)} <strong>{Math.round(((mix?.[c] ?? 0) / sum) * 100)} %</strong>
-          <span>{bytes(mix?.[c])}</span></li>
+      {mixParts(mix, useTrafficCategories()).map((c) => (
+        <li key={c.id}><i style={{ background: c.colour }} /> {c.label} <strong>{Math.round((c.bytes / sum) * 100)} %</strong>
+          <span>{bytes(c.bytes)}</span></li>
       ))}
     </ul>
   )
@@ -41,6 +41,7 @@ function Legend({ mix }: { mix: FlowMix | undefined }) {
 
 function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
   const { t } = useTranslation()
+  const cats = useTrafficCategories()
   const [filter, setFilter] = useState('')
   const shown = seats.filter((s) => !filter || s.seat.toLowerCase().includes(filter.toLowerCase()))
   return (
@@ -55,7 +56,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
           { id: 'seat', header: t('traffic.seat'), sort: (s) => s.seat, cell: (s) => <Anchor href={onPlan({ seat: s.seat })}>{s.seat}</Anchor> },
           { id: 'volume', header: t('traffic.volume'), descFirst: true, sort: (s) => s.bytes, cell: (s) => {
             const main = mostly(s.mix)
-            return <>{bytes(s.bytes)}{main && <Text size="xs" c="dimmed">{t('traffic.mostly', { cat: t(`traffic.cat.${main}`) })}</Text>}</>
+            return <>{bytes(s.bytes)}{main && <Text size="xs" c="dimmed">{t('traffic.mostly', { cat: cats.label(main) })}</Text>}</>
           } },
           { id: 'mix', header: t('traffic.mix'), width: '45%', cell: (s) => <MixBar mix={s.mix} label={s.seat} /> },
         ]} />
@@ -65,6 +66,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
 
 function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
   const { t } = useTranslation()
+  const cats = useTrafficCategories()
   const services = data.services ?? []
   return (
     <div className="fb-stats">
@@ -109,7 +111,7 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
           <ol className="fb-stats-top">
             {services.map((s) => (
               <li key={s.name}>
-                <span className="name"><i className={`fb-dotcat cat-${s.category}`} /> {s.name} <small>· {t('traffic.seatCount', { count: s.seats })}</small></span>
+                <span className="name"><i className="fb-dotcat" style={{ background: cats.of(s.category).colour }} /> {s.name} <small>· {t('traffic.seatCount', { count: s.seats })}</small></span>
                 <span className="value">{bytes(s.bytes)}</span>
               </li>
             ))}

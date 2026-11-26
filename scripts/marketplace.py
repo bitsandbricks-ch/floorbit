@@ -261,10 +261,15 @@ def check_games(entries):
     """``entries`` checked as a Floorbit checks a rules file, or SystemExit naming the bad one."""
     from floorbit import application_sources, applications
     try:
-        return application_sources._from_json({'version': 1, 'applications': entries},
-                                              {'id': 'floorbit', 'name': 'Floorbit list'}, applications)
+        checked = application_sources._from_json({'version': 1, 'applications': entries},
+                                                 {'id': 'floorbit', 'name': 'Floorbit list'}, applications)
     except application_sources.SourceError as exc:
         raise SystemExit(f'games: {exc.message}') from None
+    for app in checked:
+        # A shared entry means the same on every Floorbit: only the built-in categories (#1622).
+        if app['category'] not in applications.CATEGORIES:
+            raise SystemExit(f"games: {app['id']}: the category is one of {', '.join(applications.CATEGORIES)}")
+    return checked
 
 
 def review_games(apps):

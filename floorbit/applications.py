@@ -20,12 +20,12 @@ import pathlib
 import re
 import threading
 
-from . import dns
+from . import dns, traffic_categories
 from .store import load_data, save_data
 
 KEY = 'applications'
 KINDS = ('game', 'launcher', 'sitegroup')
-CATEGORIES = ('gaming', 'streaming', 'social', 'downloads', 'updates', 'web', 'other')
+CATEGORIES = traffic_categories.BUILTIN_IDS   # shared lists keep to these; a tenant adds its own (#1622)
 MAX_OWN = 300
 MAX_ITEMS = 200
 ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}\Z')
@@ -128,6 +128,8 @@ def listing(data=None):
             set(merged['added'][k]) <= set(app.get(k) or []) for k in merged['added'])
         for k in ('sites', 'ports', 'cidr', 'depots'):
             merged[k] = sorted(set(app.get(k) or []) | set(change.get(k) or []), key=str)
+        if change.get('category'):
+            merged['category'] = change['category']   # the tenant filed it under one of its own (#1622)
         out.append(merged)
     for aid, entry in own.items():
         if aid in shipped:
@@ -135,6 +137,9 @@ def listing(data=None):
         out.append({**_blank(), **entry, 'builtin': False, 'hidden': bool(entry.get('hidden')), 'edited': False,
                     'redundant': False,
                     'added': {k: entry.get(k) or [] for k in ('sites', 'ports', 'cidr', 'depots')}})
+    allowed = traffic_categories.ids()
+    for app in out:
+        app['category'] = traffic_categories.known(app.get('category'), allowed)
     out.sort(key=lambda a: (KINDS.index(a['kind']) if a['kind'] in KINDS else 9, a['name'].lower()))
     return out
 
@@ -212,6 +217,13 @@ def save(body, app_id=None, new_id=None):
             raise ApplicationError('No such application.', 404)
         hidden = body['hidden'] if 'hidden' in body else (own.get(app_id) or {}).get('hidden', False)
         entry = {'id': app_id, **_matches(body), 'hidden': bool(hidden)}
+        if app_id in shipped:
+            # A built-in one keeps its category unless the event files it under another (#1622).
+            category = body['category'] if 'category' in body else (own.get(app_id) or {}).get('category')
+            if category and category != shipped[app_id].get('category'):
+                if category not in traffic_categories.ids():
+                    raise ApplicationError('No such category: add it under Categories first.')
+                entry['category'] = category
         if app_id is None or app_id not in shipped:
             name = ' '.join(str(body.get('name') or '').split())
             if not 1 <= len(name) <= 60:
@@ -220,8 +232,8 @@ def save(body, app_id=None, new_id=None):
             if kind not in KINDS:
                 raise ApplicationError('The kind is game, launcher or sitegroup.')
             category = body.get('category') or ('gaming' if kind != 'sitegroup' else 'other')
-            if category not in CATEGORIES:
-                raise ApplicationError(f'The category is one of {", ".join(CATEGORIES)}.')
+            if category not in traffic_categories.ids():
+                raise ApplicationError('No such category: add it under Categories first.')
             part_of = body.get('part_of') or None
             launchers = {a['id'] for a in listing(data) if a['kind'] == 'launcher'}
             if part_of is not None and (kind != 'game' or part_of not in launchers):
@@ -258,6 +270,8 @@ def import_entries(entries):
                       for k in keys}, aid)
             else:
                 body = {k: entry.get(k) for k in ('name', 'kind', 'category', 'part_of', *keys)}
+                if body.get('category'):
+                    body['category'] = traffic_categories.known(body['category'])
                 save(body, aid if aid in own else None, new_id=aid)
         except ApplicationError as exc:
             raise ApplicationError(f'{entry.get("name") or aid}: {exc.message} '
@@ -295,7 +309,7 @@ def flow_rules(data=None, servers=None):
     rules = []
     for app in sorted(apps, key=lambda a: a['kind'] != 'game'):
         if app['ports'] or app['cidr']:
-            rules.append({'name': service_name(app), 'category': _flow_category(app['category']),
+            rules.append({'name': service_name(app), 'category': app['category'],
                           'ports': app['ports'], 'cidr': app['cidr']})
     for server in servers or []:
         net = _host_net(server.get('host'))
@@ -306,11 +320,6 @@ def flow_rules(data=None, servers=None):
 
 def service_name(app):
     return SERVICE_NAMES.get(app['id'], app['name'])
-
-
-def _flow_category(category):
-    from .flows.classify import CATEGORIES as FLOW
-    return category if category in FLOW else 'web' if category == 'social' else 'other'
 
 
 def _host_net(host):

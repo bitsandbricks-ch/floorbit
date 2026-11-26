@@ -1,6 +1,7 @@
 // Traffic insights from NetFlow/IPFIX (floorbit/flows).
-export type FlowCategory = 'gaming' | 'streaming' | 'downloads' | 'updates' | 'web' | 'other'
-export type FlowMix = Partial<Record<FlowCategory, number>>
+/** A built-in category or one of the tenant's own (api/trafficCategories.ts, #1622). */
+export type FlowCategory = string
+export type FlowMix = Record<FlowCategory, number | undefined>
 export interface FlowAnomaly {
   id: string
   kind: 'p2p' | 'burst' | 'rogue-dhcp' | 'rogue-dns'

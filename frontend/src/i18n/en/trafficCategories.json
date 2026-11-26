@@ -1,0 +1,19 @@
+{
+  "open": "Categories",
+  "title": "Traffic categories",
+  "intro": "Every application counts for one category, on the Traffic page, the dashboards and here. Your own categories hold for every event of this Floorbit.",
+  "builtin": "Built in",
+  "own": "Your own",
+  "none": "None yet.",
+  "name": "Name",
+  "nameDe": "Name in German",
+  "remove": "Remove {{name}}",
+  "colour": "Colour of {{name}}",
+  "add": "Add a category",
+  "save": "Save",
+  "saved": "Categories saved",
+  "gone": "Applications in a category you remove count as Other until you pick another one.",
+  "column": "Category",
+  "builtinApp": "Changes only how this event counts it.",
+  "sharedAsOther": "Floorbit's own list keeps to the built-in categories, so this one goes as Other."
+}

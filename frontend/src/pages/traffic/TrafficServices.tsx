@@ -6,11 +6,13 @@ import { DataTable, PanelField, PanelSection, SidePanel, Sparkline, type DataCol
 import { Panel } from '@/components/ui'
 import { clock } from '@/lib/time'
 import { bytes, trendOf } from './format'
+import { useTrafficCategories } from '@/api/trafficCategories'
 
 /** What the hall's traffic goes to, per application (issue #1481, crew view A): seats, down, up and
  *  the last hours. Aggregate only: a service and each of its blocks need five seats or more. */
 export function TrafficServices({ data }: { data: FlowsData }) {
   const { t } = useTranslation()
+  const cats = useTrafficCategories()
   const services = data.services ?? []
   const [open, setOpen] = useState<string | null>(null)
   const index = services.findIndex((s) => s.name === open)
@@ -19,7 +21,7 @@ export function TrafficServices({ data }: { data: FlowsData }) {
     { id: 'name', header: t('traffic.svc.application'), sort: (s) => s.name, cell: (s) => (
       <Group gap={6} wrap="nowrap">
         <span>{s.name}</span>
-        <Badge size="xs" variant="light" color="gray" tt="none">{t(`traffic.cat.${s.category}`)}</Badge>
+        <Badge size="xs" variant="light" color="gray" tt="none">{cats.label(s.category)}</Badge>
       </Group>
     ) },
     { id: 'seats', header: t('traffic.svc.seats'), numeric: true, descFirst: true, sort: (s) => s.seats, cell: (s) => s.seats },
@@ -55,11 +57,12 @@ function ServicePanel({ service: s, data, onClose, onPrev, onNext }: {
   service: FlowService; data: FlowsData; onClose: () => void; onPrev?: () => void; onNext?: () => void
 }) {
   const { t } = useTranslation()
+  const cats = useTrafficCategories()
   const blocks = Object.entries(s.areas ?? {}).sort((a, b) => b[1] - a[1])
   const named = blocks.reduce((sum, [, v]) => sum + v, 0)
   return (
     <SidePanel onClose={onClose} onPrev={onPrev} onNext={onNext} padded={false} title={s.name}
-      eyebrow={`${t(`traffic.cat.${s.category}`)} · ${t('traffic.seatCount', { count: s.seats })}`}>
+      eyebrow={`${cats.label(s.category)} · ${t('traffic.seatCount', { count: s.seats })}`}>
       <PanelSection>
         <PanelField label={t('traffic.svc.down')}>{s.down == null ? bytes(s.bytes) : bytes(s.down)}</PanelField>
         <PanelField label={t('traffic.svc.up')}>{s.up == null ? '–' : bytes(s.up)}</PanelField>
