@@ -16,6 +16,7 @@
   "empty": "Noch nichts protokolliert, oder nichts passt zu diesen Filtern.",
   "nobody": "niemand angemeldet",
   "failed": "fehlgeschlagen",
+  "reason": "Grund: {{reason}}",
   "older": "Ältere zeigen",
   "areas": {
     "floor plan": "Hallenplan",

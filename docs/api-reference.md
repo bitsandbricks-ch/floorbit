@@ -421,6 +421,16 @@ Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch
 | PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | GET | `/api/firewalls/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.flow_lookup
+
+The flow lookup (#1481, C): the raw flows of a seat, an address, an owner or a port, for an incident.
+
+Source: [`floorbit/blueprints/flow_lookup.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/flow_lookup.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/traffic/lookup` | `traffic.investigate` | `traffic` |
+
 ## floorbit.blueprints.flows
 
 Traffic insights from NetFlow and IPFIX (issue #25). See docs/flows.md.

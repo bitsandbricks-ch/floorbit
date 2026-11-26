@@ -102,9 +102,10 @@ Flows are personal data under Swiss and EU rules (an address at a seat is a pers
   which address never leaves the hall and is never written to disk. The flows they name count under
   the same five-seat rule.
 - **Per seat** there is only the volume and the category mix ("80 GB, mostly gaming"), for spotting
-  problems. Never services, addresses or ports.
+  problems. Never services, addresses or ports on the everyday pages.
 - **Raw flows** (`FLOWS_DIR/raw/`, one gzip file per hour) are kept for `FLOWS_RETENTION_DAYS` (7)
-  for looking into an incident afterwards, then deleted; when the agent's disk budget is used up the
+  for looking into an incident afterwards (the [flow lookup](#flow-lookup): a reasoned,
+  audit-logged search), then deleted; when the agent's disk budget is used up the
   oldest go first ([agent](agent.md#the-agents-disk-budget)). `FLOWS_KEEP_RAW=false` keeps none.
 - **Raw flows are merged per minute** before they are written: one line per minute and
   conversation (source, destination, protocol, ports) with the bytes, packets and how many records
@@ -119,6 +120,33 @@ Flows are personal data under Swiss and EU rules (an address at a seat is a pers
   totals, services and network owners only with enough seats. No seats and no addresses.
 
 `FLOWS_DIR` defaults to `flows/` next to `data.json` (`/app/state/flows` in Docker).
+
+## Flow lookup
+
+**Traffic › Flow lookup** (`/flow-lookup`, #1481 C) is for an incident: a P2P flood, a DDoS-like
+burst, an abuse report about an address. It searches the raw flows the agents keep
+(`FLOWS_DIR/raw/`, `FLOWS_RETENTION_DAYS`) and the minutes not written yet, by:
+
+- a **seat** (its addresses from the seat sources) or an **address**: its flows both ways;
+- a **destination**: an address, a network (`198.51.100.0/24`) or an owner's AS number (`AS64496`);
+- a **port**: `udp/6881-6889`, `tcp/443` or `443` for both;
+- a **time**: the last 15 minutes, hour, 6 hours, 24 hours or 7 days.
+
+It needs at least one of seat, address, destination or port, never the whole hall. Each agent
+answers its newest 500 matches with the totals of all of them (bytes, how many different addresses a
+seat talked to), each row with its owner and application. An agent stops reading after 10 seconds
+and says so: then pick a shorter time.
+
+- **Who:** `traffic.investigate`, Admin and Lead by default ([auth.md](auth.md)).
+- **Why:** every search needs a reason. It goes to the audit log with what was searched, **before**
+  the agents are asked, so a search that fails is logged too. **Download CSV** is logged again, as
+  an export.
+- **What stays:** nothing. Floorbit shows the answer and forgets it; the raw flows stay on the agent
+  and go after their retention as before.
+
+`POST /api/traffic/lookup` `{seat, source, destination, ports, window | since + until, reason, csv}`
+answers `{rows, total, bytes, peers, stopped, agents}`; the agent part is the netflow-relay plugin's
+`lookup` call (`floorbit/flows/lookup.py`).
 
 ## Anomalies
 

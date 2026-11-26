@@ -33,6 +33,8 @@ PAGES = (
     ('/traffic', 'traffic', 'Traffic', lambda c, can: c['feature_on']('traffic')),
     ('/games', 'games', 'Games', lambda c, can: c['feature_on']('games')),
     ('/applications', 'applications', 'Applications', None),
+    ('/flow-lookup', 'flowLookup', 'Flow lookup',
+     lambda c, can: c['feature_on']('traffic') and can('traffic.investigate')),
     ('/stats', 'stats', 'Stats', None),
     ('/speedtests', 'speedtests', 'Speed tests',
      lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),

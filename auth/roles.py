@@ -24,6 +24,7 @@ PERMISSIONS = {
     'configs.read': 'Back up switch configs and read them and what changed',
     'power.edit': 'Change power boards and circuits, enter readings and trips',
     'games.rcon': 'Send RCON commands to game servers',
+    'traffic.investigate': 'Search the raw flows of a seat or an address for an incident, with a reason, audit-logged',
     'plugins.run': 'Run plugin actions',
     'audit.read': 'Read the audit log',
     'settings.manage': 'Change settings, plugins and backups',
@@ -38,7 +39,7 @@ BUILTIN = {
                             'and reading the audit log.',
              'permissions': ['floorplan.view', 'floorplan.edit', 'seats.view', 'seats.edit', 'incidents.work',
                              'incidents.assign', 'ports.act', 'commands.change', 'terminal.open', 'configs.read',
-                             'power.edit', 'games.rcon', 'plugins.run', 'audit.read']},
+                             'power.edit', 'games.rcon', 'traffic.investigate', 'plugins.run', 'audit.read']},
     'tech': {'label': 'Tech',
              'description': 'Works incidents for their teams, runs port actions, sees seat and network data.',
              'permissions': ['floorplan.view', 'seats.view', 'incidents.work', 'ports.act', 'games.rcon']},
@@ -370,6 +371,9 @@ RULES = (
     ('/api/game-servers', WRITE, 'settings.manage'),
     # A rule source's URL can carry a token: reading the sources is for admins too (#1503).
     ('/api/applications/sources', None, 'settings.manage'),
+    # Raw flows name what a seat talked to: a reasoned, audit-logged look for an incident (#1481 C).
+    ('/api/traffic/lookup', None, 'traffic.investigate'),
+    ('/flow-lookup', READ, 'traffic.investigate'),
     ('/terminal', READ, 'terminal.open'),
     # Switch configs describe the whole network, even with the secrets taken out (floorbit/config_backup.py).
     ('/api/configs', None, 'configs.read'),
