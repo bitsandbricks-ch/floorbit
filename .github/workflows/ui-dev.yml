@@ -1,0 +1,91 @@
+name: Shared UI dev build
+
+# Floorbit follows the newest dev build of the shared packages (@bitsandbricks/tokens, ui and
+# widgets) instead of waiting for a release (Mike, 2026-11-26). bitsandbricks-ch/ui publishes one
+# under the npm tag `dev` for every commit to its main. Every hour this looks at that tag and, when
+# it moved, opens or updates one pull request that pins the three packages to it, and runs CI on it.
+#
+# The pull request is left for a person or an agent to merge: a merge made with this workflow's
+# token would start no workflow on master, so that commit would get no image (image.yml).
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: ui-dev
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      BRANCH: bot/ui-dev
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0     # the bot branch is merged with master
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: The newest dev build
+        id: dev
+        working-directory: frontend
+        run: |
+          # All three come from the same ui commit; ui's version names it (…sha-<short sha>).
+          dev=$(npm view @bitsandbricks/ui dist-tags.dev)
+          pinned=$(jq -r '.dependencies["@bitsandbricks/ui"]' package.json)
+          echo "Pinned $pinned, dev $dev"
+          echo "dev=$dev" >> "$GITHUB_OUTPUT"
+          echo "pinned=$pinned" >> "$GITHUB_OUTPUT"
+      - name: Open or update the pull request
+        if: steps.dev.outputs.dev != steps.dev.outputs.pinned
+        env:
+          DEV: ${{ steps.dev.outputs.dev }}
+          PINNED: ${{ steps.dev.outputs.pinned }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          # On top of the open branch, so fixes pushed to it for the last bump stay.
+          if git fetch -q origin "$BRANCH" 2>/dev/null; then
+            git switch -q -C "$BRANCH" FETCH_HEAD
+            git merge -q --no-edit origin/master
+          else
+            git switch -q -C "$BRANCH"
+          fi
+          if [ "$(jq -r '.dependencies["@bitsandbricks/ui"]' frontend/package.json)" = "$DEV" ]; then
+            echo "The branch is on $DEV already."
+            exit 0
+          fi
+          versions=()
+          for pkg in tokens ui widgets; do
+            v=$(npm view "@bitsandbricks/$pkg" dist-tags.dev)
+            versions+=("@bitsandbricks/$pkg@$v")
+          done
+          (cd frontend && npm install --save-exact --no-audit --no-fund "${versions[@]}")
+          git commit -qam "build(frontend): shared UI dev build ${DEV##*sha-}"
+          git push origin "$BRANCH"
+          title="build(frontend): shared UI dev build ${DEV##*sha-}"
+          body=$(cat <<EOF
+          Moves \`@bitsandbricks/tokens\`, \`ui\` and \`widgets\` from \`$PINNED\` to the newest dev build \`$DEV\` ([changes in bitsandbricks-ch/ui](https://github.com/bitsandbricks-ch/ui/compare/${PINNED##*sha-}...${DEV##*sha-})). Opened by the hourly *Shared UI dev build* workflow (\`.github/workflows/ui-dev.yml\`): Floorbit follows the dev builds for now.
+
+          CI runs on this branch. When it's red, the shared UI changed something Floorbit relies on: fix it on this branch before merging. Merge it by hand (or an agent does): a merge by the workflow's token would build no master image.
+          EOF
+          )
+          number=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$number" ]; then
+            gh pr edit "$number" --title "$title" --body "$body"
+          else
+            gh pr create --base master --head "$BRANCH" --title "$title" --body "$body"
+          fi
+          # A push with the workflow token starts no other workflow; a dispatch does, and its checks
+          # land on this commit, so the pull request shows them.
+          gh workflow run ci.yml --ref "$BRANCH"
+          gh workflow run image.yml --ref "$BRANCH"

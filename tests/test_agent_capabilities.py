@@ -27,3 +27,28 @@ def test_the_report_keeps_a_clean_list(app_module):
     assert tunnel.reported("cap-1")["capabilities"] == ["lease", "split"]
     tunnel.report("cap-2", {"capabilities": "lease"})
     assert "capabilities" not in tunnel.reported("cap-2")
+
+
+def test_the_newer_agent_capabilities_come_from_its_list():
+    listed = ["syslog_ids", "plugin_updates", "key_roll", "cert"]
+    assert agent_ha.capabilities({"capabilities": listed}) == listed
+    # An agent from before the list that sends plugin updates still has them.
+    assert agent_ha.capabilities({"updates": {"plugins": []}}) == ["plugin_updates"]
+
+
+def _plugin(**metrics):
+    return {"running": True, "status": "ok", "metrics": metrics}
+
+
+def test_what_it_collects_comes_from_its_running_plugins():
+    report = {"capabilities": ["syslog", "netflow"],   # never taken from the list
+              "plugins": {"syslog-relay": _plugin(), "telemetry": _plugin(telegraf=1, lookup=1),
+                          "netflow-relay": {"running": False, "status": "error", "metrics": {}}}}
+    assert agent_ha.capabilities(report) == ["syslog", "snmp", "traps", "gnmi", "mdt", "rest", "mac_lookup"]
+
+
+def test_telemetry_without_telegraf_polls_only_the_apis():
+    report = {"plugins": {"telemetry": _plugin(telegraf=0)}}
+    assert agent_ha.capabilities(report) == ["rest"]
+    # A telemetry plugin from before the numbers always ran Telegraf, and had no lookups yet.
+    assert agent_ha.capabilities({"plugins": {"telemetry": _plugin()}}) == ["snmp", "traps", "gnmi", "mdt", "rest"]

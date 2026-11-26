@@ -3,7 +3,7 @@ import { useHotkeys } from '@mantine/hooks'
 import {
   IconAdjustmentsHorizontal, IconAlertTriangle, IconArmchair, IconBell, IconBolt, IconBuildingCommunity, IconCalendarEvent,
   IconCircleCheck, IconCircleDashed, IconDatabase, IconDeviceDesktopAnalytics, IconHistory, IconKey, IconLayoutSidebar,
-  IconLogin, IconMap, IconSearch, IconServer, IconSettings, IconTerminal2, IconUsers, IconUsersGroup,
+  IconLogin, IconMap, IconPlugConnected, IconSearch, IconServer, IconSettings, IconTerminal2, IconUsers, IconUsersGroup,
   IconWebhook, IconWorld, type Icon,
 } from '@tabler/icons-react'
 import { lazy, Suspense, useMemo, useRef, useState, type ComponentType, type LazyExoticComponent } from 'react'
@@ -33,6 +33,7 @@ const PAGES: Record<string, { page: string; title: string; Body: LazyExoticCompo
   tenants: { page: 'tenants', title: 'tenants.title', Body: lazy(() => import('./Tenants')) },
   sidebar: { page: 'sidebarSections', title: 'sidebarSections.title', Body: lazy(() => import('./SidebarSections')) },
   audit: { page: 'audit', title: 'audit.title', Body: lazy(() => import('./Audit')) },
+  sources: { page: 'plugins', title: 'sources.title', Body: lazy(() => import('./settings/Sources')) },
 }
 const STATUS = 'status'
 
@@ -52,6 +53,7 @@ const GROUPS: { id: GroupId; entries: EntryDef[] }[] = [
     id: 'event', entries: [
       { id: 'appearance', icon: IconCalendarEvent, parts: [{ section: 'appearance' }, { section: 'display' }], step: 'event' },
       { id: 'inventory', icon: IconServer, parts: [{ section: 'general', only: GENERAL_INVENTORY }], step: 'inventory' },
+      { id: 'sources', icon: IconPlugConnected },
       { id: 'monitor', icon: IconDeviceDesktopAnalytics, step: 'monitoring', parts: ['monitor', 'live', 'attention', 'health', 'insights', 'syslog', 'metrics'].map((section) => ({ section })) },
       { id: 'floorplan', icon: IconMap, parts: [{ section: 'floorplan' }, { section: 'cabling' }], step: 'floor' },
       { id: 'checkin', icon: IconArmchair, parts: [{ section: 'checkin' }, { section: 'seats' }], step: 'seats' },
@@ -227,7 +229,7 @@ export default function Settings() {
           <>
             {d && <Connections status={d.status} test={ed.test} />}
             <Text size="sm" c="dimmed">
-              {t('settings.nav.sourcesMoved')} <Anchor component={Link} to="/settings/plugins">{t('settings.nav.toPlugins')}</Anchor>
+              {t('settings.nav.sourcesMoved')} <Anchor component={Link} to="/settings/sources">{t('settings.nav.toPlugins')}</Anchor>
             </Text>
             {wall && <Text size="sm" c="dimmed">{t('settings.wall')} <Anchor href="/wall">/wall</Anchor></Text>}
           </>

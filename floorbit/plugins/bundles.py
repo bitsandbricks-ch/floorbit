@@ -246,3 +246,41 @@ def verify_index(doc, keys: dict) -> dict:
     except (InvalidSignature, ValueError, TypeError):
         raise BundleError('bad index signature') from None
     return doc
+
+
+# Floorbit's own rules file for the applications (#1504) --------------------------------------------
+# Published next to the index and signed with the index key, over other fields than the index: an
+# index signature never passes as a rules file, nor the other way round.
+RULES_FIELDS = ('kind', 'name', 'generated', 'key_id', 'version', 'applications')
+RULES_KIND = 'floorbit-applications'
+
+
+def _rules_payload(doc: dict) -> bytes:
+    return json.dumps({k: doc.get(k) for k in RULES_FIELDS}, sort_keys=True, separators=(',', ':')).encode()
+
+
+def sign_rules(doc: dict, private_pem: bytes) -> dict:
+    """Add kind, key_id and signature to Floorbit's rules file (floorbit-plugins' publish workflow)."""
+    serialization, priv_cls, _ = _crypto()
+    key = serialization.load_pem_private_key(private_pem, password=None)
+    if not isinstance(key, priv_cls):
+        raise ValueError('not an Ed25519 private key')
+    doc = {**doc, 'kind': RULES_KIND, 'key_id': key_id(key.public_key())}
+    doc['signature'] = base64.b64encode(key.sign(_rules_payload(doc))).decode()
+    return doc
+
+
+def verify_rules(doc, keys: dict) -> dict:
+    """The rules file when one of ``keys`` signed it; else BundleError."""
+    from cryptography.exceptions import InvalidSignature
+    if (not isinstance(doc, dict) or doc.get('kind') != RULES_KIND or not doc.get('signature')
+            or not isinstance(doc.get('applications'), list)):
+        raise BundleError('the rules file is not signed')
+    pub = keys.get(str(doc.get('key_id')))
+    if pub is None:
+        raise BundleError(f"the rules file is signed with key {doc.get('key_id')}, which this Floorbit does not trust")
+    try:
+        pub.verify(base64.b64decode(doc['signature']), _rules_payload(doc))
+    except (InvalidSignature, ValueError, TypeError):
+        raise BundleError('bad rules file signature') from None
+    return doc

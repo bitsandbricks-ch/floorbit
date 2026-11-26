@@ -85,6 +85,8 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/agents/ca.pem` | `settings.manage` |  |
 | GET | `/api/agents/load` | `settings.manage` |  |
 | POST | `/api/agents/roll` | `settings.manage` |  |
+| GET | `/api/agents/tags/<tag_id>/settings` | `settings.manage` |  |
+| PATCH | `/api/agents/tags/<tag_id>/settings` | `settings.manage` |  |
 
 ## floorbit.blueprints.agent_events
 
@@ -142,6 +144,21 @@ Source: [`floorbit/blueprints/api_tokens.py`](https://github.com/bitsandbricks-c
 | POST | `/api/settings/api-tokens` | `settings.manage` |  |
 | DELETE | `/api/settings/api-tokens/<token_id>` | `settings.manage` |  |
 | GET | `/api/version` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
+## floorbit.blueprints.application_sources
+
+Rule sources for the applications (issue #1503): files fetched on a schedule. Rules in floorbit/application_sources.py, docs in docs/applications.md. All of it needs settings.manage (auth/roles.py): a source's URL can carry a token.
+
+Source: [`floorbit/blueprints/application_sources.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/application_sources.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/applications/sources` | `settings.manage` |  |
+| POST | `/api/applications/sources` | `settings.manage` |  |
+| PUT | `/api/applications/sources-frozen` | `settings.manage` |  |
+| DELETE | `/api/applications/sources/<source_id>` | `settings.manage` |  |
+| PUT | `/api/applications/sources/<source_id>` | `settings.manage` |  |
+| POST | `/api/applications/sources/<source_id>/sync` | `settings.manage` |  |
 
 ## floorbit.blueprints.applications
 

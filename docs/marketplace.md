@@ -88,7 +88,12 @@ installs it ([Updates](agent-plugins.md#updates)).
 python scripts/marketplace.py sign <plugin folder> --key plugin-key.pem --version 1.2.0 --out dist
 python scripts/marketplace.py build-index plugins.yaml site --key index-key.pem
 python scripts/marketplace.py check https://bitsandbricks-ch.github.io/floorbit-plugins/index.json
+python scripts/marketplace.py build-applications games.yaml site --key index-key.pem
 ```
+
+`build-applications` writes Floorbit's own rules file for the [applications](applications.md#rule-sources),
+`applications.json`, from floorbit-plugins' `games.yaml`, checked as a Floorbit checks a rules file and
+signed with the index key over its own fields (an index signature never passes as a rules file).
 
 Each refuses a key that isn't the one built into Floorbit for its purpose, and a key pinned for
 both. Make a key pair with `openssl genpkey -algorithm ed25519 -out key.pem` and

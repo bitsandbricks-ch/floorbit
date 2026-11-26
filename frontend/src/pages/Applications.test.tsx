@@ -16,6 +16,7 @@ const app = (over: object) => ({
 const answer = {
   hours: 24, kinds: ['game', 'launcher', 'sitegroup'], categories: ['gaming'],
   sources: [{ id: 'cache-domains', repo: 'uklans/cache-domains', commit: 'f7d6206f47', license: 'MIT', copyright: '' }],
+  synced: [], frozen: false,
   applications: [
     app({ id: 'steam', name: 'Steam', kind: 'launcher', sites: ['steamcontent.com'], caches: ['steam'] }),
     app({ id: 'valorant', name: 'Valorant', part_of: 'riot', sites: ['example.net', 'playvalorant.com'], edited: true,

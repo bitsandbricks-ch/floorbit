@@ -16,6 +16,15 @@ npm run dev          # http://localhost:5173, API and sign-in proxied to Flask o
 Start Flask as usual (`python app.py`) next to it. Set `FLOORBIT_URL` if Flask runs elsewhere.
 Sign in on `http://localhost:5173/login`: the proxy passes the session cookie through.
 
+## The shared packages
+
+`@bitsandbricks/tokens`, `ui` and `widgets` (bitsandbricks-ch/ui) are pinned to a **dev build**,
+not a release: ui publishes one under the npm tag `dev` for every commit to its main, and Floorbit
+follows them for now. Every hour `.github/workflows/ui-dev.yml` opens or updates one pull request
+(`bot/ui-dev`) that moves the three to the newest one, with CI run on it. To take a ui change at
+once, run that workflow by hand, or `npm install --save-exact @bitsandbricks/ui@dev` (and tokens
+and widgets) on your branch.
+
 ## Check, like CI
 
 ```sh
@@ -35,6 +44,8 @@ npm run build        # writes ../static/app/, which Flask serves
   It also gets only the Mantine styles listed in `src/styles/mantinePublic.ts`. When it uses
   another Mantine component, `npm run build` fails and prints the list to paste. A new page of
   this kind also goes into `PUBLIC_PAGES` in `vite.mantine.ts`.
+- A page's sidebar row, its tabs and their icons live in `src/nav/areas/<area>.ts` (one file per
+  row); `src/nav/sections.ts` only sorts the rows into groups.
 - Every text goes through `t()` with a key in `src/i18n/en/<feature>.json` **and**
   `src/i18n/de-CH/<feature>.json` (Swiss spelling, no "ß"). The i18n test fails otherwise.
 - Colours come from the shared design tokens (`var(--bnb-...)`), never hex values, so themes work.

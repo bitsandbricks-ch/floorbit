@@ -8,8 +8,9 @@ Run it by hand to move to newer lists (change the commits first), then check the
 
     python scripts/applications_import.py
 
-Floorbit never fetches the lists itself: an event's network may have no internet, and a list
-that changes during an event would change the numbers.
+These bundled lists are the fallback: they work in a hall with no internet. Lists that should stay
+current are rule sources on the Applications page (floorbit/application_sources.py, #1503), which
+Floorbit fetches on a schedule and can freeze for the event.
 """
 import json
 import pathlib

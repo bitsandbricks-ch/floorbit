@@ -125,6 +125,10 @@ The [switch terminal](terminal.md) keeps its SSH connection in the pod that open
 it that lands on another pod is passed to that pod through Valkey (sealed, like agent calls), so no
 sticky sessions are needed. When that pod stops, its terminals close.
 
+With `FLOORBIT_CLUSTER` set each pod also starts one gunicorn worker per CPU of its limit, at most
+4 ([sizing](sizing.md#more-than-one-worker)); each worker joins as a pod of its own. Set
+`resources.limits.cpu` to choose how many, or `GUNICORN_CMD_ARGS=--workers 1` for one.
+
 Each pod logs `[cluster] pod … joined (Redis)` at start, and the leader logs `… is now the leader`.
 Sign-in cookies work on every pod as long as they all have the same `SECRET_KEY` (the Secret above).
 

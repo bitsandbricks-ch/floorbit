@@ -177,3 +177,40 @@ def test_touches_from_an_index_are_cut_to_what_floorbit_knows():
                          "hall_actions": ["ok", "../x"], "credentials": ["ssh", "telnet"]})
     assert got == {"uses": ["agent"], "permissions": ["seats.view"], "secrets": 0, "sends": {"y": "device"},
                    "hall_actions": ["ok"], "credentials": ["ssh"]}
+
+
+def test_floorbits_rules_file_is_built_checked_and_signed(tmp_path, keys):
+    """build-applications writes what a Floorbit's rule source takes (#1504)."""
+    from floorbit import application_sources
+    games = {"applications": [{"id": "example-arena", "name": "Example Arena", "kind": "game",
+                               "sites": ["arena.example.com"], "ports": ["udp/7777"]}]}
+    tools.build_applications(games, tmp_path / "site", keys["index"].read_bytes())
+    raw = (tmp_path / "site" / "applications.json").read_bytes()
+    doc = bundles.verify_rules(json.loads(raw), bundles.pinned_keys(bundles.INDEX_KEYS_DIR))
+    assert doc["kind"] == "floorbit-applications" and doc["applications"][0]["sites"] == ["example.com"]
+    got = application_sources.parse(raw, application_sources.FLOORBIT)
+    assert [a["id"] for a in got] == ["example-arena"]
+    # A changed file, or the index key's signature over an index, doesn't pass as a rules file.
+    tampered = json.loads(raw)
+    tampered["applications"][0]["ports"] = ["udp/1-65535"]
+    with pytest.raises(application_sources.SourceError, match="bad rules file signature"):
+        application_sources.parse(json.dumps(tampered).encode(), application_sources.FLOORBIT)
+    index = bundles.sign_index({"name": "x", "plugins": []}, keys["index"].read_bytes())
+    with pytest.raises(application_sources.SourceError, match="not signed"):
+        application_sources.parse(json.dumps(index).encode(), application_sources.FLOORBIT)
+    # An unsigned file in the right shape is refused too.
+    with pytest.raises(application_sources.SourceError, match="not signed"):
+        application_sources.parse(json.dumps({"version": 1, "applications": []}).encode(),
+                                  application_sources.FLOORBIT)
+
+
+def test_a_bad_games_file_stops_the_build(tmp_path, keys):
+    with pytest.raises(SystemExit, match=r"games\.yaml"):
+        tools.build_applications({"applications": [{"id": "x", "name": "X", "ports": ["udp/99999"]}]},
+                                 tmp_path / "site", keys["index"].read_bytes())
+    assert not (tmp_path / "site" / "applications.json").exists()
+
+
+def test_the_rules_file_needs_the_index_key(tmp_path, keys):
+    with pytest.raises(SystemExit, match="not the index key"):
+        tools._private(keys["plugins"], "index")

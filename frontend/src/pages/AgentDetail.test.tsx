@@ -26,7 +26,12 @@ function open(agent: Agent, tab = '', extra: Record<string, unknown> = {}) {
 
 describe('AgentDetail', () => {
   it('shows what it is, what needs a look and its plugins', async () => {
-    const api = open(busyAgent(), '', { 'POST /api/agent-plugins/a1b2c3d4/telemetry/unblock': { ok: true, cleared: 1 } })
+    const builtin = (id: string, name: string) => ({ id, name, enabled: true, trust: 'builtin', agent: { actions: [], calls: [], sends: [] } })
+    const api = open(busyAgent(), '', {
+      'POST /api/agent-plugins/a1b2c3d4/telemetry/unblock': { ok: true, cleared: 1 },
+      'GET /api/settings/plugins': { plugins: [builtin('telemetry', 'Telemetry'), builtin('netbox', 'NetBox'),
+        { id: 'lancache', name: 'LAN cache', enabled: true, trust: 'official', agent: { actions: [], calls: [], sends: [] } }] },
+    })
     expect(await screen.findByRole('heading', { name: 'Spring LAN, hall 2', level: 2 })).toBeInTheDocument()
     expect(screen.getByText('Online, with errors')).toBeInTheDocument()
     expect(screen.getByText('up 3 hours')).toBeInTheDocument()
@@ -41,28 +46,35 @@ describe('AgentDetail', () => {
     expect(within(look).getByText(/Login to sw-a-01 with ssh-ops failed .*\(Authentication failed\)/)).toBeInTheDocument()
     fireEvent.click(within(look).getByRole('button', { name: 'Clear, try again' }))
     await vi.waitFor(() => expect(api.calls.find((c) => c.path.includes('/unblock'))?.body).toEqual({ device: 'sw-a-01', credential: 'ssh-ops' }))
-    const table = screen.getByRole('table', { name: 'Agent plugins' })
-    expect(within(table).getByText('lines 52,000 · backlog 0')).toBeInTheDocument()
+    // What it does (#1587): its built-in plugins as features, the add-ons only by name.
+    const does = screen.getByRole('region', { name: 'What it does' })
+    const table = await within(does).findByRole('table', { name: 'Features' })
+    expect(within(table).getByText('Telemetry')).toBeInTheDocument()
     expect(within(table).getByText(/: port in use/)).toBeInTheDocument()
+    expect(within(table).queryByText('LAN cache')).not.toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Add-ons' })).getByText('LAN cache')).toBeInTheDocument()
     expect(screen.getByText(/syslog 12,345 received, 0 waiting/)).toBeInTheDocument()
     expect(screen.getByText(/check-in note 1,200 shown, 3,400 not needed/)).toBeInTheDocument()
     expect(screen.getByText('Syslog, NetFlow')).toBeInTheDocument()
   })
 
-  it('lists the agent plugins it does not run, and why (#1001)', async () => {
-    const plugin = (id: string, enabled: boolean, agent = true) => ({ id, name: id, enabled, agent: agent ? { actions: [], calls: [], sends: [] } : null })
-    open({ ...busyAgent(), plugins_off: ['netflow-relay'] }, 'plugins', { 'GET /api/settings/plugins': { plugins: [
-      plugin('lancache', true), plugin('shelly', false), plugin('netflow-relay', true), plugin('loki', true), plugin('dhcp', true, false),
+  it('lists the add-ons it does not run, and why (#1001)', async () => {
+    const plugin = (id: string, enabled: boolean, agent = true, trust = 'official') => ({ id, name: id, enabled, trust, agent: agent ? { actions: [], calls: [], sends: [] } : null })
+    open({ ...busyAgent(), plugins_off: ['unifi'] }, 'plugins', { 'GET /api/settings/plugins': { plugins: [
+      plugin('lancache', true), plugin('shelly', false), plugin('unifi', true), plugin('zabbix', true), plugin('dhcp', true, false),
+      plugin('netflow-relay', true, true, 'builtin'),
     ] } })
     const table = await screen.findByRole('table', { name: 'Agent plugins' })
     const row = (id: string) => within(table).getByText(id).closest('tr') as HTMLElement
-    expect(await within(table).findByText('shelly')).toBeInTheDocument()
-    expect(within(row('shelly')).getByText('Off on every agent')).toBeInTheDocument()
-    expect(within(row('shelly')).getByRole('link', { name: 'Turn it on' })).toHaveAttribute('href', '/settings/plugins/shelly')
-    expect(within(row('netflow-relay')).getByText('Left to another agent')).toBeInTheDocument()
-    expect(within(row('loki')).getByText("On, but this agent hasn't reported it yet")).toBeInTheDocument()
-    expect(within(row('lancache')).getByText('lines 52,000 · backlog 0')).toBeInTheDocument()   // reported: as before
+    expect(await within(table).findByText('Shelly meters')).toBeInTheDocument()
+    expect(within(row('Shelly meters')).getByText('Off on every agent')).toBeInTheDocument()
+    expect(within(row('Shelly meters')).getByRole('link', { name: 'Turn it on' })).toHaveAttribute('href', '/settings/plugins/shelly')
+    expect(within(row('unifi')).getByText('Left to another agent')).toBeInTheDocument()
+    expect(within(row('zabbix')).getByText("On, but this agent hasn't reported it yet")).toBeInTheDocument()
+    expect(within(row('LAN cache')).getByText('lines 52,000 · backlog 0')).toBeInTheDocument()   // reported: as before
     expect(within(table).queryByText('dhcp')).not.toBeInTheDocument()                           // no part on the agent
+    expect(within(table).queryByText('Traffic from the hall')).not.toBeInTheDocument()          // built in: under What it does
+    expect(screen.getByRole('link', { name: 'Open the Marketplace' })).toHaveAttribute('href', '/settings/plugins?tab=marketplace')
   })
 
   it('lists the devices it collects, what needs a look first', async () => {

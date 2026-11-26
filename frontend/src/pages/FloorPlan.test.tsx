@@ -312,12 +312,12 @@ describe('Seats page', () => {
     expect(container.querySelector('.fb-screen-clock')?.textContent).toMatch(/^\d\d:\d\d$/)
   })
 
-  it('counts seats with problems on each block\'s tag, and marks a block where many have them', async () => {
+  it('counts seats with problems at each block\'s corner, and marks a block where many have them', async () => {
     const bad = { ...data, blocks: [{ name: 'D', seats: 4, online: 1, problems: 2 }] }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': bad }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
-    await waitFor(() => expect(container.querySelector('.fb-plan .btag-bad')?.textContent).toBe('2'))
-    expect(container.querySelector('.fb-plan .btag text')?.textContent).toBe('D')
+    await waitFor(() => expect(container.querySelector('.fb-plan .btag-bad text')?.textContent).toBe('2'))
+    expect(container.querySelector('.fb-plan .btag-bad title')?.textContent).toBe('Block D')
     expect(container.querySelector('.fb-plan .blk.alarm')).not.toBeNull()
   })
 
@@ -365,7 +365,7 @@ describe('Seats page', () => {
     expect(container.querySelector('[data-seat="D-3"]')).not.toHaveClass('dim')
   })
 
-  it('opens a block panel from the block tag, the inspector and the B key', async () => {
+  it('opens a block panel from its problem count, the inspector and the B key', async () => {
     const block = {
       name: 'D', hall: 'main', seats: 4, online: 2, offline: 1, unknown: 1, checked_in: 1, bps: 6_000_000,
       problems: [{ seat: 'D-2', state: 'offline', problems: 1 }],
@@ -374,7 +374,7 @@ describe('Seats page', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan': data, 'GET /api/plan/blocks/D': block, 'GET /api/plan/seats/D-2': details }).fn)
     const { container } = renderWithApp(<FloorPlan />, '/plan')
     await screen.findByRole('application', { name: 'Seat map' })
-    fireEvent.click(container.querySelector('.btag.link')!)
+    fireEvent.click(container.querySelector('.btag-bad.link')!)
     expect(await screen.findByRole('heading', { name: 'Block D' })).toBeInTheDocument()
     expect(await screen.findByText('2 of 3 seats online')).toBeInTheDocument()
     expect(screen.getByText('1 seat on no known port')).toBeInTheDocument()
@@ -720,8 +720,8 @@ describe('Seats page', () => {
     fireEvent.click(fold)
     expect(fold).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('list', { name: 'Legend' })).toBeNull()
-    // The how-to moved from under the map into the shortcuts dialog.
-    fireEvent.click(screen.getByRole('button', { name: 'Keyboard shortcuts' }))
+    // The how-to moved from under the map into the shortcuts dialog (its button shows only with a keyboard and mouse).
+    fireEvent.keyDown(document.documentElement, { key: '?', code: 'Slash', shiftKey: true })
     expect(await screen.findByText(/^Drag to move, scroll or pinch to zoom/)).toBeInTheDocument()
   })
 

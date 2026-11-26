@@ -157,7 +157,8 @@ def test_a_run_puts_the_facts_where_the_built_in_areas_put_theirs(client, fwthin
     assert r.status_code == 200, r.get_json()
     report = r.get_json()["report"]
     # Routes only on the OPNsense box; switches never.
-    assert [c[3]["devices"] for c in calls] == [[fw, other], [fw], [fw, other]]
+    # The store may list devices in any order (Postgres sorts by id), so compare each call as a set.
+    assert [set(c[3]["devices"]) for c in calls] == [{fw, other}, {fw}, {fw, other}]
     assert report["areas"]["fwthing.routes"] == {"devices": 1, "changed": 1}
     data = load_data()
     dev = inventory.find(data, fw)

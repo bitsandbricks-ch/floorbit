@@ -8,7 +8,13 @@ the contract: every part a plugin may bring, where it runs, and the limits.
 
 ## Turning plugins on
 
-Settings > Plugins lists every plugin with its version and whether it is on. Plugins start
+Settings > Plugins lists the add-ons from the Marketplace with their version and whether they are
+on. The plugins that come with Floorbit are under **Settings > Sources**: first what Floorbit asks
+(NetBox, LibreNMS, Loki, VictoriaLogs, Prometheus, the HTTP check), then what every agent does
+(telemetry, syslog, flows, the front door, LibreNMS alerts). On an agent's page those are its
+features, under **What it does** on the Overview; its Plugins tab lists only the add-ons it runs.
+Under the hood they are all plugins: signed updates, health and a per-agent off switch (#1587).
+Plugins start
 **off**, except the few that ship with Floorbit and replace what used to be built in (NetBox); those
 start on and do nothing until they're configured. Turning one on or off is in the audit log. Each
 plugin has its own page, `/settings/plugins/<id>`, with what it may touch, its test, actions, log
@@ -253,7 +259,7 @@ this site.
 | --- | --- |
 | `stat` | `value`, `unit`, `tone` (`ok`, `warn`, `err` or empty); optional `min`, `max` (shows as a gauge) |
 | `status` | `items`: `label`, `state` (`up`, `down`, `warn`, `unknown`), `detail` |
-| `list` | `items`: `label`, `value`, `tone`; optional `number` and `max` (shows as bars or a pie) and `sub` (a second line under the label) |
+| `list` | `items`: `label`, `value`, `tone`; optional `number` and `max` (shows as bars or a pie), `sub` (a second line under the label) and `colour` (`#rrggbb` or `var(--name)`, a fixed colour for its bar or slice) |
 | `table` | `columns`: `key`, `label`; `rows` |
 | `sparkline` | `points`, `value`, `unit`, `min`, `max` |
 | `series` | `series`: up to 4 of `label`, `points` (`[unix seconds, value]`, oldest first) and optional `ghost: true` (a comparison line, drawn dotted, such as yesterday at the same times); `unit`; optional `marks`: up to 50 of `t` (unix seconds), `label` and `tone` (`ok`, `warn`, `err` or empty), drawn as lines across the graph |

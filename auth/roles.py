@@ -368,6 +368,8 @@ RULES = (
     ('/api/game-servers/rcon', WRITE, 'games.rcon'),
     ('/api/game-servers/check', WRITE, 'games.rcon'),
     ('/api/game-servers', WRITE, 'settings.manage'),
+    # A rule source's URL can carry a token: reading the sources is for admins too (#1503).
+    ('/api/applications/sources', None, 'settings.manage'),
     ('/terminal', READ, 'terminal.open'),
     # Switch configs describe the whole network, even with the secrets taken out (floorbit/config_backup.py).
     ('/api/configs', None, 'configs.read'),

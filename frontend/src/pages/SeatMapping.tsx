@@ -150,7 +150,7 @@ export default function SeatMapping() {
   }
 
   return (
-    <Layout title={t('seatmap.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    <Layout title={t('seatmap.title')} back={{ href: '/', label: t('common.floorPlan') }} fill>
       <PageHead
         title={t('seatmap.title')}
         desc={t('seatmap.intro')}
@@ -212,7 +212,7 @@ export default function SeatMapping() {
               ? t('seatmap.countSplit', { count: rows.length, onPlan: rows.length - offPlan, off: offPlan })
               : t('seatmap.count', { count: rows.length })}
           </Text>
-          <DataTable label={t('seatmap.title')} rows={rows} rowKey={(r) => r.seat} defaultSort={{ id: 'seat' }} cards
+          <DataTable fill label={t('seatmap.title')} rows={rows} rowKey={(r) => r.seat} defaultSort={{ id: 'seat' }} cards
             empty={<Text>{data.seats.length ? t('seatmap.noMatch') : t('seatmap.empty')}</Text>}
             columns={[
               { id: 'seat', header: t('seatmap.seat'), sort: (r) => r.seat, cell: (r) => (<>{canEdit

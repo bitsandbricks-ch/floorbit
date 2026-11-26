@@ -54,7 +54,7 @@ import { type CableEnds, type CableLook, CableFields, PanelFields, PlacePanelDia
 import { BoardFields, PlaceBoardDialog } from './PowerFields'
 import { type NewBlock, PlaceBlockDialog, PlaceMarkDialog } from './PlaceDialogs'
 import { type AreaBox, FillAreaDialog, type FillOptions } from './FillAreaDialog'
-import { ToolRail } from './ToolRail'
+import { ToolPicker, ToolRail } from './ToolRail'
 import { canTurnOne, quarterTurns } from './turn'
 import { frameOf } from './frame'
 import { similar } from './similar'
@@ -139,6 +139,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // The cable form: a new cable (the Cable tool, filled with what was clicked) or one to change.
   const [cableForm, setCableForm] = useState<{ cable: Cable | null; initial?: Partial<CableDraft> } | null>(null)
   const small = useMediaQuery('(max-width: 48em)')
+  const keyboard = useMediaQuery('(hover: hover) and (pointer: fine)')
+  const keyHint = (keys: string) => keyboard ? <Kbd size="xs">{keys}</Kbd> : undefined
   const [menu, setMenu] = useState<{ item: ItemRef | null; x: number; y: number; at: Point | null } | null>(null)
   const history = useHistory()
   const qc = useQueryClient()
@@ -965,7 +967,9 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   }, [drag, selected, shown, unlocked])
   const tabNow: PanelTab = (tab === 'rows' || tab === 'seats') && !oneBlock ? 'edit' : tab
   const rowCount = oneBlock ? data.drawing?.shapes.find((b) => b.id === oneBlock)?.row_list?.length ?? 0 : 0
-  const rail = useMemo(() => <ToolRail tool={tool} onTool={setTool} onView={onDone} />, [tool, onDone])
+  const rail = useMemo(() => small
+    ? <ToolPicker tool={tool} onTool={setTool} onView={onDone} />
+    : <ToolRail tool={tool} onTool={setTool} onView={onDone} />, [small, tool, onDone])
   const panel = (<>
     <FillAreaDialog box={filling} hall={data.hall} onClose={() => setFilling(null)} onFill={fillArea} />
     <PlaceBlockDialog opened={placing?.kind === 'block'} onClose={() => setPlacing(null)} onCreate={placeBlock} />
@@ -1109,14 +1113,15 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
                   onUngroup={(g) => void regroup(g.members, false)} onFrame={frame} />
           </Tabs.Panel>
         </Tabs>
-        <Text size="xs" c="dimmed">
+        {/* Key hints only where there is a keyboard; phones and tablets get none (Mike, 2026-11-26). */}
+        {keyboard && <><Text size="xs" c="dimmed">
           <Kbd size="xs">Del</Kbd> {t('plan.edit.keys.delete')} · <Kbd size="xs">←↑↓→</Kbd> {t('plan.edit.keys.nudge')} · <Kbd size="xs">Alt</Kbd> {t('plan.edit.keys.free')} · <Kbd size="xs">Space</Kbd> {t('plan.edit.keys.pan')}
         </Text>
         <Text size="xs" c="dimmed">
           {t('plan.edit.keys.more')}{' · '}
           <Anchor component="button" type="button" size="xs" onClick={onShortcuts}>{t('plan.shortcuts.allKeys')}</Anchor> <Kbd size="xs">?</Kbd>
-        </Text>
-        <Attribution compact />
+        </Text></>}
+        {!small && <Attribution compact />}
         </>}
       </Stack>
     </Paper>
@@ -1198,13 +1203,13 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             {menu.item && (
               <>
                 <Menu.Label>{selected.length > 1 ? t('plan.edit.selected', { count: selected.length }) : itemTitle(t, data, menu.item)}</Menu.Label>
-                <Menu.Item leftSection={<IconCopy size={14} />} rightSection={<Kbd size="xs">Ctrl D</Kbd>} onClick={() => void duplicate(selected)}>{t('plan.edit.menu.duplicate')}</Menu.Item>
-                <Menu.Item leftSection={<IconCopy size={14} />} rightSection={<Kbd size="xs">Ctrl C</Kbd>} onClick={() => void copy(selected)}>{t('plan.edit.menu.copy')}</Menu.Item>
-                <Menu.Item leftSection={<IconCut size={14} />} rightSection={<Kbd size="xs">Ctrl X</Kbd>} onClick={() => void copy(selected, true)}>{t('plan.edit.menu.cut')}</Menu.Item>
+                <Menu.Item leftSection={<IconCopy size={14} />} rightSection={keyHint('Ctrl D')} onClick={() => void duplicate(selected)}>{t('plan.edit.menu.duplicate')}</Menu.Item>
+                <Menu.Item leftSection={<IconCopy size={14} />} rightSection={keyHint('Ctrl C')} onClick={() => void copy(selected)}>{t('plan.edit.menu.copy')}</Menu.Item>
+                <Menu.Item leftSection={<IconCut size={14} />} rightSection={keyHint('Ctrl X')} onClick={() => void copy(selected, true)}>{t('plan.edit.menu.cut')}</Menu.Item>
                 <Menu.Item leftSection={<IconBookmark size={14} />} onClick={() => void saveAsPreset(selected)}>{t('presets.menuSave')}</Menu.Item>
               </>
             )}
-            <Menu.Item leftSection={<IconClipboard size={14} />} rightSection={<Kbd size="xs">Ctrl V</Kbd>} disabled={!readClip()?.length}
+            <Menu.Item leftSection={<IconClipboard size={14} />} rightSection={keyHint('Ctrl V')} disabled={!readClip()?.length}
               onClick={() => void paste(menu.at ?? undefined)}>{t('plan.edit.menu.paste')}</Menu.Item>
             {!menu.item && (
               <Menu.Item leftSection={<IconBookmarks size={14} />} onClick={() => { presetAt.current = menu.at; onDialog('presets') }}>{t('presets.menuPlace')}</Menu.Item>
@@ -1213,27 +1218,27 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
               <>
                 {(canGroup || grouped) && <Menu.Divider />}
                 {canGroup && (
-                  <Menu.Item leftSection={<IconLink size={14} />} rightSection={<Kbd size="xs">Ctrl G</Kbd>} onClick={() => void regroup(selected, true)}>{t('plan.edit.menu.group')}</Menu.Item>
+                  <Menu.Item leftSection={<IconLink size={14} />} rightSection={keyHint('Ctrl G')} onClick={() => void regroup(selected, true)}>{t('plan.edit.menu.group')}</Menu.Item>
                 )}
                 {grouped && (
-                  <Menu.Item leftSection={<IconUnlink size={14} />} rightSection={<Kbd size="xs">Ctrl ⇧ G</Kbd>} onClick={() => void regroup(selected, false)}>{t('plan.edit.menu.ungroup')}</Menu.Item>
+                  <Menu.Item leftSection={<IconUnlink size={14} />} rightSection={keyHint('Ctrl ⇧ G')} onClick={() => void regroup(selected, false)}>{t('plan.edit.menu.ungroup')}</Menu.Item>
                 )}
                 <Menu.Divider />
-                <Menu.Item leftSection={<IconStack2 size={14} />} rightSection={<Kbd size="xs">Ctrl ]</Kbd>} onClick={() => void restack(selected, true)}>{t('plan.edit.menu.front')}</Menu.Item>
-                <Menu.Item leftSection={<IconLayersSubtract size={14} />} rightSection={<Kbd size="xs">Ctrl [</Kbd>} onClick={() => void restack(selected, false)}>{t('plan.edit.menu.back')}</Menu.Item>
-                <Menu.Item leftSection={<IconZoomIn size={14} />} rightSection={<Kbd size="xs">F</Kbd>} onClick={() => frame(selected)}>{t('plan.edit.menu.frame')}</Menu.Item>
-                <Menu.Item leftSection={<IconSelectAll size={14} />} rightSection={<Kbd size="xs">Ctrl ⇧ A</Kbd>} onClick={() => setSelection(similar(data, present, selected))}>{t('plan.edit.menu.similar')}</Menu.Item>
+                <Menu.Item leftSection={<IconStack2 size={14} />} rightSection={keyHint('Ctrl ]')} onClick={() => void restack(selected, true)}>{t('plan.edit.menu.front')}</Menu.Item>
+                <Menu.Item leftSection={<IconLayersSubtract size={14} />} rightSection={keyHint('Ctrl [')} onClick={() => void restack(selected, false)}>{t('plan.edit.menu.back')}</Menu.Item>
+                <Menu.Item leftSection={<IconZoomIn size={14} />} rightSection={keyHint('F')} onClick={() => frame(selected)}>{t('plan.edit.menu.frame')}</Menu.Item>
+                <Menu.Item leftSection={<IconSelectAll size={14} />} rightSection={keyHint('Ctrl ⇧ A')} onClick={() => setSelection(similar(data, present, selected))}>{t('plan.edit.menu.similar')}</Menu.Item>
                 {canTurn && (
-                  <Menu.Item leftSection={<IconRotateClockwise size={14} />} rightSection={<Kbd size="xs">R</Kbd>} onClick={() => void rotate(selected, false)}>{t('plan.edit.menu.rotate')}</Menu.Item>
+                  <Menu.Item leftSection={<IconRotateClockwise size={14} />} rightSection={keyHint('R')} onClick={() => void rotate(selected, false)}>{t('plan.edit.menu.rotate')}</Menu.Item>
                 )}
                 {movable.length > 0 && (
-                  <Menu.Item leftSection={allLocked ? <IconLockOpen size={14} /> : <IconLock size={14} />} rightSection={<Kbd size="xs">Ctrl ⇧ L</Kbd>}
+                  <Menu.Item leftSection={allLocked ? <IconLockOpen size={14} /> : <IconLock size={14} />} rightSection={keyHint('Ctrl ⇧ L')}
                     onClick={() => void setLocked(selected, !allLocked)}>{t(allLocked ? 'plan.edit.menu.unlock' : 'plan.edit.menu.lock')}</Menu.Item>
                 )}
                 {selected.length > 0 && (
                   <>
                     <Menu.Divider />
-                    <Menu.Item color="down" leftSection={<IconTrash size={14} />} rightSection={<Kbd size="xs">Del</Kbd>} onClick={() => void remove(selected)}>{t(onlyUnplace ? 'plan.edit.menu.unplace' : 'plan.edit.menu.delete')}</Menu.Item>
+                    <Menu.Item color="down" leftSection={<IconTrash size={14} />} rightSection={keyHint('Del')} onClick={() => void remove(selected)}>{t(onlyUnplace ? 'plan.edit.menu.unplace' : 'plan.edit.menu.delete')}</Menu.Item>
                   </>
                 )}
               </>

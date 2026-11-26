@@ -1,0 +1,11 @@
+{
+  "title": "Quellen",
+  "hosted": {
+    "title": "Was Floorbit abfragt",
+    "desc": "Die Quellen, die mit Floorbit kommen: Inventar, Monitoring, Logs und Metriken. Öffne eine für ihre Einstellungen."
+  },
+  "agent": {
+    "title": "Was jeder Agent macht",
+    "desc": "Die eigenen Funktionen des lokalen Agents. Sie sind für jeden Agent an; die Seite eines Agents zeigt, wie jede dort läuft, und schaltet eine für diesen Agent aus."
+  }
+}

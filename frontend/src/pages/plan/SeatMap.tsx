@@ -309,15 +309,14 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
   const sums = useMemo(() => blockSums(drawing.shapes, data.blocks), [drawing.shapes, data.blocks])
   // One screen pixel in drawing units, for the block tags; on paper a tag is about a seat tall.
   const tagPx = forced === 'near' ? drawing.cell / 16 : 1 / s
-  // Shapes and colour first (#1471): a block is named by a small tag above its top-left corner, with a red
-  // count when it has problems. No counts or big names: the header and Needs attention list have them.
+  // Shapes and colour first (#1471): rows carry small letters, and a block with problems a small red
+  // count just past its top-right corner (Mike, 2026-11-26: no boxed tags, they covered the rows on phones).
   const blockTags = useMemo(() => drawing.shapes.map((b, i) => {
-    const name = shapeLabel(b)
-    if (!name) return null
-    const [x, y] = shapeRect(b)
-    const h = 16 * tagPx
-    // Just above the block's left end: clear of its seats and of the cable counts on its sides.
-    return { x, y: y - h - 2 * tagPx, w: textWidth(name, 11 * tagPx) + 10 * tagPx, h, name, problems: sums[i]?.problems ?? 0 }
+    const problems = sums[i]?.problems ?? 0
+    if (!problems || !shapeLabel(b)) return null
+    const [, y, x2] = shapeRect(b)
+    const h = 14 * tagPx
+    return { x: x2 + 2 * tagPx, y: y - h / 2, w: textWidth(String(problems), 9.5 * tagPx) + 9 * tagPx, h, name: shapeLabel(b), problems }
   }), [drawing.shapes, sums, tagPx])
   const ringed = useMemo(() => (rings ? Object.keys(data.seats).filter((k) => data.seats[k].problems)
     .map((k) => seatCenter(drawing, k)).filter((c): c is { x: number; y: number } => !!c) : []), [rings, data.seats, drawing])
@@ -375,10 +374,18 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
           <g key={bi}>
             <g transform={`translate(${b.cx} ${b.cy}) rotate(${b.rotation})`}>
               <rect className={blockAlarm(sum) ? 'blk alarm' : 'blk'} x={-b.w / 2 - 6} y={-b.h / 2 - 6} width={b.w + 12} height={b.h + 12} rx={8} />
-              {level !== 'far' && named.rows && b.rows?.map((r, ri) => (
-                <text key={`r${ri}`} className="rowlbl" x={r.x} y={r.y} dy="0.35em"
+              {/* Small row letters name the rows (Mike, 2026-11-26): no boxed block tags; a letter opens its block. */}
+              {named.rows && b.rows?.map((r, ri) => (
+                <text key={`r${ri}`} className={onBlock ? 'rowlbl link' : 'rowlbl'} x={r.x} y={r.y} dy="0.35em"
+                  onClick={onBlock ? () => onBlock(b.id ?? b.name) : undefined}
                   transform={b.rotation ? `rotate(${-b.rotation} ${r.x} ${r.y})` : undefined}>{r.text}</text>
               ))}
+              {/* A block numbered as a whole has no row letters: its name, as small, just before it. */}
+              {named.rows && !b.rows?.length && shapeLabel(b) && (
+                <text className={onBlock ? 'rowlbl blkname link' : 'rowlbl blkname'} x={-b.w / 2 - drawing.cell * 0.25} y={0} dy="0.35em"
+                  onClick={onBlock ? () => onBlock(b.id ?? b.name) : undefined}
+                  transform={b.rotation ? `rotate(${-b.rotation} ${-b.w / 2 - drawing.cell * 0.25} 0)` : undefined}>{shapeLabel(b)}</text>
+              )}
               <BlockSeats cells={b.cells} rotation={b.rotation} seats={data.seats} cell={drawing.cell} filter={filter} selected={selected} only={focus?.seats}
                 cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} problems={layers.on.has('problems')} firewalls={firewalls} marks={pluginSeats}
                 checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} labels={seatLabels} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
@@ -402,16 +409,11 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
         {network && data.panels?.length ? <g opacity={opacity(layers, 'network')}><PanelGlyphs panels={data.panels} near={level === 'near'} /></g> : null}
         {/* Over the switches, so a switch just above a block never hides its name. */}
         {blockTags.map((tag, bi) => tag && (
-          <g key={`tag${bi}`} className={onBlock ? 'btag link' : 'btag'} transform={`translate(${tag.x} ${tag.y})`}
+          <g key={`tag${bi}`} className={onBlock ? 'btag-bad link' : 'btag-bad'} transform={`translate(${tag.x} ${tag.y})`}
             onClick={onBlock ? () => onBlock(drawing.shapes[bi].id ?? drawing.shapes[bi].name) : undefined}>
-            <rect width={tag.w} height={tag.h} rx={4 * tagPx} strokeWidth={tagPx} />
-            <text x={tag.w / 2} y={tag.h / 2} dy="0.35em" fontSize={11 * tagPx}>{tag.name}</text>
-            {tag.problems > 0 && (
-              <g className="btag-bad" transform={`translate(${tag.w + 3 * tagPx} 0)`}>
-                <rect width={textWidth(String(tag.problems), 10.5 * tagPx) + 10 * tagPx} height={tag.h} rx={tag.h / 2} />
-                <text x={(textWidth(String(tag.problems), 10.5 * tagPx) + 10 * tagPx) / 2} y={tag.h / 2} dy="0.35em" fontSize={10.5 * tagPx}>{tag.problems}</text>
-              </g>
-            )}
+            <rect width={tag.w} height={tag.h} rx={tag.h / 2} />
+            <text x={tag.w / 2} y={tag.h / 2} dy="0.35em" fontSize={9.5 * tagPx}>{tag.problems}</text>
+            <title>{t('plan.side.block', { name: tag.name })}</title>
           </g>
         ))}
         {/* toPlan reads the svg's box, but overlays call it only from pointer events, never while drawing. */}
