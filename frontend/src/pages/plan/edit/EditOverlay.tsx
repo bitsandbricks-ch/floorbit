@@ -11,7 +11,7 @@ import { isLine, walkwayWide } from '../lineMarks'
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
  *  The Hand tool, Space + drag or the middle button pans, as in drawing tools; the plan below handles that. */
-export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onMeasure, onBox, onPointer, onMenu, onDouble, lines = [], guides = [], together = (r) => [r],
+export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, space, tool = 'select', onPlace, onLine, onMeasure, onBox, onPointer, onMenu, onCancel, onDouble, lines = [], guides = [], together = (r) => [r],
   snapping = { grid: true, items: true } }: {
   ctx: OverlayContext
   data: SeatViewData
@@ -35,6 +35,8 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
   onPointer?: (at: Point) => void
   /** Right click on an item (null: on empty plan), at a screen point. */
   onMenu?: (item: ItemRef | null, clientX: number, clientY: number) => void
+  /** A second finger came down mid-drag: drop the preview, nothing moves. */
+  onCancel?: () => void
   /** Double click on an item (a seat block: pick the row there), at a plan point. */
   onDouble?: (item: ItemRef, at: Point) => void
   /** Items drawn as a path (cables): hit along the line, under the other items. */
@@ -73,9 +75,48 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
 
   const panning = space || gesture === 'pan'
   const passes = (e: React.PointerEvent) => panning || e.button === 1
+  // Touch while selecting (Mike, 2026-11-26): one finger on empty space pans the plan and a tap
+  // there clears the pick; holding it still starts a box. A finger on an item picks and drags it,
+  // holding it still opens the item's menu (iPhones have no right-click). A second finger pinches
+  // and pans the plan, so touches always reach the plan (SeatMap) too.
+  const fingers = useRef(new Set<number>())
+  const press = useRef<{ id: number; x: number; y: number; ref: ItemRef | null; timer: number } | null>(null)
+  const unpress = () => { if (press.current) window.clearTimeout(press.current.timer); press.current = null }
+  useEffect(() => () => unpress(), [])
   const begin = (e: React.PointerEvent, ref: ItemRef | null) => {
     if (passes(e) || e.button === 2) return
-    e.stopPropagation()
+    const touch = e.pointerType === 'touch' && gesture === 'select'
+    if (touch) {
+      // Counted off on the window: once the plan pans, it holds the finger and our handlers miss its end.
+      const id = e.pointerId
+      fingers.current.add(id)
+      const lift = (u: PointerEvent) => {
+        if (u.pointerId !== id) return
+        fingers.current.delete(id)
+        window.removeEventListener('pointerup', lift, true); window.removeEventListener('pointercancel', lift, true)
+      }
+      window.addEventListener('pointerup', lift, true); window.addEventListener('pointercancel', lift, true)
+      if (fingers.current.size > 1) {
+        unpress()
+        if (drag.current) { drag.current = null; setMarquee(null); onCancel?.() }
+        return
+      }
+      const { clientX: x, clientY: y } = e
+      const start = ctx.toPlan(x, y)
+      const timer = window.setTimeout(() => {
+        press.current = null
+        if (ref) {
+          if (drag.current && !drag.current.moved) { drag.current = null; onMenu?.(ref, x, y) }
+        } else {
+          drag.current = { start, lead: null, moved: false, additive: false, id }
+          navigator.vibrate?.(15)
+        }
+      }, 500)
+      press.current = { id, x, y, ref, timer }
+      if (!ref) return
+    } else {
+      e.stopPropagation()
+    }
     ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
     if (gesture !== 'select') {
       const raw = ctx.toPlan(e.clientX, e.clientY)
@@ -106,6 +147,12 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     onMenu(ref, e.clientX, e.clientY)
   }
   const move = (e: React.PointerEvent) => {
+    const p = press.current
+    if (p && p.id === e.pointerId && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 3) {
+      unpress()
+      // Empty space: the finger pans the plan.
+      if (!p.ref) return
+    }
     const here = ctx.toPlan(e.clientX, e.clientY)
     onPointer?.(here)
     setRulerPointer(here)
@@ -127,8 +174,16 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     } else setMarquee(boxFrom(d.start, at))
   }
   const end = (e: React.PointerEvent) => {
+    // A finger's end always reaches the plan, which counts the fingers down for pinching.
+    const stop = (ev: React.PointerEvent) => { if (ev.pointerType !== 'touch') ev.stopPropagation() }
+    const p = press.current
+    if (p && p.id === e.pointerId) {
+      unpress()
+      // A tap on empty space clears the pick.
+      if (!p.ref) { onSelect([]); return }
+    }
     if (draft) {
-      e.stopPropagation()
+      stop(e)
       setDraft(null)
       const tiny = Math.hypot(draft.b.x - draft.a.x, draft.b.y - draft.a.y) < 4 * px
       if (gesture === 'measure') { setMeasured(tiny ? null : { ...draft, tool }); onMeasure?.(tiny ? null : draft); return }
@@ -139,7 +194,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
     }
     const d = drag.current
     if (!d || d.id !== e.pointerId) return
-    e.stopPropagation()
+    stop(e)
     drag.current = null
     const at = ctx.toPlan(e.clientX, e.clientY)
     if (d.lead) {
