@@ -1154,7 +1154,8 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
             onDouble={pickRowAt}
             guides={guides}
             onDrag={(raw, snap, lead, px) => { if (!drag) setFrozenPanel(panel); const g = dragTo(raw, snap, lead, px); setGuides(g.guides); setDrag({ d: g.d }) }}
-            onDrop={(raw, snap, lead, px) => { setDrag(null); setFrozenPanel(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }} />
+            onDrop={(raw, snap, lead, px) => { setDrag(null); setFrozenPanel(null); setGuides([]); void moveBy(selected, dragTo(raw, snap, lead, px).d) }}
+            onCancel={() => { setDrag(null); setFrozenPanel(null); setGuides([]) }} />
           {bgPlacing && data.background && tool === 'select' && (
             <BackgroundHandles ctx={ctx} frame={bgFrame} onDraft={(f) => setBgDraft(f ? { frame: f, data } : null)} onDone={placeBackground} />
           )}
