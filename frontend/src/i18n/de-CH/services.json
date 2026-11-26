@@ -113,6 +113,7 @@
     "unknown_other": "{{count}} nicht geprüft"
   },
   "panel": {
+    "downloads": "Was die Halle herunterlädt",
     "label": "{{name}}: Details",
     "close": "Details schliessen",
     "since": "So seit {{time}}",

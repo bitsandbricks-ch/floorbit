@@ -5,14 +5,15 @@ The **LAN cache** plugin watches a [lancache.net](https://lancache.net) cache fr
 
 - four dashboard widgets: this hour's hit ratio, what the cache served per hour, the cache
   machine (cache, lancache-dns, disk) and popular downloads;
-- the **LAN cache** view, for a dashboard pane or a widget opened up: the same numbers over a
+- **Traffic > Games and downloads**, below what each game fetched: the same numbers over a
   chosen range, files the cache isn't keeping, lancache-dns lookups, and clearing the cache;
-- the cache numbers on **Games**, the stats wall and the health wall (docs/games.md);
+- the cache machine in the LAN cache row's panel on **Services**;
+- the cache numbers on the Games widget, the stats wall and the health wall (docs/games.md);
 - **DNS analytics** (docs/dns.md), from lancache-dns's query log;
 
 It is a plugin from the [Marketplace](marketplace.md) (bitsandbricks-ch/floorbit-plugin-lancache):
 install it under **Settings > Plugins > Marketplace**, turn it on and fill in the paths as the agent
-sees them. The LAN cache page itself is part of Floorbit and says when the plugin isn't on. The agent picks the settings up on its own (docs/agent-plugins.md).
+sees them. Games and downloads itself is part of Floorbit and says when the plugin isn't on. The agent picks the settings up on its own (docs/agent-plugins.md).
 Floorbit reading `LANCACHE_LOG` itself (docs/games.md) still works for a Floorbit that runs in the
 hall; with a hosted Floorbit, use the plugin.
 
@@ -65,7 +66,7 @@ Floorbit refuses a `stats` payload that holds an IP or MAC address (docs/agent-p
 
 ## Clearing the cache
 
-**Clear the cache** on the page (admins) empties the cache folder: only nginx's two-letter hash
+**Clear the cache** on Games and downloads (admins) empties the cache folder: only nginx's two-letter hash
 folders, nothing else in it. It needs two yeses: the admin role in Floorbit, and the hall allowing
 it on the agent with `FLOORBIT_AGENT_ALLOW_ACTIONS=lancache.clear_cache` and a writable mount. The
 agent clears in the background; the page shows how far it got. Players then download everything
@@ -73,6 +74,6 @@ from the internet again until the cache has filled up. Each request is in the au
 
 ## Files the cache isn't keeping
 
-The page lists files that came from the internet three times or more within an hour. That usually
+Games and downloads lists files that came from the internet three times or more within an hour. That usually
 means the disk is full, the slice size is wrong, or the service changes its files (some launchers
 do on every update). A few during a big release are normal.

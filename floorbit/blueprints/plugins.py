@@ -115,7 +115,7 @@ def _listed():
     if 'lancache' not in registry.specs:
         from .lancache import _has_data
         if _has_data():
-            missing.append({'id': 'lancache', 'name': 'LAN cache', 'icon': 'storage', 'href': '/lancache'})
+            missing.append({'id': 'lancache', 'name': 'LAN cache', 'icon': 'storage', 'href': '/games'})
     return {'plugins': plugins, 'missing': missing}
 
 

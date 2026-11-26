@@ -74,8 +74,10 @@ describe('sections', () => {
       { href: '/traffic', id: 'traffic', label: 'Traffic' }, { href: '/games', id: 'games', label: 'Games' },
       { href: '/firewalls', id: 'firewalls', label: 'Firewalls' }, { href: '/wifi', id: 'wifi', label: 'Wi-Fi' },
     ]
-    expect(hubTabs(mon, '/dns')?.tabs.map((p) => p.id)).toEqual(['services', 'dns'])
-    expect(hubTabs(mon, '/games')?.tabs.map((p) => p.id)).toEqual(['traffic', 'games'])
+    // Services is one page; DNS and Games and downloads are Traffic's tabs (#1642).
+    expect(hubTabs(mon, '/services')).toBeNull()
+    expect(hubTabs(mon, '/dns')?.tabs.map((p) => p.id)).toEqual(['traffic', 'games', 'dns'])
+    expect(hubTabs(mon, '/games')?.tabs.map((p) => p.id)).toEqual(['traffic', 'games', 'dns'])
     expect(hubTabs(mon, '/wifi')?.tabs.map((p) => p.id)).toEqual(['firewalls', 'wifi'])
   })
 

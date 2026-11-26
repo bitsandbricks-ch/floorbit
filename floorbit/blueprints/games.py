@@ -14,7 +14,7 @@ bp = Blueprint('games', __name__)
 
 @bp.route('/games')
 def games_page():
-    return spa.render('Games')
+    return spa.render('Games and downloads')
 
 
 @bp.route('/api/games', methods=['GET'])

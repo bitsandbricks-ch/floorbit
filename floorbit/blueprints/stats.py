@@ -14,14 +14,9 @@ from flask import Blueprint, current_app, jsonify, request
 
 from integrations import events, seat_sources
 
-from .. import sources, spa, stats
+from .. import sources, stats
 
 bp = Blueprint('stats', __name__)
-
-
-@bp.route('/stats')
-def stats_page():
-    return spa.render('Stats')
 
 
 def _can(permission):

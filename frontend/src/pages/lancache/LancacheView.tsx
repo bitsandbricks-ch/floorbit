@@ -11,10 +11,10 @@ import { ago, dayClock } from '@/lib/time'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { bytes } from '../traffic/format'
 import { Panel } from '@/components/ui'
+import { RANGES } from '../games/ranges'
 
 const W = 1000
 const H = 140
-const RANGES = [6, 24, 168]
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/lancache.md'
 const pct = (n: number | null | undefined) => (n == null ? '–' : `${Math.round(n * 100)} %`)
 const ratio = (hit: number, miss: number) => (hit + miss ? hit / (hit + miss) : null)
@@ -105,7 +105,7 @@ function Machine({ agent }: { agent: LancacheAgent }) {
   )
 }
 
-function Machines({ data, expanded }: { data: LancacheOverview; expanded: boolean }) {
+function Machines({ data, expanded, bare }: { data: LancacheOverview; expanded: boolean; bare?: boolean }) {
   const { t } = useTranslation()
   const client = useQueryClient()
   const canClear = useCan('settings.manage')
@@ -118,21 +118,37 @@ function Machines({ data, expanded }: { data: LancacheOverview; expanded: boolea
     },
     onError: (e) => setResult({ ok: false, text: e.message }),
   })
-  return (
-    <Panel className="fb-wide" titleId="lc-machine" title={t('lancache.machine')} actions={<>
-      {expanded && canClear && data.agents.length > 0 && (
-        <ConfirmButton size="xs" variant="light" danger label={t('lancache.clear')} question={t('lancache.clearQuestion')}
-          loading={clear.isPending} onConfirm={() => clear.mutate()} />
-      )}
-    </>}>
+  const clearButton = expanded && canClear && data.agents.length > 0 && (
+    <ConfirmButton size="xs" variant="light" danger label={t('lancache.clear')} question={t('lancache.clearQuestion')}
+      loading={clear.isPending} onConfirm={() => clear.mutate()} />
+  )
+  const body = (
+    <>
       {result && <Alert color={result.ok ? 'up' : 'down'} variant="light" mb="sm" withCloseButton onClose={() => setResult(null)}>{result.text}</Alert>}
       {data.agents.length === 0 ? <Text size="sm" c="dimmed">{t('lancache.noAgent')}</Text> : (
-        <SimpleGrid cols={{ base: 1, md: 2 }}>
+        <SimpleGrid cols={bare ? 1 : { base: 1, md: 2 }}>
           {data.agents.map((a) => <Machine key={a.id} agent={a} />)}
         </SimpleGrid>
       )}
-    </Panel>
+    </>
   )
+  if (bare) {
+    return (
+      <Stack gap="xs" aria-label={t('lancache.machine')} role="group">
+        <Group justify="space-between"><Text fw={600} size="sm">{t('lancache.machine')}</Text>{clearButton}</Group>
+        {body}
+      </Stack>
+    )
+  }
+  return <Panel className="fb-wide" titleId="lc-machine" title={t('lancache.machine')} actions={<>{clearButton}</>}>{body}</Panel>
+}
+
+/** The cache machine as each agent sees it, for the LAN cache's row on Services: Services says
+ *  whether things work, Traffic what the hall downloads (#1642). */
+export function CacheMachine() {
+  const query = useQuery({ queryKey: qk.lancache(1), queryFn: () => get<LancacheOverview>('/api/lancache?hours=1'), refetchInterval: 30_000 })
+  if (!query.data) return null
+  return <Machines data={query.data} expanded bare />
 }
 
 function Downloads({ data }: { data: LancacheOverview }) {
@@ -219,9 +235,12 @@ function Lookups({ data }: { data: LancacheOverview }) {
 
 /** The LAN cache as a view (a dashboard pane, or a widget's expanded size): what it saved, the
  *  cache machine and, expanded, what the hall downloads and clearing it. Hall-wide only. */
-export default function LancacheView({ expanded }: ViewProps) {
+export default function LancacheView({ expanded, hours: given }: ViewProps & { hours?: number }) {
   const { t } = useTranslation()
-  const [hours, setHours] = useState(24)
+  const [own, setHours] = useState(24)
+  // On Traffic > Games and downloads the page picks the range and the machine is on Services (#1642).
+  const embedded = given != null
+  const hours = given ?? own
   const query = useQuery({
     queryKey: qk.lancache(hours),
     queryFn: () => get<LancacheOverview>(`/api/lancache?hours=${hours}`),
@@ -232,7 +251,7 @@ export default function LancacheView({ expanded }: ViewProps) {
   const peak = data?.clients.length ? data.clients.reduce((m, c) => Math.max(m, c.clients), 0) : null
   return (
     <>
-      {expanded && (
+      {expanded && !embedded && (
         <Group justify="flex-end" mb="sm">
           <SegmentedControl value={String(hours)} onChange={(v) => setHours(Number(v))} aria-label={t('lancache.range')}
             data={RANGES.map((h) => ({ value: String(h), label: t(`games.hours.${h}`) }))} />
@@ -266,7 +285,7 @@ export default function LancacheView({ expanded }: ViewProps) {
               sub={peak == null ? t('lancache.clientsNone') : t('lancache.clientsSub')} />
           </SimpleGrid>
           <div className="fb-stats">
-            <Machines data={data} expanded={expanded} />
+            {!embedded && <Machines data={data} expanded={expanded} />}
             {expanded && (
               <>
                 <Chart data={data} />

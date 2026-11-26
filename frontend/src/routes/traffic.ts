@@ -8,8 +8,8 @@ const FlowLookup = lazy(() => import('@/pages/FlowLookup'))
 export const routes: AppRoute[] = [
   { path: '/traffic', element: createElement(ViewPage, { key: 'traffic', view: 'traffic' }) },
   { path: '/games', element: createElement(ViewPage, { key: 'games', view: 'games' }) },
+  { path: '/dns', element: createElement(ViewPage, { key: 'dns', view: 'dns' }) },
   { path: '/applications', element: createElement(Applications) },
   { path: '/flow-lookup', element: createElement(FlowLookup) },
-  { path: '/stats', element: createElement(ViewPage, { key: 'stats', view: 'stats' }) },
   { path: '/speedtests', element: createElement(ViewPage, { key: 'speedtests', view: 'speedtests' }) },
 ]

@@ -67,15 +67,16 @@ def test_a_viewer_finds_places_without_people(app_module):
 
 
 def test_monitoring_pages_have_their_own_address(client, built):
-    # Each Monitoring view is a page too (Network > Wi-Fi, Services > DNS, Traffic, ...). Service
-    # health is part of Services now (issue #1337).
-    for path in ("/services", "/dns", "/traffic", "/games", "/stats", "/speedtests"):
+    # Each Monitoring view is a page too (Network > Wi-Fi, Traffic > DNS, ...). Service health is
+    # part of Services (issue #1337); Stats and the LAN cache are part of Traffic's tabs (#1642).
+    for path in ("/services", "/dns", "/traffic", "/games", "/speedtests"):
         assert client.get(path).status_code == 200, path
-    assert client.get("/health").status_code == 404
+    for gone in ("/health", "/stats", "/lancache"):
+        assert client.get(gone).status_code == 404, gone
     got = hrefs(client)
-    assert {"/services", "/dns", "/traffic", "/games", "/stats", "/speedtests"} <= set(got) and "/health" not in got
-    # No Wi-Fi source and no LAN cache plugin: their pages stay out of the list.
-    assert "/wifi" not in got and "/lancache" not in got
+    assert {"/services", "/dns", "/traffic", "/games", "/speedtests"} <= set(got) and "/health" not in got
+    # No Wi-Fi source: its page stays out of the list.
+    assert "/wifi" not in got and "/stats" not in got and "/lancache" not in got
 
 
 def test_a_monitoring_page_goes_with_its_feature(client):

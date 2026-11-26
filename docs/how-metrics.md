@@ -6,7 +6,7 @@ each with its own path.
 | Kind | Made by | Kept in | Read by |
 | --- | --- | --- | --- |
 | Device and port series | Telemetry on the agent ([how-telemetry.md](how-telemetry.md)) | Lite database or VictoriaMetrics | Device graphs, `/api/telemetry/series`, Grafana |
-| Hall stats | The port watch on Floorbit | Memory + the event's `stats.json` document | Stats page, dashboards, replay |
+| Hall stats | The port watch on Floorbit | Memory + the event's `stats.json` document | Traffic overview, dashboards, replay |
 | Floorbit's own counts | `/api/metrics` at scrape time | Nowhere: worked out per scrape | A NOC's Prometheus and Grafana |
 | Agent numbers | The agent's report and `/metrics` | Telemetry storage (`agent:<id>`) | The agent's Graphs tab, Prometheus |
 
@@ -29,7 +29,7 @@ flowchart LR
   end
   sto --> graphs["Device and port graphs"]
   vm --> graf["Grafana"]
-  sj --> dash["Stats page, dashboards, replay"]
+  sj --> dash["Traffic overview, dashboards, replay"]
   prom["Prometheus"] -- "scrape, read-only API token" --> pm
   prom -- scrape --> amet
 ```

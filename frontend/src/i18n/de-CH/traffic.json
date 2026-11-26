@@ -1,6 +1,6 @@
 {
   "title": "Verkehr",
-  "intro": "Woraus der Verkehr in der Halle besteht, aus NetFlow oder IPFIX. Nur zusammengefasst: Niemand sieht, was eine Person besucht hat.",
+  "intro": "Wie viel die Halle bewegt, jetzt und zur Spitze, von den Switches gelesen, und woraus dieser Verkehr besteht, aus NetFlow oder IPFIX. Nur zusammengefasst: Niemand sieht, was eine Person besucht hat.",
   "noCollector": "Noch keine Flow-Daten. Der Flow-Collector ist ein optionaler Container, an den die Switches oder der Router NetFlow oder IPFIX schicken. So wird er eingerichtet:",
   "rulesError": "Die eigenen Dienst-Regeln des Events (FLOWS_SERVICES) können nicht gelesen werden, deshalb gelten nur die eingebauten: {{message}}",
   "updated": "Aktualisiert {{time}}",

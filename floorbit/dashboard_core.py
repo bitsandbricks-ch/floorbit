@@ -340,7 +340,7 @@ def traffic_widget(lang, snapshot, rng=None, compare=None, hours=(), now=None):
     in and out together. ``compare='day'`` adds yesterday at the same times as a ghost line."""
     text = TEXTS.get(lang, TEXTS['en'])
     now = time.time() if now is None else now
-    out = {'type': 'series', 'unit': 'bit/s', 'link': '/stats'}
+    out = {'type': 'series', 'unit': 'bit/s', 'link': '/traffic'}
     if rng == 'event':
         hours = list(hours)[-MAX_POINTS:]
         out['series'] = [{'label': text['avg_total'], 'points': [[h['t'], h['avg_bps']] for h in hours]},

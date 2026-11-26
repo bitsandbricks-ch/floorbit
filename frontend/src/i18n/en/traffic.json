@@ -1,6 +1,6 @@
 {
   "title": "Traffic",
-  "intro": "What the hall's traffic is made of, from NetFlow or IPFIX. Aggregate only: nobody sees what a person visited.",
+  "intro": "How much the hall moves, now and at its peak, read from the switches, and what that traffic is made of, from NetFlow or IPFIX. Aggregate only: nobody sees what a person visited.",
   "noCollector": "No flow data yet. The flow collector is an optional container that the switches or the router send NetFlow or IPFIX to. How to set it up:",
   "rulesError": "The event's own service rules (FLOWS_SERVICES) can't be read, so only the built-in ones are used: {{message}}",
   "updated": "Updated {{time}}",

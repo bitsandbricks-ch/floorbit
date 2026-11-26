@@ -2,7 +2,7 @@
 
 What the hall looks up, from the event's DNS resolver: lookups per hour, the top sites, categories
 (gaming, streaming, social, updates), sites that are new today and what the resolver blocked. It's
-the **DNS** widget (on the ready-made Traffic dashboard) and in `GET /api/dns`.
+the **DNS** widget (on the ready-made Traffic dashboard), the **Traffic > DNS** tab and in `GET /api/dns`.
 
 It answers questions like "did the game's patch day reach the hall?", "is Discord down or is it
 us?" and "how much does the ad blocker catch?", without telling anyone what a person looked up.

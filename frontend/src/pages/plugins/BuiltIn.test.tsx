@@ -80,13 +80,15 @@ describe('Built in (#1436)', () => {
     expect(screen.getAllByText('Off')).toHaveLength(1)
   })
 
-  it('hides the links of features that are off', async () => {
-    vi.stubGlobal('fetch', fakeFetch({
-      'GET /api/auth/me': admin, 'GET /api/features': { off: ['replay'] },
+  it('leaves the event replay and report to Events', async () => {
+    // Stats is part of Traffic's overview now; the event's own pages are Events tabs (#1430, #1642).
+    const api = fakeFetch({
+      'GET /api/auth/me': admin, 'GET /api/features': { off: [] },
       'GET /api/stats': { series: [], peak: null, uplinks: [], seats: { online: 0, total: 0 }, top: [], last_poll: null },
-    }).fn)
+    })
+    vi.stubGlobal('fetch', api.fn)
     renderWithApp(<StatsView expanded />)
-    expect(await screen.findByRole('link', { name: /Event report/ })).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByRole('link', { name: /Replay/ })).not.toBeInTheDocument())
+    await waitFor(() => expect(api.calls.some((c) => c.path.startsWith('/api/stats'))).toBe(true))
+    expect(screen.queryByRole('link', { name: /Event report|Replay/ })).not.toBeInTheDocument()
   })
 })

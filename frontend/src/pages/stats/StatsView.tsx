@@ -1,5 +1,4 @@
-import { Button, Group, SegmentedControl, Text } from '@mantine/core'
-import { IconFileText, IconPlayerPlay } from '@tabler/icons-react'
+import { Group, SegmentedControl, Text } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -147,8 +146,6 @@ function OnlineLine({ series }: { series: StatsSample[] }) {
  *  Small, the busiest rows only and no nicks, for a wall; opened up, everything with the peak reset. */
 export default function StatsView({ expanded }: ViewProps) {
   const { t } = useTranslation()
-  const replayOn = useFeature('replay')
-  const reportOn = useFeature('report')
   const client = useQueryClient()
   const stats = useStats(!expanded)
   const canReset = useCan('settings.manage')
@@ -165,16 +162,6 @@ export default function StatsView({ expanded }: ViewProps) {
         <Group justify="space-between" mb="sm" wrap="wrap">
           <Text size="sm" c="dimmed">{updated}</Text>
           <Group gap="xs">
-            {replayOn && (
-              <Button variant="default" component="a" href="/replay" leftSection={<IconPlayerPlay size={16} />}>
-                {t('stats.replay')}
-              </Button>
-            )}
-            {reportOn && (
-              <Button variant="default" component="a" href="/report" leftSection={<IconFileText size={16} />}>
-                {t('stats.report')}
-              </Button>
-            )}
             {canReset && stats.data?.peak && (
               <ConfirmButton variant="default" danger label={t('stats.resetPeak')} question={t('stats.resetConfirm')}
                 onConfirm={() => reset.mutate()} loading={reset.isPending} />

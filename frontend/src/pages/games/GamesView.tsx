@@ -10,8 +10,8 @@ import type { ViewProps } from '@/pages/monitoring/pages'
 import { DataTable, ErrorBanner } from '@bitsandbricks/ui'
 import { bytes } from '../traffic/format'
 import { Panel } from '@/components/ui'
+import { RANGES } from './ranges'
 
-const RANGES = [6, 24, 168]
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/games.md'
 const pct = (n: number | null | undefined) => (n == null ? '–' : `${Math.round(n * 100)} %`)
 const ratio = (hit: number, miss: number) => (hit + miss ? hit / (hit + miss) : null)
@@ -73,13 +73,13 @@ function Titles({ data, compact }: { data: GamesData; compact: boolean }) {
   )
 }
 
-function Board({ data, compact }: { data: GamesData; compact: boolean }) {
+function Board({ data, compact, embedded }: { data: GamesData; compact: boolean; embedded: boolean }) {
   const { t } = useTranslation()
   const c = data.cache
   return (
     <>
       {/* The cache's own numbers live on the LAN cache page (#1420); here only what each game fetched. */}
-      {data.sources.cache && (
+      {data.sources.cache && !embedded && (
         <Text size="sm" c="dimmed" mb="md">
           {t('games.cacheLink', { saved: bytes(c.hit_bytes) })} <Anchor href="/lancache">{t('games.cacheLinkOpen')}</Anchor>
         </Text>
@@ -106,9 +106,12 @@ function Board({ data, compact }: { data: GamesData; compact: boolean }) {
 }
 
 /** What the hall plays and downloads, and what the LAN cache saved (issue #88). Hall-wide only. */
-export default function GamesView({ expanded }: ViewProps) {
+export default function GamesView({ expanded, hours: given }: ViewProps & { hours?: number }) {
   const { t } = useTranslation()
-  const [hours, setHours] = useState(24)
+  const [own, setHours] = useState(24)
+  // On Traffic > Games and downloads the page picks the range and shows the LAN cache below (#1642).
+  const embedded = given != null
+  const hours = given ?? own
   const query = useQuery({ queryKey: qk.games(hours), queryFn: () => get<GamesData>(`/api/games?hours=${hours}`), refetchInterval: 60_000 })
   const data = query.data
   const none = data && !data.sources.dns && !data.sources.traffic && !data.sources.cache && !data.sources.servers
@@ -120,15 +123,17 @@ export default function GamesView({ expanded }: ViewProps) {
             {data ? [data.sources.cache && t('games.fromCacheSource'), data.sources.traffic && t('games.fromTrafficSource'),
               data.sources.dns && t('games.fromDnsSource')].filter(Boolean).join(' · ') : ''}
           </Text>
-          <SegmentedControl value={String(hours)} onChange={(v) => setHours(Number(v))} aria-label={t('games.range')}
-            data={RANGES.map((h) => ({ value: String(h), label: t(`games.hours.${h}`) }))} />
+          {!embedded && (
+            <SegmentedControl value={String(hours)} onChange={(v) => setHours(Number(v))} aria-label={t('games.range')}
+              data={RANGES.map((h) => ({ value: String(h), label: t(`games.hours.${h}`) }))} />
+          )}
         </Group>
       )}
       <ErrorBanner error={query.error} onRetry={() => void query.refetch()} mb="md" />
       {data?.cache.error && <Alert color="warn" mb="md">{t('games.cacheError', { message: data.cache.error })}</Alert>}
       {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : none ? (
         <Alert color="gray" variant="light">{t('games.noSources')} <Anchor href={DOCS}>docs/games.md</Anchor></Alert>
-      ) : <Board data={data} compact={!expanded} />}
+      ) : <Board data={data} compact={!expanded} embedded={embedded} />}
     </>
   )
 }
