@@ -148,8 +148,10 @@ BUILTIN = {
         _at(16, 0, 4, 3, _tile('agents')),
         _at(20, 0, 4, 3, _tile('lancache')),
         _at(0, 3, 14, 9, _plan(preset='ops')),
-        _at(14, 3, 10, 5, _tile('service_health', type='status')),
-        _at(14, 8, 10, 4, _tile('down')),
+        # Service health lists every check; switches down is mostly one "all up" line, so it gets
+        # the short box and leaves no empty space beside the plan (#1407).
+        _at(14, 3, 10, 6, _tile('service_health', type='status')),
+        _at(14, 9, 10, 3, _tile('down')),
         # Bandwidth over time is the Traffic page's; here only its tile in the top row (#1421).
         _at(0, 12, 12, 8, _tile('switch_states', type='status')),
         _at(12, 12, 12, 8, _tile('uplinks', type='bar')),
