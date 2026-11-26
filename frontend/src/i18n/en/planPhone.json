@@ -7,5 +7,6 @@
   "screen": "Show on a big screen",
   "dashboards": "Dashboards",
   "edit": "Edit plan",
-  "done": "Done"
+  "done": "Done",
+  "editShort": "Edit"
 }
