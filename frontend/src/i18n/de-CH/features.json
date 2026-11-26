@@ -76,7 +76,7 @@
       "off": "Aus",
       "partly": "Teilweise an"
     },
-    "partly": "Einige Teile sind aus: {{parts}}. Einschalten, um alle einzuschalten.",
+    "partly": "Einige Teile sind aus: {{parts}}.",
     "forced": "In der Umgebung des Servers ausgeschaltet.",
     "needsTitle": "Was es braucht",
     "stillNeeds": "Was {{name}} noch braucht",
@@ -110,9 +110,8 @@
       "cap.front_door": "Der Eingang für Teilnehmende eingeschaltet",
       "cap.checkin": "Der Platz-Check-in eingeschaltet",
       "dhcp114": "Option 114 im DHCP des Events, mit Ziel Agent",
-      "port.syslog-relay": "Ein UDP-Port für Syslog auf dem Agent",
-      "port.netflow-relay": "Ein UDP-Port für Flows auf dem Agent",
       "powerSource": "Ein Strommesser-Plugin, etwa Shelly oder Home Assistant"
-    }
+    },
+    "allOn": "Alles einschalten"
   }
 }

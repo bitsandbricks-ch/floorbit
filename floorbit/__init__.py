@@ -117,7 +117,10 @@ def create_app(start_background=True):
     from auth.providers import DiscordProvider
     auth = app.extensions['auth']
     auth.providers.register(DiscordProvider(settings_store.get))
-    auth.public_url = lambda: _setting_or_empty(settings_store, 'integrations.public_url')
+    # The setting, else where the crew last opened Floorbit (floorbit/public_url.py, #1433).
+    from . import public_url
+    auth.public_url = lambda: _setting_or_empty(settings_store, 'integrations.public_url') or public_url.learned()
+    public_url.init_app(app)
 
     @app.before_request
     def refresh_runtime_settings():
@@ -233,6 +236,9 @@ def create_app(start_background=True):
     # The agents' Let's Encrypt certificate, once its name reaches Floorbit (docs/agent.md).
     from . import public_cert
     public_cert.init_app(app, start_background=start_background)
+    # The agents' own updates, from their signed releases (agent_updates.py).
+    from . import agent_updates
+    agent_updates.init_app(app, start_background=start_background)
 
     # Ports that need a look: flapping, errors rising, half duplex, no check-in (docs/alerts.md).
     from .attention import init_attention

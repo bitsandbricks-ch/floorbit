@@ -1,0 +1,16 @@
+/* Every plugin card has the same slots (#1435): the foot sits at the bottom, whatever the text above. */
+.fb-plugin-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fb-plugin-card-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fb-plugin-card-foot {
+  margin-top: auto;
+  padding-top: 4px;
+}

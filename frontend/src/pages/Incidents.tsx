@@ -13,13 +13,13 @@ import type { CrewMember, Incident, IncidentStatus } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
-import { matchesFilter } from './incidents/filter'
+import { matchesFilter, matchesFacets, whereKind, type Facets } from './incidents/filter'
 import { MyJobs } from './incidents/MyJobs'
 import { IncidentCard, type IncidentChange } from './incidents/IncidentCard'
 import { IncidentTable } from './incidents/IncidentTable'
 import { NewIncident, type IncidentDraft } from './incidents/NewIncident'
 import { isSnoozed, nextToTake, openOrder } from './incidents/waiting'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { ErrorBanner, FilterBar, LoadingState, useFilters } from '@bitsandbricks/ui'
 
 const COLUMNS: IncidentStatus[] = ['open', 'assigned', 'fixed']
 const FIXED_SHOWN = 20
@@ -33,19 +33,14 @@ export default function Incidents() {
   const people = useIncidentPeople()
   const me = useMe()
   const switches = useQuery({ queryKey: qk.switches, queryFn: () => get<{ id: string; name: string }[]>('/api/switches') })
-  const [mineOnly, setMineOnly] = useState(false)
   const dispatchOn = useFeature('dispatch')
   const now = useNowSeconds()
   // The filter lives in the address, so a link can open the board filtered (issue #210).
   // The box keeps its own state: the address updates a moment later, and typing fast against it lost letters (issue #226).
   const [params, setParams] = useSearchParams()
-  // "Assigned to me" in the address, so Discord's /jobs can link straight to it (issue #887).
-  const assignedToMe = params.get('mine') === '1'
-  const setAssignedToMe = (on: boolean) => setParams((prev) => {
-    const next = new URLSearchParams(prev)
-    if (on) next.set('mine', '1'); else next.delete('mine')
-    return next
-  }, { replace: true })
+  // Who, team, state and where (issue #887), in the address like the text filter. ``mine=1`` is
+  // "Assigned to me", the link Discord's /jobs sends; ``mine=can`` what I may work.
+  const facets = useFilters({ mine: '', team: '', state: 'all', where: 'all' })
   // Board or table (issue #887), in the address so a link or a reload keeps it.
   const view = params.get('view') === 'table' ? 'table' : 'board'
   const setView = (v: string) => setParams((prev) => {
@@ -126,8 +121,11 @@ export default function Incidents() {
   }
   // "n" takes the next one, like "/" jumps to the filter (issue #316); typing in a field doesn't count.
   useHotkeys([['n', takeNext]])
-  const items = (board.data?.incidents ?? []).filter((i) => (!mineOnly || i.can_work)
-    && (!assignedToMe || (!!username && i.assignee === username)) && matchesFilter(i, filter, teamNames))
+  const all = board.data?.incidents ?? []
+  const shown = (f: Partial<Facets>) => all.filter((i) => matchesFacets(i, { ...(facets.values as Facets), ...f }, username))
+  const items = shown({}).filter((i) => matchesFilter(i, filter, teamNames))
+  const teams = (board.data?.teams ?? []).filter((x) => all.some((i) => i.team === x.id))
+  const wheres = (['seat', 'switch', 'circuit'] as const).filter((w) => all.some((i) => whereKind(i) === w))
   return (
     <Layout title={t('incidents.title')} back={{ href: '/', label: t('common.floorPlan') }}
       count={(board.data?.incidents ?? []).filter((i) => i.status === 'open' && !isSnoozed(i, now)).length}>
@@ -157,18 +155,33 @@ export default function Incidents() {
         <Group gap="md">
           <SegmentedControl size="sm" aria-label={t('incidentTable.view')} value={view} onChange={setView}
             data={[{ value: 'board', label: t('incidentTable.board') }, { value: 'table', label: t('incidentTable.table') }]} />
+          {/* The text box stays our own: it keeps its letters ahead of the address (issue #226) and has the "/" key. */}
           <TextInput ref={filterBox} aria-label={t('incidents.filter')} aria-keyshortcuts="/" placeholder={t('incidents.filterHint')} w={300} value={filter}
             leftSection={<IconFilter size={14} />} rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined}
             onChange={(e) => setFilter(e.currentTarget.value)} />
-          <Switch label={t('incidents.assignedToMe')} checked={assignedToMe} onChange={(e) => setAssignedToMe(e.currentTarget.checked)} />
-          <Switch label={t('incidents.mineOnly')} checked={mineOnly} onChange={(e) => setMineOnly(e.currentTarget.checked)} />
-          {me.data?.user && (
+          <FilterBar search={filter} onClear={() => { setFilter(''); facets.clear() }} groups={facets.groups([
+            { key: 'mine', label: t('incidentFilter.who'), hidden: !username, options: [
+              { value: '', label: t('incidentFilter.everyone'), count: shown({ mine: '' }).length },
+              { value: '1', label: t('incidents.assignedToMe'), count: shown({ mine: '1' }).length },
+              { value: 'can', label: t('incidents.mineOnly'), count: shown({ mine: 'can' }).length },
+            ] },
+            { key: 'team', label: t('incidentTable.team'), hidden: !teams.length, options: [
+              { value: '', label: t('incidentFilter.anyTeam') },
+              ...teams.map((x) => ({ value: x.id, label: x.name, count: shown({ team: x.id }).length })),
+            ] },
+            { key: 'state', label: t('incidentTable.status'), options: (['all', 'open', 'assigned', 'fixed'] as const).map((v) => ({
+              value: v, label: v === 'all' ? t('incidentFilter.all') : t(`incidents.status.${v}`), count: shown({ state: v }).length,
+            })) },
+            { key: 'where', label: t('incidentTable.where'), hidden: wheres.length < 2, options: (['all', ...wheres] as const).map((v) => ({
+              value: v, label: t(`incidentFilter.wheres.${v}`), count: shown({ where: v }).length,
+            })) },
+          ])} actions={me.data?.user && (
             <Button variant="default" leftSection={<IconHandGrab size={16} />} disabled={!next} loading={change.isPending && change.variables?.next}
               title={next ? next.title : t('incidents.nothingNext')} aria-keyshortcuts="n"
               rightSection={keyboard ? <Kbd size="xs" aria-hidden>n</Kbd> : undefined} onClick={takeNext}>
               {t('incidents.takeNext')}
             </Button>
-          )}
+          )} />
         </Group>
         <Text size="sm" role="status" className={message ? (message.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
           {message?.text}
@@ -208,7 +221,7 @@ export default function Incidents() {
                     <Title order={3} size="h4">{t(`incidents.status.${status}`)}</Title>
                     <Badge variant="light" color={status === 'open' && column.length ? 'down' : 'gray'}>{column.length}</Badge>
                   </Group>
-                  {!column.length && <Text size="sm" c="dimmed">{filter ? t('incidents.noMatch') : t(`incidents.empty.${status}`)}</Text>}
+                  {!column.length && <Text size="sm" c="dimmed">{filter || facets.changed ? t('incidents.noMatch') : t(`incidents.empty.${status}`)}</Text>}
                   {shown.map((i) => (
                     <IncidentCard key={i.id} incident={i} board={board.data} people={people.data} me={me.data?.user?.username}
                       busy={(change.isPending && change.variables?.id === i.id) || (send.isPending && send.variables === i.id)}

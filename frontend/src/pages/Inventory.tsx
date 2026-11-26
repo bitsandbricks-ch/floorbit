@@ -1,10 +1,10 @@
 import {
-  ActionIcon, Alert, Anchor, Badge, Box, Button, Chip, Group, Menu, Modal, MultiSelect, Select, Switch, Tabs, Text,
-  TextInput, Tooltip,
+  ActionIcon, Alert, Anchor, Badge, Box, Button, Chip, Group, Menu, Modal, Tabs, Text,
+  Tooltip,
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  IconAlertTriangle, IconCategory, IconDots, IconIcons, IconLock, IconMapPin, IconPlus, IconRefresh, IconSearch, IconTags,
+  IconAlertTriangle, IconCategory, IconDots, IconIcons, IconLock, IconMapPin, IconPlus, IconRefresh, IconTags,
 } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
@@ -13,13 +13,15 @@ import { Link, useNavigate } from 'react-router-dom'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan, useInventory } from '@/api/queries'
-import type { Device, InventoryField, InventorySource, SyncReport } from '@/api/types'
+import type { Device, InventorySource, SyncReport } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { DataTable, LoadingState, PageHead } from '@bitsandbricks/ui'
+import { DataTable, FilterBar, LoadingState, PageHead, useFilters } from '@bitsandbricks/ui'
 import { useDriftAll } from '@/api/inventoryDrift'
-import { DeviceForm } from './inventory/DeviceForm'
 import { DriftAll } from './inventory/DriftPanel'
 import { IpamView } from './inventory/IpamView'
+import { UnknownSenders } from './inventory/UnknownSenders'
+import { DiscoveryView } from './inventory/DiscoveryView'
+import { useFoundCount } from '@/api/inventoryFound'
 import { ipamSubOf, type IpamSub } from './inventory/ipam'
 import type { ScopeTarget } from './inventory/ScopeEditor'
 import { GroupTree, type GroupFilter } from './inventory/GroupTree'
@@ -27,9 +29,15 @@ import { EntriesView } from './inventory/EntriesView'
 import { IconLibrary } from './inventory/IconLibrary'
 import { TypesEditor } from './inventory/TypesEditor'
 import { DeviceIcon } from './inventory/icons'
-import { devicePath, effectiveLook, entryPath, matches, roleIcon, scopePath, typeName, type Draft } from './inventory/model'
+import { LastDayCell, UplinkCell } from './inventory/ListCells'
+import { PickBar } from './inventory/PickBar'
+import { lastDaySort, uplinkSort, useAgentName } from './inventory/listColumns'
+import { devicePath, effectiveLook, entryPath, matches, roleIcon, scopePath, typeName } from './inventory/model'
 import { groupAndBelow, groupTree, useInventoryGroups, useInventoryTypes } from './inventory/scope'
 import { dateTime } from '@/lib/time'
+
+/** Types with a tab of their own next to Inventory (Cables, Electrics): not again in the type tabs. */
+const ON_HUB_TABS = new Set(['cable', 'circuit', 'power-board'])
 
 const BIT: Record<string, string> = { online: '', offline: 'is-down', unknown: 'is-off' }
 
@@ -78,6 +86,7 @@ export default function Inventory() {
   const client = useQueryClient()
   const canEdit = useCan('floorplan.edit')
   const canManage = useCan('settings.manage')
+  const canRun = useCan('ports.act')
   const [libraryOpen, library] = useDisclosure(false)
   const [typesOpen, typesEditor] = useDisclosure(false)
   const navigate = useNavigate()
@@ -89,23 +98,27 @@ export default function Inventory() {
   // VLANs and prefixes live on the IPAM tab (#1346); ?type=vlan|prefix comes back from their pages.
   const [ipamSub, setIpamSub] = useState<IpamSub>(() => ipamSubOf(new URLSearchParams(window.location.search).get('type') ?? '') ?? 'prefixes')
   const types = useInventoryTypes().data?.types ?? []
+  const foundCount = useFoundCount()
   const currentType = types.find((x) => x.id === typeTab)
-  const [showHidden, setShowHidden] = useState(false)
-  // ?q= from the floor plan's right-click menu ("Edit seat mapping", "Show in inventory")
-  const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '')
-  const [role, setRole] = useState<string | null>(null)
-  const [editing, setEditing] = useState<Device | null>(null)
-  const [group, setGroup] = useState<GroupFilter>(null)
-  const [tagFilter, setTagFilter] = useState<string[]>([])
-  const [state, setState] = useState<string | null>(null)
-  // ?view=drift: every device that differs, as one diff (issue #903)
-  const [driftView, setDriftView] = useState(() => new URLSearchParams(window.location.search).get('view') === 'drift')
+  // The shared filter row, kept in the address (#982): ?q= also comes from the floor plan's
+  // right-click menu ("Show in inventory"), ?view=drift is every device that differs (#903).
+  const filters = useFilters({ role: '', group: '', tag: '', state: '', hidden: '', view: '' })
+  const query = filters.search
+  const role = filters.values.role || null
+  const group: GroupFilter = filters.values.group || null
+  const setGroup = (g: GroupFilter) => filters.set('group', g ?? '')
+  const tagFilter = filters.values.tag ? [filters.values.tag] : []
+  const setTagFilter = (tags: string[]) => filters.set('tag', tags[tags.length - 1] ?? '')
+  const state = filters.values.state || null
+  const showHidden = filters.values.hidden === 'shown'
+  const driftView = filters.values.view === 'drift'
+  const setDriftView = (on: boolean) => filters.set('view', on ? 'drift' : '')
+  const agentName = useAgentName()
   const driftAll = useDriftAll(driftView)
   const [removing, setRemoving] = useState<Device | null>(null)
+  const [picks, setPicks] = useState<string[]>([])
   const groupsQuery = useInventoryGroups()
   const overview = groupsQuery.data
-  const [formOpen, form] = useDisclosure(false)
-  const [formError, setFormError] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
   const { data, error, isPending } = useInventory(showHidden)
 
@@ -116,21 +129,6 @@ export default function Inventory() {
 
   const refresh = () => client.invalidateQueries({ queryKey: qk.inventoryAll })
 
-  const save = useMutation({
-    mutationFn: (changes: Partial<Draft> & { unlock?: InventoryField[]; hidden?: boolean; [k: string]: unknown }) =>
-      editing ? patch<Device>(`/api/inventory/${encodeURIComponent(editing.id)}`, changes) : post<Device>('/api/inventory', changes),
-    onSuccess: (device, changes) => {
-      void refresh()
-      setFormError(null)
-      if ('unlock' in changes) {
-        setEditing(device)
-        return
-      }
-      form.close()
-      setMessage({ ok: true, text: t('inventory.saved') })
-    },
-    onError: (e) => setFormError(e.message),
-  })
   const remove = useMutation({
     mutationFn: (device: Device) => del<{ result: string }>(`/api/inventory/${encodeURIComponent(device.id)}`),
     onSuccess: () => void refresh(),
@@ -174,10 +172,13 @@ export default function Inventory() {
   const roleCounts = new Map<string, number>()
   for (const d of filtered) roleCounts.set(d.role, (roleCounts.get(d.role) ?? 0) + 1)
   const devices = filtered.filter((d) => !role || d.role === role)
+  // Only what the filters still show is acted on: a pick hidden by a filter would surprise.
+  const picked = devices.filter((d) => picks.includes(d.id))
   const driftCount = all.filter((d) => d.drift).length
   const groupName = (id?: string | null) => groups.find((g) => g.id === id)?.name ?? ''
   const tagOf = (id: string) => overview?.tags.find((x) => x.id === id)
-  const otherTypes = types.filter((x) => x.sort !== 'device' && x.count > 0 && !ipamSubOf(x.id))
+  // Cables and power have tabs of their own above (Cables, Electrics): one row of tabs, not two (#1426).
+  const otherTypes = types.filter((x) => x.sort !== 'device' && x.count > 0 && !ipamSubOf(x.id) && !ON_HUB_TABS.has(x.id))
   const ipamCount = types.filter((x) => ipamSubOf(x.id)).reduce((n, x) => n + x.count, 0)
   const deviceCount = types.find((x) => x.sort === 'device')?.count ?? all.length
   // Groups, tags and the defaults have their own pages.
@@ -186,11 +187,6 @@ export default function Inventory() {
       : target.item ? scopePath(target.kind, target.item.id)
         : target.kind === 'group' ? `/inventory/groups/new${target.parent ? `?parent=${encodeURIComponent(target.parent)}` : ''}` : '/inventory/tags/new')
 
-  function openForm(device: Device | null) {
-    setEditing(device)
-    setFormError(null)
-    form.open()
-  }
 
   return (
     <Layout title={t('inventory.title')} back={{ href: '/', label: t('common.floorPlan') }}>
@@ -206,7 +202,7 @@ export default function Inventory() {
                 </Button>
               )}
               {typeTab === 'device' && (
-                <Button leftSection={<IconPlus size={16} />} onClick={() => openForm(null)}>
+                <Button leftSection={<IconPlus size={16} />} onClick={() => navigate('/inventory/devices/new')}>
                   {t('inventory.add')}
                 </Button>
               )}
@@ -232,12 +228,15 @@ export default function Inventory() {
           ))}
           <Tabs.Tab value="ipam" rightSection={<Text span size="xs" c="dimmed">{ipamCount}</Text>}>{t('ipam.title')}</Tabs.Tab>
           <Tabs.Tab value="groups">{t('inventory.groupsAndTags')}</Tabs.Tab>
+          <Tabs.Tab value="discovery" rightSection={<Text span size="xs" c="dimmed">{foundCount}</Text>}>{t('inventoryFound.tab')}</Tabs.Tab>
         </Tabs.List>
       </Tabs>
       <Text size="sm" role="status" mb={message || sync.isPending ? 'sm' : 0} className={message ? (message.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
         {sync.isPending ? t('inventory.syncing') : message ? `${message.ok ? '✓' : '✕'} ${message.text}` : ''}
       </Text>
-      {typeTab === 'groups' && overview ? (
+      {typeTab === 'discovery' ? (
+        <DiscoveryView canEdit={canEdit} />
+      ) : typeTab === 'groups' && overview ? (
         <Box maw={520}>
           <GroupTree overview={overview} total={all.length} group={group} tags={tagFilter} canEdit={canEdit}
             onGroup={(g) => { setGroup(g); setTypeTab('device') }}
@@ -248,44 +247,36 @@ export default function Inventory() {
       ) : typeTab !== 'device' && currentType && overview ? (
         <EntriesView key={typeTab} type={currentType} overview={overview} group={group} tags={tagFilter} canEdit={canEdit} onOpen={(id) => navigate(entryPath(typeTab, id))} sourceName={sourceName} />
       ) : (<>
-      <Group gap="sm" mb="sm" wrap="wrap">
-        <TextInput
-          aria-label={t('inventory.search')}
-          placeholder={t('inventory.searchPlaceholder')}
-          leftSection={<IconSearch size={16} />}
-          value={query}
-          onChange={(e) => { setQuery(e.currentTarget.value) }}
-          style={{ flex: '1 1 240px', maxWidth: 360 }}
-        />
-        <Select aria-label={t('inventory.groups.one')} placeholder={t('inventory.anyGroup')} clearable w={170}
-          data={[...groupTree(groups).map(({ group: g, depth }) => ({ value: g.id, label: `${'  '.repeat(depth)}${g.name}` })),
-            ...(groups.length ? [{ value: 'none', label: t('inventory.groups.none') }] : [])]}
-          value={group} onChange={(v) => { setGroup(v) }} />
-        {!!overview?.tags.length && (
-          <MultiSelect aria-label={t('inventory.tags.label')} placeholder={tagFilter.length ? undefined : t('inventory.anyTag')} clearable w={200}
-            data={overview.tags.map((x) => ({ value: x.id, label: x.name }))} value={tagFilter} onChange={(v) => { setTagFilter(v) }} />
-        )}
-        <Select aria-label={t('inventory.state.label')} placeholder={t('inventory.state.any')} clearable w={150}
-          data={(['online', 'offline', 'unknown'] as const).map((v) => ({ value: v, label: t(`inventory.state.${v}`) }))}
-          value={state} onChange={(v) => { setState(v) }} />
-        <Switch label={t('inventory.showHidden')} checked={showHidden} onChange={(e) => setShowHidden(e.currentTarget.checked)} />
-        {(driftCount > 0 || driftView) && (
-          <Chip size="sm" color="warn" variant="outline" checked={driftView} onChange={setDriftView}>
-            {`${t('inventoryDrift.filter')} ${driftCount}`}
-          </Chip>
-        )}
-        {data && <SyncChip sources={data.sources} every={data.every} />}
-      </Group>
-      {data && !driftView && filtered.length > 0 && (
-        <Chip.Group value={role ?? ''} onChange={(v) => { setRole((v as string) || null) }}>
-          <Group gap={6} mb="sm">
-            <Chip value="" size="sm" variant="outline">{t('inventory.allCount', { count: filtered.length })}</Chip>
-            {[...roleCounts.entries()].sort((a, b) => b[1] - a[1]).map(([r, n]) => (
-              <Chip key={r} value={r} size="sm" variant="outline">{`${t(`inventory.role.${r}`, { defaultValue: r })} ${n}`}</Chip>
-            ))}
-          </Group>
-        </Chip.Group>
-      )}
+      <FilterBar search={filters.search} onSearchChange={filters.setSearch} searchLabel={t('inventory.searchPlaceholder')} onClear={filters.clear}
+        groups={filters.groups([
+          { key: 'role', label: t('inventory.field.role'), hidden: driftView || roleCounts.size < 2, options: [
+            { value: '', label: t('inventory.anyRole'), count: filtered.length },
+            ...[...roleCounts.entries()].sort((a, b) => b[1] - a[1])
+              .map(([r, n]) => ({ value: r, label: t(`inventory.role.${r}`, { defaultValue: r }), count: n }))] },
+          { key: 'group', label: t('inventory.groups.one'), hidden: !groups.length, options: [
+            { value: '', label: t('inventory.anyGroup') },
+            ...groupTree(groups).map(({ group: g, depth }) => ({ value: g.id, label: `${'\u00a0\u00a0'.repeat(depth)}${g.name}`, text: g.name })),
+            { value: 'none', label: t('inventory.groups.none') }] },
+          { key: 'tag', label: t('inventory.tags.label'), hidden: !overview?.tags.length, options: [
+            { value: '', label: t('inventory.anyTag') }, ...(overview?.tags ?? []).map((x) => ({ value: x.id, label: x.name }))] },
+          { key: 'state', label: t('inventory.state.label'), options: [
+            { value: '', label: t('inventory.state.any') },
+            ...(['online', 'offline', 'unknown'] as const).map((v) => ({ value: v, label: t(`inventory.state.${v}`),
+              count: all.filter((d) => (d.state ?? 'unknown') === v).length }))] },
+          { key: 'hidden', label: t('inventory.hiddenLabel'), options: [
+            { value: '', label: t('inventory.hiddenOff') }, { value: 'shown', label: t('inventory.hiddenOn') }] },
+        ])}
+        actions={(
+          <>
+            {(driftCount > 0 || driftView) && (
+              <Chip size="sm" color="warn" variant="outline" checked={driftView} onChange={setDriftView}>
+                {`${t('inventoryDrift.filter')} ${driftCount}`}
+              </Chip>
+            )}
+            {data && <SyncChip sources={data.sources} every={data.every} />}
+            {data && <UnknownSenders canEdit={canEdit} roles={data.roles} />}
+          </>
+        )} />
       {isPending && <LoadingState rows={3} />}
       {error && (
         <Alert color="down" role="alert">
@@ -300,7 +291,8 @@ export default function Inventory() {
           rows={devices}
           rowKey={(d) => d.id}
           defaultSort={{ id: 'name' }}
-          minWidth={860}
+          minWidth={1180}
+          {...(canEdit || canRun ? { picked: picks, onPick: setPicks, rowLabel: (d: Device) => d.name } : {})}
           rowStyle={(d) => (d.hidden ? { opacity: 0.6 } : undefined)}
           empty={<Text c="dimmed">{data.devices.length ? t('inventory.noMatch') : t('inventory.empty')}</Text>}
           count={(n) => t('inventory.count', { count: n })}
@@ -341,6 +333,9 @@ export default function Inventory() {
             { id: 'model', header: t('inventory.field.model'), sort: (d) => d.model ?? '', cell: (d) => d.model, hideOnPhone: true },
             { id: 'mgmt_ip', header: t('inventory.field.mgmt_ip'), sort: (d) => d.mgmt_ip ?? '', cell: (d) => d.mgmt_ip, mono: true, hideOnPhone: true },
             { id: 'ports', header: t('inventory.ports'), sort: (d) => (d.ports ? d.ports.up / Math.max(1, d.ports.total) : -1), cell: portsText, mono: true },
+            { id: 'uplink', header: t('inventory.uplink.title'), sort: uplinkSort, cell: (d) => <UplinkCell d={d} />, hideOnPhone: true },
+            { id: 'last_day', header: t('inventory.lastDay.title'), sort: lastDaySort, descFirst: true, cell: (d) => <LastDayCell d={d} />, hideOnPhone: true },
+            { id: 'agent', header: t('inventory.agent'), sort: (d) => agentName(d.agent), cell: (d) => agentName(d.agent), hideOnPhone: true },
             { id: 'drift', header: t('inventoryDrift.badge'), hideOnPhone: true, sort: (d) => d.drift ?? 0, descFirst: true, cell: (d) => !!d.drift && (
               <Badge component={Link} to={devicePath(d.id)} size="sm" variant="light" color="warn" tt="none" style={{ cursor: 'pointer' }}>
                 {t('inventoryDrift.count', { count: d.drift })}
@@ -370,6 +365,11 @@ export default function Inventory() {
           ]}
         />
       )}
+      {/* After the table, so it sticks to the bottom of the window while the list scrolls. */}
+      {data && !driftView && picked.length > 0 && (
+        <PickBar picked={picked} overview={overview} canEdit={canEdit} canRun={canRun} onClear={() => setPicks([])}
+          onDone={(text, ok) => setMessage({ ok, text })} />
+      )}
       </>)}
       <Modal opened={!!removing} onClose={() => setRemoving(null)} centered
         title={removing?.sources.length ? t('inventory.hide') : t('inventory.delete')}>
@@ -388,21 +388,6 @@ export default function Inventory() {
         )}
       </Modal>
 
-      {formOpen && data && (
-        <DeviceForm
-          key={editing?.id ?? 'new'}
-          device={editing}
-          roles={data.roles}
-          overview={overview}
-          sourceName={sourceName}
-          opened={formOpen}
-          busy={save.isPending}
-          error={formError}
-          onClose={form.close}
-          onSave={(changes) => save.mutate(changes)}
-          onUnlock={(f) => save.mutate({ unlock: [f] })}
-        />
-      )}
       <>
         <IconLibrary opened={libraryOpen} canManage={canManage} onClose={library.close} />
       {typesOpen && overview && <TypesEditor opened={typesOpen} overview={overview} start={typeTab} onClose={typesEditor.close} />}

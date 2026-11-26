@@ -79,14 +79,18 @@ def agent_page(agent_id):
 @bp.route('/api/agents', methods=['GET'])
 def list_agents():
     server = current_app.config.get('FLOORBIT_VERSION') or '0'
-    from .. import agent_ha, cluster, inventory_scope
+    from .. import agent_ha, agent_updates, cluster, inventory_scope
+    release = agent_updates.latest()
     # What each can do, so the pages say what falls back for an older agent (agent_ha.CAPABILITIES).
     agents = [{**a, 'outdated': agent_link.outdated(a.get('protocol')),
-               'capabilities': agent_ha.capabilities(a.get('report'))} for a in agent_link.all_agents()]
+               'capabilities': agent_ha.capabilities(a.get('report')),
+               # Where its own update stands: the newest release this Floorbit has (agent_updates.py).
+               'self_update': agent_updates.status(a, release)} for a in agent_link.all_agents()]
     names = {t['id']: t['name'] for t in inventory_scope.tags(agent_link.load_data())}
     return jsonify({'agents': agents, 'connected': agent_link.tunnel.connected(),
                     'max': agent_link.MAX_AGENTS, 'server_version': server, 'protocol': agent_link.PROTOCOL,
                     'newest_version': agent_link.newest_version(agents),
+                    'agent_release': release['version'] if release else None,
                     'groups': agent_ha.groups(agents, names), 'hosted': cluster.status()})
 
 
@@ -510,7 +514,7 @@ def syslog():
         return _refused()
     receiver = current_app.extensions.get('floorbit_syslog')
     if receiver is None or not features.on('syslog'):
-        return jsonify({'error': 'Syslog is turned off on this Floorbit (Settings > Features).'}), 409
+        return jsonify({'error': 'Syslog is turned off on this Floorbit (Settings > Plugins > Built in).'}), 409
     body = _agent_body()
     lines = body.get('lines') if isinstance(body.get('lines'), list) else []
     dropped = body.get('dropped') if isinstance(body.get('dropped'), int) else 0
@@ -538,7 +542,7 @@ FLOW_MAPS = {'mix_hour', 'mix_day', 'raw'}
 
 
 def _traffic_off():
-    return jsonify({'error': 'Traffic is turned off on this Floorbit (Settings > Features).'}), 409
+    return jsonify({'error': 'Traffic is turned off on this Floorbit (Settings > Plugins > Built in).'}), 409
 
 
 @bp.route('/api/agent/v1/seats', methods=['GET'])

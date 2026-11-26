@@ -18,6 +18,8 @@ AGENTS = (
 GB = 1_000_000_000
 VIP = '192.0.2.20'
 VERSION = 'demo'
+# The plugins whose data the demo agents report: the demo turns them on with the agents.
+PLUGINS = ('syslog-relay', 'netflow-relay', 'telemetry')
 STARTED = 6 * 3600          # "up for six hours"
 
 

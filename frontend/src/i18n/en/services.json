@@ -127,6 +127,9 @@
     "fullIn_other": "Full in about {{count}} minutes at {{rate}} a minute"
   },
   "check": {
+    "from": "Checked from",
+    "fromHelp": "Without a choice: where the device it checks is collected, else the primary agent. Another agent takes over while the one picked is away.",
+    "fromAny": "Automatic",
     "add": "Add own check",
     "edit": "Change own check",
     "namePlaceholder": "Stream encoder",

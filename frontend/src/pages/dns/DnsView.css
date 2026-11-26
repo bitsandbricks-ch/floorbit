@@ -1,3 +1,3 @@
 /* A category's share of the lookups, as a bar in its table row. */
-.fb-dns-bar { display: block; height: 10px; border-radius: 5px; background: var(--color-raised); overflow: hidden; }
-.fb-dns-bar i { display: block; height: 100%; background: var(--color-up); }
+.fb-dns-bar { display: block; height: 10px; border-radius: 5px; background: var(--bnb-raised); overflow: hidden; }
+.fb-dns-bar i { display: block; height: 100%; background: var(--bnb-ok); }

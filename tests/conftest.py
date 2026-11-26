@@ -27,6 +27,9 @@ os.environ.setdefault("FLOORBIT_TELEGRAF_CONF", os.path.join(_TELEGRAF_DIR, "tel
 # into seat_ports.json in the checkout (and a run once committed that file).
 os.environ.setdefault("CHECKIN_FILE", os.path.join(tempfile.mkdtemp(prefix="floorbit-checkins-"), "checkins.json"))
 
+# Names a failing test before its report is built, and keeps that report quick (issue #1464).
+pytest_plugins = ["tests.failure_report"]
+
 
 def login_page(client):
     """What the sign-in page (React, issue #46) shows: its options and the last error, once."""
@@ -118,6 +121,8 @@ def fresh_monitoring_state(tmp_path, monkeypatch):
     sources.mark_ok(None)
     from integrations import seat_sources  # its merged mapping is kept 30 s: one test's seats aren't the next's
     seat_sources.invalidate()
+    from floorbit import unknown_senders  # one test's syslog senders aren't the next's problems (#1443)
+    unknown_senders.syslog.clear()
     yield
     lastgood.clear()
     sources.mark_ok(None)
@@ -246,6 +251,14 @@ def _librenms_answers_again():
     yield
     breaker.reset()
     client.reset_caches()
+
+
+@pytest.fixture(autouse=True)
+def _no_agent_releases_from_github(monkeypatch):
+    """The app's hourly look at the agent's GitHub releases (floorbit/agent_updates.py) never runs
+    in tests: tests/test_agent_updates.py hands refresh() a fake instead."""
+    from floorbit import agent_updates
+    monkeypatch.setattr(agent_updates, "_loop", lambda: None)
 
 
 @pytest.fixture(autouse=True)

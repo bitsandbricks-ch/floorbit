@@ -1,23 +1,23 @@
 /* Mantine components on Floorbit's surfaces. Loaded after Mantine's styles, so these win. */
 body {
-  background: var(--color-ink);
-  color: var(--color-fg);
+  background: var(--bnb-bg);
+  color: var(--bnb-fg);
   font-family: var(--font-sans);
   margin: 0;
 }
 
 .mantine-Paper-root,
 .mantine-Card-root {
-  background-color: var(--color-surface);
-  border-color: var(--color-line);
+  background-color: var(--bnb-surface);
+  border-color: var(--bnb-line);
   /* One panel look on every page and dashboard (issue #934): 8px corners, flat. */
   border-radius: var(--radius-card);
   box-shadow: none;
 }
 
 .mantine-Input-input {
-  background-color: var(--color-raised);
-  border-color: var(--color-line);
+  background-color: var(--bnb-raised);
+  border-color: var(--bnb-line);
 }
 
 :focus-visible {
@@ -25,72 +25,52 @@ body {
   box-shadow: var(--focus-ring);
 }
 
-/* The sidebar (src/nav/nav.css) beside the page. */
-.fb-shell { display: flex; min-height: 100vh; min-height: 100dvh; }
-.fb-shell-main {
-  flex: 1; min-width: 0; display: flex; flex-direction: column;
+/* The shared AppShell (components/Layout.tsx) in Floorbit's colours. */
+.bnb-shell { background: var(--bnb-bg); }
+.bnb-shell-main {
   /* The floor tiles: a faint grid behind every page, Floorbit's own mark. */
   background-image:
-    linear-gradient(color-mix(in srgb, var(--color-line) 45%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-line) 45%, transparent) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--bnb-line) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--bnb-line) 45%, transparent) 1px, transparent 1px);
   background-size: 48px 48px;
   background-attachment: local;
 }
-.fb-shell-main > .fb-status { margin-top: auto; }
+.bnb-shell-main > .bnb-status { margin-top: auto; }
 
-/* The top bar (components/TopBar.tsx): where you are, "Go to", the bell. Desktops only; phones
-   have their own header and the bottom bar. */
-.fb-topbar {
-  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px;
-  height: 48px; padding: 0 16px 0 24px; border-bottom: 1px solid var(--color-line); background: var(--color-ink);
-}
-.fb-crumbs { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: var(--fs-md); color: var(--color-muted); white-space: nowrap; overflow: hidden; }
-.fb-crumbs b { color: var(--color-fg); font-weight: 550; overflow: hidden; text-overflow: ellipsis; }
-.fb-crumbs a { color: var(--color-muted); text-decoration: none; }
-.fb-crumbs a:hover { color: var(--color-fg); text-decoration: underline; }
-.fb-crumb-sep { flex: none; color: var(--color-faint); }
-.fb-topbar-actions { display: flex; align-items: center; gap: 8px; flex: none; }
-.fb-topbar-actions:empty { display: none; }
-.fb-topbar-actions .mantine-Button-root { height: 32px; }
+/* The top bar: where you are, the page's buttons, "Go to", the bell. */
+.bnb-topbar { min-height: 48px; padding: 0 16px 0 24px; background: var(--bnb-bg); backdrop-filter: none; z-index: 20; }
+.bnb-topbar-slot { display: flex; align-items: center; gap: 8px; flex: none; }
+.bnb-topbar-slot .mantine-Button-root { height: 32px; }
+.bnb-topbar-brand .fb-brand { --fb-brand-h: 26px; }
 .fb-topbar-search {
   display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px 0 10px;
-  border: 1px solid var(--color-line); border-radius: var(--ui-radius); background: var(--color-surface);
-  color: var(--color-faint); font: inherit; font-size: 13px; cursor: pointer; text-align: left;
+  border: 1px solid var(--bnb-line); border-radius: var(--ui-radius); background: var(--bnb-surface);
+  color: var(--bnb-faint); font: inherit; font-size: 13px; cursor: pointer; text-align: left;
 }
-.fb-topbar-search:hover { border-color: color-mix(in srgb, var(--color-fg) 22%, var(--color-line)); color: var(--color-muted); }
+.fb-topbar-search:hover { border-color: color-mix(in srgb, var(--bnb-fg) 22%, var(--bnb-line)); color: var(--bnb-muted); }
 .fb-topbar-bell { position: relative; }
-/* The crew notice (components/CrewNotice.tsx): coloured while new, quiet once read. */
-.fb-notice-badge {
-  display: flex; align-items: center; gap: 6px; height: 28px; max-width: 260px; padding: 0 10px; flex: none;
-  border: 1px solid transparent; border-radius: var(--radius-pill); font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
-}
-.fb-notice-badge.is-compact { width: 36px; height: 36px; padding: 0; justify-content: center; }
-.fb-notice-badge-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fb-notice-badge.is-info { background: color-mix(in srgb, var(--color-trace) 18%, transparent); color: var(--color-trace); }
-.fb-notice-badge.is-warn { background: color-mix(in srgb, var(--color-warn) 22%, transparent); color: var(--color-warn); }
-.fb-notice-badge.is-quiet { background: transparent; border-color: var(--color-line); color: var(--color-muted); }
-.fb-notice-badge:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; }
 .fb-topbar-count {
   position: absolute; top: 2px; right: 0; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-pill);
-  background: var(--color-warn); color: #111; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+  background: var(--bnb-warn); color: #111; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
   font-variant-numeric: tabular-nums;
 }
-.fb-topbar-count.is-down { background: var(--color-down); color: #fff; }
-.fb-topbar-dot { position: absolute; top: 5px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-warn); }
-@media (max-width: 767.98px) { .fb-topbar { display: none; } }
+.fb-topbar-count.is-down { background: var(--bnb-err); color: #fff; }
+.fb-topbar-dot { position: absolute; top: 5px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--bnb-warn); }
 
 /* The status line under every page (components/StatusLine.tsx), with the attribution at its end. */
 /* Desktops: pinned to the window's foot like the top bar to its head, so the network state stays in
    view on long pages (#1202). Phones keep it at the page's end: their tab bar already holds the foot. */
 :root { --fb-status-h: 33px; }
+.bnb-status:has(> .fb-status), .fb-status-own {
+  padding: 4px 16px 4px 24px; border-top: 1px solid var(--bnb-line); background: var(--bnb-bg);
+  position: sticky; bottom: 0; z-index: 20;
+}
 .fb-status {
-  display: flex; align-items: center; flex-wrap: nowrap; gap: 6px 18px; min-height: 32px; padding: 4px 16px 4px 24px;
-  border-top: 1px solid var(--color-line); background: var(--color-ink);
-  font-family: var(--font-mono); font-size: 11.5px; color: var(--color-muted);
-  position: sticky; bottom: 0; z-index: 20; white-space: nowrap; overflow: hidden;
+  flex: 1; min-width: 0; display: flex; align-items: center; flex-wrap: nowrap; gap: 6px 18px;
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--bnb-muted); white-space: nowrap; overflow: hidden;
 }
 .fb-status-item { display: inline-flex; align-items: center; gap: 7px; color: inherit; text-decoration: none; }
-a.fb-status-item:hover { color: var(--color-fg); }
+a.fb-status-item:hover { color: var(--bnb-fg); }
 .fb-status-grow { flex: 1; }
 .fb-status .fb-attribution { padding: 0; align-items: center; }
 .fb-status .fb-version { flex-basis: auto; font-size: 11px; }
@@ -101,69 +81,26 @@ a.fb-status-item:hover { color: var(--color-fg); }
 @media (max-width: 1023.98px) { .fb-status-when { display: none; } }
 @media (max-width: 767.98px) {
   :root { --fb-status-h: 0px; }
-  .fb-status { position: static; flex-wrap: wrap; white-space: normal; padding: 8px 16px; justify-content: center; }
+  .bnb-status:has(> .fb-status), .fb-status-own { position: static; padding: 8px 16px; }
+  .fb-status { flex-wrap: wrap; white-space: normal; justify-content: center; }
   .fb-status-grow { display: none; }
 }
 
-/* A sidebar row's pages as tabs under the top bar (components/HubTabs.tsx): links, one row that
-   wraps on phones instead of scrolling sideways. */
-.fb-hubtabs { display: flex; flex-wrap: wrap; gap: 4px 20px; padding: 0 28px; border-bottom: 1px solid var(--color-line); background: var(--color-ink); }
-.fb-hubtab {
-  padding: 10px 0 9px; border-bottom: 2px solid transparent; margin-bottom: -1px;
-  color: var(--color-muted); font-size: var(--ui-font); font-weight: 500; text-decoration: none; white-space: nowrap;
-}
-.fb-hubtab:hover { color: var(--color-fg); }
-.fb-hubtab[aria-current="page"] { color: var(--color-fg); font-weight: 600; border-bottom-color: var(--color-bit); }
-@media (max-width: 767.98px) { .fb-hubtabs { padding: 0 16px; gap: 2px 16px; } }
-
-/* The page title as a bar of its own on phones; desktops show the page's PageHead, so the
-   heading stays for screen readers only. */
-.fb-header {
-  display: flex;
-  align-items: center;
-  height: 52px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--color-line);
-  background: var(--color-surface);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+/* A sidebar row's pages as tabs under the top bar (components/HubTabs.tsx, the shared LinkTabs):
+   full width on the page's ink, the row's own line as the bar's edge. */
+.fb-hubtabs { padding: 0 28px; background: var(--bnb-bg); }
+.fb-hubtabs .bnb-linktabs { margin-bottom: 0; }
+@media (max-width: 767.98px) {
+  .fb-hubtabs { padding: 0 16px; }
 }
 
-.fb-header h1 {
-  font-size: var(--fs-lg);
-  font-weight: 650;
-  margin: 0;
-  letter-spacing: var(--tracking-tight);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fb-header { justify-content: space-between; }
-.fb-header-brand { display: flex; align-items: center; height: 36px; color: inherit; }
-.fb-header-end { display: flex; align-items: center; gap: 6px; }
-.fb-header-brand .fb-brand { --fb-brand-h: 26px; }
-@media (min-width: 768px) {
-  /* Keyboard focus must never land on something hidden: the sidebar has both. */
-  /* Doubled class: nav.css loads later and would show the button again. */
-  .fb-header .fb-header-brand, .fb-header .fb-header-search, .fb-header .fb-notice-badge, .fb-header .fb-topbar-bell { display: none; }
-  .fb-header {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-  }
-}
-
-.fb-main {
-  /* Every page uses the whole width next to the sidebar (Mike, 2026-11-19): no reading column. */
-  width: 100%;
-  padding: 24px 28px 48px;
-  box-sizing: border-box;
-}
+.bnb-main { padding: 24px 28px 48px; }
+/* Every page uses the whole width next to the sidebar (Mike, 2026-11-19): no reading column. */
+.fb-page { width: 100%; box-sizing: border-box; }
 /* What revealForm scrolls to stops clear of the phone's sticky header and bottom tab bar. */
 .fb-reveal { scroll-margin-top: 64px; scroll-margin-bottom: calc(var(--fb-tabbar-h, 0px) + 12px); }
 @media (max-width: 767.98px) {
-  .fb-main { padding: 16px 16px 32px; }
+  .bnb-main { padding: 16px 16px 32px; }
 }
 
 /* A row of filters wider than the screen (German labels on a phone) wraps onto a second line
@@ -177,8 +114,8 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
 
 /* "‹ Incidents" above a sub page's title. */
 .fb-up { margin: -12px 0 12px; font-size: var(--fs-sm); }
-.fb-up a { display: inline-flex; align-items: center; gap: 4px; color: var(--color-muted); text-decoration: none; }
-.fb-up a:hover { color: var(--color-fg); text-decoration: underline; }
+.fb-up a { display: inline-flex; align-items: center; gap: 4px; color: var(--bnb-muted); text-decoration: none; }
+.fb-up a:hover { color: var(--bnb-fg); text-decoration: underline; }
 @media (max-width: 767.98px) { .fb-up { margin: 0 0 8px; } }
 /* Desktops have the breadcrumbs in the top bar instead. */
 @media (min-width: 768px) { .fb-up { display: none; } }
@@ -189,28 +126,28 @@ p > .mantine-Anchor-root:not([data-underline="never"]) { text-decoration: underl
   height: 10px;
   border-radius: 50%;
   flex: none;
-  background: var(--color-unknown);
+  background: var(--bnb-off);
 }
-.fb-dot.up { background: var(--color-up); }
-.fb-dot.down { background: var(--color-down); }
+.fb-dot.up { background: var(--bnb-ok); }
+.fb-dot.down { background: var(--bnb-err); }
 /* A diamond, so warn doesn't rely on colour alone. */
-.fb-dot.warn { background: var(--color-warn); border-radius: 2px; transform: rotate(45deg) scale(0.85); }
+.fb-dot.warn { background: var(--bnb-warn); border-radius: 2px; transform: rotate(45deg) scale(0.85); }
 
-.fb-tone-ok { color: var(--color-up); }
-.fb-tone-warn { color: var(--color-warn); }
-.fb-tone-err { color: var(--color-down); }
+.fb-tone-ok { color: var(--bnb-ok); }
+.fb-tone-warn { color: var(--bnb-warn); }
+.fb-tone-err { color: var(--bnb-err); }
 
 .bnb-spark {
   width: 100%;
   height: 40px;
-  color: var(--color-trace);
+  color: var(--bnb-info);
   display: block;
 }
 
 .fb-log {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
-  background: var(--color-raised);
+  background: var(--bnb-raised);
   border-radius: var(--radius-bit);
   padding: 12px;
   max-height: 320px;

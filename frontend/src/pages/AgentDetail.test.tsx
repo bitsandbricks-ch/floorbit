@@ -74,7 +74,8 @@ describe('AgentDetail', () => {
       ] },
     })
     const table = await screen.findByRole('table', { name: 'Devices and their state' })
-    expect(within(table).getAllByText('Sends nothing')).toHaveLength(2)     // the column, and under the name on phones
+    // Once: on phones the row is a card with the state inline, no second badge under the name (#1107).
+    expect(within(table).getAllByText('Sends nothing')).toHaveLength(1)
     expect(within(table).getByText('Given to this agent')).toBeInTheDocument()
     expect(within(table).getAllByText('Sends').length).toBeGreaterThan(0)
     expect(within(table).getByText('52 ports, 10 MACs, 0 ARP, 2 neighbours')).toBeInTheDocument()
@@ -145,19 +146,99 @@ describe('AgentDetail', () => {
     expect(screen.getByText(/telemetry 0\.5\.0 · .* · cannot start/)).toBeInTheDocument()
   })
 
-  it('changes its settings: a new key, a new name, its tags, revoke', async () => {
+  it('shows where its own update stands and what the crew does about it', async () => {
+    const now = Date.now() / 1000
+    const a: Agent = { ...busyAgent(), self_update: { latest: '1.0.0', state: 'approve', why: 'waits for approval on the agent' },
+      report: { at: now, plugins: {}, agent_update: { policy: 'approve', running: '0.9.0', image: '0.9.0', trial: false,
+        rolled_back: [], events: [{ at: now - 120, event: 'rolled back', version: '0.9.5', detail: 'did not reach Floorbit' }] } } }
+    open(a, 'updates')
+    const panel = await screen.findByRole('region', { name: 'Agent update' })
+    expect(within(panel).getByText('Approve on the agent')).toBeInTheDocument()
+    expect(within(panel).getByText('Runs 0.9.0 · newest release 1.0.0')).toBeInTheDocument()
+    expect(within(panel).getByText('docker compose exec agent python -m floorbit_agent_boot update approve')).toBeInTheDocument()
+    expect(within(panel).getByText(/0\.9\.5 · .* · did not reach Floorbit/)).toBeInTheDocument()
+    expect(screen.getByText("This agent hasn't said anything about plugin updates yet (older agents don't).")).toBeInTheDocument()
+  })
+
+  it('tells the crew to pull the new image for an agent that can\'t update itself', async () => {
+    open({ ...busyAgent(), self_update: { latest: '1.0.0', state: 'pull', why: '' } }, 'updates')
+    expect(await screen.findByText('Pull the new image')).toBeInTheDocument()
+    expect(screen.getByText('docker compose pull && docker compose up -d')).toBeInTheDocument()
+  })
+
+  it('makes a new key on the Key and certificate tab', async () => {
+    const a = busyAgent()
+    open(a, 'certificate', {
+      [`POST /api/agents/${a.id}/rotate`]: { id: a.id, name: a.name, key: 'fba_a1b2c3d4_another-example-key-012345' },
+    })
+    await screen.findByRole('heading', { name: a.name, level: 2 })
+    expect(screen.getByRole('tab', { name: 'Key and certificate' })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(await screen.findByRole('button', { name: 'New key' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes, go ahead' }))
+    expect(await screen.findByDisplayValue('fba_a1b2c3d4_another-example-key-012345')).toBeInTheDocument()
+    expect(screen.getByText(`New key for ${a.name}`)).toBeInTheDocument()
+  })
+
+  it('says who takes over and what happened lately on the overview (#905)', async () => {
+    const at = Math.floor(Date.now() / 1000) - 120
+    const a = busyAgent()
+    open(a, '', {
+      'GET /api/agents': { agents: [a], connected: true, max: 10, protocol: 2, newest_version: a.version, groups: [{
+        id: 't2', tags: ['t2'], label: 'Hall 2', state: 'ok', mode: null, primary: a.id, vips: [], agents: [
+          { id: a.id, name: a.name, connected: true, role: 'primary', holds: [] },
+          { id: 'b2', name: 'Hall 2 backup', connected: true, role: 'standby', holds: [] }] }] },
+      [`GET /api/agents/${a.id}/events?limit=5`]: { events: [
+        { at, user: 'agent', area: 'agents', action: 'Spring LAN, hall 2: kept plugin lancache 1.2.0', ok: true }] },
+    })
+    await screen.findByRole('heading', { name: a.name, level: 2 })
+    expect(screen.getByText('Primary')).toBeInTheDocument()
+    const failover = screen.getByRole('region', { name: 'Failover' })
+    expect(within(failover).getByText('If it stops, Hall 2 backup takes over.')).toBeInTheDocument()
+    expect(within(failover).getByRole('link', { name: 'Group page' })).toHaveAttribute('href', '/settings/agents/groups/t2')
+    const recent = screen.getByRole('region', { name: 'Recent events' })
+    expect(await within(recent).findByText('Spring LAN, hall 2: kept plugin lancache 1.2.0')).toBeInTheDocument()
+    fireEvent.click(within(recent).getByRole('button', { name: 'All events' }))
+    await vi.waitFor(() => expect(screen.getByRole('tab', { name: 'Logs' })).toHaveAttribute('aria-selected', 'true'))
+  })
+
+  it('lists what happened to it on the Logs tab', async () => {
+    const at = Math.floor(Date.now() / 1000) - 60
+    const a = busyAgent()
+    open(a, 'logs', { [`GET /api/agents/${a.id}/events?limit=200`]: { events: [
+      { at, user: 'agent', area: 'agents', action: 'Spring LAN, hall 2: rolled back agent update 1.0.0 (did not reach Floorbit)', ok: false },
+      { at: at - 60, user: 'ada', area: 'agents', action: 'Asked a local agent to fetch a new key', ok: true }] } })
+    await screen.findByText('ada')
+    const table = screen.getByRole('table', { name: 'Logs' })
+    expect(within(table).getByText('the agent')).toBeInTheDocument()
+    expect(within(table).getByText('ada')).toBeInTheDocument()
+    expect(within(table).getByText(/rolled back agent update 1\.0\.0/)).toBeInTheDocument()
+  })
+
+  it('checks now, rolls its key and revokes it from the header', async () => {
+    const a = busyAgent()
+    const api = open(a, '', { [`POST /api/agents/${a.id}/roll`]: { ok: true }, [`DELETE /api/agents/${a.id}`]: { ok: true } })
+    await screen.findByRole('heading', { name: a.name, level: 2 })
+    const before = api.calls.filter((c) => c.path === '/api/agents').length
+    fireEvent.click(screen.getByRole('button', { name: 'Check now' }))
+    await vi.waitFor(() => expect(api.calls.filter((c) => c.path === '/api/agents').length).toBeGreaterThan(before))
+    fireEvent.click(screen.getByRole('button', { name: 'Roll key' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes, go ahead' }))
+    await vi.waitFor(() => expect(api.calls.some((c) => c.method === 'POST' && c.path.endsWith('/roll'))).toBe(true))
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Revoke' }))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Revoke' })).getByRole('button', { name: 'Revoke' }))
+    expect(await screen.findByText('list')).toBeInTheDocument()
+    expect(api.calls.some((c) => c.method === 'DELETE')).toBe(true)
+  })
+
+  it('changes its settings: a new name, its tags, revoke', async () => {
     const a = { ...busyAgent(), plugins_off: ['shelly'] }
     const api = open(a, 'settings', {
-      [`POST /api/agents/${a.id}/rotate`]: { id: a.id, name: a.name, key: 'fba_a1b2c3d4_another-example-key-012345' },
       [`PATCH /api/agents/${a.id}`]: { id: a.id },
       [`DELETE /api/agents/${a.id}`]: { ok: true },
     })
     expect(await screen.findByText('Plugins it leaves off')).toBeInTheDocument()
     expect(await screen.findByText('Answers for')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'New key' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Yes, go ahead' }))
-    expect(await screen.findByText('fba_a1b2c3d4_another-example-key-012345')).toBeInTheDocument()
-    expect(screen.getByText(`New key for ${a.name}`)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
     fireEvent.change(screen.getByLabelText('New name'), { target: { value: 'Hall 2 agent' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))

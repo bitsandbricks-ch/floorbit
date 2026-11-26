@@ -96,6 +96,18 @@ just added is checked when the page next loads. The local agent sends every prob
 network, so a hosted Floorbit measures the event's lines, not its own. **Check now** on the page
 checks everything at once, the plugins' services too (`floorplan.edit`).
 
+### Which agent checks
+
+With several agents (a site each, or two in one group), every check runs from one place, so its
+numbers don't jump from agent to agent (issue #1444):
+
+- An own check's **Checked from** picks it, like telemetry's **Collected by**: the agents with a tag
+  (the first one connected, by id), or one agent. While nobody it names is connected, the default
+  below takes over.
+- By default, a check of an inventory device (its name or management address) runs on the agent
+  that collects that device; anything else, and every line, resolver and site, on the group's
+  primary agent. It moves only on failover.
+
 ### Without an agent
 
 The Floorbit server never sends a probe, game server query or RCON command itself: the agent is the

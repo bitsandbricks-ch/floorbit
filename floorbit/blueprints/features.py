@@ -1,7 +1,6 @@
 """Feature switches (issue #114). Rules in floorbit/features.py.
 
 - ``GET /api/features``: which features are off, for the navigation. Anyone who sees the floor plan.
-- ``GET /settings/features``: the page (React), admins only.
 - ``GET|PUT /api/settings/features``: every feature with its state; ``{"power": false}`` turns one off.
 - ``GET /api/settings/capabilities``: each capability (floorbit/capabilities.py), on, off or partly,
   with what it still needs. ``PUT /api/settings/capabilities/<id>`` ``{"on": true}`` switches its parts.
@@ -10,14 +9,9 @@ from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import events
 
-from .. import audit, capabilities, features, spa
+from .. import audit, capabilities, features
 
 bp = Blueprint('features', __name__)
-
-
-@bp.route('/settings/features')
-def features_page():
-    return spa.render('Features')
 
 
 @bp.route('/api/features', methods=['GET'])

@@ -3,8 +3,11 @@
 .fb-mini-plan {
   display: block; width: 100%; height: auto;
   max-height: calc(100dvh - 160px - var(--fb-tabbar-h, 0px)); min-height: 160px;
-  background: var(--color-raised); border-radius: var(--radius-card);
+  background: var(--bnb-raised); border-radius: var(--radius-card);
 }
-.fb-mini-plan .cell { fill: var(--color-surface); stroke: var(--color-line); }
-.fb-mini-plan .name { fill: var(--color-muted); font: 700 34px var(--font-sans); text-anchor: middle; }
-.fb-mini-plan .blk { fill: none; stroke: var(--color-line); stroke-dasharray: 6 4; }
+.fb-mini-plan .cell { fill: var(--bnb-surface); stroke: var(--bnb-line); }
+.fb-mini-plan .name {
+  fill: var(--bnb-muted); font: 700 34px var(--font-sans); text-anchor: middle; pointer-events: none;
+  paint-order: stroke; stroke: var(--bnb-raised); stroke-width: 8px; stroke-linejoin: round;
+}
+.fb-mini-plan .blk { fill: none; stroke: var(--bnb-line); stroke-dasharray: 6 4; }

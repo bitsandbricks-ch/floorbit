@@ -1,3 +1,4 @@
+import type { AgentSelfUpdateReport, SelfUpdateStatus } from './agentUpdates'
 import type { OwnCheck, ServiceTags } from './serviceChecks'
 import type { AgentDisk } from './agentDisk'
 // Shapes the Flask API returns. Keep in step with floorbit/plugins and auth.
@@ -124,7 +125,15 @@ export interface PluginInfo {
   /** ``schema:`` of this version, and the schema this tenant's data is at (0: none). */
   schema?: number
   data_schema?: number
+  /** What it is doing (#1435): receiving data, not set up, off, ... (floorbit/plugin_activity.py). */
+  activity?: PluginActivity
 }
+
+export type PluginActivityState = 'broken' | 'off' | 'no_agent' | 'failing' | 'not_configured' | 'receiving' | 'waiting' | 'on'
+export interface PluginActivity { state: PluginActivityState; values: Record<string, string | number> }
+/** A Marketplace plugin whose data is here without it (the LAN cache read by an agent). */
+export interface MissingPlugin { id: string; name: string; href: string }
+export interface PluginList { plugins: PluginInfo[]; missing?: MissingPlugin[] }
 
 export interface LogLine {
   time: string
@@ -135,6 +144,14 @@ export const INVENTORY_FIELDS = ['name', 'role', 'model', 'serial', 'mgmt_ip', '
   'platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host', 'location'] as const
 export type InventoryField = (typeof INVENTORY_FIELDS)[number]
 export const SPEC_FIELDS = ['platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host'] as const
+
+/** A device's link towards the core, in the inventory list (issue #981). */
+export interface DeviceUplink {
+  port: string; peer: string; peer_port: string; speed_bps: number | null; planned_gbps: number | null
+  state: 'up' | 'down' | 'unknown'; issue: '' | 'down' | 'slow'
+  /** How full the busiest direction is, 0 to 1 (Network › Switches, #902); null when not read. */
+  load?: number | null
+}
 
 export interface Device extends Record<InventoryField, string> {
   id: string
@@ -162,6 +179,14 @@ export interface Device extends Record<InventoryField, string> {
   state?: 'online' | 'offline' | 'unknown' | null
   ports?: { up: number; total: number } | null
   drift?: number
+  /** In the list only (issue #981): the link towards the core, seconds down in each of the last 24
+   *  hours (oldest first; none when the monitor never reported it), and telemetry.agent ('' Auto). */
+  uplink?: DeviceUplink | null
+  last_day?: number[] | null
+  agent?: string
+  /** In the list only (issue #902): seats on its ports, and its PoE budget and draw in watts. */
+  seats?: number
+  poe?: { budget_w: number; used_w: number } | null
 }
 
 /** Icon, colour, tags, properties and feature switches: what devices, groups and tags all carry. */
@@ -302,6 +327,8 @@ export interface LoginBlock {
 export interface DeviceDetail extends Omit<Device, 'drift'> {
   /** The list here; the inventory list has only the count. */
   drift?: import('./inventoryDrift').DriftRow[]
+  /** Where two discovery sources read different values (issue #965). */
+  conflicts?: import('./discoverySources').SourceConflict[]
   interfaces: DeviceInterface[]
   own_credentials: CredentialInfo[]
   blocks: LoginBlock[]
@@ -786,6 +813,8 @@ export interface ProblemDetail {
   finding?: Omit<Finding, 'title' | 'cleared_at'>
   can_shut?: boolean
   needs_login?: boolean
+  /** The place's outages, incidents and alerts from the event changelog (issue #882). */
+  history?: TimelineEntry[]
 }
 /** What to paste into LibreNMS's API transport (GET /api/alerts/librenms/setup). */
 export interface LibreNMSAlertsSetup {
@@ -960,6 +989,8 @@ export interface PlanCell {
   /** Where its seat cables run, across the row from the seat's centre (drawing units, in the block's
    *  own frame; floorbit/cable_lanes.py); missing when they come along the block instead. */
   lane?: number
+  /** On a bent row with a lane: this seat's point in its row's lane (``PlanShape.lanes``). */
+  li?: number
 }
 
 export interface PlanShape {
@@ -979,6 +1010,9 @@ export interface PlanShape {
   row_list?: { id: string; name: string; row?: string }[]
   /** The seats stand where the editor put them, not in rows (floorbit/seat_layout.py). */
   free?: boolean
+  /** Bent rows' cable lanes by row (a cell's rc[0]): points in the block's own frame, drawing units,
+   *  one past each end (floorbit/cable_lanes.py ``paths``). Missing when no row bends. */
+  lanes?: Record<string, [number, number][]>
 }
 
 /** Text, walls, zones and icons on a hall (floorbit/plan_marks.py), in drawing units. */
@@ -992,7 +1026,7 @@ export interface PlanGroup {
 
 export interface PlanMark {
   id?: string
-  kind: 'text' | 'icon' | 'wall' | 'zone'
+  kind: 'text' | 'icon' | 'wall' | 'walkway' | 'zone'
   /** Drawing order, higher on top (floorbit/stacking.py). */
   z?: number
   x: number
@@ -1008,6 +1042,8 @@ export interface PlanMark {
   /** A wall's bends between its ends, [x, y] each (drawing units in the plan, % from /api/plan-marks). */
   points?: [number, number][]
   style?: 'solid' | 'dashed'
+  /** A walkway's width, in seats (0.5 to 20; #1564). */
+  width?: number
   w?: number
   h?: number
   label?: string
@@ -1360,6 +1396,8 @@ export interface LogStatus {
   retention_hours: number
   demo: boolean
   last_id: number
+  /** When the oldest kept line came (unix seconds): where the volume chart starts. */
+  first_ts?: number | null
   /** Local agents that send the event network's syslog on (issue #2). */
   relayed?: { agent: string; at: number; lines: number; dropped: number; recent: boolean }[]
   sources: LogSource[]
@@ -1486,6 +1524,8 @@ export interface WalkPort { switch: string; port: string; learned_at?: number; s
 export interface SeatWalkInfo {
   /** Where laptops in the hall reach the local agent, which identifies them (null: not known). */
   agent_url: string | null; through_agent?: boolean; switch_lookup: boolean; monitoring: boolean; keep_hours: number
+  /** Local agents connected now (#1424): the "no agent" warning only shows at 0. */
+  agents_connected?: number
   event: { id: string; name: string; status: string }
   rows?: string[]; row_names?: string[]; seats?: { seat: string; port: WalkPort | null }[]
   /** Every hall row: how far the walk got and who walks it now (#1000). */
@@ -1911,6 +1951,8 @@ export interface Agent {
   old_works_until?: number | null
   /** One of the demo's made-up agents (floorbit/agent_demo.py): connected, but takes no calls. */
   demo?: boolean
+  /** Where its own update stands (floorbit/agent_updates.py). */
+  self_update?: SelfUpdateStatus
 }
 
 /** An agent's plugin updates (docs/agent-plugins.md, "Updates"). */
@@ -1964,6 +2006,8 @@ export interface AgentReport {
   /** Agent plugins (docs/agent-plugins.md): how each one that should run is doing. */
   plugins?: Record<string, AgentPluginHealth>
   updates?: AgentUpdates
+  /** Its own updates (floorbit-agent's self_update.py). */
+  agent_update?: AgentSelfUpdateReport
   /** With VRRP: whether it is its hall's primary, and the addresses it holds. */
   vrrp?: { primary: boolean; holds: string[] }
   /** Where each of its settings came from (floorbit/agent_settings.py ``clean_report``). */

@@ -2,7 +2,7 @@ import {
   ActionIcon, Alert, Badge, Button, Code, Group, Modal, MultiSelect, Paper, PasswordInput, ScrollArea,
   SegmentedControl, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title, Tooltip,
 } from '@mantine/core'
-import { IconFileDiff, IconPlayerPlay, IconPlus, IconTerminal2, IconTrash } from '@tabler/icons-react'
+import { IconPlayerPlay, IconPlus, IconTerminal2, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -41,7 +41,6 @@ export default function Commands() {
   const [confirming, setConfirming] = useState<RunBody | null>(null)
   const [editing, setEditing] = useState(false)
   const canTerminal = useCan('terminal.open')
-  const canConfigs = useCan('configs.read')
   const run = useMutation({
     mutationFn: (body: RunBody) => post<CommandRun>('/api/commands/run', body),
     onError: (err, body) => {
@@ -78,16 +77,6 @@ export default function Commands() {
       <PageHead title={t('commands.title')} desc={t('commands.intro')}
         actions={
           <>
-            {canConfigs && (
-              <Button variant="default" component="a" href="/configs" leftSection={<IconFileDiff size={16} />}>
-                {t('commands.configs')}
-              </Button>
-            )}
-            {canTerminal && (
-              <Button variant="default" component="a" href="/terminal" leftSection={<IconTerminal2 size={16} />}>
-                {t('commands.terminal')}
-              </Button>
-            )}
             {info?.may_edit && (
               <Button variant="default" leftSection={<IconPlus size={16} />} onClick={() => setEditing(true)}>
                 {t('commands.newTemplate')}

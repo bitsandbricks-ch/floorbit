@@ -48,7 +48,7 @@ def agent_specs(registry=None):
 
 
 def config(registry=None, agent_id=None):
-    """What an agent runs: ``{"plugins": {id: {...}}, "local", "bundles", "etag"}``. The agent
+    """What an agent runs: ``{"plugins": {id: {...}}, "local", "bundles", "agent_update", "etag"}``. The agent
     compares the etag and restarts only the plugins whose part changed. ``agent_id``: leaves out the
     plugins that agent was told to leave off (Local agents page)."""
     registry = registry or _registry()
@@ -102,11 +102,15 @@ def config(registry=None, agent_id=None):
             ha['lease'] = lease                # who polls and logs in (agent_ha.lease_holder)
     # The agent's own settings, a new key to fetch, its certificate's names (agent_settings.py).
     agent = {}
+    update = None
     if agent_id is not None:
         from .agent_settings import agent_block
+        from .agent_updates import offer_for
         agent = agent_block(agent_id)
-    raw = json.dumps([plugins, local, offered, ha, agent], sort_keys=True, default=str).encode()
+        update = offer_for(agent_id)           # a signed update of the agent itself (agent_updates.py)
+    raw = json.dumps([plugins, local, offered, ha, agent, update], sort_keys=True, default=str).encode()
     return {'plugins': plugins, 'local': local, 'bundles': offered, 'ha': ha, 'agent': agent,
+            **({'agent_update': update} if update else {}),
             'etag': hashlib.sha256(raw).hexdigest()[:32]}
 
 

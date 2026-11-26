@@ -19,17 +19,23 @@ import { AgentGraphs } from './agents/AgentGraphs'
 import { AgentRename, NewKeyButton, PluginsOff, Updates } from './agents/AgentTools'
 import { AgentSettingsForm, CertPanel, KeyPanel } from './agents/AgentSettings'
 import { Capabilities } from './agents/Capabilities'
+import { SelfUpdate } from './agents/SelfUpdate'
+import { AgentLog, RecentEvents } from './agents/AgentEvents'
+import { FailoverCard } from './agents/Failover'
+import { HeaderActions } from './agents/HeaderActions'
 import { useAgentSettings, useAgents, useAgentTags } from './agents/data'
 import { Blocked, PluginTable, Report } from './agents/Details'
 import { HintAnchor } from './agents/HintAnchor'
 import { KeyAlert, type Made } from './agents/KeyAlert'
 import { behind, stateKey, upText } from './agents/model'
 
-const TABS = ['overview', 'devices', 'graphs', 'plugins', 'updates', 'settings'] as const
+const TABS = ['overview', 'devices', 'graphs', 'plugins', 'updates', 'logs', 'certificate', 'settings'] as const
 type Tab = (typeof TABS)[number]
 
-/** One local agent: a header with what it is and how it connects, then tabs for what needs a
- *  look and its numbers, the devices it collects, its numbers over time, its plugins, its plugin updates, and its settings (tags, key, revoke). */
+/** One local agent (issue #905): a header with what it is, its role and how it connects, with
+ *  Check now, Roll key and More; then tabs for what needs a look and who takes over, the devices it
+ *  collects, its numbers over time, its plugins, its own and its plugins' updates, what happened to
+ *  it, its key and certificate, and its settings. */
 export default function AgentDetail() {
   const { t, i18n } = useTranslation()
   const lang = i18n.language
@@ -44,6 +50,7 @@ export default function AgentDetail() {
   const [params, setParams] = useSearchParams()
   const tab: Tab = (TABS as readonly string[]).includes(params.get('tab') ?? '') ? params.get('tab') as Tab : 'overview'
   const setTab = (v: string | null) => setParams(v && v !== 'overview' ? { tab: v } : {}, { replace: true })
+  const settings = useAgentSettings(id)
   const [made, setMade] = useState<Made | null>(null)
   const refresh = () => void qc.invalidateQueries({ queryKey: qk.agents })
   const setTags = useMutation({ mutationFn: (ids: string[]) => patch(`/api/agents/${id}`, { tags: ids }), onSuccess: refresh })
@@ -67,7 +74,9 @@ export default function AgentDetail() {
   const plugins = a.report?.plugins ?? {}
   const pluginCount = new Set([...Object.keys(plugins), ...available.map((p) => p.id)]).size
   const r = a.report
-  const role = d.groups?.flatMap((g) => g.agents.map((x) => ({ ...x, group: g.label }))).find((x) => x.id === a.id)
+  const group = d.groups?.find((g) => g.agents.some((x) => x.id === a.id))
+  // Primary or standby only means something with a second agent in the group.
+  const role = group && group.agents.length > 1 ? group.agents.find((x) => x.id === a.id)?.role : undefined
   const tagText = a.tags?.length ? a.tags.map((x) => tags.names[x] ?? x).join(', ') : t('agents.allDevices')
   const num = (n?: number) => (n ?? 0).toLocaleString(lang)
   const chips = [
@@ -81,21 +90,25 @@ export default function AgentDetail() {
   return (
     <Layout title={a.name} back={back}>
       <Stack gap="md">
-        <Group align="flex-start" gap="md" wrap="nowrap">
-          <ThemeIcon size={48} radius="md" variant="default" aria-hidden="true"><IconServer2 size={24} /></ThemeIcon>
-          <Stack gap={6} style={{ minWidth: 0 }}>
-            <Text size="xs" c="dimmed" tt="uppercase" ff="monospace">{t('agents.kicker')}</Text>
-            <Group gap="sm" wrap="wrap" align="center">
-              <Title order={2} style={{ overflowWrap: 'anywhere' }}>{a.name}</Title>
-              <Badge variant="dot" color={tone} tt="none">{t(`agents.state.${stateKey(a, tone)}`)}</Badge>
-              {a.connected && <Text size="sm" c="dimmed">{t('agents.chip.up', { time: upText(t, a) })}</Text>}
-              {!a.connected && <Text size="sm" c="dimmed">{a.last_seen ? t('agents.seen', { when: ago(a.last_seen, lang) }) : t('agents.neverSeen')}</Text>}
-            </Group>
-            <Group gap={6} wrap="wrap">
-              {chips.map((c) => <Badge key={c} variant="default" tt="none" fw={500}>{c}</Badge>)}
-              {(a.outdated || behind(a, d.newest_version)) && <Badge variant="light" color="warn" tt="none">{t('agents.outdated')}</Badge>}
-            </Group>
-          </Stack>
+        <Group align="flex-start" justify="space-between" gap="md" wrap="wrap">
+          <Group align="flex-start" gap="md" wrap="nowrap" style={{ minWidth: 0 }}>
+            <ThemeIcon size={48} radius="md" variant="default" aria-hidden="true"><IconServer2 size={24} /></ThemeIcon>
+            <Stack gap={6} style={{ minWidth: 0 }}>
+              <Text size="xs" c="dimmed" tt="uppercase" ff="monospace">{t('agents.kicker')}</Text>
+              <Group gap="sm" wrap="wrap" align="center">
+                <Title order={2} style={{ overflowWrap: 'anywhere' }}>{a.name}</Title>
+                <Badge variant="dot" color={tone} tt="none">{t(`agents.state.${stateKey(a, tone)}`)}</Badge>
+                {role && role !== 'offline' && <Badge variant="light" color={role === 'primary' ? 'up' : 'gray'} tt="none">{t(`agentDetail.role.${role}`)}</Badge>}
+                {a.connected && <Text size="sm" c="dimmed">{t('agents.chip.up', { time: upText(t, a) })}</Text>}
+                {!a.connected && <Text size="sm" c="dimmed">{a.last_seen ? t('agents.seen', { when: ago(a.last_seen, lang) }) : t('agents.neverSeen')}</Text>}
+              </Group>
+              <Group gap={6} wrap="wrap">
+                {chips.map((c) => <Badge key={c} variant="default" tt="none" fw={500}>{c}</Badge>)}
+                {(a.outdated || behind(a, d.newest_version)) && <Badge variant="light" color="warn" tt="none">{t('agents.outdated')}</Badge>}
+              </Group>
+            </Stack>
+          </Group>
+          <HeaderActions agent={a} onTab={setTab} onRevoke={() => revoke.mutate()} revoking={revoke.isPending} />
         </Group>
 
         <ErrorBanner error={setTags.error ?? revoke.error} />
@@ -108,6 +121,8 @@ export default function AgentDetail() {
             <Tabs.Tab value="graphs">{t('agents.tab.graphs')}</Tabs.Tab>
             <Tabs.Tab value="plugins">{t('agents.tab.plugins', { count: pluginCount })}</Tabs.Tab>
             <Tabs.Tab value="updates">{t('agents.tab.updates')}</Tabs.Tab>
+            <Tabs.Tab value="logs">{t('agentDetail.tab.logs')}</Tabs.Tab>
+            <Tabs.Tab value="certificate">{t('agentDetail.tab.certificate')}</Tabs.Tab>
             <Tabs.Tab value="settings">{t('agents.tab.settings')}</Tabs.Tab>
           </Tabs.List>
 
@@ -142,7 +157,6 @@ export default function AgentDetail() {
                   <Panel title={t('agents.detailsTitle')}>
                     <Stack gap="sm">
                       <PanelField label={t('agents.tags')}>{tagText}</PanelField>
-                      {role && <PanelField label={t('agents.ha.groupsTitle')}>{`${role.group || t('agents.allDevices')} · ${t(`agents.ha.role.${role.role}`)}${role.holds.length ? ` · ${role.holds.join(', ')}` : ''}`}</PanelField>}
                       <PanelField label={t('agents.fact.address')}>{a.address ?? '–'}</PanelField>
                       <PanelField label={t('agents.fact.relays')}>
                         {[a.relays?.syslog && t('agents.relaySyslog'), a.relays?.flows && t('agents.relayFlows')].filter(Boolean).join(', ') || '–'}
@@ -150,6 +164,12 @@ export default function AgentDetail() {
                       <PanelField label={t('agents.fact.enrolled')}>{t('agents.fact.enrolledValue', { date: dateOnly(a.created_at, lang), who: a.created_by ?? '?' })}</PanelField>
                       {a.old_works_until && <Text size="xs" c="warn">{t('agents.oldKeyWorks', { when: dateOnly(a.old_works_until, lang) })}</Text>}
                     </Stack>
+                  </Panel>
+                  <Panel title={t('agentDetail.failover.title')} aria-label={t('agentDetail.failover.title')}>
+                    <FailoverCard agentId={a.id} groups={d.groups} />
+                  </Panel>
+                  <Panel title={t('agentDetail.events.title')} aria-label={t('agentDetail.events.title')}>
+                    <RecentEvents agentId={a.id} onAll={() => setTab('logs')} />
                   </Panel>
                   {a.connected && (
                     <Panel title={t('agentCapabilities.title')} desc={t('agentCapabilities.help')}>
@@ -187,14 +207,30 @@ export default function AgentDetail() {
           </Tabs.Panel>
 
           <Tabs.Panel value="updates" pt="md">
-            <Panel>
-              {r?.updates ? <Updates updates={r.updates} /> : <Text size="sm" c="dimmed">{t('agents.updates.none')}</Text>}
-            </Panel>
+            <Stack gap="md">
+              <Panel title={t('agentSelfUpdate.title')}>
+                <SelfUpdate status={a.self_update} report={r?.agent_update} version={a.version} />
+              </Panel>
+              <Panel title={t('agents.updates.title')}>
+                {r?.updates ? <Updates updates={r.updates} /> : <Text size="sm" c="dimmed">{t('agents.updates.none')}</Text>}
+              </Panel>
+            </Stack>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="logs" pt="md">
+            <Panel><AgentLog agentId={a.id} /></Panel>
+          </Tabs.Panel>
+
+          <Tabs.Panel value="certificate" pt="md">
+            <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
+              <KeyPanel agent={a} page={settings.data}><NewKeyButton agent={a} onKey={(m) => setMade({ ...m, rotated: true })} /></KeyPanel>
+              {settings.data ? <CertPanel agent={a} page={settings.data} /> : <LoadingState rows={2} />}
+            </SimpleGrid>
           </Tabs.Panel>
 
           <Tabs.Panel value="settings" pt="md">
             <SettingsTab agent={a} tagOptions={tags.options} onTags={(ids) => setTags.mutate(ids)}
-              onKey={(m) => setMade({ ...m, rotated: true })} onRevoke={() => revoke.mutate()} />
+              onRevoke={() => revoke.mutate()} />
           </Tabs.Panel>
         </Tabs>
       </Stack>
@@ -204,13 +240,11 @@ export default function AgentDetail() {
 
 
 /** Its name, tags and plugins; its own settings and plugin settings (Floorbit sets them, the agent's
- *  env wins); its key and certificate; revoking it. */
-function SettingsTab({ agent: a, tagOptions, onTags, onKey, onRevoke }: {
-  agent: Agent; tagOptions: { value: string; label: string }[]; onTags: (ids: string[]) => void
-  onKey: (m: { name: string; key: string }) => void; onRevoke: () => void
+ *  env wins); revoking it. Its key and certificate have their own tab. */
+function SettingsTab({ agent: a, tagOptions, onTags, onRevoke }: {
+  agent: Agent; tagOptions: { value: string; label: string }[]; onTags: (ids: string[]) => void; onRevoke: () => void
 }) {
   const { t } = useTranslation()
-  const page = useAgentSettings(a.id)
   return (
     <Grid gap="md">
       <Grid.Col span={{ base: 12, lg: 8 }}>
@@ -228,8 +262,6 @@ function SettingsTab({ agent: a, tagOptions, onTags, onKey, onRevoke }: {
               <PluginsOff agent={a} />
             </Stack>
           </Panel>
-          <KeyPanel agent={a} page={page.data}><NewKeyButton agent={a} onKey={onKey} /></KeyPanel>
-          {page.data && <CertPanel agent={a} page={page.data} />}
           <DangerZone label={t('agents.revoke')} question={t('agents.revokeQuestion', { name: a.name })} onConfirm={onRevoke} />
         </Stack>
       </Grid.Col>

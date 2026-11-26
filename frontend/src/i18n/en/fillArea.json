@@ -1,0 +1,17 @@
+{
+  "title": "Fill area",
+  "intro": "Fills the box with runs of seats: each run is one seat block, with walkways between the runs. The runs and walkways become one group.",
+  "seats": "Seats per row",
+  "rows": "Rows per run",
+  "rowsHint": "2 rows back to back make a run.",
+  "walkway": "Walkway",
+  "walkwayHint": "Between the runs; 0 puts them back to back.",
+  "labels": "Row letters",
+  "preview_one": "{{count}} run, {{seats}} seats, {{walkways}} walkways",
+  "preview_other": "{{count}} runs, {{seats}} seats, {{walkways}} walkways",
+  "tooSmall": "The area is too small for one run of seats.",
+  "create": "Fill",
+  "step_one": "fill area with {{count}} run",
+  "step_other": "fill area with {{count}} runs",
+  "group": "Area {{n}}"
+}

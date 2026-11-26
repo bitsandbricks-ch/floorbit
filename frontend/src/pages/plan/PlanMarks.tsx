@@ -2,15 +2,18 @@ import type { CSSProperties } from 'react'
 import type { PlanDrawing, PlanMark } from '@/api/types'
 import { type LayerId, type LayerState, LAYERS, MARK_LAYER, opacity } from './layers'
 import { markPx } from './markSize'
+import { walkwayWide } from './lineMarks'
 
 const layerOf = (m: PlanMark): LayerId => MARK_LAYER[m.layer ?? 'overview'] ?? 'marks'
+// A walkway is also an escape route: the Safety layer shows it too, whatever layer it's on (#1564).
+const shows = (m: PlanMark, on: ReadonlySet<LayerId>) => on.has(layerOf(m)) || (m.kind === 'walkway' && on.has('safety'))
 
 /** Walls, zones, labels and icons (floorbit/plan_marks.py), drawn under the seats. With ``layers``,
  *  each mark shows only while its layer is on, faded with it. */
 export function PlanMarks({ drawing, layers }: { drawing: PlanDrawing; layers?: LayerState }) {
-  const marks = (drawing.marks ?? []).filter((m) => !layers || layers.on.has(layerOf(m)))
+  const marks = (drawing.marks ?? []).filter((m) => !layers || shows(m, layers.on))
   if (!marks.length) return null
-  const order = (m: PlanMark) => ({ zone: 0, wall: 1, text: 2, icon: 3 })[m.kind]
+  const order = (m: PlanMark) => ({ zone: 0, walkway: 1, wall: 2, text: 3, icon: 4 })[m.kind]
   return (
     <g className="fb-marks" aria-hidden="true">
       <CustomIconMasks icons={drawing.custom_icons} />
@@ -19,7 +22,7 @@ export function PlanMarks({ drawing, layers }: { drawing: PlanDrawing; layers?: 
         if (!mine.length) return null
         return (
           <g key={id} data-layer={id} opacity={layers ? opacity(layers, id) : undefined}>
-            {mine.sort((a, b) => (a.z ?? 0) - (b.z ?? 0) || order(a) - order(b)).map((m, i) => <Mark key={i} m={m} icons={drawing.icons ?? {}} custom={drawing.custom_icons ?? {}} />)}
+            {mine.sort((a, b) => (a.z ?? 0) - (b.z ?? 0) || order(a) - order(b)).map((m, i) => <Mark key={i} m={m} cell={drawing.cell ?? 32} icons={drawing.icons ?? {}} custom={drawing.custom_icons ?? {}} />)}
           </g>
         )
       })}
@@ -45,7 +48,7 @@ function CustomIconMasks({ icons }: { icons?: Record<string, string> }) {
 
 const maskId = (icon: string) => `fbi-${icon}`
 
-function Mark({ m, icons, custom }: { m: PlanMark; icons: Record<string, string[]>; custom: Record<string, string> }) {
+function Mark({ m, cell, icons, custom }: { m: PlanMark; cell: number; icons: Record<string, string[]>; custom: Record<string, string> }) {
   // A picked colour wins over the theme's; without one the stylesheet's light or dark colour shows.
   const tint = m.tint ? { stroke: m.tint } : undefined
   const turn = (x: number, y: number) => (m.rotation ? `rotate(${m.rotation} ${x} ${y})` : undefined)
@@ -61,6 +64,16 @@ function Mark({ m, icons, custom }: { m: PlanMark; icons: Record<string, string[
       return m.points?.length
         ? <polyline className={`wall${m.style === 'dashed' ? ' dashed' : ''}`} style={tint} points={[[m.x, m.y], ...m.points, [m.x2, m.y2]].join(' ')} />
         : <line className={`wall${m.style === 'dashed' ? ' dashed' : ''}`} style={tint} x1={m.x} y1={m.y} x2={m.x2} y2={m.y2} />
+    case 'walkway': {
+      // A band as wide as the walkway, with a dashed line down its middle; a tint colours the band.
+      const points = [[m.x, m.y], ...(m.points ?? []), [m.x2, m.y2]].join(' ')
+      return (
+        <g className="walkway" style={m.tint ? ({ '--walkway': m.tint } as CSSProperties) : undefined}>
+          <polyline className="walkway-band" points={points} strokeWidth={walkwayWide(m, cell)} />
+          <polyline className="walkway-mid" points={points} />
+        </g>
+      )
+    }
     case 'text':
       return (
         <text className="label" style={m.tint ? { fill: m.tint } : undefined} x={m.x} y={m.y} dy="0.35em" fontSize={markPx(m)} transform={turn(m.x, m.y)}>{m.text}</text>

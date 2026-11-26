@@ -52,7 +52,7 @@ class Collector:
         return False
 
     def enabled(self, now=None):
-        """Is Traffic switched on (Settings > Features)? Asked every half minute, not per packet."""
+        """Is Traffic switched on (Settings > Plugins > Built in)? Asked every half minute, not per packet."""
         now = time.time() if now is None else now
         if self._due('feature', now, FEATURE_EVERY):
             from .. import features

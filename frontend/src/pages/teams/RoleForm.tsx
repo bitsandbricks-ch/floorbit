@@ -68,7 +68,7 @@ export function RoleForm({
               checked={draft.permissions.includes(p.id)} onChange={(e) => toggle(p.id, e.currentTarget.checked)} />
           ))}
           {error && (
-            <Text c="var(--color-down)" size="sm" role="alert">
+            <Text c="var(--bnb-err)" size="sm" role="alert">
               {error}
             </Text>
           )}

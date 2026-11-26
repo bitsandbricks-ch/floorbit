@@ -4,16 +4,19 @@
   "name": {
     "lease": "Primary picked by Floorbit",
     "split": "Splits devices with its group",
-    "syslog_hold": "Keeps other agents' syslog for a takeover"
+    "syslog_hold": "Keeps other agents' syslog for a takeover",
+    "self_update": "Updates itself"
   },
   "yes": {
     "lease": "Polls and logs in only while Floorbit says it is the primary.",
     "split": "Polls, logs in to and handles only its own devices.",
-    "syslog_hold": "Sends only its own devices' lines and keeps a minute of the rest."
+    "syslog_hold": "Sends only its own devices' lines and keeps a minute of the rest.",
+    "self_update": "Installs the signed agent releases Floorbit offers, with no new image."
   },
   "no": {
     "lease": "Falls back to VRRP: the agent holding the first shared address is primary.",
     "split": "Falls back to one primary collecting every device of the group.",
-    "syslog_hold": "Falls back to sending every line; Floorbit keeps each line once."
+    "syslog_hold": "Falls back to sending every line; Floorbit keeps each line once.",
+    "self_update": "Falls back to the pull command: the crew pulls the new image by hand."
   }
 }

@@ -1,12 +1,14 @@
 """Several Floorbit pods behind one address (issue #465). Docs: docs/kubernetes.md.
 
 One pod is the default and needs none of this. With ``FLOORBIT_CLUSTER=redis`` the pods share
-Redis (``REDIS_HOST``) for three things that otherwise live in one pod's memory:
+Redis (``REDIS_HOST``) for four things that otherwise live in one pod's memory:
 
 - **Live updates.** An event published on one pod reaches the browsers connected to every other
   pod (Redis pub/sub). Python subscribers run only where the event was published.
 - **Agent calls.** A local agent holds its link to one pod. A call made on another pod goes to that
   pod through a Redis list and the answer comes back the same way.
+- **Switch terminals.** A terminal's SSH connection lives in the pod that opened it; the other pods
+  pass its requests there the same way (floorbit/terminal_cluster.py).
 - **One leader.** Automatic side effects (Discord alerts, webhooks, the event timeline, plugin
   hooks, replay frames) come from background loops that run on every pod. Only the pod holding the
   leader lease acts on them, so an alert goes out once. Events caused by a request still act on
@@ -106,6 +108,12 @@ class RedisBus:
 
     def hgetall(self, key):
         return self.short.hgetall(self.prefix + key) or {}
+
+    def hget(self, key, field):
+        return self.short.hget(self.prefix + key, field)
+
+    def hdel(self, key, field):
+        self.short.hdel(self.prefix + key, field)
 
 
 class Cluster:
@@ -251,8 +259,11 @@ class Cluster:
             return                       # not a call this version (or key) understands; its caller times out
         if left <= 0:
             return                       # the caller gave up already
+        # A switch terminal this pod holds (floorbit/terminal_cluster.py), else a call for an agent here.
+        from . import terminal_cluster
+        run = terminal_cluster.serve if str(method).startswith(terminal_cluster.PREFIX) else self.run_call
         try:
-            result = self.run_call(method, call.get('args') or [], call.get('targets'), min(left, timeout))
+            result = run(method, call.get('args') or [], call.get('targets'), min(left, timeout))
             reply = {'ok': True, 'result': result}
         except Exception as exc:  # noqa: BLE001  # goes back to the caller as the error
             reply = {'ok': False, 'error': str(exc)[:300], 'unavailable': type(exc).__name__ == 'AgentUnavailable'}

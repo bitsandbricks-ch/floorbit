@@ -1,0 +1,52 @@
+{
+  "title": "What Floorbit reads: {{kind}}",
+  "intro": "One row per area. The deciding source wins; the others fill what it doesn't read and show where they disagree. Values set by hand or by NetBox still win over every source.",
+  "kind": "Kind of device",
+  "builtIn": "built in",
+  "col": {
+    "area": "Area",
+    "deciding": "Deciding source",
+    "also": "Also from",
+    "every": "Every",
+    "goesTo": "Goes to",
+    "last": "Last run",
+    "conflicts": "Conflicts"
+  },
+  "area": {
+    "identity": "Identity",
+    "interfaces": "Interfaces",
+    "networks": "Networks",
+    "optics": "Transceivers",
+    "poe": "PoE budget",
+    "routes": "Routes"
+  },
+  "why": {
+    "admin": "picked by an admin",
+    "default": "default: first in the order",
+    "only": "only source",
+    "none": "nothing reads it"
+  },
+  "defaultOf": "Default ({{name}})",
+  "pickLabel": "Deciding source for {{area}} on {{kind}}",
+  "goes": {
+    "fields": "Device fields",
+    "interfaces": "Interfaces"
+  },
+  "minutes_one": "{{count}} min",
+  "minutes_other": "{{count}} min",
+  "off": "off",
+  "failed": "failed",
+  "conflicts_one": "{{count}} field",
+  "conflicts_other": "{{count}} fields",
+  "noConflicts": "none",
+  "none": "Nothing reads this kind of device.",
+  "noMonitoring": "No monitoring source is set up: only plugins read these devices.",
+  "conflictTitle": "Sources disagree",
+  "conflictIntro": "Two discovery sources read different values. The deciding source's value counts; take the other's, or let the other source decide.",
+  "deciding": "Deciding source",
+  "decidingSource": "{{name}}, deciding",
+  "other": "Other source",
+  "take": "Take {{name}}'s value",
+  "makeDecide": "Make {{name}} decide identity on: {{kind}}",
+  "whatReads": "What Floorbit reads: {{kind}}"
+}

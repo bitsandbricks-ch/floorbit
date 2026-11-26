@@ -1,0 +1,52 @@
+{
+  "title": "Was Floorbit liest: {{kind}}",
+  "intro": "Eine Zeile pro Bereich. Die entscheidende Quelle gilt; die anderen füllen, was sie nicht liest, und zeigen, wo sie abweichen. Von Hand oder von NetBox gesetzte Werte gelten weiterhin vor jeder Quelle.",
+  "kind": "Geräteart",
+  "builtIn": "eingebaut",
+  "col": {
+    "area": "Bereich",
+    "deciding": "Entscheidende Quelle",
+    "also": "Auch von",
+    "every": "Alle",
+    "goesTo": "Landet in",
+    "last": "Letzter Lauf",
+    "conflicts": "Konflikte"
+  },
+  "area": {
+    "identity": "Identität",
+    "interfaces": "Interfaces",
+    "networks": "Netze",
+    "optics": "Transceiver",
+    "poe": "PoE-Budget",
+    "routes": "Routen"
+  },
+  "why": {
+    "admin": "von einem Admin gewählt",
+    "default": "Vorgabe: die erste in der Reihenfolge",
+    "only": "einzige Quelle",
+    "none": "nichts liest ihn"
+  },
+  "defaultOf": "Vorgabe ({{name}})",
+  "pickLabel": "Entscheidende Quelle für {{area}} bei {{kind}}",
+  "goes": {
+    "fields": "Gerätefelder",
+    "interfaces": "Interfaces"
+  },
+  "minutes_one": "{{count}} Min.",
+  "minutes_other": "{{count}} Min.",
+  "off": "aus",
+  "failed": "fehlgeschlagen",
+  "conflicts_one": "{{count}} Feld",
+  "conflicts_other": "{{count}} Felder",
+  "noConflicts": "keine",
+  "none": "Nichts liest diese Geräteart.",
+  "noMonitoring": "Keine Monitoring-Quelle eingerichtet: nur Plugins lesen diese Geräte.",
+  "conflictTitle": "Quellen weichen ab",
+  "conflictIntro": "Zwei Discovery-Quellen lesen verschiedene Werte. Der Wert der entscheidenden Quelle gilt; übernimm den anderen oder lass die andere Quelle entscheiden.",
+  "deciding": "Entscheidende Quelle",
+  "decidingSource": "{{name}}, entscheidet",
+  "other": "Andere Quelle",
+  "take": "Wert von {{name}} übernehmen",
+  "makeDecide": "{{name}} über die Identität entscheiden lassen: {{kind}}",
+  "whatReads": "Was Floorbit liest: {{kind}}"
+}

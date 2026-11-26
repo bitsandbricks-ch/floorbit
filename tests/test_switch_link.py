@@ -34,14 +34,16 @@ class FakeAgent:
         self.registry, self.key, self.seen = registry, key, []
         self.client = app_module.app.test_client()
         self.stop = threading.Event()
+        # Set after the first poll. The old wait gave up silently after 5 s, so on a loaded CI
+        # runner a test could post before the agent was connected and get "not connected" (#1567).
+        self.polled = threading.Event()
         self.shells = {}
         self.thread = threading.Thread(target=self.run, daemon=True)
 
     def __enter__(self):
         self.thread.start()
-        deadline = time.time() + 5
-        while not agent_link.tunnel.connected() and time.time() < deadline:
-            time.sleep(0.05)
+        assert self.polled.wait(15), "the fake agent never got its first poll answered"
+        assert agent_link.tunnel.connected()
         return self
 
     def __exit__(self, *exc):
@@ -51,6 +53,7 @@ class FakeAgent:
     def run(self):
         while not self.stop.is_set():
             calls = self.client.get("/api/agent/v1/calls?wait=0.3", headers=head(self.key)).get_json()["calls"]
+            self.polled.set()
             for c in calls:
                 threading.Thread(target=self.answer, args=(c,), daemon=True).start()
 
@@ -135,7 +138,7 @@ def test_switch_commands_go_through_the_agent(lan_here, app_module, client, ssh,
                                                       "username": "kim", "password": FakeSwitch.password})
         assert resp.status_code == 200, resp.get_json()
         calls = [a for m, a in agent.seen if m == "switch_call"]
-        assert calls and calls[0][1] == "send_commands"
+        assert calls and calls[0][1] == "send_commands", resp.get_json()["results"]
 
 
 def test_the_terminal_is_held_open_by_the_agent(lan_here, app_module, client, ssh, registry, monkeypatch):  # noqa: F811  # ssh: the fixture from tests/test_ports.py

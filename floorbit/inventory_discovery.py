@@ -155,9 +155,17 @@ def match(devices, rows):
     return out
 
 
-def fill(dev, values):
-    """Put discovered values on one device by the rules at the top. Returns (changed, kept)."""
-    before = (dev.get('fed') or {}).get(PLUGIN) or {}
+def fed_key(plugin_id):
+    """Where a plugin's discovery area keeps what it put on a device (plugin_discovery.py): apart
+    from what the same plugin feeds the inventory with."""
+    return f'discovery:{plugin_id}'[:40]
+
+
+def fill(dev, values, key=PLUGIN):
+    """Put discovered values on one device by the rules at the top. Returns (changed, kept).
+    ``key``: whose values they are (a plugin's discovery area: fed_key)."""
+    fed = dev.get('fed') or {}
+    before = fed.get(key) or {}
     owned = {}
     changed, kept = [], 0
     for field in FIELDS:
@@ -165,7 +173,11 @@ def fill(dev, values):
         if not value:
             continue
         current = dev.get(field) or ''
-        if field in (dev.get('locked') or []) or (current and current != before.get(field)):
+        # Another discovery source's value gives way: only the deciding source fills a field the
+        # other one read too (discovery_sources.py).
+        theirs = any((fed.get(k) or {}).get(field) == current for k in fed
+                     if k != key and (k == PLUGIN or k.startswith('discovery:')))
+        if field in (dev.get('locked') or []) or (current and current != before.get(field) and not theirs):
             kept += current != value
             continue
         owned[field] = value
@@ -173,7 +185,7 @@ def fill(dev, values):
             dev[field] = value
             changed.append(field)
     # Only what discovery owns: a hand edit later doesn't lock against it, it just stops it.
-    dev.setdefault('fed', {})[PLUGIN] = owned
+    dev.setdefault('fed', {})[key] = owned
     return changed, kept
 
 
@@ -198,8 +210,18 @@ SCHEDULES = 'inventory_discovery_schedules'      # {action: minutes} set by an a
 RUNS = 'inventory_discovery_runs'                # {action: {at, devices, changed}}
 
 
+def all_actions():
+    """The built-in actions, then the areas the plugins that are on add (plugin_discovery.py)."""
+    from . import plugin_discovery
+    return [*ACTIONS, *plugin_discovery.areas()]
+
+
 def action(action_id):
-    return next((a for a in ACTIONS if a['id'] == action_id), None)
+    builtin = next((a for a in ACTIONS if a['id'] == action_id), None)
+    if builtin is not None or '.' not in str(action_id):
+        return builtin
+    from . import plugin_discovery
+    return plugin_discovery.area(action_id)
 
 
 def action_minutes(data, action_id):
@@ -227,7 +249,10 @@ def actions(data):
     saved = (data.get(SCHEDULES) or {}) if isinstance(data.get(SCHEDULES), dict) else {}
     runs = (data.get(RUNS) or {}) if isinstance(data.get(RUNS), dict) else {}
     return [{'id': a['id'], 'name': a['name'], 'roles': list(a['roles']), 'minutes': action_minutes(data, a['id']),
-             'custom': a['id'] in saved, 'last': runs.get(a['id'])} for a in ACTIONS]
+             'custom': a['id'] in saved, 'last': runs.get(a['id']),
+             **({'plugin': a['plugin'], 'plugin_name': a['plugin_name'], 'area': a['area'],
+                 'platforms': list(a['platforms'])} if a.get('plugin') else {})}
+            for a in all_actions()]
 
 
 def set_minutes(data, action_id, minutes):
@@ -252,7 +277,7 @@ def set_minutes(data, action_id, minutes):
 def due_actions(data, now):
     from . import inventory_schedule
     runs = (data.get(RUNS) or {}) if isinstance(data.get(RUNS), dict) else {}
-    return [a['id'] for a in ACTIONS
+    return [a['id'] for a in all_actions()
             if inventory_schedule.due(now, inventory_schedule._at(runs.get(a['id']) or {}),
                                       action_minutes(data, a['id']))]
 
@@ -302,7 +327,7 @@ def run(only=None, device_ids=None):
             if not does('identity', dev):
                 continue
             report['actions']['identity']['devices'] += 1
-            changed, kept = fill(dev, values)
+            changed, kept = fill(dev, mine(data, dev, values))
             report['locked'] += kept
             if changed:
                 dev['updated_at'] = inventory.now()
@@ -347,13 +372,14 @@ def run(only=None, device_ids=None):
             dev = inventory.find(data, dev_id)
             if dev is None:
                 continue
-            old = [r for r in before.get(dev_id) or [] if isinstance(r, dict)]
-            rows = drift(dev, values, row, mon.name if ports_ok and dev_id in polled else None)
+            old = [r for r in before.get(dev_id) or [] if isinstance(r, dict) and not r.get('source')]
+            theirs = [r for r in before.get(dev_id) or [] if isinstance(r, dict) and r.get('source')]  # a plugin area's
+            rows = drift(dev, mine(data, dev, values), row, mon.name if ports_ok and dev_id in polled else None)
             if not does('identity', dev):
                 rows = [r for r in rows if r['kind'] == 'interface'] + [r for r in old if r.get('kind') != 'interface']
             if not (ports_ok and dev_id in polled):
                 rows = [r for r in rows if r['kind'] != 'interface'] + [r for r in old if r.get('kind') == 'interface']
-            rows = _since(rows, old, now_text)
+            rows = _since(rows, old, now_text) + theirs
             if rows:
                 out[dev_id] = rows
         data['inventory_drift'] = out
@@ -385,7 +411,7 @@ def run(only=None, device_ids=None):
         from . import inventory_properties
         inventory_properties.forget(data, {d['id'] for d in data.get('inventory') or []})
         if ran & {'networks', 'optics'}:
-            _entries(data, list(kept.values()), report)
+            _entries(data, found_records(data), report)
         save_data(data)
     return _keep(report)
 
@@ -539,12 +565,33 @@ def _entries(data, found, report):
 
 
 def discovered_of(data, device_id):
+    """What discovery read from one device: the monitoring source's, and the plugins' areas where
+    it has none (plugin_discovery.py)."""
+    from . import plugin_discovery
     found = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
-    return {'vlans': [], 'networks': [], 'transceivers': [], 'poe': None, 'routes': [], 'at': None,
-            **(found.get(device_id) or {})}
+    return plugin_discovery.builtin_fill(data, device_id, {
+        'vlans': [], 'networks': [], 'transceivers': [], 'poe': None, 'routes': [], 'at': None,
+        **(found.get(device_id) or {})})
+
+
+def found_records(data):
+    """Every device's discovered record, the plugins' areas included: what the entries come from."""
+    from . import plugin_discovery
+    found = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
+    plugged = data.get(plugin_discovery.KEY) if isinstance(data.get(plugin_discovery.KEY), dict) else {}
+    # In discovery's own order: an optic seen on two switches is where the later one says it is.
+    return [discovered_of(data, i) for i in [*found, *(i for i in plugged if i not in found)]]
 
 
 # ── drift ────────────────────────────────────────────────────────────────────────────────────
+
+def mine(data, dev, values, source=None):
+    """The fields a source may fill and show drift for: all of them when it decides the device's
+    identity, else those the deciding source didn't read (discovery_sources.py, issue #965)."""
+    from . import discovery_sources
+    lead = discovery_sources.deciders_reading(data, dev, source or discovery_sources.MONITORING)
+    return values if lead is None else {f: v for f, v in values.items() if not lead.get(f)}
+
 
 def _same(field, a, b):
     from . import inventory
@@ -662,9 +709,18 @@ def tick(now=None):
     from .store import load_data
     now = time.time() if now is None else now
     due = due_actions(load_data(), now)
-    if not due or not available() or not running.acquire(blocking=False):
+    builtin = {a for a in due if a in ACTION_IDS}
+    plugged = set(due) - builtin
+    if builtin and not available():
+        builtin = set()
+    if not (builtin or plugged) or not running.acquire(blocking=False):
         return None
     try:
-        return run(set(due))
+        report = run(builtin) if builtin else None
+        if plugged:
+            from . import plugin_discovery
+            plugin_report = plugin_discovery.run(plugged)
+            report = {**report, 'plugins': plugin_report} if report else plugin_report
+        return report
     finally:
         running.release()

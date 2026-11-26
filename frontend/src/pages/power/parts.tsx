@@ -12,7 +12,7 @@ import { circuitPath, TONE } from './state'
 export function Load({ c }: { c: Circuit }) {
   const { t } = useTranslation()
   if (c.state === 'tripped') {
-    return <Text size="sm" c="var(--color-down)" fw={600}>{t('power.trippedNote', { who: c.tripped?.by ?? '?', ago: ago(c.tripped?.at ?? 0) })}</Text>
+    return <Text size="sm" c="var(--bnb-err)" fw={600}>{t('power.trippedNote', { who: c.tripped?.by ?? '?', ago: ago(c.tripped?.at ?? 0) })}</Text>
   }
   if (!c.reading || c.load_pct === null) return <Text size="sm" c="dimmed">{t('power.state.unknown')}</Text>
   const r = c.reading

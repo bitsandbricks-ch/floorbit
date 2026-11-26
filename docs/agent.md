@@ -309,20 +309,20 @@ What stays in the agent's environment:
 | --- | --- |
 | `FLOORBIT_URL` | the hosted Floorbit, `https://…` |
 | `FLOORBIT_AGENT_KEY` | the key from **Agents**, to enrol it; a rolled key replaces it (below) |
-| `FLOORBIT_AGENT_ALLOW_ACTIONS`, `FLOORBIT_AGENT_PLUGIN_UPDATES` | what the people at the hall allow (actions, plugin updates) |
+| `FLOORBIT_AGENT_ALLOW_ACTIONS`, `FLOORBIT_AGENT_PLUGIN_UPDATES`, `FLOORBIT_AGENT_UPDATES` | what the people at the hall allow (actions, plugin updates, updates of the agent itself) |
 | `FLOORBIT_AGENT_SWITCH_NETS`, `_GAME_NETS`, `_PROBE_NETS` | which networks it may reach |
 | `FLOORBIT_AGENT_TLS_CERT`, `FLOORBIT_AGENT_TLS_KEY` | a certificate of your own, instead of the one Floorbit signs (below) |
 | `FLOORBIT_AGENT_HEARTBEAT` | where the heartbeat file for `health` goes (next to its settings file by default) |
 | `FLOORBIT_AGENT_INSECURE` | `1` allows an `http://` URL, for a test on a trusted network only: the key and the event data go over it |
 | `FLOORBIT_DATA_FILE` | the agent's own settings file (in the image `/app/state/data.json`, elsewhere `agent-data.json` in its working directory). It keeps no floor plan |
 
-The limits (actions, plugin updates, networks) are only ever set in the hall, and the agent's page
+The limits (actions, plugin and agent updates, networks) are only ever set in the hall, and the agent's page
 shows them read-only as the agent reports them: a stolen Floorbit login must not widen what an agent
 can reach or do.
 
 ### Rolling an agent's key
 
-**Roll key** on the agent's page (or for every agent at once, `POST /api/agents/roll`) makes a new
+**Roll key** in the header of the agent's page (or for every agent at once, `POST /api/agents/roll`) makes a new
 key; the agent fetches it on its next pull and keeps it in `agent-key` in its state folder, readable
 only by it. Nothing in its environment has to change: a stored key wins over `FLOORBIT_AGENT_KEY`,
 which only enrols it. The old key keeps working until the agent uses the new one, for 24 hours at
@@ -423,10 +423,35 @@ agent in the last two minutes, 1 otherwise. It reads a heartbeat file the agent 
 poll that gets through, so it needs no network and no settings. The Compose file uses it as the
 container's health check, so `docker ps` shows the agent as *unhealthy* while the uplink is down.
 
-To update the agent, pull the new image and start it again (`docker compose -f
-docker-compose.agent.yml pull && docker compose -f docker-compose.agent.yml up -d`). The
-**Local agents** page shows each agent's version, and **Update** next to one that speaks an older
-agent protocol than this Floorbit.
+### Updates
+
+An agent updates itself (floorbit-agent #98). Each agent release carries a signed update: the agent's
+code and the Floorbit code it runs. Every hour this Floorbit looks for the newest one on the agent's
+GitHub releases, keeps it in its state folder (`agent-releases/`) and offers it to its agents with
+their plugin config. The agent installs it only when the signature verifies against the agent key in
+its image (a key apart from the plugin key, held only by the agent's release workflow), it is newer
+than what runs and it was built for that very image. Then it stops cleanly and starts again on the new
+code in the same container: no new image, and no Docker access. Floorbit holds no key, so a stolen
+Floorbit login can at most offer a release that was already signed.
+
+- **Probation.** A new version that doesn't reach Floorbit within five minutes, or crashes at start,
+  goes back to the version before (or the image's own code) and isn't tried again on that agent.
+- **One at a time.** In a group of agents for the same devices, Floorbit offers it to one agent, waits
+  until that one is back and through its probation, then the next; the primary last, so the lease
+  moves to an agent already updated while it restarts. Agents of other groups update side by side.
+- **A new image.** A release that needs other Python packages or another Telegraf than the agent's
+  image isn't installed: the page says **Needs a new image** and shows the pull command. So does it
+  for an agent from before #98, which can't update itself (capability `self_update`).
+- **In the hall.** `FLOORBIT_AGENT_UPDATES` on the agent: `auto` (default), `approve` (the crew runs
+  `docker compose exec agent python -m floorbit_agent_boot update approve`) or `off`. Floorbit can't
+  change it.
+
+Each agent's **Updates** tab shows the version it runs, the newest release, where its update stands
+and its last steps; every step is in the [audit log](audit.md), and the agent's **Logs** tab lists
+what the audit log holds about that agent (`GET /api/agents/<id>/events`). Without a release (Floorbit can't
+reach GitHub), or for a new image, pull it and start the agent again (`docker compose pull &&
+docker compose up -d`). The **Local agents** page shows **Update** next to an agent that speaks an
+older agent protocol than this Floorbit.
 
 ## Ports
 
@@ -635,8 +660,8 @@ only has data when the hosted Floorbit has a Wi-Fi plugin of its own.
 
 Syslog is UDP, unencrypted and unauthenticated: the switches shouldn't send it across the internet
 to a hosted Floorbit. Let the agent take it instead: turn on the **Syslog from the hall** plugin
-under Settings > Plugins and set its UDP port (such as `5514`); every agent picks it up within a
-minute (docs/agent-plugins.md). Publish the port (in `docker-compose.agent.yml`, uncomment the
+under Settings > Plugins; every agent picks it up within a minute (docs/agent-plugins.md) and
+listens on udp/5514, a fixed port like its others (Advanced on the plugin's page changes it). Publish the port (in `docker-compose.agent.yml`, uncomment the
 `ports` lines, which map the host's udp/514 to it) and point the switches, firewalls and DHCP
 servers at the agent's machine, as [Syslog](syslog.md) describes for a Floorbit of your own.
 
@@ -676,7 +701,7 @@ times are taken as they are.
 
 Flows are too many, and too revealing, to send across the internet one by one. So the agent runs
 the [flow collector](flows.md) itself: turn on the **Traffic from the hall** plugin under
-Settings > Plugins and set its UDP port (such as `2055`), publish the port (the `ports` lines in
+Settings > Plugins (the agent listens on udp/2055, a fixed port like its others), publish the port (the `ports` lines in
 `docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or IPFIX export at the
 agent's machine. Only the newest summary waits while the hosted side is away.
 

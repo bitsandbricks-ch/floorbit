@@ -189,7 +189,7 @@ function Review({ conflicts, canEdit, onForget }: { conflicts: CheckinConflict[]
   return (
     <Stack gap="xs">
       {conflicts.map((c) => (
-        <Panel key={`${c.kind}-${c.seat}-${c.port}`} padding="sm">
+        <Panel key={`${c.kind}-${c.seat}-${c.port}`}>
           <Group justify="space-between" wrap="nowrap">
             <div>
               <Text fw={600}>{t(`crewCheckin.conflict.${c.kind}`, { seat: c.seat, other: c.other.join(', ') })}</Text>

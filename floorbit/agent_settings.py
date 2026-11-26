@@ -51,8 +51,8 @@ FIELDS = [
 ]
 BY_KEY = {f['key']: f for f in FIELDS}
 # Only the agent's own environment sets these; Floorbit shows what the agent reports.
-LOCAL_ONLY = ('FLOORBIT_AGENT_ALLOW_ACTIONS', 'FLOORBIT_AGENT_PLUGIN_UPDATES', 'FLOORBIT_AGENT_SWITCH_NETS',
-              'FLOORBIT_AGENT_GAME_NETS', 'FLOORBIT_AGENT_PROBE_NETS')
+LOCAL_ONLY = ('FLOORBIT_AGENT_ALLOW_ACTIONS', 'FLOORBIT_AGENT_PLUGIN_UPDATES', 'FLOORBIT_AGENT_UPDATES',
+              'FLOORBIT_AGENT_SWITCH_NETS', 'FLOORBIT_AGENT_GAME_NETS', 'FLOORBIT_AGENT_PROBE_NETS')
 NAME_RE = re.compile(r'^(?=.{1,253}\Z)(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*\Z')
 IFACE_RE = re.compile(r'^[A-Za-z0-9_.:@-]{1,15}\Z')
 MAX_NAMES = 10

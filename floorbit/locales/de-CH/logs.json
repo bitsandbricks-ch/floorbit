@@ -3,6 +3,8 @@
  "hours is a whole number from 1 to 2160.": "hours ist eine ganze Zahl von 1 bis 2160.",
  "Reading this log needs the audit.read permission.": "Dieses Log zu lesen braucht das Recht audit.read.",
  "severity is one of {}.": "severity ist eines von {}.",
+ "since and until are unix seconds, since before until.": "since und until sind Unix-Sekunden, since vor until.",
+ "since and until are unix seconds, since before until. buckets is a whole number from 1 to 500.": "since und until sind Unix-Sekunden, since vor until. buckets ist eine ganze Zahl von 1 bis 500.",
  "source is one of {} or plugin:<id>.": "source ist eines von {} oder plugin:<id>.",
  "That logs plugin is not turned on.": "Dieses Log-Plugin ist nicht eingeschaltet."
 }

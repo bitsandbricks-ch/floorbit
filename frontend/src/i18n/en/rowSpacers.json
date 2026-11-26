@@ -1,0 +1,17 @@
+{
+  "newSpacer": "Spacer between rows",
+  "newSpacerHint": "Room between the rows for the switch. 1 seat or less and they still share a table.",
+  "above": "Spacer above {{name}}",
+  "add": "Spacer above {{name}}",
+  "remove": "Remove the spacer above row {{name}}",
+  "stripTitle": "Seats and gaps",
+  "stripHint": "Click between two seats to add a gap there; click a gap to size or remove it.",
+  "addAfter": "Add a gap after seat {{seat}}",
+  "gapAfterShort": "Gap after seat {{seat}}",
+  "gapSize": "Size of the gap after seat {{seat}}, in seats",
+  "removeGap": "Remove the gap after seat {{seat}}",
+  "gapAfter_one": "Gap after seat {{seat}}, {{count}} seat",
+  "gapAfter_other": "Gap after seat {{seat}}, {{count}} seats",
+  "unit_one": "seat",
+  "unit_other": "seats"
+}

@@ -5,24 +5,24 @@
 /* The plan's Edit mode (pages/plan/edit/): hit areas over every item, selection, the drag box. */
 .fb-edit-bg { fill: transparent; cursor: default; }
 .fb-edit-hit { fill: transparent; cursor: move; }
-.fb-edit-hit:hover { fill: color-mix(in srgb, var(--color-bit) 8%, transparent); }
+.fb-edit-hit:hover { fill: color-mix(in srgb, var(--bnb-accent) 8%, transparent); }
 .fb-edit-hit-wall { fill: none; stroke: transparent; pointer-events: stroke; stroke-linecap: round; stroke-linejoin: round; }
-.fb-edit-hit-wall:hover { fill: none; stroke: color-mix(in srgb, var(--color-bit) 20%, transparent); }
-.fb-edit-rotate line { stroke: var(--color-bit); stroke-width: 1.5; pointer-events: none; }
-.fb-edit-rotate circle { fill: var(--color-ink); stroke: var(--color-bit); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.fb-edit-lock circle { fill: var(--color-ink); stroke: var(--color-bit); stroke-width: 1.5; }
-.fb-edit-lock rect { fill: var(--color-bit); }
-.fb-edit-lock path { fill: none; stroke: var(--color-bit); stroke-width: 1.6; stroke-linecap: round; }
-.fb-edit-bgframe rect { fill: transparent; stroke: var(--color-trace); stroke-width: 2; stroke-dasharray: 8 5; vector-effect: non-scaling-stroke; }
-.fb-edit-bgframe rect.corner { fill: var(--color-ink); stroke-dasharray: none; }
-.fb-edit-rulers rect { fill: color-mix(in srgb, var(--color-surface) 92%, transparent); }
-.fb-edit-rulers rect.corner { fill: var(--color-surface); }
-.fb-edit-rulers line { stroke: var(--color-muted); stroke-width: 1; }
-.fb-edit-rulers text { fill: var(--color-muted); font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
-.fb-edit-measure { fill: var(--color-fg); paint-order: stroke; stroke: var(--color-ink); stroke-width: 3px; font-weight: 600; pointer-events: none; }
+.fb-edit-hit-wall:hover { fill: none; stroke: color-mix(in srgb, var(--bnb-accent) 20%, transparent); }
+.fb-edit-rotate line { stroke: var(--bnb-accent); stroke-width: 1.5; pointer-events: none; }
+.fb-edit-rotate circle { fill: var(--bnb-bg); stroke: var(--bnb-accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.fb-edit-lock circle { fill: var(--bnb-bg); stroke: var(--bnb-accent); stroke-width: 1.5; }
+.fb-edit-lock rect { fill: var(--bnb-accent); }
+.fb-edit-lock path { fill: none; stroke: var(--bnb-accent); stroke-width: 1.6; stroke-linecap: round; }
+.fb-edit-bgframe rect { fill: transparent; stroke: var(--bnb-info); stroke-width: 2; stroke-dasharray: 8 5; vector-effect: non-scaling-stroke; }
+.fb-edit-bgframe rect.corner { fill: var(--bnb-bg); stroke-dasharray: none; }
+.fb-edit-rulers rect { fill: color-mix(in srgb, var(--bnb-surface) 92%, transparent); }
+.fb-edit-rulers rect.corner { fill: var(--bnb-surface); }
+.fb-edit-rulers line { stroke: var(--bnb-muted); stroke-width: 1; }
+.fb-edit-rulers text { fill: var(--bnb-muted); font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+.fb-edit-measure { fill: var(--bnb-fg); paint-order: stroke; stroke: var(--bnb-bg); stroke-width: 3px; font-weight: 600; pointer-events: none; }
 .fb-edit.panning .fb-edit-bg, .fb-edit.panning .fb-edit-hit { cursor: grab; pointer-events: none; }
-.fb-edit-sel { fill: none; stroke: var(--color-bit); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
-.fb-edit-marquee { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 1; pointer-events: none; }
+.fb-edit-sel { fill: none; stroke: var(--bnb-accent); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
+.fb-edit-marquee { fill: color-mix(in srgb, var(--bnb-accent) 10%, transparent); stroke: var(--bnb-accent); stroke-width: 1; pointer-events: none; }
 .fb-plan-editor .fb-plan-wrap { min-height: 70vh; }
 .fb-edit-panel { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
 /* The editor's panel takes less room on smaller screens and goes under the plan when the plan
@@ -33,95 +33,99 @@
   .fb-plan-editor .fb-edit-panel { position: static; max-height: none; }
 }
 .fb-edit-ports { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 4px; max-height: 220px; overflow: auto; font: 500 11px var(--font-mono); }
-.fb-edit-ports > span { padding: 2px 6px; border-radius: 4px; border: 1px solid var(--mantine-color-default-border); color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fb-edit-ports > span.used { background: color-mix(in srgb, var(--color-bit) 14%, transparent); color: var(--mantine-color-text); border-color: transparent; }
+.fb-edit-ports > span { padding: 2px 6px; border-radius: 4px; border: 1px solid var(--mantine-color-default-border); color: var(--bnb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fb-edit-ports > span.used { background: color-mix(in srgb, var(--bnb-accent) 14%, transparent); color: var(--mantine-color-text); border-color: transparent; }
 .fb-edit-stage { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start; }
-.fb-edit-seat { fill: color-mix(in srgb, var(--color-bit) 12%, transparent); stroke: var(--color-bit); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; cursor: move; }
-.fb-edit-seat:hover, .fb-edit-seat.moving { fill: color-mix(in srgb, var(--color-bit) 30%, transparent); stroke-dasharray: none; }
-.fb-edit-rail-sep { height: 1px; margin: 2px 4px; background: var(--color-line); }
-.fb-edit-rail { padding: 4px; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-surface); position: sticky; top: 12px; }
+.fb-edit-seat { fill: color-mix(in srgb, var(--bnb-accent) 12%, transparent); stroke: var(--bnb-accent); stroke-width: 1.5; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; cursor: move; }
+.fb-edit-seat:hover, .fb-edit-seat.moving { fill: color-mix(in srgb, var(--bnb-accent) 30%, transparent); stroke-dasharray: none; }
+.fb-edit-rail-sep { height: 1px; margin: 2px 4px; background: var(--bnb-line); }
+.fb-edit-rail { padding: 4px; border: 1px solid var(--bnb-line); border-radius: var(--radius-card); background: var(--bnb-surface); position: sticky; top: 12px; }
 .fb-edit.tooling .fb-edit-hit, .fb-edit.tooling .fb-edit-hit-line, .fb-edit.panning .fb-edit-hit-line { pointer-events: none; }
 .fb-edit-hit-line { stroke: transparent; pointer-events: stroke; cursor: pointer; stroke-linecap: round; }
-.fb-edit-hit-line:hover { stroke: color-mix(in srgb, var(--color-bit) 25%, transparent); }
-.fb-edit-guide { stroke: var(--color-trace, #22d3ee); stroke-width: 1; stroke-dasharray: 4 3; pointer-events: none; }
-.fb-edit-sel-line { stroke: var(--color-bit); stroke-width: 3; stroke-dasharray: 6 4; pointer-events: none; }
-.fb-edit-bend { fill: var(--color-bit); stroke: var(--color-surface); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: move; }
-.fb-edit-bend-add { fill: var(--color-surface); stroke: var(--color-bit); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: copy; opacity: .85; }
-.fb-edit-bend-add:hover { fill: var(--color-bit); }
-.fb-edit-handle { fill: var(--color-surface); stroke: var(--color-bit); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.fb-edit-handle:hover { fill: var(--color-bit); }
-.fb-edit-handle-label { fill: var(--color-bit); font-weight: 600; pointer-events: none; }
+.fb-edit-hit-line:hover { stroke: color-mix(in srgb, var(--bnb-accent) 25%, transparent); }
+.fb-edit-guide { stroke: var(--bnb-info, #22d3ee); stroke-width: 1; stroke-dasharray: 4 3; pointer-events: none; }
+.fb-edit-sel-line { stroke: var(--bnb-accent); stroke-width: 3; stroke-dasharray: 6 4; pointer-events: none; }
+.fb-edit-bend { fill: var(--bnb-accent); stroke: var(--bnb-surface); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: move; }
+.fb-edit-bend-add { fill: var(--bnb-surface); stroke: var(--bnb-accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; cursor: copy; opacity: .85; }
+.fb-edit-bend-add:hover { fill: var(--bnb-accent); }
+.fb-edit-handle { fill: var(--bnb-surface); stroke: var(--bnb-accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.fb-edit-handle:hover { fill: var(--bnb-accent); }
+.fb-edit-handle-label { fill: var(--bnb-accent); font-weight: 600; pointer-events: none; }
 .fb-edit.tooling .fb-edit-bg { cursor: crosshair; }
-.fb-edit-draft line, .fb-edit-draft rect { fill: color-mix(in srgb, var(--color-bit) 10%, transparent); stroke: var(--color-bit); stroke-width: 2; }
-.fb-edit-draft circle { fill: var(--color-bit); }
-.fb-edit-draft text { fill: var(--color-fg); paint-order: stroke; stroke: var(--color-ink); stroke-width: 3px; font-weight: 600; }
-.fb-plan-wrap { position: relative; height: 68vh; min-height: 320px; background: var(--color-raised); border: 1px solid var(--color-line); border-radius: var(--radius-card); overflow: hidden; }
+.fb-edit-draft line, .fb-edit-draft rect { fill: color-mix(in srgb, var(--bnb-accent) 10%, transparent); stroke: var(--bnb-accent); stroke-width: 2; }
+.fb-edit-draft circle { fill: var(--bnb-accent); }
+.fb-edit-draft text { fill: var(--bnb-fg); paint-order: stroke; stroke: var(--bnb-bg); stroke-width: 3px; font-weight: 600; }
+.fb-plan-wrap { position: relative; height: 68vh; min-height: 320px; background: var(--bnb-raised); border: 1px solid var(--bnb-line); border-radius: var(--radius-card); overflow: hidden; }
 .fb-plan-wrap > svg.fb-plan { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
-.fb-plan-wrap > svg.fb-plan:focus-visible { box-shadow: inset 0 0 0 3px var(--color-bit); }
+.fb-plan-wrap > svg.fb-plan:focus-visible { box-shadow: inset 0 0 0 3px var(--bnb-accent); }
 .fb-plan-wrap > svg.fb-plan:active { cursor: grabbing; }
 .fb-plan .bg { opacity: var(--plan-bg-opacity, .5); pointer-events: none; }
-.fb-grid line { stroke: color-mix(in srgb, var(--color-muted) 12%, transparent); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.fb-grid line.major { stroke: color-mix(in srgb, var(--color-muted) 28%, transparent); }
-.fb-plan .blk { fill: color-mix(in srgb, var(--color-surface) 60%, transparent); stroke: var(--color-line); }
+.fb-grid line { stroke: color-mix(in srgb, var(--bnb-muted) 12%, transparent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fb-grid line.major { stroke: color-mix(in srgb, var(--bnb-muted) 28%, transparent); }
+.fb-plan .blk { fill: color-mix(in srgb, var(--bnb-surface) 60%, transparent); stroke: var(--bnb-line); }
 .fb-plan .hit { fill: transparent; }
 .fb-plan .cell { cursor: pointer; }
-.fb-plan .cell .chair { fill: var(--color-muted); opacity: 0.85; pointer-events: none; }
+.fb-plan .cell .chair { fill: var(--bnb-muted); opacity: 0.85; pointer-events: none; }
 .fb-plan .seat { stroke-width: 2; }
-.fb-plan .s-online { fill: var(--color-up); stroke: color-mix(in srgb, var(--color-up) 70%, var(--color-fg)); }
-.fb-plan .s-offline { fill: var(--color-surface); stroke: var(--color-down); stroke-width: 2.5; }
-.fb-plan .slash { stroke: var(--color-down); stroke-width: 2.5; stroke-linecap: round; }
-.fb-plan .s-unknown { fill: var(--color-raised); stroke: var(--color-muted); stroke-dasharray: 4 3; }
-.fb-plan .note { fill: var(--color-warn); stroke: var(--color-surface); stroke-width: 1.5; stroke-linejoin: round; }
-.fb-plan .chk { fill: var(--color-trace); stroke: var(--color-surface); stroke-width: 1.5; stroke-linejoin: round; }
-.fb-plan .prob circle { fill: var(--color-down); stroke: var(--color-ink); stroke-width: 1.5; }
+.fb-plan .s-online { fill: var(--bnb-ok); stroke: color-mix(in srgb, var(--bnb-ok) 70%, var(--bnb-fg)); }
+.fb-plan .s-offline { fill: var(--bnb-surface); stroke: var(--bnb-err); stroke-width: 2.5; }
+.fb-plan .slash { stroke: var(--bnb-err); stroke-width: 2.5; stroke-linecap: round; }
+.fb-plan .s-unknown { fill: var(--bnb-raised); stroke: var(--bnb-muted); stroke-dasharray: 4 3; }
+.fb-plan .note { fill: var(--bnb-warn); stroke: var(--bnb-surface); stroke-width: 1.5; stroke-linejoin: round; }
+.fb-plan .chk { fill: var(--bnb-info); stroke: var(--bnb-surface); stroke-width: 1.5; stroke-linejoin: round; }
+.fb-plan .prob circle { fill: var(--bnb-err); stroke: var(--bnb-bg); stroke-width: 1.5; }
 .fb-plan .prob text { fill: #fff; font: 800 11px var(--font-sans); text-anchor: middle; pointer-events: none; }
 .fb-plan .fwr { fill: none; stroke-width: 3; }
-.fb-plan .fwr.fw-failover { stroke: var(--color-warn); stroke-dasharray: 4 3; }
-.fb-plan .fwr.fw-down { stroke: var(--color-down); }
+.fb-plan .fwr.fw-failover { stroke: var(--bnb-warn); stroke-dasharray: 4 3; }
+.fb-plan .fwr.fw-down { stroke: var(--bnb-err); }
 .fb-plan .pl { fill: none; stroke-width: 3; }
-.fb-plan .pl.pl-ok { stroke: var(--color-up); }
-.fb-plan .pl.pl-warn { stroke: var(--color-warn); }
-.fb-plan .pl.pl-err { stroke: var(--color-down); }
-.fb-plan .pl.pl-info { stroke: var(--color-trace); }
+.fb-plan .pl.pl-ok { stroke: var(--bnb-ok); }
+.fb-plan .pl.pl-warn { stroke: var(--bnb-warn); }
+.fb-plan .pl.pl-err { stroke: var(--bnb-err); }
+.fb-plan .pl.pl-info { stroke: var(--bnb-info); }
 .fb-pl-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 3px solid; vertical-align: -1px; }
-.fb-pl-swatch.pl-ok { border-color: var(--color-up); }
-.fb-pl-swatch.pl-warn { border-color: var(--color-warn); }
-.fb-pl-swatch.pl-err { border-color: var(--color-down); }
-.fb-pl-swatch.pl-info { border-color: var(--color-trace); }
-.fb-plan .num { fill: var(--color-fg); font: 700 var(--seat-num, 11px) var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--color-surface); stroke-width: 3px; }
-.fb-plan .cell[data-state="online"] .num { fill: var(--color-ink); stroke-width: 0; }
-.fb-plan .cell.sel .seat { stroke: var(--color-fg); stroke-width: 4; }
-.fb-plan .sw-focus { fill: none; stroke: var(--color-trace); stroke-width: 3; }
-.fb-plan .sw-trace { stroke: var(--color-trace); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
-.fb-plan .kb-ring { fill: none; stroke: var(--color-bit); stroke-width: 3; stroke-dasharray: 6 3; pointer-events: none; }
+.fb-pl-swatch.pl-ok { border-color: var(--bnb-ok); }
+.fb-pl-swatch.pl-warn { border-color: var(--bnb-warn); }
+.fb-pl-swatch.pl-err { border-color: var(--bnb-err); }
+.fb-pl-swatch.pl-info { border-color: var(--bnb-info); }
+.fb-plan .num { fill: var(--bnb-fg); font: 700 var(--seat-num, 11px) var(--font-sans); text-anchor: middle; pointer-events: none; paint-order: stroke; stroke: var(--bnb-surface); stroke-width: 3px; }
+.fb-plan .cell[data-state="online"] .num { fill: var(--bnb-bg); stroke-width: 0; }
+.fb-plan .cell.sel .seat { stroke: var(--bnb-fg); stroke-width: 4; }
+.fb-plan .sw-focus { fill: none; stroke: var(--bnb-info); stroke-width: 3; }
+.fb-plan .sw-trace { stroke: var(--bnb-info); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
+.fb-plan .kb-ring { fill: none; stroke: var(--bnb-accent); stroke-width: 3; stroke-dasharray: 6 3; pointer-events: none; }
 .fb-plan .cell.dim { opacity: .18; }
-.fb-plan .cell:hover .seat { stroke: var(--color-bit); stroke-width: 3; }
-.fb-plan .blk.alarm { stroke: var(--color-down); stroke-width: 2px; fill: color-mix(in srgb, var(--color-down) 10%, transparent); }
+.fb-plan .cell:hover .seat { stroke: var(--bnb-accent); stroke-width: 3; }
+.fb-plan .blk.alarm { stroke: var(--bnb-err); stroke-width: 2px; fill: color-mix(in srgb, var(--bnb-err) 10%, transparent); }
 /* Block tags (SeatMap): the block's name on its corner, and a red count when it has problems. */
-.fb-plan .btag > rect { fill: var(--color-raised); stroke: color-mix(in srgb, var(--color-muted) 55%, transparent); }
-.fb-plan .btag text { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 700; text-anchor: middle; pointer-events: none; }
-.fb-plan .btag-bad rect { fill: var(--color-down); }
-.fb-plan .btag-bad text { fill: var(--color-ink); }
-.fb-marks .wall { fill: none; stroke: var(--color-fg); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
+.fb-plan .btag > rect { fill: var(--bnb-raised); stroke: color-mix(in srgb, var(--bnb-muted) 55%, transparent); }
+.fb-plan .btag text { fill: var(--bnb-fg); font-family: var(--font-sans); font-weight: 700; text-anchor: middle; pointer-events: none; }
+.fb-plan .btag-bad rect { fill: var(--bnb-err); }
+.fb-plan .btag-bad text { fill: var(--bnb-bg); }
+.fb-marks .wall { fill: none; stroke: var(--bnb-fg); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
 .fb-marks .wall.dashed { stroke-dasharray: 22 14; }
+/* A walkway (#1564): a pale band as wide as the walkway, square at the ends so blocks snap to its edges. */
+.fb-marks .walkway { --walkway: var(--bnb-muted); }
+.fb-marks .walkway-band { fill: none; stroke: color-mix(in srgb, var(--walkway) 18%, transparent); stroke-linecap: butt; stroke-linejoin: miter; }
+.fb-marks .walkway-mid { fill: none; stroke: color-mix(in srgb, var(--walkway) 55%, transparent); stroke-width: 2; stroke-dasharray: 10 10; }
 .fb-marks .zone rect { fill: color-mix(in srgb, var(--zone) 12%, transparent); stroke: color-mix(in srgb, var(--zone) 55%, transparent); stroke-width: 2; }
 .fb-marks .zone text { fill: var(--zone); font-family: var(--font-sans); font-weight: 700; }
-.fb-marks .zone-muted { --zone: var(--color-muted); }
-.fb-marks .zone-bit { --zone: var(--color-bit); }
-.fb-marks .zone-trace { --zone: var(--color-trace); }
-.fb-marks .zone-warn { --zone: var(--color-warn); }
-.fb-marks .zone-down { --zone: var(--color-down); }
-.fb-marks .label { fill: var(--color-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; letter-spacing: .08em; text-transform: uppercase; }
-.fb-marks .icon rect { fill: var(--color-raised); stroke: var(--tint, var(--color-line, var(--color-muted))); stroke-width: 1.5; }
-.fb-marks .icon svg { color: var(--tint, var(--color-fg)); }
+.fb-marks .zone-muted { --zone: var(--bnb-muted); }
+.fb-marks .zone-bit { --zone: var(--bnb-accent); }
+.fb-marks .zone-trace { --zone: var(--bnb-info); }
+.fb-marks .zone-warn { --zone: var(--bnb-warn); }
+.fb-marks .zone-down { --zone: var(--bnb-err); }
+.fb-marks .label { fill: var(--bnb-fg); font-family: var(--font-sans); font-weight: 800; text-anchor: middle; letter-spacing: .08em; text-transform: uppercase; }
+.fb-marks .icon rect { fill: var(--bnb-raised); stroke: var(--tint, var(--bnb-line, var(--bnb-muted))); stroke-width: 1.5; }
+.fb-marks .icon svg { color: var(--tint, var(--bnb-fg)); }
 /* Row labels: small and quiet, a cue rather than a heading (#1471). */
-.fb-plan .rowlbl { fill: var(--color-muted); font-family: var(--font-mono); font-weight: 500; font-size: var(--row-lbl, 11px); text-anchor: middle; paint-order: stroke; stroke: var(--color-ink); stroke-width: .2em; stroke-linejoin: round; pointer-events: none; }
-.fb-plan .sw .body { fill: var(--color-unknown); stroke: var(--color-ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.fb-plan .rowlbl { fill: var(--bnb-muted); font-family: var(--font-mono); font-weight: 500; font-size: var(--row-lbl, 11px); text-anchor: middle; paint-order: stroke; stroke: var(--bnb-bg); stroke-width: .2em; stroke-linejoin: round; pointer-events: none; }
+.fb-plan .sw .body { fill: var(--bnb-off); stroke: var(--bnb-bg); stroke-width: 1.5; stroke-dasharray: 3 2; }
 .fb-plan .sw-online .body, .fb-plan .sw-offline .body, .fb-plan .sw-warning .body { stroke-dasharray: none; }
-.fb-plan .sw-online .body { fill: var(--color-bit); }
-.fb-plan .sw-warning .body { fill: var(--color-warn); }
-.fb-plan .sw-offline .body { fill: var(--color-down); }
-.fb-plan .sw .port { fill: color-mix(in srgb, var(--color-ink) 35%, transparent); }
+.fb-plan .sw-online .body { fill: var(--bnb-accent); }
+.fb-plan .sw-warning .body { fill: var(--bnb-warn); }
+.fb-plan .sw-offline .body { fill: var(--bnb-err); }
+.fb-plan .sw .port { fill: color-mix(in srgb, var(--bnb-bg) 35%, transparent); }
 .fb-plan .sw .port.lit { fill: rgba(255, 255, 255, .9); }
 .fb-plan .sw .cross { stroke: #fff; stroke-width: 2; stroke-linecap: round; fill: none; }
 .fb-plan .uplink { stroke: var(--mantine-color-gray-5); stroke-linecap: round; opacity: 0.55; }
@@ -130,8 +134,8 @@
 .fb-plan .uplink.m-dac { stroke: var(--mantine-color-violet-6); }
 .fb-plan .uplink.t-fiber-sm { stroke: var(--mantine-color-yellow-6); }
 .fb-plan .uplink.slow { stroke: var(--mantine-color-orange-6); }
-.fb-plan .uplink.down { stroke: var(--color-down); stroke-dasharray: 6 4; }
-.fb-plan .uplink-break circle { fill: var(--color-down); stroke: var(--mantine-color-body); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.fb-plan .uplink.down { stroke: var(--bnb-err); stroke-dasharray: 6 4; }
+.fb-plan .uplink-break circle { fill: var(--bnb-err); stroke: var(--mantine-color-body); stroke-width: 2px; vector-effect: non-scaling-stroke; }
 .fb-plan .uplink-break path { stroke: #fff; stroke-width: 2px; stroke-linecap: round; }
 /* The power layer (issue #468): boards and their cables, by the circuit's load. */
 .fb-plan .pcable { stroke: var(--mantine-color-gray-5); stroke-width: 2.5; stroke-linecap: round; opacity: 0.7; }
@@ -143,50 +147,50 @@
 .fb-plan .seatcable.down { stroke-dasharray: 6 4; }
 .fb-plan .seatcable.unread { stroke-dasharray: 1 4; }
 /* Runs shared by several cables: one soft band under them and a count (pages/plan/cableRoute.ts). */
-.fb-plan .cable-count circle, .fb-plan .cable-count rect { fill: var(--color-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-.fb-plan .cable-count text { fill: var(--color-fg); font-weight: 700; text-anchor: middle; pointer-events: none; }
+.fb-plan .cable-count circle, .fb-plan .cable-count rect { fill: var(--bnb-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.fb-plan .cable-count text { fill: var(--bnb-fg); font-weight: 700; text-anchor: middle; pointer-events: none; }
 /* Where a cable plugs into its seat, drawn over the seats. */
-.fb-plan .plug { fill: var(--mantine-color-blue-6); stroke: var(--color-surface); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+.fb-plan .plug { fill: var(--mantine-color-blue-6); stroke: var(--bnb-surface); stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
 .fb-plan .plug.m-fiber { fill: var(--mantine-color-cyan-6); }
 .fb-plan .plug.m-dac { fill: var(--mantine-color-violet-6); }
 .fb-plan .plug.learned { opacity: 0.6; }
-.fb-plan .plug.down, .fb-plan .plug.unread { fill: var(--color-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; }
-.fb-plan .ppanel > rect:first-of-type { fill: var(--mantine-color-dark-6); stroke: var(--color-ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.fb-plan .plug.down, .fb-plan .plug.unread { fill: var(--bnb-surface); stroke: var(--mantine-color-blue-6); stroke-width: 1.5; }
+.fb-plan .ppanel > rect:first-of-type { fill: var(--mantine-color-dark-6); stroke: var(--bnb-bg); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .fb-plan .ppanel .pp-port { fill: color-mix(in srgb, #fff 30%, transparent); }
-.fb-plan .ppanel .pp-port.lit { fill: var(--color-bit); }
-.fb-plan .ppanel.full .pp-port.lit { fill: var(--color-warn); }
-.fb-plan .ppanel text { fill: var(--color-muted); font: 600 10px var(--font-mono); text-anchor: middle; }
+.fb-plan .ppanel .pp-port.lit { fill: var(--bnb-accent); }
+.fb-plan .ppanel.full .pp-port.lit { fill: var(--bnb-warn); }
+.fb-plan .ppanel text { fill: var(--bnb-muted); font: 600 10px var(--font-mono); text-anchor: middle; }
 .fb-plan .pboard rect { fill: var(--mantine-color-body); stroke: var(--mantine-color-gray-5); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .fb-plan .pboard text { fill: var(--mantine-color-text); font-weight: 700; }
-.fb-plan .pw-ok.pcable, .fb-plan .pw-ok rect { stroke: var(--color-up); }
-.fb-plan .pw-warn.pcable, .fb-plan .pw-warn rect { stroke: var(--color-warn); }
-.fb-plan .pw-crit.pcable, .fb-plan .pw-crit rect { stroke: var(--color-down); }
-.fb-plan .pw-tripped.pcable { stroke: var(--color-down); stroke-dasharray: 6 4; }
-.fb-plan .pw-tripped rect { stroke: var(--color-down); fill: color-mix(in srgb, var(--color-down) 18%, var(--mantine-color-body)); }
+.fb-plan .pw-ok.pcable, .fb-plan .pw-ok rect { stroke: var(--bnb-ok); }
+.fb-plan .pw-warn.pcable, .fb-plan .pw-warn rect { stroke: var(--bnb-warn); }
+.fb-plan .pw-crit.pcable, .fb-plan .pw-crit rect { stroke: var(--bnb-err); }
+.fb-plan .pw-tripped.pcable { stroke: var(--bnb-err); stroke-dasharray: 6 4; }
+.fb-plan .pw-tripped rect { stroke: var(--bnb-err); fill: color-mix(in srgb, var(--bnb-err) 18%, var(--mantine-color-body)); }
 .fb-plan .pboard .pload rect { stroke: none; }
 .fb-plan .pboard .pload-track { fill: color-mix(in srgb, var(--mantine-color-gray-5) 35%, transparent); }
 .fb-plan .pboard .pload-fill { fill: var(--mantine-color-gray-5); }
-.fb-plan .pboard .pw-ok .pload-fill { fill: var(--color-up); }
-.fb-plan .pboard .pw-warn .pload-fill { fill: var(--color-warn); }
-.fb-plan .pboard .pw-crit .pload-fill { fill: var(--color-down); }
+.fb-plan .pboard .pw-ok .pload-fill { fill: var(--bnb-ok); }
+.fb-plan .pboard .pw-warn .pload-fill { fill: var(--bnb-warn); }
+.fb-plan .pboard .pw-crit .pload-fill { fill: var(--bnb-err); }
 .fb-plan .pboard .pload-text { fill: var(--mantine-color-text); font: 700 11px var(--font-mono); paint-order: stroke; stroke: var(--mantine-color-body); stroke-width: 3px; stroke-linejoin: round; }
-.fb-plan .pboard text.pload-text.pw-tripped { fill: var(--color-down); font-weight: 700; }
-.fb-plan .sw text { fill: var(--color-muted); font: 600 11px var(--font-mono); text-anchor: middle; }
+.fb-plan .pboard text.pload-text.pw-tripped { fill: var(--bnb-err); font-weight: 700; }
+.fb-plan .sw text { fill: var(--bnb-muted); font: 600 11px var(--font-mono); text-anchor: middle; }
 .fb-plan-zoom { position: absolute; right: 10px; bottom: 10px; }
 /* The overview while zoomed in: the hall's blocks and the part on screen. */
-.fb-minimap { position: absolute; left: 10px; bottom: 10px; max-width: 30%; height: auto; border: 1px solid var(--color-line); border-radius: 6px; cursor: crosshair; touch-action: none; }
-.fb-minimap .bg { fill: color-mix(in srgb, var(--color-raised) 88%, transparent); }
-.fb-minimap .blk { fill: var(--color-muted); }
-.fb-minimap .blk.alarm { fill: var(--color-down); }
-.fb-minimap .view { fill: color-mix(in srgb, var(--color-bit) 12%, transparent); stroke: var(--color-bit); stroke-width: 2px; }
+.fb-minimap { position: absolute; left: 10px; bottom: 10px; max-width: 30%; height: auto; border: 1px solid var(--bnb-line); border-radius: 6px; cursor: crosshair; touch-action: none; }
+.fb-minimap .bg { fill: color-mix(in srgb, var(--bnb-raised) 88%, transparent); }
+.fb-minimap .blk { fill: var(--bnb-muted); }
+.fb-minimap .blk.alarm { fill: var(--bnb-err); }
+.fb-minimap .view { fill: color-mix(in srgb, var(--bnb-accent) 12%, transparent); stroke: var(--bnb-accent); stroke-width: 2px; }
 .fb-plan-screen .fb-plan-zoom { transition: opacity .3s; }
 .fb-plan-screen.idle, .fb-plan-screen.idle * { cursor: none !important; }
 .fb-plan-screen.idle .fb-plan-zoom { opacity: 0; pointer-events: none; }
-.fb-plan-tip { position: absolute; pointer-events: none; z-index: 2; max-width: 280px; padding: 4px 8px; border-radius: 6px; font-size: 13px; background: var(--color-surface); border: 1px solid var(--color-line); box-shadow: 0 4px 12px rgb(0 0 0 / .15); }
-.fb-plan-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; padding: 0; font-size: 13px; color: var(--color-muted); }
+.fb-plan-tip { position: absolute; pointer-events: none; z-index: 2; max-width: 280px; padding: 4px 8px; border-radius: 6px; font-size: 13px; background: var(--bnb-surface); border: 1px solid var(--bnb-line); box-shadow: 0 4px 12px rgb(0 0 0 / .15); }
+.fb-plan-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; padding: 0; font-size: 13px; color: var(--bnb-muted); }
 .fb-plan-legend li { display: flex; align-items: center; gap: 6px; }
 .fb-plan-legend svg { overflow: visible; }
-.fb-plan-screen { height: 100vh; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; padding: 2vh 2vw; background: var(--color-ink); }
+.fb-plan-screen { height: 100vh; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; padding: 2vh 2vw; background: var(--bnb-bg); }
 .fb-plan-screen .fb-plan-wrap { height: auto; min-height: 0; }
 .fb-plan-screen .fb-plan-summary p { font-size: 1.4vw; }
 @media (max-width: 48em) {
@@ -195,9 +199,9 @@
 /* Traffic overlay (issue #152): online seats filled by viridis; numbers flip to stay readable. */
 .fb-plan.traffic .cell[data-state="online"] .num { fill: #fff; }
 .fb-plan.traffic .cell.bright[data-state="online"] .num { fill: #1a1a1a; }
-.fb-plan .seat.heat { stroke: color-mix(in srgb, var(--color-fg) 35%, transparent); fill-opacity: var(--op-status, 1); }
+.fb-plan .seat.heat { stroke: color-mix(in srgb, var(--bnb-fg) 35%, transparent); fill-opacity: var(--op-status, 1); }
 /* The open-problems heatmap (issue #875): over traffic, and the seat's number dark on the light step. */
-.fb-plan .seat.pheat { stroke: var(--color-fg); stroke-width: 1.5; fill-opacity: var(--op-problems, 1); }
+.fb-plan .seat.pheat { stroke: var(--bnb-fg); stroke-width: 1.5; fill-opacity: var(--op-problems, 1); }
 .fb-plan .seat.pheat ~ .num { fill: #1a1a1a; }
 .fb-plan .seat.pheat-2 ~ .num, .fb-plan .seat.pheat-3 ~ .num { fill: #fff; }
 .fb-plan-legend .pheat-scale { gap: 8px; }
@@ -207,12 +211,12 @@
 .fb-plan .fwr { opacity: var(--op-firewalls, 1); }
 .fb-plan .chk { opacity: var(--op-checkin, 1); }
 .fb-plan .inc, .fb-plan .sw-inc { opacity: var(--op-crew, 1); }
-.fb-plan .inc circle { fill: var(--color-warn); stroke: var(--color-ink); stroke-width: 1.5; }
-.fb-plan .inc text { fill: var(--color-ink); font: 800 10px var(--font-sans); text-anchor: middle; pointer-events: none; }
-.fb-plan .sw-inc { fill: none; stroke: var(--color-warn); stroke-width: 3; }
+.fb-plan .inc circle { fill: var(--bnb-warn); stroke: var(--bnb-bg); stroke-width: 1.5; }
+.fb-plan .inc text { fill: var(--bnb-bg); font: 800 10px var(--font-sans); text-anchor: middle; pointer-events: none; }
+.fb-plan .sw-inc { fill: none; stroke: var(--bnb-warn); stroke-width: 3; }
 .fb-plan .wifi-layer .cover { pointer-events: none; }
-.fb-plan .wifi-layer .ap circle { stroke: var(--color-surface); stroke-width: 3; }
-.fb-plan .wifi-layer .ap.down circle { stroke: var(--color-down); stroke-dasharray: 4 3; }
+.fb-plan .wifi-layer .ap circle { stroke: var(--bnb-surface); stroke-width: 3; }
+.fb-plan .wifi-layer .ap.down circle { stroke: var(--bnb-err); stroke-dasharray: 4 3; }
 .fb-layers-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px; align-items: center; gap: 4px 12px; }
 .fb-plan-legend .heat { gap: 8px; }
 .fb-plan-legend .heat i { display: inline-block; width: 120px; height: 10px; border-radius: 5px; }
@@ -220,36 +224,36 @@
 /* The big screen's head: hall and counts on the left, the time and blocks with problems on the right. */
 .fb-plan-screen-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 2vw; }
 .fb-screen-bar { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5vw; min-width: 0; }
-.fb-screen-clock { font-size: 2.6vw; line-height: 1; color: var(--color-fg); font-variant-numeric: tabular-nums; }
-.fb-screen-block { font-size: 1.1vw; font-weight: 600; padding: 0.2vw 0.7vw; border-radius: 999px; color: var(--color-down); border: 1px solid var(--color-down); }
-.fb-screen-block.more { color: var(--color-muted); border-color: transparent; font-weight: 400; }
+.fb-screen-clock { font-size: 2.6vw; line-height: 1; color: var(--bnb-fg); font-variant-numeric: tabular-nums; }
+.fb-screen-block { font-size: 1.1vw; font-weight: 600; padding: 0.2vw 0.7vw; border-radius: 999px; color: var(--bnb-err); border: 1px solid var(--bnb-err); }
+.fb-screen-block.more { color: var(--bnb-muted); border-color: transparent; font-weight: 400; }
 .fb-screen-elsewhere { font-size: 1.1vw; }
-.fb-plan-screen .fb-plan-hall { font-size: 2vw; color: var(--color-fg); }
-.fb-plan-cycle { height: 4px; margin-top: 6px; border-radius: 2px; background: var(--color-bit); transform-origin: left; animation: fb-plan-cycle linear forwards; }
+.fb-plan-screen .fb-plan-hall { font-size: 2vw; color: var(--bnb-fg); }
+.fb-plan-cycle { height: 4px; margin-top: 6px; border-radius: 2px; background: var(--bnb-accent); transform-origin: left; animation: fb-plan-cycle linear forwards; }
 @keyframes fb-plan-cycle { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .fb-plan-cycle { animation: none; opacity: .5; } }
 /* The inspector's link history (issue #167). */
 .fb-link-history { width: 100%; height: 16px; display: block; }
-.fb-link-history .on { fill: var(--color-up); }
-.fb-link-history .off { fill: var(--color-down); }
-.fb-link-history .axis { stroke: var(--color-line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fb-link-history .on { fill: var(--bnb-ok); }
+.fb-link-history .off { fill: var(--bnb-err); }
+.fb-link-history .axis { stroke: var(--bnb-line); stroke-width: 1; vector-effect: non-scaling-stroke; }
 /* The Seats view's list (issue #169). */
-.fb-seat-list { min-width: 0; background: var(--color-raised); border: 1px solid var(--color-line); border-radius: var(--radius-card); padding: 10px 12px; }
-.fb-seat-list tr.sel td { background: color-mix(in srgb, var(--color-bit) 18%, transparent); }
-.fb-seat-list-seat:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; border-radius: 4px; }
+.fb-seat-list { min-width: 0; background: var(--bnb-raised); border: 1px solid var(--bnb-line); border-radius: var(--radius-card); padding: 10px 12px; }
+.fb-seat-list tr.sel td { background: color-mix(in srgb, var(--bnb-accent) 18%, transparent); }
+.fb-seat-list-seat:focus-visible { outline: 2px solid var(--bnb-accent); outline-offset: 2px; border-radius: 4px; }
 .fb-seat-list td { white-space: nowrap; }
 /* Seats whose link changed in the last 15 minutes (issue #171): a ring that pulses, still without motion. */
-.fb-plan .recent { fill: none; stroke: var(--color-trace); stroke-width: 2.5; stroke-dasharray: 3 3; animation: fb-recent 1.6s ease-in-out infinite; }
+.fb-plan .recent { fill: none; stroke: var(--bnb-info); stroke-width: 2.5; stroke-dasharray: 3 3; animation: fb-recent 1.6s ease-in-out infinite; }
 @keyframes fb-recent { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .fb-plan .recent { animation: none; } }
 /* The block panel's bar (issue #174): online, offline, unknown in the same order as the counts. */
-.fb-block-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--color-raised); border: 1px solid var(--color-line); }
-.fb-block-bar .on { background: var(--color-up); }
-.fb-block-bar .off { background: var(--color-down); }
-.fb-block-bar .unk { background: repeating-linear-gradient(45deg, var(--color-muted) 0 3px, transparent 3px 6px); }
+.fb-block-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--bnb-raised); border: 1px solid var(--bnb-line); }
+.fb-block-bar .on { background: var(--bnb-ok); }
+.fb-block-bar .off { background: var(--bnb-err); }
+.fb-block-bar .unk { background: repeating-linear-gradient(45deg, var(--bnb-muted) 0 3px, transparent 3px 6px); }
 .fb-plan .btag.link { cursor: pointer; }
-.fb-plan .btag.link:hover > rect { stroke: var(--color-bit); }
-.fb-block-seat:focus-visible { outline: 2px solid var(--color-bit); outline-offset: 2px; border-radius: 6px; }
+.fb-plan .btag.link:hover > rect { stroke: var(--bnb-accent); }
+.fb-block-seat:focus-visible { outline: 2px solid var(--bnb-accent); outline-offset: 2px; border-radius: 6px; }
 .fb-plan .sw.link { cursor: pointer; }
 
 .fb-speed-tests td { white-space: nowrap; }
@@ -270,6 +274,6 @@
 /* On a phone the filter row is wider than the screen: it scrolls sideways instead of cutting off the last filter. */
 .fb-filter-scroll { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .fb-filter-scroll::-webkit-scrollbar { display: none; }
-.fb-edit-rulers .mark line { stroke: var(--color-bit); stroke-width: 1.5; }
-.fb-edit-rulers .mark text { fill: var(--color-bit); font-weight: 600; paint-order: stroke; stroke: var(--color-surface); stroke-width: 4px; stroke-linejoin: round; }
-.fb-plan .seat-ring { fill: none; stroke: var(--color-down); stroke-width: 2px; pointer-events: none; }
+.fb-edit-rulers .mark line { stroke: var(--bnb-accent); stroke-width: 1.5; }
+.fb-edit-rulers .mark text { fill: var(--bnb-accent); font-weight: 600; paint-order: stroke; stroke: var(--bnb-surface); stroke-width: 4px; stroke-linejoin: round; }
+.fb-plan .seat-ring { fill: none; stroke: var(--bnb-err); stroke-width: 2px; pointer-events: none; }

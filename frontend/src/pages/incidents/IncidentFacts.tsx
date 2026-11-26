@@ -84,7 +84,7 @@ export function IncidentDetails({ i }: { i: Incident }) {
   return (
     <>
       {snap && (
-        <Text size="sm" c={snap.known && snap.link && snap.link !== 'up' ? 'var(--color-down)' : 'dimmed'}>
+        <Text size="sm" c={snap.known && snap.link && snap.link !== 'up' ? 'var(--bnb-err)' : 'dimmed'}>
           {snap.known
             ? t('incidents.snapshot', {
                 switch: snap.switch, port: snap.port, link: t(`incidents.link.${snap.link ?? 'unknown'}`, { defaultValue: snap.link ?? '' }),
@@ -105,7 +105,7 @@ export function IncidentDetails({ i }: { i: Incident }) {
       )}
       {i.seat_note && (
         <Text size="sm" data-seat-note style={{ overflowWrap: 'anywhere' }}>
-          <IconNote size={14} color="var(--color-warn)" style={{ verticalAlign: -2, marginRight: 4 }} aria-hidden />
+          <IconNote size={14} color="var(--bnb-warn)" style={{ verticalAlign: -2, marginRight: 4 }} aria-hidden />
           <Text span fw={600}>{t('incidents.seatNote')}</Text> {i.seat_note.text}{' '}
           <Text span size="xs" c="dimmed">{[i.seat_note.by, ago(i.seat_note.at)].filter(Boolean).join(' · ')}</Text>
         </Text>

@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Group, Stack, TagsInput, Text, Tooltip } from '@mantine/core'
+import { Anchor, Badge, Button, type ButtonProps, Group, Stack, TagsInput, Text, Tooltip } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -161,13 +161,25 @@ function HallOnly({ agent, keys }: { agent: Agent; keys: string[] }) {
 }
 
 /** The key: the agent fetches a new one itself, or one is made to copy (the agent is away). */
-export function KeyPanel({ agent, page, children }: { agent: Agent; page?: AgentSettingsPage; children: ReactNode }) {
-  const { t, i18n } = useTranslation()
+/** Asks the agent to fetch a new key (it needs to be online); on the key panel and in the page's header (#905). */
+export function RollKeyButton({ agent, size = 'compact-sm' }: { agent: Agent; size?: ButtonProps['size'] }) {
+  const { t } = useTranslation()
   const qc = useQueryClient()
   const roll = useMutation({
     mutationFn: () => post(`/api/agents/${agent.id}/roll`),
     onSettled: () => void qc.invalidateQueries({ queryKey: qk.agents }),
   })
+  return (
+    <>
+      <ConfirmButton size={size} variant="default" label={t('agents.cfg.roll')} danger disabled={!agent.connected}
+        question={t('agents.cfg.rollQuestion', { name: agent.name })} loading={roll.isPending} onConfirm={() => roll.mutate()} />
+      {roll.error && <Text size="xs" c="down" role="alert">{roll.error.message}</Text>}
+    </>
+  )
+}
+
+export function KeyPanel({ agent, page, children }: { agent: Agent; page?: AgentSettingsPage; children: ReactNode }) {
+  const { t, i18n } = useTranslation()
   const where = agent.report?.settings?.key
   return (
     <Panel title={t('agents.cfg.keyTitle')} desc={t('agents.cfg.keyIntro')}>
@@ -178,12 +190,10 @@ export function KeyPanel({ agent, page, children }: { agent: Agent; page?: Agent
         </Text>
         {page?.roll_asked && <Text size="sm" c="warn">{t('agents.cfg.rollWaiting', { when: ago(page.roll_asked, i18n.language) })}</Text>}
         <Group gap="xs">
-          <ConfirmButton size="compact-sm" variant="default" label={t('agents.cfg.roll')} danger disabled={!agent.connected}
-            question={t('agents.cfg.rollQuestion', { name: agent.name })} loading={roll.isPending} onConfirm={() => roll.mutate()} />
+          <RollKeyButton agent={agent} />
           {children}
         </Group>
         {!agent.connected && <Text size="xs" c="dimmed">{t('agents.cfg.rollOffline')}</Text>}
-        <ErrorBanner error={roll.error} />
         {page && <IdentityLine agent={agent} page={page} />}
       </Stack>
     </Panel>

@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Group, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
+  Alert, Autocomplete, Badge, Button, Group, Select, SimpleGrid, Stack, Text, TextInput, Textarea, Title,
 } from '@mantine/core'
 import { IconExternalLink, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -9,16 +9,17 @@ import { del, get, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
-import type { StatusArea, StatusPageData, StatusState } from '@/api/types'
+import type { StatusArea, StatusPageData, StatusState, StatusUpdate } from '@/api/types'
 import { Layout } from '@/components/Layout'
 import { PageHead } from '@bitsandbricks/ui'
 import { Panel } from '@/components/ui'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { DataTable, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { COLOR } from './status/state'
 import { ConfirmIcon } from '@bitsandbricks/ui'
 
 const BY_HAND: StatusState[] = ['operational', 'degraded', 'outage', 'maintenance']
+const AUTO = 'auto'
 
 type T = ReturnType<typeof useTranslation>['t']
 
@@ -64,6 +65,22 @@ export default function NetworkStatus() {
     onSuccess: () => { setPick(null); setNote(''); refresh() },
   })
   const d = query.data
+  // Known places to pick from; still free text, so "LAN cache" or "Catering" can be typed too (#1416).
+  const places = (kind: 'halls' | 'blocks') => ({
+    queryKey: qk.options(kind, ''), staleTime: 60_000,
+    queryFn: () => get<{ options: { label: string }[] }>(`/api/options/${kind}`),
+  })
+  const hallNames = useQuery(places('halls')).data?.options.map((o) => o.label) ?? []
+  // Named as attendees read them elsewhere on the page: "Seat block A".
+  const blockNames = useQuery(places('blocks')).data?.options.map((o) => t('status.block', { name: o.label })) ?? []
+  const areaData = [
+    { group: t('statusArea.halls'), items: [...new Set(hallNames)] },
+    { group: t('statusArea.blocks'), items: [...new Set(blockNames)].filter((b) => !hallNames.includes(b)) },
+  ].filter((g) => g.items.length)
+  // The picker shows what decides the state now: "Automatic" or the state set by hand (#890, #1416).
+  // Choosing Automatic is how a state set by hand is lifted.
+  const current = d?.override?.state ?? AUTO
+  const chosen = pick ?? current
   // One-click starting points from what the public page shows (never switch names): edit, then post.
   const suggestions = d ? [
     ...d.areas.map((a) => ({ a, kind: 'Down', color: 'down' })),
@@ -112,18 +129,17 @@ export default function NetworkStatus() {
                 {canSet && (
                   <Stack gap="xs" mt="md">
                     <Group gap="xs" align="flex-end" wrap="wrap">
-                      <Select label={t('status.setState')} value={pick} onChange={setPick} w={200}
-                        data={BY_HAND.map((s) => ({ value: s, label: t(`status.state.${s}`) }))} />
+                      <Select label={t('status.setState')} value={chosen} onChange={setPick} w={300} allowDeselect={false}
+                        data={[
+                          { value: AUTO, label: t('statusArea.automatic', { state: t(`status.state.${d.auto_state}`) }) },
+                          ...BY_HAND.map((s) => ({ value: s, label: t(`status.state.${s}`) })),
+                        ]} />
                       <TextInput label={t('status.note')} value={note} onChange={(e) => setNote(e.currentTarget.value)}
                         maxLength={200} style={{ flex: 1, minWidth: 160 }} />
                     </Group>
                     <Group gap="xs">
-                      <Button disabled={!pick} loading={override.isPending && !!pick} onClick={() => override.mutate(pick)}>{t('status.set')}</Button>
-                      {d.override && (
-                        <Button variant="default" loading={override.isPending && !pick} onClick={() => override.mutate(null)}>
-                          {t('status.backToAuto')}
-                        </Button>
-                      )}
+                      <Button disabled={chosen === current && !note.trim()} loading={override.isPending}
+                        onClick={() => override.mutate(chosen === AUTO ? null : chosen)}>{t('status.set')}</Button>
                     </Group>
                   </Stack>
                 )}
@@ -159,29 +175,27 @@ export default function NetworkStatus() {
                   <Textarea label={t('status.newUpdate')} placeholder={t('status.placeholder')} autosize minRows={2} maxLength={500}
                     value={text} onChange={(e) => setText(e.currentTarget.value)} />
                   <Group gap="xs" align="flex-end">
-                    <TextInput label={t('status.area')} placeholder={t('status.areaPlaceholder')} value={area} maxLength={80}
-                      onChange={(e) => setArea(e.currentTarget.value)} style={{ flex: 1 }} />
+                    <Autocomplete label={t('status.area')} placeholder={t('status.areaPlaceholder')} value={area} maxLength={80}
+                      onChange={setArea} data={areaData} style={{ flex: 1 }} />
                     <Button disabled={!text.trim()} loading={postUpdate.isPending} onClick={() => postUpdate.mutate()}>{t('status.post')}</Button>
                   </Group>
                 </Stack>
               )}
-              {d.updates.length === 0 ? <Text size="sm" c="dimmed">{t('status.noUpdates')}</Text> : (
-                <Stack gap="xs">
-                  {d.updates.map((u) => (
-                    <Group key={u.id} gap="sm" wrap="nowrap" align="flex-start" justify="space-between">
-                      <div style={{ minWidth: 0 }}>
-                        <Text size="xs" c="dimmed">{[when(u.at), u.area].filter(Boolean).join(' · ')}</Text>
-                        <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{u.text}</Text>
-                      </div>
-                      {canSet && (
-                        <ConfirmIcon label={t('status.remove')} onConfirm={() => remove.mutate(u.id)}>
-                          <IconTrash size={16} />
-                        </ConfirmIcon>
-                      )}
-                    </Group>
-                  ))}
-                </Stack>
-              )}
+              {/* The shared table, like every list in the app (issue #890): newest first, ten to a page. */}
+              <DataTable label={t('status.updates')} rows={d.updates} rowKey={(u) => u.id} pageSize={10} pager="compact" bare cards
+                defaultSort={{ id: 'when', desc: true }}
+                empty={<Text size="sm" c="dimmed">{t('status.noUpdates')}</Text>}
+                columns={[
+                  { id: 'when', header: t('statusUpdates.when'), sort: (u) => u.at, descFirst: true, card: 'inline', cell: (u) => when(u.at) },
+                  { id: 'area', header: t('statusUpdates.area'), sort: (u) => u.area ?? '', card: 'inline',
+                    cell: (u) => u.area || <Text span size="sm" c="dimmed">{t('statusUpdates.everywhere')}</Text> },
+                  { id: 'text', header: t('statusUpdates.text'), wrap: true, cell: (u) => u.text },
+                  ...(canSet ? [{ id: 'remove', header: '', width: 44, card: 'actions' as const, cell: (u: StatusUpdate) => (
+                    <ConfirmIcon label={t('status.remove')} onConfirm={() => remove.mutate(u.id)}>
+                      <IconTrash size={16} />
+                    </ConfirmIcon>
+                  ) }] : []),
+                ]} />
             </Panel>
           </>
         )}

@@ -1,7 +1,7 @@
 /* Seats placed freely (SeatHandles.tsx): picked seats, alignment guides and the swap button. */
-.fb-edit-seat.picked { fill: color-mix(in srgb, var(--color-trace) 45%, transparent); stroke: var(--color-trace); stroke-width: 3; stroke-dasharray: none; }
-.fb-seat-guide { stroke: var(--color-warn, #f59e0b); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; pointer-events: none; }
+.fb-edit-seat.picked { fill: color-mix(in srgb, var(--bnb-info) 45%, transparent); stroke: var(--bnb-info); stroke-width: 3; stroke-dasharray: none; }
+.fb-seat-guide { stroke: var(--bnb-warn, #f59e0b); stroke-width: 2; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; pointer-events: none; }
 .fb-seat-swap { cursor: pointer; }
-.fb-seat-swap rect { fill: var(--color-trace); stroke: var(--mantine-color-body); stroke-width: 2; }
+.fb-seat-swap rect { fill: var(--bnb-info); stroke: var(--mantine-color-body); stroke-width: 2; }
 .fb-seat-swap text { fill: var(--bnb-on-accent, #0b0b0f); font-size: 12px; font-weight: 600; pointer-events: none; }
 .fb-seat-swap:hover rect { filter: brightness(1.1); }

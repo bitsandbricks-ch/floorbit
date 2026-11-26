@@ -1,14 +1,9 @@
 {
-  "button": "Go to",
-  "title": "Go to a page",
   "placeholder": "Type a page, seat, switch, IP or MAC",
-  "none": "Nothing matches.",
   "close": "Close",
-  "recent": "recent",
   "seat": "Seat",
   "switch": "Switch",
   "player": "Player",
-  "action": "Action",
   "actions": {
     "notice": "Put up a crew notice",
     "notify": "Notification settings"
@@ -32,6 +27,7 @@
     "power": "Electrics",
     "commands": "Switch commands",
     "terminal": "Switch terminal",
+    "configs": "Switch configs",
     "inventory": "Inventory",
     "seatMapping": "Seat mapping",
     "cables": "Cables",
@@ -41,14 +37,14 @@
     "switchAreas": "Switch areas",
     "schedule": "Schedule",
     "timeline": "Event changelog",
-    "networkStatus": "Network status",
+    "networkStatus": "Status updates",
     "replay": "Event replay",
     "report": "Event report",
     "events": "Events",
     "templates": "Floor plan templates",
     "settings": "Settings",
+    "setup": "Set up",
     "plugins": "Plugins",
-    "features": "Features",
     "sidebarSections": "Sidebar sections",
     "apiTokens": "API tokens",
     "tenants": "Tenants",
@@ -59,9 +55,10 @@
     "signIn": "Sign-in providers",
     "audit": "Audit log",
     "firewalls": "Firewalls",
+    "switches": "Switches",
     "services": "Services",
     "topology": "Topology",
-    "telemetry": "Telemetry",
+    "telemetry": "Telemetry collector",
     "endpoints": "IP and MAC history",
     "widgets": "Widgets",
     "health": "Service health",
@@ -91,8 +88,14 @@
     "agents": "agent, on-site",
     "audit": "who changed, history",
     "preflight": "pre-flight check, go or no-go",
+    "setup": "checklist, first steps, get started",
     "checkins": "PIN, arrivals",
     "firewalls": "routing, uplinks",
-    "networkStatus": "internet, ISP, uplinks"
+    "networkStatus": "status page, attendees, outage, announcement"
+  },
+  "groups": {
+    "pages": "Pages",
+    "places": "Seats, switches and players",
+    "actions": "Actions"
   }
 }

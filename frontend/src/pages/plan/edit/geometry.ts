@@ -1,5 +1,6 @@
 import type { PlanMark, PlanShape, SeatViewData } from '@/api/types'
 import { markPx } from '../markSize'
+import { isLine, walkwayWide } from '../lineMarks'
 
 /** What the editor can select on the plan. Ids are the server's: seat block, plan mark, switch,
  *  patch panel (its name) and cable (crew and imported cables; ones only the port watch read have none). */
@@ -56,7 +57,7 @@ export function snappedDelta(data: SeatViewData, lead: ItemRef, raw: Point, snap
 const shift = <T extends Point>(p: T, d: Point): T => ({ ...p, x: p.x + d.x, y: p.y + d.y })
 function shiftMark(m: PlanMark, d: Point): PlanMark {
   const out = shift(m, d)
-  if (m.kind === 'wall' && m.x2 !== undefined && m.y2 !== undefined) {
+  if (isLine(m) && m.x2 !== undefined && m.y2 !== undefined) {
     const points = m.points?.map(([x, y]) => [x + d.x, y + d.y] as [number, number])
     return { ...out, x2: m.x2 + d.x, y2: m.y2 + d.y, ...(points ? { points } : {}) }
   }
@@ -71,7 +72,7 @@ export const wallPath = (m: PlanMark) => wallRoute(m).map((p, i) => `${i ? 'L' :
 
 /** Every wall's ends and bends, but ``except``'s: where another wall's end snaps to. */
 export const wallCorners = (data: SeatViewData, except?: string): Point[] =>
-  (data.drawing?.marks ?? []).filter((m) => m.kind === 'wall' && m.id !== except).flatMap(wallRoute)
+  (data.drawing?.marks ?? []).filter((m) => isLine(m) && m.id !== except).flatMap(wallRoute)
 
 /** ``data`` with the selected items moved by ``d`` (drawing units): what the plan shows while dragging
  *  and until the server's answer comes back. */
@@ -98,7 +99,7 @@ export function movePatch(data: SeatViewData, ref: ItemRef, d: Point): Record<st
     const m = data.drawing?.marks?.find((x) => x.id === ref.id)
     if (!m) return null
     const a = pct({ x: m.x + d.x, y: m.y + d.y })
-    if (m.kind === 'wall' && m.x2 !== undefined && m.y2 !== undefined) {
+    if (isLine(m) && m.x2 !== undefined && m.y2 !== undefined) {
       const b = pct({ x: m.x2 + d.x, y: m.y2 + d.y })
       if (!m.points?.length) return { ...a, x2: b.x, y2: b.y }
       const points = m.points.map(([x, y]) => { const q = pct({ x: x + d.x, y: y + d.y }); return [q.x, q.y] })
@@ -111,12 +112,14 @@ export function movePatch(data: SeatViewData, ref: ItemRef, d: Point): Record<st
   return at ? pct({ x: at.x + d.x, y: at.y + d.y }) : null
 }
 
+const BLOCK_PAD = 6
+
 /** The outline the editor draws around a selected item, in drawing units (unrotated box and its rotation). */
 export function outlineOf(data: SeatViewData, ref: ItemRef): { box: Box; rotation: number; centre: Point } | null {
   if (ref.kind === 'block') {
     const s = data.drawing?.shapes.find((b) => b.id === ref.id)
     if (!s) return null
-    const pad = 6
+    const pad = BLOCK_PAD
     return { box: { x: s.cx - s.w / 2 - pad, y: s.cy - s.h / 2 - pad, w: s.w + 2 * pad, h: s.h + 2 * pad }, rotation: s.rotation, centre: { x: s.cx, y: s.cy } }
   }
   if (ref.kind === 'switch') {
@@ -135,11 +138,14 @@ export function outlineOf(data: SeatViewData, ref: ItemRef): { box: Box; rotatio
   const m = data.drawing?.marks?.find((x) => x.id === ref.id)
   if (!m) return null
   if (m.kind === 'zone') return { box: { x: m.x, y: m.y, w: m.w ?? 0, h: m.h ?? 0 }, rotation: m.rotation ?? 0, centre: { x: m.x + (m.w ?? 0) / 2, y: m.y + (m.h ?? 0) / 2 } }
-  if (m.kind === 'wall') {
+  if (isLine(m)) {
     const r = wallRoute(m)
     const xs = r.map((p) => p.x), ys = r.map((p) => p.y)
     const x1 = Math.min(...xs), y1 = Math.min(...ys), x2 = Math.max(...xs), y2 = Math.max(...ys)
-    const box = { x: x1 - 6, y: y1 - 6, w: x2 - x1 + 12, h: y2 - y1 + 12 }
+    // A walkway's outline sits a block's padding inside its band, so a block snapped to it has its
+    // seats right on the band's edge: the walkway's width is the space between blocks (#1564).
+    const pad = m.kind === 'walkway' ? Math.max(0, walkwayWide(m, data.drawing?.cell ?? 32) / 2 - BLOCK_PAD) : 6
+    const box = { x: x1 - pad, y: y1 - pad, w: x2 - x1 + 2 * pad, h: y2 - y1 + 2 * pad }
     return { box, rotation: 0, centre: { x: (x1 + x2) / 2, y: (y1 + y2) / 2 } }
   }
   const px = markPx(m)

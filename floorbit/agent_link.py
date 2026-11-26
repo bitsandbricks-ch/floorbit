@@ -350,6 +350,37 @@ def agent_for(hostname):
     return agent_ha.split_owner(hostname, group) or first
 
 
+
+def check_agent(given='', host=''):
+    """The connected agent a service check runs from (issue #1444), so its numbers come from one
+    place and move only on failover. ``given`` is the check's "Checked from" (the same values as
+    telemetry.agent: '' any agent, ``tag:<id>`` the agents with that tag, or an agent id); while
+    nobody it names is connected, the default takes over. The default: a check of an inventory
+    device (by name or management address) runs where that device is collected
+    (``agent_for``), anything else on the group's primary. None when no agent is connected here:
+    then whoever answers, as before."""
+    from . import agent_ha, inventory
+    from .telemetry import targets
+    _scoped, everyone, _by_name = _routing()
+    connected = tunnel.connected_agents() & set(everyone)
+    if not connected:
+        return None
+    who = targets.collector(given)
+    tags = {a['id']: set(a.get('tags') or ()) for a in all_agents()}
+    owner, _given = targets.owner_of({'agent': who['agent'], 'agent_tag': who['tag']}, connected, tags)
+    if owner is not None:
+        return owner
+    host = str(host or '').strip().lower()
+    if host:
+        for dev in inventory.devices(load_data(), include_hidden=True):
+            name = str(dev.get('name') or '').lower()
+            if host in (name, str(dev.get('mgmt_ip') or '').lower()) or host.split('.')[0] == name:
+                try:
+                    return agent_for(dev['name'])
+                except AgentUnavailable:
+                    break
+    return sorted(agent_ha.action_targets(connected) or connected)[0]
+
 HEDGE_AFTER = 3.0      # seconds: a lookup burst answers in under 2; longer means that agent hangs
 _last_knew = [None]    # the agent that answered the last first-answer call
 FIRST_ANSWER = {'resolve_ip'}   # None when an agent doesn't know: the first real answer is the answer
@@ -1061,9 +1092,10 @@ class Tunnel:
                     clean[key] = max(clean.get(key) or 0, value)
         from .agent_plugins import clean_updates, clean_vrrp
         from .agent_settings import clean_report
+        from .agent_updates import clean as clean_agent_update
         from .disk_budget import clean as clean_disk
         for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report),
-                             ('disk', clean_disk)):
+                             ('agent_update', clean_agent_update), ('disk', clean_disk)):
             value = cleaner(raw.get(key))
             if value is not None:
                 clean[key] = value
@@ -1097,11 +1129,20 @@ class Tunnel:
         if clean.get('updates'):
             from .agent_plugins import note_updates
             note_updates(agent, before, clean, now=clean['at'])
+        if clean.get('agent_update'):
+            from .agent_updates import note as note_agent_update
+            note_agent_update(agent, before, clean, now=clean['at'])
         from .agent_ha import splits
+
+        def step(report):
+            mine = (report or {}).get('agent_update') or {}
+            return mine.get('running'), mine.get('trial')
         if (((before or {}).get('vrrp') or {}).get('primary') != (clean.get('vrrp') or {}).get('primary')
                 or (before or {}).get('lease') != clean.get('lease')
                 or splits(before) != splits(clean)
-                or (before or {}).get('capabilities') != clean.get('capabilities')):
+                or (before or {}).get('capabilities') != clean.get('capabilities')
+                # An agent of an HA group finished its update: the next one gets it now (agent_updates.py).
+                or (before is not None and step(before) != step(clean))):
             # An agent became primary or stopped being it: a split (two primaries) or its end must reach
             # the agents' plugin config now, not at their next minute's pull (agent_ha.stand_by_for).
             from .agent_plugins import reload_agents

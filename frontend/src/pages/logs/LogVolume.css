@@ -1,0 +1,15 @@
+.fb-log-volume { margin: 0 0 var(--mantine-spacing-sm); }
+.fb-log-volume-bars { display: flex; align-items: flex-end; height: 56px; gap: 1px; }
+.fb-log-volume-bar {
+  height: 100%; display: flex; align-items: flex-end; padding: 0; border: 0; background: none;
+  cursor: pointer; border-radius: 2px;
+}
+.fb-log-volume-bar:disabled { cursor: default; }
+.fb-log-volume-bar:not(:disabled):hover .fb-log-volume-all,
+.fb-log-volume-bar:focus-visible .fb-log-volume-all { background: var(--bnb-muted); }
+.fb-log-volume-bar:focus-visible { outline: 2px solid var(--bnb-info); outline-offset: 1px; }
+.fb-log-volume-all {
+  width: 100%; min-height: 0; display: flex; align-items: flex-end;
+  background: var(--bnb-line); border-radius: 2px 2px 0 0;
+}
+.fb-log-volume-err { width: 100%; background: var(--bnb-err); border-radius: 2px 2px 0 0; }

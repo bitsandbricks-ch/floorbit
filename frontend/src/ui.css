@@ -5,13 +5,13 @@
 .mantine-Input-input {
   font-size: var(--ui-font);
   border-radius: var(--ui-radius);
-  background: var(--color-raised);
-  border-color: var(--color-line);
+  background: var(--bnb-raised);
+  border-color: var(--bnb-line);
   transition: border-color 0.12s, box-shadow 0.12s, background-color 0.12s;
 }
-.mantine-Input-input:hover:not(:disabled):not(:focus) { border-color: color-mix(in srgb, var(--color-fg) 22%, var(--color-line)); }
+.mantine-Input-input:hover:not(:disabled):not(:focus) { border-color: color-mix(in srgb, var(--bnb-fg) 22%, var(--bnb-line)); }
 .mantine-Input-input:focus,
-.mantine-Input-input:focus-within { border-color: var(--color-bit); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-bit) 22%, transparent); outline: none; }
+.mantine-Input-input:focus-within { border-color: var(--bnb-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bnb-accent) 22%, transparent); outline: none; }
 .mantine-InputWrapper-label { font-size: var(--ui-font); font-weight: 550; margin-bottom: 4px; }
 .mantine-InputWrapper-description { font-size: var(--fs-sm); }
 .mantine-InputWrapper-error { font-size: var(--fs-sm); }
@@ -43,36 +43,36 @@
 }
 .mantine-Combobox-option[data-combobox-selected],
 .mantine-Combobox-option:hover:not([data-combobox-disabled]),
-.mantine-Menu-item[data-hovered] { background: var(--ui-option-hover); color: var(--color-fg); }
-.mantine-Combobox-option[data-combobox-active] { background: var(--ui-option-selected); color: var(--color-fg); font-weight: 600; }
-.mantine-Combobox-option[data-combobox-active] .mantine-Combobox-optionsDropdownCheckIcon { color: var(--color-bit); }
+.mantine-Menu-item[data-hovered] { background: var(--ui-option-hover); color: var(--bnb-fg); }
+.mantine-Combobox-option[data-combobox-active] { background: var(--ui-option-selected); color: var(--bnb-fg); font-weight: 600; }
+.mantine-Combobox-option[data-combobox-active] .mantine-Combobox-optionsDropdownCheckIcon { color: var(--bnb-accent); }
 .mantine-Combobox-group + .mantine-Combobox-group { margin-top: var(--ui-pop-pad); }
 .mantine-Combobox-groupLabel,
-.mantine-Menu-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); font-weight: 650; }
-.mantine-Combobox-empty { font-size: var(--ui-font); color: var(--color-muted); padding: 8px; }
-.mantine-Menu-divider { border-color: var(--color-line); }
+.mantine-Menu-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--bnb-muted); font-weight: 650; }
+.mantine-Combobox-empty { font-size: var(--ui-font); color: var(--bnb-muted); padding: 8px; }
+.mantine-Menu-divider { border-color: var(--bnb-line); }
 
 /* ── Tabs: an underline, never a pill ───────────────────────────────────── */
-.mantine-Tabs-list { --tab-border-color: var(--color-line); gap: 2px; }
+.mantine-Tabs-list { --tab-border-color: var(--bnb-line); gap: 2px; }
 .mantine-Tabs-list::before { border-bottom-width: 1px !important; }
 .mantine-Tabs-tab {
   font-size: var(--ui-font);
   font-weight: 550;
-  color: var(--color-muted);
+  color: var(--bnb-muted);
   padding: 10px 14px;
   border-bottom-width: var(--ui-tab-indicator) !important;
   border-radius: var(--ui-radius) var(--ui-radius) 0 0;
   transition: color 0.12s, background-color 0.12s;
 }
-.mantine-Tabs-tab:hover { background: var(--ui-option-hover); color: var(--color-fg); border-color: transparent; }
-.mantine-Tabs-tab[data-active] { color: var(--color-fg); border-color: var(--color-bit) !important; background: transparent; }
+.mantine-Tabs-tab:hover { background: var(--ui-option-hover); color: var(--bnb-fg); border-color: transparent; }
+.mantine-Tabs-tab[data-active] { color: var(--bnb-fg); border-color: var(--bnb-accent) !important; background: transparent; }
 .mantine-Tabs-tab:focus-visible { box-shadow: var(--ui-focus); outline: none; }
 
 /* ── Segmented control: the "tabs inside a panel" look ─────────────────── */
-.mantine-SegmentedControl-root { background: var(--color-raised); border: 1px solid var(--color-line); padding: 3px; border-radius: calc(var(--ui-radius) + 2px); }
-.mantine-SegmentedControl-indicator { background: var(--color-surface); box-shadow: 0 1px 3px rgb(0 0 0 / 0.18); border-radius: var(--ui-radius); }
-.mantine-SegmentedControl-label { font-size: var(--ui-font); font-weight: 550; color: var(--color-muted); }
-.mantine-SegmentedControl-label[data-active] { color: var(--color-fg); }
+.mantine-SegmentedControl-root { background: var(--bnb-raised); border: 1px solid var(--bnb-line); padding: 3px; border-radius: calc(var(--ui-radius) + 2px); }
+.mantine-SegmentedControl-indicator { background: var(--bnb-surface); box-shadow: 0 1px 3px rgb(0 0 0 / 0.18); border-radius: var(--ui-radius); }
+.mantine-SegmentedControl-label { font-size: var(--ui-font); font-weight: 550; color: var(--bnb-muted); }
+.mantine-SegmentedControl-label[data-active] { color: var(--bnb-fg); }
 
 /* ── Buttons, badges, tooltips, modals, tables ─────────────────────────── */
 .mantine-Button-root { font-weight: 600; }
@@ -90,12 +90,12 @@
    between its words instead of being cut to "Wartet sei…". */
 .mantine-Badge-root { height: auto; min-height: var(--badge-height); max-width: 100%; }
 .mantine-Badge-label { white-space: normal; line-height: 1.2; padding-block: 2px; min-width: min-content; }
-.mantine-Tooltip-tooltip { font-size: var(--fs-sm); background: var(--color-fg); color: var(--color-ink); border-radius: var(--ui-option-radius); padding: 5px 8px; }
-.mantine-Modal-content, .mantine-Drawer-content { background: var(--color-surface); border: var(--ui-pop-border); }
+.mantine-Tooltip-tooltip { font-size: var(--fs-sm); background: var(--bnb-fg); color: var(--bnb-bg); border-radius: var(--ui-option-radius); padding: 5px 8px; }
+.mantine-Modal-content, .mantine-Drawer-content { background: var(--bnb-surface); border: var(--ui-pop-border); }
 .mantine-Modal-content { border-radius: var(--radius-card); box-shadow: var(--ui-pop-shadow); }
-.mantine-Modal-header, .mantine-Drawer-header { background: var(--color-surface); }
+.mantine-Modal-header, .mantine-Drawer-header { background: var(--bnb-surface); }
 .mantine-Modal-title, .mantine-Drawer-title { font-size: var(--fs-lg); font-weight: 650; }
-.mantine-Table-th { font-size: var(--ui-font); color: var(--color-muted); font-weight: 600; }
+.mantine-Table-th { font-size: var(--ui-font); color: var(--bnb-muted); font-weight: 600; }
 .mantine-Table-td { font-size: var(--ui-font); }
 .mantine-Checkbox-label, .mantine-Switch-label, .mantine-Radio-label { font-size: var(--ui-font); }
 
@@ -119,7 +119,7 @@
 .fb-day:hover { background: var(--mantine-color-default-hover); }
 .fb-day[data-today] { font-weight: 700; color: var(--mantine-primary-color-filled); }
 /* --mantine-primary-color-contrast is white with autoContrast off: 1.6:1 on Bit Green in the dark theme. */
-.fb-day[data-picked] { background: var(--color-bit); color: var(--color-on-bit); }
+.fb-day[data-picked] { background: var(--bnb-accent); color: var(--bnb-on-accent); }
 .fb-day:focus-visible { outline: 2px solid var(--mantine-primary-color-filled); outline-offset: 1px; }
 
 /* Schedule rows: the time column lines up across days on wide screens and shrinks on a phone. */

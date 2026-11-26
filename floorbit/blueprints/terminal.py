@@ -83,8 +83,8 @@ def resize(sid):
     body = request.get_json(silent=True) or {}
     try:
         session = terminal.get(sid, _account())
-        session.shell.resize(min(max(int(body.get('cols') or 120), 40), 300),
-                             min(max(int(body.get('rows') or 32), 10), 120))
+        session.resize(min(max(int(body.get('cols') or 120), 40), 300),
+                       min(max(int(body.get('rows') or 32), 10), 120))
     except terminal.TerminalError as exc:
         return _error(exc)
     except (TypeError, ValueError):
