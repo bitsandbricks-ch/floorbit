@@ -16,5 +16,6 @@
  "Send the rules file as \"file\".": "Schick die Regeldatei als \"file\".",
  "The file is too big.": "Die Datei ist zu gross.",
  "An export is a JSON rules file: {\"version\": 1, \"applications\": [...]}.": "Ein Export ist eine JSON-Regeldatei: {\"version\": 1, \"applications\": [...]}.",
- "{}: {} ({} taken before it.)": "{}: {} ({} davor übernommen.)"
+ "{}: {} ({} taken before it.)": "{}: {} ({} davor übernommen.)",
+ "No such category: add it under Categories first.": "Diese Kategorie gibt es nicht: lege sie zuerst unter Kategorien an."
 }

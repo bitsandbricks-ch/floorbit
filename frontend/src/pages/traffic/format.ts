@@ -1,7 +1,5 @@
 import type { FlowCategory, FlowMix, FlowService } from '@/api/types'
 
-export const CATEGORIES: FlowCategory[] = ['gaming', 'streaming', 'downloads', 'updates', 'web', 'other']
-
 /** Bytes as people say them: 80 GB, 1.2 TB. */
 export function bytes(value: number | null | undefined): string {
   const v = value ?? 0
@@ -13,13 +11,13 @@ export function bytes(value: number | null | undefined): string {
 }
 
 export function total(mix: FlowMix | undefined): number {
-  return CATEGORIES.reduce((sum, c) => sum + (mix?.[c] ?? 0), 0)
+  return Object.values(mix ?? {}).reduce<number>((sum, v) => sum + (typeof v === 'number' ? v : 0), 0)
 }
 
 /** The biggest category of a mix, for "mostly gaming". */
 export function mostly(mix: FlowMix | undefined): FlowCategory | null {
   let best: FlowCategory | null = null
-  for (const c of CATEGORIES) if ((mix?.[c] ?? 0) > (best ? mix?.[best] ?? 0 : 0)) best = c
+  for (const [c, v] of Object.entries(mix ?? {})) if ((v ?? 0) > (best ? mix?.[best] ?? 0 : 0)) best = c
   return best
 }
 

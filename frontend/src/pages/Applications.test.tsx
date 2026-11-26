@@ -49,7 +49,7 @@ describe('Applications', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByRole('button', { name: 'Hide' })).toBeInTheDocument()
     const put = fake.calls.find((c) => c.method === 'PUT')
-    expect(put?.body).toEqual({ sites: ['example.net'], ports: [], cidr: [], depots: [], hidden: false })
+    expect(put?.body).toEqual({ sites: ['example.net'], ports: [], cidr: [], depots: [], hidden: false, category: 'gaming' })
   })
 
   it('offers no changes to someone who may only look', async () => {

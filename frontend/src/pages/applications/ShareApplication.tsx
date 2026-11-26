@@ -10,7 +10,7 @@ import { FormDialog } from '@bitsandbricks/ui'
 export function ShareApplication({ app, onClose }: { app: Application; onClose: () => void }) {
   const { t } = useTranslation()
   const [source, setSource] = useState('')
-  const entry = sharedEntry(app)
+  const entry = sharedEntry(app, true)
   const url = shareUrl(entry, source)
   const tooLong = url.length > MAX_URL
   const ready = source.trim().length > 0
@@ -20,7 +20,7 @@ export function ShareApplication({ app, onClose }: { app: Application; onClose: 
     <FormDialog open onClose={onClose} title={t('applicationShare.title', { name: app.name })} subtitle={t('applicationShare.intro')} wide
       footer={(
         <Group justify="flex-end" gap="xs">
-          <Button variant="default" onClick={() => download(`${app.id}.json`, rulesFile([entry]))}>
+          <Button variant="default" onClick={() => download(`${app.id}.json`, rulesFile([sharedEntry(app)]))}>
             {t('applicationShare.download')}
           </Button>
           <Button component="a" href={ready && !tooLong ? url : undefined} target="_blank" rel="noopener noreferrer"
@@ -37,6 +37,9 @@ export function ShareApplication({ app, onClose }: { app: Application; onClose: 
           <Text size="sm" fw={500} mb={4}>{t('applicationShare.preview')}</Text>
           <Code block aria-label={t('applicationShare.preview')} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{gamesFile(entry, source || '…')}</Code>
           <Text size="xs" c="dimmed" mt={4}>{t('applicationShare.onlyMatches')}</Text>
+          {entry.category !== app.category && (
+            <Text size="xs" c="dimmed" mt={4}>{t('trafficCategories.sharedAsOther')}</Text>
+          )}
         </div>
         <Text size="sm" aria-label={t('applicationShare.tryTitle')}>
           {!seen.seats ? t('applicationShare.triedNone')

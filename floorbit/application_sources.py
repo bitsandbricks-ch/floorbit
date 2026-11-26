@@ -27,7 +27,7 @@ import threading
 import time
 import uuid
 
-from . import store
+from . import store, traffic_categories
 from .store import load_data, save_data
 
 KEY = 'application_sources'
@@ -286,8 +286,9 @@ def _from_json(doc, source, applications):
         if kind not in applications.KINDS:
             raise SourceError(f'Application {aid}: the kind is game, launcher or sitegroup.')
         category = entry.get('category') or ('gaming' if kind != 'sitegroup' else 'other')
-        if category not in applications.CATEGORIES:
+        if not isinstance(category, str) or not traffic_categories.ID_RE.match(category):
             raise SourceError(f'Application {aid}: the category is one of {", ".join(applications.CATEGORIES)}.')
+        # A category this tenant doesn't have counts as "other" where it is read (#1622).
         part_of = entry.get('part_of') or None
         if part_of is not None and (kind != 'game' or not applications.ID_RE.match(str(part_of))):
             raise SourceError(f'Application {aid}: only a game is part of something, and that is a launcher id.')

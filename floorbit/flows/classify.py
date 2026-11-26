@@ -13,11 +13,12 @@ import json
 
 from integrations import config
 
-CATEGORIES = ('gaming', 'streaming', 'downloads', 'updates', 'web', 'other')
-# One colour per kind, for every chart: the Traffic page's bars (frontend .cat-* classes, kept the
-# same by tests/test_traffic_colours.py) and the dashboard's "Traffic by kind" (#1408).
-CATEGORY_COLOURS = {'gaming': '#16a34a', 'streaming': '#9333ea', 'downloads': '#2563eb', 'updates': '#d97706',
-                    'web': '#0891b2', 'other': '#94a3b8'}
+from ..traffic_categories import BUILTIN, BUILTIN_IDS, ID_RE
+
+# The built-in categories; a tenant adds its own (floorbit/traffic_categories.py, #1622), which reach
+# the classifier with the applications' rules. One colour per kind on every chart (#1408).
+CATEGORIES = BUILTIN_IDS
+CATEGORY_COLOURS = {c['id']: c['colour'] for c in BUILTIN}
 
 # Ports the vendors publish for their games and launchers, and the plain protocols.
 BUILTIN = [
@@ -53,13 +54,15 @@ def _ports(specs):
     return out
 
 
-def compile_rules(rules):
+def compile_rules(rules, own_categories=False):
+    """``own_categories``: rules from Floorbit's applications, which may name the tenant's own
+    categories (checked when they were saved); ``FLOWS_SERVICES`` keeps to the built-in ones."""
     out = []
     for rule in rules:
         if not isinstance(rule, dict) or not rule.get('name'):
             raise RuleError('Every service needs a name.')
         category = rule.get('category') or 'other'
-        if category not in CATEGORIES:
+        if category not in CATEGORIES and not (own_categories and ID_RE.match(str(category))):
             raise RuleError(f'Category "{category}" is not one of {", ".join(CATEGORIES)}.')
         try:
             nets = [ipaddress.ip_network(c, strict=False) for c in rule.get('cidr') or []]
@@ -94,7 +97,7 @@ class Classifier:
         extra = []
         for rule in rules or []:
             try:
-                extra += compile_rules([rule])
+                extra += compile_rules([rule], own_categories=True)
             except RuleError:
                 continue
         builtin = compile_rules(BUILTIN)

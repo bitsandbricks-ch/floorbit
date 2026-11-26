@@ -2,6 +2,7 @@
 // pull request adds to Floorbit's own list, or as a rules file another Floorbit imports.
 import type { Application } from './applications'
 import { post } from './client'
+import { BUILTIN_IDS } from './trafficCategories'
 
 /** What leaves the event: what an application matches, nothing it saw. */
 export type SharedEntry = Pick<Application, 'id' | 'name' | 'kind' | 'category' | 'part_of' | 'sites' | 'ports' | 'cidr' | 'depots'>
@@ -10,8 +11,11 @@ export const GAMES_NEW_FILE = 'https://github.com/bitsandbricks-ch/floorbit-plug
 // GitHub refuses longer addresses; a bigger entry is downloaded and added by hand.
 export const MAX_URL = 7000
 
-export function sharedEntry(a: Application): SharedEntry {
-  return { id: a.id, name: a.name, kind: a.kind, category: a.category, part_of: a.part_of,
+/** ``everywhere``: for Floorbit's own list, which keeps to the built-in categories (#1622), so an
+ *  entry means the same on every Floorbit; a tenant's own category goes as "other". */
+export function sharedEntry(a: Application, everywhere = false): SharedEntry {
+  const category = everywhere && !BUILTIN_IDS.includes(a.category) ? 'other' : a.category
+  return { id: a.id, name: a.name, kind: a.kind, category, part_of: a.part_of,
     sites: a.sites, ports: a.ports, cidr: a.cidr, depots: a.depots }
 }
 

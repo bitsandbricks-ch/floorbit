@@ -46,7 +46,8 @@ TEXTS = {
            'launcher_cache': '{cache} from the cache', 'no_games': 'No game traffic yet',
            'wifi_clients': 'Wi-Fi clients', 'wifi_sub': '2.4 GHz: {b24} · 5 GHz: {b5}', 'no_wifi': 'No Wi-Fi data yet',
            'wifi_aps': 'Access points', 'ap_clients': '{n} clients', 'busy': 'busy',
-           'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'downloads': 'Downloads', 'updates': 'Updates',
+           'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'social': 'Social', 'downloads': 'Downloads',
+                   'updates': 'Updates',
                    'web': 'Web', 'other': 'Other'}},
     'de': {'problems': 'Probleme jetzt', 'incidents': 'Störungen', 'down': 'ausgefallen', 'open': 'offen',
            'switches': 'Switches', 'switches_unit': 'von {n} online',
@@ -87,7 +88,8 @@ TEXTS = {
            'wifi_clients': 'WLAN-Clients', 'wifi_sub': '2.4 GHz: {b24} · 5 GHz: {b5}',
            'no_wifi': 'Noch keine WLAN-Daten',
            'wifi_aps': 'Access Points', 'ap_clients': '{n} Clients', 'busy': 'ausgelastet',
-           'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'downloads': 'Downloads', 'updates': 'Updates',
+           'cat': {'gaming': 'Gaming', 'streaming': 'Streaming', 'social': 'Soziale Medien', 'downloads': 'Downloads',
+                   'updates': 'Updates',
                    'web': 'Web', 'other': 'Anderes'}},
 }
 # One line per tile: its id, the text key of its label, its size and how often it reloads (seconds).
@@ -437,7 +439,6 @@ def top_ports_widget(lang, snapshot):
     return {'type': 'list', 'items': items, 'link': '/dashboards/network'}
 
 
-from .flows.classify import CATEGORIES, CATEGORY_COLOURS  # noqa: E402
 
 
 def _no_flows(text):
@@ -449,11 +450,19 @@ def traffic_mix_widget(lang, flows):
     text = TEXTS.get(lang, TEXTS['en'])
     if not flows:
         return _no_flows(text)
-    mix = flows.get('mix_hour') or {}
-    total = sum(mix.get(c) or 0 for c in CATEGORIES)
+    from . import traffic_categories
+    mix = {k: v for k, v in (flows.get('mix_hour') or {}).items() if isinstance(v, (int, float))}
+    cats = traffic_categories.merged()
+    # A category the tenant has since removed counts as "other", like everywhere else (#1622).
+    shares = {}
+    for key, v in mix.items():
+        cat = traffic_categories.known(key, [c['id'] for c in cats])
+        shares[cat] = shares.get(cat, 0) + v
+    total = sum(shares.values())
     # The share shows in the pie (hover, large tiles); a short value keeps the legend's names whole.
-    items = [{'label': text['cat'][c], 'value': size(mix.get(c)), 'number': mix.get(c) or 0,
-              'colour': CATEGORY_COLOURS[c]} for c in CATEGORIES if total and mix.get(c)]
+    items = [{'label': text['cat'].get(c['id']) or (c['name_de'] if lang == 'de' else c['name']),
+              'value': size(shares.get(c['id'])), 'number': shares.get(c['id']) or 0, 'colour': c['colour']}
+             for c in cats if total and shares.get(c['id'])]
     # The unit lets a donut name its centre "1.5 TB" rather than a bare "1.5T" (#1407).
     return {'type': 'list', 'items': items, 'unit': 'B', 'sub': text['mix_sub'].format(total=size(total)),
             'link': '/dashboards/traffic'}
