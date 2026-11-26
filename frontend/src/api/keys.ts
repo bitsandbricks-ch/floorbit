@@ -135,6 +135,8 @@ export const qk = {
   ports: ['ports'] as const,
   plan: (hall: string) => ['plan', hall] as const,
   planSeat: (seat: string) => ['plan', 'seat', seat] as const,
+  /** One seat's apps and owners (#1481 B): audited, so its own key, never refetched with the seat. */
+  seatTraffic: (seat: string) => ['traffic', 'seat', seat] as const,
   planBlock: (name: string) => ['plan', 'block', name] as const,
   planSwitch: (name: string) => ['plan', 'switch', name] as const,
   notice: ['notice'] as const,

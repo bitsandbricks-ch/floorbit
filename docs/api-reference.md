@@ -430,6 +430,7 @@ Source: [`floorbit/blueprints/flow_lookup.py`](https://github.com/bitsandbricks-
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | POST | `/api/traffic/lookup` | `traffic.investigate` | `traffic` |
+| GET | `/api/traffic/seat/<seat>` | `seats.view` | `traffic` |
 
 ## floorbit.blueprints.flows
 

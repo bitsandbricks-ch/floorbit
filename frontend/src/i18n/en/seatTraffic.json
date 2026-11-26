@@ -1,0 +1,13 @@
+{
+  "title": "Traffic",
+  "show": "Show apps and destinations",
+  "audited": "Looking is written to the audit log.",
+  "hours_one": "Last hour",
+  "hours_other": "Last {{count}} hours",
+  "mix": "{{seat}} by category",
+  "applications": "Top applications",
+  "owners": "Top destinations",
+  "none": "No traffic from this seat in that time.",
+  "stopped": "The agent stopped reading after 10 seconds: older flows are missing.",
+  "agentFailed": "{{name}} did not answer: {{error}}"
+}

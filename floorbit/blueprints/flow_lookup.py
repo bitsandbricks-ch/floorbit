@@ -9,6 +9,10 @@
 Needs ``traffic.investigate`` (Admin and Lead by default, auth/roles.py) and a reason. Every search
 and every CSV goes to the audit log with its reason, before the agents are asked, so a search that
 fails is logged too. Floorbit keeps no result.
+
+- ``GET /api/traffic/seat/<seat>`` (#1481, B): the seat panel's traffic: the seat's volume over 24
+  hours, its categories, its top applications and the networks' owners it talked to. Totals only,
+  never a name or an address. Needs ``seats.view``; every look goes to the audit log.
 """
 import csv
 import io
@@ -158,3 +162,52 @@ def _csv(rows):
     filename = f"floorbit-flows-{time.strftime('%Y%m%d-%H%M')}.csv"
     return Response(out.getvalue().encode('utf-8-sig'), mimetype='text/csv',
                     headers={'Content-Disposition': f'attachment; filename="{filename}"', 'Cache-Control': 'no-store'})
+
+
+SEAT_HOURS = 24
+
+
+@bp.route('/api/traffic/seat/<seat>', methods=['GET'])
+def seat_summary(seat):
+    seat = str(seat).strip()[:40]
+    seat_of, _ = seat_maps()
+    ips = sorted(ip for ip, s in seat_of.items() if s.lower() == seat.lower())
+    if not ips:
+        return jsonify({'error': f'No seat {seat} with a known address.'}), 404
+    now = time.time()
+    args = {'sources': ips, 'since': now - SEAT_HOURS * 3600, 'until': now}
+    audit.record('traffic', "Looked at a seat's traffic", g.get('audit_user'), f'seat {seat}')
+    spec = current_app.extensions['floorbit_plugins'].specs.get('netflow-relay')
+    if spec is None:
+        return jsonify({'error': 'The Traffic from the hall plugin is missing.'}), 404
+    try:
+        answers = agent_plugins.ask(spec, 'call', 'seat_summary', args)
+    except PluginError as exc:
+        print(f'[flows] the seat panel could not ask the agents: {exc}')
+        return jsonify({'error': 'No local agent answered. Is one connected?'}), 502
+    return jsonify(_merge_summaries(answers, seat))
+
+
+def _merge_summaries(answers, seat):
+    size, categories, apps, owners, agents, stopped = 0, {}, {}, {}, [], False
+    for a in answers:
+        res = a.get('result') if isinstance(a.get('result'), dict) else {}
+        error = a.get('error') or res.get('error')
+        agents.append({'name': a.get('name'), 'error': str(error)[:300] if error else None})
+        if error:
+            continue
+        size += int(res.get('bytes') or 0)
+        stopped = stopped or bool(res.get('stopped'))
+        for cat, b in (res.get('categories') or {}).items():
+            categories[cat] = categories.get(cat, 0) + int(b or 0)
+        for app in res.get('applications') or []:
+            entry = apps.setdefault(app.get('name'), {'name': app.get('name'), 'category': app.get('category'),
+                                                      'bytes': 0})
+            entry['bytes'] += int(app.get('bytes') or 0)
+        for own in res.get('owners') or []:
+            entry = owners.setdefault(own.get('asn'), {'asn': own.get('asn'), 'name': own.get('name'), 'bytes': 0})
+            entry['bytes'] += int(own.get('bytes') or 0)
+    top = lookup.SUMMARY_TOP
+    return {'seat': seat, 'hours': SEAT_HOURS, 'bytes': size, 'categories': categories, 'stopped': stopped,
+            'applications': sorted(apps.values(), key=lambda x: -x['bytes'])[:top],
+            'owners': sorted(owners.values(), key=lambda x: -x['bytes'])[:top], 'agents': agents}

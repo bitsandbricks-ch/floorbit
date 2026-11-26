@@ -45,7 +45,8 @@ agent has sent anything for 5 minutes, and when the last summary is more than a 
 | Applications | per service, 24 hours: how many different seats used it, bytes down (to the seats) and up, bytes per hour for the last 6 hours, and bytes per seat block. Click one for its blocks and hours | everyone |
 | Network owners | per remote network (AS) and its owner, 24 hours: how many different seats used it, bytes down and up | everyone |
 | Look at this | P2P or torrent floods, DDoS-like bursts, seats answering DHCP or DNS | everyone sees the kind; `seats.view` sees which seat |
-| Per seat | total volume and the category mix only, 24 hours | `seats.view` |
+| Per seat | total volume and the category mix, 24 hours | `seats.view` |
+| Seat panel › Traffic | one seat's volume, categories, top 5 applications and top 5 networks' owners, 24 hours, read on a click from the agent's raw flows; every look goes to the audit log | `seats.view` |
 
 **Services** come from rules: built-in ones for well-known ports (Steam, Battle.net, Riot Games,
 Minecraft, RTMP, BitTorrent, Windows delivery optimisation, web, DNS), and the event's own rules in
@@ -115,8 +116,11 @@ Flows are personal data under Swiss and EU rules (an address at a seat is a pers
 - **Names from DNS** are matched on the agent, in memory: which seat looked up which site and got
   which address never leaves the hall and is never written to disk. The flows they name count under
   the same five-seat rule.
-- **Per seat** there is only the volume and the category mix ("80 GB, mostly gaming"), for spotting
-  problems. Never services, addresses or ports on the everyday pages.
+- **Per seat** there is the volume and the category mix ("80 GB, mostly gaming"), for spotting
+  problems. The seat panel adds, on a click and audit-logged, the seat's top applications and the
+  networks' owners it talked to ("why is C-14 slow?"), counted on the agent from its raw flows. Never
+  names it looked up, addresses or ports on the everyday pages: only the
+  [flow lookup](#flow-lookup) shows those, with a reason.
 - **Raw flows** (`FLOWS_DIR/raw/`, one gzip file per hour) are kept for `FLOWS_RETENTION_DAYS` (7)
   for looking into an incident afterwards (the [flow lookup](#flow-lookup): a reasoned,
   audit-logged search), then deleted; when the agent's disk budget is used up the
