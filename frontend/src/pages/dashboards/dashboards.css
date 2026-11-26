@@ -180,6 +180,8 @@ body .bnb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; padd
   .fb-board-show .fb-grid-item, .fb-board-inline .fb-grid-item { flex: 1 1 100%; order: var(--at);
     min-height: max(calc(var(--rows) * 40px), 30vh); }
   .fb-board-show .fb-grid-item.pair, .fb-board-inline .fb-grid-item.pair { flex-basis: calc(50% - 4px); min-height: calc(var(--rows) * 40px); }
+  /* Half a phone is too narrow for a title beside "Open": it takes two lines instead of an ellipsis. */
+  .fb-grid-item.pair .fb-pane-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 }
 /* The pane's tools sit top right in the editor: keep the title and counts clear of them. */
 .fb-board-screen .fb-split-pane.selected .fb-pane-head { padding-right: 156px; }
