@@ -81,9 +81,10 @@ def test_flow_rules_name_games_before_launchers(app_module, client):
     client.post("/api/applications", json={"name": "Tournament servers", "kind": "game", "cidr": ["198.51.100.0/28"]})
     servers = [{"game": "counter-strike 2", "host": "203.0.113.5"}, {"game": "Some mod", "host": "gs.example.com"}]
     rules = applications.flow_rules(servers=servers)
-    assert rules[0] == {"name": "Counter-Strike 2", "category": "gaming", "cidr": ["203.0.113.5/32"]}
+    assert rules[0] == {"name": "Some mod", "category": "gaming", "hosts": ["gs.example.com"]}   # resolved on the agent
+    assert rules[1] == {"name": "Counter-Strike 2", "category": "gaming", "cidr": ["203.0.113.5/32"]}
     names = [r["name"] for r in rules]
-    assert names.index("Tournament servers") < names.index("Steam") and "Some mod" not in names
+    assert names.index("Tournament servers") < names.index("Steam")
     c = Classifier()
     c.set_applications(rules)
     assert c("203.0.113.5", 17, 27015, 50000) == ("Counter-Strike 2", "gaming")

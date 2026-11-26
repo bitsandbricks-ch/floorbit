@@ -192,7 +192,10 @@ def test_many_threads_share_a_few_connections(sqlite_db, monkeypatch):
 
 
 def test_a_connection_that_failed_is_not_handed_out_again(sqlite_db):
-    db = database.backend()
+    # A pool of its own: a thread left over from an earlier test can borrow from the shared one
+    # and put a second connection back while this test counts them.
+    url = os.environ[database.ENV]
+    db = database.Sql(url, database.state_root())
     db.run("SELECT 1")
     (used,) = db._idle
     with pytest.raises(database.DatabaseError):
@@ -200,6 +203,7 @@ def test_a_connection_that_failed_is_not_handed_out_again(sqlite_db):
     assert used not in db._idle            # it may be mid-transaction or broken: closed instead
     db.run("SELECT 1")                      # and the next caller just opens a fresh one
     assert len(db._idle) == 1 and db._idle[0] is not used
+    db.close()
 
 
 def test_a_save_that_meets_another_pods_write_merges_again(sqlite_db, monkeypatch):

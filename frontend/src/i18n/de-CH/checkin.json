@@ -23,8 +23,6 @@
   "knownSeat": "Dieser PC ist an Platz {{seat}}.",
   "noPin": "Keine Karte am Platz? Gib stattdessen die Platznummer ein",
   "usePin": "Stattdessen die PIN von der Platzkarte verwenden",
-  "outside": "Diese Seite wurde nicht im Event-Netz geöffnet, darum kann die Crew den Netzwerk-Port deines Platzes nicht daraus lernen. Platz und Nick zählen trotzdem.",
-  "outsideAt": "Tippe {{address}} auf dem PC an deinem Platz ein und checke dort ein: So lernt die Crew den Netzwerk-Port deines Platzes. Platz und Nick zählen auch von hier.",
   "onPc": "Öffne diese Seite auf dem PC, der an deinem Platz eingesteckt ist: So lernt die Crew, an welchem Netzwerk-Port dein Platz hängt. Dein Nick zählt auch von hier.",
   "wired": {
     "pending": "Suche den Netzwerk-Port deines Platzes …",
@@ -34,11 +32,16 @@
   },
   "hall": {
     "going": "Weiter zum Check-in im Event-Netz …",
-    "title": "Im Event-Netz einchecken",
-    "text": "Checke an deinem Platz über das Event-Netz ein: So lernt die Crew den Netzwerk-Port deines Platzes. Nicht in der Halle? Checke hier ein, Platz und Nick zählen trotzdem.",
     "button": "Im Event-Netz weiter",
-    "backTitle": "Das Event-Netz liess sich nicht öffnen",
-    "backText": "Dieser PC scheint nicht im Event-Netz zu sein. Schliesse ihn an deinem Platz an und versuche es nochmals, oder checke hier ein: Platz und Nick zählen trotzdem.",
-    "portButton": "Port deines Platzes finden lassen"
+    "backTitle": "Das Event-Netz liess sich nicht öffnen"
+  },
+  "refused": {
+    "title": "Steck dich an deinem Platz ein",
+    "outside": "Einchecken geht nur im Event-Netz: So lernt die Crew, an welchem Netzwerk-Port dein Platz hängt. Steck das LAN-Kabel an deinem Platz in deinen PC und öffne diese Seite dort.",
+    "network": "Dein PC ist nicht im Spieler-Netz des Events ({{ip}}). Steck das LAN-Kabel an deinem Platz in deinen PC und versuche es nochmals.",
+    "public": "Dein PC ist nicht im Event-Netz: Er hat die öffentliche Adresse {{ip}}. Schalte WLAN, VPN oder Hotspot aus, steck das LAN-Kabel an deinem Platz in deinen PC und versuche es nochmals.",
+    "phone": "Checke auf dem PC an deinem Platz ein, mit dem LAN-Kabel im Event-Netz, nicht auf dem Handy.",
+    "address": "Öffne auf diesem PC {{address}}.",
+    "range": "Einchecken geht nur vom PC an deinem Platz, über sein LAN-Kabel, nicht über WLAN. Schalte WLAN aus, steck das LAN-Kabel an deinem Platz in deinen PC und versuche es nochmals."
   }
 }

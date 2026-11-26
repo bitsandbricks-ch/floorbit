@@ -162,6 +162,7 @@
       "vlan_id": "VLAN-ID",
       "prefix": "Präfix",
       "lookups": "Check-in-Abfragen",
+      "checkin": "Check-in erlaubt",
       "gateway": "Gateway",
       "purpose": "Zweck"
     },

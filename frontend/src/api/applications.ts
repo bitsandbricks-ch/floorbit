@@ -1,4 +1,5 @@
 // Applications (docs/applications.md): the games, launchers and site groups Floorbit recognises.
+import type { SyncedSource } from './applicationSources'
 import { del, post, put } from './client'
 
 export type AppKind = 'game' | 'launcher' | 'sitegroup'
@@ -21,16 +22,24 @@ export type Application = AppMatches & {
   part_of: string | null
   caches: string[]
   source: string
+  /** Set when a rule source supplied it (``source`` is then ``source:<id>``). */
+  source_name?: string
   builtin: boolean
   edited: boolean
   hidden: boolean
+  /** Built in now has everything the event added: the local copy can go. */
+  redundant: boolean
   added: AppMatches
   seen: AppSeen
 }
 export type ApplicationsAnswer = {
   applications: Application[]
   sources: { id: string; repo: string; commit: string; license: string; copyright: string }[]
+  synced: SyncedSource[]
+  frozen: boolean
   hours: number
+  /** The busiest sites (5+ seats) no shown application has. */
+  unrecognised: { site: string; lookups: number; seats: number }[]
   kinds: AppKind[]
   categories: string[]
 }

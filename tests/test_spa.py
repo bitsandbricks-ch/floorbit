@@ -48,3 +48,42 @@ def test_without_a_build_the_page_says_how_to_make_one(client, app_module, monke
 
 def test_the_page_still_needs_sign_in(anon_client, app_module):
     assert anon_client.get('/dashboard').status_code == 302
+
+
+def test_the_shell_comes_with_its_pages_but_not_with_sign_in(client, anon_client, app_module, tmp_path, monkeypatch):
+    # Issue #1293: sign-in, check-in and the public pages don't load the shell and its texts.
+    _manifest(tmp_path, monkeypatch, {
+        'index.html': {'file': 'assets/index-abc.js', 'dynamicImports': ['src/components/Layout.tsx']},
+        'src/components/Layout.tsx': {'file': 'assets/Layout.js', 'css': ['assets/Layout.css'],
+                                      'imports': ['_nav.js'], 'isDynamicEntry': True},
+        '_nav.js': {'file': 'assets/nav.js'},
+        'src/i18n/english.ts': {'file': 'assets/english.js', 'isDynamicEntry': True},
+    })
+    page = client.get('/widgets').get_data(as_text=True)
+    for f in ('Layout.js', 'nav.js', 'english.js'):
+        assert f'<link rel="modulepreload" href="/static/app/assets/{f}" />' in page
+    assert '/static/app/assets/Layout.css' in page
+    sign_in = anon_client.get('/login').get_data(as_text=True)
+    assert 'index-abc.js' in sign_in
+    for f in ('Layout.js', 'nav.js', 'english.js', 'Layout.css'):
+        assert f not in sign_in
+
+
+def test_mantine_styles_come_first_and_public_pages_get_part(client, anon_client, app_module, tmp_path, monkeypatch):
+    # Issue #1293: sign-in links only the Mantine styles it uses, and says where the rest is.
+    _manifest(tmp_path, monkeypatch, {
+        'index.html': {'file': 'assets/index-abc.js', 'css': ['assets/index-abc.css']},
+        'src/styles/mantine.ts': {'file': 'assets/mantine.js', 'css': ['assets/mantine.css'], 'isEntry': True},
+        'src/styles/mantinePublic.ts': {'file': 'assets/mantinePublic.js', 'css': ['assets/mantinePublic.css'],
+                                        'isEntry': True},
+    })
+    page = client.get('/widgets').get_data(as_text=True)
+    assert '<link rel="stylesheet" href="/static/app/assets/mantine.css" data-mantine="full" />' in page
+    assert page.index('assets/mantine.css') < page.index('assets/index-abc.css')
+    assert 'mantinePublic' not in page and 'fb-mantine-full' not in page
+    sign_in = anon_client.get('/login').get_data(as_text=True)
+    assert '<link rel="stylesheet" href="/static/app/assets/mantinePublic.css" data-mantine="part" />' in sign_in
+    assert '<meta name="fb-mantine-full" content="/static/app/assets/mantine.css" />' in sign_in
+    assert sign_in.index('mantinePublic.css') < sign_in.index('assets/index-abc.css')
+    # Neither style entry's empty script is loaded.
+    assert 'mantine.js' not in page + sign_in and 'mantinePublic.js' not in page + sign_in

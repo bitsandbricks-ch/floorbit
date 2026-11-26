@@ -28,7 +28,7 @@ Floorbit is an operations suite. These parts are its core, decided by Mike on 20
 | --- | --- |
 | **Agents** | The local agents, their settings, health and failover |
 | **Telemetry** | Collecting from devices: SNMP, traps, APIs, streaming, logs, flows |
-| **Seating plan and mapping** | The floor plan, seats, and which switch port each seat is on |
+| **Seating plan and mapping** | The floor plan, seats, and which switch port each seat is on. Check-in is part of it: a **tech check-in** that learns a seat PC's IP, MAC and switch port, not attendance |
 | **Inventory** | Devices, groups, tags, properties, features and logins |
 | **Observability** | Issues, problems, incidents and heatmaps |
 | **Services and monitoring** | Services, their checks and live status |
@@ -183,6 +183,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   (the sidebar is 15px).
 - **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
   for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
+- **One screen on a desktop** (Mike: "one page with no scrollbars on desktop where possible", #896):
+  a list page fits the screen (`Layout fill`, the shared `FillPage` and `DataTable fill`). The head
+  and filters stay at the top and only the table's rows scroll, in pages. A page with too much above
+  its table scrolls as a whole; phones scroll as usual.
 - **Lists filter the same way:** a search field and a chip per filter with counts (`FilterBar`),
   kept in the address (`useFilters`) so a link or a reload shows the same view.
 - **Setup is a checklist:** what an event needs, in order, each step's state worked out from what is
@@ -213,13 +217,25 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 ## 5. Privacy and security
 
 - **Aggregates only** leave the event network for NetFlow, DNS and Wi-Fi. Stats about people need at
-  least 5 seats; per seat only volume and protocol mix. Raw data is kept about 7 days. Public
+  least 5 seats; per seat volume, category mix, top applications and networks' owners, the last two
+  only with `seats.view`, on a click, written to the audit log (#1481). Never names looked up or
+  single addresses per seat. Raw data is kept about 7 days. Public
   screens name only sites that belong to a known application (games, launchers, site groups), so a big
   screen never shows whatever else enough seats looked up.
+- **The flow lookup is the one exception, for incidents:** someone with `traffic.investigate`
+  (Admin, Lead) may search the raw flows of a seat, an address, an owner or a port, with a reason
+  for every search. The search and its reason go to the audit log first; the raw flows stay on the
+  agent and Floorbit keeps no result. Like opening a switch terminal: a seat's addresses, ports and
+  flows only as a logged, reasoned look, never on an everyday page.
 - **ARP and MAC history is stored** per port and seat (7 days), visible with `seats.view` only.
 - **Device secrets** (SSH logins, RCON passwords, secret settings) are encrypted at rest, write-only
   in the UI, decrypted per call, limited by role and written to the audit log.
 - **Roles and audit:** every change and sign-in is audited; check-in records are never public.
+- **Check-in only from the event LAN:** only a request through a local agent's front door, from a
+  private address or one of the event's IP ranges, may check in. Each IP range has a **Check-in
+  allowed** switch, on by default, to turn off for Wi-Fi and crew ranges. Anything else (Floorbit's own
+  address over the internet, a hotspot, a VPN) is refused with a hint to plug in the LAN cable at the
+  seat, because it could only make a false seat-to-port mapping.
 - **Agents dial out only;** plugins and agent bundles are signed; keys and signing are the
   maintainer's.
 - **Agents prove who they are twice:** their bearer key and a signature on every request by their

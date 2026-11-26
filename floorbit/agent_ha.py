@@ -250,8 +250,22 @@ def split_owner(name, members):
 # What an agent can do, as it lists it in its report (``capabilities``), with what Floorbit falls
 # back to for an agent that can't: lease (else VRRP picks the primary), split (else the primary
 # collects every device), syslog_hold (else every agent sends every syslog line, kept once here),
-# self_update (else the agent's page shows the pull command; agent_updates.py).
-CAPABILITIES = ('lease', 'split', 'syslog_hold', 'self_update')
+# self_update (else the agent's page shows the pull command; agent_updates.py), syslog_ids (else
+# a group's copies of a line are kept once by their text), plugin_updates (else plugins update
+# with a new image), key_roll (else a new key means a new enrolment), cert (else the agent serves
+# the certificate the crew gives it).
+AGENT_CAPABILITIES = ('lease', 'split', 'syslog_hold', 'self_update', 'syslog_ids', 'plugin_updates',
+                      'key_roll', 'cert')
+# What the agent's built-in plugins collect (issue #1587): not listed by the agent but read from
+# its plugins, since they ship with Floorbit (FLOORBIT_REF) and can be off or failing on one agent.
+COLLECTS = ('syslog', 'netflow', 'snmp', 'traps', 'gnmi', 'mdt', 'rest', 'mac_lookup')
+CAPABILITIES = AGENT_CAPABILITIES + COLLECTS
+TELEGRAF = ('snmp', 'traps', 'gnmi', 'mdt')
+
+
+def _running(plugins, pid):
+    p = plugins.get(pid)
+    return isinstance(p, dict) and p.get('running') is True and p.get('status') != 'error'
 
 
 def capabilities(report):
@@ -262,14 +276,30 @@ def capabilities(report):
     have = set(listed) if isinstance(listed, list) else set()
     if isinstance(report.get('lease'), bool):
         have.add('lease')
+    if isinstance(report.get('updates'), dict):
+        have.add('plugin_updates')
+    plugins = report.get('plugins') if isinstance(report.get('plugins'), dict) else {}
     # A split needs both the agent (logins to its own devices) and its telemetry plugin (polls only
     # those): the plugin says so with its "split" number, which it only reports on a host that can.
-    metrics = ((report.get('plugins') or {}).get('telemetry') or {}).get('metrics') or {}
+    metrics = (plugins.get('telemetry') or {}).get('metrics') or {}
     if metrics.get('split') == 1 and (listed is None or 'split' in have):
         have.add('split')
     else:
         have.discard('split')
-    return sorted(have & set(CAPABILITIES))
+    have -= set(COLLECTS)            # never taken from the list: only from what runs
+    if _running(plugins, 'syslog-relay'):
+        have.add('syslog')
+    if _running(plugins, 'netflow-relay'):
+        have.add('netflow')
+    if _running(plugins, 'telemetry'):
+        have.add('rest')
+        # "telegraf" 0: no Telegraf in the image and no sidecar. A plugin from before the number
+        # always had one.
+        if metrics.get('telegraf', 1):
+            have.update(TELEGRAF)
+        if metrics.get('lookup') == 1:
+            have.add('mac_lookup')
+    return [c for c in CAPABILITIES if c in have]
 
 
 def can(report, capability):

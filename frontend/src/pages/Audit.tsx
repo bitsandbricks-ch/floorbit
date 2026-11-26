@@ -59,7 +59,7 @@ export default function Audit() {
   }
 
   return (
-    <Layout title={t('audit.title')} back={{ href: '/settings', label: t('audit.settings') }}>
+    <Layout title={t('audit.title')} back={{ href: '/settings', label: t('audit.settings') }} fill>
       <PageHead title={t('audit.title')} desc={t('audit.intro')} />
       <Paper withBorder radius="lg" p="md">
         <Stack gap="sm">
@@ -91,6 +91,7 @@ export default function Audit() {
                   <Badge variant="light" color="gray" style={{ flexShrink: 0 }}>{areaText(e.area)}</Badge>
                 </Group>
                 {e.target && <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{e.target}</Text>}
+                {e.reason && <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{t('audit.reason', { reason: e.reason })}</Text>}
                 <Text size="xs" c="dimmed">
                   {when(e.time)} · {e.user || t('audit.nobody')}
                   {e.fields?.length ? ` · ${fieldsText(t, e.area, e.fields)}` : ''}
@@ -100,7 +101,7 @@ export default function Audit() {
           </Stack>
           <Box visibleFrom="sm">
             {/* Newest first, page by page from the server: the order is the log's, so no column sorts. */}
-            <DataTable label={t('audit.title')} rows={rows} rowKey={(e, i) => `${e.time}-${i}`} pageSize={0} bare striped minWidth={640}
+            <DataTable fill label={t('audit.title')} rows={rows} rowKey={(e, i) => `${e.time}-${i}`} pageSize={0} bare striped minWidth={640}
               empty={query.isSuccess && !total ? <Text c="dimmed" size="sm">{t('audit.empty')}</Text> : null}
               columns={[
                 { id: 'when', header: t('audit.when'), cell: (e) => <span title={e.time}>{when(e.time)}</span> },
@@ -110,6 +111,7 @@ export default function Audit() {
                   <>
                     <Text size="sm" c={e.ok === false ? 'down' : undefined}>{e.action}{e.ok === false ? ` · ${t('audit.failed')}` : ''}</Text>
                     {e.target && <Text size="xs" c="dimmed">{e.target}</Text>}
+                    {e.reason && <Text size="xs">{t('audit.reason', { reason: e.reason })}</Text>}
                   </>
                 ) },
                 // Only while some entry names fields: an empty column says nothing (#1433).

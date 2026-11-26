@@ -119,7 +119,8 @@ def _event():
         return None
 
 
-def record(area, action, user=None, target=None, fields=None, ok=True):
+def record(area, action, user=None, target=None, fields=None, ok=True, reason=None):
+    """``reason``: why someone looked, where a look needs one (the flow lookup, #1481)."""
     entry = {
         'time': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
         'user': user,
@@ -130,6 +131,8 @@ def record(area, action, user=None, target=None, fields=None, ok=True):
         entry['target'] = str(target)[:120]
     if fields:
         entry['fields'] = sorted(str(f) for f in fields)[:40]   # names only, never values
+    if reason:
+        entry['reason'] = ' '.join(str(reason).split())[:300]
     if not ok:
         entry['ok'] = False
     event = _event()

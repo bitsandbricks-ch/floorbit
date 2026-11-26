@@ -13,10 +13,11 @@ Things that make an IP wrong, and what this does about them:
 
 * NAT / proxies: the PC's address comes only from the local agent's front
   door (``attendee_ip``), which answers on the event network and passes on the
-  address it saw. A request that didn't come through it still checks in the
-  seat and nick, without an address or port. ``CHECKIN_ALLOWED_NETWORKS``
-  (CIDRs, e.g. ``10.0.0.0/16``) rejects check-ins from outside the player
-  networks, and from outside the front door, instead.
+  address it saw. Check-in is a tech check-in (seat PC to IP, MAC and switch
+  port), not attendance, so a request that didn't come through it, or comes
+  from a public address outside the event's IP ranges, is refused with a hint
+  to plug in the LAN cable (``refusal``). ``CHECKIN_ALLOWED_NETWORKS`` (CIDRs,
+  e.g. ``10.0.0.0/16``) narrows it to the player networks.
 * DHCP leases: the MAC is treated as the stable identity. A background refresh
   (``CHECKIN_REFRESH_INTERVAL``) asks LibreNMS which IP that MAC has now and
   updates the row; ``ip_changed`` records when that happened.
@@ -191,12 +192,62 @@ def device_class(said, user_agent):
     return said if said in DEVICES else 'unknown'
 
 
-def ip_allowed(ip):
-    """May a check-in come from ``ip``? With CHECKIN_ALLOWED_NETWORKS set, only from those networks,
-    so a request that didn't come through the front door (no address) is outside too."""
+def _event_range(ip):
+    """The event's IP range (an inventory prefix) ``ip`` is in, or None. Some events give players
+    public addresses: a range the crew listed counts as the event network whatever it looks like."""
+    from floorbit import segments
+    try:
+        return segments.range_for_ip(ip)
+    except Exception:  # noqa: BLE001  # no inventory to ask: fall back to private or not
+        return None
+
+
+def refusal(ip):
+    """Why a check-in from ``ip`` is refused, or None when it may go ahead.
+
+    Check-in is a tech check-in: it is there to learn the seat PC's IP, MAC and switch port. Only a
+    PC on the event LAN, reached through the local agent's front door, can tell us that, so
+    anything else is refused instead of kept as a check-in that maps nothing (or the wrong port):
+
+    * ``'outside'``: the request didn't come through the front door (``ip`` is None), e.g. the
+      page was opened on Floorbit's own address over the internet or mobile data.
+    * ``'network'``: outside ``CHECKIN_ALLOWED_NETWORKS``, when that is set.
+    * ``'range'``: in an IP range whose "Check-in allowed" switch is off (Wi-Fi, crew): a phone
+      or crew laptop there is not the seat's PC (issue #1623).
+    * ``'public'``: a public address that isn't in one of the event's IP ranges: a PC on a hotspot,
+      a VPN, or a front door reached from the internet.
+    """
     if ip is None:
-        return _in_networks('', 'CHECKIN_ALLOWED_NETWORKS') is None
-    return _in_networks(ip, 'CHECKIN_ALLOWED_NETWORKS') is not False
+        return 'outside'
+    listed = _in_networks(ip, 'CHECKIN_ALLOWED_NETWORKS')
+    if listed is False:
+        return 'network'
+    found = _event_range(ip)
+    if found and not found['checkin']:
+        return 'range'
+    if listed or found:
+        return None
+    try:
+        return 'public' if ipaddress.ip_address(ip).is_global else None
+    except ValueError:
+        return 'public'
+
+
+def ip_allowed(ip):
+    """May a check-in come from ``ip``? See refusal."""
+    return refusal(ip) is None
+
+
+REFUSED = {
+    'outside': 'Check-in only works on the event network. Plug the LAN cable at your seat into your PC '
+               'and open the check-in page there.',
+    'network': 'Check-in only works on the event network. Plug the LAN cable at your seat into your PC '
+               'and check in from there.',
+    'range': 'Check-in only works from the PC at your seat, on its LAN cable, not over Wi-Fi. Turn off '
+             'Wi-Fi, plug the LAN cable at your seat into your PC and check in from there.',
+    'public': 'Your PC is not on the event network (it has a public address). Turn off Wi-Fi, VPN or '
+              'hotspot, plug the LAN cable at your seat into your PC and check in again.',
+}
 
 
 def _same_pc(row, ip):
@@ -540,8 +591,9 @@ def check_in(seat, username, ip, load_data, mac=None, user_agent=None, pin=None,
     username = (username or '').strip()
     pin_ok = False
     # First, so that from outside the event network a PIN can't even be tested.
-    if not ip_allowed(ip):
-        raise CheckinError('Check in from your seat PC on the event network.', 403)
+    refused = refusal(ip)
+    if refused:
+        raise CheckinError(REFUSED[refused], 403)
     mine = find_by_ip(ip)
     guard = ip or f'outside:{client or "?"}'     # whose wrong PINs count together
     if pin:

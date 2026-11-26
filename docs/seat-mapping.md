@@ -119,9 +119,24 @@ seat card on the printed sheet (Incidents, then Seat QR codes) also carries:
 The PC's address comes **only from the front door**, the same way whether Floorbit is hosted or
 runs in the hall: the agent passes on the address it saw, with its key. Floorbit never takes a
 request's own address or `X-Forwarded-For` as the seat PC's. A check-in that didn't come through the
-front door (someone opened Floorbit's own address) still keeps the seat and the nick, but no address
-and no port (`not_wired`), and the page says to type the short address on the seat PC. With
-`CHECKIN_ALLOWED_NETWORKS` set, such a check-in is refused instead.
+front door (someone opened Floorbit's own address) is refused.
+
+**Check-in is a tech check-in, not attendance** (Mike, 2026-11-26): it is there to learn which IP, MAC
+and switch port a seat's PC has. A check-in that can't tell us that only makes a false mapping, so
+the page refuses, before a PIN is even looked at, when:
+
+- the request didn't come through the agent's front door (opened on Floorbit's own address, over
+  mobile data, or the front door can't be reached), or
+- the address the front door saw is public and not in one of the event's IP ranges (inventory
+  segments; events that give players public addresses list them there): a PC on a hotspot or a VPN,
+  or a front door reached from the internet, or
+- the address is in an IP range whose **Check-in allowed** switch is off (Inventory, IPAM,
+  Prefixes; on by default). Switch it off for the Wi-Fi and crew ranges: a phone or a crew laptop
+  there is not the seat's PC. The narrowest range an address is in decides, or
+- `CHECKIN_ALLOWED_NETWORKS` is set and the address is outside it.
+
+The page then says, in English and German, to turn off Wi-Fi, VPN or hotspot, plug the LAN cable at
+the seat into the PC and open the short address there.
 
 The attendee types the PIN and their nick, never the seat: the PIN names it. The page answers at
 once: the request stores only the seat, the nick, the IP and the time. Everything slow happens in
@@ -168,7 +183,7 @@ seats without their PIN.
 
 Wrong PINs are counted per PC: after 10 in ten minutes (`CHECKIN_PIN_TRIES`), that PC waits out the
 ten minutes before it may try another PIN, so nobody can script their way through the cards. A check-in
-from outside `CHECKIN_ALLOWED_NETWORKS` is refused before its PIN is even looked at.
+from off the event network (above) is refused before its PIN is even looked at.
 
 ## The crew's Check-in page
 

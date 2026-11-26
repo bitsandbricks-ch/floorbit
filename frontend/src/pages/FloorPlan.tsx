@@ -1,6 +1,6 @@
 import { ActionIcon, Alert, Anchor, Button, Chip, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core'
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconCheck, IconDeviceTv, IconEdit, IconHelp, IconLayoutDashboard, IconLayoutSidebarRight, IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconCheck, IconDeviceTv, IconHelp, IconLayoutDashboard, IconLayoutSidebarRight, IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -436,7 +436,6 @@ export default function FloorPlan() {
       <Menu.Item leftSection={<IconDeviceTv size={14} />} component="a" href={kioskHref(data.hall, params)}>{t('planPhone.screen')}</Menu.Item>
       <Menu.Item leftSection={<IconLayoutDashboard size={14} />} component={Link} to="/dashboards">{t('planPhone.dashboards')}</Menu.Item>
       {!list && !topo && <><Menu.Divider /><ExportItems hall={data.hall} filter={filter} save={exportImage.save} /></>}
-      {canEdit && !list && !topo && <><Menu.Divider /><Menu.Item leftSection={<IconEdit size={14} />} onClick={() => edit('select')}>{t('planPhone.edit')}</Menu.Item></>}
     </>
   )
   return (
@@ -513,7 +512,7 @@ export default function FloorPlan() {
                 onLayers={list ? undefined : () => { setSide({ tab: 'layers' }); setSheet(true) }}
                 problems={problems} onProblems={() => { setSide({ tab: 'problems' }); setSheet(true) }}
                 views={list ? undefined : (target) => <ViewMenu hall={data.hall} view={view} params={params} setParams={setParams} setView={setView} canEdit={canEdit} target={target as React.ReactElement} />}
-                more={phoneMore} />
+                more={phoneMore} onEdit={canEdit && !list && !topo ? () => edit('select') : undefined} />
             )}
             {topo && (
               <Suspense fallback={<div className="fb-ws-pad"><LoadingState /></div>}>

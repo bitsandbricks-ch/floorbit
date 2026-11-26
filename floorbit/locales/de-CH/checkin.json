@@ -1,5 +1,7 @@
 {
- "Check in from your seat PC on the event network.": "Checke von deinem PC am Platz im Event-Netz ein.",
+ "Check-in only works from the PC at your seat, on its LAN cable, not over Wi-Fi. Turn off Wi-Fi, plug the LAN cable at your seat into your PC and check in from there.": "Einchecken geht nur vom PC an deinem Platz, über sein LAN-Kabel, nicht über WLAN. Schalte WLAN aus, steck das LAN-Kabel an deinem Platz in deinen PC und checke von dort ein.",
+ "Check-in only works on the event network. Plug the LAN cable at your seat into your PC and check in from there.": "Einchecken geht nur im Event-Netz. Steck das LAN-Kabel an deinem Platz in deinen PC und checke von dort ein.",
+ "Check-in only works on the event network. Plug the LAN cable at your seat into your PC and open the check-in page there.": "Einchecken geht nur im Event-Netz. Steck das LAN-Kabel an deinem Platz in deinen PC und öffne die Check-in-Seite dort.",
  "Enter a username (up to 48 characters).": "Gib einen Benutzernamen ein (bis 48 Zeichen).",
  "Enter the PIN from the card at your seat.": "Gib die PIN von der Karte an deinem Platz ein.",
  "Enter the seat number from your ticket, for example A-12.": "Gib die Platznummer von deinem Ticket ein, zum Beispiel A-12.",
@@ -7,5 +9,6 @@
  "Seat {} was already checked in with its seat card. Ask the crew if this is your seat.": "Platz {} wurde schon mit seiner Platzkarte eingecheckt. Frag die Crew, wenn das dein Platz ist.",
  "That PIN is not on any seat card. Check the card at your seat.": "Diese PIN steht auf keiner Platzkarte. Schau auf die Karte an deinem Platz.",
  "That PIN was already used. Ask the crew if this is your seat.": "Diese PIN wurde schon verwendet. Frag die Crew, wenn das dein Platz ist.",
- "Too many wrong PINs. Try again in {} min or ask the crew.": "Zu viele falsche PINs. Versuche es in {} Min. nochmals oder frag die Crew."
+ "Too many wrong PINs. Try again in {} min or ask the crew.": "Zu viele falsche PINs. Versuche es in {} Min. nochmals oder frag die Crew.",
+ "Your PC is not on the event network (it has a public address). Turn off Wi-Fi, VPN or hotspot, plug the LAN cable at your seat into your PC and check in again.": "Dein PC ist nicht im Event-Netz (er hat eine öffentliche Adresse). Schalte WLAN, VPN oder Hotspot aus, steck das LAN-Kabel an deinem Platz in deinen PC und checke nochmals ein."
 }

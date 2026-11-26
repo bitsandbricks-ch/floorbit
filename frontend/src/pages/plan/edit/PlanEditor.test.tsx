@@ -335,3 +335,22 @@ describe('Plan editor: background and scale', () => {
     box.mockRestore()
   })
 })
+
+describe('Plan editor on a phone', () => {
+  it('keeps the panel down while picking and dragging; Details brings it up', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('max-width'), media: query, onchange: null,
+      addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
+    }))
+    const e = editor()
+    expect(e.plan).toHaveClass('is-folded')
+    e.select('A')
+    expect(e.plan).toHaveClass('is-folded')
+    e.select('B')
+    expect(e.plan).toHaveClass('is-folded')
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
+    expect(e.plan).not.toHaveClass('is-folded')
+    fireEvent.click(screen.getByRole('button', { name: 'Fold the edit panel away' }))
+    expect(e.plan).toHaveClass('is-folded')
+  })
+})

@@ -8,5 +8,7 @@
  "short IPFIX header": "zu kurzer IPFIX-Header",
  "short v5 header": "zu kurzer v5-Header",
  "short v9 header": "zu kurzer v9-Header",
- "too short": "zu kurz"
+ "too short": "zu kurz",
+ "the owner list is larger than expected": "die Liste der Netzbetreiber ist grösser als erwartet",
+ "the owner list is not in the expected format": "die Liste der Netzbetreiber hat nicht das erwartete Format"
 }

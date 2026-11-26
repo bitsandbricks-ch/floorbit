@@ -23,8 +23,6 @@
   "knownSeat": "This PC is at seat {{seat}}.",
   "noPin": "No card at your seat? Type the seat number instead",
   "usePin": "Use the PIN from the seat card instead",
-  "outside": "This page wasn't opened on the event network, so the crew can't learn your seat's network port from it. Your seat and nick still count.",
-  "outsideAt": "Type {{address}} on the PC at your seat to check in there: that is how the crew learns your seat's network port. Your seat and nick count from here too.",
   "onPc": "Open this page on the PC plugged in at your seat: that is how the crew learns which network port your seat is on. Your nick counts from here too.",
   "wired": {
     "pending": "Finding your seat's network port…",
@@ -34,11 +32,16 @@
   },
   "hall": {
     "going": "Taking you to the check-in on the event network…",
-    "title": "Check in on the event network",
-    "text": "At your seat, check in through the event network: that is how the crew learns your seat's network port. Not in the hall? Check in here, your seat and nick still count.",
     "button": "Continue on the event network",
-    "backTitle": "The event network didn't open",
-    "backText": "This PC doesn't seem to be on the event network. Plug it in at your seat and try again, or check in here: your seat and nick still count.",
-    "portButton": "Let the crew find your seat's port"
+    "backTitle": "The event network didn't open"
+  },
+  "refused": {
+    "title": "Plug in at your seat",
+    "outside": "Check-in only works on the event network: it is how the crew learns which network port your seat is on. Plug the LAN cable at your seat into your PC and open this page there.",
+    "network": "Your PC isn't on the event's player network ({{ip}}). Plug the LAN cable at your seat into your PC and try again.",
+    "public": "Your PC isn't on the event network: it has the public address {{ip}}. Turn off Wi-Fi, VPN or hotspot, plug the LAN cable at your seat into your PC and try again.",
+    "phone": "Check in on the PC at your seat, plugged into the event LAN cable, not on your phone.",
+    "address": "On that PC, open {{address}}.",
+    "range": "Check-in only works from the PC at your seat, on its LAN cable, not over Wi-Fi. Turn off Wi-Fi, plug the LAN cable at your seat into your PC and try again."
   }
 }

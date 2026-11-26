@@ -35,6 +35,9 @@ describe('Cables', () => {
     expect(screen.queryByText('C-0001')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'More' }))
     expect(await screen.findByRole('menuitem', { name: 'Print labels' })).toHaveAttribute('href', '/api/cables/labels.pdf?q=b-14')
+    // Add cable is the one button; the walk-through sits in More so a phone shows the head whole (#1044).
+    expect(screen.queryByRole('link', { name: 'Walk the row' })).toBeNull()
+    expect(screen.getByText('Walk the row').closest('a')).toHaveAttribute('href', '/cables/walk')
   })
 
   it('adds a cable on its own page, then shows the saved cable there', async () => {

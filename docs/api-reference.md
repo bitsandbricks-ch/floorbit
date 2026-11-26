@@ -85,6 +85,8 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/agents/ca.pem` | `settings.manage` |  |
 | GET | `/api/agents/load` | `settings.manage` |  |
 | POST | `/api/agents/roll` | `settings.manage` |  |
+| GET | `/api/agents/tags/<tag_id>/settings` | `settings.manage` |  |
+| PATCH | `/api/agents/tags/<tag_id>/settings` | `settings.manage` |  |
 
 ## floorbit.blueprints.agent_events
 
@@ -143,6 +145,21 @@ Source: [`floorbit/blueprints/api_tokens.py`](https://github.com/bitsandbricks-c
 | DELETE | `/api/settings/api-tokens/<token_id>` | `settings.manage` |  |
 | GET | `/api/version` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
 
+## floorbit.blueprints.application_sources
+
+Rule sources for the applications (issue #1503): files fetched on a schedule. Rules in floorbit/application_sources.py, docs in docs/applications.md. All of it needs settings.manage (auth/roles.py): a source's URL can carry a token.
+
+Source: [`floorbit/blueprints/application_sources.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/application_sources.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/applications/sources` | `settings.manage` |  |
+| POST | `/api/applications/sources` | `settings.manage` |  |
+| PUT | `/api/applications/sources-frozen` | `settings.manage` |  |
+| DELETE | `/api/applications/sources/<source_id>` | `settings.manage` |  |
+| PUT | `/api/applications/sources/<source_id>` | `settings.manage` |  |
+| POST | `/api/applications/sources/<source_id>/sync` | `settings.manage` |  |
+
 ## floorbit.blueprints.applications
 
 Applications (issue #1481): the games, launchers and site groups Floorbit recognises. Rules in floorbit/applications.py, docs in docs/applications.md.
@@ -155,6 +172,7 @@ Source: [`floorbit/blueprints/applications.py`](https://github.com/bitsandbricks
 | POST | `/api/applications` | `settings.manage` |  |
 | DELETE | `/api/applications/<app_id>` | `settings.manage` |  |
 | PUT | `/api/applications/<app_id>` | `settings.manage` |  |
+| POST | `/api/applications/import` | `settings.manage` |  |
 
 ## floorbit.blueprints.audit
 
@@ -402,6 +420,17 @@ Source: [`floorbit/blueprints/firewalls.py`](https://github.com/bitsandbricks-ch
 | DELETE | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | PUT | `/api/firewalls/ranges/<range_id>` | `floorplan.edit` |  |
 | GET | `/api/firewalls/seats` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
+## floorbit.blueprints.flow_lookup
+
+The flow lookup (#1481, C): the raw flows of a seat, an address, an owner or a port, for an incident.
+
+Source: [`floorbit/blueprints/flow_lookup.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/flow_lookup.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/traffic/lookup` | `traffic.investigate` | `traffic` |
+| GET | `/api/traffic/seat/<seat>` | `seats.view` | `traffic` |
 
 ## floorbit.blueprints.flows
 
@@ -1296,6 +1325,17 @@ Source: [`floorbit/blueprints/topology.py`](https://github.com/bitsandbricks-ch/
 | DELETE | `/api/links/layout` | `floorplan.edit` |  |
 | PUT | `/api/links/layout` | `floorplan.edit` |  |
 | GET | `/api/links/ports` | `floorplan.edit` |  |
+
+## floorbit.blueprints.traffic_categories
+
+Traffic categories (issue #1622): the built-in seven plus the tenant's own, for every event. Rules in floorbit/traffic_categories.py.
+
+Source: [`floorbit/blueprints/traffic_categories.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/traffic_categories.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/traffic/categories` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| PUT | `/api/traffic/categories` | `settings.manage` |  |
 
 ## floorbit.blueprints.webhooks
 

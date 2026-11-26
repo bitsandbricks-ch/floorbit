@@ -5,6 +5,7 @@ import type { EndpointRow } from '@/api/types'
 import { DataTable } from '@bitsandbricks/ui'
 import { ago, dateTime } from '@/lib/time'
 
+// On a phone each row is a card: IP, MAC, port and seat first, then when it was seen.
 // Seen in the last two minutes: the collector looks every minute.
 const NOW_WINDOW = 120
 
@@ -17,12 +18,12 @@ export function EndpointTable({ rows, now, label }: { rows: EndpointRow[]; now: 
     : <Text span c="dimmed">{t('endpoints.arpOnly', { device: r.device })}</Text>)
   return (
     <DataTable label={label} rows={rows} rowKey={(r) => `${r.mac}|${r.ip}|${r.device}|${r.port}|${r.first_seen}`}
-      defaultSort={{ id: 'seen', desc: true }} minWidth={760} bare striped
+      defaultSort={{ id: 'seen', desc: true }} minWidth={760} bare striped cards
       columns={[
-        { id: 'ip', header: t('endpoints.col.ip'), sort: (r) => r.ip ?? '', mono: true, cell: (r) => r.ip ?? '–' },
-        { id: 'mac', header: t('endpoints.col.mac'), sort: (r) => r.mac, mono: true, cell: (r) => r.mac },
-        { id: 'port', header: t('endpoints.col.port'), sort: (r) => `${r.device} ${r.port}`, cell: (r) => portLink(r) },
-        { id: 'seat', header: t('endpoints.col.seat'), sort: (r) => r.seat ?? '', cell: (r) =>
+        { id: 'ip', header: t('endpoints.col.ip'), sort: (r) => r.ip ?? '', mono: true, card: 'inline', cell: (r) => r.ip ?? '–' },
+        { id: 'mac', header: t('endpoints.col.mac'), sort: (r) => r.mac, mono: true, card: 'inline', cell: (r) => r.mac },
+        { id: 'port', header: t('endpoints.col.port'), sort: (r) => `${r.device} ${r.port}`, card: 'inline', cell: (r) => portLink(r) },
+        { id: 'seat', header: t('endpoints.col.seat'), sort: (r) => r.seat ?? '', card: 'inline', cell: (r) =>
           (r.seat ? <Anchor component={Link} to={`/endpoints?seat=${encodeURIComponent(r.seat)}`}>{r.seat}</Anchor> : '–') },
         { id: 'vlan', header: t('endpoints.col.vlan'), sort: (r) => r.vlan ?? -1, hideOnPhone: true, cell: (r) => r.vlan ?? '–' },
         { id: 'seen', header: t('endpoints.col.seen'), sort: (r) => r.last_seen, cell: (r) => (

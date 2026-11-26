@@ -94,8 +94,9 @@ the address and looks for that MAC in the switches' MAC tables (or the monitorin
 
 - **Portfast.** The seat ports need `spanning-tree portfast` (or edge port). Without it a port stays
   blocked for about 30 seconds after the cable goes in.
-- **Wi-Fi off.** The laptop's address must be the one on the cable. With `CHECKIN_ALLOWED_NETWORKS`
-  set, the page refuses addresses outside the seat networks.
+- **Wi-Fi off.** The laptop's address must be the one on the cable. The page refuses public
+  addresses outside the event's IP ranges, and with `CHECKIN_ALLOWED_NETWORKS` set, addresses outside
+  the seat networks.
 - **A local agent** in the hall, or the laptop's MAC typed in.
 
 ## Walking with several people

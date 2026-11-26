@@ -317,8 +317,8 @@
       "floorbit": "Floorbit"
     },
     "status": "Status",
-    "sourcesMoved": "NetBox, LibreNMS and the other plugins have their settings on their own page:",
-    "toPlugins": "Plugins",
+    "sourcesMoved": "NetBox, LibreNMS and the other sources have their settings under",
+    "toPlugins": "Sources",
     "entries": {
       "appearance": "Event and look",
       "inventory": "Inventory",

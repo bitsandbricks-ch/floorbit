@@ -2,7 +2,7 @@ import { Anchor, Badge, Button, Group, Loader, Paper, Stack, Text, Title } from 
 import { IconBolt, IconPlus, IconRefresh } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -18,6 +18,7 @@ import { boardPath, ORDER, TONE } from './power/state'
  *  and circuit opens its own page, where it is changed and readings are typed in (issue #877). */
 export default function Power() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const client = useQueryClient()
   const power = usePower()
   const canCheck = useCan('plugins.run')
@@ -35,25 +36,14 @@ export default function Power() {
       <PageHead
         title={t('power.title')}
         desc={data ? t('power.intro', { warn: data.warn, crit: data.crit }) : undefined}
-        actions={data?.enabled && (
-          <Group gap="xs">
-            {canCheck && data.plugins > 0 && (
-              <Button variant="default" leftSection={<IconRefresh size={16} />} loading={check.isPending} onClick={() => check.mutate()}>
-                {t('power.checkNow')}
-              </Button>
-            )}
-            {data.can_edit && (
-              <>
-                <Button variant="default" leftSection={<IconPlus size={16} />} component={Link} to={boardPath('new')}>
-                  {t('power.addBoard')}
-                </Button>
-                {data.boards.length > 0 && (
-                  <Button leftSection={<IconPlus size={16} />} component={Link} to="/power/circuits/new">{t('power.addCircuit')}</Button>
-                )}
-              </>
-            )}
-          </Group>
-        )}
+        // One primary action, the rest behind "⋯", so a phone shows the head whole (#1044).
+        actions={data?.enabled && data.can_edit && (data.boards.length > 0
+          ? <Button leftSection={<IconPlus size={16} />} component={Link} to="/power/circuits/new">{t('power.addCircuit')}</Button>
+          : <Button leftSection={<IconPlus size={16} />} component={Link} to={boardPath('new')}>{t('power.addBoard')}</Button>)}
+        menu={data?.enabled ? [
+          ...(canCheck && data.plugins > 0 ? [{ label: t('power.checkNow'), icon: <IconRefresh size={16} aria-hidden="true" />, onClick: () => check.mutate(), disabled: check.isPending }] : []),
+          ...(data.can_edit && data.boards.length > 0 ? [{ label: t('power.addBoard'), icon: <IconPlus size={16} aria-hidden="true" />, onClick: () => navigate(boardPath('new')) }] : []),
+        ] : undefined}
       />
       <ErrorBanner error={power.error ?? check.error} mb="md" />
       {power.isPending || !data ? (

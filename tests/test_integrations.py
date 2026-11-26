@@ -278,7 +278,7 @@ def test_checkin_records_ip_and_mac(app, checkin_env, monkeypatch):
     info = c.get('/api/checkin/info', environ_base={'REMOTE_ADDR': '10.0.2.144'}).get_json()
     assert info == {'open': True, 'opens_at': None, 'ip': '10.0.2.144', 'checkin': None,
                     'suggested_seat': None, 'pin_required': False, 'address': None, 'on_pc': True,
-                    'outside': False, 'hall': None}
+                    'outside': False, 'refused': None, 'hall': None}
     r = post_checkin(c, 'd-22', 'Reykime', '10.0.2.144').get_json()
     # The MAC is looked up in the background, so the page answers at once.
     assert r == {'ok': True, 'seat': 'D-22', 'username': 'Reykime', 'ip': '10.0.2.144', 'mac_found': False,
@@ -352,23 +352,23 @@ def test_a_forged_forwarded_address_is_ignored(app, checkin_env, monkeypatch):
 
 def test_check_in_takes_the_pcs_address_only_from_the_front_door(app, checkin_env, monkeypatch):
     """One way, hosted or not (Mike, 2026-11-17): a request's own address, or what a proxy says,
-    never names the seat PC. From outside the front door the seat and nick still count."""
+    never names the seat PC. Check-in is a tech check-in (Mike, 2026-11-26): from outside the
+    front door it can't learn the seat's port, so it is refused instead of kept."""
     monkeypatch.setenv('CHECKIN_TRUST_PROXY', 'true')
     c = app.test_client()
     hdr = {'X-Forwarded-For': '10.0.3.3'}
     r = c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}, headers=hdr)
-    assert r.status_code == 200 and r.get_json()['ip'] is None and r.get_json()['wired'] == 'not_wired'
+    assert r.status_code == 403 and 'Plug the LAN cable at your seat' in r.get_json()['error']
+    assert checkin.load_all() == {}
     info = c.get('/api/checkin/info', headers=hdr).get_json()
-    assert info['ip'] is None and info['outside'] is True and info['checkin'] is None
-    # Two attendees from outside are not the same PC: the second doesn't move the first.
-    c.post('/api/checkin', json={'seat': 'D-4', 'username': 'b'}, headers=hdr)
-    assert sorted(checkin.load_all()) == ['D-3', 'D-4']
-    checkin.refresh_once()          # nothing to follow without an address
-    assert checkin.load_all()['D-3']['ip'] is None
+    assert info['ip'] is None and info['outside'] is True and info['refused'] == 'outside'
+    # Not even a PIN can be tried from outside.
+    assert c.post('/api/checkin', json={'pin': 'ZZZZZ', 'username': 'a'}, headers=hdr).status_code == 403
     # Through the door: the address the agent saw.
     r = post_checkin(c, 'D-3', 'a', '10.0.3.3').get_json()
     assert r['ip'] == '10.0.3.3' and r['wired'] == 'pending'
-    assert c.get('/api/checkin/info', environ_base={'REMOTE_ADDR': '10.0.3.3'}).get_json()['outside'] is False
+    info = c.get('/api/checkin/info', environ_base={'REMOTE_ADDR': '10.0.3.3'}).get_json()
+    assert info['outside'] is False and info['refused'] is None
 
 
 def test_with_allowed_networks_outside_the_front_door_is_refused(app, checkin_env, monkeypatch):
@@ -376,6 +376,22 @@ def test_with_allowed_networks_outside_the_front_door_is_refused(app, checkin_en
     c = app.test_client()
     assert c.post('/api/checkin', json={'seat': 'D-3', 'username': 'a'}).status_code == 403
     assert post_checkin(c, 'D-3', 'a', '10.0.3.3').status_code == 200
+
+
+def test_a_public_address_is_refused_unless_it_is_an_event_range(app, checkin_env, monkeypatch):
+    """A PC on a hotspot or VPN, or a front door reached from the internet, has a public address:
+    its check-in would map nothing (or the wrong port). Events that give players public addresses
+    list them as IP ranges in the inventory (or CHECKIN_ALLOWED_NETWORKS)."""
+    c = app.test_client()
+    public = '5.6.7.8'
+    r = post_checkin(c, 'D-3', 'a', public)
+    assert r.status_code == 403 and 'public address' in r.get_json()['error']
+    info = c.get('/api/checkin/info', environ_base={'REMOTE_ADDR': public}).get_json()
+    assert info['refused'] == 'public' and info['suggested_seat'] is None
+    for private in ('10.1.2.3', '172.20.0.9', '192.168.7.7', '100.64.3.4'):   # incl. carrier-grade NAT
+        assert checkin.refusal(private) is None, private
+    monkeypatch.setenv('CHECKIN_ALLOWED_NETWORKS', '5.6.0.0/16')
+    assert checkin.refusal(public) is None
 
 
 def test_a_proxy_that_isnt_trusted_is_pointed_out_once(app, checkin_env, monkeypatch, capsys):

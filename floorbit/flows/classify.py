@@ -1,4 +1,5 @@
-"""What a flow is: a service name and a category, from the remote side's port or address.
+"""What a flow is: a service name and a category, from the remote side's port or address, or the
+site the seat looked up before it connected (names.py, #1600).
 
 Built-in rules only know well-known ports. Anything an event knows better (the LAN cache's
 address, a game server range, a streaming ingest) goes in ``FLOWS_SERVICES``, a JSON list that is
@@ -13,11 +14,12 @@ import json
 
 from integrations import config
 
-CATEGORIES = ('gaming', 'streaming', 'downloads', 'updates', 'web', 'other')
-# One colour per kind, for every chart: the Traffic page's bars (frontend .cat-* classes, kept the
-# same by tests/test_traffic_colours.py) and the dashboard's "Traffic by kind" (#1408).
-CATEGORY_COLOURS = {'gaming': '#16a34a', 'streaming': '#9333ea', 'downloads': '#2563eb', 'updates': '#d97706',
-                    'web': '#0891b2', 'other': '#94a3b8'}
+from ..traffic_categories import BUILTIN, BUILTIN_IDS, ID_RE
+
+# The built-in categories; a tenant adds its own (floorbit/traffic_categories.py, #1622), which reach
+# the classifier with the applications' rules. One colour per kind on every chart (#1408).
+CATEGORIES = BUILTIN_IDS
+CATEGORY_COLOURS = {c['id']: c['colour'] for c in BUILTIN}
 
 # Ports the vendors publish for their games and launchers, and the plain protocols.
 BUILTIN = [
@@ -53,20 +55,26 @@ def _ports(specs):
     return out
 
 
-def compile_rules(rules):
+def compile_rules(rules, own_categories=False):
+    """``own_categories``: rules from Floorbit's applications, which may name the tenant's own
+    categories (checked when they were saved); ``FLOWS_SERVICES`` keeps to the built-in ones."""
     out = []
     for rule in rules:
         if not isinstance(rule, dict) or not rule.get('name'):
             raise RuleError('Every service needs a name.')
         category = rule.get('category') or 'other'
-        if category not in CATEGORIES:
+        if category not in CATEGORIES and not (own_categories and ID_RE.match(str(category))):
             raise RuleError(f'Category "{category}" is not one of {", ".join(CATEGORIES)}.')
         try:
             nets = [ipaddress.ip_network(c, strict=False) for c in rule.get('cidr') or []]
         except ValueError as exc:
             raise RuleError(f'{rule["name"]}: {exc}') from exc
+        sites, hosts = rule.get('sites') or [], rule.get('hosts') or []
         out.append({'name': str(rule['name'])[:60], 'category': category, 'nets': nets,
-                    'ports': _ports(rule.get('ports'))})
+                    'ports': _ports(rule.get('ports')),
+                    'sites': {str(s).lower() for s in sites} if isinstance(sites, list) else set(),
+                    # Host names (a game server's): their addresses come from the agent's own lookups.
+                    'hosts': {str(h).lower().rstrip('.') for h in hosts} if isinstance(hosts, list) else set()})
     return out
 
 
@@ -79,14 +87,21 @@ def load_rules():
             own = compile_rules(json.loads(raw) if isinstance(raw, str) else raw)
         except (ValueError, RuleError) as exc:
             error = str(exc)
-    return own + compile_rules(BUILTIN), error
+    return own + _builtin_rules(), error
+
+
+def _builtin_rules():
+    return [{**rule, 'builtin': True} for rule in compile_rules(BUILTIN)]
 
 
 class Classifier:
-    def __init__(self, rules=None):
+    def __init__(self, rules=None, resolver=None):
         self.rules = rules if rules is not None else load_rules()[0]
         self._base = self.rules
         self._cache = {}
+        # The rules' host names resolved (names.Resolver); None outside the agent and in tests.
+        self.resolver = resolver
+        self._resolved_version = None
 
     def set_applications(self, rules):
         """The rules Floorbit's applications and game servers make (floorbit/applications.py), checked
@@ -94,25 +109,31 @@ class Classifier:
         extra = []
         for rule in rules or []:
             try:
-                extra += compile_rules([rule])
+                extra += compile_rules([rule], own_categories=True)
             except RuleError:
                 continue
-        builtin = compile_rules(BUILTIN)
+        builtin = _builtin_rules()
         own = self._base[:max(0, len(self._base) - len(builtin))]
         self.rules = own + extra + self._base[len(own):]
         self._cache = {}
+        if self.resolver is not None:
+            self.resolver.want_rules(self.rules)
 
-    def __call__(self, remote_ip, proto, remote_port, local_port):
-        key = (remote_ip, proto, remote_port, local_port)
+    def __call__(self, remote_ip, proto, remote_port, local_port, site=None):
+        """``site``: what the seat looked up before this flow, when DNS told the agent (names.py)."""
+        key = (remote_ip, proto, remote_port, local_port, site)
+        if self.resolver is not None and self.resolver.version != self._resolved_version:
+            self._resolved_version = self.resolver.version   # a host moved: forget what it named
+            self._cache = {}
         found = self._cache.get(key)
         if found is None:
-            found = self._match(remote_ip, proto, remote_port, local_port)
+            found = self._match(remote_ip, proto, remote_port, local_port, site)
             if len(self._cache) > 50_000:
                 self._cache.clear()
             self._cache[key] = found
         return found
 
-    def _match(self, remote_ip, proto, remote_port, local_port):
+    def _match(self, remote_ip, proto, remote_port, local_port, site=None):
         try:
             addr = ipaddress.ip_address(remote_ip) if remote_ip else None
         except ValueError:
@@ -120,6 +141,20 @@ class Classifier:
         for rule in self.rules:
             if rule['nets'] and addr is not None and any(addr in n for n in rule['nets']):
                 return rule['name'], rule['category']
+            if rule.get('hosts') and self.resolver is not None and addr is not None and any(
+                    str(addr) in self.resolver.addresses_of(h) for h in rule['hosts']):
+                return rule['name'], rule['category']
+        if site:
+            # An event's or an application's own port still wins (a game's servers over the
+            # launcher's site), but the site beats the built-in ports: they only say "Web".
+            for rule in self.rules:
+                if rule.get('builtin'):
+                    continue
+                if any(p == proto and lo <= remote_port <= hi for p, lo, hi in rule['ports']):
+                    return rule['name'], rule['category']
+            for rule in self.rules:
+                if site in rule['sites']:
+                    return rule['name'], rule['category']
         # The service's port is usually the remote one. Only when no rule knows it, try the seat's
         # own port: a seat that serves (a game host). Two passes, so a client's random source port
         # never wins over the server's well-known one.

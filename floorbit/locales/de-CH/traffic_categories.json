@@ -1,0 +1,11 @@
+{
+ "Each category is an object with an id, names and a colour.": "Jede Kategorie ist ein Objekt mit Kennung, Namen und Farbe.",
+ "A category id is 1 to 30 lower-case letters, digits and dashes.": "Eine Kategorie-Kennung hat 1 bis 30 Kleinbuchstaben, Ziffern und Bindestriche.",
+ "\"{}\" is a built-in category.": "«{}» ist eine eingebaute Kategorie.",
+ "Give the category a name (up to {} characters).": "Gib der Kategorie einen Namen (bis {} Zeichen).",
+ "Pick one of the offered colours.": "Wähle eine der angebotenen Farben.",
+ "Send the categories as a list.": "Schicke die Kategorien als Liste.",
+ "Floorbit keeps at most {} own categories.": "Floorbit hält höchstens {} eigene Kategorien.",
+ "Two categories have the same id.": "Zwei Kategorien haben dieselbe Kennung.",
+ "Two categories have the same name.": "Zwei Kategorien haben denselben Namen."
+}

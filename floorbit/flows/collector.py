@@ -12,8 +12,10 @@ import time
 from integrations import config
 
 from .. import disk_budget
-from . import seat_maps, store
+from . import names, seat_maps, store
 from .aggregate import Aggregator
+from .classify import Classifier
+from .owners import Owners
 from .parse import ParseError, Templates, parse
 
 PUBLISH_EVERY = 10
@@ -29,8 +31,13 @@ RAW_LATE = 60         # a minute is written this long after it ended: exporters 
 
 
 class Collector:
-    def __init__(self, aggregator=None, raw=None, log=print):
-        self.agg = aggregator or Aggregator()
+    def __init__(self, aggregator=None, raw=None, log=print, owners=None, names_table=None):
+        self.owners = owners or Owners(log=log)
+        self.names = names_table or names.TABLE
+        # The agent's own classifier also names flows to the rules' host names, through the resolver.
+        resolver = names.RESOLVER if names_table is None else None
+        self.agg = aggregator or Aggregator(Classifier(resolver=resolver), owner_of=self.owners.lookup,
+                                            name_of=self.names.site_of)
         self.raw = raw or store.RawStore()
         self.templates = Templates()
         self.log = log
@@ -138,6 +145,7 @@ class Collector:
 
     def housekeeping(self, now=None, refresh_seats=None):
         now = time.time() if now is None else now
+        self.owners.refresh(now=now)
         if self._due('seats', now, SEATS_EVERY):
             try:
                 seat_of = (refresh_seats or seat_maps)()
@@ -158,6 +166,7 @@ class Collector:
             self.raw.append_hours(hours)
             if self._due('prune', now, PRUNE_EVERY):
                 self.raw.prune(now=now)
+                self.names.prune(now=now)
             if self._due('budget', now, BUDGET_EVERY):
                 disk_budget.enforce(now=now)
         except OSError as exc:
@@ -167,4 +176,5 @@ class Collector:
             snap['templates_missing'] = self.templates.missing
             snap['errors'] = self.errors
             snap['refused'] = self.refused
+            snap['owners_list'] = self.owners.status()
             self.publish(snap)

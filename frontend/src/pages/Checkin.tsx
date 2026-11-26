@@ -79,6 +79,8 @@ export default function Checkin() {
   const submit = (e: FormEvent) => { e.preventDefault(); send.mutate() }
   const done: Done | null = mine ?? send.data ?? null
   const notPc = device === 'mobile' || info.data?.on_pc === false
+  // Not through the agent's front door, or from a public address: no check-in (issue #1613).
+  const refused = info.data?.open ? info.data.refused ?? null : null
   // A PC on Floorbit's own address: only the hall's front door learns its seat's port (issue #1177).
   const hall = !notPc && info.data?.open && info.data.outside ? info.data.hall ?? null : null
   const [backAgain] = useState(triedRecently)
@@ -122,6 +124,26 @@ export default function Checkin() {
         </Stack>
       </Paper>
     )
+  } else if (refused && !done) {
+    // A tech check-in learns the seat PC's IP, MAC and port: from anywhere else it would only map
+    // the wrong thing, so the server refuses it and the page says how to get on the event LAN.
+    body = (
+      <Paper withBorder radius="lg" p="lg">
+        <Stack gap="sm" align="center" ta="center">
+          <ThemeIcon size={56} radius="xl" variant="light" color="warn"><IconPlugConnectedX size={30} /></ThemeIcon>
+          <Title order={1} size="h3">{backAgain && hall ? t('checkin.hall.backTitle') : t('checkin.refused.title')}</Title>
+          <Text size="sm">
+            {notPc && refused === 'outside' ? t('checkin.refused.phone') : t(`checkin.refused.${refused}`, { ip: info.data?.ip ?? '' })}
+          </Text>
+          {refused === 'outside' && info.data?.address && <Text size="sm">{t('checkin.refused.address', { address: info.data.address })}</Text>}
+          {hall ? (
+            <Button rightSection={<IconArrowRight size={16} />} onClick={() => goToHall(hall.url)}>{t('checkin.hall.button')}</Button>
+          ) : (
+            <Button variant="default" onClick={() => void info.refetch()}>{t('checkin.retry')}</Button>
+          )}
+        </Stack>
+      </Paper>
+    )
   } else if (done && !changing) {
     body = (
       <Paper withBorder radius="lg" p="lg" className="fb-public-hero">
@@ -132,11 +154,6 @@ export default function Checkin() {
           <Text fz={40} fw={700} lh={1.1} ff="var(--font-mono)" className="fb-public-done">{done.seat}</Text>
           <Text c="dimmed" size="sm">{t('checkin.doneText')}</Text>
           {done.wired && <Text size="sm" c={done.wired === 'verified' ? 'up' : 'dimmed'}>{t(`checkin.wired.${done.wired}`)}</Text>}
-          {hall && (
-            <Button variant="light" rightSection={<IconArrowRight size={16} />} onClick={() => goToHall(hall.url)}>
-              {t('checkin.hall.portButton')}
-            </Button>
-          )}
           <Anchor component="button" type="button" size="sm" onClick={() => { setForm({ pin: '', seat: '', username: done.username }); setChanging(true); send.reset() }}>
             {t('checkin.change')}
           </Anchor>
@@ -154,18 +171,6 @@ export default function Checkin() {
             </div>
             {send.error && <Alert color="down" role="alert">{send.error.message}</Alert>}
             {notPc && <Alert color="warn">{t('checkin.onPc')}</Alert>}
-            {hall ? (
-              <Alert color="warn" title={backAgain ? t('checkin.hall.backTitle') : t('checkin.hall.title')}>
-                <Stack gap="xs" align="flex-start">
-                  <Text size="sm">{backAgain ? t('checkin.hall.backText') : t('checkin.hall.text')}</Text>
-                  <Button size="sm" rightSection={<IconArrowRight size={16} />} onClick={() => goToHall(hall.url)}>
-                    {t('checkin.hall.button')}
-                  </Button>
-                </Stack>
-              </Alert>
-            ) : !notPc && info.data?.outside && (
-              <Alert color="warn">{info.data.address ? t('checkin.outsideAt', { address: info.data.address }) : t('checkin.outside')}</Alert>
-            )}
             {info.data?.suggested_seat && <Text size="sm">{t('checkin.knownSeat', { seat: info.data.suggested_seat })}</Text>}
             {withSeat ? (
               <TextInput label={t('checkin.seat')} placeholder={t('checkin.seatPlaceholder')} size="md" required maxLength={16}

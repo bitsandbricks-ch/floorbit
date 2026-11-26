@@ -84,3 +84,51 @@ describe('Edit overlay', () => {
     expect(view.container.querySelector('.fb-edit-draft text')).toHaveTextContent('4 · 0°')
   })
 })
+
+describe('Edit overlay by touch', () => {
+  const touch = (pointerId: number, x: number, y: number) => ({ button: 0, pointerId, pointerType: 'touch', clientX: x, clientY: y })
+  const bg = (view: ReturnType<typeof render>) => view.container.querySelector('.fb-edit-bg')!
+
+  it('pans with one finger on empty space and clears the pick on a tap, without a box', () => {
+    const { onSelect, view } = overlay({ selection: [A] })
+    fireEvent.pointerDown(bg(view), touch(1, 800, 500))
+    fireEvent.pointerMove(bg(view), touch(1, 900, 600))
+    fireEvent.pointerUp(bg(view), touch(1, 900, 600))
+    expect(onSelect).not.toHaveBeenCalled()
+    fireEvent.pointerDown(bg(view), touch(2, 800, 500))
+    fireEvent.pointerUp(bg(view), touch(2, 800, 500))
+    expect(onSelect).toHaveBeenCalledWith([])
+  })
+
+  it('draws a box after holding a finger still on empty space', () => {
+    vi.useFakeTimers()
+    const { onSelect, view } = overlay()
+    fireEvent.pointerDown(bg(view), touch(1, 0, 0))
+    vi.advanceTimersByTime(600)
+    fireEvent.pointerMove(bg(view), touch(1, 500, 200))
+    fireEvent.pointerUp(bg(view), touch(1, 500, 200))
+    expect(onSelect).toHaveBeenLastCalledWith([A, B])
+    vi.useRealTimers()
+  })
+
+  it('opens the item menu after holding a finger still on it', () => {
+    vi.useFakeTimers()
+    const onMenu = vi.fn()
+    const { hit } = overlay({ selection: [A], onMenu })
+    fireEvent.pointerDown(hit('A'), touch(1, 100, 100))
+    vi.advanceTimersByTime(600)
+    expect(onMenu).toHaveBeenCalledWith(A, 100, 100)
+    vi.useRealTimers()
+  })
+
+  it('stops a drag when a second finger comes down, so the two pinch the plan', () => {
+    const onCancel = vi.fn()
+    const { onDrop, hit, view } = overlay({ selection: [A], onCancel })
+    fireEvent.pointerDown(hit('A'), touch(1, 100, 100))
+    fireEvent.pointerMove(hit('A'), touch(1, 140, 100))
+    fireEvent.pointerDown(bg(view), touch(2, 600, 500))
+    expect(onCancel).toHaveBeenCalled()
+    fireEvent.pointerUp(hit('A'), touch(1, 160, 100))
+    expect(onDrop).not.toHaveBeenCalled()
+  })
+})

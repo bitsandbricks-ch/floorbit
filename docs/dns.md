@@ -35,6 +35,12 @@ def dns_queries(self, since):
              "blocked": False}]
 ```
 
+A row may also carry `answers`, the addresses the resolver gave, each `{"address": "198.51.100.7",
+"ttl": 300}`. The agent keeps them in memory to name the seat's HTTPS flows ([traffic](flows.md),
+"HTTPS by name") and sends Floorbit neither the answers nor the client. A row without `answers`
+(Pi-hole) still helps: when its name belongs to an application's site, the agent looks the name up
+itself.
+
 Floorbit asks every `DNS_INTERVAL` seconds (60) and remembers the newest `ts` per plugin, so a
 plugin may answer with more than was asked and nothing is counted twice. It reads at most 50,000
 lookups a poll. See [plugins.md](plugins.md) for writing one. With the demo data on

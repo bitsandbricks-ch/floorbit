@@ -4,12 +4,13 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { get } from '@/api/client'
-import { useCan } from '@/api/queries'
+import { useCan, useFeature } from '@/api/queries'
 import { qk } from '@/api/keys'
 import type { PlanSeat, SeatDetails, SeatFirewall, SeatState } from '@/api/types'
 import { SeatActions } from './Actions'
 import { SeatNoteBox } from './SeatNoteBox'
 import { SeatSpeedTests } from './SeatSpeedTests'
+import { SeatTraffic } from './SeatTraffic'
 import { WatchSeat } from './WatchSeat'
 import { HEAT_GRADIENT, HEAT_MAX, HEAT_MIN, PROBLEM_COLORS, linkSpans, rate } from './model'
 import { SeatGlyph } from './SeatMap'
@@ -26,6 +27,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
   const { t } = useTranslation()
   const here = useLocation()
   const canQr = useCan('incidents.assign')
+  const trafficOn = useFeature('traffic')
   const q = useQuery({ queryKey: qk.planSeat(seat), queryFn: () => get<SeatDetails>(`/api/plan/seats/${encodeURIComponent(seat)}`) })
   const d = q.data
   // Like the plan: a missing check-in is listed but not counted as a problem.
@@ -84,6 +86,8 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
           {d.speedtests && d.speedtests.length > 0 && (
             <SeatSpeedTests tests={d.speedtests} lastChange={d.history?.changes.at(-1)?.[0] ?? null} />
           )}
+          {/* Apps and owners per seat need seats.view, like the nick and address above (#1481 B). */}
+          {d.people && trafficOn && <SeatTraffic key={`traffic-${seat}`} seat={seat} />}
           <PluginPanels on="seat" target={seat} />
           {!d.people && <Text size="sm" c="dimmed">{t('plan.noPeople')}</Text>}
           {d.crew && <SeatNoteBox key={seat} seat={seat} note={d.note} />}

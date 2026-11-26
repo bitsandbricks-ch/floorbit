@@ -53,6 +53,7 @@
 
 /* Traffic insights (pages/Traffic.tsx): fixed category colours, readable in light and dark. */
 .cat-gaming { background: #16a34a; }
+.cat-social { background: #db2777; }
 .cat-streaming { background: #9333ea; }
 .cat-downloads { background: #2563eb; }
 .cat-updates { background: #d97706; }

@@ -183,7 +183,7 @@ def test_builtin_ports_and_own_rules_first():
 def test_broken_rules_are_reported(rules, monkeypatch):
     monkeypatch.setenv("FLOWS_SERVICES", json.dumps(rules))
     found, error = classify.load_rules()
-    assert error and found == compile_rules(classify.BUILTIN)
+    assert error and found == classify._builtin_rules()
 
 
 # ── aggregating ───────────────────────────────────────────────────────────────────────────

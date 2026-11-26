@@ -29,7 +29,7 @@ def test_flag_for_a_tech_takes_a_rows_named_seat(rows_block):
     assert rows_block.post("/api/incidents", json={"seat": "C-1", "title": "Tech visit"}).status_code == 400
 
 
-def test_seat_panel_and_check_in_know_the_same_seats(rows_block):
+def test_seat_panel_and_check_in_know_the_same_seats(rows_block, front_door):
     assert rows_block.get("/api/plan/seats/B-3").status_code == 200
     r = rows_block.post("/api/checkin", json={"seat": "B-3", "username": "pixel"},
                         environ_base={"REMOTE_ADDR": "192.0.2.40"})

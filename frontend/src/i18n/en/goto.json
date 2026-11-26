@@ -67,6 +67,7 @@
     "traffic": "Traffic",
     "games": "Games",
     "applications": "Applications",
+    "flowLookup": "Flow lookup",
     "stats": "Stats",
     "speedtests": "Speed tests"
   },

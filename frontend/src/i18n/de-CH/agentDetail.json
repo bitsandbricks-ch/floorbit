@@ -34,5 +34,19 @@
     "what": "Was",
     "who": "Wer",
     "byAgent": "der Agent"
+  },
+  "does": {
+    "title": "Was er macht",
+    "help": "Was dieser Agent für die Halle macht. Jede Funktion aktualisiert sich selbst, signiert, ohne neues Image.",
+    "features": "Funktionen",
+    "feature": "Funktion"
+  },
+  "addons": {
+    "title": "Erweiterungen",
+    "none": "Auf diesem Agent laufen keine Erweiterungen aus dem Marketplace.",
+    "help": "Erweiterungen aus dem Marketplace.",
+    "open": "Plugins-Tab öffnen",
+    "tab": "Erweiterungen aus dem Marketplace, die auf diesem Agent laufen. Seine eigenen Funktionen (Telemetrie, Syslog, Eingang, ...) stehen in der Übersicht unter Was er macht.",
+    "market": "Marketplace öffnen"
   }
 }

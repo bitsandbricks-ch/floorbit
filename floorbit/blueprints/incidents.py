@@ -354,7 +354,7 @@ def _busy():
 @bp.route('/help/<seat>')
 def help_page(seat):
     """The page is React; 404 for a link that isn't signed for a seat on the plan."""
-    html, status = spa.render('Help')
+    html, status = spa.render('Help', shell=False)
     return html, status if _signed_seat(seat) else 404
 
 

@@ -2,14 +2,17 @@
 
 - uklans/cache-domains (MIT): the CDNs a lancache.net cache serves, one list per launcher or game.
   The same list lancache-dns answers for, so Games and the LAN cache split the hall the same way.
-- v2fly/domain-list-community (MIT): per-service domain lists, for the site groups.
+- v2fly/domain-list-community (MIT): per-service domain lists, for the site groups, the publishers'
+  own sites added to their launchers (log-in, store, matchmaking: what the cache CDNs alone miss),
+  and publishers cache-domains doesn't have (#1505).
 
 Run it by hand to move to newer lists (change the commits first), then check the diff:
 
     python scripts/applications_import.py
 
-Floorbit never fetches the lists itself: an event's network may have no internet, and a list
-that changes during an event would change the numbers.
+These bundled lists are the fallback: they work in a hall with no internet. Lists that should stay
+current are rule sources on the Applications page (floorbit/application_sources.py, #1503), which
+Floorbit fetches on a schedule and can freeze for the event.
 """
 import json
 import pathlib
@@ -26,10 +29,16 @@ V2FLY = ('v2fly/domain-list-community', '96d9c68b7ef43f71118d0be17a9f2edb464825e
 OUT = ROOT / 'floorbit' / 'applications_lists.json'
 
 # DNS counts per site, so a CDN that many vendors share would count for all of them. Sites in
-# more than one list are left out too.
+# more than one list are left out too. So are services many games use (anti-cheat, captcha,
+# support desks, surveys, analytics) and the ISPs and Chinese CDNs that host Steam content
+# servers: a whole ISP's domain must not count as Steam.
 SHARED_CDNS = {'akamaihd.net', 'akamaized.net', 'akadns.net', 'cloudfront.net', 'comcast.net', 'edgekey.net',
                'edgesuite.net', 'fastly-edge.com', 'gcdn.co', 'llnwd.net', 'microsoft.com', 'google.com',
-               'googleapis.com', 'gstatic.com', 'l.google.com', 'fastlylb.net'}
+               'googleapis.com', 'gstatic.com', 'l.google.com', 'fastlylb.net',
+               'hwcdn.net', 'llnwi.net', 'nsatc.net', 'eac-cdn.com', 'easy.ac', 'easyanticheat.net',
+               'radgametools.com', 'arkoselabs.com', 'helpshift.com', 'zendesk.com', 'qualtrics.com',
+               'omtrdc.net', 'on.net', 'slingshot.co.nz', 'webra.ru', '8686c.com', 'bscstorage.net',
+               'clngaa.com', 'eccdnx.com', 'pinyuncloud.com', 'pphimalayanrt.com'}
 # Second levels Floorbit's site cut doesn't know (youtube.co.ae would count as co.ae): left out.
 SECOND_LEVELS = {'co', 'com', 'net', 'org', 'ac', 'gov', 'edu', 'or', 'ne', 'go', 'gob', 'gv', 'nic'}
 
@@ -61,6 +70,47 @@ CACHES = {
     'wargaming': ('Wargaming', 'launcher', 'gaming'),
     'wsus': ('Windows updates', 'sitegroup', 'updates'),
     'xboxlive': ('Xbox', 'launcher', 'gaming'),
+}
+
+# cache-domains id -> v2fly lists with the same publisher's own sites, added to that entry.
+# "!name" leaves out a list the others include (Minecraft is its own game, not Xbox traffic).
+CACHE_SITES = {
+    'blizzard': ('blizzard',),
+    'bsg': ('escapefromtarkov',),
+    'epicgames': ('epicgames',),
+    'nexusmods': ('nexusmods',),
+    'nintendo': ('nintendo',),
+    'origin': ('ea',),
+    'riot': ('riot',),
+    'rockstar': ('rockstar',),
+    'sony': ('playstation',),
+    'steam': ('steam',),
+    'uplay': ('ubisoft',),
+    'wargaming': ('wargaming',),
+    'xboxlive': ('xbox', '!mojang'),
+}
+
+# Publishers, stores and mod sites from v2fly's games category that cache-domains doesn't list:
+# id -> (name, kind, category, v2fly lists). A publisher of several games is a site group.
+PUBLISHERS = {
+    'bohemia': ('Bohemia Interactive', 'sitegroup', 'gaming', ('bohemia',)),
+    'cdprojekt': ('CD PROJEKT', 'sitegroup', 'gaming', ('cdprojekt',)),
+    'curseforge': ('CurseForge', 'sitegroup', 'downloads', ('curseforge',)),
+    'embark': ('Embark Studios', 'sitegroup', 'gaming', ('embark',)),
+    'gaijin': ('Gaijin', 'sitegroup', 'gaming', ('gaijin',)),
+    'garena': ('Garena', 'sitegroup', 'gaming', ('garena',)),
+    'gog': ('GOG', 'launcher', 'gaming', ('gog',)),
+    'hoyoverse': ('HoYoverse', 'sitegroup', 'gaming', ('hoyoverse',)),
+    'itchio': ('itch.io', 'launcher', 'gaming', ('itchio',)),
+    'konami': ('Konami', 'sitegroup', 'gaming', ('konami',)),
+    'modrinth': ('Modrinth', 'sitegroup', 'downloads', ('modrinth',)),
+    'nexon': ('Nexon', 'sitegroup', 'gaming', ('nexon',)),
+    'osu': ('osu!', 'game', 'gaming', ('osu',)),
+    'pubg': ('PUBG', 'game', 'gaming', ('pubg',)),
+    'roblox': ('Roblox', 'game', 'gaming', ('roblox',)),
+    'supercell': ('Supercell', 'sitegroup', 'gaming', ('supercell',)),
+    'vrchat': ('VRChat', 'game', 'gaming', ('vrchat',)),
+    'wbgames': ('WB Games', 'sitegroup', 'gaming', ('wbgames',)),
 }
 
 # Site groups: id -> (name, category, v2fly lists).
@@ -124,11 +174,19 @@ def v2fly_list(name, seen=None):
     return out
 
 
+def v2fly_sites(lists):
+    seen = {lst[1:] for lst in lists if lst.startswith('!')}
+    return sites_of(n for lst in lists if not lst.startswith('!') for n in v2fly_list(lst, seen))
+
+
 def main():
     caches = cache_domains()
-    groups = {gid: sites_of(n for lst in lists for n in v2fly_list(lst)) for gid, (_n, _c, lists) in GROUPS.items()}
+    for cid, lists in CACHE_SITES.items():
+        caches[cid] |= v2fly_sites(lists)
+    publishers = {pid: v2fly_sites(lists) for pid, (*_rest, lists) in PUBLISHERS.items()}
+    groups = {gid: v2fly_sites(lists) for gid, (_n, _c, lists) in GROUPS.items()}
     owners = {}
-    for sites in list(caches.values()) + list(groups.values()):
+    for sites in list(caches.values()) + list(publishers.values()) + list(groups.values()):
         for s in sites:
             owners[s] = owners.get(s, 0) + 1
     keep = lambda sites: sorted(s for s in sites if s not in SHARED_CDNS and owners[s] == 1)  # noqa: E731
@@ -137,6 +195,10 @@ def main():
         name, kind, category = CACHES[cid]
         apps.append({'id': cid, 'name': name, 'kind': kind, 'category': category, 'sites': keep(sites),
                      'caches': [cid], 'source': 'cache-domains'})
+    for pid, sites in sorted(publishers.items()):
+        name, kind, category, _lists = PUBLISHERS[pid]
+        apps.append({'id': pid, 'name': name, 'kind': kind, 'category': category, 'sites': keep(sites),
+                     'caches': [], 'source': 'v2fly'})
     for gid, sites in sorted(groups.items()):
         name, category, _lists = GROUPS[gid]
         apps.append({'id': gid, 'name': name, 'kind': 'sitegroup', 'category': category, 'sites': keep(sites),

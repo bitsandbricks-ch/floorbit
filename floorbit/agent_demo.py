@@ -56,7 +56,7 @@ def _telemetry(index, now, primary):
             'metrics': {'devices': devices, 'devices_heard': heard, 'devices_failing': 0,
                         'series': 2400 + 40 * index if primary else 0, 'points': points,
                         'polled_points': points // 3 if primary else 0, 'sent': points,
-                        'telegraf_restarts': 0, 'split': 1}}
+                        'telegraf_restarts': 0, 'split': 1, 'telegraf': 1, 'lookup': 1}}
 
 
 def live(row, now, protocol):
@@ -70,10 +70,14 @@ def live(row, now, protocol):
         'calls_busy': 0, 'answers_failed': 0, 'syslog_received': received, 'syslog_sent': received,
         'syslog_dropped': 0, 'syslog_backlog': 0, 'flows_packets': int((now % 86400) * 12) if spec['primary'] else 0,
         'captive_shown': 18, 'captive_done': 160,
-        'plugins': {'telemetry': _telemetry(index, now, spec['primary'])},
+        'plugins': {'telemetry': _telemetry(index, now, spec['primary']),
+                    'syslog-relay': {'status': 'ok', 'message': 'Relaying', 'running': True, 'errors': [],
+                                     'metrics': {'received': received, 'dropped': 0}},
+                    'netflow-relay': {'status': 'ok', 'message': 'Summing up flows', 'running': True,
+                                      'errors': [], 'metrics': {}}},
         'vrrp': {'primary': spec['primary'], 'holds': [VIP] if spec['primary'] else []},
         # No "lease": the demo's pair is picked by VRRP, so its pages show that fallback too.
-        'capabilities': ['split', 'syslog_hold'],
+        'capabilities': ['split', 'syslog_hold', 'syslog_ids', 'plugin_updates', 'key_roll', 'cert'],
         'disk': {'auto': True, 'budget': 120 * GB, 'used': (64 if spec['primary'] else 3) * GB,
                  'kinds': {'flows': {'bytes': 61 * GB, 'files': 58, 'hours': 57.5, 'dropped': 0},
                            'buffer': {'bytes': 3 * GB, 'files': 412, 'hours': 0.4, 'dropped': 0}}

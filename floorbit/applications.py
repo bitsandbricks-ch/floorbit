@@ -4,6 +4,8 @@ NetFlow and the LAN cache. See docs/applications.md.
 - **Built in:** ``applications_lists.json`` (launchers and games from uklans/cache-domains, site
   groups from v2fly/domain-list-community, both MIT, written by ``scripts/applications_import.py``)
   plus ``STARTER`` below: launcher ports and game titles no open list has.
+- **Rule sources** (floorbit/application_sources.py, #1503): files fetched on a schedule, on top of
+  the built-in ones; the higher a source in its list, the more it wins.
 - **The event's own** live in data.json (``applications``): new applications, and for a built-in one
   the domains, ports, addresses and depots added to it, or that it is hidden.
 - **Matching:** DNS by site (``dns.site``), traffic by the name of the flow service (the agent's
@@ -18,12 +20,12 @@ import pathlib
 import re
 import threading
 
-from . import dns
+from . import dns, traffic_categories
 from .store import load_data, save_data
 
 KEY = 'applications'
 KINDS = ('game', 'launcher', 'sitegroup')
-CATEGORIES = ('gaming', 'streaming', 'social', 'downloads', 'updates', 'web', 'other')
+CATEGORIES = traffic_categories.BUILTIN_IDS   # shared lists keep to these; a tenant adds its own (#1622)
 MAX_OWN = 300
 MAX_ITEMS = 200
 ID_RE = re.compile(r'^[a-z0-9][a-z0-9-]{0,39}\Z')
@@ -87,6 +89,19 @@ def builtin():
     return _builtin_cache
 
 
+def base(data=None):
+    """{id: application} before the event's own changes: what Floorbit ships, with the rule
+    sources on top (a source's entry replaces one with the same id, keeping its LAN cache ids)."""
+    from . import application_sources
+    apps = dict(builtin()['apps'])
+    for source, entries in application_sources.overlay(data):
+        for entry in entries:
+            old = apps.get(entry['id']) or {}
+            apps[entry['id']] = {**_blank(), **old, **entry, 'source': f'source:{source["id"]}',
+                                 'source_name': source['name']}
+    return apps
+
+
 def _blank():
     return {'name': '', 'kind': 'sitegroup', 'category': 'other', 'part_of': None, 'sites': [], 'ports': [],
             'cidr': [], 'caches': [], 'depots': [], 'source': 'own'}
@@ -99,21 +114,32 @@ def _own(data=None):
 
 def listing(data=None):
     """Every application, built-in and own, with the event's changes applied. Hidden ones too."""
-    base = builtin()['apps']
+    data = load_data() if data is None else data
+    shipped = base(data)
     own = _own(data)
     out = []
-    for aid, app in base.items():
+    for aid, app in shipped.items():
         change = own.get(aid) or {}
         merged = {**app, 'builtin': True, 'hidden': bool(change.get('hidden')), 'edited': bool(change),
                   'added': {k: change.get(k) or [] for k in ('sites', 'ports', 'cidr', 'depots')}}
+        # Everything the event added now ships too (it was shared, or a list caught up): the local
+        # copy can go (#1612).
+        merged['redundant'] = bool(change) and not change.get('hidden') and any(merged['added'].values()) and all(
+            set(merged['added'][k]) <= set(app.get(k) or []) for k in merged['added'])
         for k in ('sites', 'ports', 'cidr', 'depots'):
             merged[k] = sorted(set(app.get(k) or []) | set(change.get(k) or []), key=str)
+        if change.get('category'):
+            merged['category'] = change['category']   # the tenant filed it under one of its own (#1622)
         out.append(merged)
     for aid, entry in own.items():
-        if aid in base:
+        if aid in shipped:
             continue
         out.append({**_blank(), **entry, 'builtin': False, 'hidden': bool(entry.get('hidden')), 'edited': False,
+                    'redundant': False,
                     'added': {k: entry.get(k) or [] for k in ('sites', 'ports', 'cidr', 'depots')}})
+    allowed = traffic_categories.ids()
+    for app in out:
+        app['category'] = traffic_categories.known(app.get('category'), allowed)
     out.sort(key=lambda a: (KINDS.index(a['kind']) if a['kind'] in KINDS else 9, a['name'].lower()))
     return out
 
@@ -177,20 +203,28 @@ def _matches(body):
     return {'sites': _sites(body), 'ports': _ports(body), 'cidr': _cidr(body), 'depots': _depots(body)}
 
 
-def save(body, app_id=None):
+def save(body, app_id=None, new_id=None):
     """Adds an application (no id) or changes one. For a built-in one only what is added to it and
-    whether it is hidden are kept: its own matches stay."""
+    whether it is hidden are kept: its own matches stay. ``new_id`` keeps an imported one's id when
+    it is free."""
     if not isinstance(body, dict):
         raise ApplicationError('Send the application as a JSON object.')
-    base = builtin()['apps']
     with _lock:
         data = load_data()
+        shipped = base(data)
         own = _own(data)
-        if app_id is not None and app_id not in base and app_id not in own:
+        if app_id is not None and app_id not in shipped and app_id not in own:
             raise ApplicationError('No such application.', 404)
         hidden = body['hidden'] if 'hidden' in body else (own.get(app_id) or {}).get('hidden', False)
         entry = {'id': app_id, **_matches(body), 'hidden': bool(hidden)}
-        if app_id is None or app_id not in base:
+        if app_id in shipped:
+            # A built-in one keeps its category unless the event files it under another (#1622).
+            category = body['category'] if 'category' in body else (own.get(app_id) or {}).get('category')
+            if category and category != shipped[app_id].get('category'):
+                if category not in traffic_categories.ids():
+                    raise ApplicationError('No such category: add it under Categories first.')
+                entry['category'] = category
+        if app_id is None or app_id not in shipped:
             name = ' '.join(str(body.get('name') or '').split())
             if not 1 <= len(name) <= 60:
                 raise ApplicationError('Give the application a name (up to 60 characters).')
@@ -198,8 +232,8 @@ def save(body, app_id=None):
             if kind not in KINDS:
                 raise ApplicationError('The kind is game, launcher or sitegroup.')
             category = body.get('category') or ('gaming' if kind != 'sitegroup' else 'other')
-            if category not in CATEGORIES:
-                raise ApplicationError(f'The category is one of {", ".join(CATEGORIES)}.')
+            if category not in traffic_categories.ids():
+                raise ApplicationError('No such category: add it under Categories first.')
             part_of = body.get('part_of') or None
             launchers = {a['id'] for a in listing(data) if a['kind'] == 'launcher'}
             if part_of is not None and (kind != 'game' or part_of not in launchers):
@@ -208,14 +242,42 @@ def save(body, app_id=None):
             if names.get(name.lower(), app_id) != app_id:
                 raise ApplicationError(f'There is already an application called {name}.')
             if app_id is None:
-                if len([a for a in own if a not in base]) >= MAX_OWN:
+                if len([a for a in own if a not in shipped]) >= MAX_OWN:
                     raise ApplicationError(f'Floorbit keeps at most {MAX_OWN} own applications.')
-                app_id = _new_id(name, set(base) | set(own))
+                taken = set(shipped) | set(own)
+                app_id = new_id if new_id and ID_RE.match(new_id) and new_id not in taken else _new_id(name, taken)
             entry.update({'id': app_id, 'name': name, 'kind': kind, 'category': category, 'part_of': part_of})
         rest = [e for e in data.get(KEY) or [] if isinstance(e, dict) and e.get('id') != app_id]
         data[KEY] = [*rest, entry]
         save_data(data)
     return next(a for a in listing() if a['id'] == app_id)
+
+
+def import_entries(entries):
+    """Takes applications from another Floorbit's export (a rules file, already checked): a new one
+    is added with its id, an own one replaced, and a built-in one gets what the file has beyond what
+    shipped, on top of what the event added. Stops at the first one that doesn't fit and says which;
+    the ones before it stay. {"added": n, "changed": n}."""
+    out = {'added': 0, 'changed': 0}
+    keys = ('sites', 'ports', 'cidr', 'depots')
+    for entry in entries:
+        aid = entry['id']
+        shipped, own = base(), _own()
+        try:
+            if aid in shipped:
+                added = own.get(aid) or {}
+                save({k: sorted(set(added.get(k) or []) | (set(entry.get(k) or []) - set(shipped[aid].get(k) or [])))
+                      for k in keys}, aid)
+            else:
+                body = {k: entry.get(k) for k in ('name', 'kind', 'category', 'part_of', *keys)}
+                if body.get('category'):
+                    body['category'] = traffic_categories.known(body['category'])
+                save(body, aid if aid in own else None, new_id=aid)
+        except ApplicationError as exc:
+            raise ApplicationError(f'{entry.get("name") or aid}: {exc.message} '
+                                   f'({out["added"] + out["changed"]} taken before it.)') from exc
+        out['changed' if aid in shipped or aid in own else 'added'] += 1
+    return out
 
 
 def _new_id(name, taken):
@@ -241,18 +303,26 @@ def remove(app_id):
 # ── what the agent's classifier gets ────────────────────────────────────────
 
 def flow_rules(data=None, servers=None):
-    """Traffic rules from the applications with ports or addresses, and from the game servers, as
-    ``FLOWS_SERVICES`` entries (floorbit/flows/classify.py). Games first: a game wins over its launcher."""
+    """Traffic rules from the applications with ports, addresses or sites, and from the game servers,
+    as ``FLOWS_SERVICES`` entries (floorbit/flows/classify.py). Games first: a game wins over its
+    launcher. The sites name HTTPS flows the agent saw a DNS answer for (floorbit/flows/names.py)."""
     apps = active(data)
     rules = []
     for app in sorted(apps, key=lambda a: a['kind'] != 'game'):
-        if app['ports'] or app['cidr']:
-            rules.append({'name': service_name(app), 'category': _flow_category(app['category']),
-                          'ports': app['ports'], 'cidr': app['cidr']})
+        if app['ports'] or app['cidr'] or app['sites']:
+            rules.append({'name': service_name(app), 'category': app['category'],
+                          'ports': app['ports'], 'cidr': app['cidr'], 'sites': app['sites']})
     for server in servers or []:
+        if not server.get('game'):
+            continue
+        name = _game_name(server['game'], apps)
         net = _host_net(server.get('host'))
-        if net and server.get('game'):
-            rules.insert(0, {'name': _game_name(server['game'], apps), 'category': 'gaming', 'cidr': [net]})
+        if net:
+            rules.insert(0, {'name': name, 'category': 'gaming', 'cidr': [net]})
+        elif dns.site(server.get('host')):
+            # A host name: the agent resolves it itself (floorbit/flows/names.py Resolver).
+            rules.insert(0, {'name': name, 'category': 'gaming',
+                             'hosts': [str(server['host']).strip().lower().rstrip('.')]})
     return rules
 
 
@@ -260,16 +330,11 @@ def service_name(app):
     return SERVICE_NAMES.get(app['id'], app['name'])
 
 
-def _flow_category(category):
-    from .flows.classify import CATEGORIES as FLOW
-    return category if category in FLOW else 'web' if category == 'social' else 'other'
-
-
 def _host_net(host):
     try:
         addr = ipaddress.ip_address(str(host or ''))
     except ValueError:
-        return None   # a host name: the agent can't match it to flows without asking DNS
+        return None   # a host name: flow_rules hands it to the agent to resolve
     return f'{addr}/{addr.max_prefixlen}'
 
 
@@ -316,6 +381,15 @@ def usage(apps, sites=None, services=None, caches=None, downloads=None, servers=
             'players': players.get(app['name'].lower()) if app['kind'] == 'game' else None,
         }
     return out
+
+
+def unrecognised(apps, sites, limit=30):
+    """The busiest sites no shown application has: what to name next (#1612). ``sites`` is
+    dns.site_lookups, which only has sites 5 or more seats used, so nothing here is one player's."""
+    known = {s for a in apps if not a.get('hidden') for s in a['sites']}
+    rows = [{'site': s, 'lookups': n, 'seats': c} for s, (n, c) in (sites or {}).items() if s not in known]
+    rows.sort(key=lambda r: (-r['seats'], -r['lookups'], r['site']))
+    return rows[:limit]
 
 
 def seats(row):

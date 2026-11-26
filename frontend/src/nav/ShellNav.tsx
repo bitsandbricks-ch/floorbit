@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NAV_FAVOURITES, NAV_MORE, NavCustomizer, PhoneDock, toggleNavPin, useCustomNav, type NavGroup, type NavItem, type NavSection } from '@bitsandbricks/ui'
 import { readFolded, readRail, saveFolded, saveRail, useNavPrefs, type NavBoot } from './boot'
+import { StatusLine } from '@/components/StatusLine'
 import { EventPicker } from './EventPicker'
 import { Account, Brand, Tenants, type MenuAction } from './NavParts'
 import './nav.css'
@@ -170,6 +171,7 @@ export function useShellNav(props: ShellNavProps) {
       more={nav.map((g) => ({ ...g, items: g.items.map((i) => ({ ...i, action: undefined })) }))}
       moreFooter={<><EventPicker rail={false} />{foot(false)}</>}
       current={litPage ? labelOf(litPage) : undefined}
+      status={<StatusLine bare />}
     />
   )
 

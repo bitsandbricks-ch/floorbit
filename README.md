@@ -72,7 +72,7 @@ each seat is plugged into.
 - **Feature switches:** turn off what your event doesn't use. Its menus, pages, API and background
   checks go away until you turn it back on. See [docs/features.md](docs/features.md).
 - **Past events:** close an event to keep it with its report and floor plan, start the next one from
-  it, and compare events side by side (attendance, bandwidth, incidents, time to fix). See
+  it, and compare events side by side (seats checked in, bandwidth, incidents, time to fix). See
   [docs/events.md](docs/events.md).
 - **API tokens:** scripts and other tools use the same API as the pages, with a token that has a role,
   is read-only by default and can expire. See [docs/api.md](docs/api.md).
@@ -93,7 +93,7 @@ each seat is plugged into.
 - **Event changelog:** one timeline of every change during the LAN: floor plan and settings edits,
   switch outages, incidents, alerts and Floorbit updates, filterable and exportable as CSV or JSON.
   See [docs/timeline.md](docs/timeline.md).
-- **Event report:** after the event, a report to read or download as PDF: attendance over time, peak
+- **Event report:** after the event, a report to read or download as PDF: seats checked in over time, peak
   bandwidth, switch outages, the top problem ports and the incidents. No nicks or IPs unless an admin
   asks. See [docs/report.md](docs/report.md).
 - **Traffic:** what the hall's traffic is made of from NetFlow or IPFIX (gaming, streaming,
@@ -128,8 +128,9 @@ each seat is plugged into.
   plugged into, even through the ARP table. See [docs/seat-mapping.md](docs/seat-mapping.md#finding-a-player).
 - **Right-click menu:** right-click (or long-press) a seat, switch or the empty floor for what you can
   do with it, from seat details to bouncing its port. See [docs/context-menu.md](docs/context-menu.md).
-- **Phones and tablets:** tap, drag and pinch on the floor plan, search in a drawer and details in a
-  bottom sheet, so a tech on the floor can look up a seat or switch. See [docs/mobile.md](docs/mobile.md).
+- **Phones and tablets:** the floor plan with a dock at thumb height and details in a bottom sheet,
+  editing by touch, and Floorbit installs on the home screen as an app (no store). See
+  [docs/mobile.md](docs/mobile.md).
 - **Roles and teams:** Admin, Lead, Tech, Viewer and Kiosk, plus your own roles made from
   permissions, and teams with sub-teams (Infra › Core, Access, Wi-Fi). Nicks and IPs stay hidden from
   viewers and kiosk screens.

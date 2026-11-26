@@ -602,6 +602,12 @@ def test_dns_lookups_come_through_the_agent_without_addresses(client, app_module
         assert snap['lookups'] == 7 and snap['plugins'] == 1 and snap['error'] is None
         assert 'steamcontent.example' in [s['site'] for s in snap['sites']]   # 6 clients: named
     finally:
+        # The app's own DNS watcher polls the connected agent too; left running, it would write these
+        # lookups into the shared database while later tests run (#1639).
+        watcher = app_module.app.extensions['floorbit_dns']
+        watcher.stop()
+        if watcher._thread is not None:
+            watcher._thread.join(10)
         a.stop()
         worker.join(30)
 

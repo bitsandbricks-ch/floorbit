@@ -8,6 +8,8 @@ export interface AuditEntry {
   target?: string
   fields?: string[]
   ok?: boolean
+  /** Why someone looked, where a look needs one (the flow lookup). */
+  reason?: string
 }
 
 export interface AuditPage {

@@ -1,7 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
 import '@bitsandbricks/tokens/tokens.css'
 import '@bitsandbricks/ui/styles.css'
@@ -16,6 +15,12 @@ import { Providers } from './Providers'
 import { queryClient } from './queryClient'
 
 installValidityText(i18n)
+
+// What makes Floorbit installable on a phone (static/sw.js). Only the built app: the dev server
+// would cache files that change on every save.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => { void navigator.serviceWorker.register('/sw.js').catch(() => {}) })
+}
 
 // German comes in its own file: wait for it (a few ms) rather than paint English first.
 void i18nReady.finally(() => createRoot(document.getElementById('root')!).render(

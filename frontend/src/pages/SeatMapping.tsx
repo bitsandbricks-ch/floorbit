@@ -150,27 +150,20 @@ export default function SeatMapping() {
   }
 
   return (
-    <Layout title={t('seatmap.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    <Layout title={t('seatmap.title')} back={{ href: '/', label: t('common.floorPlan') }} fill>
       <PageHead
         title={t('seatmap.title')}
         desc={t('seatmap.intro')}
-        actions={
-          <>
-            <Button component="a" href="/api/seat-map.csv" variant="default" leftSection={<IconDownload size={16} />}>
-              {t('seatmap.export')}
-            </Button>
-            {canEdit && (
-              <>
-                <Button variant="default" leftSection={<IconUpload size={16} />} onClick={importDialog.open}>
-                  {t('seatmap.import')}
-                </Button>
-                <Button leftSection={<IconPlus size={16} />} onClick={() => open(null)}>
-                  {t('seatmap.add')}
-                </Button>
-              </>
-            )}
-          </>
-        }
+        actions={canEdit && (
+          <Button leftSection={<IconPlus size={16} />} onClick={() => open(null)}>
+            {t('seatmap.add')}
+          </Button>
+        )}
+        // One primary action; export and import behind "⋯" so a phone shows them whole (#1044).
+        menu={[
+          { label: t('seatmap.export'), icon: <IconDownload size={16} aria-hidden="true" />, href: '/api/seat-map.csv', download: true },
+          ...(canEdit ? [{ label: t('seatmap.import'), icon: <IconUpload size={16} aria-hidden="true" />, onClick: importDialog.open }] : []),
+        ]}
       />
       {errors.length > 0 && (
         <Alert color="warn" mb="md" role="alert">
@@ -212,7 +205,7 @@ export default function SeatMapping() {
               ? t('seatmap.countSplit', { count: rows.length, onPlan: rows.length - offPlan, off: offPlan })
               : t('seatmap.count', { count: rows.length })}
           </Text>
-          <DataTable label={t('seatmap.title')} rows={rows} rowKey={(r) => r.seat} defaultSort={{ id: 'seat' }} cards
+          <DataTable fill label={t('seatmap.title')} rows={rows} rowKey={(r) => r.seat} defaultSort={{ id: 'seat' }} cards
             empty={<Text>{data.seats.length ? t('seatmap.noMatch') : t('seatmap.empty')}</Text>}
             columns={[
               { id: 'seat', header: t('seatmap.seat'), sort: (r) => r.seat, cell: (r) => (<>{canEdit

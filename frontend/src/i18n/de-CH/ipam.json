@@ -20,7 +20,8 @@
     "purpose": "Zweck",
     "firewalls": "Firewalls",
     "source": "Quelle",
-    "seenOn": "Gesehen auf"
+    "seenOn": "Gesehen auf",
+    "checkin": "Check-in"
   },
   "noRoute": "Noch keine Firewall routet dieses Präfix.",
   "routeIt": "Über Firewalls routen",

@@ -6,6 +6,8 @@ Privacy (issue #25, Swiss and EU rules): nothing here keeps what a person visite
 - **Services:** bytes per service (from ``classify.py``) and how many different seats used it. A
   service is only named once ``FLOWS_MIN_SEATS`` (5) different seats used it; below that it counts
   as "Other", so a rare service can't point at one person.
+- **Network owners:** bytes per remote network (AS) and owner (``owners.py``), under the same
+  five-seat rule as services.
 - **Per seat:** only total volume and the category mix ("80 GB, mostly gaming"). Never services,
   addresses or ports.
 - **Anomalies:** P2P floods, DDoS-like bursts and seats acting as DHCP or DNS servers. They name the
@@ -40,6 +42,7 @@ def _hour():
     return {'total': _cats(), 'areas': defaultdict(_cats),
             'services': defaultdict(lambda: {'bytes': 0, 'down': 0, 'up': 0, 'category': 'other', 'seats': set(),
                                              'areas': defaultdict(lambda: {'bytes': 0, 'seats': set()})}),
+            'owners': defaultdict(lambda: {'name': '', 'bytes': 0, 'down': 0, 'up': 0, 'seats': set()}),
             'seats': defaultdict(lambda: {'bytes': 0, 'mix': _cats()})}
 
 
@@ -51,8 +54,11 @@ def settings():
 
 
 class Aggregator:
-    def __init__(self, classifier=None, now=None):
+    def __init__(self, classifier=None, now=None, owner_of=None, name_of=None):
         self.classify = classifier or Classifier()
+        self.owner_of = owner_of or (lambda ip: None)   # ip -> (AS number, owner) or None
+        # (seat ip, remote ip) -> the site the seat looked up, or None (names.py). Stays on the agent.
+        self.name_of = name_of or (lambda seat, remote: None)
         self._lock = threading.Lock()
         self.seat_of = {}          # ip -> seat
         self.area_of = {}          # seat -> area (seat block name)
@@ -97,10 +103,11 @@ class Aggregator:
         size, w = f['bytes'], self._window
         # The seat's side decides the direction; between two seats, the receiver's view counts.
         if dst_seat:
-            seat, remote, local_port, remote_port = dst_seat, f['src'], f['dport'], f['sport']
+            seat, seat_ip, remote, local_port, remote_port = dst_seat, f['dst'], f['src'], f['dport'], f['sport']
         else:
-            seat, remote, local_port, remote_port = src_seat, f['dst'], f['sport'], f['dport']
-        service, category = self.classify(remote, f['proto'], remote_port, local_port)
+            seat, seat_ip, remote, local_port, remote_port = src_seat, f['src'], f['dst'], f['sport'], f['dport']
+        service, category = self.classify(remote, f['proto'], remote_port, local_port,
+                                          site=self.name_of(seat_ip, remote))
         area = self.area_of.get(seat) or 'Other'
         for bucket in (minute, hour):
             bucket['total'][category] += size
@@ -113,6 +120,13 @@ class Aggregator:
         per_area = svc['areas'][area]
         per_area['bytes'] += size
         per_area['seats'].add(seat)
+        owner = self.owner_of(remote)
+        if owner:
+            own = hour['owners'][owner[0]]
+            own['name'] = owner[1]
+            own['bytes'] += size
+            own['down' if dst_seat else 'up'] += size
+            own['seats'].add(seat)
         for s in {src_seat, dst_seat} - {None}:
             hour['seats'][s]['bytes'] += size
             hour['seats'][s]['mix'][category] += size
@@ -201,8 +215,15 @@ class Aggregator:
                                   'category': svc['category'], 'seats': len(svc['seats'])}
             else:
                 other += svc['bytes']
+        owners, other_owners = {}, 0
+        for asn, own in (h.get('owners') or {}).items():
+            if len(own['seats']) >= min_seats:
+                owners[str(asn)] = {'name': own['name'], 'bytes': own['bytes'], 'down': own['down'], 'up': own['up'],
+                                    'seats': len(own['seats'])}
+            else:
+                other_owners += own['bytes']
         return {'total': dict(h['total']), 'areas': {a: dict(c) for a, c in h['areas'].items()},
-                'services': services, 'other_services': other}
+                'services': services, 'other_services': other, 'owners': owners, 'other_owners': other_owners}
 
     def snapshot(self, now=None):
         now = time.time() if now is None else now
@@ -218,7 +239,8 @@ class Aggregator:
                 for a, cats in b['areas'].items():
                     for c, v in cats.items():
                         areas[a][c] += v
-            mix_day, services, seats = _cats(), {}, defaultdict(lambda: {'bytes': 0, 'mix': _cats()})
+            mix_day, services, owners = _cats(), {}, {}
+            seats = defaultdict(lambda: {'bytes': 0, 'mix': _cats()})
             trend_from = int(now // HOUR) * HOUR - (TREND_HOURS - 1) * HOUR
             for t, h in sorted(self.hours.items()):
                 if t <= now - DAY - HOUR:
@@ -238,6 +260,12 @@ class Aggregator:
                         mine = got['areas'].setdefault(area, {'bytes': 0, 'seats': set()})
                         mine['bytes'] += a['bytes']
                         mine['seats'] |= a['seats']
+                for asn, own in (h.get('owners') or {}).items():
+                    got = owners.setdefault(asn, {'name': own['name'], 'bytes': 0, 'down': 0, 'up': 0, 'seats': set()})
+                    got['bytes'] += own['bytes']
+                    got['down'] += own['down']
+                    got['up'] += own['up']
+                    got['seats'] |= own['seats']
                 for seat, v in h['seats'].items():
                     seats[seat]['bytes'] += v['bytes']
                     for c, b in v['mix'].items():
@@ -248,6 +276,10 @@ class Aggregator:
                       'areas': {a: x['bytes'] for a, x in v['areas'].items() if len(x['seats']) >= s['min_seats']}}
                      for n, v in services.items() if len(v['seats']) >= s['min_seats']]
             folded = sum(v['bytes'] for v in services.values() if len(v['seats']) < s['min_seats'])
+            named_owners = [{'asn': asn, 'name': v['name'], 'bytes': v['bytes'], 'down': v['down'], 'up': v['up'],
+                             'seats': len(v['seats'])}
+                            for asn, v in owners.items() if len(v['seats']) >= s['min_seats']]
+            folded_owners = sum(v['bytes'] for v in owners.values() if len(v['seats']) < s['min_seats'])
             out = {
                 'updated': now, 'flows': self.flows,
                 'exporters': [{'address': k, **v} for k, v in sorted(self.exporters.items())],
@@ -255,6 +287,7 @@ class Aggregator:
                 'areas': sorted(({'area': a, 'bytes': sum(c.values()), 'mix': dict(c)} for a, c in areas.items()),
                                 key=lambda r: -r['bytes']),
                 'services': sorted(named, key=lambda r: -r['bytes'])[:25], 'other_services': folded,
+                'owners': sorted(named_owners, key=lambda r: -r['bytes'])[:25], 'other_owners': folded_owners,
                 'seats': sorted(({'seat': k, 'area': self.area_of.get(k), 'bytes': v['bytes'], 'mix': dict(v['mix'])}
                                  for k, v in seats.items()), key=lambda r: -r['bytes']),
                 'anomalies': sorted(self.anomalies.values(), key=lambda a: -a['last_seen']),

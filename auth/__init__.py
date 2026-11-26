@@ -420,7 +420,7 @@ def _blueprint():
         from floorbit import spa
         if error:
             session['login_error'] = {'error': error, 'username': username}
-        return spa.render('Sign in')[0], status
+        return spa.render('Sign in', shell=False)[0], status
 
     def password_sign_in(username, password):
         """(user, None) or (None, (message, status))."""

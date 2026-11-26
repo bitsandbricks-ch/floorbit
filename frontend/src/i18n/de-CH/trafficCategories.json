@@ -1,0 +1,19 @@
+{
+  "open": "Kategorien",
+  "title": "Verkehrskategorien",
+  "intro": "Jede Anwendung zählt für eine Kategorie, auf der Verkehrsseite, den Dashboards und hier. Eure eigenen Kategorien gelten für jeden Event dieses Floorbit.",
+  "builtin": "Eingebaut",
+  "own": "Eigene",
+  "none": "Noch keine.",
+  "name": "Name",
+  "nameDe": "Name auf Deutsch",
+  "remove": "{{name}} entfernen",
+  "colour": "Farbe von {{name}}",
+  "add": "Kategorie hinzufügen",
+  "save": "Speichern",
+  "saved": "Kategorien gespeichert",
+  "gone": "Anwendungen einer entfernten Kategorie zählen als Anderes, bis du eine andere wählst.",
+  "column": "Kategorie",
+  "builtinApp": "Ändert nur, wie dieser Event sie zählt.",
+  "sharedAsOther": "Floorbits eigene Liste kennt nur die eingebauten Kategorien, darum geht diese als Anderes."
+}

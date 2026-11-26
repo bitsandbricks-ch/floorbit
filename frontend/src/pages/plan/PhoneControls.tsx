@@ -1,5 +1,5 @@
 import { Menu, SegmentedControl, UnstyledButton } from '@mantine/core'
-import { IconBookmark, IconDots, IconFilter, IconList, IconMap, IconStack2, IconTopologyStar3 } from '@tabler/icons-react'
+import { IconBookmark, IconDots, IconEdit, IconFilter, IconList, IconMap, IconStack2, IconTopologyStar3 } from '@tabler/icons-react'
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import './PhoneControls.css'
@@ -9,7 +9,7 @@ export type PlanView = 'map' | 'list' | 'topology'
 /** The floor plan's controls on a phone (Mike, 2026-11-26, "map first"): no bar over the plan,
  *  a floating search with the online count, a small Map/List/Topology switch, and a dock at thumb
  *  height whose buttons open sheets and menus. The plan keeps the rest of the screen. */
-export function PhoneControls({ search, online, total, view, onView, layersOn, onLayers, problems, onProblems, views, more }: {
+export function PhoneControls({ search, online, total, view, onView, layersOn, onLayers, problems, onProblems, views, more, onEdit }: {
   /** The search form (FloorPlan's, so the keys and results stay the same). */
   search?: ReactNode
   online: number; total: number
@@ -21,6 +21,8 @@ export function PhoneControls({ search, online, total, view, onView, layersOn, o
   views?: (target: ReactNode) => ReactNode
   /** The More menu's entries. */
   more: ReactNode
+  /** Editing, for those who may: a dock button of its own, not an entry at the end of More (Mike, 2026-11-26). */
+  onEdit?: () => void
 }) {
   const { t } = useTranslation()
   const icon = (v: PlanView) => v === 'map' ? <IconMap size={18} /> : v === 'list' ? <IconList size={18} /> : <IconTopologyStar3 size={18} />
@@ -44,6 +46,7 @@ export function PhoneControls({ search, online, total, view, onView, layersOn, o
           {onLayers && <DockButton icon={<IconStack2 size={20} />} label={t('plan.side.layers')} badge={layersOn || undefined} onClick={onLayers} />}
           <DockButton icon={<IconFilter size={20} />} label={t('plan.side.problems')} badge={problems || undefined} bad onClick={onProblems} />
           {views?.(<DockButton icon={<IconBookmark size={20} />} label={t('planPhone.views')} />)}
+          {onEdit && <DockButton icon={<IconEdit size={20} />} label={t('planPhone.editShort')} onClick={onEdit} />}
           <Menu position="top-end" withinPortal width={260}>
             <Menu.Target>
               <DockButton icon={<IconDots size={20} />} label={t('planPhone.more')} />

@@ -30,4 +30,15 @@ describe('PhoneControls', () => {
     renderWithApp(<PhoneControls {...props} view="topology" />)
     expect(screen.queryByRole('navigation')).toBeNull()
   })
+
+  it('has an Edit button in the dock for those who may edit', () => {
+    const onEdit = vi.fn()
+    const props = { online: 1, total: 2, onView: () => {}, layersOn: 0, problems: 0, onProblems: () => {}, more: null }
+    const { unmount } = renderWithApp(<PhoneControls {...props} view="map" onEdit={onEdit} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(onEdit).toHaveBeenCalled()
+    unmount()
+    renderWithApp(<PhoneControls {...props} view="map" />)
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
+  })
 })

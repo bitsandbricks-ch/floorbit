@@ -253,6 +253,33 @@ def settings_change(agent_id):
     return jsonify(agent_settings.page(agent_id, lang=i18n.language(request.headers.get('Accept-Language'))))
 
 
+@bp.route('/api/agents/tags/<tag_id>/settings', methods=['GET'])
+def tag_settings_page(tag_id):
+    """Plugin settings for every agent with this tag (#1591): fields, defaults, the tag's values."""
+    from .. import agent_settings, i18n
+    try:
+        return jsonify(agent_settings.tag_page(tag_id, lang=i18n.language(request.headers.get('Accept-Language'))))
+    except agent_link.AgentError as exc:
+        return jsonify({'error': exc.message}), exc.status
+
+
+@bp.route('/api/agents/tags/<tag_id>/settings', methods=['PATCH'])
+def tag_settings_change(tag_id):
+    """``{"plugins": {plugin id: {setting: value | null}}}`` for every agent with the tag."""
+    from .. import agent_plugins, agent_settings, i18n
+    body = request.get_json(silent=True) or {}
+    try:
+        name, changed = agent_settings.update_tag(tag_id, body.get('plugins'))
+    except agent_link.AgentError as exc:
+        return jsonify({'error': exc.message}), exc.status
+    if changed:
+        audit.record('agents', f"Changed the agent settings of a tag: {', '.join(changed)}", g.get('audit_user'), name,
+                     fields=changed)
+        agent_plugins.reload_agents()
+        events.publish('agents.changed', {})
+    return jsonify(agent_settings.tag_page(tag_id, lang=i18n.language(request.headers.get('Accept-Language'))))
+
+
 @bp.route('/api/agents/<agent_id>/roll', methods=['POST'])
 def roll_key(agent_id):
     """The agent fetches a new key itself, at once when it is connected (no key to copy)."""
@@ -529,16 +556,18 @@ def syslog():
 FLOW_KEYS = {'updated': None, 'flows': None, 'exporters': 50, 'mix_hour': None, 'mix_day': None, 'series': 120,
              'areas': 200, 'services': 25, 'other_services': None, 'seats': 5000, 'anomalies': 200,
              'min_seats': None, 'p2p_peers': None, 'burst_pps': None, 'retention_days': None, 'raw': None,
-             'templates_missing': None, 'errors': None, 'refused': None}
+             'templates_missing': None, 'errors': None, 'refused': None,
+             'owners': 25, 'other_owners': None, 'owners_list': None}
 
 
 # What each row of a list needs before a page reads it (the rest is checked by type in _flow_value).
 _NUM = (int, float)
 FLOW_ROWS = {'services': {'name': str, 'bytes': _NUM, 'seats': _NUM},
              'anomalies': {'id': str, 'kind': str, 'first_seen': _NUM, 'last_seen': _NUM, 'title': str, 'detail': str},
+             'owners': {'asn': int, 'name': str, 'bytes': _NUM, 'seats': _NUM},
              'areas': {'area': str, 'bytes': _NUM}, 'seats': {'seat': str, 'bytes': _NUM}, 'series': {'t': _NUM},
              'exporters': {'address': str}}
-FLOW_MAPS = {'mix_hour', 'mix_day', 'raw'}
+FLOW_MAPS = {'mix_hour', 'mix_day', 'raw', 'owners_list'}
 
 
 def _traffic_off():

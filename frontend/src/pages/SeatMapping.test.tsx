@@ -89,7 +89,10 @@ describe('Seat mapping page', () => {
     expect(within(row).getByText('By hand')).toBeInTheDocument()
     expect(within(row).getByLabelText('By hand, Seat check-in page')).toHaveTextContent('+1')
     expect(within(row).getByText('console')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Export CSV' })).toHaveAttribute('href', '/api/seat-map.csv')
+    // Export and import sit behind the page's "⋯" menu (#1044).
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect((await screen.findByText('Export CSV')).closest('a')).toHaveAttribute('href', '/api/seat-map.csv')
+    expect(screen.getByText('Import CSV')).toBeInTheDocument()
   })
 
   it('is read-only for a tech (seats.view without seats.edit)', async () => {
@@ -99,8 +102,9 @@ describe('Seat mapping page', () => {
     expect(await screen.findByText('A-1')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'A-1' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Add entry' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Import CSV' })).toBeNull()
-    expect(screen.getByRole('link', { name: 'Export CSV' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect(await screen.findByText('Export CSV')).toBeInTheDocument()
+    expect(screen.queryByText('Import CSV')).toBeNull()
   })
 
   it('shows what an empty field falls back to and saves the hand entry', async () => {
@@ -172,7 +176,8 @@ describe('Seat mapping page', () => {
     })
     vi.stubGlobal('fetch', api.fn)
     renderWithApp(<SeatMapping />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Import CSV' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'More actions' }))
+    fireEvent.click(await screen.findByText('Import CSV'))
     const input = document.querySelector('input[type=file]') as HTMLInputElement
     fireEvent.change(input, { target: { files: [new File(['seat,ip\nA-1,x\n'], 'seats.csv', { type: 'text/csv' })] } })
     fireEvent.click(await screen.findByRole('button', { name: 'Check file' }))
