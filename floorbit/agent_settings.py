@@ -8,6 +8,11 @@ Two kinds, kept on the agent's record (data.json ``agents``):
 - **Plugin settings for this agent** (``plugin_settings``): a plugin's setting (the flow port, a
   listen address) that differs on this agent. Settings > Plugins stays the default.
 
+Plugin settings inherit like the inventory does (issue #1591): the agent, then its tags in their
+order, then the plugin's default; the most specific one wins, and the agent's environment beats
+them all. A tag's plugin settings are kept by tag id (data.json ``agent_tag_settings``), so every
+agent with the tag, both agents of a group above all, gets the same value from one place.
+
 Not here, on purpose: what the people in the hall allow (actions, plugin updates, the networks the
 agent may reach, ``LOCAL_ONLY``). A stolen Floorbit login must not widen those; the page only shows
 what the agent reports for them. Nor the machine itself (its URL, key, files): the agent needs
@@ -20,6 +25,7 @@ from .agent_link import AgentError, _change, load_data
 
 KEY = 'settings'
 PLUGIN_KEY = 'plugin_settings'
+TAG_KEY = 'agent_tag_settings'      # {tag id: {plugin id: {setting: value}}}
 
 # key, env var, type, default, limits; "restart": the agent takes it at its next start.
 FIELDS = [
@@ -170,7 +176,6 @@ def values(agent_id, reveal=False):
 def update(agent_id, settings=None, plugins=None, registry=None):
     """Save ``{key: value | None}`` and ``{plugin id: {setting: value | None}}`` (None clears).
     Returns the names of what changed, for the audit log."""
-    from . import settings as settings_module
     from . import vault
     changed = []
     clean_settings = {}
@@ -182,25 +187,7 @@ def update(agent_id, settings=None, plugins=None, registry=None):
         if field['type'] == 'secret' and value is not None:
             value = vault.seal(_slot(agent_id, key), value)
         clean_settings[key] = value
-    clean_plugins = {}
-    if plugins:
-        allowed = plugin_fields(registry)
-        if not isinstance(plugins, dict):
-            raise AgentError('plugins must map plugin ids to settings.')
-        for pid, changes in plugins.items():
-            fields = {f['key'].split('.', 2)[2]: f for f in allowed.get(pid, [])}
-            if not fields or not isinstance(changes, dict):
-                raise AgentError(f'No plugin settings for {pid} on an agent.')
-            out = {}
-            for key, raw in changes.items():
-                if key not in fields:
-                    raise AgentError(f'{pid} has no setting {key} an agent can change.')
-                full = fields[key]['key']
-                try:
-                    out[key] = None if raw in (None, '') else settings_module.check_changes({full: raw})[full]
-                except settings_module.SettingsError as exc:
-                    raise AgentError(str(exc)) from None
-            clean_plugins[pid] = out
+    clean_plugins = _clean_plugins(plugins, registry)
 
     def apply(a):
         mine = dict(a.get(KEY) or {})
@@ -212,46 +199,162 @@ def update(agent_id, settings=None, plugins=None, registry=None):
             else:
                 mine[key] = value
         a[KEY] = mine
-        theirs = {k: dict(v) for k, v in (a.get(PLUGIN_KEY) or {}).items()}
-        for pid, changes in clean_plugins.items():
-            block = theirs.setdefault(pid, {})
-            for key, value in changes.items():
-                if block.get(key) != value:
-                    changed.append(f'{pid}.{key}')
-                if value is None:
-                    block.pop(key, None)
-                else:
-                    block[key] = value
-            if not block:
-                theirs.pop(pid)
-        a[PLUGIN_KEY] = theirs
+        a[PLUGIN_KEY] = _merge_plugins(a.get(PLUGIN_KEY), clean_plugins, changed)
     found = _change(agent_id, apply)
     return found['name'], changed
 
 
-def page(agent_id, registry=None, lang='en'):
-    """What the agent's Settings tab shows: the fields, Floorbit's values, each plugin's default and
-    this agent's overrides. Where each value really comes from is in the agent's report."""
+def _clean_plugins(plugins, registry=None):
+    """``{plugin id: {setting: value | None}}`` checked against the settings an agent may have."""
+    from . import settings as settings_module
+    clean_plugins = {}
+    if not plugins:
+        return clean_plugins
+    allowed = plugin_fields(registry)
+    if not isinstance(plugins, dict):
+        raise AgentError('plugins must map plugin ids to settings.')
+    for pid, changes in plugins.items():
+        fields = {f['key'].split('.', 2)[2]: f for f in allowed.get(pid, [])}
+        if not fields or not isinstance(changes, dict):
+            raise AgentError(f'No plugin settings for {pid} on an agent.')
+        out = {}
+        for key, raw in changes.items():
+            if key not in fields:
+                raise AgentError(f'{pid} has no setting {key} an agent can change.')
+            full = fields[key]['key']
+            try:
+                out[key] = None if raw in (None, '') else settings_module.check_changes({full: raw})[full]
+            except settings_module.SettingsError as exc:
+                raise AgentError(str(exc)) from None
+        clean_plugins[pid] = out
+    return clean_plugins
+
+
+def _merge_plugins(stored, clean_plugins, changed):
+    theirs = {k: dict(v) for k, v in (stored or {}).items() if isinstance(v, dict)}
+    for pid, changes in clean_plugins.items():
+        block = theirs.setdefault(pid, {})
+        for key, value in changes.items():
+            if block.get(key) != value:
+                changed.append(f'{pid}.{key}')
+            if value is None:
+                block.pop(key, None)
+            else:
+                block[key] = value
+        if not block:
+            theirs.pop(pid)
+    return theirs
+
+
+# ── plugin settings for every agent with a tag (#1591) ─────────────────────────────────────────
+
+def _tag_name(data, tag_id):
+    from . import inventory_scope
+    found = inventory_scope.tag(data, tag_id)
+    return (found or {}).get('name') or tag_id
+
+
+def tag_overrides(tag_id, data=None):
+    """{plugin id: {setting: value}} set on this tag."""
+    data = load_data() if data is None else data
+    raw = (data.get(TAG_KEY) or {}).get(tag_id) or {}
+    return {k: dict(v) for k, v in raw.items() if isinstance(v, dict)}
+
+
+def inherited(agent_id, data=None):
+    """{plugin id: {setting: {"value", "tag", "name"}}}: what the agent's tags give it, the first
+    tag that sets a value winning (the inventory's order)."""
+    data = load_data() if data is None else data
+    found = next((a for a in data.get('agents') or [] if a['id'] == agent_id), None)
+    out = {}
+    for tag_id in (found or {}).get('tags') or []:
+        for pid, values in tag_overrides(tag_id, data).items():
+            for key, value in values.items():
+                out.setdefault(pid, {}).setdefault(
+                    key, {'value': value, 'tag': tag_id, 'name': _tag_name(data, tag_id)})
+    return out
+
+
+def resolved(agent_id, data=None):
+    """{plugin id: {setting: value}} from its tags and then itself, over the plugin's defaults."""
+    data = load_data() if data is None else data
+    out = {pid: {k: v['value'] for k, v in values.items()} for pid, values in inherited(agent_id, data).items()}
+    for pid, values in overrides(agent_id, data).items():
+        out.setdefault(pid, {}).update(values)
+    return out
+
+
+def update_tag(tag_id, plugins, registry=None):
+    """Save ``{plugin id: {setting: value | None}}`` on a tag. Returns the tag's name and what changed."""
+    from . import inventory_scope
+    from .agent_link import _lock
+    from .store import save_data
+    clean_plugins = _clean_plugins(plugins, registry)
+    changed = []
+    with _lock:
+        data = load_data()
+        if inventory_scope.tag(data, tag_id) is None:
+            err = AgentError('No such tag.')
+            err.status = 404
+            raise err
+        every = dict(data.get(TAG_KEY) or {})
+        merged = _merge_plugins(every.get(tag_id), clean_plugins, changed)
+        if merged:
+            every[tag_id] = merged
+        else:
+            every.pop(tag_id, None)
+        data[TAG_KEY] = every
+        save_data(data)
+    return _tag_name(data, tag_id), changed
+
+
+def tag_page(tag_id, registry=None, lang='en'):
+    """A tag's plugin settings: the fields, each plugin's default and the tag's values, and the
+    agents that have the tag."""
+    from . import inventory_scope
+    data = load_data()
+    if inventory_scope.tag(data, tag_id) is None:
+        err = AgentError('No such tag.')
+        err.status = 404
+        raise err
+    mine = tag_overrides(tag_id, data)
+    agents = [{'id': a['id'], 'name': a.get('name') or a['id']} for a in data.get('agents') or []
+              if tag_id in (a.get('tags') or [])]
+    return {'tag': {'id': tag_id, 'name': _tag_name(data, tag_id)}, 'agents': agents,
+            'plugins': [{**p, 'values': mine.get(p['id'], {})} for p in _plugin_pages(registry, lang)]}
+
+
+def _plugin_pages(registry=None, lang='en'):
     from . import agent_plugins
     registry = registry or agent_plugins._registry()
-    mine = values(agent_id)
-    theirs = overrides(agent_id)
-    plugins = []
     specs = {s.id: s for s in agent_plugins.agent_specs(registry)}
+    out = []
     for pid, fields in plugin_fields(registry).items():
         defaults = registry.settings_of(specs[pid]) if pid in specs else {}
         spec = specs.get(pid)
 
         def text(value, spec=spec):
             return registry.text(spec, value, lang) if spec is not None and isinstance(value, str) else value
-        plugins.append({
+        out.append({
             'id': pid, 'name': text(spec.name) if spec else pid,
             'fields': [{'key': f['key'].split('.', 2)[2], 'label': text(f['label']), 'type': f['type'],
                         'help': text(f.get('help')), 'min': f.get('min'), 'max': f.get('max'),
                         'options': f.get('options'), 'placeholder': text(f.get('placeholder')),
                         'default': defaults.get(f['key'].split('.', 2)[2])} for f in fields],
-            'values': theirs.get(pid, {}),
         })
+    return out
+
+
+def page(agent_id, registry=None, lang='en'):
+    """What the agent's Settings tab shows: the fields, Floorbit's values, each plugin's default and
+    this agent's overrides. Where each value really comes from is in the agent's report."""
+    mine = values(agent_id)
+    data = load_data()
+    theirs = overrides(agent_id, data)
+    from_tags = inherited(agent_id, data)
+    # "inherited": what its tags give it (value, tag id and name), for "from tag hall-a" (#1591).
+    plugins = [{**p, 'values': theirs.get(p['id'], {}), 'inherited': from_tags.get(p['id'], {})}
+               for p in _plugin_pages(registry, lang)]
     return {
         'fields': [dict(f) for f in FIELDS],
         'values': mine,

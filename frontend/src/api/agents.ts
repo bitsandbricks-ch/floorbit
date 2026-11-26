@@ -119,13 +119,27 @@ export interface AgentPluginField {
   default: unknown
 }
 
+/** A plugin setting an agent gets from one of its tags (#1591). */
+export interface InheritedValue { value: unknown; tag: string; name: string }
+
+/** GET /api/agents/tags/<tag>/settings: plugin settings for every agent with the tag (#1591). */
+export interface AgentTagSettingsPage {
+  tag: { id: string; name: string }
+  agents: { id: string; name: string }[]
+  plugins: { id: string; name: string; fields: AgentPluginField[]; values: Record<string, unknown> }[]
+}
+
 /** GET /api/agents/<id>/settings. */
 export interface AgentSettingsPage {
   fields: AgentSettingField[]
   /** What Floorbit sets; a secret is ``true`` (set) and never sent back. */
   values: Record<string, string | number | string[] | true>
   local_only: string[]
-  plugins: { id: string; name: string; fields: AgentPluginField[]; values: Record<string, unknown> }[]
+  plugins: {
+    id: string; name: string; fields: AgentPluginField[]; values: Record<string, unknown>
+    /** What its tags give it, the first tag that sets a value winning (#1591). */
+    inherited?: Record<string, InheritedValue>
+  }[]
   roll_asked: number | null
   renewed_at: number | null
   cert: { issued_at: number; not_after: number; names: string[] } | null
