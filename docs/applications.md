@@ -75,11 +75,12 @@ A file is one of:
 
 **Floorbit's own list** is always there, last in the list and on by default. It is `applications.json`
 next to the Marketplace's index (`https://bitsandbricks-ch.github.io/floorbit-plugins/applications.json`),
-built by floorbit-plugins' publish workflow from its curated `games.yaml` (`scripts/marketplace.py
+built by floorbit-plugins' publish workflow from its curated `games/` folder (`scripts/marketplace.py
 build-applications`) and signed with the Marketplace's index key. Floorbit uses a copy only when the
 signature checks out against `floorbit/keys/index/`; an unsigned or changed file keeps the last good
 copy. It can be switched off (and fetched less often), not removed or moved: your own sources win over
-it. To add a game for every Floorbit, open a pull request on `games.yaml` in bitsandbricks-ch/floorbit-plugins.
+it. To add a game for every Floorbit, open a pull request adding `games/<id>.yaml` in bitsandbricks-ch/floorbit-plugins,
+with a `source:` that says where its domains and ports come from.
 
 How it behaves:
 

@@ -182,8 +182,8 @@ def test_touches_from_an_index_are_cut_to_what_floorbit_knows():
 def test_floorbits_rules_file_is_built_checked_and_signed(tmp_path, keys):
     """build-applications writes what a Floorbit's rule source takes (#1504)."""
     from floorbit import application_sources
-    games = {"applications": [{"id": "example-arena", "name": "Example Arena", "kind": "game",
-                               "sites": ["arena.example.com"], "ports": ["udp/7777"]}]}
+    games = [{"id": "example-arena", "name": "Example Arena", "kind": "game",
+              "sites": ["arena.example.com"], "ports": ["udp/7777"]}]
     tools.build_applications(games, tmp_path / "site", keys["index"].read_bytes())
     raw = (tmp_path / "site" / "applications.json").read_bytes()
     doc = bundles.verify_rules(json.loads(raw), bundles.pinned_keys(bundles.INDEX_KEYS_DIR))
@@ -204,11 +204,54 @@ def test_floorbits_rules_file_is_built_checked_and_signed(tmp_path, keys):
                                   application_sources.FLOORBIT)
 
 
-def test_a_bad_games_file_stops_the_build(tmp_path, keys):
-    with pytest.raises(SystemExit, match=r"games\.yaml"):
-        tools.build_applications({"applications": [{"id": "x", "name": "X", "ports": ["udp/99999"]}]},
+def test_a_bad_games_entry_stops_the_build(tmp_path, keys):
+    with pytest.raises(SystemExit, match="games: Application x"):
+        tools.build_applications([{"id": "x", "name": "X", "ports": ["udp/99999"]}],
+                                 tmp_path / "site", keys["index"].read_bytes())
+    # A shared CDN would count for this application only.
+    with pytest.raises(SystemExit, match=r"akamaihd\.net is shared"):
+        tools.build_applications([{"id": "x", "name": "X", "sites": ["cdn.akamaihd.net"]}],
                                  tmp_path / "site", keys["index"].read_bytes())
     assert not (tmp_path / "site" / "applications.json").exists()
+
+
+def write_game(folder, name, text):
+    folder.mkdir(exist_ok=True)
+    (folder / name).write_text(text)
+
+
+def test_the_games_folder_is_one_file_per_application_with_its_source(tmp_path):
+    games = tmp_path / "games"
+    write_game(games, "example-arena.yaml", "id: example-arena\nname: Example Arena\n"
+               "sites: [arena.example.com]\nsource: https://example.com/arena-ports\n")
+    assert tools.load_games(games) == [{"id": "example-arena", "name": "Example Arena",
+                                         "sites": ["arena.example.com"]}]
+    write_game(games, "other.yaml", "id: example-other\nname: Other\nsource: x\n")
+    with pytest.raises(SystemExit, match=r"games/other\.yaml: the file is named after its id"):
+        tools.load_games(games)
+    write_game(games, "other.yaml", "id: other\nname: Other\n")
+    with pytest.raises(SystemExit, match=r"games/other\.yaml: say where it comes from"):
+        tools.load_games(games)
+    write_game(games, "other.yaml", "- not one application\n")
+    with pytest.raises(SystemExit, match=r"games/other\.yaml: one application"):
+        tools.load_games(games)
+
+
+def test_check_applications_summarises_a_pull_request(tmp_path, capsys, monkeypatch):
+    games = tmp_path / "games"
+    write_game(games, "example-arena.yaml", "id: example-arena\nname: Example Arena\npart_of: steam\n"
+               "sites: [arena.example.com, steampowered.com]\nports: [udp/7777]\nsource: a cache log\n")
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    tools.cmd_check_applications(type("Args", (), {"games": str(games)})())
+    out = capsys.readouterr().out
+    assert "**Example Arena** (`example-arena`, game, gaming): 2 domains, 1 ports" in out
+    assert "steampowered.com also counts for steam" in out
+    assert summary.read_text().startswith("## Floorbit applications: 1")
+    write_game(games, "bad.yaml", "id: bad\nname: Bad\nsites: [x.akamaized.net]\nsource: none\n")
+    with pytest.raises(SystemExit):
+        tools.cmd_check_applications(type("Args", (), {"games": str(games)})())
+    assert "akamaized.net is shared" in capsys.readouterr().out
 
 
 def test_the_rules_file_needs_the_index_key(tmp_path, keys):
