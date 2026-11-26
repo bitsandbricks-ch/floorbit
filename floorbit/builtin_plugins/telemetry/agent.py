@@ -478,6 +478,10 @@ class AgentPlugin(Base):
         if self.last_write is not None:
             self.ctx.gauge('telegraf_quiet_seconds', round(now - self.last_write))
         self.ctx.gauge('primary', int(self.primary))
+        # What this plugin can do here, for the agent's page (agent_ha.capabilities): Telegraf (own or
+        # sidecar) for SNMP, traps and streaming, and single GETs for a check-in's lookup.
+        self.ctx.gauge('telegraf', int(bool(self.binary) or os.environ.get(MODE_ENV, '').strip().lower() == 'sidecar'))
+        self.ctx.gauge('lookup', 1)
         # Floorbit splits a group's devices only once every agent of it says it follows the split;
         # an agent host without ctx.owns would still refuse logins to its own devices off-primary.
         if callable(getattr(self.ctx, 'owns', None)):
