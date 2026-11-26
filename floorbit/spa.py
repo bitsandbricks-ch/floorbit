@@ -13,6 +13,10 @@ ENTRY = 'index.html'
 # What the pages inside the app shell fetch on top of the entry: the shell and the rest of the
 # English texts (frontend/src/App.tsx). Sign-in, check-in and the public pages don't (issue #1293).
 SHELL = ('src/components/Layout.tsx', 'src/i18n/english.ts')
+# Mantine's styles, ahead of the app's own: all of them, or for the pages outside the shell only
+# those they use (frontend/src/styles/mantinePublic.ts, about half). The build checks that list.
+MANTINE = 'src/styles/mantine.ts'
+MANTINE_PUBLIC = 'src/styles/mantinePublic.ts'
 
 
 def _manifest_path():
@@ -33,8 +37,19 @@ def assets(entry=ENTRY, shell=True):
             cache.update(mtime=mtime, manifest=json.load(f), assets={})
     key = (entry, shell)
     if key not in cache['assets']:
-        cache['assets'][key] = _collect(cache['manifest'], entry, SHELL if shell else ())
+        manifest = cache['manifest']
+        built = _collect(manifest, entry, SHELL if shell else ())
+        full = _styles(manifest, MANTINE)
+        built['mantine'] = full if shell else (_styles(manifest, MANTINE_PUBLIC) or full)
+        # A page outside the shell that moves on to one inside it swaps in the full set
+        # (frontend/src/lib/crewStyles.ts).
+        built['mantine_full'] = full[0] if full and built['mantine'] != full else None
+        cache['assets'][key] = built
     return cache['assets'][key]
+
+
+def _styles(manifest, name):
+    return [f'/static/app/{c}' for c in manifest.get(name, {}).get('css', [])]
 
 
 def _collect(manifest, entry, more=()):

@@ -1,13 +1,15 @@
 import { createElement, lazy } from 'react'
 import { allTexts } from '@/i18n'
 import type { AppRoute } from '@/lib/appRoute'
+import { crewStyles } from '@/lib/crewStyles'
 
 const Login = lazy(() => import('@/pages/Login'))
 const Checkin = lazy(() => import('@/pages/Checkin'))
 const PublicStatus = lazy(() => import('@/pages/public/PublicStatus'))
 const SeatHelp = lazy(() => import('@/pages/public/SeatHelp'))
-// A dashboard's widgets come from every area: it waits for all the texts, like the shell's pages.
-const DashboardScreen = lazy(() => Promise.all([import('@/pages/DashboardScreen'), allTexts()]).then(([m]) => m))
+// A dashboard's widgets come from every area: it waits for all the texts and styles, like the
+// shell's pages.
+const DashboardScreen = lazy(() => Promise.all([import('@/pages/DashboardScreen'), allTexts(), crewStyles()]).then(([m]) => m))
 
 // Pages outside the app shell: sign-in, check-in, the public pages, and a dashboard on a big screen.
 export const routes: AppRoute[] = [
