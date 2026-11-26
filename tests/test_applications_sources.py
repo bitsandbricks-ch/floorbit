@@ -106,6 +106,7 @@ def test_the_schedule_and_the_freeze(app_module, client):
     def fetch(url):
         calls.append(url)
         return GOOD
+    client.put("/api/applications/sources/floorbit", json={"on": False})     # only ours here
     assert sources.tick(now=1000, fetch=fetch) == [src["id"]]
     assert sources.tick(now=1000 + 3600, fetch=fetch) == []               # not due for six hours
     assert sources.tick(now=1000 + 6 * 3600, fetch=fetch) == [src["id"]]
@@ -122,7 +123,8 @@ def test_the_schedule_and_the_freeze(app_module, client):
     sources.tick(now=10**6, fetch=away)
     assert sources.tick(now=10**6 + sources.RETRY_AFTER, fetch=fetch) == [src["id"]]
     actions = [line["action"] for line in audit_lines() if line.get("area") == "applications"]
-    assert actions == ["Added a rule source", "Froze the rule sources", "Unfroze the rule sources"]
+    assert actions == ["Added a rule source", "Changed a rule source", "Froze the rule sources",
+                       "Unfroze the rule sources"]
 
 
 @pytest.mark.parametrize("body", [
@@ -144,3 +146,17 @@ def test_the_sources_are_for_admins(app_module, client):
     assert viewer.post("/api/applications/sources", json=body).status_code == 403
     assert viewer.put("/api/applications/sources-frozen", json={"frozen": True}).status_code == 403
     assert viewer.get("/api/applications").status_code == 200
+
+
+def test_floorbits_own_list_is_last_on_and_can_only_be_switched_off(app_module, client):
+    mine = add(client)
+    rows = client.get("/api/applications/sources").get_json()["sources"]
+    assert [r["id"] for r in rows] == [mine["id"], "floorbit"]
+    assert rows[-1]["on"] is True and rows[-1]["url"].endswith("/floorbit-plugins/applications.json")
+    assert client.delete("/api/applications/sources/floorbit").status_code == 400
+    assert client.put("/api/applications/sources/floorbit", json={"url": "https://example.com/x"}).status_code == 400
+    resp = client.put("/api/applications/sources/floorbit", json={"on": False, "every_hours": 6})
+    assert resp.status_code == 200 and resp.get_json()["on"] is False and resp.get_json()["every_hours"] == 6
+    # Unsigned, it is never used: the fetch fails and nothing comes in.
+    row = sources.sync("floorbit", now=1, fetch=lambda url: GOOD)
+    assert row["ok"] is False and "not signed" in row["error"] and row["count"] == 0

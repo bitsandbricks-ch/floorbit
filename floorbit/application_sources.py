@@ -12,6 +12,10 @@ a schedule and keeps, so the games it recognises stay current without a Floorbit
 - **Order** when two name the same application: the event's own changes, then the sources from the
   top of the list down, then the lists Floorbit ships (``applications.builtin``), which stay the
   fallback for a hall without internet.
+- **Floorbit's own list** (#1504, ``FLOORBIT``) is always there, last in the list and on by default:
+  ``applications.json`` beside the Marketplace's index on bitsandbricks-ch/floorbit-plugins' Pages,
+  signed with the index key (``plugins.bundles.verify_rules``). It can be switched off, not removed,
+  and a copy whose signature doesn't check out is never used.
 - **Freeze** stops all fetching, so the numbers don't move during the event.
 
 The agent's flow rules come from the merged list (``applications.flow_rules``): nothing changes there.
@@ -28,6 +32,10 @@ from .store import load_data, save_data
 
 KEY = 'application_sources'
 FROZEN = 'application_sources_frozen'
+OWN_LIST = 'application_sources_floorbit'     # {on, every_hours} for Floorbit's own list
+FLOORBIT = {'id': 'floorbit', 'name': 'Floorbit list',
+            'url': 'https://bitsandbricks-ch.github.io/floorbit-plugins/applications.json',
+            'every_hours': 24, 'on': True, 'signed': True, 'builtin': True}
 MAX_SOURCES = 20
 MAX_BYTES = 4 * 1024 * 1024
 MAX_APPS = 2000
@@ -49,9 +57,18 @@ class SourceError(ValueError):
 
 # ── what is set up ──────────────────────────────────────────────────────────
 
+def _own(data):
+    return [s for s in data.get(KEY) or [] if isinstance(s, dict) and s.get('id') and s['id'] != FLOORBIT['id']]
+
+
 def sources(data=None):
+    """The event's sources from the top down, then Floorbit's own list."""
     data = load_data() if data is None else data
-    return [s for s in data.get(KEY) or [] if isinstance(s, dict) and s.get('id')]
+    change = data.get(OWN_LIST) if isinstance(data.get(OWN_LIST), dict) else {}
+    every = change.get('every_hours')
+    own_list = {**FLOORBIT, 'on': change.get('on', True) is not False,
+                'every_hours': every if isinstance(every, int) and 1 <= every <= 720 else FLOORBIT['every_hours']}
+    return [*_own(data), own_list]
 
 
 def frozen(data=None):
@@ -79,7 +96,7 @@ def _clean(body, current=None):
 def add(body):
     with _lock:
         data = load_data()
-        found = sources(data)
+        found = _own(data)
         if len(found) >= MAX_SOURCES:
             raise SourceError(f'Floorbit keeps at most {MAX_SOURCES} sources.')
         entry = {'id': uuid.uuid4().hex[:12], **_clean(body)}
@@ -89,9 +106,11 @@ def add(body):
 
 
 def change(source_id, body):
+    if source_id == FLOORBIT['id']:
+        return _change_own_list(body)
     with _lock:
         data = load_data()
-        found = sources(data)
+        found = _own(data)
         current = next((s for s in found if s['id'] == source_id), None)
         if current is None:
             raise SourceError('No such source.', 404)
@@ -108,10 +127,27 @@ def change(source_id, body):
     return entry
 
 
-def remove(source_id):
+def _change_own_list(body):
+    """Floorbit's own list: only on/off and how often; its name, URL and place stay."""
+    if not isinstance(body, dict):
+        raise SourceError('Send the source as a JSON object.')
+    if any(k in body for k in ('name', 'url', 'position')):
+        raise SourceError("Floorbit's own list keeps its name, URL and place; it can be switched off.")
     with _lock:
         data = load_data()
-        found = sources(data)
+        current = sources(data)[-1]
+        entry = _clean({'name': current['name'], 'url': current['url'], **body}, current)
+        data[OWN_LIST] = {'on': entry['on'], 'every_hours': entry['every_hours']}
+        save_data(data)
+    return sources()[-1]
+
+
+def remove(source_id):
+    if source_id == FLOORBIT['id']:
+        raise SourceError("Floorbit's own list can be switched off, not removed.")
+    with _lock:
+        data = load_data()
+        found = _own(data)
         gone = next((s for s in found if s['id'] == source_id), None)
         if gone is None:
             return None
@@ -190,6 +226,12 @@ def parse(raw, source):
         doc = json.loads(text)
     except ValueError:
         doc = None
+    if source.get('signed'):
+        from .plugins import bundles
+        try:
+            doc = bundles.verify_rules(doc, bundles.pinned_keys(bundles.INDEX_KEYS_DIR))
+        except bundles.BundleError as exc:
+            raise SourceError(f'Not used: {exc}.') from exc
     if isinstance(doc, dict):
         return _from_json(doc, source, applications)
     if doc is not None:
