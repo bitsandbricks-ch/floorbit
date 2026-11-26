@@ -28,7 +28,7 @@
   "madeHelp": "Gib ihn dem Agent als FLOORBIT_AGENT_KEY.",
   "keyLabel": "Agent-Schlüssel",
   "copyRun": "Befehl kopieren",
-    "copied": "Kopiert",
+  "copied": "Kopiert",
   "runTitle": "Agent im Eventnetz starten",
   "docs": "Wie der Agent funktioniert und was er gefragt wird: docs/agent.md.",
   "relaySyslog": "Syslog",
@@ -108,8 +108,6 @@
     "redisOk": "Valkey antwortet.",
     "redisOff": "Valkey wird nicht verwendet oder antwortet nicht: Live-Updates bleiben auf dieser Instanz.",
     "redisDown": "Valkey antwortet nicht: Die Instanzen können Live-Updates und Agent-Aufrufe nicht teilen.",
-    "groupsTitle": "Agents pro Tag",
-    "groupsHelp": "Agents, die für dieselben Tags antworten, sichern sich gegenseitig ab. Mit VRRP (FLOORBIT_AGENT_VRRP_VIPS) ist derjenige mit der ersten Adresse der Primäre: Nur er fragt Geräte ab und meldet sich an, die anderen übernehmen innert Sekunden.",
     "state": {
       "ok": "Ausfallsicher",
       "single": "Ein Agent",
@@ -150,7 +148,6 @@
   },
   "fact": {
     "seen": "Zuletzt gesehen",
-    "now": "jetzt",
     "version": "Version",
     "link": "Verbindung",
     "up": "Läuft seit",
@@ -199,10 +196,6 @@
     "calls": "Anfragen in der letzten Stunde",
     "noFailed": "keine fehlgeschlagen"
   },
-  "open": "Öffnen",
-  "openNamed": "{{name}} öffnen",
-  "moreProblems_one": "und 1 weiteres",
-  "moreProblems_other": "und {{count}} weitere",
   "kicker": "Lokaler Agent",
   "detailsTitle": "Details",
   "reportTitle": "Was er meldet",
