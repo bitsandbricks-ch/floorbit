@@ -313,9 +313,16 @@ def flow_rules(data=None, servers=None):
             rules.append({'name': service_name(app), 'category': app['category'],
                           'ports': app['ports'], 'cidr': app['cidr'], 'sites': app['sites']})
     for server in servers or []:
+        if not server.get('game'):
+            continue
+        name = _game_name(server['game'], apps)
         net = _host_net(server.get('host'))
-        if net and server.get('game'):
-            rules.insert(0, {'name': _game_name(server['game'], apps), 'category': 'gaming', 'cidr': [net]})
+        if net:
+            rules.insert(0, {'name': name, 'category': 'gaming', 'cidr': [net]})
+        elif dns.site(server.get('host')):
+            # A host name: the agent resolves it itself (floorbit/flows/names.py Resolver).
+            rules.insert(0, {'name': name, 'category': 'gaming',
+                             'hosts': [str(server['host']).strip().lower().rstrip('.')]})
     return rules
 
 
@@ -327,7 +334,7 @@ def _host_net(host):
     try:
         addr = ipaddress.ip_address(str(host or ''))
     except ValueError:
-        return None   # a host name: the agent can't match it to flows without asking DNS
+        return None   # a host name: flow_rules hands it to the agent to resolve
     return f'{addr}/{addr.max_prefixlen}'
 
 

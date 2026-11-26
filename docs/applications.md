@@ -23,8 +23,8 @@ Each one is recognised by any of:
 - **LAN cache**: the lancache.net cache it owns (`steam`, `blizzard`, ...) and, for Steam, depot ids
   (the number in `/depot/<id>/`).
 - **Game servers** (Settings › Game servers) count for the game they run: by its name or id, its
-  players as players, and its address as a traffic rule. A server set up by host name has no traffic
-  rule: the agent can't match flows to a name.
+  players as players, and its address as a traffic rule. A server set up by host name is resolved by
+  the agent every 10 minutes, and flows to the addresses it gets count for the game.
 
 ## Built in
 
