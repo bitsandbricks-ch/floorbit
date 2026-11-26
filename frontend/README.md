@@ -16,6 +16,15 @@ npm run dev          # http://localhost:5173, API and sign-in proxied to Flask o
 Start Flask as usual (`python app.py`) next to it. Set `FLOORBIT_URL` if Flask runs elsewhere.
 Sign in on `http://localhost:5173/login`: the proxy passes the session cookie through.
 
+## The shared packages
+
+`@bitsandbricks/tokens`, `ui` and `widgets` (bitsandbricks-ch/ui) are pinned to a **dev build**,
+not a release: ui publishes one under the npm tag `dev` for every commit to its main, and Floorbit
+follows them for now. Every hour `.github/workflows/ui-dev.yml` opens or updates one pull request
+(`bot/ui-dev`) that moves the three to the newest one, with CI run on it. To take a ui change at
+once, run that workflow by hand, or `npm install --save-exact @bitsandbricks/ui@dev` (and tokens
+and widgets) on your branch.
+
 ## Check, like CI
 
 ```sh
