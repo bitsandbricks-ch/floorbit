@@ -249,6 +249,7 @@
 .fb-block-bar .on { background: var(--bnb-ok); }
 .fb-block-bar .off { background: var(--bnb-err); }
 .fb-block-bar .unk { background: repeating-linear-gradient(45deg, var(--bnb-muted) 0 3px, transparent 3px 6px); }
+.fb-plan .rowlbl.blkname { text-anchor: end; }
 .fb-plan .btag-bad.link, .fb-plan .rowlbl.link { cursor: pointer; pointer-events: auto; }
 .fb-plan .rowlbl.link:hover { fill: var(--bnb-fg); }
 .fb-block-seat:focus-visible { outline: 2px solid var(--bnb-accent); outline-offset: 2px; border-radius: 6px; }

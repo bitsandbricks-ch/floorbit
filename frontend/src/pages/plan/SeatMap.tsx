@@ -380,6 +380,12 @@ export function SeatMap({ data, selected, onSelect, onClear, onBlock, onSwitch, 
                   onClick={onBlock ? () => onBlock(b.id ?? b.name) : undefined}
                   transform={b.rotation ? `rotate(${-b.rotation} ${r.x} ${r.y})` : undefined}>{r.text}</text>
               ))}
+              {/* A block numbered as a whole has no row letters: its name, as small, just before it. */}
+              {named.rows && !b.rows?.length && shapeLabel(b) && (
+                <text className={onBlock ? 'rowlbl blkname link' : 'rowlbl blkname'} x={-b.w / 2 - drawing.cell * 0.25} y={0} dy="0.35em"
+                  onClick={onBlock ? () => onBlock(b.id ?? b.name) : undefined}
+                  transform={b.rotation ? `rotate(${-b.rotation} ${-b.w / 2 - drawing.cell * 0.25} 0)` : undefined}>{shapeLabel(b)}</text>
+              )}
               <BlockSeats cells={b.cells} rotation={b.rotation} seats={data.seats} cell={drawing.cell} filter={filter} selected={selected} only={focus?.seats}
                 cursor={b.cells.some((c) => c.seat === cursor) ? cursor : null} traffic={traffic} problems={layers.on.has('problems')} firewalls={firewalls} marks={pluginSeats}
                 checkin={layers.on.has('checkin')} incidents={incidents?.seats} level={level} labels={seatLabels} ids={ids} onEnter={enterSeat} onLeave={leaveSeat} onClick={clickSeat} describe={stateText} />
