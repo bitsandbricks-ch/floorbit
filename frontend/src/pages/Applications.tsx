@@ -18,6 +18,7 @@ import { Layout } from '@/components/Layout'
 import { ago } from '@/lib/time'
 import { RuleSources } from './applications/RuleSources'
 import { ShareApplication } from './applications/ShareApplication'
+import { Unrecognised } from './applications/Unrecognised'
 import { bytes } from './traffic/format'
 
 const HOURS = 24
@@ -33,6 +34,7 @@ export default function Applications() {
   const [shown, setShown] = useState<Shown>('all')
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState<string | null>(null)   // an id, or 'new'
+  const [newSite, setNewSite] = useState<string | null>(null)
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const client = useQueryClient()
   const imported = useMutation({
@@ -84,7 +86,7 @@ export default function Applications() {
               {(props) => <Button {...props} variant="default" loading={imported.isPending}>{t('applicationShare.import')}</Button>}
             </FileButton>
             <Button variant="default" onClick={() => { setOpen(null); setSourcesOpen(true) }}>{t('applicationSources.open')}</Button>
-            <Button onClick={() => { setSourcesOpen(false); setOpen('new') }}>{t('applications.add')}</Button>
+            <Button onClick={() => { setSourcesOpen(false); setNewSite(null); setOpen('new') }}>{t('applications.add')}</Button>
           </Group>
         ) : undefined} />
       <Stack gap="md">
@@ -97,6 +99,8 @@ export default function Applications() {
               value: k, label: k === 'all' ? t('applications.all') : t(`applications.kinds.${k}`), count: count(k),
             })),
           }]} />
+        <Unrecognised rows={q.data?.unrecognised ?? []} canEdit={canEdit}
+          onMake={(site) => { setSourcesOpen(false); setNewSite(site); setOpen('new') }} />
         <DataTable rows={rows} columns={columns} rowKey={(a) => a.id} label={t('applications.title')}
           loading={q.isLoading} defaultSort={{ id: 'seats', desc: true }} cards urlState
           onRowClick={(a) => { setSourcesOpen(false); setOpen(a.id) }}
@@ -120,7 +124,8 @@ export default function Applications() {
       </Stack>
       {sourcesOpen && canEdit && <RuleSources onClose={() => setSourcesOpen(false)} />}
       {open && (open === 'new' || current) && (
-        <AppPanel key={open} app={current ?? null} apps={apps} canEdit={canEdit} onClose={() => setOpen(null)}
+        <AppPanel key={`${open}-${newSite ?? ''}`} app={current ?? null} apps={apps} canEdit={canEdit}
+          initialSites={open === 'new' && newSite ? [newSite] : undefined} onClose={() => setOpen(null)}
           onSaved={(id) => setOpen(id)}
           onPrev={index > 0 ? () => setOpen(rows[index - 1].id) : undefined}
           onNext={index >= 0 && index < rows.length - 1 ? () => setOpen(rows[index + 1].id) : undefined} />
@@ -154,8 +159,9 @@ function origin(t: T, a: Application) {
 }
 
 /** One application beside the list: for a built-in one, what the event added and whether it is hidden. */
-function AppPanel({ app, apps, canEdit, onClose, onSaved, onPrev, onNext }: {
-  app: Application | null; apps: Application[]; canEdit: boolean; onClose: () => void; onSaved: (id: string) => void
+function AppPanel({ app, apps, canEdit, initialSites, onClose, onSaved, onPrev, onNext }: {
+  app: Application | null; apps: Application[]; canEdit: boolean; initialSites?: string[]
+  onClose: () => void; onSaved: (id: string) => void
   onPrev?: () => void; onNext?: () => void
 }) {
   const { t } = useTranslation()
@@ -165,7 +171,7 @@ function AppPanel({ app, apps, canEdit, onClose, onSaved, onPrev, onNext }: {
   const [kind, setKind] = useState<AppKind>(app?.kind ?? 'game')
   const [partOf, setPartOf] = useState<string | null>(app?.part_of ?? null)
   const own = builtin ? app!.added : app
-  const [sites, setSites] = useState<string[]>(own?.sites ?? [])
+  const [sites, setSites] = useState<string[]>(own?.sites ?? initialSites ?? [])
   const [ports, setPorts] = useState<string[]>(own?.ports ?? [])
   const [cidr, setCidr] = useState<string[]>(own?.cidr ?? [])
   const [depots, setDepots] = useState<string[]>(own?.depots ?? [])
@@ -210,6 +216,16 @@ function AppPanel({ app, apps, canEdit, onClose, onSaved, onPrev, onNext }: {
         </Group>
       ) : undefined}>
       {(save.error || remove.error) && <PanelSection><ErrorBanner error={save.error ?? remove.error} /></PanelSection>}
+      {app?.redundant && canEdit && (
+        <PanelSection>
+          <Group justify="space-between" gap="xs">
+            <Text size="sm">{t('applicationShare.redundant')}</Text>
+            <Button size="compact-sm" variant="default" loading={remove.isPending} onClick={() => remove.mutate()}>
+              {t('applicationShare.dropLocal')}
+            </Button>
+          </Group>
+        </PanelSection>
+      )}
       {!builtin && (
         <PanelSection>
           <Stack gap="sm">

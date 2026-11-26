@@ -64,6 +64,13 @@ come from (a link or a note), then:
   downloaded and added by hand.
 - **Download as rules file** gives the entry to another event directly.
 
+**Not recognised**, above the list, shows the busiest domains 5 or more seats used that no shown
+application has, each with **Make an application** (the domain filled in). That is where a new game
+usually shows up first.
+
+When Floorbit's lists come to have everything the event added to a built-in application (because it
+was shared, or a list caught up), its panel offers **Drop the local copy**.
+
 **Export** on the page downloads the event's own applications and what it added to built-in ones as
 one rules file. **Import** on another Floorbit takes such a file. New applications keep their ids,
 own ones are replaced, and a built-in one gets only what the file has beyond what it shipped with.
@@ -117,6 +124,8 @@ How it behaves:
   A source's entry replaces the built-in one but keeps its LAN cache ids.
 - **Freeze:** stops all fetching during the event, so the numbers don't move. The copies stay in
   use. The page footer shows the frozen state and when each source last changed.
+- **Last change:** each source shows what its last sync changed: how many applications came,
+  changed or went, and their names.
 
 The agent's traffic rules come from the merged list, so a synced port or address reaches the flow
 collector within a minute, as an edit on the page does.

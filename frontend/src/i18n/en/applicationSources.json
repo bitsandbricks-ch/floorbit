@@ -32,5 +32,12 @@
   "syncedOne": "{{name}} (changed {{when}})",
   "frozenNote": "Rule sources frozen.",
   "from": "From {{name}}",
-  "ownList": "Maintained by BitsAndBricks and signed: Floorbit only uses it when the signature checks out. Always last, so your own sources win."
+  "ownList": "Maintained by BitsAndBricks and signed: Floorbit only uses it when the signature checks out. Always last, so your own sources win.",
+  "lastChange": "Last change: {{added}} new, {{changed}} changed, {{removed}} removed",
+  "change": {
+    "added": "New",
+    "changed": "Changed",
+    "removed": "Removed"
+  },
+  "andMore": "and {{count}} more"
 }

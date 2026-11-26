@@ -1,4 +1,4 @@
-import { Button, Group, NumberInput, Stack, Switch, Text, TextInput } from '@mantine/core'
+import { Anchor, Button, Group, NumberInput, Stack, Switch, Text, TextInput } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -80,6 +80,7 @@ function SourceRow({ source: s, first, frozen, onChanged }: {
         {' · '}{t('applicationSources.fetched', { when: ago(s.at) })}
         {' · '}{t('applicationSources.changed', { when: ago(s.changed_at) })}
       </Text>
+      {s.last_change && <LastChange change={s.last_change} />}
       {s.ok === false && s.error && (
         <Text size="xs" c="var(--bnb-err)">{s.count ? t('applicationSources.keptCopy', { error: s.error }) : s.error}</Text>
       )}
@@ -102,6 +103,28 @@ function SourceRow({ source: s, first, frozen, onChanged }: {
         )}
       </Group>
     </Stack>
+  )
+}
+
+/** What the last fetch that changed something brought: counts, and the names on demand. */
+function LastChange({ change }: { change: NonNullable<RuleSource['last_change']> }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const parts = (['added', 'changed', 'removed'] as const)
+  const any = parts.some((k) => change[k].count)
+  if (!any) return null
+  return (
+    <div>
+      <Anchor component="button" type="button" size="xs" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        {t('applicationSources.lastChange', { added: change.added.count, changed: change.changed.count, removed: change.removed.count })}
+      </Anchor>
+      {open && parts.filter((k) => change[k].count).map((k) => (
+        <Text key={k} size="xs" c="dimmed">
+          {t(`applicationSources.change.${k}`)}: {change[k].names.join(', ')}
+          {change[k].count > change[k].names.length && ` ${t('applicationSources.andMore', { count: change[k].count - change[k].names.length })}`}
+        </Text>
+      ))}
+    </div>
   )
 }
 

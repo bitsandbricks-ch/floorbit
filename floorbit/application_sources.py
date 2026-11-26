@@ -200,7 +200,8 @@ def status(data=None):
     for s in sources(data):
         c = found.get(s['id']) or {}
         out.append({**s, 'at': c.get('at'), 'ok': c.get('ok'), 'error': c.get('error'),
-                    'changed_at': c.get('changed_at'), 'count': len(c.get('applications') or [])})
+                    'changed_at': c.get('changed_at'), 'count': len(c.get('applications') or []),
+                    'last_change': c.get('last_change')})
     return out
 
 
@@ -331,10 +332,22 @@ def sync(source_id, now=None, fetch=None):
         if result['ok']:
             if result['applications'] != old.get('applications'):
                 entry['changed_at'] = now
+                entry['last_change'] = _difference(old.get('applications') or [], result['applications'])
             entry['applications'] = result['applications']
         found[source_id] = entry
         _write_copies(found)
     return next(s for s in status() if s['id'] == source_id)
+
+
+def _difference(old, new, limit=50):
+    """What a fetch changed: {"added"|"changed"|"removed": {"count", "names"}}, up to ``limit``
+    names each (#1612)."""
+    before, after = {a['id']: a for a in old}, {a['id']: a for a in new}
+    name = lambda a: a.get('name') or a['id']  # noqa: E731
+    parts = {'added': [name(after[i]) for i in after if i not in before],
+             'changed': [name(after[i]) for i in after if i in before and after[i] != before[i]],
+             'removed': [name(before[i]) for i in before if i not in after]}
+    return {k: {'count': len(v), 'names': v[:limit]} for k, v in parts.items()}
 
 
 def due(source, copy, now):

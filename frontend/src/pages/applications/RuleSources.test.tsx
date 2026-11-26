@@ -14,6 +14,7 @@ const answer = {
 const good = {
   id: 'a1', name: 'Tournament rules', url: 'https://example.com/rules.json', every_hours: 24, on: true,
   at: 1, ok: true, error: null, changed_at: 1, count: 3,
+  last_change: { added: { count: 2, names: ['Example Arena', 'Example Other'] }, changed: { count: 0, names: [] }, removed: { count: 1, names: ['Old'] } },
 }
 const failed = { ...good, id: 'b2', name: 'Broken list', url: 'https://example.org/list.txt', ok: false, error: 'Could not fetch it: Timeout.' }
 const own = { ...good, id: 'floorbit', name: 'Floorbit list', url: 'https://example.net/applications.json', builtin: true, signed: true }
@@ -66,5 +67,18 @@ describe('Rule sources', () => {
     renderWithApp(<Applications />, '/applications')
     expect(await screen.findByText(/Tournament rules \(changed/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Rule sources' })).toBeNull()
+  })
+
+  it('says what the last fetch changed, with the names on demand', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': admin, 'GET /api/applications?hours=24': answer,
+      'GET /api/applications/sources': { sources: [good], frozen: false },
+    }).fn)
+    renderWithApp(<Applications />, '/applications')
+    fireEvent.click(await screen.findByRole('button', { name: 'Rule sources' }))
+    const line = await screen.findByRole('button', { name: 'Last change: 2 new, 0 changed, 1 removed' })
+    fireEvent.click(line)
+    expect(screen.getByText('New: Example Arena, Example Other')).toBeInTheDocument()
+    expect(screen.getByText('Removed: Old')).toBeInTheDocument()
   })
 })
