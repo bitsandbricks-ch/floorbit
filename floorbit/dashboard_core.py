@@ -133,7 +133,7 @@ MAX_DOWN = 20   # a big screen reads a short list; the rest is "+ n more"
 
 def tiles(lang, may_see_board, feature_on=lambda f: True):
     """The tile list entries, next to the plugins' in ``GET /api/dashboard``. A tile of a feature
-    that is off (Settings > Features) is left out, like its page."""
+    that is off (Settings > Plugins > Built in) is left out, like its page."""
     text = TEXTS.get(lang, TEXTS['en'])
     hidden = set() if may_see_board else {'incidents', 'open_incidents'}
     hidden |= {t for t, spec in TILES.items() if spec.get('feature') and not feature_on(spec['feature'])}

@@ -38,7 +38,7 @@ export function TrafficServices({ data }: { data: FlowsData }) {
       <DataTable rows={services} columns={columns} rowKey={(s) => s.name} label={t('traffic.services')} urlState={false}
         bare density="compact" defaultSort={{ id: 'down', desc: true }}
         onRowClick={(s) => setOpen(s.name)}
-        rowProps={(s) => (s.name === open ? { 'aria-selected': true } : undefined)} />
+        selected={open} />
       <Text size="xs" c="dimmed" mt={6}>
         {t('traffic.servicesText', { count: data.min_seats ?? 5, volume: bytes(data.other_services) })}
       </Text>

@@ -112,7 +112,7 @@ export default function Login() {
                 {t('login.checkin')}
               </Button>
               {o.checkin_address && (
-                <Text size="xs" c="dimmed">{t('login.checkinAddress')} <Text span ff="var(--font-mono)" fw={600} c="var(--color-fg)">{o.checkin_address}</Text></Text>
+                <Text size="xs" c="dimmed">{t('login.checkinAddress')} <Text span ff="var(--font-mono)" fw={600} c="var(--bnb-fg)">{o.checkin_address}</Text></Text>
               )}
             </div>
           )}

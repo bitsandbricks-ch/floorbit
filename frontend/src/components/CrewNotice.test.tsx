@@ -36,7 +36,7 @@ describe('Crew notice', () => {
     expect(pop).toHaveTextContent(/Lea, .* · until /)
     expect(screen.queryByRole('button', { name: 'Take down' })).not.toBeInTheDocument()
     fireEvent.click(read)
-    expect(localStorage.getItem('floorbit-notice-hidden')).toBe(String(now))
+    expect(localStorage.getItem('floorbit-notice-hidden')).toBe(String(new Date(now * 1000).getTime()))
     expect(await badge()).toHaveClass('is-quiet')
   })
 

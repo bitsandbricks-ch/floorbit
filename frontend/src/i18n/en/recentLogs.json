@@ -1,0 +1,6 @@
+{
+  "title": "Recent logs",
+  "open": "Open in Logs",
+  "none": "No syslog lines from {{name}} yet.",
+  "noneSeat": "No syslog lines about seat {{name}} yet."
+}

@@ -9,9 +9,9 @@
 .fb-chips { row-gap: 6px; }
 .fb-chip {
   display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 8px;
-  border: 1px solid var(--color-line); border-radius: 6px; font-size: 12.5px;
+  border: 1px solid var(--bnb-line); border-radius: 6px; font-size: 12.5px;
 }
-.fb-chip-label { color: var(--color-muted); }
+.fb-chip-label { color: var(--bnb-muted); }
 .fb-chip-value { font-weight: 550; overflow-wrap: anywhere; }
 .fb-detail-grid { display: grid; gap: var(--mantine-spacing-md); grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 62em) {
@@ -19,7 +19,7 @@
 }
 
 /* An item page's remove panel: a thin line in the down colour, so it reads as the end of the page. */
-.fb-danger-zone { border-color: color-mix(in srgb, var(--color-down) 40%, var(--mantine-color-default-border)); }
+.fb-danger-zone { border-color: color-mix(in srgb, var(--bnb-err) 40%, var(--mantine-color-default-border)); }
 /* A settings row (#994): what it is and its help on the left, the control on the right, every
    control the same width, so a wide screen doesn't leave half the panel empty. One column on phones. */
 .fb-setting-row {
@@ -55,15 +55,15 @@
 .fb-term { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .fb-term-tabs {
   display: flex; align-items: stretch; gap: 2px; padding: 6px 8px 0; overflow-x: auto; flex: none;
-  border-bottom: 1px solid var(--color-line); background: var(--color-surface);
+  border-bottom: 1px solid var(--bnb-line); background: var(--bnb-surface);
 }
 .fb-term-tab {
   display: flex; align-items: center; gap: 2px; padding: 0 4px 0 0; border: 1px solid transparent;
-  border-bottom: 0; border-radius: 6px 6px 0 0; color: var(--color-muted); background: none; flex: none;
+  border-bottom: 0; border-radius: 6px 6px 0 0; color: var(--bnb-muted); background: none; flex: none;
 }
-.fb-term-tab[data-active] { background: var(--fb-term-bg); border-color: var(--color-line); color: #e7e7ea; }
-.fb-term-tab-new[data-active] { background: var(--color-ink); color: var(--color-fg); }
-.fb-term-tab:hover:not([data-active]) { color: var(--color-fg); }
+.fb-term-tab[data-active] { background: var(--fb-term-bg); border-color: var(--bnb-line); color: #e7e7ea; }
+.fb-term-tab-new[data-active] { background: var(--bnb-bg); color: var(--bnb-fg); }
+.fb-term-tab:hover:not([data-active]) { color: var(--bnb-fg); }
 .fb-term-tab-name, .fb-term-tab-new {
   display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: none; border: 0;
   color: inherit; font: inherit; font-size: 13px; cursor: pointer;
@@ -75,7 +75,7 @@
 .fb-term-pane { position: absolute; inset: 0; display: flex; flex-direction: column; }
 .fb-term-pane[hidden] { display: none; }
 .fb-term-screen { flex: 1; min-height: 0; padding: 8px 4px 4px 12px; }
-.fb-term-new { position: absolute; inset: 0; overflow: auto; padding: 32px 16px; background: var(--color-ink); }
+.fb-term-new { position: absolute; inset: 0; overflow: auto; padding: 32px 16px; background: var(--bnb-bg); }
 .fb-term-connect { max-width: 760px; margin: 0 auto; }
-.fb-term-foot { flex: none; padding: 6px 12px; border-top: 1px solid var(--color-line); background: var(--color-surface); }
+.fb-term-foot { flex: none; padding: 6px 12px; border-top: 1px solid var(--bnb-line); background: var(--bnb-surface); }
 :root { --fb-term-bg: #0b0b0f; }   /* the dark page colour, in both themes */

@@ -1,14 +1,9 @@
 {
-  "button": "Gehe zu",
-  "title": "Zu einer Seite",
   "placeholder": "Seite, Platz, Switch, IP oder MAC eingeben",
-  "none": "Nichts passt.",
   "close": "Schliessen",
-  "recent": "zuletzt",
   "seat": "Platz",
   "switch": "Switch",
   "player": "Spieler",
-  "action": "Aktion",
   "actions": {
     "notice": "Crew-Hinweis aufhängen",
     "notify": "Benachrichtigungen einstellen"
@@ -42,7 +37,7 @@
     "switchAreas": "Switch-Bereiche",
     "schedule": "Programm",
     "timeline": "Ereignis-Chronik",
-    "networkStatus": "Netzwerkstatus",
+    "networkStatus": "Statusmeldungen",
     "replay": "Event-Wiedergabe",
     "report": "Event-Bericht",
     "events": "Events",
@@ -50,7 +45,6 @@
     "settings": "Einstellungen",
     "setup": "Einrichten",
     "plugins": "Plugins",
-    "features": "Funktionen",
     "sidebarSections": "Bereiche in der Seitenleiste",
     "apiTokens": "API-Tokens",
     "tenants": "Mandanten",
@@ -61,9 +55,10 @@
     "signIn": "Anmeldedienste",
     "audit": "Audit-Log",
     "firewalls": "Firewalls",
+    "switches": "Switches",
     "services": "Dienste",
     "topology": "Topologie",
-    "telemetry": "Telemetrie",
+    "telemetry": "Telemetrie-Sammler",
     "endpoints": "IP- und MAC-Verlauf",
     "widgets": "Widgets",
     "health": "Dienste-Status",
@@ -96,6 +91,11 @@
     "setup": "Checkliste, erste Schritte, loslegen",
     "checkins": "PIN, Ankunft",
     "firewalls": "Routing, Uplinks",
-    "networkStatus": "Internet, Provider, Uplinks"
+    "networkStatus": "Statusseite, Teilnehmende, Störung, Meldung"
+  },
+  "groups": {
+    "pages": "Seiten",
+    "places": "Plätze, Switches und Spieler",
+    "actions": "Aktionen"
   }
 }

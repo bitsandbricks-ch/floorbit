@@ -436,5 +436,5 @@ def _statusupdate(user, given):
     except status_page.StatusError as exc:
         return str(exc)
     shown = 'Attendees see it on the status page.' if page.page_on() \
-        else 'The public status page is off, so only the crew sees it on Network status.'
+        else 'The public status page is off, so only the crew sees it on Status updates.'
     return f"Posted: {update['text']}\n{shown}" + _link('/network-status')

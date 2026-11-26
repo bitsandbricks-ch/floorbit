@@ -1,7 +1,7 @@
-import { ActionIcon, Alert, Anchor, Badge, Button, CopyButton, Group, Menu, Stack, Text, Title, UnstyledButton } from '@mantine/core'
+import { ActionIcon, Alert, Anchor, Badge, Button, CopyButton, Group, Menu, Stack, Text, Title } from '@mantine/core'
 import { IconArrowDown, IconArrowUp, IconBellOff, IconCheck, IconChevronDown, IconChevronRight, IconCopy, IconDots, IconReplace } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
@@ -143,7 +143,18 @@ function RowActions({ p, a }: { p: Row; a: Actions }) {
 const GROUPS = ['none', 'kind', 'device', 'hall'] as const
 type GroupBy = typeof GROUPS[number]
 
-function ProblemTable({ rows, actions, now, label, urlState }: { rows: Row[]; actions: Actions; now: number; label: string; urlState: boolean }) {
+/** How a grouped list splits: the group of a row, the groups on this page in order, which are folded, and each header. */
+interface Groups {
+  by: (p: Row) => string
+  order: string[]
+  folded: string[]
+  onFold: (keys: string[]) => void
+  head: (key: string, rows: Row[]) => ReactNode
+}
+
+function ProblemTable({ rows, actions, now, label, urlState, groups }: {
+  rows: Row[]; actions: Actions; now: number; label: string; urlState: boolean; groups?: Groups
+}) {
   const { t } = useTranslation()
   const columns: DataColumn<Row>[] = [
     { id: 'level', header: t('problems.col.level'), width: 130, card: 'inline', sort: (p) => rank(p, now),
@@ -164,7 +175,9 @@ function ProblemTable({ rows, actions, now, label, urlState }: { rows: Row[]; ac
   ]
   return (
     <DataTable rows={rows} columns={columns} rowKey={(p) => p.id} label={label} cards urlState={urlState}
-      defaultSort={{ id: 'level' }} pageSize={PAGE_SIZE} minWidth={720}
+      defaultSort={{ id: 'level' }} pageSize={groups ? 0 : PAGE_SIZE} minWidth={720}
+      groupBy={groups?.by} groupOrder={groups?.order} groupHeader={groups?.head}
+      foldable={!!groups} folded={groups?.folded} onFold={groups?.onFold}
       rowProps={(p) => ({ 'aria-label': p.members ? undefined : p.title, className: `fb-problem-row ${p.muted ? 'muted' : p.level}` })}
       count={urlState ? (n) => t('problems.shown', { count: n }) : undefined} />
   )
@@ -210,8 +223,7 @@ export default function Problems() {
   const now = useNowSeconds()
   // The filters live in the address, so a reload or a shared link keeps them (issues #276, #883),
   // on one row like every other list (issue #1472).
-  const filters = useFilters({ kind: 'all', level: 'all', group: 'none', tag: '', muted: 'show' })
-  const shown = filters.values.kind
+  const filters = useFilters({ kind: '', level: 'all', group: 'none', tag: '', muted: 'show', incident: 'all' })
   const folds = useFolds()
   const [groupPage, setGroupPage] = useState(1)
   const [groupsPerPage, setGroupsPerPage] = useState(GROUP_PAGE)
@@ -261,9 +273,17 @@ export default function Problems() {
   // In the order they first appear, which is worst first.
   const kinds: string[] = [...new Set(all.map((p) => p.kind))]
   const seatCount = all.filter((p) => p.seat).length
-  const chips = seatCount && kinds.length > 1 ? ['all', SEATS, ...kinds] : ['all', ...kinds]
+  const chips = seatCount && kinds.length > 1 ? [SEATS, ...kinds] : kinds
+  // Several types at once (issue #1472): "security,service"; none picked shows every row. A type
+  // that is gone from the list stops counting, so an old link doesn't empty the page.
+  const picked = filters.values.kind.split(',').filter((k) => chips.includes(k))
+  const ofType = (p: Problem) => !picked.length || picked.some((k) => (k === SEATS ? !!p.seat : p.kind === k))
   const level = filters.values.level
   const hideMuted = filters.values.muted === 'hide'
+  // Whether someone works on it (#883): only those who see the board get the incident at all.
+  const seesIncidents = all.some((p) => p.incident !== undefined)
+  const incident = seesIncidents ? filters.values.incident : 'all'
+  const worked = (p: Problem) => incident === 'all' || (incident === 'open') === !!p.incident
   // Hall and tag come from the switch's inventory entry, or the seat's block (issue #1364).
   const hallNames = [...new Set(all.map((p) => p.hall).filter((h): h is string => !!h))]
   const tags = [...new Set(all.flatMap((p) => p.tags ?? []))].sort((x, y) => x.localeCompare(y))
@@ -271,13 +291,13 @@ export default function Problems() {
   const groupBy: GroupBy = (GROUPS as readonly string[]).includes(filters.values.group) ? filters.values.group as GroupBy : 'none'
   const query = filters.search.trim().toLowerCase()
   const found = (p: Problem) => !query || [p.title, p.where, p.device, p.seat, p.hall].some((v) => v?.toLowerCase().includes(query))
-  const matches = (p: Problem) => (shown === SEATS ? !!p.seat : !kinds.includes(shown) || p.kind === shown)
+  const matches = (p: Problem) => ofType(p)
     && (level === 'all' || (level === 'down' ? p.level === 'down' : p.level !== 'down'))
-    && !(hideMuted && p.muted) && (!tag || (p.tags ?? []).includes(tag)) && found(p)
+    && !(hideMuted && p.muted) && (!tag || (p.tags ?? []).includes(tag)) && worked(p) && found(p)
   const matching = all.filter(matches).sort((x, y) => rank(x, now) - rank(y, now))
   // The same seat problem on many seats is one row, and a down link hangs under its down box
   // (issue #1415). A kind picked on purpose stays one row per seat.
-  const visible = fold(matching, (k) => shown === k || shown === SEATS)
+  const visible = fold(matching, (k) => picked.includes(k) || picked.includes(SEATS))
   const groupKey = (p: Problem) => groupBy === 'kind' ? t(`problems.kind.${p.kind}`) : groupBy === 'hall' ? p.hall ?? '' : p.device ?? ''
   const groups = groupBy === 'none' ? [] : [...new Set(visible.map(groupKey))]
     .sort((x, y) => (x === '' ? 1 : 0) - (y === '' ? 1 : 0) || x.localeCompare(y, undefined, { numeric: true }))
@@ -325,11 +345,10 @@ export default function Problems() {
           {all.length > 0 && (
             <FilterBar search={filters.search} onSearchChange={filters.setSearch} searchLabel={t('problemHeader.search')} onClear={filters.clear}
               groups={filters.groups([
-                // TODO(#1472): several types at once once the shared FilterBar's `multiple` is released (ui#91).
-                { key: 'kind', label: t('problemHeader.type'), hidden: kinds.length < 2, options: chips.map((k) => ({
+                { key: 'kind', label: t('problemHeader.type'), multiple: true, hidden: kinds.length < 2, options: chips.map((k) => ({
                   value: k,
-                  label: k === 'all' ? t('problems.all') : k === SEATS ? t('problems.seats') : t(`problems.kind.${k}`),
-                  count: k === 'all' ? all.length : k === SEATS ? seatCount : all.filter((p) => p.kind === k).length,
+                  label: k === SEATS ? t('problems.seats') : t(`problems.kind.${k}`),
+                  count: k === SEATS ? seatCount : all.filter((p) => p.kind === k).length,
                 })) },
                 { key: 'level', label: t('problems.filter.level'), options: (['all', 'down', 'warn'] as const).map((v) => ({
                   value: v, label: t(`problems.filter.levels.${v}`),
@@ -339,6 +358,10 @@ export default function Problems() {
                   .map((v) => ({ value: v, label: v === 'hall' ? t('problemPriority.groupHall') : t(`problems.filter.groups.${v}`) })) },
                 { key: 'tag', label: t('problemPriority.tag'), hidden: !tags.length,
                   options: [{ value: '', label: t('problemHeader.anyTag') }, ...tags.map((v) => ({ value: v, label: v }))] },
+                { key: 'incident', label: t('problemIncident.label'), hidden: !seesIncidents, options: (['all', 'open', 'none'] as const).map((v) => ({
+                  value: v, label: t(`problemIncident.${v}`),
+                  count: v === 'all' ? all.length : all.filter((p) => !!p.incident === (v === 'open')).length,
+                })) },
                 { key: 'muted', label: t('problemHeader.muted'), options: [
                   { value: 'show', label: t('problemHeader.mutedShown') },
                   { value: 'hide', label: t('problemHeader.mutedHidden'), count: all.filter((p) => !p.muted).length },
@@ -359,26 +382,24 @@ export default function Problems() {
             <ProblemTable rows={visible} actions={actions} now={now} label={t('problems.title')} urlState />
           ) : (
             <>
-              {pageGroups.map((g) => {
-                const rows = visible.filter((p) => groupKey(p) === g)
-                const name = g || (groupBy === 'hall' ? t('problemPriority.noHall') : t(groupBy === 'device' ? 'problems.noDevice' : 'problems.all'))
-                const down = rows.filter((p) => p.level === 'down' && !p.muted).length
-                const open = !folds.isFolded(foldKey(g))
-                return (
-                  <section key={g || '-'} aria-label={name} className="fb-problem-group">
-                    {/* Folds away a group someone is already on, and stays folded across reloads (issue #1472). */}
-                    <Title order={2} size="h5">
-                      <UnstyledButton className="fb-problem-group-head" onClick={() => folds.toggle(foldKey(g))} aria-expanded={open}>
-                        {open ? <IconChevronDown size={16} aria-hidden="true" /> : <IconChevronRight size={16} aria-hidden="true" />}
+              {/* One table, a header row per group that folds it away and stays folded across reloads (issue #1472). */}
+              <ProblemTable rows={visible.filter((p) => pageGroups.includes(groupKey(p)))} actions={actions} now={now} label={t('problems.title')}
+                urlState={false} groups={{
+                  by: groupKey, order: pageGroups,
+                  folded: pageGroups.filter((g) => folds.isFolded(foldKey(g))),
+                  onFold: (keys) => folds.setFolded(pageGroups.map(foldKey), keys.filter((g) => pageGroups.includes(g)).map(foldKey)),
+                  head: (g, rows) => {
+                    const name = g || (groupBy === 'hall' ? t('problemPriority.noHall') : t(groupBy === 'device' ? 'problems.noDevice' : 'problems.all'))
+                    const down = rows.filter((p) => p.level === 'down' && !p.muted).length
+                    return (
+                      <span className="fb-problem-group-head">
                         <span>{name}</span>
                         <Text span c="dimmed" size="sm" fw={400}>{rows.length}</Text>
                         {down > 0 && <Text span c="down" size="sm" fw={600}>{t('problemHeader.downCount', { count: down })}</Text>}
-                      </UnstyledButton>
-                    </Title>
-                    {open && <ProblemTable rows={rows} actions={actions} now={now} label={name} urlState={false} />}
-                  </section>
-                )
-              })}
+                      </span>
+                    )
+                  },
+                }} />
               {groups.length > GROUP_PAGE && (
                 <Pager page={page} perPage={groupsPerPage} total={groups.length} onPage={setGroupPage}
                   onPerPage={(n) => { setGroupsPerPage(n); setGroupPage(1) }} perPageOptions={[10, 25, 50]}
@@ -414,7 +435,7 @@ export default function Problems() {
               </Stack>
             </section>
           )}
-          {canSeePeople && <ShutPorts always={shown === 'security'} />}
+          {canSeePeople && <ShutPorts always={picked.includes('security')} />}
         </Stack>
       )}
       <MuteDialog target={target} busy={mute.isPending} error={dialogError} onClose={() => setTarget(null)}

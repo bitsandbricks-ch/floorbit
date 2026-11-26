@@ -6,7 +6,7 @@ or posted in Discord. `/status.json` has the same as JSON. `/hall`, where the ol
 was, leads here.
 
 It is **off** until an admin turns on **Network status page** under **Settings > Attendee pages**
-(or `STATUS_PAGE=true`). The feature can also be switched off entirely under Settings > Features.
+(or `STATUS_PAGE=true`). The feature can also be switched off entirely under Settings > Plugins > Built in.
 
 ## What the page shows
 
@@ -35,7 +35,7 @@ It is **off** until an admin turns on **Network status page** under **Settings >
 - **Back up recently**: for half an hour after a switch comes back from being down, its areas are
   listed with "The network here has been back since 14:05.", so attendees who saw the outage see
   that it is over. A switch that was simply up since Floorbit started doesn't count. The crew's
-  **Network status** page lists the same areas with their switches.
+  **Status updates** page lists the same areas with their switches.
 - **Updates** the crew posts, newest first (at most 50 are kept).
 
 The page updates every minute and shows times in the reader's own time zone.
@@ -57,14 +57,19 @@ halls, blocks and rows. The crew's own page names the switches.
 
 ## For the crew
 
-**Network status** (`/network-status`, linked from Settings) shows what the public page says now,
-the affected areas with the switch names, and the updates.
+**Status updates** (`/network-status`, a tab of the Helpdesk) shows what the public page says now,
+the affected areas with the switch names, and the updates in a table: when each was posted, the
+area it is about (or *Everywhere*) and its text, newest first, ten to a page.
 
 - Reading it needs `incidents.work`.
 - Posting and removing updates and setting the state need `incidents.assign` (lead and admin).
 - Above the update box, **Start from** offers one button per area that is down and per area that is
   back up. A click fills in a ready text and the area. Edit it, then post. The texts use the names
   attendees see, never switch names.
+- **Area** lists the halls and seat blocks to pick from; anything else (a service, the catering) can
+  still be typed in.
+- **Set the state** shows what decides the state now: *Automatic* (with the state it works out) or the
+  state set by hand. Pick another and press **Set**; picking *Automatic* lifts a state set by hand.
 - Every change is in the audit log (area *status page*).
 
 ## Discord

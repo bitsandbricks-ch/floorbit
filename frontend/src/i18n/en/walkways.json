@@ -1,0 +1,7 @@
+{
+  "width": "Width",
+  "widthHint": "Seat blocks snap to its edges, so this is the space between them.",
+  "seats_one": "seat",
+  "seats_other": "seats",
+  "help": "Drag the corner squares to move the ends, the dots in the middle of a stretch to bend it. It shows on the Overview and Safety layers; on the live plan it is empty floor."
+}

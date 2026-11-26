@@ -4,11 +4,11 @@ import { useContext, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDashboard, useWidgets } from '@/api/queries'
 import type { Tile, Widget, WidgetTile } from '@/api/types'
+import { Markdown } from '@bitsandbricks/ui'
 import { FitWidget } from '@bitsandbricks/widgets'
 import { usePaneData } from '@/widgets/usePaneData'
 import { type Pane, displayOf, paneRange, rangedUrl } from './model'
 import { PlanPane } from './PlanPane'
-import { Markdown } from '@/components/Markdown'
 import { publicUrl, useScreen } from './screen'
 import { followed } from '../widgets/saved'
 import { LargeContext, useMakeLarge } from './large'
@@ -140,7 +140,7 @@ function TextPane({ pane }: { pane: Extract<Pane, { kind: 'text' }> }) {
   const { t } = useTranslation()
   return (
     <Framed title={pane.title} hide={pane.hide_title} className={`fb-pane-text fb-text-${pane.size} fb-text-${pane.align}`}>
-      {pane.text ? <Markdown source={pane.text} breaks /> : <Note>{t('dashboards.pane.noText')}</Note>}
+      {pane.text ? <Markdown source={pane.text} breaks className="fb-markdown" /> : <Note>{t('dashboards.pane.noText')}</Note>}
     </Framed>
   )
 }

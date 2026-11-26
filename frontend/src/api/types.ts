@@ -144,6 +144,14 @@ export const INVENTORY_FIELDS = ['name', 'role', 'model', 'serial', 'mgmt_ip', '
 export type InventoryField = (typeof INVENTORY_FIELDS)[number]
 export const SPEC_FIELDS = ['platform', 'os', 'cpu', 'cores', 'memory_mb', 'disk_gb', 'host'] as const
 
+/** A device's link towards the core, in the inventory list (issue #981). */
+export interface DeviceUplink {
+  port: string; peer: string; peer_port: string; speed_bps: number | null; planned_gbps: number | null
+  state: 'up' | 'down' | 'unknown'; issue: '' | 'down' | 'slow'
+  /** How full the busiest direction is, 0 to 1 (Network › Switches, #902); null when not read. */
+  load?: number | null
+}
+
 export interface Device extends Record<InventoryField, string> {
   id: string
   x: number | null
@@ -170,6 +178,14 @@ export interface Device extends Record<InventoryField, string> {
   state?: 'online' | 'offline' | 'unknown' | null
   ports?: { up: number; total: number } | null
   drift?: number
+  /** In the list only (issue #981): the link towards the core, seconds down in each of the last 24
+   *  hours (oldest first; none when the monitor never reported it), and telemetry.agent ('' Auto). */
+  uplink?: DeviceUplink | null
+  last_day?: number[] | null
+  agent?: string
+  /** In the list only (issue #902): seats on its ports, and its PoE budget and draw in watts. */
+  seats?: number
+  poe?: { budget_w: number; used_w: number } | null
 }
 
 /** Icon, colour, tags, properties and feature switches: what devices, groups and tags all carry. */
@@ -310,6 +326,8 @@ export interface LoginBlock {
 export interface DeviceDetail extends Omit<Device, 'drift'> {
   /** The list here; the inventory list has only the count. */
   drift?: import('./inventoryDrift').DriftRow[]
+  /** Where two discovery sources read different values (issue #965). */
+  conflicts?: import('./discoverySources').SourceConflict[]
   interfaces: DeviceInterface[]
   own_credentials: CredentialInfo[]
   blocks: LoginBlock[]
@@ -794,6 +812,8 @@ export interface ProblemDetail {
   finding?: Omit<Finding, 'title' | 'cleared_at'>
   can_shut?: boolean
   needs_login?: boolean
+  /** The place's outages, incidents and alerts from the event changelog (issue #882). */
+  history?: TimelineEntry[]
 }
 /** What to paste into LibreNMS's API transport (GET /api/alerts/librenms/setup). */
 export interface LibreNMSAlertsSetup {
@@ -1005,7 +1025,7 @@ export interface PlanGroup {
 
 export interface PlanMark {
   id?: string
-  kind: 'text' | 'icon' | 'wall' | 'zone'
+  kind: 'text' | 'icon' | 'wall' | 'walkway' | 'zone'
   /** Drawing order, higher on top (floorbit/stacking.py). */
   z?: number
   x: number
@@ -1021,6 +1041,8 @@ export interface PlanMark {
   /** A wall's bends between its ends, [x, y] each (drawing units in the plan, % from /api/plan-marks). */
   points?: [number, number][]
   style?: 'solid' | 'dashed'
+  /** A walkway's width, in seats (0.5 to 20; #1564). */
+  width?: number
   w?: number
   h?: number
   label?: string
@@ -1373,6 +1395,8 @@ export interface LogStatus {
   retention_hours: number
   demo: boolean
   last_id: number
+  /** When the oldest kept line came (unix seconds): where the volume chart starts. */
+  first_ts?: number | null
   /** Local agents that send the event network's syslog on (issue #2). */
   relayed?: { agent: string; at: number; lines: number; dropped: number; recent: boolean }[]
   sources: LogSource[]

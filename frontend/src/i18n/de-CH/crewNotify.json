@@ -1,0 +1,13 @@
+{
+  "incident": "Neue Störung",
+  "seat": "Platz {{seat}}",
+  "switch": "Switch {{name}}",
+  "job": "Ein Auftrag für dich",
+  "jobText": "Dir wurde eine Störung zugeteilt.",
+  "down": "Switch ausgefallen",
+  "downText": "{{name}} ist offline.",
+  "service": "Dienst ausgefallen",
+  "watched": "Beobachteter Platz",
+  "seatDown": "Platz {{seat}} ist offline.",
+  "seatUp": "Platz {{seat}} ist wieder online."
+}

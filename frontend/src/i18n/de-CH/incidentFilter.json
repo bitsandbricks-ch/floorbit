@@ -1,0 +1,12 @@
+{
+  "who": "Wer",
+  "everyone": "Alle",
+  "anyTeam": "Jedes Team",
+  "all": "Alle",
+  "wheres": {
+    "all": "Überall",
+    "seat": "Plätze",
+    "switch": "Switches",
+    "circuit": "Stromkreise"
+  }
+}

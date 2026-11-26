@@ -100,7 +100,7 @@ export function ProviderForm({
             {t('signin.addRule')}
           </Button>
           {error && (
-            <Text c="var(--color-down)" size="sm" role="alert">
+            <Text c="var(--bnb-err)" size="sm" role="alert">
               {error}
             </Text>
           )}

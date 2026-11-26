@@ -220,6 +220,35 @@ def _live():
     return states, ports
 
 
+def _switch_facts(data):
+    """Seats per switch and the busiest direction on each port, for the Network > Switches tab
+    (issue #902): {name lower: seats}, {(name lower, canonical port): 0..1}. Seats come from the
+    seat mapping (hand entries, cables, check-ins) and the port descriptions the last read saw."""
+    from .. import cables
+    watch = current_app.extensions.get('floorbit_attention')
+    seats = {}
+    try:
+        mapped = cables.port_seats(data)
+    except Exception as exc:  # noqa: BLE001  # the list must show even when the mapping can't be read
+        print(f'[inventory] seats per switch: {exc}')
+        mapped = {}
+    for (switch, _port), seat in mapped.items():
+        seats.setdefault(str(switch).lower(), set()).add(seat)
+    for (switch, _port), seat in (getattr(watch, 'port_seats', None) or {}).items():
+        seats.setdefault(str(switch).lower(), set()).add(seat)
+    load = {key: read.get('utilization') for key, read in (getattr(watch, 'port_reads', None) or {}).items()
+            if isinstance(read.get('utilization'), (int, float))}
+    return {k: len(v) for k, v in seats.items()}, load
+
+
+def _with_load(name, uplink, load):
+    """The uplink with how full its busiest direction is (0..1), None when the port wasn't read."""
+    if not uplink:
+        return uplink
+    from ..syslog import canonical_port
+    return {**uplink, 'load': load.get((name, canonical_port(uplink.get('port') or '')))}
+
+
 def _monitored():
     """The monitoring source's devices from the status monitor's last good poll, or None."""
     from integrations.monitor import StatusMonitor
@@ -239,6 +268,22 @@ def _state(dev, states, found):
     return state
 
 
+def _columns(data, states):
+    """Uplink, last 24 h and agent per device (issue #981). A column that can't be worked out stays
+    empty rather than failing the list."""
+    from .. import inventory_columns as cols
+    out = []
+    for build in (lambda: cols.uplinks(data),
+                  lambda: cols.last_day(current_app.extensions['floorbit_stats'].event().get('switch_events'), states),
+                  lambda: cols.collectors(data)):
+        try:
+            out.append(build())
+        except Exception as exc:  # noqa: BLE001  # the list must show even when a column can't
+            print(f'[inventory] list column: {exc}')
+            out.append({})
+    return out
+
+
 @bp.route('/api/inventory', methods=['GET'])
 def list_devices():
     data = load_data()
@@ -246,12 +291,31 @@ def list_devices():
     drift = data.get('inventory_drift') if isinstance(data.get('inventory_drift'), dict) else {}
     states, ports = _live()
     found = _monitored()
+    devices = inventory.devices(data, include_hidden=hidden)
+    state_of = {d['id']: _state(d, states, found) for d in devices}
+    up, day, agents = _columns(data, {str(d['name']).lower(): state_of[d['id']] for d in devices})
+    seats, load = _switch_facts(data)
+    found_by = data.get('inventory_discovered') if isinstance(data.get('inventory_discovered'), dict) else {}
     return jsonify({'devices': [{**inventory.public(d), 'drift': len(drift.get(d['id']) or []),
-                                 'state': _state(d, states, found),
-                                 'ports': ports.get(str(d['name']).lower())}
-                                for d in inventory.devices(data, include_hidden=hidden)],
+                                 'state': state_of[d['id']],
+                                 'ports': ports.get(str(d['name']).lower()),
+                                 'uplink': _with_load(str(d['name']).lower(), up.get(str(d['name']).lower()), load),
+                                 'seats': seats.get(str(d['name']).lower(), 0),
+                                 'poe': (found_by.get(d['id']) or {}).get('poe') or None,
+                                 'last_day': day.get(str(d['name']).lower()),
+                                 'agent': agents.get(str(d['name']).lower(), '')}
+                                for d in devices],
                     'sources': _sources(data), 'every': inventory_schedule.every_minutes(),
                     'roles': list(inventory.ROLES), 'fields': list(inventory.FIELDS)})
+
+
+def _bad_input(exc):
+    """An InventoryError a route lets through: its message is one the inventory wrote for people
+    ("A device needs a name"), never a library's or a stack trace."""
+    return jsonify({'error': exc.args[0] if exc.args else 'Bad input'}), 400
+
+
+bp.register_error_handler(inventory.InventoryError, _bad_input)
 
 
 @bp.route('/api/inventory', methods=['POST'])
@@ -260,10 +324,7 @@ def create_device():
     body.pop('hall_id', None)   # placing in a hall goes through /api/switches, which checks the hall
     with data_lock:
         data = load_data()
-        try:
-            dev = inventory.create(data, body)
-        except inventory.InventoryError as exc:
-            return jsonify({'error': str(exc)}), 400
+        dev = inventory.create(data, body)      # bad input raises: _bad_input answers
         save_data(data)
     return jsonify(inventory.public(dev)), 201
 
@@ -280,8 +341,6 @@ def update_device(device_id):
             dev, changed = inventory.update(data, device_id, body)
         except KeyError:
             return jsonify({'error': 'No such device'}), 404
-        except inventory.InventoryError as exc:
-            return jsonify({'error': str(exc)}), 400
         save_data(data)
     return jsonify({**inventory.public(dev), 'changed': changed})
 
@@ -351,10 +410,20 @@ def discovery_run():
         if inventory.find(load_data(), str(body['device'])) is None:
             return jsonify({'error': 'No such device'}), 404
         devices = {str(body['device'])}
-    if not inventory_discovery.available():
-        return jsonify({'error': 'No monitoring source is set up, so there is nothing to discover.'}), 400
+    from .. import plugin_discovery
+    plugged = {a['id'] for a in plugin_discovery.areas()}
+    builtin = None if wanted is None else {a for a in wanted if a in inventory_discovery.ACTION_IDS}
+    mine = plugged if wanted is None else {a for a in wanted if a in plugged}
+    if builtin != set() and not inventory_discovery.available():
+        if not mine or wanted is not None:
+            return jsonify({'error': 'No monitoring source is set up, so there is nothing to discover.'}), 400
+        builtin = set()
     with inventory_discovery.running:
-        report = inventory_discovery.run(set(wanted) if wanted else None, devices)
+        report = inventory_discovery.run(builtin, devices) if builtin != set() else None
+        if mine:
+            # A plugin's areas (#968): asked through its agent part.
+            done = plugin_discovery.run(mine, devices)
+            report = {**report, 'plugins': done} if report else done
     return jsonify({'report': report, 'actions': inventory_discovery.actions(load_data())})
 
 

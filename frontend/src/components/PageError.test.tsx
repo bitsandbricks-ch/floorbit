@@ -1,7 +1,7 @@
 import { fireEvent, screen } from '@testing-library/react'
 import { Link, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { isStaleCode } from '@/lib/staleCode'
+import { isStaleCode } from '@bitsandbricks/ui'
 import { renderWithApp } from '@/test/render'
 import { AppShell } from './Layout'
 

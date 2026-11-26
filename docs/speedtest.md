@@ -83,4 +83,4 @@ They answer 404 while speed tests are off. The help page's `GET /api/helpdesk/se
 `"speedtest": {"test_mb": 250}`, or `null` while they are off.
 - `POST /help/<seat>/speed/result`: `{"down_mbps", "up_mbps", "ping_ms", "jitter_ms"}`.
 
-The speed test is part of the **helpdesk** feature (Settings > Features).
+The speed test is part of the **helpdesk** feature (Settings > Plugins > Built in).

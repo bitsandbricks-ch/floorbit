@@ -555,5 +555,61 @@
       "label": "Andere Agenten übernehmen",
       "hint": "Aus: Solange der Agent (oder jeder Agent mit dem Tag) weg ist, sammelt niemand."
     }
+  },
+  "agent": "Agent",
+  "agentAuto": "Automatisch",
+  "uplink": {
+    "title": "Uplink",
+    "where": "{{port}} zu {{peer}} {{peerPort}}",
+    "down": "down",
+    "slow": "{{speed}} von {{planned}}"
+  },
+  "lastDay": {
+    "title": "Letzte 24 h",
+    "none": "Nicht vom Statusmonitor beobachtet",
+    "up": "vor {{ago}} h: up",
+    "down": "vor {{ago}} h: {{minutes}} min down",
+    "label_one": "{{count}} Stunde mit Ausfall in den letzten 24 Stunden",
+    "label_other": "{{count}} Stunden mit Ausfall in den letzten 24 Stunden"
+  },
+  "unknown": {
+    "chip_one": "{{count}} unbekannter Absender",
+    "chip_other": "{{count}} unbekannte Absender",
+    "title": "Unbekannte Absender",
+    "desc": "Adressen, die in den letzten 24 Stunden Syslog, Traps, Streams oder Flows an die Agenten geschickt haben, aber zu keinem Gerät passen. Nur Zahlen, keine Zeilen.",
+    "showIgnored": "Ignoriert ({{count}})",
+    "none": "Nichts Unbekanntes",
+    "noneDesc": "Jede Adresse, die in den letzten 24 Stunden gesendet hat, ist ein Gerät im Inventar.",
+    "ignored": "Ignoriert",
+    "heard": "Zuletzt {{last}}, zuerst {{first}}",
+    "via": "über {{agents}}",
+    "add": "Ins Inventar aufnehmen",
+    "addNow": "Aufnehmen",
+    "ignore": "Ignorieren",
+    "unignore": "Nicht mehr ignorieren",
+    "kind": {
+      "syslog_one": "Syslog, {{count}} Zeile",
+      "syslog_other": "Syslog, {{count}} Zeilen",
+      "trap_one": "Traps, {{count}}",
+      "trap_other": "Traps, {{count}}",
+      "stream_one": "Streams, {{count}} Punkt",
+      "stream_other": "Streams, {{count}} Punkte",
+      "flow_one": "Flows, {{count}}",
+      "flow_other": "Flows, {{count}}"
+    }
+  },
+  "bulk": {
+    "label": "Mit den gewählten Geräten arbeiten",
+    "picked_one": "{{count}} Gerät gewählt",
+    "picked_other": "{{count}} Geräte gewählt",
+    "run": "Befehl ausführen",
+    "tagAdd": "Tag hinzufügen",
+    "tagRemove": "Tag entfernen",
+    "group": "In Gruppe verschieben",
+    "noGroup": "Keine Gruppe",
+    "hide": "Ausblenden",
+    "clear": "Auswahl aufheben",
+    "done_one": "{{count}} Gerät geändert",
+    "done_other": "{{count}} Geräte geändert"
   }
 }

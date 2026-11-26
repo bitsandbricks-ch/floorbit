@@ -311,26 +311,31 @@
     "results_other": "{{count}} Einstellungen passen",
     "whereFrom": "Ein hier gespeicherter Wert geht seiner Umgebungsvariable vor; leeren führt zurück zur Umgebung oder zum Standard. Datenbank, Valkey, Schlüssel und Zeitzone legt nur die Umgebung fest.",
     "groups": {
-      "event": "Event und Aussehen",
-      "sources": "Quellen",
-      "monitoring": "Überwachung",
-      "alerts": "Alarme und Discord",
-      "access": "Anmeldung und Zugriff",
-      "other": "Weiteres",
-      "accounts": "Konten",
-      "tenants": "Mandanten",
-      "system": "System"
+      "event": "Event",
+      "people": "Personen",
+      "alerts": "Meldungen",
+      "floorbit": "Floorbit"
     },
     "status": "Status",
     "sourcesMoved": "NetBox, LibreNMS und die anderen Plugins haben ihre Einstellungen auf ihrer eigenen Seite:",
-    "toPlugins": "Plugins"
+    "toPlugins": "Plugins",
+    "entries": {
+      "appearance": "Event und Aussehen",
+      "inventory": "Inventar",
+      "monitor": "Monitoring",
+      "floorplan": "Hallenplan",
+      "checkin": "Plätze und Check-in",
+      "power": "Elektro",
+      "switchtools": "Switch-Werkzeuge",
+      "public": "Seiten für Teilnehmende",
+      "discord": "Meldungen und Discord",
+      "backup": "Backups",
+      "status": "Server"
+    },
+    "parts": {
+      "inventory": "Synchronisieren und Erkennen",
+      "status": "Adressen"
+    }
   },
-  "kicker": "Wie dieses Floorbit arbeitet: das Event, seine Leute, Alarme und das System",
-  "tabs": {
-    "general": "Allgemein",
-    "people": "Leute",
-    "alerts": "Alarme",
-    "tenants": "Mandanten",
-    "system": "System"
-  }
+  "kicker": "Wie dieses Floorbit arbeitet: das Event, seine Leute, Alarme und das System"
 }

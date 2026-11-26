@@ -636,8 +636,11 @@ class AgentPlugin(Base):
             for name, dev in sorted(heard.items()):
                 rows.append(_device_row(name, dev, now, problems.pop(name, []), [dev.driver] if dev.driver else [],
                                         False, True))
+        # Addresses that sent traps or streams but match no device (#1443): only counts, no lines.
+        senders = [{k: r[k] for k in ('kind', 'address', 'name', 'count', 'first', 'last')}
+                   for r in self.state.senders.rows(now)]
         return {'primary': bool(self.primary), 'devices': rows,
-                'unknown': [p for rows_ in problems.values() for p in rows_][:20]}
+                'unknown': [p for rows_ in problems.values() for p in rows_][:20], 'senders': senders}
 
     # "Test now": one device, once, while you watch -------------------------------------------
     def call_test(self, args):

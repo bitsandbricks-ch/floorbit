@@ -34,5 +34,6 @@ export function deviceRows(d: { devices: GivenDevice[]; seen: Record<string, Dev
   return rows.sort((a, b) => ORDER[a.state] - ORDER[b.state] || a.name.localeCompare(b.name))
 }
 
-const ORDER: Record<DeviceState, number> = { silent: 0, never: 1, partial: 2, unknown: 3, waiting: 4, standby: 5, up: 6 }
+/** "Needs a look" first: the default sort of every device list. */
+export const ORDER: Record<DeviceState, number> = { silent: 0, never: 1, partial: 2, unknown: 3, waiting: 4, standby: 5, up: 6 }
 

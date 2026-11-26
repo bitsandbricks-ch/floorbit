@@ -152,12 +152,12 @@ points back into this site.
 ## Sign in with Discord
 
 A "Sign in with Discord" button appears on the sign-in page once a Discord application is set
-up. Settings > Discord sign-in holds the values; each one can also come from an environment
+up. Settings > Sign-in providers holds the values; each one can also come from an environment
 variable.
 
 1. Create an application at <https://discord.com/developers/applications>. Under OAuth2, add the
    redirect `https://<your Floorbit address>/auth/discord/callback`. Behind a reverse proxy, set
-   **Public URL** (Settings > General, `PUBLIC_URL`) so Floorbit sends Discord that exact address.
+   **Public URL** (Settings > Server, Advanced, `PUBLIC_URL`) so Floorbit sends Discord that exact address.
 2. Paste the application's **client ID** and **client secret** (`DISCORD_CLIENT_ID`,
    `DISCORD_CLIENT_SECRET`). The secret is write-only, like the other tokens, and never in a backup.
 

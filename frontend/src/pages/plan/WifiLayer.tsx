@@ -14,7 +14,7 @@ function load(ap: WifiAp): number | null {
 export function WifiLayer({ wifi, idPrefix }: { wifi: WifiData; idPrefix: string }) {
   const aps = wifi.aps.filter((a) => a.on_plan && a.px != null && a.py != null)
   if (!aps.length) return null
-  const color = (ap: WifiAp) => (ap.status === 'down' ? 'var(--color-down)' : loadColor(load(ap), wifi.thresholds.busy))
+  const color = (ap: WifiAp) => (ap.status === 'down' ? 'var(--bnb-err)' : loadColor(load(ap), wifi.thresholds.busy))
   return (
     <g className="wifi-layer">
       <defs>

@@ -30,6 +30,15 @@ that switch is used. Either opens the one SSH connection and is
 dropped: never stored, logged or sent anywhere else. Failed logins count toward the same pause as
 port actions (five in 15 minutes). Host keys are pinned as described in [ports.md](ports.md).
 
+## Several workers or pods
+
+The SSH connection lives in the worker (or pod) that opened the terminal. With
+`FLOORBIT_CLUSTER=valkey` ([sizing](sizing.md#more-than-one-worker), [Kubernetes](kubernetes.md)),
+each one lists its open terminals in Valkey, and a request that lands on another worker is passed
+to the one that holds the terminal, sealed like the agent's calls: what the tech types never sits
+in Valkey in the clear. The limits (10 terminals, 3 per account) count every worker's. When a worker
+or pod stops, its terminals close with it.
+
 ## What is recorded
 
 Every line the tech sends is in the [audit log](audit.md), with their name and the switch

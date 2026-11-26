@@ -6,6 +6,7 @@ import { measure, snapCorner } from './reshape'
 import type { Guide } from './arrange'
 import { TOOL_GESTURE, type Tool } from './tools'
 import { setRulerPointer } from './rulers'
+import { isLine, walkwayWide } from '../lineMarks'
 
 /** The editor's layer over the plan: one hit area per item (switches on top, then blocks, then
  *  labels, walls and zones), the selection outlines, and a box to select by dragging on empty plan.
@@ -182,7 +183,7 @@ export function EditOverlay({ ctx, data, selection, onSelect, onDrag, onDrop, sp
       ))}
       <Hits data={data} on={on} />
       {selection.map((r) => {
-        const wall = r.kind === 'mark' ? data.drawing?.marks?.find((m) => m.id === r.id && m.kind === 'wall') : undefined
+        const wall = r.kind === 'mark' ? data.drawing?.marks?.find((m) => m.id === r.id && isLine(m)) : undefined
         if (wall) return <path key={`sel-${refKey(r)}`} className="fb-edit-sel-line" d={wallPath(wall)} fill="none" vectorEffect="non-scaling-stroke" />
         const o = outlineOf(data, r)
         if (!o) return null
@@ -238,11 +239,11 @@ const Hits = memo(function Hits({ data, on }: { data: SeatViewData; on: HitHandl
   return (
     <>
       {allItems(data).map((r) => {
-        const wall = r.kind === 'mark' ? data.drawing?.marks?.find((m) => m.id === r.id && m.kind === 'wall') : undefined
+        const wall = r.kind === 'mark' ? data.drawing?.marks?.find((m) => m.id === r.id && isLine(m)) : undefined
         if (wall) {
           // Along the wall, not its box: an L-shaped wall would cover what sits in its corner.
           return (
-            <path key={refKey(r)} className="fb-edit-hit fb-edit-hit-wall k-mark" data-item={refKey(r)} d={wallPath(wall)} strokeWidth={16}
+            <path key={refKey(r)} className="fb-edit-hit fb-edit-hit-wall k-mark" data-item={refKey(r)} d={wallPath(wall)} strokeWidth={wall.kind === 'walkway' ? Math.max(16, walkwayWide(wall, data.drawing?.cell ?? 32)) : 16}
               onPointerDown={(e) => on.begin(e, r)} onContextMenu={(e) => on.menu(e, r)}
               onPointerMove={on.move} onPointerUp={on.end} onPointerCancel={on.end} />
           )

@@ -232,6 +232,32 @@ class AgentPlugin:
     def check(self):
         return 'loaded'
 
+    def discover(self, area, devices):
+        """One discovery area (plugin.yaml ``discovery:``, docs/plugin-spec.md#discovery) on
+        ``devices``, each as in ``settings['targets']`` (id, name, address, role, platform, credential).
+        Return ``{device_id: facts}``; leave out a device it couldn't read."""
+        raise PluginError(f'this plugin lists discovery areas but has no discover() for {area}')
+
+    def call_discover(self, args):
+        """The hosted side's ``discover`` call: picks the devices it names from the plugin's targets,
+        and checks the answer here too, so nothing private leaves the hall by mistake."""
+        area = str(args.get('area') or '')
+        wanted = {str(i) for i in args.get('devices') or []}
+        devices = [t for t in self.settings.get('targets') or [] if isinstance(t, dict) and str(t.get('id')) in wanted]
+        if not devices:
+            return {'facts': {}}
+        facts = self.discover(area, devices)
+        if not isinstance(facts, dict):
+            raise PluginError(f'discover({area}) returns {{device_id: facts}}')
+        facts = {str(k): v for k, v in facts.items() if str(k) in wanted}
+        if args.get('privacy', 'aggregate') == 'aggregate':
+            for dev_id, value in list(facts.items()):
+                if personal_data(value):
+                    # Without the address: the log goes to the hosted side.
+                    self.log(f'discover({area}): left out {dev_id}: it holds an address and the area is aggregate')
+                    facts.pop(dev_id)
+        return {'facts': facts}
+
 
 class Health:
     """What one plugin says about itself: a status, a message, recent errors, a few numbers.
