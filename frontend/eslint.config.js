@@ -44,6 +44,11 @@ export default defineConfig([
       'no-restricted-syntax': [
         'error',
         { selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']", message: 'Show plugin and API text as text.' },
+        // A component's .extend() imports all of it into the first page (issue #1293): themeEntry in src/theme.ts.
+        {
+          selector: "CallExpression[callee.property.name='extend'][callee.object.name=/^[A-Z]/]",
+          message: 'Use themeEntry<typeof X>({...}) from src/theme.ts; X.extend() loads the whole component.',
+        },
         {
           selector: "Property[key.name='queryKey'] > ArrayExpression[elements.0.type='Literal']",
           message: 'Use a key from qk (src/api/keys.ts).',
