@@ -74,6 +74,7 @@ function SourceRow({ source: s, first, frozen, onChanged }: {
         {state}
       </Group>
       <Text size="xs" c="dimmed" ff="monospace" truncate>{s.url}</Text>
+      {s.builtin && <Text size="xs" c="dimmed">{t('applicationSources.ownList')}</Text>}
       <Text size="xs" c="dimmed">
         {t('applicationSources.every', { count: s.every_hours })}
         {' · '}{t('applicationSources.fetched', { when: ago(s.at) })}
@@ -90,13 +91,15 @@ function SourceRow({ source: s, first, frozen, onChanged }: {
           title={frozen ? t('applicationSources.frozenHint') : undefined} onClick={() => sync.mutate()}>
           {t('applicationSources.syncNow')}
         </Button>
-        {!first && (
+        {!first && !s.builtin && (
           <Button size="compact-xs" variant="subtle" onClick={() => change.mutate({ position: 0 })}>
             {t('applicationSources.top')}
           </Button>
         )}
-        <ConfirmButton size="compact-xs" variant="subtle" danger label={t('applicationSources.remove')}
-          question={t('applicationSources.removeAsk', { name: s.name })} onConfirm={() => remove.mutate()} />
+        {!s.builtin && (
+          <ConfirmButton size="compact-xs" variant="subtle" danger label={t('applicationSources.remove')}
+            question={t('applicationSources.removeAsk', { name: s.name })} onConfirm={() => remove.mutate()} />
+        )}
       </Group>
     </Stack>
   )

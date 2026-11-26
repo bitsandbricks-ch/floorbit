@@ -31,5 +31,6 @@
   "synced": "Regelquellen:",
   "syncedOne": "{{name}} (geändert {{when}})",
   "frozenNote": "Regelquellen eingefroren.",
-  "from": "Aus {{name}}"
+  "from": "Aus {{name}}",
+  "ownList": "Von BitsAndBricks gepflegt und signiert: Floorbit verwendet sie nur, wenn die Signatur stimmt. Immer zuletzt, damit eure eigenen Quellen gewinnen."
 }

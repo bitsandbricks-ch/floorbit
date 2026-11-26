@@ -16,12 +16,13 @@ const good = {
   at: 1, ok: true, error: null, changed_at: 1, count: 3,
 }
 const failed = { ...good, id: 'b2', name: 'Broken list', url: 'https://example.org/list.txt', ok: false, error: 'Could not fetch it: Timeout.' }
+const own = { ...good, id: 'floorbit', name: 'Floorbit list', url: 'https://example.net/applications.json', builtin: true, signed: true }
 
 describe('Rule sources', () => {
   it('lists each source with how its last fetch went, and freezes them', async () => {
     const fake = fakeFetch({
       'GET /api/auth/me': admin, 'GET /api/applications?hours=24': answer,
-      'GET /api/applications/sources': { sources: [good, failed], frozen: false },
+      'GET /api/applications/sources': { sources: [good, failed, own], frozen: false },
       'PUT /api/applications/sources-frozen': { sources: [good, failed], frozen: true },
     })
     vi.stubGlobal('fetch', fake.fn)
@@ -34,6 +35,11 @@ describe('Rule sources', () => {
     const broken = screen.getByLabelText('Broken list')
     expect(within(broken).getByText('Failed')).toBeInTheDocument()
     expect(within(broken).getByText('Could not fetch it: Timeout. The last good copy stays in use.')).toBeInTheDocument()
+    // Floorbit's own list can be switched off, not moved or removed.
+    const ownRow = screen.getByLabelText('Floorbit list')
+    expect(within(ownRow).queryByRole('button', { name: 'Remove' })).toBeNull()
+    expect(within(ownRow).queryByRole('button', { name: 'Move to top' })).toBeNull()
+    expect(within(ownRow).getByText(/signed/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('switch', { name: /Freeze/ }))
     await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'PUT')?.body).toEqual({ frozen: true }))
   })

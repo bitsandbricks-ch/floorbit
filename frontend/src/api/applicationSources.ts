@@ -12,6 +12,9 @@ export type RuleSource = {
   error: string | null
   changed_at: number | null
   count: number
+  /** Floorbit's own list: signed, always last, can be switched off but not removed or moved. */
+  builtin?: boolean
+  signed?: boolean
 }
 export type RuleSourcesAnswer = { sources: RuleSource[]; frozen: boolean }
 export type RuleSourceBody = { name?: string; url?: string; every_hours?: number; on?: boolean; position?: number }
