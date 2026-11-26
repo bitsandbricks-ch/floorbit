@@ -28,7 +28,7 @@
   "madeHelp": "Give it to the agent as FLOORBIT_AGENT_KEY.",
   "keyLabel": "Agent key",
   "copyRun": "Copy the command",
-    "copied": "Copied",
+  "copied": "Copied",
   "runTitle": "Start the agent on the event network",
   "docs": "How the agent works and what it is asked: docs/agent.md.",
   "relaySyslog": "Syslog",
@@ -108,8 +108,6 @@
     "redisOk": "Valkey answers.",
     "redisOff": "Valkey is not used or not answering: live updates stay on this instance.",
     "redisDown": "Valkey is not answering: the instances can't share live updates or agent calls.",
-    "groupsTitle": "Agents per tag",
-    "groupsHelp": "Agents that answer for the same tags back each other up. With VRRP on them (FLOORBIT_AGENT_VRRP_VIPS), the one holding the first address is the primary: only it polls devices and logs in, the others take over within seconds.",
     "state": {
       "ok": "Failover ready",
       "single": "One agent",
@@ -150,7 +148,6 @@
   },
   "fact": {
     "seen": "Last seen",
-    "now": "now",
     "version": "Version",
     "link": "Connection",
     "up": "Running for",
@@ -199,10 +196,6 @@
     "calls": "Calls in the last hour",
     "noFailed": "none failed"
   },
-  "open": "Open",
-  "openNamed": "Open {{name}}",
-  "moreProblems_one": "and 1 more",
-  "moreProblems_other": "and {{count}} more",
   "kicker": "Local agent",
   "detailsTitle": "Details",
   "reportTitle": "What it reports",
