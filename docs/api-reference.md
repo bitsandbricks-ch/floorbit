@@ -85,6 +85,8 @@ Source: [`floorbit/blueprints/agent.py`](https://github.com/bitsandbricks-ch/flo
 | GET | `/api/agents/ca.pem` | `settings.manage` |  |
 | GET | `/api/agents/load` | `settings.manage` |  |
 | POST | `/api/agents/roll` | `settings.manage` |  |
+| GET | `/api/agents/tags/<tag_id>/settings` | `settings.manage` |  |
+| PATCH | `/api/agents/tags/<tag_id>/settings` | `settings.manage` |  |
 
 ## floorbit.blueprints.agent_events
 

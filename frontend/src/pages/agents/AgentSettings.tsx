@@ -105,12 +105,17 @@ function PluginOverrides({ plugins }: { plugins: AgentSettingsPage['plugins'] })
       <Stack gap={0} className="fb-setting-rows">
         {plugins.map((p) => {
           const set = p.fields.filter((f) => f.key in p.values)
+          const fromTags = p.fields.filter((f) => !(f.key in p.values) && p.inherited && f.key in p.inherited)
+          const said = [
+            ...set.map((f) => `${f.label}: ${shown(p.values[f.key]) || '–'}`),
+            ...fromTags.map((f) => t('plugins.perAgent.fromTag', { label: f.label, value: shown(p.inherited![f.key].value) || '–', name: p.inherited![f.key].name })),
+          ]
           return (
             <div key={p.id} className="fb-setting-row" data-key={p.id}>
               <div className="fb-setting-about">
                 <Text size="sm" fw={500}>{p.name}</Text>
                 <Text size="xs" c="dimmed">
-                  {set.length ? set.map((f) => `${f.label}: ${shown(p.values[f.key]) || '–'}`).join(' · ') : t('agents.cfg.pluginSame')}
+                  {said.length ? said.join(' · ') : t('agents.cfg.pluginSame')}
                 </Text>
               </div>
               <div className="fb-setting-control">

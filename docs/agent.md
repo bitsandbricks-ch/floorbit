@@ -302,6 +302,14 @@ its token, its disk budget, how long it buffers while Floorbit is away, the Tele
 line, and the VRRP virtual IPs. Plugin settings that differ on one agent (another flow port, another
 syslog bind) are set there too; the plugin's own page (from **Settings > Sources** or **Settings > Plugins**) stays the default for every agent.
 
+**Plugin settings inherit like the inventory** (#1591). On a plugin's page, **Per agent** has a fold
+for each tag the agents have, then one per agent. A value set on a tag reaches every agent with that
+tag, so both agents of a group get the same LANcache address or flow port from one place. Set a
+value on one agent only where that machine really differs (its bind address). The order, most
+specific first: the agent, its tags in their order, the plugin's default; the agent's environment
+beats them all. Each field says where its value comes from, and an agent's value that differs from
+its tag's says so (`GET`/`PATCH /api/agents/tags/<tag>/settings`).
+
 **The agent's environment wins.** When the agent's own environment sets one of them
 (`FLOORBIT_AGENT_METRICS`, `_METRICS_TOKEN`, `_DISK_BUDGET_MB`,
 `_BUFFER_MAX_HOURS`, `FLOORBIT_TELEMETRY_PORT`, `FLOORBIT_AGENT_LOG_LEVEL` (or `LOG_LEVEL`),

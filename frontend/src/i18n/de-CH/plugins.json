@@ -117,8 +117,14 @@
     "lastError": "Letzter Fehler",
     "noError": "Keiner",
     "settingsTitle": "Einstellungen pro Agent",
-    "settingsIntro": "Braucht ein Agent einen anderen Wert, hier setzen. Leere Felder nehmen die Einstellungen des Plugins.",
-    "same": "nimmt die Einstellungen des Plugins"
+    "settingsIntro": "Setze einen Wert auf einem Tag, dann bekommt ihn jeder Agent mit diesem Tag; auf einem einzelnen Agent nur, wo diese Maschine anders ist. Der eigene Wert eines Agents gewinnt über seine Tags (der erste Tag zuerst), ein leeres Feld nimmt die Einstellung des Plugins.",
+    "same": "nimmt die Einstellungen des Plugins",
+    "tag": "Tag {{name}}",
+    "tagAgents": "jeder Agent damit: {{names}}",
+    "fromTag": "{{label}}: {{value}} (Tag {{name}})",
+    "tagValue": "Vom Tag {{name}}: {{value}}",
+    "differs": "Anders als Tag {{name}}",
+    "fromTagShort": "Vom Tag {{name}}"
   },
   "activity": {
     "broken": {
