@@ -1,0 +1,12 @@
+/* Phones: the tool picker floats over the plan's top-left corner, inside the rulers (ToolPicker). */
+.fb-edit-stage:has(> .fb-tool-pick) { grid-template-columns: minmax(0, 1fr); position: relative; }
+.fb-tool-pick {
+  position: absolute; z-index: 20; top: 36px; left: 36px; display: flex; align-items: center; gap: 6px;
+  height: 40px; padding: 0 12px; border-radius: 12px; font-weight: 600; font-size: 14px;
+  background: var(--bnb-surface); border: 1px solid var(--bnb-line); box-shadow: 0 6px 20px rgb(0 0 0 / 35%);
+}
+.fb-tool-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 64px;
+  border-radius: 10px; border: 1px solid var(--bnb-line); background: var(--bnb-raised); font-size: 11.5px; color: var(--bnb-muted); text-align: center;
+}
+.fb-tool-cell[aria-pressed="true"] { border-color: var(--bnb-accent); color: var(--bnb-fg); }

@@ -17,18 +17,23 @@ describe('labelPlan', () => {
     expect(p.rows).toBe(true)
   })
 
-  it('writes nothing on specks, where only the block tags remain', () => {
+  it('keeps the row letters on small seats, where they replace the block tags (2026-11-26)', () => {
     const p = labelPlan(CELL, 8 / CELL)
     expect(p.seats).toBe('none')
-    expect(p.rows).toBe(false)
+    expect(p.rows).toBe(true)
   })
 
-  it('keeps row labels small: at most 11 px and about half a seat', () => {
-    for (const seatPx of [12, 18, 40, 80]) {
+  it('writes nothing on specks', () => {
+    expect(labelPlan(CELL, 4 / CELL).rows).toBe(false)
+  })
+
+  it('keeps row letters small: at most 11 px, at least 7 px while the seat has room', () => {
+    for (const seatPx of [6, 8, 12, 18, 40, 80]) {
       const s = seatPx / CELL
       const px = labelPlan(CELL, s).row * s
       expect(px).toBeLessThanOrEqual(11.001)
-      expect(px).toBeLessThanOrEqual(seatPx * 0.55 + 0.001)
+      expect(px).toBeLessThanOrEqual(Math.max(seatPx * 0.55, 7) + 0.001)
+      expect(px).toBeGreaterThanOrEqual(Math.min(7, seatPx * 0.95) - 0.001)
     }
   })
 
