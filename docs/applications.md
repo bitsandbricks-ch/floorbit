@@ -34,10 +34,16 @@ lists that should stay current are [rule sources](#rule-sources). Their licences
   answers for. Its entries become launchers, games (Call of Duty, Guild Wars 2, Warframe, ...) and
   the "Windows updates" site group, so Games splits the hall the same way the cache does.
 - [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) (MIT): the site
-  groups Streaming, Music, Voice and chat, Social media and FACEIT.
+  groups Streaming, Music, Voice and chat, Social media and FACEIT. Its publisher lists add each
+  launcher's own sites (log-in, store, matchmaking), which the cache CDNs alone miss: Steam,
+  Battle.net, EA app, Epic Games, Riot Games, Ubisoft Connect, Xbox, PlayStation Network,
+  Nintendo, Rockstar, Wargaming, Escape from Tarkov and Nexus Mods. From its games category come
+  publishers, stores and mod sites cache-domains doesn't have: GOG, itch.io, Roblox, PUBG, osu!,
+  VRChat, HoYoverse, Supercell, Gaijin, Embark Studios, Bohemia Interactive, CD PROJEKT, Nexon,
+  Garena, Konami, WB Games, CurseForge and Modrinth. A publisher of several games is a site group.
 
-A site in more than one list, and shared CDNs (`edgesuite.net`, `akamaihd.net`, ...), count for
-nobody: DNS only sees the site, so it can't tell whose download it was. On top come the ports the
+A site in more than one list, shared CDNs (`edgesuite.net`, `akamaihd.net`, ...) and services
+many games use (anti-cheat, captcha, support desks), count for nobody: DNS only sees the site, so it can't tell whose download it was. On top come the ports the
 launchers publish and a few game titles no open list has (`STARTER` in `floorbit/applications.py`).
 TODO: ask Mike which games the event plays most, and check their domains and ports before an event.
 
