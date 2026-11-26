@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router-dom'
 import { PageError } from '@bitsandbricks/ui'
 import { LeaveGuard } from '@/components/LeaveGuard'
 import { allTexts } from '@/i18n'
+import { crewStyles } from '@/lib/crewStyles'
 import type { AppRoute } from '@/lib/appRoute'
 import { readServerPage } from '@/lib/serverPage'
 
@@ -13,8 +14,8 @@ const ROUTES = Object.values(import.meta.glob<{ routes: AppRoute[] }>('./routes/
   .flatMap((m) => m.routes)
 // The shell (sidebar, top bar, status line) is a chunk of its own too: sign-in, check-in and the
 // public pages don't need it (issue #1293). Flask preloads it for the pages inside it (floorbit/spa.py).
-const AppShell = lazy(() => Promise.all([import('@/components/Layout'), allTexts()]).then(([m]) => ({ default: m.AppShell })))
-const Forbidden = lazy(() => Promise.all([import('@/pages/Forbidden'), allTexts()]).then(([m]) => m))
+const AppShell = lazy(() => Promise.all([import('@/components/Layout'), allTexts(), crewStyles()]).then(([m]) => ({ default: m.AppShell })))
+const Forbidden = lazy(() => Promise.all([import('@/pages/Forbidden'), allTexts(), crewStyles()]).then(([m]) => m))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 // Read once: the server's answer for the page that was loaded, not for later client-side moves.

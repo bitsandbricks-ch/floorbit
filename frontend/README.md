@@ -32,6 +32,9 @@ npm run build        # writes ../static/app/, which Flask serves
   outside the app shell (`shell: false`) uses `spa.render('<Title>', shell=False)`: it then loads
   without the shell and with only the texts in `src/i18n/englishCore.ts` (issue #1293). A new
   feature file it needs goes into that list and the three lists beside it (the i18n test checks).
+  It also gets only the Mantine styles listed in `src/styles/mantinePublic.ts`. When it uses
+  another Mantine component, `npm run build` fails and prints the list to paste. A new page of
+  this kind also goes into `PUBLIC_PAGES` in `vite.mantine.ts`.
 - Every text goes through `t()` with a key in `src/i18n/en/<feature>.json` **and**
   `src/i18n/de-CH/<feature>.json` (Swiss spelling, no "ß"). The i18n test fails otherwise.
 - Colours come from the shared design tokens (`var(--bnb-...)`), never hex values, so themes work.

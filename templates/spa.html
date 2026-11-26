@@ -9,6 +9,9 @@
   {% include "_theme_head.html" %}
   <link rel="stylesheet" href="/static/css/attribution.css" />
   {% if assets %}
+  {% for href in assets.mantine %}<link rel="stylesheet" href="{{ href }}" data-mantine="{{ 'part' if assets.mantine_full else 'full' }}" />
+  {% endfor %}
+  {% if assets.mantine_full %}<meta name="fb-mantine-full" content="{{ assets.mantine_full }}" />{% endif %}
   {% for href in assets.css %}<link rel="stylesheet" href="{{ href }}" />
   {% endfor %}
   {% for src in assets.js %}<script type="module" src="{{ src }}"></script>
