@@ -132,7 +132,8 @@ class ForecastWatch:
     def _run(self):
         while True:
             try:
-                if features.on('forecast'):
+                from . import cluster
+                if cluster.leading() and features.on('forecast'):   # its alert goes out once
                     self.check()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 print(f'[forecast] check failed: {exc}')

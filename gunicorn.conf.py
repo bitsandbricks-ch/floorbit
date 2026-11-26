@@ -4,6 +4,7 @@ The defaults live here, not on the image's command line: gunicorn lets ``GUNICOR
 this file but not the command line, so ``GUNICORN_CMD_ARGS=--threads 200`` (docs/install.md) did
 nothing while they were there.
 """
+import contextlib
 import os
 
 bind = '0.0.0.0:5000'
@@ -29,3 +30,12 @@ def post_fork(server, worker):
     # Each live-update stream holds one of these threads; Floorbit keeps some free for page
     # requests (integrations/events.py, stream_limit).
     os.environ['FLOORBIT_SERVER_THREADS'] = str(worker.cfg.threads)
+
+
+def post_worker_init(worker):
+    # The background loops start with a worker's first request (integrations/__init__.py). With
+    # several workers only the leader polls (issue #1417), and it may get no request for a while:
+    # one /healthz in process starts each worker's loops now.
+    if worker.cfg.workers > 1 and hasattr(worker.wsgi, 'test_client'):
+        with contextlib.suppress(Exception):
+            worker.wsgi.test_client().get('/healthz')

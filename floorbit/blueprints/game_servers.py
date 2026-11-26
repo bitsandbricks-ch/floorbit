@@ -39,7 +39,7 @@ def save_server(server_id=None):
               if k in body]
     audit.record('games', 'Changed a game server' if server_id else 'Added a game server', g.get('audit_user'),
                  server['name'], fields=fields)
-    game_servers.poller.check(game_servers.get(server['id']))
+    game_servers.poller.on_leader('check_now', game_servers.get(server['id']))
     return jsonify(server), 200 if server_id else 201
 
 
@@ -57,7 +57,7 @@ def check_server(server_id):
     server = game_servers.get(server_id)
     if server is None:
         return jsonify({'error': 'No such game server.'}), 404
-    return jsonify({**game_servers.public(server), **game_servers.poller.check(server)})
+    return jsonify({**game_servers.public(server), **game_servers.poller.on_leader('check_now', server)})
 
 
 @bp.route('/api/game-servers/rcon/<server_id>', methods=['POST'])

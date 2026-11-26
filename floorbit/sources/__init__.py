@@ -10,6 +10,7 @@ See docs/architecture.md.
 Which devices exist is the inventory's job (``floorbit/inventory.py``), fed by plugins such as
 NetBox (``floorbit/builtin_plugins/netbox``).
 """
+import contextlib
 import json
 import re
 import threading
@@ -32,9 +33,25 @@ status_wake = threading.Event()
 
 def wake_status_monitor():
     status_wake.set()
+    # The agent may have connected to a pod that doesn't poll: tell the leader (issue #1417).
+    from .. import shared_state
+    if shared_state.follower():
+        threading.Thread(target=_wake_leader, name='status-wake', daemon=True).start()
+
+
+def _wake_leader():
+    from .. import shared_state
+    with contextlib.suppress(Exception):   # the leader polls at its next turn anyway
+        shared_state.ask('monitor.wake', timeout=10)
 
 
 def health():
+    # With several pods the leader's status monitor is the one asking (issue #1417): its view wins.
+    from .. import shared_state
+    if shared_state.follower():
+        seen = shared_state.get('monitor')
+        if isinstance(seen, dict) and isinstance(seen.get('source'), dict):
+            return dict(seen['source'])
     with _health_lock:
         return dict(_health)
 
@@ -65,8 +82,7 @@ def mark_off():
 
 
 def offline():
-    with _health_lock:
-        return _health['offline_since'] is not None
+    return health()['offline_since'] is not None
 
 
 def _stale(entry):

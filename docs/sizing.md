@@ -98,6 +98,9 @@ except the shared volume, which they already have:
 
 - `FLOORBIT_CLUSTER=valkey` and `REDIS_HOST`, so live updates and agent calls reach every worker and
   only one sends alerts. Without it Floorbit logs a warning at start.
+- Only the leading worker runs the background checks (switch status, ports and traffic, health,
+  security, power, services, game servers, DNS); the others show what it shares through Valkey, so
+  LibreNMS, the agent and the plugins aren't asked once per worker.
 - The [switch terminal](terminal.md) works on every worker: the one that opened a terminal holds its
   SSH connection, and the others pass its requests there through Valkey.
 

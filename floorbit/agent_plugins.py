@@ -254,13 +254,45 @@ def take(agent, plugin_id, kind, payload, registry=None):
     cls = spec.plugin_class()
     if cls is None or not callable(getattr(cls, f'agent_{kind}', None)):
         return {'ok': True, 'kept': False}       # nothing on the hosted side wants it (yet)
+    who = {'id': agent.get('id'), 'name': agent.get('name')}
+    from . import shared_state
+    if shared_state.follower():
+        # Several pods: the leader polls, so what the agent sends goes there, whichever pod took
+        # the request (issue #1417). A smart PDU's readings must reach the power watch that asks.
+        try:
+            return shared_state.ask(TAKE, who, plugin_id, kind, payload)
+        except RuntimeError as exc:
+            raise Refused(str(exc), 409) from None
+    return _hand_over(registry, spec, who, kind, payload)
+
+
+TAKE = 'agent_plugins.take'
+
+
+def _hand_over(registry, spec, who, kind, payload):
     from .plugins.base import PluginError
     try:
-        answer = registry.call(spec, f'agent_{kind}', {'id': agent.get('id'), 'name': agent.get('name')}, payload)
+        answer = registry.call(spec, f'agent_{kind}', who, payload)
     except PluginError as exc:
         # 409, not 500: the agent sends a 5xx again and again; this is the hosted part saying no.
         raise Refused(str(exc), 409) from None
     return answer if isinstance(answer, dict) else {'ok': True}
+
+
+def _take_on_leader(who, plugin_id, kind, payload):
+    registry = _registry()
+    spec = registry.specs.get(plugin_id) if registry else None
+    if spec is None:
+        raise Refused(f'No agent plugin {plugin_id} here.', 404)
+    return _hand_over(registry, spec, who, kind, payload)
+
+
+def _answer_takes():
+    from . import shared_state
+    shared_state.answer(TAKE, _take_on_leader)
+
+
+_answer_takes()
 
 
 def ask(spec, way, op, args=None, agent=None):

@@ -31,7 +31,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from . import cables as cables_mod
-from . import sources
+from . import shared_state, sources
 from .dhcp_leases import leases
 from .edge_ports import EDGE_PORT_MACS
 from .store import load_data
@@ -262,8 +262,16 @@ def without_cabled(state, data=None):
     return out
 
 
-class Finder:
+class Finder(shared_state.Shared):
     """The last read, and a background thread that makes the next one."""
+    # With several pods only the leader reads the switches; the others show this (issue #1417).
+    shared_name = 'port_clients'
+    shared_fields = ('result', 'seat_ips', 'seat_macs', 'as_of', 'error', '_running')
+    leader_calls = ('request',)
+
+    @staticmethod
+    def shared_restore(field, value):
+        return False if field == '_running' else value     # the old leader's read went with it
 
     def __init__(self, app=None):
         self.app = app
@@ -293,13 +301,20 @@ class Finder:
                 self.result, self.as_of = result, time.time() if now is None else now
             self.error = error
             self._running = False
+        self.share()
 
     def request(self):
         """Start a read in the background unless one is running or the last is fresh."""
+        if shared_state.follower():
+            seen = self.view()
+            if seen._running or (seen.as_of and 0 <= time.time() - seen.as_of < MIN_AGE):
+                return False
+            return bool(self.on_leader('request'))      # the leader reads (issue #1417)
         with self._lock:
             if self._running or (self.as_of and 0 <= time.time() - self.as_of < MIN_AGE):
                 return False
             self._running = True
+        self.share()
 
         def work():
             if self.app is None:
@@ -312,9 +327,10 @@ class Finder:
         return True
 
     def state(self):
+        seen = self.view()
         with self._lock:
-            return {'as_of': self.as_of, 'reading': self._running, 'error': self.error,
-                    **(self.result or {'unplanned': _listed([]), 'moved': _listed([]), 'shared': _listed([]),
+            return {'as_of': seen.as_of, 'reading': seen._running, 'error': seen.error,
+                    **(seen.result or {'unplanned': _listed([]), 'moved': _listed([]), 'shared': _listed([]),
                                        'no_port': _listed([]), 'empty': _listed([]), 'switches': 0,
                                        'failed': [], 'clients': 0})}
 
@@ -359,8 +375,9 @@ def seat_clients():
     finder = _finder
     if finder is None:
         return {}
+    seen = finder.view()
     with finder._lock:
-        return {seat: dict(v) for seat, v in finder.seat_macs.items()}
+        return {seat: dict(v) for seat, v in seen.seat_macs.items()}
 
 
 def last_read():
@@ -374,7 +391,7 @@ def _every(finder, stop):
     while not stop.wait(EVERY):
         try:
             with finder.app.app_context():
-                if sources.monitoring().enabled():
+                if shared_state.my_turn(finder) and sources.monitoring().enabled():
                     finder.request()
         except Exception as exc:  # noqa: BLE001  # keep the thread alive
             print(f'[port-clients] background read failed: {exc}')

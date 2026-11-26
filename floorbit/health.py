@@ -19,7 +19,7 @@ import time
 
 from integrations import config, events
 
-from . import capacity, features, firewalls, game_servers, services
+from . import capacity, features, firewalls, game_servers, services, shared_state
 from .plugins import PluginError
 from .store import load_data
 
@@ -89,7 +89,11 @@ class _FeedSpec:
         self.id, self.name = plugin_id, name
 
 
-class HealthWall:
+class HealthWall(shared_state.Shared):
+    # With several pods only the leader asks the plugins; the others show this (issue #1417).
+    shared_name = 'health'
+    shared_fields = ('checks', 'confirmed', 'baseline_done', 'last_poll', 'errors')
+
     def __init__(self, registry):
         self.registry = registry
         self._lock = threading.Lock()
@@ -128,9 +132,9 @@ class HealthWall:
             try:
                 # Inside the try too: these read the saved data, which can fail (a database not
                 # there yet), and the wall must start checking once it is.
-                if features.on('health') and (self.registry.feeders('health') or self._agent_active()
-                                              or game_servers.listing() or services.health_checks()
-                                              or firewalls.configured()):
+                if shared_state.my_turn(self) and features.on('health') and (
+                        self.registry.feeders('health') or self._agent_active() or game_servers.listing()
+                        or services.health_checks() or firewalls.configured()):
                     self.poll_once()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 print(f'[health] poll failed: {exc}')
@@ -233,12 +237,15 @@ class HealthWall:
             self.baseline_done = True
             self.last_poll = now
             self.errors = errors
+        self.share()
         if changes:
             events.publish('health.changed', {'changes': changes})
         return changes
 
     def fresh(self):
         """The wall, polled now when the background thread hasn't (tests, or the first request)."""
+        if shared_state.follower():
+            return self.snapshot()          # the leader polls (issue #1417)
         if self.last_poll is None or time.time() - self.last_poll > 2 * self.interval():
             self.poll_once()
         return self.snapshot()
@@ -247,10 +254,11 @@ class HealthWall:
         # Read once for the three counts below: each read on its own parsed data.json again, and
         # every page asks for this (Problems, the status page).
         data = load_data()
+        seen = self.view()
         with self._lock:
-            checks = sorted(self.checks.values(), key=lambda c: (KINDS.index(c['kind']), c['name'].lower()))
+            checks = sorted(seen.checks.values(), key=lambda c: (KINDS.index(c['kind']), c['name'].lower()))
             counts = {s: sum(c['status'] == s for c in checks) for s in STATES}
-            return {'checks': checks, 'counts': counts, 'last_poll': self.last_poll,
+            return {'checks': checks, 'counts': counts, 'last_poll': seen.last_poll,
                     'interval': self.interval(),
                     'plugins': len(self.registry.feeders('health')) + (1 if self._agent_active() else 0)
                     + (1 if game_servers.listing(data) else 0) + (1 if services.health_checks(data) else 0)

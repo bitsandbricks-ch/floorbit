@@ -24,7 +24,7 @@ import time
 
 from integrations import config
 
-from . import database, features, store
+from . import database, features, shared_state, store
 from .plugins import PluginError
 
 FILE = 'dns.json'
@@ -91,6 +91,10 @@ def _hour(ts):
     return int(ts // 3600 * 3600)
 
 
+SHARED = 'dns'
+CLOSED_REREAD = 60      # seconds a pod that doesn't lead keeps the closed hours it read
+
+
 class DnsStats:
     def __init__(self, registry=None, path=None):
         self.registry = registry
@@ -106,6 +110,7 @@ class DnsStats:
         self.hours = {}
         self.current = None          # the open hour, with hashed clients
         self._loaded = False   # False while the database was away at start (docs/database.md)
+        self._closed_read = (0, {})   # on a pod that doesn't lead: (when, closed hours from the store)
         self._load()
 
     # ── storage ──────────────────────────────────────────────────────────────
@@ -188,6 +193,54 @@ class DnsStats:
                 del self.hours[h]
             self.last_poll = now
         self._save()
+
+    # ── several pods (issue #1417) ───────────────────────────────────────────
+    def _open_hour(self, floor):
+        """The open hour as counts, only the sites enough clients looked up: no client hash leaves."""
+        cur = self.current
+        if not cur:
+            return None
+        return {'hour': cur['hour'], 'lookups': cur['lookups'], 'blocked': cur['blocked'],
+                'sites': {s: [v['lookups'], v['blocked'], len(v['clients'])]
+                          for s, v in cur['sites'].items() if len(v['clients']) >= floor}}
+
+    def share(self):
+        """Only the leader polls: the other pods read the closed hours from the store and the open
+        one from here."""
+        with self._lock:
+            open_hour = self._open_hour(settings()['min_clients'])
+        shared_state.put(SHARED, {'open': open_hour, 'last_poll': self.last_poll, 'last_error': self.last_error})
+
+    def answer_calls(self):
+        pass                 # no "check now" here: the pages read what the loop counted
+
+    def take_over(self):
+        """This pod leads now: the closed hours as the old leader saved them."""
+        with self._lock:
+            self.hours = {}
+            self._loaded = False
+            self._load()
+
+    def _counted(self, floor, now):
+        """(closed hours with the open one, last poll, last error): what the pages read."""
+        if shared_state.follower():
+            at, closed = self._closed_read
+            if not 0 <= now - at < CLOSED_REREAD:
+                fresh = DnsStats(path=self.path)
+                closed = fresh.hours if fresh._loaded else closed
+                self._closed_read = (now, closed)
+            seen = shared_state.get(SHARED) or {}
+            closed = dict(closed)
+            open_hour = seen.get('open')
+            if isinstance(open_hour, dict):
+                closed[int(open_hour['hour'])] = {k: open_hour[k] for k in ('lookups', 'blocked', 'sites')}
+            return closed, seen.get('last_poll'), seen.get('last_error')
+        with self._lock:
+            closed = dict(self.hours)
+            open_hour = self._open_hour(0)
+        if open_hour:
+            closed[open_hour.pop('hour')] = open_hour
+        return closed, self.last_poll, self.last_error
 
     def _client(self, client):
         return hmac.new(self._key, str(client).encode(), hashlib.sha256).digest()[:12]
@@ -304,8 +357,10 @@ class DnsStats:
         while not self._stop.is_set():
             try:
                 # Inside the try too: reading the settings can fail (a database not there yet).
-                if features.on('dns') and (dns_plugins(self.registry) or _agent_active()):
+                if shared_state.my_turn(self) and features.on('dns') and (
+                        dns_plugins(self.registry) or _agent_active()):
                     self.poll_once()
+                    self.share()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 print(f'[dns] poll failed: {exc}')
             self._stop.wait(settings()['interval'])
@@ -317,11 +372,8 @@ class DnsStats:
         floor = settings()['min_clients']
         start = _hour(now) - (hours - 1) * 3600
         out = {}
-        with self._lock:
-            rows = [v['sites'] for h, v in self.hours.items() if h >= start]
-            if self.current and self.current['hour'] >= start:
-                rows.append({s: [v['lookups'], v['blocked'], len(v['clients'])]
-                             for s, v in self.current['sites'].items()})
+        closed, _at, _err = self._counted(floor, now)
+        rows = [v['sites'] for h, v in closed.items() if h >= start]
         for sites in rows:
             for s, (n, _b, c) in sites.items():
                 if c >= floor:
@@ -334,14 +386,7 @@ class DnsStats:
         now = time.time() if now is None else now
         floor = settings()['min_clients']
         start = _hour(now) - (hours - 1) * 3600
-        with self._lock:
-            closed = dict(self.hours)
-            cur = self.current
-            if cur:
-                closed[cur['hour']] = {
-                    'lookups': cur['lookups'], 'blocked': cur['blocked'],
-                    'sites': {s: [v['lookups'], v['blocked'], len(v['clients'])] for s, v in cur['sites'].items()},
-                }
+        closed, last_poll, last_error = self._counted(floor, now)
         series, sites, first_seen = [], {}, {}
         lookups = blocked = named = 0
         for h in sorted(closed):
@@ -381,7 +426,7 @@ class DnsStats:
             'blocked_sites': sorted((r for r in sites.values() if r['blocked']),
                                    key=lambda r: -r['blocked'])[:LIST_MAX],
             'min_clients': floor, 'plugins': len(dns_plugins(self.registry)) + (1 if _agent_active() else 0),
-            'last_poll': self.last_poll, 'error': self.last_error,
+            'last_poll': last_poll, 'error': last_error,
         }
 
 

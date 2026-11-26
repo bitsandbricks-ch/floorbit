@@ -9,10 +9,11 @@ Redis (``REDIS_HOST``) for four things that otherwise live in one pod's memory:
   pod through a Redis list and the answer comes back the same way.
 - **Switch terminals.** A terminal's SSH connection lives in the pod that opened it; the other pods
   pass its requests there the same way (floorbit/terminal_cluster.py).
-- **One leader.** Automatic side effects (Discord alerts, webhooks, the event timeline, plugin
-  hooks, replay frames) come from background loops that run on every pod. Only the pod holding the
-  leader lease acts on them, so an alert goes out once. Events caused by a request still act on
-  the pod that took the request.
+- **One leader.** Only the pod holding the leader lease runs the background checks (status
+  monitor, port watch, health, security, power, ...) and shares what they saw with the others
+  (floorbit/shared_state.py). Their automatic side effects (Discord alerts, webhooks, the event
+  timeline, plugin hooks, replay frames) come from there too, so an alert goes out once. Events
+  caused by a request still act on the pod that took the request.
 
 The documents and logs are shared through the database (``FLOORBIT_DATABASE_URL``), which several
 pods need anyway.
@@ -115,6 +116,12 @@ class RedisBus:
     def hdel(self, key, field):
         self.short.hdel(self.prefix + key, field)
 
+    def set(self, key, value, ttl):
+        self.short.set(self.prefix + key, value, ex=int(ttl))
+
+    def get(self, key):
+        return self.short.get(self.prefix + key)
+
 
 class Cluster:
     """This pod's part. ``deliver(event)`` hands an event from another pod to local browsers;
@@ -167,6 +174,10 @@ class Cluster:
 
     def leading(self):
         return self._leading
+
+    def leader_pod(self, now=None):
+        """The pod holding the leader lease, as the pods last said; None while nobody does."""
+        return next((p['pod'] for p in self.pods(now) if p['leader']), None)
 
     # ── live updates ──
 
@@ -259,9 +270,15 @@ class Cluster:
             return                       # not a call this version (or key) understands; its caller times out
         if left <= 0:
             return                       # the caller gave up already
-        # A switch terminal this pod holds (floorbit/terminal_cluster.py), else a call for an agent here.
-        from . import terminal_cluster
-        run = terminal_cluster.serve if str(method).startswith(terminal_cluster.PREFIX) else self.run_call
+        # A switch terminal this pod holds (floorbit/terminal_cluster.py), a call for the leader's
+        # loops (floorbit/shared_state.py), else a call for an agent here.
+        from . import shared_state, terminal_cluster
+        if str(method).startswith(terminal_cluster.PREFIX):
+            run = terminal_cluster.serve
+        elif str(method).startswith(shared_state.PREFIX):
+            run = shared_state.serve
+        else:
+            run = self.run_call
         try:
             result = run(method, call.get('args') or [], call.get('targets'), min(left, timeout))
             reply = {'ok': True, 'result': result}
