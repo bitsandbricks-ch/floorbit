@@ -88,12 +88,18 @@ installs it ([Updates](agent-plugins.md#updates)).
 python scripts/marketplace.py sign <plugin folder> --key plugin-key.pem --version 1.2.0 --out dist
 python scripts/marketplace.py build-index plugins.yaml site --key index-key.pem
 python scripts/marketplace.py check https://bitsandbricks-ch.github.io/floorbit-plugins/index.json
-python scripts/marketplace.py build-applications games.yaml site --key index-key.pem
+python scripts/marketplace.py check-applications games
+python scripts/marketplace.py build-applications games site --key index-key.pem
 ```
 
 `build-applications` writes Floorbit's own rules file for the [applications](applications.md#rule-sources),
-`applications.json`, from floorbit-plugins' `games.yaml`, checked as a Floorbit checks a rules file and
-signed with the index key over its own fields (an index signature never passes as a rules file).
+`applications.json`, from floorbit-plugins' `games/` folder, checked as a Floorbit checks a rules file and
+signed with the index key over its own fields (an index signature never passes as a rules file). The
+folder has one `<id>.yaml` per application, named after its id, with a `source:` (a link or a note
+saying where its facts come from). A pull request that adds one adds one file, so two never conflict.
+`check-applications` runs on those pull requests without a key: it checks every file and writes a
+summary of what each adds and which domains also count for another application. A shared CDN or a
+service many games use (anti-cheat, captcha) stops both commands.
 
 Each refuses a key that isn't the one built into Floorbit for its purpose, and a key pinned for
 both. Make a key pair with `openssl genpkey -algorithm ed25519 -out key.pem` and

@@ -3,7 +3,8 @@
     python scripts/marketplace.py sign <plugin folder> --key plugin-key.pem --version 1.2.0 --out dist
     python scripts/marketplace.py build-index plugins.yaml site --key index-key.pem
     python scripts/marketplace.py check https://bitsandbricks-ch.github.io/floorbit-plugins/index.json
-    python scripts/marketplace.py build-applications games.yaml site --key index-key.pem
+    python scripts/marketplace.py check-applications games
+    python scripts/marketplace.py build-applications games site --key index-key.pem
 
 ``sign`` packs one plugin as ``<id>-<version>.tar.gz``, signed with the plugin key (the release job
 of each ``floorbit-plugin-*`` repository). ``build-index`` reads the GitHub releases of the
@@ -11,8 +12,10 @@ repositories ``plugins.yaml`` lists or discovers, checks every archive like a Fl
 copies them next to ``index.json`` and signs that with the index key (floorbit-plugins' publish
 workflow). ``check`` downloads a published index and everything it offers and checks them again.
 ``build-applications`` writes Floorbit's own rules file for the applications, ``applications.json``,
-from floorbit-plugins' curated ``games.yaml``, checked as a Floorbit checks a rules file and signed
-with the index key (#1504); every Floorbit fetches it as its last rule source.
+from floorbit-plugins' curated ``games/`` folder (one ``<id>.yaml`` per application, each with a
+``source:``), checked as a Floorbit checks a rules file and signed with the index key (#1504); every
+Floorbit fetches it as its last rule source. ``check-applications`` checks that folder without a key
+and writes a summary for the pull request that adds to it (#1612).
 
 Every command refuses a key that isn't the one built into Floorbit for its purpose
 (``floorbit/keys/plugins/``, ``floorbit/keys/index/``), and a key used for both.
@@ -227,16 +230,80 @@ def cmd_check(args):
 
 
 # build-applications ----------------------------------------------------------------------------
-def build_applications(games, out, index_pem):
-    """Check the curated applications and write them, signed, to ``out/applications.json``."""
+MAX_SOURCE = 300
+
+
+def load_games(folder):
+    """The applications in floorbit-plugins' ``games/``: one ``<id>.yaml`` each, named by its id and
+    saying where its facts come from (``source:``, a link or a note), so that a pull request adding
+    one adds one file and two of them never conflict."""
+    import yaml
+    entries = []
+    for path in sorted(Path(folder).glob('*.y*ml')):
+        where = f'{Path(folder).name}/{path.name}'
+        try:
+            entry = yaml.safe_load(path.read_text(encoding='utf-8'))
+        except yaml.YAMLError as exc:
+            raise SystemExit(f'{where}: not YAML ({exc.__class__.__name__})') from None
+        if not isinstance(entry, dict):
+            raise SystemExit(f'{where}: one application, with id, name, kind and its matches')
+        if str(entry.get('id')) != path.stem:
+            raise SystemExit(f'{where}: the file is named after its id ({entry.get("id")!r})')
+        source = ' '.join(str(entry.get('source') or '').split())
+        if not 1 <= len(source) <= MAX_SOURCE:
+            raise SystemExit(f'{where}: say where it comes from in source: (a link or a note, '
+                             f'up to {MAX_SOURCE} characters)')
+        entries.append({k: v for k, v in entry.items() if k != 'source'})
+    return entries
+
+
+def check_games(entries):
+    """``entries`` checked as a Floorbit checks a rules file, or SystemExit naming the bad one."""
     from floorbit import application_sources, applications
-    entries = (games or {}).get('applications') or []
     try:
-        apps = application_sources._from_json({'version': 1, 'applications': entries},
-                                              {'id': 'floorbit', 'name': 'Floorbit list'},
-                                              applications)
+        return application_sources._from_json({'version': 1, 'applications': entries},
+                                              {'id': 'floorbit', 'name': 'Floorbit list'}, applications)
     except application_sources.SourceError as exc:
-        raise SystemExit(f'games.yaml: {exc.message}') from None
+        raise SystemExit(f'games: {exc.message}') from None
+
+
+def review_games(apps):
+    """What a pull request's reviewer should look at: (problems that stop it, notes, summary lines).
+    A shared CDN or a service many games use would count for this application only, so it stops the
+    build; a domain another application has already counts for both, which is a note."""
+    from floorbit import applications
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    from applications_import import SHARED_CDNS
+    owners = {}
+    for app in applications.builtin()['apps'].values():
+        for site in app['sites']:
+            owners.setdefault(site, []).append(app['id'])
+    for app in apps:
+        for site in app['sites']:
+            owners.setdefault(site, []).append(app['id'])
+    problems, notes, lines = [], [], []
+    for app in apps:
+        shared = sorted(set(app['sites']) & SHARED_CDNS)
+        if shared:
+            problems.append(f"{app['id']}: {', '.join(shared)} is shared by many vendors and counts for nobody")
+        for site in app['sites']:
+            others = sorted(set(owners[site]) - {app['id']})
+            if others:
+                notes.append(f"{app['id']}: {site} also counts for {', '.join(others)}")
+        what = [f"{len(app[k])} {label}" for k, label in (('sites', 'domains'), ('ports', 'ports'),
+                                                          ('cidr', 'address ranges'), ('depots', 'depots'))
+                if app[k]]
+        lines.append(f"- **{app['name']}** (`{app['id']}`, {app['kind']}, {app['category']}): "
+                     f"{', '.join(what) or 'nothing to match'}")
+    return problems, notes, lines
+
+
+def build_applications(entries, out, index_pem):
+    """Check the curated applications and write them, signed, to ``out/applications.json``."""
+    apps = check_games(entries)
+    problems, _notes, _lines = review_games(apps)
+    if problems:
+        raise SystemExit('games: ' + '; '.join(problems))
     doc = {'name': 'Floorbit applications', 'version': 1,
            'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'applications': apps}
     doc = bundles.sign_rules(doc, index_pem)
@@ -247,11 +314,26 @@ def build_applications(games, out, index_pem):
 
 
 def cmd_build_applications(args):
-    import yaml
     pem, kid = _private(args.key, 'index')
-    games = yaml.safe_load(Path(args.games).read_text(encoding='utf-8')) or {}
-    doc = build_applications(games, args.out, pem)
+    doc = build_applications(load_games(args.games), args.out, pem)
     print(f"applications.json: {len(doc['applications'])} applications, signed with {kid}")
+
+
+def cmd_check_applications(args):
+    apps = check_games(load_games(args.games))
+    problems, notes, lines = review_games(apps)
+    text = [f'## Floorbit applications: {len(apps)}', '', *lines]
+    if notes:
+        text += ['', '### Domains that also count for another application', '', *(f'- {n}' for n in notes)]
+    if problems:
+        text += ['', '### Problems', '', *(f'- {p}' for p in problems)]
+    print('\n'.join(text))
+    summary = os.environ.get('GITHUB_STEP_SUMMARY')
+    if summary:
+        with open(summary, 'a', encoding='utf-8') as f:
+            f.write('\n'.join(text) + '\n')
+    if problems:
+        raise SystemExit(1)
 
 
 def main():
@@ -268,13 +350,15 @@ def main():
     b.add_argument('--key', required=True)
     c = sub.add_parser('check')
     c.add_argument('url')
+    ca = sub.add_parser('check-applications')
+    ca.add_argument('games')
     a = sub.add_parser('build-applications')
     a.add_argument('games')
     a.add_argument('out')
     a.add_argument('--key', required=True)
     args = p.parse_args()
     {'sign': cmd_sign, 'build-index': cmd_build_index, 'check': cmd_check,
-     'build-applications': cmd_build_applications}[args.cmd](args)
+     'build-applications': cmd_build_applications, 'check-applications': cmd_check_applications}[args.cmd](args)
 
 
 if __name__ == '__main__':
