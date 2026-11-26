@@ -12,7 +12,7 @@ import time
 from integrations import config
 
 from .. import disk_budget
-from . import seat_maps, store
+from . import names, seat_maps, store
 from .aggregate import Aggregator
 from .owners import Owners
 from .parse import ParseError, Templates, parse
@@ -30,9 +30,10 @@ RAW_LATE = 60         # a minute is written this long after it ended: exporters 
 
 
 class Collector:
-    def __init__(self, aggregator=None, raw=None, log=print, owners=None):
+    def __init__(self, aggregator=None, raw=None, log=print, owners=None, names_table=None):
         self.owners = owners or Owners(log=log)
-        self.agg = aggregator or Aggregator(owner_of=self.owners.lookup)
+        self.names = names_table or names.TABLE
+        self.agg = aggregator or Aggregator(owner_of=self.owners.lookup, name_of=self.names.site_of)
         self.raw = raw or store.RawStore()
         self.templates = Templates()
         self.log = log
@@ -161,6 +162,7 @@ class Collector:
             self.raw.append_hours(hours)
             if self._due('prune', now, PRUNE_EVERY):
                 self.raw.prune(now=now)
+                self.names.prune(now=now)
             if self._due('budget', now, BUDGET_EVERY):
                 disk_budget.enforce(now=now)
         except OSError as exc:

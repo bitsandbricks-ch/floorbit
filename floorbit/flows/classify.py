@@ -1,4 +1,5 @@
-"""What a flow is: a service name and a category, from the remote side's port or address.
+"""What a flow is: a service name and a category, from the remote side's port or address, or the
+site the seat looked up before it connected (names.py, #1600).
 
 Built-in rules only know well-known ports. Anything an event knows better (the LAN cache's
 address, a game server range, a streaming ingest) goes in ``FLOWS_SERVICES``, a JSON list that is
@@ -68,8 +69,10 @@ def compile_rules(rules, own_categories=False):
             nets = [ipaddress.ip_network(c, strict=False) for c in rule.get('cidr') or []]
         except ValueError as exc:
             raise RuleError(f'{rule["name"]}: {exc}') from exc
+        sites = rule.get('sites') or []
         out.append({'name': str(rule['name'])[:60], 'category': category, 'nets': nets,
-                    'ports': _ports(rule.get('ports'))})
+                    'ports': _ports(rule.get('ports')),
+                    'sites': {str(s).lower() for s in sites} if isinstance(sites, list) else set()})
     return out
 
 
@@ -82,7 +85,11 @@ def load_rules():
             own = compile_rules(json.loads(raw) if isinstance(raw, str) else raw)
         except (ValueError, RuleError) as exc:
             error = str(exc)
-    return own + compile_rules(BUILTIN), error
+    return own + _builtin_rules(), error
+
+
+def _builtin_rules():
+    return [{**rule, 'builtin': True} for rule in compile_rules(BUILTIN)]
 
 
 class Classifier:
@@ -100,22 +107,23 @@ class Classifier:
                 extra += compile_rules([rule], own_categories=True)
             except RuleError:
                 continue
-        builtin = compile_rules(BUILTIN)
+        builtin = _builtin_rules()
         own = self._base[:max(0, len(self._base) - len(builtin))]
         self.rules = own + extra + self._base[len(own):]
         self._cache = {}
 
-    def __call__(self, remote_ip, proto, remote_port, local_port):
-        key = (remote_ip, proto, remote_port, local_port)
+    def __call__(self, remote_ip, proto, remote_port, local_port, site=None):
+        """``site``: what the seat looked up before this flow, when DNS told the agent (names.py)."""
+        key = (remote_ip, proto, remote_port, local_port, site)
         found = self._cache.get(key)
         if found is None:
-            found = self._match(remote_ip, proto, remote_port, local_port)
+            found = self._match(remote_ip, proto, remote_port, local_port, site)
             if len(self._cache) > 50_000:
                 self._cache.clear()
             self._cache[key] = found
         return found
 
-    def _match(self, remote_ip, proto, remote_port, local_port):
+    def _match(self, remote_ip, proto, remote_port, local_port, site=None):
         try:
             addr = ipaddress.ip_address(remote_ip) if remote_ip else None
         except ValueError:
@@ -123,6 +131,17 @@ class Classifier:
         for rule in self.rules:
             if rule['nets'] and addr is not None and any(addr in n for n in rule['nets']):
                 return rule['name'], rule['category']
+        if site:
+            # An event's or an application's own port still wins (a game's servers over the
+            # launcher's site), but the site beats the built-in ports: they only say "Web".
+            for rule in self.rules:
+                if rule.get('builtin'):
+                    continue
+                if any(p == proto and lo <= remote_port <= hi for p, lo, hi in rule['ports']):
+                    return rule['name'], rule['category']
+            for rule in self.rules:
+                if site in rule['sites']:
+                    return rule['name'], rule['category']
         # The service's port is usually the remote one. Only when no rule knows it, try the seat's
         # own port: a seat that serves (a game host). Two passes, so a client's random source port
         # never wins over the server's well-known one.
