@@ -292,6 +292,7 @@ export default function Inventory() {
           rowKey={(d) => d.id}
           defaultSort={{ id: 'name' }}
           minWidth={1180}
+          cards
           {...(canEdit || canRun ? { picked: picks, onPick: setPicks, rowLabel: (d: Device) => d.name } : {})}
           rowStyle={(d) => (d.hidden ? { opacity: 0.6 } : undefined)}
           empty={<Text c="dimmed">{data.devices.length ? t('inventory.noMatch') : t('inventory.empty')}</Text>}
@@ -327,15 +328,15 @@ export default function Inventory() {
                 </Group>
               )
             } },
-            { id: 'role', header: t('inventory.field.role'), sort: (d) => t(`inventory.role.${d.role}`, { defaultValue: d.role }),
+            { id: 'role', card: 'inline', header: t('inventory.field.role'), sort: (d) => t(`inventory.role.${d.role}`, { defaultValue: d.role }),
               cell: (d) => t(`inventory.role.${d.role}`, { defaultValue: d.role }) },
-            { id: 'group', header: t('inventory.groups.one'), sort: (d) => groupName(d.group_id), cell: (d) => groupName(d.group_id), hideOnPhone: true },
+            { id: 'group', card: 'label', header: t('inventory.groups.one'), sort: (d) => groupName(d.group_id), cell: (d) => groupName(d.group_id), hideOnPhone: true },
             { id: 'model', header: t('inventory.field.model'), sort: (d) => d.model ?? '', cell: (d) => d.model, hideOnPhone: true },
-            { id: 'mgmt_ip', header: t('inventory.field.mgmt_ip'), sort: (d) => d.mgmt_ip ?? '', cell: (d) => d.mgmt_ip, mono: true, hideOnPhone: true },
-            { id: 'ports', header: t('inventory.ports'), sort: (d) => (d.ports ? d.ports.up / Math.max(1, d.ports.total) : -1), cell: portsText, mono: true },
-            { id: 'uplink', header: t('inventory.uplink.title'), sort: uplinkSort, cell: (d) => <UplinkCell d={d} />, hideOnPhone: true },
-            { id: 'last_day', header: t('inventory.lastDay.title'), sort: lastDaySort, descFirst: true, cell: (d) => <LastDayCell d={d} />, hideOnPhone: true },
-            { id: 'agent', header: t('inventory.agent'), sort: (d) => agentName(d.agent), cell: (d) => agentName(d.agent), hideOnPhone: true },
+            { id: 'mgmt_ip', card: 'label', header: t('inventory.field.mgmt_ip'), sort: (d) => d.mgmt_ip ?? '', cell: (d) => d.mgmt_ip, mono: true, hideOnPhone: true },
+            { id: 'ports', card: 'label', header: t('inventory.ports'), sort: (d) => (d.ports ? d.ports.up / Math.max(1, d.ports.total) : -1), cell: portsText, mono: true },
+            { id: 'uplink', card: 'label', header: t('inventory.uplink.title'), sort: uplinkSort, cell: (d) => <UplinkCell d={d} />, hideOnPhone: true },
+            { id: 'last_day', card: 'label', header: t('inventory.lastDay.title'), sort: lastDaySort, descFirst: true, cell: (d) => <LastDayCell d={d} />, hideOnPhone: true },
+            { id: 'agent', card: 'label', header: t('inventory.agent'), sort: (d) => agentName(d.agent), cell: (d) => agentName(d.agent), hideOnPhone: true },
             { id: 'drift', header: t('inventoryDrift.badge'), hideOnPhone: true, sort: (d) => d.drift ?? 0, descFirst: true, cell: (d) => !!d.drift && (
               <Badge component={Link} to={devicePath(d.id)} size="sm" variant="light" color="warn" tt="none" style={{ cursor: 'pointer' }}>
                 {t('inventoryDrift.count', { count: d.drift })}
@@ -349,7 +350,7 @@ export default function Inventory() {
                 {d.hidden && <Badge variant="outline" color="gray" tt="none">{t('inventory.hidden')}</Badge>}
               </Group>
             ) },
-            { id: 'menu', header: null, width: 44, cell: (d) => (
+            { id: 'menu', card: 'actions', header: null, width: 44, cell: (d) => (
               <Menu position="bottom-end">
                 <Menu.Target>
                   <ActionIcon variant="subtle" color="gray" aria-label={t('inventory.rowMenu', { name: d.name })}><IconDots size={16} /></ActionIcon>
