@@ -1,4 +1,5 @@
 import { Alert, Badge, Button, Group, Stack, Table, Text } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +23,8 @@ export default function SwitchAreas() {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const canEdit = useCan('seats.edit')
+  // A phone shows each switch as a card (the shared table-stack look) instead of a table cut off at the side.
+  const phone = useMediaQuery('(max-width: 48em)', false, { getInitialValueInEffect: false })
   const query = useQuery({ queryKey: qk.switchAreas, queryFn: () => get<Areas>('/api/switch-areas') })
   useLiveEvent('switch-areas.changed', () => void qc.invalidateQueries({ queryKey: qk.switchAreas }))
   const [editing, setEditing] = useState<SwitchArea | null>(null)
@@ -53,8 +56,8 @@ export default function SwitchAreas() {
           {query.isPending ? <LoadingState rows={3} /> : !d?.switches.length ? (
             <EmptyState title={t('switchAreas.none')} description={t('switchAreas.noneHint')} />
           ) : (
-            <Table.ScrollContainer minWidth={720}>
-              <Table verticalSpacing="sm" highlightOnHover>
+            <Table.ScrollContainer minWidth={phone ? 0 : 720}>
+              <Table verticalSpacing="sm" highlightOnHover className="bnb-table-stack">
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>{t('switchAreas.switch')}</Table.Th>
@@ -67,14 +70,14 @@ export default function SwitchAreas() {
                 <Table.Tbody>
                   {d.switches.map((s) => (
                     <Table.Tr key={s.id}>
-                      <Table.Td><Text fw={600}>{s.name}</Text></Table.Td>
-                      <Table.Td>
+                      <Table.Td className="bnb-stack-inline"><Text fw={600}>{s.name}</Text></Table.Td>
+                      <Table.Td className="bnb-stack-inline">
                         <Group gap={4}>
                           {serves(s).map((x) => <Badge key={x} variant="light" color="gray" tt="none">{x}</Badge>)}
                           {!serves(s).length && <Text size="sm" c="dimmed">–</Text>}
                         </Group>
                       </Table.Td>
-                      <Table.Td><Badge variant="light" color={HOW_COLOR[s.how]} tt="none">{t(`switchAreas.how.${s.how}`)}</Badge></Table.Td>
+                      <Table.Td className="bnb-stack-inline"><Badge variant="light" color={HOW_COLOR[s.how]} tt="none">{t(`switchAreas.how.${s.how}`)}</Badge></Table.Td>
                       <Table.Td>
                         <Stack gap={4}>
                           {s.drift.map((x) => (
@@ -92,7 +95,7 @@ export default function SwitchAreas() {
                         </Stack>
                       </Table.Td>
                       {canEdit && (
-                        <Table.Td ta="right">
+                        <Table.Td ta="right" className="bnb-stack-actions">
                           <Button size="compact-sm" variant="default" onClick={() => setEditing(s)}>{t('switchAreas.edit')}</Button>
                         </Table.Td>
                       )}
