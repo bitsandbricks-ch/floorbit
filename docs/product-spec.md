@@ -28,7 +28,7 @@ Floorbit is an operations suite. These parts are its core, decided by Mike on 20
 | --- | --- |
 | **Agents** | The local agents, their settings, health and failover |
 | **Telemetry** | Collecting from devices: SNMP, traps, APIs, streaming, logs, flows |
-| **Seating plan and mapping** | The floor plan, seats, and which switch port each seat is on |
+| **Seating plan and mapping** | The floor plan, seats, and which switch port each seat is on. Check-in is part of it: a **tech check-in** that learns a seat PC's IP, MAC and switch port, not attendance |
 | **Inventory** | Devices, groups, tags, properties, features and logins |
 | **Observability** | Issues, problems, incidents and heatmaps |
 | **Services and monitoring** | Services, their checks and live status |
@@ -223,6 +223,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Device secrets** (SSH logins, RCON passwords, secret settings) are encrypted at rest, write-only
   in the UI, decrypted per call, limited by role and written to the audit log.
 - **Roles and audit:** every change and sign-in is audited; check-in records are never public.
+- **Check-in only from the event LAN:** only a request through a local agent's front door, from a
+  private address or one of the event's IP ranges, may check in. Anything else (Floorbit's own
+  address over the internet, a hotspot, a VPN) is refused with a hint to plug in the LAN cable at the
+  seat, because it could only make a false seat-to-port mapping.
 - **Agents dial out only;** plugins and agent bundles are signed; keys and signing are the
   maintainer's.
 - **Agents prove who they are twice:** their bearer key and a signature on every request by their
