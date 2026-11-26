@@ -656,3 +656,10 @@ from . import dashboard_event as _event  # noqa: E402  (it imports helpers from 
 TILES.update(_event.TILES)
 for _lang, _texts in _event.TEXTS.items():
     TEXTS[_lang].update(_texts)
+
+# The event report's numbers (#898): crew tiles from report.build, for the Overview's "During the event".
+from . import dashboard_report as _report  # noqa: E402
+
+TILES.update(_report.TILES)
+for _lang, _texts in _report.TEXTS.items():
+    TEXTS[_lang].update(_texts)

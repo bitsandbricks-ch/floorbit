@@ -229,7 +229,7 @@ editor saves it as a new dashboard of your own, named "… (copy)" and not publi
 | Dashboard | What is on it |
 | --- | --- |
 | **Kiosk** | The big screen in the hall (below). Public. |
-| **Overview** | Seats, bandwidth, switches, incidents, agents and the LAN cache as numbers; the plan, service health and switches down; switch states, traffic over time, uplinks, the busiest seats, traffic by kind and what looks odd. |
+| **Overview** | Seats, bandwidth, switches, incidents, agents and the LAN cache as numbers; the plan, service health and switches down; switch states, traffic over time, uplinks, the busiest seats, traffic by kind and what looks odd. Below, **During the event**: seats online and checked in, seats that moved, incidents and switch outages so far, traffic since the event started and the ports with the most problems, from the event report. The printable report stays under its export. |
 | **Service health** | Services up, switches, LAN cache and agents as numbers; every check worst first, internet uplinks and switches down. Each check's numbers and mutes are in its panel on the Services page. |
 | **Network** | Switches, seats, bandwidth and ports; traffic over time, switches down, uplinks, the busiest seats and switch states; Wi-Fi clients, access points and seats online by block. IP/MAC search and network status updates are on their pages. |
 | **Services** | Services up, the LAN cache, DNS lookups and agents; service health and internet uplinks; top and blocked sites and game launchers. Adding and editing services is on the Services page. |

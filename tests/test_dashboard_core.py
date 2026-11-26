@@ -160,7 +160,10 @@ STATS_TILES = ["bandwidth", "peak", "ports", "uplinks", "top_ports", "traffic_mi
                "dns_lookups", "dns_sites", "dns_blocked", "launchers", "wifi_clients", "wifi_aps",
                # The Event in numbers (#1045, dashboard_event.py).
                "event_downloaded", "event_peak", "event_online_max", "event_busiest_hour", "event_loyal_block",
-               "event_cache_saved", "event_games", "event_downloads", "event_sites"]
+               "event_cache_saved", "event_games", "event_downloads", "event_sites",
+               # The event report on the Overview (#898, dashboard_report.py).
+               "event_online", "event_moved", "event_checked_in", "event_incidents", "event_outages",
+               "event_problem_ports"]
 SNAP = {"now": {"t": 160, "down": 4.8e9, "up": 9.4e9, "online": 93,
                 "ports_up": 138, "ports_down": 598, "ports_errors": 1},
         "peak": {"bps": 16e9, "at": 100}, "day": {"peak_bps": 15.5e9},

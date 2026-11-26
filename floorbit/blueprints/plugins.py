@@ -671,6 +671,21 @@ def _event_tile(tile):
 CORE_TILES.update({tile: _event_tile(tile) for tile in core._event.TILES})
 
 
+def _report_tile(tile):
+    def build(user):
+        from .. import dashboard_report
+        from .report import _build
+        built, refused = _build()
+        if refused:
+            raise PermissionError(tile)
+        return dashboard_report.widget(tile, _lang(), built)
+    return build
+
+
+# The event report's numbers on the Overview (#898).
+CORE_TILES.update({tile: _report_tile(tile) for tile in core._report.TILES})
+
+
 @bp.route('/api/dashboard/floorbit/<tile>', methods=['GET'])
 def core_widget(tile):
     refused = _allowed('floorplan.view')
