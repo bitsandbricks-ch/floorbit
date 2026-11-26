@@ -109,6 +109,8 @@ export default function FloorPlan() {
   const phone = useMediaQuery('(max-width: 48em)')
   // Phones get the map-first controls (PhoneControls.tsx) instead of the bar while not editing.
   const phoneLive = !!phone && !editing
+  // Editing on a phone: the bar keeps only the hall, layers, snapping, the plan menu and Done.
+  const phoneEdit = !!phone && editing
   const qc = useQueryClient()
   // A link with a seat or switch but no hall (from the incident board) opens the hall it is in (issue #206).
   // Only the first load asks by seat, so clicking around keeps the same hall.
@@ -444,7 +446,7 @@ export default function FloorPlan() {
       {data && (
         <div className="fb-ws">
           {/* One slim bar like a map editor's: where you are, what you see, and the tools. */}
-          {!phoneLive && <div className="fb-ws-bar">
+          {!phoneLive && <div className={phoneEdit ? 'fb-ws-bar is-phone-edit' : 'fb-ws-bar'}>
             {!topo && data.halls.length > 1 && (
               <Select aria-label={t('plan.hall')} w={170} size="xs" comboboxProps={{ width: 'max-content', position: 'bottom-start' }}
                 allowDeselect={false} value={data.hall}
@@ -452,10 +454,10 @@ export default function FloorPlan() {
                 renderOption={({ option }) => <HallOption hall={data.halls.find((h) => h.id === option.value)!} />}
                 onChange={(v) => { if (v) toHall(v) }} />
             )}
-            {!topo && <Text size="sm" className="fb-ws-online"><b>{online}</b> / {total} {t('plan.online')}</Text>}
-            {editing && problems > 0 && <Text size="sm" c="down"><b>{problems}</b> {t('plan.withProblems')}</Text>}
+            {!topo && !phoneEdit && <Text size="sm" className="fb-ws-online"><b>{online}</b> / {total} {t('plan.online')}</Text>}
+            {editing && !phoneEdit && problems > 0 && <Text size="sm" c="down"><b>{problems}</b> {t('plan.withProblems')}</Text>}
             {/* The filters say how many seats each holds (issue #190), so the row doubles as the summary. */}
-              {!topo && <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
+              {!topo && !phoneEdit && <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
                 data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
                   value: f,
                   label: <span><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
@@ -466,16 +468,17 @@ export default function FloorPlan() {
               onOpen={phone && !editing ? () => { setSide({ tab: 'layers' }); setSheet(true) } : undefined} />}
             {editing && !list && <SnapToggles layers={layers} onLayers={setLayers} />}
             <div className="fb-ws-bar-end">
-              {!topo && <>
+              {!topo && !phoneEdit && <>
               <Elsewhere halls={data.halls} current={data.hall} onHall={toHall} />
               {data.last_read && <Text c="dimmed" size="xs" className="fb-ws-read">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
               <StaleNotice updatedAt={q.dataUpdatedAt} failing={q.isRefetchError} />
               {searchForm}
               {!list && <ViewMenu hall={data.hall} view={view} params={params} setParams={setParams} setView={setView} canEdit={canEdit} />}
               <ScreenLink hall={data.hall} params={params} />
-              {editing && <PlanMenu onOpen={setPlanDialog} />}
               <ExportMenu hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall} filter={filter} />
               </>}
+              {editing && <PlanMenu onOpen={setPlanDialog} />}
+              {phoneEdit && <Button size="xs" onClick={() => setParams(setEditing(params, false))}>{t('planPhone.done')}</Button>}
               {/* The key list is for keyboards: touch screens have none. */}
               {keyboard && <Tooltip label={t('plan.shortcuts.show')}>
                 <ActionIcon variant="default" size="md" aria-label={t('plan.shortcuts.show')} aria-keyshortcuts="?" onClick={showShortcuts}><IconHelp size={16} aria-hidden="true" /></ActionIcon>

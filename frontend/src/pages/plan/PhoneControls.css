@@ -37,3 +37,8 @@
 .fb-phone-filters { padding: 12px 16px 4px; }
 /* Sheets on phones hold what was asked for, not the app's footer links. */
 .fb-plan-sheet .fb-side-foot { display: none; }
+/* Editing on a phone: the hall, the plan menu and Done on the first row, layers and snapping below. */
+@media (max-width: 767.98px) {
+  .fb-ws-bar.is-phone-edit > .fb-ws-bar-end { order: 1; width: auto; margin-left: auto; flex-wrap: nowrap; }
+  .fb-ws-bar.is-phone-edit > :not(.fb-ws-bar-end):not(:first-child) { order: 2; }
+}
