@@ -67,7 +67,7 @@ class AgentPlugin(Base):
             answer = lookup.search(collector.raw.raw, args if isinstance(args, dict) else {}, pending=pending,
                                    classify=collector.agg.classify, owner_of=collector.owners.lookup)
         except lookup.QueryError as exc:
-            return {'error': str(exc)}
+            return {'error': exc.message}
         self.ctx.log(f'searched the raw flows: {answer["total"]} matched')
         return answer
 

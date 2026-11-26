@@ -98,7 +98,7 @@ def search():
     try:
         args, said = _query(body, now)
     except lookup.QueryError as exc:
-        return jsonify({'error': str(exc)}), 400
+        return jsonify({'error': exc.message}), 400
     as_csv = bool(body.get('csv'))
     audit.record('traffic', 'Exported a flow lookup' if as_csv else 'Searched the raw flows',
                  g.get('audit_user'), said, reason=reason)

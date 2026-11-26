@@ -28,7 +28,11 @@ PROTO_NAMES = {v: k for k, v in PROTOS.items()}
 
 
 class QueryError(ValueError):
-    pass
+    """A question the lookup won't answer; ``message`` is ours to show, never an exception's text."""
+
+    def __init__(self, message):
+        super().__init__(message)
+        self.message = message
 
 
 def _addresses(values):
