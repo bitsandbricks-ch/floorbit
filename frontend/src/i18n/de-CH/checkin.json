@@ -41,6 +41,7 @@
     "network": "Dein PC ist nicht im Spieler-Netz des Events ({{ip}}). Steck das LAN-Kabel an deinem Platz in deinen PC und versuche es nochmals.",
     "public": "Dein PC ist nicht im Event-Netz: Er hat die öffentliche Adresse {{ip}}. Schalte WLAN, VPN oder Hotspot aus, steck das LAN-Kabel an deinem Platz in deinen PC und versuche es nochmals.",
     "phone": "Checke auf dem PC an deinem Platz ein, mit dem LAN-Kabel im Event-Netz, nicht auf dem Handy.",
-    "address": "Öffne auf diesem PC {{address}}."
+    "address": "Öffne auf diesem PC {{address}}.",
+    "range": "Einchecken geht nur vom PC an deinem Platz, über sein LAN-Kabel, nicht über WLAN. Schalte WLAN aus, steck das LAN-Kabel an deinem Platz in deinen PC und versuche es nochmals."
   }
 }

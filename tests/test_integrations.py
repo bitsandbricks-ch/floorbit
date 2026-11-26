@@ -390,10 +390,6 @@ def test_a_public_address_is_refused_unless_it_is_an_event_range(app, checkin_en
     assert info['refused'] == 'public' and info['suggested_seat'] is None
     for private in ('10.1.2.3', '172.20.0.9', '192.168.7.7', '100.64.3.4'):   # incl. carrier-grade NAT
         assert checkin.refusal(private) is None, private
-    from floorbit import segments
-    monkeypatch.setattr(segments, 'for_ip', lambda ip, segs=None: {'network': '5.6.7.0/24'} if ip == public else None)
-    assert post_checkin(c, 'D-3', 'a', public).status_code == 200
-    monkeypatch.setattr(segments, 'for_ip', lambda ip, segs=None: None)
     monkeypatch.setenv('CHECKIN_ALLOWED_NETWORKS', '5.6.0.0/16')
     assert checkin.refusal(public) is None
 

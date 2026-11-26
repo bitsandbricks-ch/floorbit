@@ -49,6 +49,25 @@ describe('IpamView (#1346)', () => {
     expect(screen.getByText('1 prefix')).toBeInTheDocument()
   })
 
+  it('switches check-in per prefix, on unless someone turned it off (#1623)', async () => {
+    const checkin = { key: 'checkin', label: 'Check-in allowed', kind: 'bool' as const, choices: [], default: 'yes', link: '' }
+    const withField = [type('vlan', 'VLAN'), { ...type('prefix', 'Prefix or range'), fields: [checkin] }]
+    const crew = { ...prefixes[1], fields: { ...prefixes[1].fields, checkin: 'no' } }
+    const fake = fakeFetch({
+      'GET /api/inventory/entries?type=vlan': { entries: vlans },
+      'GET /api/inventory/entries?type=prefix': { entries: [prefixes[0], crew] },
+      'GET /api/firewalls': fw,
+      'PATCH /api/inventory/entries/prefix/p2': { ok: true },
+    })
+    vi.stubGlobal('fetch', fake.fn)
+    renderWithApp(<IpamView types={withField} sub="prefixes" onSub={() => {}} canEdit sourceName={names} />)
+    expect(await screen.findByRole('switch', { name: 'Check-in allowed: Seats A' })).toBeChecked()
+    const off = screen.getByRole('switch', { name: 'Check-in allowed: 198.51.100.0/25' })
+    expect(off).not.toBeChecked()
+    fireEvent.click(off)
+    await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ fields: { checkin: true } }))
+  })
+
   it('lists VLANs with the prefixes in them', async () => {
     vi.stubGlobal('fetch', api().fn)
     renderWithApp(<IpamView types={types} sub="vlans" onSub={() => {}} canEdit={false} sourceName={names} />)
