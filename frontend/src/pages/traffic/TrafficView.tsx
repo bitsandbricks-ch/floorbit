@@ -15,7 +15,7 @@ import { TrafficOwners } from './TrafficOwners'
 
 
 /** One bar split by category, with the shares as its accessible name. */
-function MixBar({ mix, label, big }: { mix: FlowMix | undefined; label: string; big?: boolean }) {
+export function MixBar({ mix, label, big }: { mix: FlowMix | undefined; label: string; big?: boolean }) {
   const { t } = useTranslation()
   const sum = total(mix)
   const parts = mixParts(mix, useTrafficCategories())

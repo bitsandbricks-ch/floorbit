@@ -1,0 +1,13 @@
+{
+  "title": "Verkehr",
+  "show": "Apps und Ziele anzeigen",
+  "audited": "Das Anschauen wird ins Audit-Log geschrieben.",
+  "hours_one": "Letzte Stunde",
+  "hours_other": "Letzte {{count}} Stunden",
+  "mix": "{{seat}} nach Kategorie",
+  "applications": "Meiste Anwendungen",
+  "owners": "Meiste Ziele",
+  "none": "Kein Verkehr von diesem Platz in dieser Zeit.",
+  "stopped": "Der Agent hat nach 10 Sekunden aufgehört zu lesen: Ältere Flows fehlen.",
+  "agentFailed": "{{name}} hat nicht geantwortet: {{error}}"
+}

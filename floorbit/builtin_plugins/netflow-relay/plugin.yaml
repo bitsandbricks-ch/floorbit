@@ -19,4 +19,4 @@ agent:
   fetches: [seats]
   # The flow lookup (floorbit/flows/lookup.py, #1481 C): read-only, asked by someone with
   # traffic.investigate who gave a reason (audit-logged on the hosted side).
-  calls: [lookup]
+  calls: [lookup, seat_summary]

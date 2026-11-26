@@ -373,6 +373,7 @@ RULES = (
     ('/api/applications/sources', None, 'settings.manage'),
     # Raw flows name what a seat talked to: a reasoned, audit-logged look for an incident (#1481 C).
     ('/api/traffic/lookup', None, 'traffic.investigate'),
+    ('/api/traffic/seat', READ, 'seats.view'),
     ('/flow-lookup', READ, 'traffic.investigate'),
     ('/terminal', READ, 'terminal.open'),
     # Switch configs describe the whole network, even with the secrets taken out (floorbit/config_backup.py).

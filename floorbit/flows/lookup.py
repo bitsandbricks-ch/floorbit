@@ -10,6 +10,7 @@ This module is the agent's half: it reads ``raw/*.jsonl.gz`` and the minutes not
 answers at most ``LIMIT`` rows, newest first, with the totals of everything that matched.
 """
 import calendar
+import contextlib
 import gzip
 import heapq
 import ipaddress
@@ -148,19 +149,43 @@ def _files(raw_dir, since, until):
     return [p for _, p in sorted(out, reverse=True)]
 
 
+def _matching(raw_dir, q, pending, owner_of, clock, started):
+    """Every row that matches, the minutes not yet on disk first, then the files newest first. Stops
+    after ``BUDGET`` seconds; the caller learns it from ``stopped``."""
+    state = {'stopped': False}
+
+    def rows():
+        for key, (b, p, r) in list((pending or {}).items()):
+            row = dict(zip(RAW_FIELDS, (*key, b, p, r), strict=True))
+            if q.matches(row, owner_of):
+                yield row
+        for path in _files(raw_dir, q.since, q.until):
+            if clock() - started > BUDGET:
+                state['stopped'] = True
+                return
+            try:
+                with gzip.open(path, 'rt', encoding='utf-8') as f:
+                    for n, row in enumerate(read_rows(f)):
+                        if q.matches(row, owner_of):
+                            yield row
+                        if n % 50_000 == 0 and clock() - started > BUDGET:
+                            state['stopped'] = True
+                            return
+            except (OSError, EOFError):
+                continue   # a file being written or cut short: the rest still answers
+
+    return rows(), state
+
+
 def search(raw_dir, args, pending=None, classify=None, owner_of=None, now=None, clock=time.monotonic):
     """Answer one lookup. ``pending``: the merged rows not yet on disk ({key: [bytes, packets,
     records]}, collector.py). ``classify``/``owner_of``: the collector's, to name each row."""
     q = Query(args, now=now)
     owner_of = owner_of or (lambda ip: None)
-    started = clock()
-    found, total, size, peers, stopped = [], 0, 0, set(), False
+    found, total, size, peers = [], 0, 0, set()
     order = itertools.count()
-
-    def take(row):
-        nonlocal total, size
-        if not q.matches(row, owner_of):
-            return
+    rows, state = _matching(raw_dir, q, pending, owner_of, clock, clock())
+    for row in rows:
         total += 1
         size += row['bytes']
         if q.sources:
@@ -173,27 +198,48 @@ def search(raw_dir, args, pending=None, classify=None, owner_of=None, now=None, 
             heapq.heappush(found, item)
         elif item > found[0]:
             heapq.heapreplace(found, item)
-
-    for key, (b, p, r) in list((pending or {}).items()):
-        take(dict(zip(RAW_FIELDS, (*key, b, p, r), strict=True)))
-    for path in _files(raw_dir, q.since, q.until):
-        if clock() - started > BUDGET:
-            stopped = True
-            break
-        try:
-            with gzip.open(path, 'rt', encoding='utf-8') as f:
-                for n, row in enumerate(read_rows(f)):
-                    take(row)
-                    if n % 50_000 == 0 and clock() - started > BUDGET:
-                        stopped = True
-                        break
-        except (OSError, EOFError):
-            continue   # a file being written or cut short: the rest still answers
-        if stopped:
-            break
     rows = [_named(item[3], q, classify, owner_of) for item in sorted(found, reverse=True)]
     return {'rows': rows, 'total': total, 'bytes': size, 'peers': len(peers) if q.sources else None,
-            'stopped': stopped, 'oldest': _oldest(raw_dir)}
+            'stopped': state['stopped'], 'oldest': _oldest(raw_dir)}
+
+
+SUMMARY_TOP = 5
+
+
+def summary(raw_dir, args, pending=None, classify=None, owner_of=None, now=None, clock=time.monotonic):
+    """One seat's traffic for the seat panel (#1481, B): its volume, its categories, its top
+    applications and the networks' owners it talked to. Totals only: never a name it looked up,
+    never a single remote address."""
+    if not (args or {}).get('sources'):
+        raise QueryError('Name the seat')
+    q = Query({k: args.get(k) for k in ('since', 'until', 'sources')}, now=now)
+    owner_of = owner_of or (lambda ip: None)
+    size = 0
+    categories, apps, owners = {}, {}, {}
+    rows, state = _matching(raw_dir, q, pending, owner_of, clock, clock())
+    for row in rows:
+        size += row['bytes']
+        if row['dst'] in q.sources:
+            remote, remote_port, local_port = row['src'], row['sport'], row['dport']
+        else:
+            remote, remote_port, local_port = row['dst'], row['dport'], row['sport']
+        name, category = 'Other', 'other'
+        if classify is not None:
+            with contextlib.suppress(Exception):   # a name is extra; the bytes still count
+                name, category = classify(remote, row['proto'], remote_port, local_port)
+        categories[category] = categories.get(category, 0) + row['bytes']
+        app = apps.setdefault(name, [category, 0])
+        app[1] += row['bytes']
+        owner = owner_of(remote)
+        if owner:
+            entry = owners.setdefault(owner[0], [owner[1], 0])
+            entry[1] += row['bytes']
+    top_apps = sorted(apps.items(), key=lambda kv: -kv[1][1])[:SUMMARY_TOP]
+    top_owners = sorted(owners.items(), key=lambda kv: -kv[1][1])[:SUMMARY_TOP]
+    return {'bytes': size, 'categories': categories,
+            'applications': [{'name': n, 'category': c, 'bytes': b} for n, (c, b) in top_apps],
+            'owners': [{'asn': a, 'name': n, 'bytes': b} for a, (n, b) in top_owners],
+            'stopped': state['stopped'], 'oldest': _oldest(raw_dir)}
 
 
 def _named(row, q, classify, owner_of):

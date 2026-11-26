@@ -216,14 +216,16 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 ## 5. Privacy and security
 
 - **Aggregates only** leave the event network for NetFlow, DNS and Wi-Fi. Stats about people need at
-  least 5 seats; per seat only volume and protocol mix. Raw data is kept about 7 days. Public
+  least 5 seats; per seat volume, category mix, top applications and networks' owners, the last two
+  only with `seats.view`, on a click, written to the audit log (#1481). Never names looked up or
+  single addresses per seat. Raw data is kept about 7 days. Public
   screens name only sites that belong to a known application (games, launchers, site groups), so a big
   screen never shows whatever else enough seats looked up.
 - **The flow lookup is the one exception, for incidents:** someone with `traffic.investigate`
   (Admin, Lead) may search the raw flows of a seat, an address, an owner or a port, with a reason
   for every search. The search and its reason go to the audit log first; the raw flows stay on the
-  agent and Floorbit keeps no result. Like opening a switch terminal: seat-level detail only as a
-  logged, reasoned look, never on an everyday page.
+  agent and Floorbit keeps no result. Like opening a switch terminal: a seat's addresses, ports and
+  flows only as a logged, reasoned look, never on an everyday page.
 - **ARP and MAC history is stored** per port and seat (7 days), visible with `seats.view` only.
 - **Device secrets** (SSH logins, RCON passwords, secret settings) are encrypted at rest, write-only
   in the UI, decrypted per call, limited by role and written to the audit log.

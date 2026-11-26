@@ -1,6 +1,6 @@
 // The flow lookup (docs/flows.md, "Flow lookup"; #1481 C): raw flows for an incident, with a reason.
 import i18next from 'i18next'
-import { ApiError, post } from './client'
+import { ApiError, get, post } from './client'
 
 export const FLOW_LOOKUP_URL = '/api/traffic/lookup'
 export const WINDOWS = ['15m', '1h', '6h', '24h', '7d'] as const
@@ -66,3 +66,18 @@ export async function downloadFlows(q: FlowQuery): Promise<void> {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+// The seat panel's traffic (#1481 B): a seat's top applications and networks' owners, 24 hours.
+export interface SeatTrafficAnswer {
+  seat: string
+  hours: number
+  bytes: number
+  categories: Record<string, number>
+  applications: { name: string; category: string; bytes: number }[]
+  owners: { asn: number; name: string; bytes: number }[]
+  stopped: boolean
+  agents: { name: string; error: string | null }[]
+}
+
+export const seatTrafficUrl = (seat: string) => `/api/traffic/seat/${encodeURIComponent(seat)}`
+export const fetchSeatTraffic = (seat: string) => get<SeatTrafficAnswer>(seatTrafficUrl(seat))
