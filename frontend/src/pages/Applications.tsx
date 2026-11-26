@@ -14,6 +14,8 @@ import {
   type DataColumn,
 } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
+import { ago } from '@/lib/time'
+import { RuleSources } from './applications/RuleSources'
 import { bytes } from './traffic/format'
 
 const HOURS = 24
@@ -29,6 +31,7 @@ export default function Applications() {
   const [shown, setShown] = useState<Shown>('all')
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState<string | null>(null)   // an id, or 'new'
+  const [sourcesOpen, setSourcesOpen] = useState(false)
   const apps = q.data?.applications ?? []
   const needle = search.trim().toLowerCase()
   const rows = apps.filter((a) => (shown === 'all' || a.kind === shown)
@@ -58,7 +61,12 @@ export default function Applications() {
   return (
     <Layout title={t('applications.title')}>
       <PageHead title={t('applications.title')} desc={t('applications.intro')}
-        actions={canEdit ? <Button onClick={() => setOpen('new')}>{t('applications.add')}</Button> : undefined} />
+        actions={canEdit ? (
+          <Group gap="xs">
+            <Button variant="default" onClick={() => { setOpen(null); setSourcesOpen(true) }}>{t('applicationSources.open')}</Button>
+            <Button onClick={() => { setSourcesOpen(false); setOpen('new') }}>{t('applications.add')}</Button>
+          </Group>
+        ) : undefined} />
       <Stack gap="md">
         {q.error && <ErrorBanner error={q.error} />}
         <FilterBar search={search} onSearchChange={setSearch} searchLabel={t('applications.search')}
@@ -71,7 +79,7 @@ export default function Applications() {
           }]} />
         <DataTable rows={rows} columns={columns} rowKey={(a) => a.id} label={t('applications.title')}
           loading={q.isLoading} defaultSort={{ id: 'seats', desc: true }} cards urlState
-          onRowClick={(a) => setOpen(a.id)}
+          onRowClick={(a) => { setSourcesOpen(false); setOpen(a.id) }}
           selected={open}
           count={(n) => t('applications.count', { count: n })}
           empty={<EmptyState title={t('applications.none')} />} />
@@ -79,9 +87,18 @@ export default function Applications() {
           <Text size="xs" c="dimmed">
             {t('applications.sources')}{' '}
             {q.data.sources.map((s) => `${s.repo} (${s.license}, ${s.commit.slice(0, 7)})`).join(', ')}
+            {q.data.synced.filter((s) => s.on).length > 0 && (
+              <>
+                {' · '}{t('applicationSources.synced')}{' '}
+                {q.data.synced.filter((s) => s.on)
+                  .map((s) => t('applicationSources.syncedOne', { name: s.name, when: ago(s.changed_at) })).join(', ')}
+              </>
+            )}
+            {q.data.frozen && <>{' · '}{t('applicationSources.frozenNote')}</>}
           </Text>
         )}
       </Stack>
+      {sourcesOpen && canEdit && <RuleSources onClose={() => setSourcesOpen(false)} />}
       {open && (open === 'new' || current) && (
         <AppPanel key={open} app={current ?? null} apps={apps} canEdit={canEdit} onClose={() => setOpen(null)}
           onSaved={(id) => setOpen(id)}
@@ -112,7 +129,8 @@ function matchText(t: T, a: Application) {
 function origin(t: T, a: Application) {
   if (!a.builtin) return t('applications.origin.own')
   if (a.hidden) return t('applications.origin.hidden')
-  return a.edited ? t('applications.origin.edited') : t('applications.origin.builtin')
+  if (a.edited) return t('applications.origin.edited')
+  return a.source_name ? t('applicationSources.from', { name: a.source_name }) : t('applications.origin.builtin')
 }
 
 /** One application beside the list: for a built-in one, what the event added and whether it is hidden. */

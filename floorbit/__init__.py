@@ -270,6 +270,8 @@ def create_app(start_background=True):
     # Scheduled backups to an S3 bucket, off until one is set (docs/backup.md).
     from . import s3_backup
     s3_backup.init_app(app, start_background=start_background)
+    from . import application_sources
+    application_sources.init_app(app, start_background=start_background)   # rule files, on a schedule (#1503)
 
     # The event changelog: alerts from the event bus and each start go into its journal (docs/timeline.md).
     from .timeline import init_timeline
