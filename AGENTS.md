@@ -109,7 +109,7 @@ pull request.
   (`uses: actions/checkout@<sha> # v7.0.1`), as `.github/workflows/` already does.
 - **Dependencies:** add one only when it clearly pays for itself, and say why in the pull request.
 - **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new page is a React page in
-  `frontend/src/pages/` with its texts in English and German (`frontend/src/i18n/`); a new editor
+  `frontend/src/pages/` with its route in `frontend/src/routes/<area>.ts` and its texts in English and German (`frontend/src/i18n/`); a new editor
   feature is a new file in `frontend/src/pages/plan/edit/`. A new error message from the server gets its German text
   in `floorbit/locales/de-CH/<area>.json` (`tests/test_i18n_server.py` checks). NetBox and LibreNMS calls live in their
   plugins; the core asks the inventory and `floorbit.sources.monitoring()`, never the API itself. Nothing names one particular event:
