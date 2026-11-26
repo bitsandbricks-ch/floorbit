@@ -1,0 +1,39 @@
+/* The floor plan's phone controls (PhoneControls.tsx): they float over the plan, which keeps the
+   whole screen; only the controls themselves take touches. */
+.fb-phone-ctl { position: absolute; inset: 0; z-index: 25; pointer-events: none; }
+.fb-phone-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.fb-phone-search { position: relative; width: 100%; pointer-events: auto; }
+.fb-phone-search input { border-radius: 12px; padding-right: 84px; box-shadow: 0 6px 20px rgb(0 0 0 / 35%); background: var(--bnb-surface); }
+.fb-phone-count {
+  position: absolute; right: 12px; top: 21px; transform: translateY(-50%); display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--bnb-muted); font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.fb-phone-count i { width: 8px; height: 8px; border-radius: 2px; background: var(--bnb-ok); }
+.fb-phone-views { pointer-events: auto; box-shadow: 0 6px 20px rgb(0 0 0 / 35%); }
+.fb-phone-views span { display: flex; }
+.fb-phone-dock {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; gap: 4px; padding: 6px; pointer-events: auto;
+  background: color-mix(in srgb, var(--bnb-surface) 96%, transparent); border: 1px solid var(--bnb-line); border-radius: 14px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+.fb-dock-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; border-radius: 9px;
+  font-size: 12px; color: var(--bnb-muted);
+}
+.fb-dock-btn:active, .fb-dock-btn[aria-expanded="true"] { background: var(--bnb-raised); color: var(--bnb-fg); }
+.fb-dock-icon { position: relative; display: flex; }
+.fb-dock-badge {
+  position: absolute; top: -6px; left: 14px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px; box-sizing: border-box;
+  display: grid; place-items: center; font-size: 10.5px; font-weight: 700; background: var(--bnb-accent); color: var(--bnb-on-accent, #0b0b0f);
+}
+.fb-dock-badge.bad { background: var(--bnb-err); color: #fff; }
+/* Room for the controls: the zoom buttons and the key sit above the dock, the list starts under the search. */
+.fb-ws-body:has(> .fb-phone-ctl.is-map) .fb-plan-zoom,
+.fb-ws-body:has(> .fb-phone-ctl.is-map) .fb-ws-corner { bottom: 84px; }
+.fb-ws-body:has(> .fb-phone-ctl.is-map) .fb-plan-zoom { flex-direction: column; }
+.fb-ws-body:has(> .fb-phone-ctl.is-list) .fb-ws-canvas { padding-top: 64px; padding-bottom: 84px; padding-right: 64px; }
+.fb-ws-body:has(> .fb-phone-ctl) > :not(.fb-phone-ctl) { flex: 1; }
+/* The filter on top of the Problems sheet wraps; nothing scrolls sideways. */
+.fb-phone-filters { padding: 12px 16px 4px; }
+/* Sheets on phones hold what was asked for, not the app's footer links. */
+.fb-plan-sheet .fb-side-foot { display: none; }
