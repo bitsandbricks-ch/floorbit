@@ -176,7 +176,7 @@ Source: [`floorbit/blueprints/applications.py`](https://github.com/bitsandbricks
 
 ## floorbit.blueprints.audit
 
-Settings > Audit log: the page, its JSON and a CSV download (admins only, under /settings).
+Logs > Audit log: its JSON and a CSV download (audit.read); the page is part of Logs (#1643).
 
 Source: [`floorbit/blueprints/audit.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/audit.py)
 

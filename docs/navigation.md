@@ -49,8 +49,7 @@ the list until **Back to the list**.
 
 **Settings** is one page with tabs: **General** (the event, its look, seat sources, monitoring),
 **People** (users, roles and teams, sign-in, API tokens), **Alerts** (Discord, crew alerts,
-webhooks), **Tenants** and **System** (status, backup, caching, features, sidebar sections, the
-audit log). Each part keeps its own address (`/settings/users`, `/settings/audit`, ...), and the
+webhooks), **Tenants** and **System** (status, backup, caching, features, sidebar sections). Each part keeps its own address (`/settings/users`, `/settings/sidebar`, ...), and the
 search on top finds any field. An account sees only the tabs it may open: someone who manages
 accounts but not settings gets People alone.
 

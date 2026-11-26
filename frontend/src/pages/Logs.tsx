@@ -11,6 +11,7 @@ import type { LogSeverity, LogSource, LogStatus, LogsData, SyslogLine } from '@/
 import { DataTable, ErrorBanner, FilterBar, PageHead, type FilterGroup } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
 import { Message } from './logs/Message'
+import { AuditLog } from './logs/AuditLog'
 import { LogVolume, type LogVolumeData } from './logs/LogVolume'
 import { onPlan } from './plan/links'
 import { clockSeconds, formatWhen } from '@/lib/time'
@@ -182,6 +183,8 @@ export default function Logs() {
     return s === 'app' || s === 'audit' || s?.startsWith('plugin:') ? (s as LogSource) : 'syslog'
   })
   const syslog = source === 'syslog'
+  // The audit log has its own list (area, account, CSV, page by page): the live tail is for the logs.
+  const audit = source === 'audit'
   const store = source.startsWith('plugin:')
   // A logs plugin's query runs when it's sent (Enter), not on every key: half a query is an error.
   const [logql, setLogql] = useState('')
@@ -214,7 +217,7 @@ export default function Logs() {
   const query = useQuery({
     queryKey: qk.logs(`${key}|${range}`),
     queryFn: () => get<LogsData>(`/api/logs${withWindow(key, range)}`),
-    refetchInterval: following ? (store ? STORE_MS : TAIL_MS) : false,
+    refetchInterval: following && !audit ? (store ? STORE_MS : TAIL_MS) : false,
     placeholderData: keepPreviousData,
   })
   const set = (k: keyof Filters) => (v: string | null) => setFilters((f) => ({ ...f, [k]: v ?? '' }))
@@ -300,16 +303,18 @@ export default function Logs() {
       <PageHead title={t('logs.title')} desc={t(syslog ? 'logs.intro' : store ? 'logs.intros.store' : `logs.intros.${source}`)}
         actions={
           <Group gap="xs" wrap="nowrap">
-            {live && (
+            {live && !audit && (
               <Badge variant="light" color={browsing ? 'gray' : 'up'} tt="none" title={browsing ? t('logs.livePausedWhy') : undefined}
                 leftSection={<span className={`fb-dot${browsing ? '' : ' up'}`} aria-hidden="true" />}>
                 {browsing ? t('logs.livePaused') : t('logs.live')}
               </Badge>
             )}
-            <Button variant="default" onClick={() => setLive((v) => !v)} aria-pressed={!live}
-              leftSection={live ? <IconPlayerPauseFilled size={14} /> : <IconPlayerPlayFilled size={14} />}>
-              {live ? t('logVolume.pause') : t('logVolume.resume')}
-            </Button>
+            {!audit && (
+              <Button variant="default" onClick={() => setLive((v) => !v)} aria-pressed={!live}
+                leftSection={live ? <IconPlayerPauseFilled size={14} /> : <IconPlayerPlayFilled size={14} />}>
+                {live ? t('logVolume.pause') : t('logVolume.resume')}
+              </Button>
+            )}
             {syslog && (
               <Button variant="default" component="a" href={`/api/logs/download${withWindow(key, range)}`} download
                 title={t('logVolume.downloadHint')} leftSection={<IconDownload size={16} />}>
@@ -324,7 +329,7 @@ export default function Logs() {
         <SegmentedControl mb="sm" value={source} onChange={(v) => setSource(v as LogSource)} aria-label={t('logs.source')}
           data={sources.map((s) => ({ value: s, label: s.startsWith('plugin:') ? storeName(s) : t(`logs.sources.${s}`) }))} />
       )}
-      {store ? (
+      {audit ? <AuditLog /> : store ? (
         <Group gap="sm" mb="sm" align="flex-end" wrap="wrap">
           <TextInput label={QUERY[source.slice('plugin:'.length)] ? t('logs.queryIn', { language: QUERY[source.slice('plugin:'.length)].language }) : t('logs.query')}
             placeholder={QUERY[source.slice('plugin:'.length)]?.example} value={draft} styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)' } }}
@@ -339,7 +344,7 @@ export default function Logs() {
           onClear={() => setFilters(EMPTY)} />
       )}
       {store && data?.status.query_error && <Alert color="warn" mb="md">{data.status.query_error}</Alert>}
-      {query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : (
+      {audit ? null : query.isPending || !data ? <Loader size="sm" aria-label={t('common.loading')} /> : (
         <>
           {syslog && <StatusLine status={data.status} />}
           {syslog && volume && !phone && <LogVolume data={volume} onZoom={(since, until) => set('range')(`${Math.floor(since)}-${Math.ceil(until)}`)} />}

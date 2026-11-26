@@ -4,7 +4,7 @@ Every successful change through the API (floor plan, settings, accounts, a resto
 every sign-in is appended as one JSON line to ``audit.jsonl`` next to ``data.json`` (or ``AUDIT_FILE``). Entries name
 the account, the action and its target (a switch name, a seat block label, a username) and which
 fields changed, never the values: settings hold tokens, and the floor plan's history is in the
-backups. Settings > Audit log shows it; see docs/audit.md.
+backups. Logs > Audit log shows it; see docs/audit.md.
 """
 import json
 import os
