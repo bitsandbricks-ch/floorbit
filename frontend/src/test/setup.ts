@@ -33,6 +33,8 @@ if (!('fonts' in document)) {
   })
 }
 
-// German is fetched on first use in the app; tests that switch to it expect it at once.
-const { loadLang } = await import('@/i18n')
+// German, and the texts of the shell's pages, are fetched on first use in the app; tests render
+// pages directly and switch languages, so they expect all of it at once.
+const { allTexts, loadLang } = await import('@/i18n')
+await allTexts()
 await loadLang('de-CH')

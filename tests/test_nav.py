@@ -39,7 +39,7 @@ def test_every_page_has_its_own_name(client):
 
 def test_react_pages_get_the_sidebar_data(client, monkeypatch):
     from floorbit import spa
-    monkeypatch.setattr(spa, "assets", lambda entry=spa.ENTRY: {"js": ["/static/app/x.js"], "css": []})
+    monkeypatch.setattr(spa, "assets", lambda entry=spa.ENTRY, shell=True: {"js": ["/static/app/x.js"], "css": []})
     html = client.get("/problems").get_data(as_text=True)
     assert boot(html)["pages"]
     # The React app draws the sidebar itself: no second one from the server.

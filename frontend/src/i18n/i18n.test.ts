@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { files as english } from './english'
+import { files as englishCore } from './englishCore'
 import { germanyBundle, toGermany } from './germany'
 import { initialLang, loadBundle } from './index'
+import { files as swiss } from './swiss'
+import { files as swissCore } from './swissCore'
 
 function keys(obj: unknown, prefix = ''): string[] {
   if (typeof obj !== 'object' || obj === null) return [prefix]
@@ -10,6 +14,14 @@ function keys(obj: unknown, prefix = ''): string[] {
 describe('translations', () => {
   it('has every English text in German too, and nothing extra', async () => {
     expect(keys(await loadBundle('de-CH')).sort()).toEqual(keys(await loadBundle('en')).sort())
+  })
+
+  it('splits both languages the same way: the first download and the rest, each text file once', () => {
+    const names = (files: Record<string, unknown>) => Object.keys(files).map((p) => p.split('/').pop()).sort()
+    expect(names(swissCore)).toEqual(names(englishCore))
+    expect(names(swiss)).toEqual(names(english))
+    expect(names(english).filter((n) => names(englishCore).includes(n))).toEqual([])
+    expect(names({ ...english, ...englishCore }).length).toBe(Object.keys(import.meta.glob('./en/*.json')).length)
   })
 
   it('writes Swiss German: no ß', async () => {
