@@ -133,22 +133,18 @@ export default function Incidents() {
         title={t('incidents.title')}
         desc={t('incidents.intro')}
         actions={
-          <>
-            {/* The handover is a Helpdesk tab (issue #892); My jobs is part of this board (issue #887). */}
-            {board.data?.can_assign_any && helpdeskOn && (
-              <Button variant="default" component="a" href="/incidents/qr" leftSection={<IconQrcode size={16} />}>
-                {t('incidents.qrCodes')}
-              </Button>
-            )}
-            <Button variant="default" component="a" href={`/api/incidents.csv?tz=${new Date().getTimezoneOffset()}`}
-              leftSection={<IconDownload size={16} />}>
-              {t('incidents.csv')}
-            </Button>
-            <Button leftSection={<IconPlus size={16} />} onClick={() => { setFormError(null); form.open() }} disabled={!board.data}>
-              {t('incidents.new')}
-            </Button>
-          </>
+          <Button leftSection={<IconPlus size={16} />} onClick={() => { setFormError(null); form.open() }} disabled={!board.data}>
+            {t('incidents.new')}
+          </Button>
         }
+        // One primary action; the seat QR codes and the CSV behind "⋯" so a phone shows them whole (#1044).
+        // The handover is a Helpdesk tab (issue #892); My jobs is part of this board (issue #887).
+        menu={[
+          ...(board.data?.can_assign_any && helpdeskOn
+            ? [{ label: t('incidents.qrCodes'), icon: <IconQrcode size={16} aria-hidden="true" />, href: '/incidents/qr' }] : []),
+          { label: t('incidents.csv'), icon: <IconDownload size={16} aria-hidden="true" />,
+            href: `/api/incidents.csv?tz=${new Date().getTimezoneOffset()}`, download: true },
+        ]}
       />
       {dispatchOn && me.data?.user && <MyJobs />}
       <Group justify="space-between" mb="sm">

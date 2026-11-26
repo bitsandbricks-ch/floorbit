@@ -108,13 +108,17 @@ describe('Incident board', () => {
     expect(within(worked).getByText('With kim')).toBeInTheDocument()
     // Another team's incident: visible, but no buttons.
     expect(within(worked).queryByRole('button', { name: 'Fixed' })).toBeNull()
-    expect(screen.queryByRole('link', { name: 'Seat QR codes' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect(await screen.findByText('Download as CSV')).toBeInTheDocument()
+    expect(screen.queryByText('Seat QR codes')).toBeNull()
   })
 
   it('offers the board as a CSV in the browser time zone (issue #418)', async () => {
     vi.stubGlobal('fetch', fakeFetch(routes).fn)
     renderWithApp(<Incidents />)
-    const link = await screen.findByRole('link', { name: 'Download as CSV' })
+    // Behind the page's "⋯" menu, so the phone shows the head whole (#1044).
+    fireEvent.click(await screen.findByRole('button', { name: 'More actions' }))
+    const link = (await screen.findByText('Download as CSV')).closest('a')
     expect(link).toHaveAttribute('href', `/api/incidents.csv?tz=${new Date().getTimezoneOffset()}`)
   })
 

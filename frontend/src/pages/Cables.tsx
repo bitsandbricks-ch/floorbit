@@ -55,14 +55,14 @@ export default function Cables() {
         actions={
           <Group gap="xs">
             {canEdit && <Button leftSection={<IconPlus size={16} />} component={Link} to="/cables/new">{t('cables.add')}</Button>}
-            {canEdit && <Button variant="default" component="a" href="/cables/walk" leftSection={<IconPlugConnected size={16} />}>
-              {t('walk.title')}</Button>}
-            {/* The rest in a menu: six buttons pushed the bar past a laptop screen. */}
+            {/* The rest in a menu: six buttons pushed the bar past a laptop screen, three past a phone's (#1044).
+                It stays Floorbit's own menu, not PageHead's "⋯", because the import names its source below it (#880). */}
             <Menu position="bottom-end" withinPortal>
               <Menu.Target>
                 <Button variant="default" rightSection={<IconChevronDown size={14} />}>{t('cables.more')}</Button>
               </Menu.Target>
               <Menu.Dropdown>
+                {canEdit && <Menu.Item component="a" href="/cables/walk" leftSection={<IconPlugConnected size={14} />}>{t('walk.title')}</Menu.Item>}
                 {canEdit && <Menu.Item leftSection={<IconLayoutRows size={14} />} onClick={() => setPatching(true)}>{t('cables.patchBlock')}</Menu.Item>}
                 {canEdit && d && d.sources.length > 0 && (
                   <Menu.Item leftSection={<IconCloudDownload size={14} />} disabled={doImport.isPending} onClick={() => doImport.mutate()}>

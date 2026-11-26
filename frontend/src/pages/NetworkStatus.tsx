@@ -191,7 +191,7 @@ export default function NetworkStatus() {
                     cell: (u) => u.area || <Text span size="sm" c="dimmed">{t('statusUpdates.everywhere')}</Text> },
                   { id: 'text', header: t('statusUpdates.text'), wrap: true, cell: (u) => u.text },
                   ...(canSet ? [{ id: 'remove', header: '', width: 44, card: 'actions' as const, cell: (u: StatusUpdate) => (
-                    <ConfirmIcon label={t('status.remove')} onConfirm={() => remove.mutate(u.id)}>
+                    <ConfirmIcon color="gray" label={t('status.remove')} onConfirm={() => remove.mutate(u.id)}>
                       <IconTrash size={16} />
                     </ConfirmIcon>
                   ) }] : []),

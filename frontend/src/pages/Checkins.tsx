@@ -161,7 +161,7 @@ export default function Checkins() {
                                   onClick={() => act.mutate({ kind: 'retry', seat: r.seat })}><IconRefresh size={16} /></ActionIcon>
                               </Tooltip>
                             )}
-                            <ConfirmIcon tooltip={t('crewCheckin.remove')} label={t('crewCheckin.removeFor', { seat: r.seat })}
+                            <ConfirmIcon color="gray" tooltip={t('crewCheckin.remove')} label={t('crewCheckin.removeFor', { seat: r.seat })}
                               onConfirm={() => act.mutate({ kind: 'remove', seat: r.seat })}><IconTrash size={16} /></ConfirmIcon>
                           </Group>
                         ) }] : []),
