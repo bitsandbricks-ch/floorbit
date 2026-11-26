@@ -136,6 +136,7 @@ def test_every_write_route_has_a_deliberate_permission(app_module):
                         "/api/commands/templates/",   # which commands the crew may send to switches
                         "/api/game-servers",        # setting up game servers and their RCON passwords
                         "/api/applications",        # what counts as which game, launcher or site group
+                        "/api/traffic/categories",  # the tenant's own traffic categories, for every event
                         "/api/inventory/credentials",   # passwords and keys stored on devices, groups and tags
                         "/api/icons",                   # uploaded SVGs everyone's browser shows
                         "/api/inventory/types",         # the fields every entry of a type has
