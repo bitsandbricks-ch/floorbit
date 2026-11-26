@@ -254,6 +254,17 @@ def _librenms_answers_again():
 
 
 @pytest.fixture(autouse=True)
+def _no_owner_list_from_iptoasn(monkeypatch):
+    """A flow collector fetches the network owner list once a day (floorbit/flows/owners.py); never in
+    tests: tests/test_flows_owners.py hands Owners a fake fetch instead."""
+    from floorbit.flows import owners
+
+    def refuse(path):
+        raise OSError("no network in tests")
+    monkeypatch.setattr(owners, "_download", refuse)
+
+
+@pytest.fixture(autouse=True)
 def _no_agent_releases_from_github(monkeypatch):
     """The app's hourly look at the agent's GitHub releases (floorbit/agent_updates.py) never runs
     in tests: tests/test_agent_updates.py hands refresh() a fake instead."""

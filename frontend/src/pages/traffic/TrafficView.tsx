@@ -10,6 +10,7 @@ import { onPlan } from '../plan/links'
 import { clock } from '@/lib/time'
 import { Panel } from '@/components/ui'
 import { TrafficServices } from './TrafficServices'
+import { TrafficOwners } from './TrafficOwners'
 
 
 /** One bar split by category, with the shares as its accessible name. */
@@ -115,6 +116,8 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
           </ol>
         </Panel>
       ) : <TrafficServices data={data} />}
+
+      {!compact && <TrafficOwners data={data} />}
 
       {!compact && data.seats && <Seats seats={data.seats} />}
     </div>

@@ -556,16 +556,18 @@ def syslog():
 FLOW_KEYS = {'updated': None, 'flows': None, 'exporters': 50, 'mix_hour': None, 'mix_day': None, 'series': 120,
              'areas': 200, 'services': 25, 'other_services': None, 'seats': 5000, 'anomalies': 200,
              'min_seats': None, 'p2p_peers': None, 'burst_pps': None, 'retention_days': None, 'raw': None,
-             'templates_missing': None, 'errors': None, 'refused': None}
+             'templates_missing': None, 'errors': None, 'refused': None,
+             'owners': 25, 'other_owners': None, 'owners_list': None}
 
 
 # What each row of a list needs before a page reads it (the rest is checked by type in _flow_value).
 _NUM = (int, float)
 FLOW_ROWS = {'services': {'name': str, 'bytes': _NUM, 'seats': _NUM},
              'anomalies': {'id': str, 'kind': str, 'first_seen': _NUM, 'last_seen': _NUM, 'title': str, 'detail': str},
+             'owners': {'asn': int, 'name': str, 'bytes': _NUM, 'seats': _NUM},
              'areas': {'area': str, 'bytes': _NUM}, 'seats': {'seat': str, 'bytes': _NUM}, 'series': {'t': _NUM},
              'exporters': {'address': str}}
-FLOW_MAPS = {'mix_hour', 'mix_day', 'raw'}
+FLOW_MAPS = {'mix_hour', 'mix_day', 'raw', 'owners_list'}
 
 
 def _traffic_off():

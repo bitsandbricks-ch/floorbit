@@ -1,0 +1,10 @@
+{
+  "title": "Netzbetreiber, 24 Stunden",
+  "owner": "Betreiber",
+  "none": "Noch kein Betreiber wurde von genug Plätzen genutzt.",
+  "noList": "Der Agent holt die Liste der Netzbetreiber einmal am Tag. Er hat noch keine.",
+  "text_one": "Ein Betreiber wird erst genannt, wenn ihn {{count}} verschiedener Platz genutzt hat. {{volume}} gingen an Betreiber, die weniger Plätze nutzten.",
+  "text_other": "Ein Betreiber wird erst genannt, wenn ihn {{count}} verschiedene Plätze genutzt haben. {{volume}} gingen an Betreiber, die weniger Plätze nutzten.",
+  "source": "Betreiber von iptoasn.com (gemeinfrei), geholt {{when}}.",
+  "sourceNone": "Die Betreiber kommen von iptoasn.com (gemeinfrei)."
+}
