@@ -171,7 +171,7 @@ follows DHCP changes by asking LibreNMS which IP each MAC has now. Add `checkin`
 | Variable | Default | |
 |---|---|---|
 | `CHECKIN_ENABLED` | `false` | |
-| `CHECKIN_ALLOWED_NETWORKS` | | CIDRs, e.g. `10.0.0.0/16`. Rejects check-ins from elsewhere (VPN, NAT, guest Wi-Fi) |
+| `CHECKIN_ALLOWED_NETWORKS` | | CIDRs, e.g. `10.0.0.0/16`. Narrows check-in to these networks. Without it, any private address and the event's IP ranges count; public addresses outside them are refused |
 | `CHECKIN_TRUST_PROXY` | `false` | use `X-Forwarded-For` for check-ins and the per-client limits (help page, speed test, sign-in lockout); only behind a proxy you control |
 | `CHECKIN_PROXY_HOPS` | `1` | how many proxies you control append to `X-Forwarded-For`; the client is that many entries from the right, so an address the client sends itself is ignored |
 | `CHECKIN_VALIDATE_SEATS` | `true` | only accept seats that exist in seat blocks |
@@ -202,8 +202,9 @@ first, so the page only goes on by itself where Floorbit is sure the browser is 
 - a trip to a front door already worked from that address during the event (the trip carries a
   one-time code, so Floorbit learns which address it left from; kept a week).
 
-Otherwise the page shows a *Continue on the event network* button, and checking in from where you
-are still keeps the seat and nick. Back from a trip that didn't open, the page doesn't go again by
+Otherwise the page shows a *Continue on the event network* button. Checking in from where you are is
+refused: check-in is a tech check-in that learns the seat's port, so it only works through the front
+door ([seat-mapping.md](seat-mapping.md)). Back from a trip that didn't open, the page doesn't go again by
 itself. Phones and tablets stay where they are. Private addresses never count as sure: behind a
 proxy Floorbit doesn't trust (`CHECKIN_TRUST_PROXY` off), every browser has the proxy's address.
 

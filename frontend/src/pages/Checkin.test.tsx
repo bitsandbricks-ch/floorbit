@@ -46,16 +46,26 @@ describe('Checkin', () => {
     expect(fake.calls.find((c) => c.method === 'POST')?.body).toEqual({ seat: 'd-22', username: 'Frag0r', device: expect.any(String) })
   })
 
-  it('asks for the check-in address on the seat PC when the page came from outside the front door', async () => {
-    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': info({ ip: null, outside: true, address: 'checkin.lan' }) }).fn)
+  it('refuses outside the front door and says to plug in at the seat', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': info({ ip: null, outside: true, refused: 'outside', address: 'checkin.lan' }) }).fn)
     renderWithApp(<Checkin />, '/checkin')
-    expect(await screen.findByText(/Type checkin.lan on the PC at your seat/)).toBeInTheDocument()
-    expect(screen.getByLabelText(/PIN from your seat card/)).toBeInTheDocument()     // the seat and nick still count
+    expect(await screen.findByRole('heading', { name: 'Plug in at your seat' })).toBeInTheDocument()
+    expect(screen.getByText(/Plug the LAN cable at your seat into your PC/)).toBeInTheDocument()
+    expect(screen.getByText('On that PC, open checkin.lan.')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/PIN from your seat card/)).not.toBeInTheDocument()     // no check-in from here
     expect(screen.queryByText(/Your IP/)).not.toBeInTheDocument()
   })
 
+  it('refuses a public address and names it', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': info({ ip: '5.6.7.8', refused: 'public' }) }).fn)
+    renderWithApp(<Checkin />, '/checkin')
+    expect(await screen.findByText(/it has the public address 5.6.7.8. Turn off Wi-Fi, VPN or hotspot/)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/PIN from your seat card/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+  })
+
   describe('on Floorbit\'s own address', () => {
-    const hall = (sure: boolean) => info({ ip: null, outside: true, address: 'checkin.lan', hall: { url: 'http://checkin.lan/checkin?via=abc', sure } })
+    const hall = (sure: boolean) => info({ ip: null, outside: true, refused: 'outside', address: 'checkin.lan', hall: { url: 'http://checkin.lan/checkin?via=abc', sure } })
     afterEach(() => sessionStorage.clear())
 
     it('goes on to the event network by itself when Floorbit is sure the PC is in the hall', async () => {
@@ -67,14 +77,14 @@ describe('Checkin', () => {
       expect(assign).toHaveBeenCalledWith('http://checkin.lan/checkin?via=abc&pin=K7M2X')
     })
 
-    it('offers it otherwise, and the seat and nick still count from here', async () => {
+    it('offers it otherwise, and doesn\'t check in from here', async () => {
       const assign = vi.fn()
       vi.stubGlobal('location', { ...window.location, assign })
       vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': hall(false) }).fn)
       renderWithApp(<Checkin />, '/checkin')
       fireEvent.click(await screen.findByRole('button', { name: /Continue on the event network/ }))
       expect(assign).toHaveBeenCalledWith('http://checkin.lan/checkin?via=abc')
-      expect(screen.getByLabelText(/PIN from your seat card/)).toBeInTheDocument()
+      expect(screen.queryByLabelText(/PIN from your seat card/)).not.toBeInTheDocument()
     })
 
     it('doesn\'t go again by itself when the trip just failed', async () => {

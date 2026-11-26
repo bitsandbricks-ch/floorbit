@@ -246,8 +246,9 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
             {'seat': row['seat'], 'username': row['username'], 'wired': row.get('wired')} if row else None),
             'suggested_seat': suggested, 'pin_required': config.get_bool('CHECKIN_REQUIRE_PIN', False),
             'address': checkin.short_address() or None, 'on_pc': on_pc,
-            # Not through the local agent's front door: the seat is kept, its port isn't learned.
-            'outside': ip is None, 'hall': hall})
+            # Not through the local agent's front door, or from a public address: refused (a
+            # tech check-in that can't learn the seat's port only makes a false one).
+            'outside': ip is None, 'refused': checkin.refusal(ip), 'hall': hall})
 
     @bp.route('/api/checkin', methods=['POST'])
     def checkin_submit():

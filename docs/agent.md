@@ -627,8 +627,9 @@ agent another way (a reverse proxy, port forwarding), set **Reached in the hall 
 page (or `FLOORBIT_AGENT_HALL_URL` on the agent, which wins).
 
 **Check-in takes the seat PC's address only from the front door**, hosted or self-hosted alike: a
-request's own address or `X-Forwarded-For` never names it. A check-in from anywhere else keeps the
-seat and nick without an address or port.
+request's own address or `X-Forwarded-For` never names it. A check-in from anywhere else, or from a
+public address outside the event's IP ranges, is refused with a hint to plug in the LAN cable at the
+seat ([seat-mapping.md](seat-mapping.md)).
 
 - **The hosted side only believes the agent.** `Floorbit-Client-IP` counts only on a request that
   also carries a valid agent key (`Floorbit-Front-Door`); a revoked key stops counting within 30
