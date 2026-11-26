@@ -7,34 +7,36 @@ import { useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { AuditEntry, AuditPage } from '@/api/types'
-import { DataTable, ErrorBanner, LoadingState, PageHead } from '@bitsandbricks/ui'
-import { Layout } from '@/components/Layout'
+import { DataTable, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { fieldsText } from '@/lib/auditFields'
 import { dateTime } from '@/lib/time'
 
 const PAGE = 100
-const FILTERS = ['area', 'user', 'q'] as const
+// The address keys, apart from the Logs page's own (q, device, seat, ...): API name -> address name.
+const KEYS = { area: 'area', user: 'account', q: 'find' } as const
 
-/** Settings > Audit log: every change and sign-in, newest first, page by page. The filters live
- *  in the link, so a filtered view can be shared or reloaded. */
-export default function Audit() {
+/** Logs > Audit log (#1643): every change and sign-in, newest first, page by page, with its own
+ *  filters and the CSV. The filters live in the link, so a filtered view can be shared or reloaded. */
+export function AuditLog() {
   const { t, i18n } = useTranslation()
   const areaText = (a: string) => t(`audit.areas.${a}`, { defaultValue: a })
   const [params, setParams] = useSearchParams()
-  const [area, setArea] = useState(params.get('area') ?? '')
-  const [user, setUser] = useState(params.get('user') ?? '')
-  const [q, setQ] = useState(params.get('q') ?? '')
+  const [area, setArea] = useState(params.get(KEYS.area) ?? '')
+  const [user, setUser] = useState(params.get(KEYS.user) ?? '')
+  const [q, setQ] = useState(params.get(KEYS.q) ?? '')
   const [typed] = useDebouncedValue({ user: user.trim(), q: q.trim() }, 250)
   const filters = new URLSearchParams()
   for (const [k, v] of [['area', area], ['user', typed.user], ['q', typed.q]]) if (v) filters.set(k, v)
   const shown = filters.toString()
 
   useEffect(() => {
-    const next = new URLSearchParams(params)
-    for (const k of FILTERS) next.delete(k)
-    for (const [k, v] of new URLSearchParams(shown)) next.set(k, v)
-    if (next.toString() !== params.toString()) setParams(next, { replace: true })
-  }, [shown]) // eslint-disable-line react-hooks/exhaustive-deps -- only when the filters change
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      for (const k of Object.values(KEYS)) next.delete(k)
+      for (const [k, v] of new URLSearchParams(shown)) next.set(KEYS[k as keyof typeof KEYS], v)
+      return next.toString() === prev.toString() ? prev : next
+    }, { replace: true })
+  }, [shown, setParams])
 
   const query = useInfiniteQuery({
     queryKey: [...qk.audit, shown],
@@ -59,8 +61,6 @@ export default function Audit() {
   }
 
   return (
-    <Layout title={t('audit.title')} back={{ href: '/settings', label: t('audit.settings') }} fill>
-      <PageHead title={t('audit.title')} desc={t('audit.intro')} />
       <Paper withBorder radius="lg" p="md">
         <Stack gap="sm">
           <Group align="flex-end" gap="sm" role="search">
@@ -127,6 +127,5 @@ export default function Audit() {
           )}
         </Stack>
       </Paper>
-    </Layout>
   )
 }

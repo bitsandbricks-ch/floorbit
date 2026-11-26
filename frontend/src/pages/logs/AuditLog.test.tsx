@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
-import Audit from './Audit'
+import { AuditLog } from './AuditLog'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -22,7 +22,7 @@ describe('Audit log', () => {
       'GET /api/settings/audit?q=Gi1%2F0%2F7&limit=100&offset=0': { entries: [entry(7)], total: 1, areas },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Audit />)
+    renderWithApp(<AuditLog />)
     expect(await screen.findByText('Showing 100 of 101')).toBeInTheDocument()
     expect(screen.getAllByText('bounce · failed')).toHaveLength(2)   // the table, and the list phones get
     expect(screen.getByText('speed')).toBeInTheDocument()
@@ -43,7 +43,7 @@ describe('Audit log', () => {
       'GET /api/settings/audit?limit=100&offset=0': { entries: [], total: 0, areas },
     })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<Audit />)
+    renderWithApp(<AuditLog />)
     expect(await screen.findAllByText('Nothing logged yet, or nothing matches these filters.')).not.toHaveLength(0)
   })
 })

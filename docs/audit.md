@@ -1,6 +1,6 @@
 # Audit log
 
-**Settings > Audit log** (admins only) lists who changed what, and when, newest first.
+**Logs > Audit log** (accounts with `audit.read`: admins and leads) lists who changed what, and when, newest first.
 
 ## What is logged
 

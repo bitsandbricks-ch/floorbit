@@ -230,7 +230,6 @@ RULES = (
     ('/api/timeline', READ, 'audit.read'),
     ('/api/timeline.csv', READ, 'audit.read'),
     ('/timeline', READ, 'audit.read'),
-    ('/settings/audit', READ, 'audit.read'),
     ('/api/settings', None, 'settings.manage'),
     # What an event still needs (floorbit/setup.py checklist): names which parts are missing.
     ('/api/setup/checklist', None, 'settings.manage'),

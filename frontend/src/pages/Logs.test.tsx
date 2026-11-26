@@ -127,6 +127,9 @@ describe('Logs', () => {
         { sources: [...all.sources], source: 'app' }),
       'GET /api/logs?source=audit': logs([line(4, { device: 'kim', program: 'floor plan', message: 'Changed switch sw-a-01' })],
         { sources: [...all.sources], source: 'audit' }),
+      // The audit log brings its own list: area, account, CSV, page by page (#1643).
+      'GET /api/settings/audit?limit=100&offset=0': { entries: [{ time: '2026-11-16T08:04:00+0000', user: 'kim', area: 'floor plan',
+        action: 'Changed switch', target: 'sw-a-01', fields: [] }], total: 1, areas: ['floor plan'] },
     })
     vi.stubGlobal('fetch', fake.fn)
     renderWithApp(<Logs />)
@@ -135,7 +138,10 @@ describe('Logs', () => {
     expect(screen.queryByLabelText('Seat')).not.toBeInTheDocument()
     expect(screen.queryByText('Listening on UDP 5514')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('Audit log'))
-    expect(await screen.findByText('Changed switch sw-a-01')).toBeInTheDocument()
+    expect(await screen.findByText('Showing 1 of 1')).toBeInTheDocument()
+    expect(screen.getAllByText('sw-a-01').length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: 'Download CSV' })).toHaveAttribute('href', '/api/settings/audit.csv')
+    expect(screen.queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument()
   })
 
   it('searches Loki with LogQL when it is sent', async () => {

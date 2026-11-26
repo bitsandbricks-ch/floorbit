@@ -77,7 +77,6 @@ PAGES = (
     ('/settings/users', 'users', 'Users', lambda c, can: can('accounts.manage')),
     ('/settings/teams', 'teams', 'Roles and teams', lambda c, can: can('accounts.manage')),
     ('/settings/sign-in', 'signIn', 'Sign-in providers', lambda c, can: can('settings.manage')),
-    ('/settings/audit', 'audit', 'Audit log', lambda c, can: can('audit.read')),
 )
 
 

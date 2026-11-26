@@ -74,11 +74,9 @@ def test_audit_log_needs_audit_read(anon_client, client, app_module):
     viewer.post("/login", data={"username": "vi", "password": "viewer-password-1"})
     lead.post("/login", data={"username": "ed", "password": "editor-password-1"})
     assert viewer.get("/api/settings/audit").status_code == 403
-    assert viewer.get("/settings/audit").status_code == 403
     assert lead.get("/api/settings/audit").status_code == 200
     # The rest of /settings stays admin-only.
     assert lead.get("/api/settings").status_code == 403
-    assert b"Audit log" in client.get("/settings/audit").data
 
 
 def test_log_is_trimmed_when_it_grows(client, monkeypatch):

@@ -1,11 +1,11 @@
-"""Settings > Audit log: the page, its JSON and a CSV download (admins only, under /settings)."""
+"""Logs > Audit log: its JSON and a CSV download (audit.read); the page is part of Logs (#1643)."""
 import csv
 import io
 import time
 
 from flask import Blueprint, Response, jsonify, request
 
-from .. import audit, i18n, spa
+from .. import audit, i18n
 
 bp = Blueprint('audit', __name__)
 
@@ -29,11 +29,6 @@ def _query():
         raise ValueError(f"area must be one of: {', '.join(audit.AREAS)}")
     return dict(limit=limit, offset=offset, area=area,
                 user=request.args.get('user') or None, query=request.args.get('q') or None)
-
-
-@bp.route('/settings/audit')
-def audit_page():
-    return spa.render('Audit log')
 
 
 @bp.route('/api/settings/audit')

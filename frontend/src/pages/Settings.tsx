@@ -2,7 +2,7 @@ import { Anchor, Badge, CloseButton, Grid, Kbd, NavLink, Select, Stack, Text, Te
 import { useHotkeys } from '@mantine/hooks'
 import {
   IconAdjustmentsHorizontal, IconAlertTriangle, IconArmchair, IconBell, IconBolt, IconBuildingCommunity, IconCalendarEvent,
-  IconCircleCheck, IconCircleDashed, IconDatabase, IconDeviceDesktopAnalytics, IconHistory, IconKey, IconLayoutSidebar,
+  IconCircleCheck, IconCircleDashed, IconDatabase, IconDeviceDesktopAnalytics, IconKey, IconLayoutSidebar,
   IconLogin, IconMap, IconPlugConnected, IconSearch, IconServer, IconSettings, IconTerminal2, IconUsers, IconUsersGroup,
   IconWebhook, IconWorld, type Icon,
 } from '@tabler/icons-react'
@@ -32,7 +32,6 @@ const PAGES: Record<string, { page: string; title: string; Body: LazyExoticCompo
   webhooks: { page: 'webhooks', title: 'webhooks.title', Body: lazy(() => import('./Webhooks')) },
   tenants: { page: 'tenants', title: 'tenants.title', Body: lazy(() => import('./Tenants')) },
   sidebar: { page: 'sidebarSections', title: 'sidebarSections.title', Body: lazy(() => import('./SidebarSections')) },
-  audit: { page: 'audit', title: 'audit.title', Body: lazy(() => import('./Audit')) },
   sources: { page: 'plugins', title: 'sources.title', Body: lazy(() => import('./settings/Sources')) },
 }
 const STATUS = 'status'
@@ -82,7 +81,6 @@ const GROUPS: { id: GroupId; entries: EntryDef[] }[] = [
       { id: 'tenants', icon: IconBuildingCommunity },
       { id: STATUS, icon: IconAdjustmentsHorizontal, parts: [{ section: 'cache' }, { section: 'general', except: GENERAL_INVENTORY }] },
       { id: 'sidebar', icon: IconLayoutSidebar },
-      { id: 'audit', icon: IconHistory },
     ],
   },
 ]

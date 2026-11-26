@@ -1,10 +1,10 @@
-import { IconBuildingCommunity, IconKey, IconLayoutSidebar, IconListSearch, IconLogin, IconPuzzle, IconSettings, IconToggleRight, IconUsers, IconUsersGroup, IconWebhook } from '@tabler/icons-react'
+import { IconBuildingCommunity, IconKey, IconLayoutSidebar, IconLogin, IconPuzzle, IconSettings, IconToggleRight, IconUsers, IconUsersGroup, IconWebhook } from '@tabler/icons-react'
 import type { NavArea } from '../sections'
 
 // Settings: draws its tabs itself (pages/Settings.tsx).
 export const area: NavArea = {
   hub: 'settings',
-  tabs: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'sidebarSections', 'audit'],
+  tabs: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'sidebarSections'],
   icons: {
     settings: IconSettings,
     plugins: IconPuzzle,
@@ -15,7 +15,6 @@ export const area: NavArea = {
     webhooks: IconWebhook,
     tenants: IconBuildingCommunity,
     sidebarSections: IconLayoutSidebar,
-    audit: IconListSearch,
     features: IconToggleRight,
   },
 }
