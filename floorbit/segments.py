@@ -89,6 +89,36 @@ def for_ip(ip, segments=None):
     return best
 
 
+def ip_ranges(data=None):
+    """Every prefix in the inventory with a usable network or from-to range, VLAN or not:
+    [{'id', 'name', 'span', 'checkin'}]. ``checkin`` is the "Check-in allowed" switch (on unless
+    someone turned it off)."""
+    from . import firewalls, inventory_types
+    if data is None:
+        from .store import load_data
+        data = load_data()
+    out = []
+    for entry in inventory_types.listing(data, TYPE):
+        fields = entry.get('fields') or {}
+        try:
+            span = firewalls._parse(fields.get('prefix'))
+        except ValueError:
+            continue
+        out.append({'id': entry['id'], 'name': entry.get('name') or '', 'span': span,
+                    'checkin': fields.get('checkin') != 'no'})
+    return out
+
+
+def range_for_ip(ip, ranges=None):
+    """The narrowest inventory IP range ``ip`` is in (see ip_ranges), or None."""
+    try:
+        address = ipaddress.ip_address(str(ip))
+    except ValueError:
+        return None
+    found = [r for r in (ip_ranges() if ranges is None else ranges) if address in r['span']]
+    return min(found, key=lambda r: r['span'].size, default=None)
+
+
 # ── from discovery ────────────────────────────────────────────────────────────────────────────
 
 SVI = re.compile(r'^(?:vlan|vl|vlanif|vlan-interface|irb\.|bvi)\s*(\d{1,4})$', re.IGNORECASE)

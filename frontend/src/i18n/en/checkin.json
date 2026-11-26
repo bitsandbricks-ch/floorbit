@@ -41,6 +41,7 @@
     "network": "Your PC isn't on the event's player network ({{ip}}). Plug the LAN cable at your seat into your PC and try again.",
     "public": "Your PC isn't on the event network: it has the public address {{ip}}. Turn off Wi-Fi, VPN or hotspot, plug the LAN cable at your seat into your PC and try again.",
     "phone": "Check in on the PC at your seat, plugged into the event LAN cable, not on your phone.",
-    "address": "On that PC, open {{address}}."
+    "address": "On that PC, open {{address}}.",
+    "range": "Check-in only works from the PC at your seat, on its LAN cable, not over Wi-Fi. Turn off Wi-Fi, plug the LAN cable at your seat into your PC and try again."
   }
 }

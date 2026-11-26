@@ -9,6 +9,7 @@ import { qk } from '@/api/keys'
 import type { FirewallList, FirewallRange, InventoryEntry, InventoryType } from '@/api/types'
 import { DataTable, LoadingState } from '@bitsandbricks/ui'
 import { ROUTE_TONE } from '@/pages/firewalls/scope'
+import { BoolCell } from './BoolCell'
 import { AddEntry } from './EntriesView'
 import { entryPath } from './model'
 import { useEntries } from './scope'
@@ -22,6 +23,7 @@ export function IpamView({ types, sub, onSub, canEdit, sourceName }: {
   const { t } = useTranslation()
   const vlanType = types.find((x) => x.id === 'vlan')
   const prefixType = types.find((x) => x.id === 'prefix')
+  const checkinField = prefixType?.fields.find((f) => f.key === 'checkin')
   const vlans = useEntries('vlan')
   const prefixes = useEntries('prefix')
   const navigate = useNavigate()
@@ -156,6 +158,10 @@ export function IpamView({ types, sub, onSub, canEdit, sourceName }: {
                 )
               } },
             seenCol,
+            // Off for ranges no seat PC is on (Wi-Fi, crew): check-ins from there are refused (#1623).
+            ...(checkinField && prefixType ? [{ id: 'checkin', header: t('ipam.col.checkin'), width: 110,
+              sort: (e: InventoryEntry) => ((e.fields.checkin || checkinField.default) === 'yes' ? 0 : 1),
+              cell: (e: InventoryEntry) => <BoolCell type={prefixType} entry={e} field={checkinField} canEdit={canEdit} /> }] : []),
             { id: 'source', header: t('ipam.col.source'), hideOnPhone: true, cell: sources },
           ]} />
       )}

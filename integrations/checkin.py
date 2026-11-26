@@ -192,14 +192,14 @@ def device_class(said, user_agent):
     return said if said in DEVICES else 'unknown'
 
 
-def _in_event_range(ip):
-    """Is ``ip`` in one of the event's IP ranges (inventory segments)? Some events give players
+def _event_range(ip):
+    """The event's IP range (an inventory prefix) ``ip`` is in, or None. Some events give players
     public addresses: a range the crew listed counts as the event network whatever it looks like."""
     from floorbit import segments
     try:
-        return segments.for_ip(ip) is not None
+        return segments.range_for_ip(ip)
     except Exception:  # noqa: BLE001  # no inventory to ask: fall back to private or not
-        return False
+        return None
 
 
 def refusal(ip):
@@ -212,6 +212,8 @@ def refusal(ip):
     * ``'outside'``: the request didn't come through the front door (``ip`` is None), e.g. the
       page was opened on Floorbit's own address over the internet or mobile data.
     * ``'network'``: outside ``CHECKIN_ALLOWED_NETWORKS``, when that is set.
+    * ``'range'``: in an IP range whose "Check-in allowed" switch is off (Wi-Fi, crew): a phone
+      or crew laptop there is not the seat's PC (issue #1623).
     * ``'public'``: a public address that isn't in one of the event's IP ranges: a PC on a hotspot,
       a VPN, or a front door reached from the internet.
     """
@@ -220,7 +222,10 @@ def refusal(ip):
     listed = _in_networks(ip, 'CHECKIN_ALLOWED_NETWORKS')
     if listed is False:
         return 'network'
-    if listed or _in_event_range(ip):
+    found = _event_range(ip)
+    if found and not found['checkin']:
+        return 'range'
+    if listed or found:
         return None
     try:
         return 'public' if ipaddress.ip_address(ip).is_global else None
@@ -238,6 +243,8 @@ REFUSED = {
                'and open the check-in page there.',
     'network': 'Check-in only works on the event network. Plug the LAN cable at your seat into your PC '
                'and check in from there.',
+    'range': 'Check-in only works from the PC at your seat, on its LAN cable, not over Wi-Fi. Turn off '
+             'Wi-Fi, plug the LAN cable at your seat into your PC and check in from there.',
     'public': 'Your PC is not on the event network (it has a public address). Turn off Wi-Fi, VPN or '
               'hotspot, plug the LAN cable at your seat into your PC and check in again.',
 }

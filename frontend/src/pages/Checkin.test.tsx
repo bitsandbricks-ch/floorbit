@@ -64,6 +64,13 @@ describe('Checkin', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
 
+  it('refuses a range with check-in switched off, like the Wi-Fi', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/checkin/info': info({ ip: '10.10.200.9', refused: 'range' }) }).fn)
+    renderWithApp(<Checkin />, '/checkin')
+    expect(await screen.findByText(/not over Wi-Fi/)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/PIN from your seat card/)).not.toBeInTheDocument()
+  })
+
   describe('on Floorbit\'s own address', () => {
     const hall = (sure: boolean) => info({ ip: null, outside: true, refused: 'outside', address: 'checkin.lan', hall: { url: 'http://checkin.lan/checkin?via=abc', sure } })
     afterEach(() => sessionStorage.clear())

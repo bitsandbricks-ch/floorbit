@@ -18,8 +18,8 @@ export interface CheckinInfo {
   /** True: not through the local agent's front door, so the seat's port can't be learned from here. */
   outside?: boolean
   /** Why this device may not check in, or null: not through the front door ('outside'), outside
-   *  CHECKIN_ALLOWED_NETWORKS ('network'), or a public address outside the event's ranges ('public'). */
-  refused?: 'outside' | 'network' | 'public' | null
+   *  CHECKIN_ALLOWED_NETWORKS ('network'), in an IP range with check-in switched off ('range'), or a public address outside the event's ranges ('public'). */
+  refused?: 'outside' | 'network' | 'range' | 'public' | null
   /** Outside on a PC: the agent's front door that knows this PC (url), and whether Floorbit is sure
    *  this browser is in the hall, so the page goes there by itself (sure). */
   hall?: { url: string; sure: boolean } | null

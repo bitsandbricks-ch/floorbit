@@ -84,6 +84,9 @@ BUILTIN = {
         _f('purpose', 'Purpose', 'choice', choices=PURPOSES),
         # Off by default: nothing gets asked of the switches by surprise.
         _f('lookups', 'Check-in lookups', 'bool', default='no'),
+        # On by default: switch it off for ranges no seat PC is on (Wi-Fi, crew), so a phone or a
+        # crew laptop there can't check a seat in (issue #1623).
+        _f('checkin', 'Check-in allowed', 'bool', default='yes'),
     ]},
     'item': {'name': 'Item', 'sort': 'stored', 'icon': 'other', 'fields': []},
 }

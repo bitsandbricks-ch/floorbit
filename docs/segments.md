@@ -11,6 +11,9 @@ it knows its VLAN.
 ## Lookups are off until you turn them on
 
 Every range starts with **Check-in lookups** off, whether discovery found it or someone added it.
+
+Every range also has **Check-in allowed**, on by default. Switch it off for ranges no seat PC is on
+(Wi-Fi, crew): check-ins from there are refused ([seat-mapping.md](seat-mapping.md)).
 Nothing is asked of the switches by surprise: turn lookups on for the ranges where attendees' PCs
 sit (the seat VLANs), and leave them off for management, servers and Wi-Fi. The switch is right in
 the inventory's list of prefixes, and on each range's own page. While no range has

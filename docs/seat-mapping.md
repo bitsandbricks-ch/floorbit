@@ -130,6 +130,9 @@ the page refuses, before a PIN is even looked at, when:
 - the address the front door saw is public and not in one of the event's IP ranges (inventory
   segments; events that give players public addresses list them there): a PC on a hotspot or a VPN,
   or a front door reached from the internet, or
+- the address is in an IP range whose **Check-in allowed** switch is off (Inventory, IPAM,
+  Prefixes; on by default). Switch it off for the Wi-Fi and crew ranges: a phone or a crew laptop
+  there is not the seat's PC. The narrowest range an address is in decides, or
 - `CHECKIN_ALLOWED_NETWORKS` is set and the address is outside it.
 
 The page then says, in English and German, to turn off Wi-Fi, VPN or hotspot, plug the LAN cable at

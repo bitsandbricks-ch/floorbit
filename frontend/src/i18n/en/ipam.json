@@ -20,7 +20,8 @@
     "purpose": "Purpose",
     "firewalls": "Firewalls",
     "source": "Source",
-    "seenOn": "Seen on"
+    "seenOn": "Seen on",
+    "checkin": "Check-in"
   },
   "noRoute": "No firewalls route this prefix yet.",
   "routeIt": "Route it over firewalls",

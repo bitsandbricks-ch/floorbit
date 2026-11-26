@@ -224,7 +224,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   in the UI, decrypted per call, limited by role and written to the audit log.
 - **Roles and audit:** every change and sign-in is audited; check-in records are never public.
 - **Check-in only from the event LAN:** only a request through a local agent's front door, from a
-  private address or one of the event's IP ranges, may check in. Anything else (Floorbit's own
+  private address or one of the event's IP ranges, may check in. Each IP range has a **Check-in
+  allowed** switch, on by default, to turn off for Wi-Fi and crew ranges. Anything else (Floorbit's own
   address over the internet, a hotspot, a VPN) is refused with a hint to plug in the LAN cable at the
   seat, because it could only make a false seat-to-port mapping.
 - **Agents dial out only;** plugins and agent bundles are signed; keys and signing are the
