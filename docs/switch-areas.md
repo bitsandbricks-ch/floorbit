@@ -8,13 +8,14 @@ serves and where that comes from. Floorbit uses it when a check-in has to ask th
 
 Strongest first:
 
-1. **Pinned.** Pin a switch to blocks, rows or single seats, or leave it out (for distribution and
-   core switches). A pin wins over everything else.
+1. **Pinned.** Pin a switch to blocks, rows or single seats, or leave it out. A pin wins over everything else.
 2. **Learned.** A seat mapped to one of the switch's ports puts that seat on the switch: from the
    [seat walk-through](seat-walk.md), a check-in, or a cable in the patch plan ([cables](cables.md)).
 3. **Drawn in a block.** A switch drawn inside a block's area on the floor plan, the aisles between
    its rows included, serves the whole block. A switch outside every block is not guessed: it is a
-   **to-do** until it is pinned, drawn in its block, or its seats are walked.
+   **to-do** until it is pinned, drawn in its block, or its seats are walked. A switch that other
+   switches uplink to (core and distribution, as the [topology](topology.md) draws it) serves no
+   seats of its own: it shows as **Feeds switches**, not as a to-do, without leaving it out by hand.
 
 A switch can serve several blocks and rows.
 

@@ -14,6 +14,7 @@
     "manual": "Pinned",
     "learned": "Learned",
     "plan": "Drawn in the block",
+    "upstream": "Feeds switches",
     "todo": "To do",
     "excluded": "Left out"
   },
@@ -28,6 +29,7 @@
   "driftCount_one": "{{count}} switch has sources that disagree.",
   "driftCount_other": "{{count}} switches have sources that disagree.",
   "todo": "Not drawn in a block and no seats learned",
+  "upstream": "Other switches uplink to it; it serves no seats itself",
   "agrees": "Everything agrees",
   "pinRow": "Pin row {{row}}",
   "edit": "Pin",

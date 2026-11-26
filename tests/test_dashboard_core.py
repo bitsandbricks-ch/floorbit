@@ -355,3 +355,20 @@ def test_the_traffic_tile_marks_what_happened(client):
     tile = next(t for t in client.get("/api/dashboard").get_json()["tiles"] if t["id"] == "traffic")
     assert tile["marks"] is True
     assert client.get("/api/dashboard/floorbit/traffic?marks=1").status_code == 200
+
+
+def test_the_switches_tile_counts_switches_only(app_module, client):
+    # The monitor also tracks routers and access points; the tile names switches (page review).
+    ids = {}
+    for name, role in (("sw-a-01", "switch"), ("sw-a-02", "switch"), ("core-01", "router"), ("ap-01", "access-point")):
+        res = client.post("/api/inventory", json={"name": name, "role": role, "management_ip": "192.0.2.10"})
+        assert res.status_code in (200, 201), res.get_json()
+        ids[name] = (res.get_json().get("device") or res.get_json())["id"]
+    monitor = app_module.app.extensions["floorbit_integrations"]["monitor"]
+    monitor.statuses = {ids["sw-a-01"]: {"status": "online"}, ids["sw-a-02"]: {"status": "offline"},
+                        ids["core-01"]: {"status": "online"}, ids["ap-01"]: {"status": "online"}}
+    try:
+        body = client.get("/api/dashboard/floorbit/switches").get_json()
+    finally:
+        monitor.statuses = {}
+    assert body["value"] == 1 and body["max"] == 2 and body["unit"] == "of 2 up"

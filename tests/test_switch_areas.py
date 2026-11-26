@@ -82,3 +82,15 @@ def test_a_port_found_outside_the_switch_area_says_so_where_it_is_found(client):
     assert switch_areas.drift_for(other['seats'][0], 'sw-in', data)['kind'] == 'plan'
     assert switch_areas.drift_for(first['seats'][0], 'sw-off', data)['kind'] == 'excluded'
     assert switch_areas.drift_for('Z-99', 'sw-1', data) is None
+
+
+def test_a_switch_others_uplink_to_is_not_a_todo(client):
+    # Core and distribution switches serve no seats; the topology says so, nobody leaves them out (page review).
+    data = _hall({'sw-out': {'x': 80, 'y': 50}, 'dist-01': {}})
+    data['inventory'].append({'id': 'id-core', 'name': 'core-01', 'role': 'router'})
+    save_data(data)
+    for a, ap, b, bp in (('dist-01', 'Te1/1', 'core-01', 'Eth1/1'), ('sw-out', 'Te1/0/1', 'dist-01', 'Te1/2')):
+        assert client.post('/api/links', json={'a': a, 'a_port': ap, 'b': b, 'b_port': bp}).status_code == 201
+    found = _by_name(client)
+    assert found['dist-01']['how'] == 'upstream' and not found['dist-01']['todo']
+    assert found['sw-out']['todo']

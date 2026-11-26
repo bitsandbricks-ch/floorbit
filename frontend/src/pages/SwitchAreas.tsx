@@ -14,7 +14,7 @@ import { Panel } from '@/components/ui'
 import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { AreaEditor } from './switchAreas/AreaEditor'
 
-const HOW_COLOR = { manual: 'blue', learned: 'up', plan: 'gray', todo: 'warn', excluded: 'gray' } as const
+const HOW_COLOR = { manual: 'blue', learned: 'up', plan: 'gray', upstream: 'gray', todo: 'warn', excluded: 'gray' } as const
 
 /** Which seats each switch serves (issue #948, docs/switch-areas.md): pinned, learned from the
  *  seats mapped to its ports, or from where it is drawn on the plan. Disagreements are shown, never
@@ -91,7 +91,7 @@ export default function SwitchAreas() {
                               {t('switchAreas.pinRow', { row: `${r.block_label} ${r.name}` })}
                             </Button>
                           ))}
-                          {!s.drift.length && !s.suggest.length && <Text size="sm" c="dimmed">{s.todo ? t('switchAreas.todo') : t('switchAreas.agrees')}</Text>}
+                          {!s.drift.length && !s.suggest.length && <Text size="sm" c="dimmed">{s.todo ? t('switchAreas.todo') : s.how === 'upstream' ? t('switchAreas.upstream') : t('switchAreas.agrees')}</Text>}
                         </Stack>
                       </Table.Td>
                       {canEdit && (
