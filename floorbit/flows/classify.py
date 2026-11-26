@@ -14,6 +14,10 @@ import json
 from integrations import config
 
 CATEGORIES = ('gaming', 'streaming', 'downloads', 'updates', 'web', 'other')
+# One colour per kind, for every chart: the Traffic page's bars (frontend .cat-* classes, kept the
+# same by tests/test_traffic_colours.py) and the dashboard's "Traffic by kind" (#1408).
+CATEGORY_COLOURS = {'gaming': '#16a34a', 'streaming': '#9333ea', 'downloads': '#2563eb', 'updates': '#d97706',
+                    'web': '#0891b2', 'other': '#94a3b8'}
 
 # Ports the vendors publish for their games and launchers, and the plain protocols.
 BUILTIN = [

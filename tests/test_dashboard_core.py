@@ -179,7 +179,10 @@ def test_the_stats_view_is_split_into_tiles():
     peak = dashboard_core.peak_widget("en", SNAP, now=100 + 13 * 60)
     assert peak["value"] == 16e9 and peak["sub"] == "13 min ago · 24 h peak 16 Gbit/s"
     ports = dashboard_core.ports_widget("de", SNAP)
-    assert (ports["value"], ports["tone"], ports["sub"]) == (138, "warn", "598 offline · 1 mit Fehlern")
+    assert (ports["value"], ports["tone"], ports["sub"]) == (138, "warn", "von 736 · 0 ausgefallen · 1 mit Fehlern")
+    lost = dashboard_core.ports_widget("en", {"now": {"ports_up": 10, "ports_down": 90, "ports_lost": 2,
+                                                      "ports_total": 100}})
+    assert (lost["unit"], lost["sub"], lost["max"]) == ("in use", "of 100 · 2 went down · 0 with errors", 100)
     up = dashboard_core.uplinks_widget("en", SNAP)["items"]
     assert up[0] == {"label": "sw-b Te1/1", "value": "85 % · 8.5 Gbit/s", "number": 85, "max": 100, "tone": "err"}
     top = dashboard_core.top_ports_widget("en", SNAP)["items"]
@@ -204,7 +207,7 @@ FLOWS = {"mix_hour": {"gaming": 300, "web": 700}, "services": [{"name": "Steam",
 
 def test_the_traffic_view_is_split_into_tiles():
     mix = dashboard_core.traffic_mix_widget("de", FLOWS)
-    assert [(i["label"], i["value"]) for i in mix["items"]] == [("Gaming", "30 % · 300 B"), ("Web", "70 % · 700 B")]
+    assert [(i["label"], i["value"]) for i in mix["items"]] == [("Gaming", "300 B"), ("Web", "700 B")]
     assert mix["sub"] == "Letzte Stunde: 1.0 kB"
     assert dashboard_core.flow_services_widget("en", FLOWS)["items"][0]["value"] == "200 GB · 12 seats"
     assert dashboard_core.traffic_areas_widget("en", FLOWS)["items"][0]["number"] == 5e11
