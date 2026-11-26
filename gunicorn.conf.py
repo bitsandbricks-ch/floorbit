@@ -7,10 +7,30 @@ nothing while they were there.
 import contextlib
 import os
 
+MAX_WORKERS = 4         # what docs/sizing.md measured; more mostly adds memory
+
+
+def cpus():
+    """The CPUs this container may use: its cgroup quota, else the CPUs it may run on."""
+    count = len(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else (os.cpu_count() or 1)
+    with contextlib.suppress(OSError, ValueError):
+        with open('/sys/fs/cgroup/cpu.max') as f:
+            quota, period = f.read().split()[:2]
+        if quota != 'max':
+            count = min(count, max(1, int(quota) // int(period)))
+    return max(1, count)
+
+
+def default_workers():
+    # Without the cluster each worker would poll, alert and hold terminals on its own: one worker.
+    # With it only the leader polls and the others serve pages (issue #1417), one per CPU.
+    if not (os.environ.get('FLOORBIT_CLUSTER') or '').strip():
+        return 1
+    return min(MAX_WORKERS, cpus())
+
+
 bind = '0.0.0.0:5000'
-# One worker: the status monitor, watchers, terminal sessions and live updates live in the process.
-# More workers need what several pods need, see docs/sizing.md.
-workers = 1
+workers = default_workers()
 worker_class = 'gthread'
 # Threads serve the open live-update streams (one per browser tab) and the page requests.
 threads = 64
