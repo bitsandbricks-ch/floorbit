@@ -260,7 +260,7 @@ def tag_settings_page(tag_id):
     try:
         return jsonify(agent_settings.tag_page(tag_id, lang=i18n.language(request.headers.get('Accept-Language'))))
     except agent_link.AgentError as exc:
-        return jsonify({'error': str(exc)}), exc.status
+        return jsonify({'error': exc.message}), exc.status
 
 
 @bp.route('/api/agents/tags/<tag_id>/settings', methods=['PATCH'])
@@ -271,7 +271,7 @@ def tag_settings_change(tag_id):
     try:
         name, changed = agent_settings.update_tag(tag_id, body.get('plugins'))
     except agent_link.AgentError as exc:
-        return jsonify({'error': str(exc)}), exc.status
+        return jsonify({'error': exc.message}), exc.status
     if changed:
         audit.record('agents', f"Changed the agent settings of a tag: {', '.join(changed)}", g.get('audit_user'), name,
                      fields=changed)
