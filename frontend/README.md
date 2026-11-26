@@ -28,7 +28,10 @@ npm run build        # writes ../static/app/, which Flask serves
 ## Rules
 
 - A page is a file in `src/pages/` and a route in `src/routes/<area>.ts` (a new area is a new file there; `App.tsx` collects them). Point its Flask route at
-  `spa.render('<Title>')` (`floorbit/spa.py`), so Flask still checks sign-in and roles.
+  `spa.render('<Title>')` (`floorbit/spa.py`), so Flask still checks sign-in and roles. A page
+  outside the app shell (`shell: false`) uses `spa.render('<Title>', shell=False)`: it then loads
+  without the shell and with only the texts in `src/i18n/englishCore.ts` (issue #1293). A new
+  feature file it needs goes into that list and the three lists beside it (the i18n test checks).
 - Every text goes through `t()` with a key in `src/i18n/en/<feature>.json` **and**
   `src/i18n/de-CH/<feature>.json` (Swiss spelling, no "ß"). The i18n test fails otherwise.
 - Colours come from the shared design tokens (`var(--bnb-...)`), never hex values, so themes work.

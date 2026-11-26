@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import { PageError } from '@bitsandbricks/ui'
-import { AppShell } from '@/components/Layout'
 import { LeaveGuard } from '@/components/LeaveGuard'
+import { allTexts } from '@/i18n'
 import type { AppRoute } from '@/lib/appRoute'
 import { readServerPage } from '@/lib/serverPage'
 
@@ -11,7 +11,10 @@ import { readServerPage } from '@/lib/serverPage'
 // a new file, never a line here. React Router picks the most specific path, so order doesn't matter.
 const ROUTES = Object.values(import.meta.glob<{ routes: AppRoute[] }>('./routes/*.ts', { eager: true }))
   .flatMap((m) => m.routes)
-const Forbidden = lazy(() => import('@/pages/Forbidden'))
+// The shell (sidebar, top bar, status line) is a chunk of its own too: sign-in, check-in and the
+// public pages don't need it (issue #1293). Flask preloads it for the pages inside it (floorbit/spa.py).
+const AppShell = lazy(() => Promise.all([import('@/components/Layout'), allTexts()]).then(([m]) => ({ default: m.AppShell })))
+const Forbidden = lazy(() => Promise.all([import('@/pages/Forbidden'), allTexts()]).then(([m]) => m))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 
 // Read once: the server's answer for the page that was loaded, not for later client-side moves.

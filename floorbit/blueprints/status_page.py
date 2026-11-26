@@ -63,7 +63,7 @@ def _changed():
 def status_public():
     """The page itself is React (frontend/src/pages/public/PublicStatus.tsx), reading /status.json;
     404 while it is switched off, so links and monitors see that, and the page says so."""
-    html, status = spa.render('Status updates')
+    html, status = spa.render('Status updates', shell=False)
     return html, status if page_on() else 404
 
 

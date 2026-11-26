@@ -72,7 +72,7 @@ def checkin_page():
     """Seat check-in for attendees (frontend/src/pages/Checkin.tsx), which says itself when check-in
     isn't open; 404 then, as before."""
     from integrations import config
-    html, status = spa.render('Seat check-in')
+    html, status = spa.render('Seat check-in', shell=False)
     return html, status if config.get_bool('CHECKIN_ENABLED', False) else 404
 
 
