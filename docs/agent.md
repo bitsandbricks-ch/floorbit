@@ -196,12 +196,21 @@ Agents of a group share their **certificate names**: names set on one agent's pa
 others' certificates too, so a second agent behind the same VIP or name needs none typed in.
 
 **Capabilities.** Each agent lists in its report what it can do (`capabilities`): `lease` (follows
-the primary Floorbit picks), `split` (splits devices with its group) and `syslog_hold` (sends only its
-own devices' syslog and keeps a minute of the rest). For an agent from before the list, Floorbit works
-them out from its report, and for what an agent can't do it falls back: VRRP picks the primary, one
-primary collects every device, every agent sends every syslog line (kept once). A group splits only
-when every connected agent of it can. The agent's page and its group's page show the list, and for
-each missing capability what Floorbit does instead.
+the primary Floorbit picks), `split` (splits devices with its group), `syslog_hold` (sends only its
+own devices' syslog and keeps a minute of the rest), `self_update` (installs signed agent releases),
+`syslog_ids` (each syslog line has an id), `plugin_updates` (installs signed plugin updates),
+`key_roll` (fetches a new key when you roll it) and `cert` (has Floorbit sign its TLS certificate).
+For an agent from before the list, Floorbit works them out from its report, and for what an agent
+can't do it falls back: VRRP picks the primary, one primary collects every device, every agent sends
+every syslog line (kept once), the crew pulls a new image. A group splits only when every connected
+agent of it can.
+
+What the agent **collects** comes from its built-in plugins, not from the list, since they can be
+off or failing on one agent: `syslog` (syslog relay), `netflow` (flow relay), `snmp`, `traps`,
+`gnmi` and `mdt` (telemetry with Telegraf, its own or the sidecar), `rest` (telemetry's API
+pollers: NX-API, RESTCONF, OPNsense) and `mac_lookup` (a check-in's port found with single SNMP
+GETs, docs/segments.md). The agent's page and its group's page show both lists, and for each missing
+capability what Floorbit does instead.
 
 Each group has its own page (the group's name on the Local agents page, `/settings/agents/groups/<tags>`):
 its agents and their roles, which shared addresses each holds, how many devices each owns now and
