@@ -7,7 +7,11 @@ floorbit/applications.py, docs in docs/applications.md.
 - ``POST /api/applications``, ``PUT /api/applications/<id>``: add one, or change one (for a built-in
   one: what is added to it, and hidden). ``DELETE /api/applications/<id>``: remove an own one, or put
   a built-in one back as it shipped. Changing needs settings.manage (auth/roles.py's default).
+- ``POST /api/applications/import`` ``{"file": "<rules file>"}``: takes another Floorbit's export
+  (the page's Export, a rules file) into the event's own applications (#1612).
 """
+import json
+
 from flask import Blueprint, current_app, g, jsonify, request
 
 from .. import application_sources, applications, audit, features, spa
@@ -66,6 +70,31 @@ def _saved(app_id=None):
 @bp.route('/api/applications', methods=['POST'])
 def add_application():
     return _saved()
+
+
+@bp.route('/api/applications/import', methods=['POST'])
+def import_applications():
+    raw = (request.get_json(silent=True) or {}).get('file')
+    if not isinstance(raw, str) or not raw.strip():
+        return jsonify({'error': 'Send the rules file as "file".'}), 400
+    if len(raw.encode()) > application_sources.MAX_BYTES:
+        return jsonify({'error': 'The file is too big.'}), 413
+    try:
+        doc = json.loads(raw)
+    except ValueError:
+        doc = None
+    if not isinstance(doc, dict):
+        return jsonify({'error': 'An export is a JSON rules file: {"version": 1, "applications": [...]}.'}), 400
+    try:
+        entries = application_sources._from_json(doc, {'id': 'import', 'name': 'Import'}, applications)
+        got = applications.import_entries(entries)
+    except application_sources.SourceError as exc:
+        return jsonify({'error': exc.message}), 400
+    except applications.ApplicationError as exc:
+        return jsonify({'error': exc.message}), exc.status
+    audit.record('applications', 'Imported applications', g.get('audit_user'),
+                 f"{got['added']} added, {got['changed']} changed")
+    return jsonify(got)
 
 
 @bp.route('/api/applications/<app_id>', methods=['PUT'])

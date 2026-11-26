@@ -50,6 +50,25 @@ TODO: ask Mike which games the event plays most, and check their domains and por
 `python scripts/applications_import.py` writes `floorbit/applications_lists.json` from the commits
 named in the script. Change them there to move to newer lists, and check the diff.
 
+## Sharing
+
+An application's panel has **Share** (`settings.manage`). It shows what would leave this Floorbit:
+the id, name, kind, category, what it is part of, and its domains, ports, addresses and depots. No
+seats, numbers or anything about the event go with it. It also shows how many seats it was seen by
+here in the last 24 hours, so a wrong entry shows up before it is shared. It asks where its facts
+come from (a link or a note), then:
+
+- **Open on GitHub** opens bitsandbricks-ch/floorbit-plugins with `games/<id>.yaml` filled in. Your
+  own GitHub account opens the pull request; its check shows what the entry adds. Once it is merged,
+  every Floorbit gets it with Floorbit's own list. An entry too big for GitHub to fill in is
+  downloaded and added by hand.
+- **Download as rules file** gives the entry to another event directly.
+
+**Export** on the page downloads the event's own applications and what it added to built-in ones as
+one rules file. **Import** on another Floorbit takes such a file. New applications keep their ids,
+own ones are replaced, and a built-in one gets only what the file has beyond what it shipped with.
+The same file also works as a [rule source](#rule-sources).
+
 ## Rule sources
 
 **Rule sources** (button on the page, `settings.manage`) are rules files Floorbit fetches on a
@@ -126,6 +145,8 @@ used it. Players on the event's own game servers are the server's count.
 - `POST /api/applications`, `PUT /api/applications/<id>`: `{name, kind, category, part_of, sites,
   ports, cidr, depots, hidden}`; a built-in one takes only the lists and `hidden`.
 - `DELETE /api/applications/<id>`: removes an own one, or resets a built-in one.
+- `POST /api/applications/import` `{file}`: takes a rules file (another Floorbit's Export) into the
+  event's own applications; answers `{added, changed}`.
 - `GET /api/applications` also has `synced` (each source's name, whether it is on, `ok`, `changed_at`
   and `count`; no URL) and `frozen`.
 - Rule sources (`settings.manage`, reading too, since a URL can carry a token):

@@ -172,6 +172,7 @@ Source: [`floorbit/blueprints/applications.py`](https://github.com/bitsandbricks
 | POST | `/api/applications` | `settings.manage` |  |
 | DELETE | `/api/applications/<app_id>` | `settings.manage` |  |
 | PUT | `/api/applications/<app_id>` | `settings.manage` |  |
+| POST | `/api/applications/import` | `settings.manage` |  |
 
 ## floorbit.blueprints.audit
 
