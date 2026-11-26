@@ -9,7 +9,7 @@ from .. import audit, i18n, spa
 
 bp = Blueprint('audit', __name__)
 
-CSV_COLUMNS = ('time', 'user', 'area', 'action', 'target', 'fields', 'ok')
+CSV_COLUMNS = ('time', 'user', 'area', 'action', 'target', 'fields', 'ok', 'reason')
 
 
 def _cell(value):
@@ -60,7 +60,8 @@ def audit_csv():
     for e in rows:
         writer.writerow([_cell(v) for v in (
             e.get('time', ''), e.get('user') or '', e.get('area', ''), e.get('action', ''),
-            e.get('target', ''), ' '.join(e.get('fields', [])), 'no' if e.get('ok') is False else 'yes')])
+            e.get('target', ''), ' '.join(e.get('fields', [])), 'no' if e.get('ok') is False else 'yes',
+            e.get('reason', ''))])
     filename = f"floorbit-audit-{time.strftime('%Y%m%d-%H%M')}.csv"
     # utf-8-sig so Excel opens umlauts in names correctly
     return Response(out.getvalue().encode('utf-8-sig'), mimetype='text/csv',

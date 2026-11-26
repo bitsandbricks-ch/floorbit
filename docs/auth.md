@@ -23,6 +23,7 @@ route stays admin-only until someone gives it a rule.
 | `terminal.open` | Open a terminal on a switch in the browser ([terminal.md](terminal.md)) |
 | `power.edit` | Change power boards and circuits, enter readings and trips ([power.md](power.md)) |
 | `games.rcon` | Send RCON commands to game servers ([game-servers.md](game-servers.md)) |
+| `traffic.investigate` | Search the raw flows of a seat or an address for an incident, with a reason, audit-logged ([flows.md](flows.md#flow-lookup)) |
 | `plugins.run` | Run plugin actions |
 | `audit.read` | Read the audit log |
 | `settings.manage` | Change settings, plugins and backups |

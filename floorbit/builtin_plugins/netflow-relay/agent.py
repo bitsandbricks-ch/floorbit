@@ -54,6 +54,23 @@ class AgentPlugin(Base):
             self.ctx.gauge('packets', self.relay.packets)
             self.ctx.gauge('summaries', self.relay.sent)
 
+    def call_lookup(self, args):
+        """The flow lookup (floorbit/flows/lookup.py): the raw flows that match, for an incident. The
+        hosted side checks the permission and the reason and writes the audit entry first."""
+        from floorbit.flows import lookup
+        if self.relay is None:
+            return {'error': 'This agent does not collect flows (no port set).'}
+        collector = self.relay.collector
+        with collector._lock:
+            pending = dict(collector._pending)
+        try:
+            answer = lookup.search(collector.raw.raw, args if isinstance(args, dict) else {}, pending=pending,
+                                   classify=collector.agg.classify, owner_of=collector.owners.lookup)
+        except lookup.QueryError as exc:
+            return {'error': exc.message}
+        self.ctx.log(f'searched the raw flows: {answer["total"]} matched')
+        return answer
+
     def check(self):
         if self.relay is None:
             return 'off (no port set)'

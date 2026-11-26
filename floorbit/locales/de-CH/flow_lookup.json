@@ -1,0 +1,16 @@
+{
+ "No seat {} with a known address.": "Kein Platz {} mit bekannter Adresse.",
+ "\"{}\" is not an address": "«{}» ist keine Adresse",
+ "\"{}\" is not an address or network": "«{}» ist keine Adresse und kein Netz",
+ "since and until are unix times": "Von und bis sind Unix-Zeiten",
+ "since must be before until": "Von muss vor bis liegen",
+ "Search at most 8 days at a time": "Suche höchstens 8 Tage auf einmal",
+ "asn is a number": "Die AS-Nummer ist eine Zahl",
+ "Name a seat, an address, an owner or a port: not the whole hall": "Nenne einen Platz, eine Adresse, einen Netzbetreiber oder einen Port: nicht die ganze Halle",
+ "Port \"{}\" should look like udp/6881, tcp/443 or 443-450": "Port «{}» sollte wie udp/6881, tcp/443 oder 443-450 aussehen",
+ "Pick a time: one of {}, or from and to.": "Wähle eine Zeit: eine von {}, oder von und bis.",
+ "Say why you look: the reason goes to the audit log.": "Sag, warum du nachschaust: Der Grund kommt ins Audit-Log.",
+ "Keep the reason to {} characters.": "Halte den Grund unter {} Zeichen.",
+ "The Traffic from the hall plugin is missing.": "Das Plugin «Verkehr aus der Halle» fehlt.",
+ "This agent does not collect flows (no port set).": "Dieser Agent sammelt keine Flows (kein Port gesetzt)."
+}

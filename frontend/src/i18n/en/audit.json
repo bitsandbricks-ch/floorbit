@@ -16,6 +16,7 @@
   "empty": "Nothing logged yet, or nothing matches these filters.",
   "nobody": "nobody signed in",
   "failed": "failed",
+  "reason": "Reason: {{reason}}",
   "older": "Show older",
   "areas": {
     "floor plan": "Floor plan",

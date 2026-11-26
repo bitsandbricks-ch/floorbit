@@ -91,6 +91,7 @@ export default function Audit() {
                   <Badge variant="light" color="gray" style={{ flexShrink: 0 }}>{areaText(e.area)}</Badge>
                 </Group>
                 {e.target && <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{e.target}</Text>}
+                {e.reason && <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{t('audit.reason', { reason: e.reason })}</Text>}
                 <Text size="xs" c="dimmed">
                   {when(e.time)} · {e.user || t('audit.nobody')}
                   {e.fields?.length ? ` · ${fieldsText(t, e.area, e.fields)}` : ''}
@@ -110,6 +111,7 @@ export default function Audit() {
                   <>
                     <Text size="sm" c={e.ok === false ? 'down' : undefined}>{e.action}{e.ok === false ? ` · ${t('audit.failed')}` : ''}</Text>
                     {e.target && <Text size="xs" c="dimmed">{e.target}</Text>}
+                    {e.reason && <Text size="xs">{t('audit.reason', { reason: e.reason })}</Text>}
                   </>
                 ) },
                 // Only while some entry names fields: an empty column says nothing (#1433).
