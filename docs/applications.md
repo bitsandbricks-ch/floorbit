@@ -34,10 +34,16 @@ lists that should stay current are [rule sources](#rule-sources). Their licences
   answers for. Its entries become launchers, games (Call of Duty, Guild Wars 2, Warframe, ...) and
   the "Windows updates" site group, so Games splits the hall the same way the cache does.
 - [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) (MIT): the site
-  groups Streaming, Music, Voice and chat, Social media and FACEIT.
+  groups Streaming, Music, Voice and chat, Social media and FACEIT. Its publisher lists add each
+  launcher's own sites (log-in, store, matchmaking), which the cache CDNs alone miss: Steam,
+  Battle.net, EA app, Epic Games, Riot Games, Ubisoft Connect, Xbox, PlayStation Network,
+  Nintendo, Rockstar, Wargaming, Escape from Tarkov and Nexus Mods. From its games category come
+  publishers, stores and mod sites cache-domains doesn't have: GOG, itch.io, Roblox, PUBG, osu!,
+  VRChat, HoYoverse, Supercell, Gaijin, Embark Studios, Bohemia Interactive, CD PROJEKT, Nexon,
+  Garena, Konami, WB Games, CurseForge and Modrinth. A publisher of several games is a site group.
 
-A site in more than one list, and shared CDNs (`edgesuite.net`, `akamaihd.net`, ...), count for
-nobody: DNS only sees the site, so it can't tell whose download it was. On top come the ports the
+A site in more than one list, shared CDNs (`edgesuite.net`, `akamaihd.net`, ...) and services
+many games use (anti-cheat, captcha, support desks), count for nobody: DNS only sees the site, so it can't tell whose download it was. On top come the ports the
 launchers publish and a few game titles no open list has (`STARTER` in `floorbit/applications.py`).
 TODO: ask Mike which games the event plays most, and check their domains and ports before an event.
 
@@ -67,6 +73,14 @@ A file is one of:
   v2fly style (`domain:`, `full:`; `include:` and `regexp:` lines are left out). It becomes one
   site group named after the source.
 
+**Floorbit's own list** is always there, last in the list and on by default. It is `applications.json`
+next to the Marketplace's index (`https://bitsandbricks-ch.github.io/floorbit-plugins/applications.json`),
+built by floorbit-plugins' publish workflow from its curated `games.yaml` (`scripts/marketplace.py
+build-applications`) and signed with the Marketplace's index key. Floorbit uses a copy only when the
+signature checks out against `floorbit/keys/index/`; an unsigned or changed file keeps the last good
+copy. It can be switched off (and fetched less often), not removed or moved: your own sources win over
+it. To add a game for every Floorbit, open a pull request on `games.yaml` in bitsandbricks-ch/floorbit-plugins.
+
 How it behaves:
 
 - **Fetching:** the hosted Floorbit fetches through the outbound guard (`OUTBOUND_BLOCK_NETS`, see
@@ -77,7 +91,8 @@ How it behaves:
 - **Order:** when two name the same application (by `id`), the winner is chosen in this order:
   1. the event's own changes;
   2. the sources, from the top of the list down ("Move to top");
-  3. the built-in lists.
+  3. Floorbit's own list;
+  4. the built-in lists.
 
   A source's entry replaces the built-in one but keeps its LAN cache ids.
 - **Freeze:** stops all fetching during the event, so the numbers don't move. The copies stay in

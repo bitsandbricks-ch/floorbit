@@ -117,8 +117,14 @@
     "lastError": "Last error",
     "noError": "None",
     "settingsTitle": "Settings per agent",
-    "settingsIntro": "Where an agent needs a different value, set it here. Empty fields use the plugin's settings.",
-    "same": "uses the plugin's settings"
+    "settingsIntro": "Set a value on a tag and every agent with it gets it; set it on one agent only where that machine differs. An agent's own value wins over its tags (the first tag first), and an empty field uses the plugin's settings.",
+    "same": "uses the plugin's settings",
+    "tag": "Tag {{name}}",
+    "tagAgents": "every agent with it: {{names}}",
+    "fromTag": "{{label}}: {{value}} (tag {{name}})",
+    "tagValue": "From tag {{name}}: {{value}}",
+    "differs": "Differs from tag {{name}}",
+    "fromTagShort": "From tag {{name}}"
   },
   "activity": {
     "broken": {

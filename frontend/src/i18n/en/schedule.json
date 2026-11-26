@@ -30,5 +30,6 @@
     "quiet": "Quiet hours",
     "other": "Other"
   },
-  "emptyTitle": "Nothing planned yet"
+  "emptyTitle": "Nothing planned yet",
+  "remove": "Remove"
 }

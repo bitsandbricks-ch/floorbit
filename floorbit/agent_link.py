@@ -81,6 +81,11 @@ _active = None            # ((data file, mtime), is an agent enrolled?)
 class AgentError(ValueError):
     status = 400
 
+    def __init__(self, message=''):
+        super().__init__(message)
+        # The text is ours (a validation message), never a stack trace.
+        self.message = message
+
 
 class AgentUnavailable(RuntimeError):
     """No agent is connected, or it didn't answer in time."""

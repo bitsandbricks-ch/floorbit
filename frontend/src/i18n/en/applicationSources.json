@@ -31,5 +31,6 @@
   "synced": "Rule sources:",
   "syncedOne": "{{name}} (changed {{when}})",
   "frozenNote": "Rule sources frozen.",
-  "from": "From {{name}}"
+  "from": "From {{name}}",
+  "ownList": "Maintained by BitsAndBricks and signed: Floorbit only uses it when the signature checks out. Always last, so your own sources win."
 }

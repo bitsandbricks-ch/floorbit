@@ -454,7 +454,8 @@ def traffic_mix_widget(lang, flows):
     # The share shows in the pie (hover, large tiles); a short value keeps the legend's names whole.
     items = [{'label': text['cat'][c], 'value': size(mix.get(c)), 'number': mix.get(c) or 0,
               'colour': CATEGORY_COLOURS[c]} for c in CATEGORIES if total and mix.get(c)]
-    return {'type': 'list', 'items': items, 'sub': text['mix_sub'].format(total=size(total)),
+    # The unit lets a donut name its centre "1.5 TB" rather than a bare "1.5T" (#1407).
+    return {'type': 'list', 'items': items, 'unit': 'B', 'sub': text['mix_sub'].format(total=size(total)),
             'link': '/dashboards/traffic'}
 
 
@@ -466,7 +467,7 @@ def flow_services_widget(lang, flows):
     items = [{'label': s.get('name') or '', 'number': s.get('bytes') or 0,
               'value': f"{size(s.get('bytes'))} · {text['seat_count'].format(n=s.get('seats', 0))}"}
              for s in flows.get('services') or []]
-    return {'type': 'list', 'items': items, 'link': '/dashboards/traffic'}
+    return {'type': 'list', 'items': items, 'unit': 'B', 'link': '/dashboards/traffic'}
 
 
 def traffic_areas_widget(lang, flows):

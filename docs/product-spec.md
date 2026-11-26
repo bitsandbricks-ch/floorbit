@@ -182,6 +182,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   (the sidebar is 15px).
 - **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
   for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
+- **One screen on a desktop** (Mike: "one page with no scrollbars on desktop where possible", #896):
+  a list page fits the screen (`Layout fill`, the shared `FillPage` and `DataTable fill`). The head
+  and filters stay at the top and only the table's rows scroll, in pages. A page with too much above
+  its table scrolls as a whole; phones scroll as usual.
 - **Lists filter the same way:** a search field and a chip per filter with counts (`FilterBar`),
   kept in the address (`useFilters`) so a link or a reload shows the same view.
 - **Setup is a checklist:** what an event needs, in order, each step's state worked out from what is

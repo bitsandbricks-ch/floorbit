@@ -56,7 +56,8 @@ def config(registry=None, agent_id=None):
     if agent_id is not None:
         from . import agent_link, agent_settings
         off = agent_link.plugins_off(agent_id)
-        mine = agent_settings.overrides(agent_id)     # this agent's own plugin settings (its page)
+        # Its tags' plugin settings, then its own (its page), the most specific winning (#1591).
+        mine = agent_settings.resolved(agent_id)
     plugins = {}
     for spec in agent_specs(registry):
         if spec.id in off:

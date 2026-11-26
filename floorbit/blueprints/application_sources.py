@@ -54,7 +54,10 @@ def change_source(source_id):
 
 @bp.route('/api/applications/sources/<source_id>', methods=['DELETE'])
 def remove_source(source_id):
-    gone = sources.remove(source_id)
+    try:
+        gone = sources.remove(source_id)
+    except sources.SourceError as exc:
+        return _failed(exc)
     if gone is None:
         return jsonify({'error': 'No such source.'}), 404
     audit.record('applications', 'Removed a rule source', g.get('audit_user'), gone['name'])

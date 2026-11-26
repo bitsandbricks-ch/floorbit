@@ -2,7 +2,7 @@ import {
   ActionIcon, Alert, Badge, Button, FileButton, Group, Paper, Select, SimpleGrid, Stack, Table, Text,
   TextInput, Title,
 } from '@mantine/core'
-import { IconCalendarPlus, IconPencil, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
+import { IconCalendarPlus, IconPencil, IconPlus, IconUpload } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -18,7 +18,7 @@ import { fromInput, toInput } from './schedule/time'
 import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { revealForm } from '@/lib/revealForm'
 import { clock, dateOnly } from '@/lib/time'
-import { ConfirmIcon, toastDone } from '@bitsandbricks/ui'
+import { ConfirmButton, toastDone } from '@bitsandbricks/ui'
 
 const COLORS: Record<ScheduleKind, string> = { talk: 'bit', tournament: 'warn', meal: 'up', quiet: 'cyan', other: 'gray' }
 
@@ -35,7 +35,7 @@ function KindBadges({ item }: { item: ScheduleItem }) {
 type Draft = { title: string; kind: ScheduleKind; start: string; end: string; where: string; note: string }
 const blank: Draft = { title: '', kind: 'other', start: '', end: '', where: '', note: '' }
 
-function ItemForm({ item, kinds, onDone }: { item: ScheduleItem | null; kinds: ScheduleKind[]; onDone: () => void }) {
+function ItemForm({ item, kinds, onDone, onRemove }: { item: ScheduleItem | null; kinds: ScheduleKind[]; onDone: () => void; onRemove: (id: string) => void }) {
   const { t } = useTranslation()
   const [d, setD] = useState<Draft>(() => item
     ? { title: item.title, kind: item.kind, start: toInput(item.start), end: item.end ? toInput(item.end) : '', where: item.where, note: item.note }
@@ -65,6 +65,11 @@ function ItemForm({ item, kinds, onDone }: { item: ScheduleItem | null; kinds: S
         <Group gap="xs">
           <Button loading={save.isPending} disabled={!d.title.trim() || !d.start} onClick={() => save.mutate()}>{t('schedule.save')}</Button>
           <Button variant="default" onClick={onDone}>{t('schedule.cancel')}</Button>
+          {/* Removing lives in the form, not as a red icon on every row (#1052). */}
+          {item && (
+            <ConfirmButton variant="subtle" danger label={t('schedule.remove')} ml="auto"
+              question={t('schedule.deleteNamed', { title: item.title })} onConfirm={() => { onRemove(item.id); onDone() }} />
+          )}
         </Group>
       </Stack>
     </Paper>
@@ -139,7 +144,7 @@ export default function Schedule() {
           <EventTimes key={`${d.event.start}-${d.event.end}`} data={d} canEdit={canEdit} />
           {editing && (
             <ItemForm key={editing} item={editing === 'new' ? null : d.items.find((i) => i.id === editing) ?? null} kinds={d.kinds}
-              onDone={() => { setEditing(null); refresh() }} />
+              onDone={() => { setEditing(null); refresh() }} onRemove={(id) => remove.mutate(id)} />
           )}
           {days.length === 0 ? (
             <Paper withBorder radius="lg">
@@ -165,7 +170,6 @@ export default function Schedule() {
                           <Table.Td className="fb-schedule-actions">
                             <Group gap={4} wrap="nowrap">
                               <ActionIcon variant="subtle" aria-label={t('schedule.editNamed', { title: i.title })} onClick={() => setEditing(i.id)}><IconPencil size={16} /></ActionIcon>
-                              <ConfirmIcon label={t('schedule.deleteNamed', { title: i.title })} onConfirm={() => remove.mutate(i.id)}><IconTrash size={16} /></ConfirmIcon>
                             </Group>
                           </Table.Td>
                         )}

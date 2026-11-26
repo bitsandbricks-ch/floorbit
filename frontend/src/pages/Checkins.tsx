@@ -71,7 +71,7 @@ export default function Checkins() {
   const num = (n: number) => n.toLocaleString(lang)
 
   return (
-    <Layout title={t('crewCheckin.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    <Layout title={t('crewCheckin.title')} back={{ href: '/', label: t('common.floorPlan') }} fill>
       <PageHead title={t('crewCheckin.title')} desc={t('crewCheckin.intro')}
         actions={<Button component={Link} to="/seat-walk" variant="default">{t('seatWalk.title')}</Button>} />
       <Stack gap="md">
@@ -127,7 +127,7 @@ export default function Checkins() {
                 {d.rows.length === 0 ? (
                   <EmptyState title={t('crewCheckin.empty')} description={t('crewCheckin.emptyDesc')} />
                 ) : (
-                  <DataTable label={t('crewCheckin.title')} rows={rows} rowKey={(r) => r.seat} defaultSort={{ id: 'seat' }} striped cards
+                  <DataTable fill label={t('crewCheckin.title')} rows={rows} rowKey={(r) => r.seat} defaultSort={{ id: 'seat' }} striped cards
                     empty={<Text c="dimmed">{t('crewCheckin.noMatch')}</Text>}
                     columns={[
                       { id: 'seat', header: t('crewCheckin.col.seat'), card: 'inline', sort: (r) => r.seat,
@@ -161,7 +161,7 @@ export default function Checkins() {
                                   onClick={() => act.mutate({ kind: 'retry', seat: r.seat })}><IconRefresh size={16} /></ActionIcon>
                               </Tooltip>
                             )}
-                            <ConfirmIcon tooltip={t('crewCheckin.remove')} label={t('crewCheckin.removeFor', { seat: r.seat })}
+                            <ConfirmIcon color="gray" tooltip={t('crewCheckin.remove')} label={t('crewCheckin.removeFor', { seat: r.seat })}
                               onConfirm={() => act.mutate({ kind: 'remove', seat: r.seat })}><IconTrash size={16} /></ConfirmIcon>
                           </Group>
                         ) }] : []),

@@ -68,5 +68,8 @@
  "{} uses {} without listing it under uses: in plugin.yaml": "{} verwendet {}, ohne es unter uses: in plugin.yaml aufzuführen",
  "{} waits for Floorbit's database to move its data": "{} wartet auf die Datenbank von Floorbit, um seine Daten umzustellen",
  "{} {} failed: {}": "{} {} fehlgeschlagen: {}",
- "{} {} knows its data up to schema {}, but the data here is at schema {}: install a newer version": "{} {} kennt seine Daten bis Schema {}, die Daten hier sind aber auf Schema {}: Installiere eine neuere Version"
+ "{} {} knows its data up to schema {}, but the data here is at schema {}: install a newer version": "{} {} kennt seine Daten bis Schema {}, die Daten hier sind aber auf Schema {}: Installiere eine neuere Version",
+ "the rules file is not signed": "Die Regeldatei ist nicht signiert",
+ "the rules file is signed with key {}, which this Floorbit does not trust": "Die Regeldatei ist mit Schlüssel {} signiert, dem dieses Floorbit nicht vertraut",
+ "bad rules file signature": "ungültige Signatur der Regeldatei"
 }

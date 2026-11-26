@@ -56,6 +56,19 @@ describe('Electrics', () => {
     expect(screen.queryByRole('link', { name: 'Add board' })).not.toBeInTheDocument()
   })
 
+  it('keeps one action in the head and the rest behind More actions (#1044)', async () => {
+    const lead = { enabled: true, user: { username: 'lea', display_name: 'Lea', role: 'lead', permissions: ['floorplan.view', 'plugins.run'] } }
+    const fake = fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/power': overview({ can_edit: true, plugins: 1 }), 'POST /api/power/check': overview({ can_edit: true, plugins: 1 }) })
+    vi.stubGlobal('fetch', fake.fn)
+    app()
+    expect(await screen.findByRole('link', { name: 'Add circuit' })).toHaveAttribute('href', '/power/circuits/new')
+    expect(screen.queryByRole('link', { name: 'Add board' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect(await screen.findByText('Add board')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Read the meters'))
+    await vi.waitFor(() => expect(fake.calls.some((c) => c.method === 'POST' && c.path === '/api/power/check')).toBe(true))
+  })
+
   it('sends a reading in watts and reports a trip on the circuit page', async () => {
     const fake = fakeFetch({
       'GET /api/auth/me': me, 'GET /api/power': overview(), 'GET /api/switches': [],
