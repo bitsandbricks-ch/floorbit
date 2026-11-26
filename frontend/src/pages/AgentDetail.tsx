@@ -1,9 +1,9 @@
-import { Badge, Grid, Group, MultiSelect, SimpleGrid, Stack, Tabs, Text, ThemeIcon, Title } from '@mantine/core'
+import { Anchor, Badge, Button, Grid, Group, MultiSelect, SimpleGrid, Stack, Tabs, Text, ThemeIcon, Title } from '@mantine/core'
 import { IconServer2 } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { del, patch } from '@/api/client'
 import { qk } from '@/api/keys'
 import { usePlugins } from '@/api/queries'
@@ -12,6 +12,7 @@ import { DangerZone } from '@/components/ItemPage'
 import { Layout } from '@/components/Layout'
 import { EmptyState, ErrorBanner, LoadingState, PanelField, StatTile } from '@bitsandbricks/ui'
 import { Panel } from '@/components/ui'
+import { pluginName } from '@/lib/pluginName'
 import { ago, dateOnly } from '@/lib/time'
 import { AgentDevices } from './agents/AgentDevices'
 import { DiskBudget } from './agents/AgentDisk'
@@ -44,9 +45,12 @@ export default function AgentDetail() {
   const qc = useQueryClient()
   const { query, data: d, rows } = useAgents()
   const tags = useAgentTags()
-  // The agent plugins that exist here, so the Plugins tab can list the ones this agent doesn't run (#1001).
-  const available = (usePlugins().data?.plugins ?? []).filter((p) => p.agent)
-    .map((p) => ({ id: p.id, name: p.name, enabled: p.enabled }))
+  // The agent plugins that exist here, so the lists can show the ones this agent doesn't run (#1001).
+  const allPlugins = usePlugins().data?.plugins ?? []
+  const available = allPlugins.filter((p) => p.agent).map((p) => ({ id: p.id, name: p.name, enabled: p.enabled }))
+  // Built-in ones are what the agent does; the rest are Marketplace add-ons (#1587).
+  const builtin = new Set(allPlugins.filter((p) => p.trust === 'builtin').map((p) => p.id))
+  const names = Object.fromEntries(allPlugins.map((p) => [p.id, pluginName(t, p.id, p.name)]))
   const [params, setParams] = useSearchParams()
   const tab: Tab = (TABS as readonly string[]).includes(params.get('tab') ?? '') ? params.get('tab') as Tab : 'overview'
   const setTab = (v: string | null) => setParams(v && v !== 'overview' ? { tab: v } : {}, { replace: true })
@@ -72,7 +76,12 @@ export default function AgentDetail() {
   }
   const { agent: a, problems, tone } = row
   const plugins = a.report?.plugins ?? {}
-  const pluginCount = new Set([...Object.keys(plugins), ...available.map((p) => p.id)]).size
+  const pick = (own: boolean) => Object.fromEntries(Object.entries(plugins).filter(([pid]) => builtin.has(pid) === own))
+  const features = pick(true)
+  const addons = pick(false)
+  const featuresAvailable = available.filter((p) => builtin.has(p.id))
+  const addonsAvailable = available.filter((p) => !builtin.has(p.id))
+  const addonIds = [...new Set([...Object.keys(addons), ...addonsAvailable.map((p) => p.id)])]
   const r = a.report
   const group = d.groups?.find((g) => g.agents.some((x) => x.id === a.id))
   // Primary or standby only means something with a second agent in the group.
@@ -119,7 +128,7 @@ export default function AgentDetail() {
             <Tabs.Tab value="overview">{t('agents.tab.overview')}</Tabs.Tab>
             <Tabs.Tab value="devices">{t('agents.tab.devices')}</Tabs.Tab>
             <Tabs.Tab value="graphs">{t('agents.tab.graphs')}</Tabs.Tab>
-            <Tabs.Tab value="plugins">{t('agents.tab.plugins', { count: pluginCount })}</Tabs.Tab>
+            <Tabs.Tab value="plugins">{t('agents.tab.plugins', { count: addonIds.length })}</Tabs.Tab>
             <Tabs.Tab value="updates">{t('agents.tab.updates')}</Tabs.Tab>
             <Tabs.Tab value="logs">{t('agentDetail.tab.logs')}</Tabs.Tab>
             <Tabs.Tab value="certificate">{t('agentDetail.tab.certificate')}</Tabs.Tab>
@@ -147,8 +156,15 @@ export default function AgentDetail() {
                       <Blocked agentId={a.id} plugins={plugins} lang={lang} size="sm" />
                     </Stack>
                   </Panel>
-                  <Panel title={t('agents.plugins')} padding={0}>
-                    <PluginTable plugins={plugins} lang={lang} agentId={a.id} />
+                  <Panel title={t('agentDetail.does.title')} desc={t('agentDetail.does.help')} aria-label={t('agentDetail.does.title')}>
+                    <Stack gap="md">
+                      <Stack gap={6}>
+                        <Text size="xs" fw={500} c="dimmed">{t('agentDetail.does.features')}</Text>
+                        <PluginTable plugins={features} lang={lang} agentId={a.id} available={featuresAvailable} off={a.plugins_off}
+                          names={names} label={t('agentDetail.does.features')} header={t('agentDetail.does.feature')} />
+                      </Stack>
+                      {a.connected && <Capabilities have={a.capabilities} />}
+                    </Stack>
                   </Panel>
                 </Stack>
               </Grid.Col>
@@ -171,11 +187,14 @@ export default function AgentDetail() {
                   <Panel title={t('agentDetail.events.title')} aria-label={t('agentDetail.events.title')}>
                     <RecentEvents agentId={a.id} onAll={() => setTab('logs')} />
                   </Panel>
-                  {a.connected && (
-                    <Panel title={t('agentCapabilities.title')} desc={t('agentCapabilities.help')}>
-                      <Capabilities have={a.capabilities} />
-                    </Panel>
-                  )}
+                  <Panel title={t('agents.tab.plugins', { count: addonIds.length })} aria-label={t('agentDetail.addons.title')}>
+                    <Stack gap={6}>
+                      <Text size="sm">{addonIds.length ? addonIds.map((pid) => names[pid] ?? pid).join(' · ') : t('agentDetail.addons.none')}</Text>
+                      <Text size="xs" c="dimmed">
+                        {t('agentDetail.addons.help')} <Anchor component="button" type="button" size="xs" onClick={() => setTab('plugins')}>{t('agentDetail.addons.open')}</Anchor>
+                      </Text>
+                    </Stack>
+                  </Panel>
                   {r?.disk && (
                     <Panel title={t('agents.disk.title')}>
                       <DiskBudget disk={r.disk} />
@@ -201,7 +220,12 @@ export default function AgentDetail() {
 
           <Tabs.Panel value="plugins" pt="md">
             <Stack gap="md">
-              <Panel padding={0}><PluginTable plugins={plugins} lang={lang} agentId={a.id} available={available} off={a.plugins_off} /></Panel>
+              <Group justify="space-between" gap="sm" wrap="wrap">
+                <Text size="sm" c="dimmed" maw={640}>{t('agentDetail.addons.tab')}</Text>
+                <Button component={Link} to="/settings/plugins?tab=marketplace" variant="default" size="xs">{t('agentDetail.addons.market')}</Button>
+              </Group>
+              <Panel padding={0}><PluginTable plugins={addons} lang={lang} agentId={a.id} available={addonsAvailable} off={a.plugins_off}
+                names={names} empty={t('agentDetail.addons.none')} /></Panel>
               <Blocked agentId={a.id} plugins={plugins} lang={lang} />
             </Stack>
           </Tabs.Panel>

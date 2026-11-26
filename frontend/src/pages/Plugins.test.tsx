@@ -10,7 +10,7 @@ const plugin: PluginInfo = {
   name: 'HTTP check',
   version: '1.0.0',
   description: 'Checks web services.',
-  trust: 'builtin',
+  trust: 'official',
   author: '',
   homepage: '',
   uses: [{ id: 'http', label: 'Make HTTP requests' }],
@@ -38,7 +38,7 @@ describe('Plugins page', () => {
 
     expect(await screen.findByRole('heading', { name: 'HTTP check' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'HTTP check' })).toHaveAttribute('href', '/settings/plugins/http-check')
-    expect(screen.getByText('v1.0.0 · Ships with Floorbit')).toBeInTheDocument()
+    expect(screen.getByText('v1.0.0 · Official')).toBeInTheDocument()
     expect(within(screen.getByRole('list')).getByText('Off')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('switch'))
@@ -63,9 +63,9 @@ describe('Plugins page', () => {
   })
 
   it('says what each plugin does, and lists the LAN cache whose data is here without its plugin (#1435)', async () => {
-    const receiving = { ...plugin, id: 'syslog-relay', name: 'Syslog from the hall', enabled: true,
+    const receiving = { ...plugin, id: 'unifi', name: 'UniFi', enabled: true,
       uses: [{ id: 'agent', label: 'Agent' }], activity: { state: 'receiving' as const, values: { count: 2, total: 2 } } }
-    const unset = { ...plugin, id: 'netbox', name: 'NetBox', enabled: true, activity: { state: 'not_configured' as const, values: {} } }
+    const unset = { ...plugin, id: 'zabbix', name: 'Zabbix', enabled: true, activity: { state: 'not_configured' as const, values: {} } }
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': { enabled: false, user: null },
       'GET /api/settings/plugins': { plugins: [receiving, unset], missing: [{ id: 'lancache', name: 'LAN cache', href: '/lancache' }] },
@@ -73,14 +73,26 @@ describe('Plugins page', () => {
     }).fn)
     renderWithApp(<Plugins />)
     const card = (id: string) => document.querySelector(`[data-plugin="${id}"]`) as HTMLElement
-    await screen.findByRole('heading', { name: 'Syslog from the hall' })
-    expect(within(card('syslog-relay')).getByText('Receiving')).toBeInTheDocument()
-    expect(within(card('syslog-relay')).getByText(/runs on the agent/)).toBeInTheDocument()
-    expect(within(card('netbox')).getByText('Not configured')).toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'UniFi' })
+    expect(within(card('unifi')).getByText('Receiving')).toBeInTheDocument()
+    expect(within(card('unifi')).getByText(/runs on the agent/)).toBeInTheDocument()
+    expect(within(card('zabbix')).getByText('Not configured')).toBeInTheDocument()
     expect(within(card('lancache')).getByText('Not installed')).toBeInTheDocument()
     expect(within(card('lancache')).getByRole('link', { name: 'LAN cache' })).toHaveAttribute('href', '/lancache')
     fireEvent.click(within(card('lancache')).getByRole('button', { name: 'Install' }))
     expect(await screen.findByRole('tab', { name: 'Marketplace' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('lists only the Marketplace add-ons and points to Sources for the built-in ones (#1587)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': { enabled: false, user: null },
+      'GET /api/settings/plugins': { plugins: [plugin, { ...plugin, id: 'netbox', name: 'NetBox', trust: 'builtin' }] },
+    }).fn)
+    renderWithApp(<Plugins />)
+    expect(await screen.findByRole('heading', { name: 'HTTP check' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'NetBox' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Settings › Sources' })).toHaveAttribute('href', '/settings/sources')
+    expect(screen.getByRole('tab', { name: /Installed\s*1/ })).toBeInTheDocument()
   })
 
   it('filters a long list', async () => {

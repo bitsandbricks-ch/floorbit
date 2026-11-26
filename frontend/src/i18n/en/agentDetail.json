@@ -34,5 +34,19 @@
     "what": "What",
     "who": "Who",
     "byAgent": "the agent"
+  },
+  "does": {
+    "title": "What it does",
+    "help": "What this agent does for the hall. Each feature updates on its own, signed, without a new image.",
+    "features": "Features",
+    "feature": "Feature"
+  },
+  "addons": {
+    "title": "Add-ons",
+    "none": "No add-ons from the Marketplace run on this agent.",
+    "help": "Add-ons from the Marketplace.",
+    "open": "Open the Plugins tab",
+    "tab": "Add-ons from the Marketplace that run on this agent. Its own features (telemetry, syslog, the front door, ...) are under What it does on the Overview.",
+    "market": "Open the Marketplace"
   }
 }

@@ -110,20 +110,24 @@ function QuietState({ p, offHere }: { p: QuietPlugin; offHere: boolean }) {
 
 /** Every plugin the agent runs, one row each: state, its message, all its numbers, the last error. With
  *  ``available``, also the agent plugins it doesn't run, saying why (off, left to another agent). */
-export function PluginTable({ plugins = {}, lang, agentId, available = [], off = [] }: {
+export function PluginTable({ plugins = {}, lang, agentId, available = [], off = [], names = {}, label, empty, header }: {
   plugins?: Record<string, AgentPluginHealth>; lang: string; agentId?: string; available?: QuietPlugin[]; off?: string[]
+  /** Plugin id to the name to show; without one, the id. */
+  names?: Record<string, string>; label?: string; empty?: string; header?: string
 }) {
   const { t } = useTranslation()
   const quiet = new Map(available.filter((p) => !plugins[p.id]).map((p) => [p.id, p]))
   // Running ones first, then the rest by name.
   const ids = [...Object.keys(plugins).sort(), ...[...quiet.keys()].sort()]
   // Callers put the table in a Panel without padding; the empty note needs its own.
-  if (!ids.length) return <Text size="sm" c="dimmed" p="md">{t('agents.noPluginReport')}</Text>
+  if (!ids.length) return <Text size="sm" c="dimmed" p="md">{empty ?? t('agents.noPluginReport')}</Text>
   return (
-    <DataTable rows={ids} rowKey={(id) => id} label={t('agents.plugins')} urlState={false} pageSize={0} bare cards
+    <DataTable rows={ids} rowKey={(id) => id} label={label ?? t('agents.plugins')} urlState={false} pageSize={0} bare cards
       columns={[
-        { id: 'plugin', header: t('agents.col.plugin'), card: 'inline',
-          cell: (id) => <Badge variant="light" color={plugins[id] ? PLUGIN_COLOR[plugins[id].status] ?? 'gray' : 'gray'} tt="none">{id}</Badge> },
+        { id: 'plugin', header: header ?? t('agents.col.plugin'), card: 'inline',
+          cell: (id) => names[id]
+            ? <Text size="sm" fw={500} c={plugins[id] ? undefined : 'dimmed'}>{names[id]}</Text>
+            : <Badge variant="light" color={plugins[id] ? PLUGIN_COLOR[plugins[id].status] ?? 'gray' : 'gray'} tt="none">{id}</Badge> },
         { id: 'state', header: t('agents.col.state'), card: 'label', wrap: true, cell: (id) => {
           const q = quiet.get(id)
           if (q) return <QuietState p={q} offHere={off.includes(id)} />
