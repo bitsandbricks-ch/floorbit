@@ -315,6 +315,18 @@ Source: [`floorbit/blueprints/demo.py`](https://github.com/bitsandbricks-ch/floo
 | --- | --- | --- | --- |
 | POST | `/api/demo/layout` | `settings.manage` |  |
 
+## floorbit.blueprints.discovery_sources
+
+Which source decides each discovery area per kind of device, and source conflicts (issue #965, floorbit/discovery_sources.py).
+
+Source: [`floorbit/blueprints/discovery_sources.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/discovery_sources.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/inventory/<device_id>/conflicts/take` | `floorplan.edit` |  |
+| PUT | `/api/inventory/discovery/deciding` | `settings.manage` |  |
+| GET | `/api/inventory/discovery/types/<role>` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+
 ## floorbit.blueprints.dispatch
 
 Tech dispatch (issue #30). Rules live in floorbit/dispatch.py; see docs/dispatch.md.
@@ -365,6 +377,16 @@ Source: [`floorbit/blueprints/features.py`](https://github.com/bitsandbricks-ch/
 | PUT | `/api/settings/capabilities/<cap_id>` | `settings.manage` |  |
 | GET | `/api/settings/features` | `settings.manage` |  |
 | PUT | `/api/settings/features` | `settings.manage` |  |
+
+## floorbit.blueprints.fill_area
+
+Fill area (#1565): seat blocks and walkways laid out over a box the editor draws (floorbit/fill_area.py).
+
+Source: [`floorbit/blueprints/fill_area.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/fill_area.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| POST | `/api/seat-blocks/fill` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.firewalls
 
@@ -540,6 +562,17 @@ Source: [`floorbit/blueprints/inventory_drift.py`](https://github.com/bitsandbri
 | Method | Path | Needs | Feature |
 | --- | --- | --- | --- |
 | POST | `/api/inventory/<device_id>/drift/take` | `floorplan.edit` |  |
+
+## floorbit.blueprints.inventory_found
+
+Inventory > Discovery (issues #891, #968): what discovery found that the inventory doesn't have. Rules in floorbit/inventory_found.py.
+
+Source: [`floorbit/blueprints/inventory_found.py`](https://github.com/bitsandbricks-ch/floorbit/blob/master/floorbit/blueprints/inventory_found.py)
+
+| Method | Path | Needs | Feature |
+| --- | --- | --- | --- |
+| GET | `/api/inventory/found` | floorplan.view (open while `AUTH_PUBLIC_READ` is on) |  |
+| POST | `/api/inventory/found/ignore` | `floorplan.edit` |  |
 
 ## floorbit.blueprints.inventory_groups
 

@@ -104,6 +104,22 @@ or the trap's `sysName`). **Add to inventory** makes the device with that addres
 out of the count and the Problems page, where the rest show as one row to look at. Only these counts
 leave the agents, never the lines. Up to 200 addresses are kept per kind.
 
+### The Discovery tab
+
+**Discovery** (the last tab, issue #891) lists what the agents found that the inventory doesn't have
+yet. Nothing is added on its own.
+
+- **Devices**: boxes the switches see by LLDP or CDP whose name or address matches no device, with
+  the switch ports that see them, and the [unknown senders](#unknown-senders). **Add** opens a new
+  device prefilled with the name and address; **Ignore** leaves the row out.
+- **Links**: links LLDP or CDP sees between two inventory devices that no planned link explains.
+  **Confirm link** adds it as a planned link (`POST /api/links`); until then the topology view of
+  the floor plan lists it under *Found by LLDP* instead of drawing it.
+
+`GET /api/inventory/found` lists both (viewers and up); `POST /api/inventory/found/ignore`
+`{"kind": "device"|"link", "key", "ignored"}` leaves one out or takes it back (editors, audit-logged).
+Devices plugins report through their own discovery areas (#968) will land here too.
+
 ## Interfaces
 
 A device's interfaces are its ports: switch ports, a server's NICs, a firewall's interfaces, a VM's
@@ -321,6 +337,23 @@ LibreNMS call (an agent older than this asks nothing, and those areas stay as th
   runs some (`{"actions": ["optics"]}`) or all, on every device or one (`{"device": "<id>"}`), and
   a run for one device doesn't move the schedule. The Inventory page shows the last run next to
   the plugins'.
+- Plugins with an agent part can add **areas** of their own or feed the built-in ones (an OPNsense
+  plugin's gateways, a Proxmox host's VMs): each is an action named `<plugin>.<area>` with its own
+  interval and last run, listed after the built-in ones ([plugin spec](plugin-spec.md#discovery)).
+- Where several sources read an area (the monitoring source and plugins), one **decides** per
+  kind of device: by default the first in the order (the monitoring source, then the plugins by
+  id); an admin picks another on **What Floorbit reads** (`/inventory/reads/<kind>`, or
+  `PUT /api/inventory/discovery/deciding` with `{"role": "firewall", "area": "routes", "source":
+  "opnsense"}`, `null` for the default). The page lists each area with its deciding source, the
+  others, the interval, where the facts go, the last run and the open conflicts
+  (`GET /api/inventory/discovery/types/<kind>`). The others still count: a field the deciding
+  source doesn't read is filled from them, and a list it has nothing in is theirs. Values typed by
+  hand or sent by NetBox win over every source, as before.
+- Where a source that doesn't decide reads another value for a field, that's a **source
+  conflict**, shown next to drift on the device's Overview with both sources and both values.
+  **Take** gives the field the other source's value, like a hand edit
+  (`POST /api/inventory/<id>/conflicts/take` with `{"field": "os", "source": "opnsense"}`); an admin
+  can also let that source decide the device's identity for its kind.
 - It only fills in. A field gets the discovered value when it is empty, or when it still holds
   what discovery put there last, so a software upgrade shows up. A value typed by hand or sent by
   another plugin (NetBox) stays; the run counts it as kept. Empty a field and the next run fills

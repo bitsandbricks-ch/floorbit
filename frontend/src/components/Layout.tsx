@@ -10,12 +10,11 @@ import { useAppNav } from './AppNav'
 import { DatabaseBanner } from './DatabaseBanner'
 import { EventBanner } from './EventBanner'
 import { HubTabs } from './HubTabs'
-import { PageError } from './PageError'
 import { rememberPage } from './pages'
 import { setPageTitle } from './pageTitle'
 import { StatusLine } from './StatusLine'
 import { TopBarCrumbs, TopBarEnd } from './TopBar'
-import { AppShell as BnbAppShell, TitleLevel, useInPanel } from '@bitsandbricks/ui'
+import { AppShell as BnbAppShell, PageError, TitleLevel, useInPanel } from '@bitsandbricks/ui'
 
 /** What shows in the page area while a page's code loads: the sidebar and top bar stay. */
 export function PageSkeleton() {

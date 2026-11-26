@@ -162,6 +162,7 @@ class AttentionWatch(shared_state.Shared):
                     continue
                 port_reads[(str(dev['name']).lower(), canonical_port(name))] = {
                     'switch': dev['name'], 'port': name, 'state': port.get('state'),
+                    'utilization': port.get('utilization'),
                     'described_seat': seat_of(port.get('description'), names),
                     'uplink': bool(uplink.search(f"{name} {port.get('description') or ''}"))}
                 seat = (cabled.get((str(dev['name']).lower(), canonical_port(name)))

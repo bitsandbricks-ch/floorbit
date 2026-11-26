@@ -22,7 +22,7 @@ const KIND_COLOR: Record<TimelineKind, string> = {
   // Trace Cyan is kept for selection (issue #1431): a change is neutral.
   change: 'gray', 'sign-in': 'gray', outage: 'down', incident: 'warn', alert: 'warn', deploy: 'bit',
 }
-const SEVERITY_COLOR = { up: 'var(--color-up)', down: 'var(--color-down)', warn: 'var(--color-warn)', info: 'var(--color-muted)' }
+const SEVERITY_COLOR = { up: 'var(--bnb-ok)', down: 'var(--bnb-err)', warn: 'var(--bnb-warn)', info: 'var(--bnb-muted)' }
 
 function dayOf(t: number, lang: string) {
   return dateOnly(t, lang, { weekday: 'long', day: 'numeric', month: 'long' })
@@ -37,7 +37,7 @@ export function TimelineRow({ e, lang }: { e: TimelineEntry; lang: string }) {
       <Text size="sm" c="dimmed" ff="monospace" style={{ whiteSpace: 'nowrap' }}>
         {clockSeconds(e.t, lang)}
       </Text>
-      <span className="fb-timeline-dot" style={{ background: e.severity ? SEVERITY_COLOR[e.severity] : 'var(--color-line)' }} />
+      <span className="fb-timeline-dot" style={{ background: e.severity ? SEVERITY_COLOR[e.severity] : 'var(--bnb-line)' }} />
       <Badge variant="light" color={KIND_COLOR[e.kind]} tt="none" miw={92} style={{ flexShrink: 0 }}>{t(`timeline.kind.${e.kind}`)}</Badge>
       <div style={{ minWidth: 0, flex: '1 1 14em' }}>
         <Text size="sm" fw={500} style={{ overflowWrap: 'anywhere' }}>

@@ -15,6 +15,19 @@ const DATES = [
   { selector: "NewExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']", message: DATES_MESSAGE },
 ]
 
+// Pieces that moved to the shared packages (#1266, #1274): their old Floorbit paths are gone, and
+// a copy that comes back would drift from the one every app shares.
+const SHARED_UI = 'ConfirmButton|DataTable|FilterBar|HoverTimeChart|Markdown|PageError|PageHead|PageTabs|SidePanel|StatTile|State|stateTone|toast|topbarSlot|useFilters|panel'
+const SHARED_WIDGETS = 'Sparkline|TimeChart|TileCard|FitWidget|WidgetBody|kinds/.*|level|levelReport|spark|useBox|views|drill|autoPage'
+const SHARED = [
+  { regex: `^(@/|(\\.\\.?/)+)components/(${SHARED_UI})$`, message: 'This moved to @bitsandbricks/ui: import it from there.' },
+  { regex: `^(@/|(\\.\\.?/)+)widgets/(${SHARED_WIDGETS})$`, message: 'This moved to @bitsandbricks/widgets: import it from there.' },
+  { regex: '^(@/|(\\.\\.?/)+)lib/staleCode$', message: 'Use isStaleCode from @bitsandbricks/ui.' },
+  { regex: '^(@/|(\\.\\.?/)+)(styles/goto|components/notifications/Notifications)\\.css$', message: 'The shared CommandPalette and NotificationsPanel bring their own styles.' },
+]
+// Inside src/components a sibling import is "./DataTable"; elsewhere "./SidePanel" is the plan's own.
+const SHARED_SIBLINGS = { regex: `^\\./(${SHARED_UI})$`, message: 'This moved to @bitsandbricks/ui: import it from there.' }
+
 export default defineConfig([
   globalIgnores(['dist']),
   {
@@ -56,7 +69,12 @@ export default defineConfig([
           message: 'Use DateTimeInput (src/components/DateTimeInput.tsx) for dates and times.' },
         ...DATES,
       ],
+      'no-restricted-imports': ['error', { patterns: SHARED }],
     },
+  },
+  {
+    files: ['src/components/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [...SHARED, SHARED_SIBLINGS] }] },
   },
   {
     // The one place that formats dates and times.

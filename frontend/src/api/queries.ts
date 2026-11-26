@@ -5,7 +5,6 @@ import { getWidget } from './widgetBatch'
 import type { CustomSection } from '@/nav/sections'
 import type {
   PageLink,
-  Place,
   CrewNotice,
   AccountSummary,
   IncidentBoard,
@@ -71,15 +70,6 @@ function usePagesQuery() {
 }
 
 /** Seats and switches whose number or name matches, for "Go to" (issue #252); needs two characters. */
-export function usePlaces(query: string): Place[] {
-  const q = query.trim()
-  const places = useQuery({
-    queryKey: qk.places(q), queryFn: () => get<{ places: Place[] }>(`/api/pages/find?q=${encodeURIComponent(q)}`),
-    enabled: q.length >= 2, staleTime: 30_000, retry: false,
-  })
-  return q.length >= 2 ? places.data?.places ?? [] : []
-}
-
 export function useDashboard() {
   return useQuery({ queryKey: qk.dashboard, queryFn: () => get<{ tiles: Tile[] }>('/api/dashboard') })
 }

@@ -1,14 +1,9 @@
 {
-  "button": "Gehe zu",
-  "title": "Zu einer Seite",
   "placeholder": "Seite, Platz, Switch, IP oder MAC eingeben",
-  "none": "Nichts passt.",
   "close": "Schliessen",
-  "recent": "zuletzt",
   "seat": "Platz",
   "switch": "Switch",
   "player": "Spieler",
-  "action": "Aktion",
   "actions": {
     "notice": "Crew-Hinweis aufhängen",
     "notify": "Benachrichtigungen einstellen"
@@ -60,9 +55,10 @@
     "signIn": "Anmeldedienste",
     "audit": "Audit-Log",
     "firewalls": "Firewalls",
+    "switches": "Switches",
     "services": "Dienste",
     "topology": "Topologie",
-    "telemetry": "Telemetrie",
+    "telemetry": "Telemetrie-Sammler",
     "endpoints": "IP- und MAC-Verlauf",
     "widgets": "Widgets",
     "health": "Dienste-Status",
@@ -96,5 +92,10 @@
     "checkins": "PIN, Ankunft",
     "firewalls": "Routing, Uplinks",
     "networkStatus": "Statusseite, Teilnehmende, Störung, Meldung"
+  },
+  "groups": {
+    "pages": "Seiten",
+    "places": "Plätze, Switches und Spieler",
+    "actions": "Aktionen"
   }
 }

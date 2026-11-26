@@ -13,7 +13,7 @@
 .fb-ws-bar {
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
   padding: 8px 12px; min-height: 52px; box-sizing: border-box;
-  background: var(--color-surface); border-bottom: 1px solid var(--color-line);
+  background: var(--bnb-surface); border-bottom: 1px solid var(--bnb-line);
 }
 .fb-ws-bar > .fb-filter-scroll { flex: 1 1 140px; min-width: 140px; }
 /* The long note about other halls stays short; its whole text is in the tooltip. */
@@ -26,7 +26,7 @@
 /* The tools at the right end move to a second row as one group when the row is full, rather than
    slide out of sight; the filter chips take what is left of the first row and scroll sideways. */
 @media (min-width: 768px) { .fb-ws-bar-end { flex-wrap: nowrap; } }
-.fb-ws-strip { padding: 6px 12px; border-bottom: 1px solid var(--color-line); }
+.fb-ws-strip { padding: 6px 12px; border-bottom: 1px solid var(--bnb-line); }
 .fb-ws-body { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
 .fb-ws-body > * { flex: 1; min-height: 0; }
 .fb-ws-body > .fb-ws-pad { flex: 0 0 auto; }
@@ -37,7 +37,7 @@
 .fb-ws-canvas { position: relative; min-width: 0; min-height: 0; height: 100%; }
 .fb-ws-stage { min-width: 0; min-height: 0; height: 100%; }
 .fb-plan-layout.is-list .fb-ws-canvas { overflow: auto; padding: 12px; box-sizing: border-box; }
-.fb-ws-panel { min-height: 0; overflow-y: auto; padding: 16px; background: var(--color-surface); border-left: 1px solid var(--color-line); }
+.fb-ws-panel { min-height: 0; overflow-y: auto; padding: 16px; background: var(--bnb-surface); border-left: 1px solid var(--bnb-line); }
 .fb-page-full .fb-plan-wrap { height: 100%; min-height: 0; border: 0; border-radius: 0; }
 
 /* The legend floats over the plan's bottom-left corner and folds away; the attribution sits under it. */
@@ -46,13 +46,13 @@
 .fb-ws-corner .fb-attribution--compact { padding: 0; }
 .fb-plan-key {
   max-width: 100%;
-  background: color-mix(in srgb, var(--color-surface) 94%, transparent); border: 1px solid var(--color-line);
+  background: color-mix(in srgb, var(--bnb-surface) 94%, transparent); border: 1px solid var(--bnb-line);
   border-radius: 10px; box-shadow: 0 4px 16px rgb(0 0 0 / .12); font-size: 13px;
 }
-.fb-plan-key-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-weight: 600; font-size: 12px; color: var(--color-muted); width: 100%; }
+.fb-plan-key-head { display: flex; align-items: center; gap: 6px; padding: 6px 10px; font-weight: 600; font-size: 12px; color: var(--bnb-muted); width: 100%; }
 .fb-plan-key-body { padding: 0 10px 10px; max-height: 40vh; overflow-y: auto; }
 .fb-plan-key .fb-plan-legend { margin: 0; gap: 4px 14px; font-size: 12px; }
-.fb-plan-key .fb-plan-legend + .fb-plan-legend { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-line); }
+.fb-plan-key .fb-plan-legend + .fb-plan-legend { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--bnb-line); }
 
 /* Edit: the tool rail docked on the plan's left edge, the edit panel on the right, full height. */
 /* The panel is wide enough for two fields side by side (Mike: it was crammed at 340 px); its left
@@ -63,10 +63,10 @@
 }
 .fb-page-full .fb-edit-stage { height: 100%; gap: 0; align-items: stretch; min-height: 0; }
 .fb-page-full .fb-plan-editor .fb-plan-wrap { min-height: 0; }
-.fb-page-full .fb-edit-rail { position: static; border: 0; border-right: 1px solid var(--color-line); border-radius: 0; padding: 8px 6px; overflow-y: auto; }
+.fb-page-full .fb-edit-rail { position: static; border: 0; border-right: 1px solid var(--bnb-line); border-radius: 0; padding: 8px 6px; overflow-y: auto; }
 .fb-page-full .fb-edit-panel {
   position: static; max-height: none; height: 100%; overflow-y: auto; box-sizing: border-box;
-  border: 0; border-left: 1px solid var(--color-line); border-radius: 0;
+  border: 0; border-left: 1px solid var(--bnb-line); border-radius: 0;
 }
 @media (max-width: 1279.98px) {
   .fb-page-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr) var(--fb-edit-w, 360px); }
@@ -78,21 +78,21 @@
 @media (max-width: 1099.98px) {
   .fb-page-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 40%); }
   .fb-page-full .fb-plan-layout.with-inspector.fb-plan-editor.is-folded { grid-template-rows: minmax(0, 1fr) auto; }
-  .fb-page-full .fb-plan-editor .fb-edit-side { display: flex; flex-direction: column; background: var(--color-surface); border-top: 1px solid var(--color-line); }
+  .fb-page-full .fb-plan-editor .fb-edit-side { display: flex; flex-direction: column; background: var(--bnb-surface); border-top: 1px solid var(--bnb-line); }
   .fb-page-full .fb-plan-editor .fb-edit-panel { flex: 1; height: auto; min-height: 0; border: 0; padding-top: 0; }
   .fb-page-full .fb-plan-editor.is-folded .fb-edit-side { height: auto; }
 }
 .fb-edit-grab { display: flex; justify-content: center; align-items: center; flex: none; width: 100%; height: 20px; touch-action: manipulation; }
-.fb-edit-grab > span { width: 40px; height: 4px; border-radius: 2px; background: var(--color-line); }
-.fb-edit-grab:hover > span, .fb-edit-grab:focus-visible > span { background: var(--color-muted); }
-.fb-edit-grab:focus-visible { outline: 2px solid var(--color-bit); outline-offset: -2px; }
+.fb-edit-grab > span { width: 40px; height: 4px; border-radius: 2px; background: var(--bnb-line); }
+.fb-edit-grab:hover > span, .fb-edit-grab:focus-visible > span { background: var(--bnb-muted); }
+.fb-edit-grab:focus-visible { outline: 2px solid var(--bnb-accent); outline-offset: -2px; }
 /* Phones: the plan takes the whole height and the open panel is a sheet over its lower part, like
    the dashboard editor's; folded, it is a slim bar under the plan. */
 @media (max-width: 767.98px) {
   .fb-page-full .fb-plan-layout.with-inspector.fb-plan-editor { grid-template-rows: minmax(0, 1fr) auto; }
   .fb-page-full .fb-plan-editor:not(.is-folded) .fb-edit-side {
     position: fixed; z-index: 30; left: 0; right: 0; bottom: calc(var(--fb-tabbar-h, 0px) + env(safe-area-inset-bottom)); height: 60dvh;
-    border: 1px solid var(--color-line); border-bottom: 0; border-radius: 16px 16px 0 0; box-shadow: 0 -10px 40px rgb(0 0 0 / 35%); overflow: hidden;
+    border: 1px solid var(--bnb-line); border-bottom: 0; border-radius: 16px 16px 0 0; box-shadow: 0 -10px 40px rgb(0 0 0 / 35%); overflow: hidden;
   }
 }
 @media (max-width: 767.98px) {
@@ -112,13 +112,13 @@
 .fb-side-tabs { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .fb-side-body { flex: 1; min-height: 0; }
 .fb-side-row { display: block; width: 100%; padding: 6px 8px; border-radius: 6px; }
-.fb-side-row:hover { background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
+.fb-side-row:hover { background: color-mix(in srgb, var(--bnb-fg) 6%, transparent); }
 .fb-layer-legend { grid-column: 1 / -1; padding: 2px 0 6px 50px; }
 .fb-layer-legend .fb-plan-legend { margin: 0; gap: 4px 12px; font-size: 12px; }
 .fb-layer-legend.seats { padding: 0 0 4px; }
 .fb-layer-legend .heat { flex-wrap: nowrap; white-space: nowrap; }
 .fb-layer-legend .heat i { width: 72px; }
-.fb-side-foot { padding: 8px 12px; border-top: 1px solid var(--color-line); }
+.fb-side-foot { padding: 8px 12px; border-top: 1px solid var(--bnb-line); }
 .fb-side-close { align-self: center; margin-left: 4px; }
 /* Phones: the same panel in a sheet from below (FloorPlan.tsx); the sheet scrolls nothing itself. */
 .fb-plan-sheet { display: flex; flex-direction: column; border-radius: 16px 16px 0 0; }

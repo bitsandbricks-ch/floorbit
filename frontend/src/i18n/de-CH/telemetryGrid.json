@@ -1,0 +1,45 @@
+{
+  "label": "Geräte nach Meldeweg",
+  "device": "Gerät",
+  "agent": "Agent",
+  "lastProblem": "Letztes Problem",
+  "legend": "Legende",
+  "waits": "wartet auf Ereignisse",
+  "allGood": "Jedes Gerät meldet wie eingerichtet. Nichts zu prüfen; mit «Alle» siehst du sie.",
+  "foot": "Fahr über ein Quadrat für die letzte Meldung und den letzten Fehler. Ein Gerät öffnet seinen Telemetrie-Tab im Inventar.",
+  "method": {
+    "snmp": "SNMP",
+    "traps": "Traps",
+    "syslog": "Syslog",
+    "api": "API",
+    "gnmi": "gNMI",
+    "mdt": "MDT"
+  },
+  "state": {
+    "ok": "Gehört",
+    "late": "Verspätet",
+    "err": "Fehler",
+    "never": "Nie gehört",
+    "off": "Nicht eingerichtet"
+  },
+  "tip": {
+    "ok": "{{what}}: gehört {{when}}",
+    "late": "{{what}}: verspätet, zuletzt gehört {{when}}",
+    "err": "{{what}}: {{error}}",
+    "never": "{{what}}: nie gehört",
+    "off": "{{what}}: nicht eingerichtet"
+  },
+  "filter": {
+    "all": "Alle",
+    "look": "Mit Problemen",
+    "never": "Nie gehört"
+  },
+  "fig": {
+    "heard": "Geräte gehört",
+    "heardSub": "{{never}} nie gehört, {{late}} verspätet",
+    "refused": "Abgelehnte Schreibvorgänge",
+    "refusedNone": "Der Speicher nimmt alles an",
+    "kept": "Aufbewahrt",
+    "days": "{{count}} T"
+  }
+}

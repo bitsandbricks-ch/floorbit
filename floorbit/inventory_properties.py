@@ -4,7 +4,7 @@
   view uses, who set it (``hand``, ``discovery`` or the feeding plugin, such as ``netbox``), and what
   each source last read for it, so a disagreement can be seen next to the value.
 - ``auto.*``: what discovery found that has no field of its own (the VLAN and optic counts, the PoE
-  budget, sysDescr), each ``{value, source, seen}``.
+  budget, sysDescr, a plugin area's fields as ``auto.<area>.<field>``), each ``{value, source, seen}``.
 - no prefix: the custom properties people set, each ``{value, from}``, inherited from tags, groups
   and the device type (inventory_scope.resolve).
 
@@ -57,6 +57,10 @@ def _set_by(dev, field, value):
     for plugin in sorted(dev.get('refs') or {}):
         if (fed.get(plugin) or {}).get(field) == value:
             return plugin
+    for key in sorted(fed):
+        # A plugin's discovery area (plugin_discovery.py): named by its plugin.
+        if key.startswith('discovery:') and (fed.get(key) or {}).get(field) == value:
+            return key.split(':', 1)[1]
     return 'hand'
 
 
@@ -104,6 +108,9 @@ def view(data, dev, resolved=None):
     for source, r in sorted(readings.items()):
         if r.get('descr') and 'auto.snmp.sysdescr' not in auto:
             put('snmp.sysdescr', r['descr'], source, r.get('at'))
+    from . import plugin_discovery
+    for key, entry in plugin_discovery.own_properties(data, dev['id']).items():
+        auto.setdefault(key, entry)
 
     if resolved is None:
         resolved = inventory_scope.resolve(data, dev, inventory_scope._registry())

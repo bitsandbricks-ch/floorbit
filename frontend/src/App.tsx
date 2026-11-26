@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
+import { PageError } from '@bitsandbricks/ui'
 import { AppShell } from '@/components/Layout'
 import { LeaveGuard } from '@/components/LeaveGuard'
-import { PageError } from '@/components/PageError'
 import { readServerPage } from '@/lib/serverPage'
 
 // Each page is its own chunk. Flask sends only these paths to the React app (floorbit/spa.py).
@@ -20,6 +20,7 @@ const NewDevicePage = lazy(() => import('@/pages/inventory/NewDevicePage'))
 const ScopePage = lazy(() => import('@/pages/inventory/ScopePage'))
 const EntryPage = lazy(() => import('@/pages/inventory/EntryPage'))
 const PropertiesPage = lazy(() => import('@/pages/inventory/PropertiesPage'))
+const ReadsPage = lazy(() => import('@/pages/inventory/ReadsPage'))
 const SeatMapping = lazy(() => import('@/pages/SeatMapping'))
 const Incidents = lazy(() => import('@/pages/Incidents'))
 const HelpdeskQr = lazy(() => import('@/pages/HelpdeskQr'))
@@ -31,6 +32,7 @@ const Problems = lazy(() => import('@/pages/Problems'))
 const ProblemPage = lazy(() => import('@/pages/ProblemPage'))
 const Setup = lazy(() => import('@/pages/Setup'))
 const Firewalls = lazy(() => import('@/pages/Firewalls'))
+const Switches = lazy(() => import('@/pages/Switches'))
 const Services = lazy(() => import('@/pages/Services'))
 const Logs = lazy(() => import('@/pages/Logs'))
 const Commands = lazy(() => import('@/pages/Commands'))
@@ -114,6 +116,7 @@ export default function App() {
             <Route path="/inventory/defaults" element={<ScopePage kind="defaults" />} />
             <Route path="/inventory/entries/:type/:id" element={<EntryPage />} />
             <Route path="/inventory/properties" element={<PropertiesPage />} />
+            <Route path="/inventory/reads/:role" element={<ReadsPage />} />
             <Route path="/seat-mapping" element={<SeatMapping />} />
             <Route path="/incidents" element={<Incidents />} />
             <Route path="/incidents/qr" element={<HelpdeskQr />} />
@@ -124,6 +127,7 @@ export default function App() {
             <Route path="/problems" element={<Problems />} />
             <Route path="/problems/:id" element={<ProblemPage />} />
             <Route path="/setup" element={<Setup />} />
+            <Route path="/switches" element={<Switches />} />
             <Route path="/firewalls" element={<Firewalls />} />
             <Route path="/services" element={<Services />} />
             <Route path="/logs" element={<Logs />} />

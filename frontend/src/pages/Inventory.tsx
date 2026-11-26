@@ -20,6 +20,8 @@ import { useDriftAll } from '@/api/inventoryDrift'
 import { DriftAll } from './inventory/DriftPanel'
 import { IpamView } from './inventory/IpamView'
 import { UnknownSenders } from './inventory/UnknownSenders'
+import { DiscoveryView } from './inventory/DiscoveryView'
+import { useFoundCount } from '@/api/inventoryFound'
 import { ipamSubOf, type IpamSub } from './inventory/ipam'
 import type { ScopeTarget } from './inventory/ScopeEditor'
 import { GroupTree, type GroupFilter } from './inventory/GroupTree'
@@ -96,6 +98,7 @@ export default function Inventory() {
   // VLANs and prefixes live on the IPAM tab (#1346); ?type=vlan|prefix comes back from their pages.
   const [ipamSub, setIpamSub] = useState<IpamSub>(() => ipamSubOf(new URLSearchParams(window.location.search).get('type') ?? '') ?? 'prefixes')
   const types = useInventoryTypes().data?.types ?? []
+  const foundCount = useFoundCount()
   const currentType = types.find((x) => x.id === typeTab)
   // The shared filter row, kept in the address (#982): ?q= also comes from the floor plan's
   // right-click menu ("Show in inventory"), ?view=drift is every device that differs (#903).
@@ -225,12 +228,15 @@ export default function Inventory() {
           ))}
           <Tabs.Tab value="ipam" rightSection={<Text span size="xs" c="dimmed">{ipamCount}</Text>}>{t('ipam.title')}</Tabs.Tab>
           <Tabs.Tab value="groups">{t('inventory.groupsAndTags')}</Tabs.Tab>
+          <Tabs.Tab value="discovery" rightSection={<Text span size="xs" c="dimmed">{foundCount}</Text>}>{t('inventoryFound.tab')}</Tabs.Tab>
         </Tabs.List>
       </Tabs>
       <Text size="sm" role="status" mb={message || sync.isPending ? 'sm' : 0} className={message ? (message.ok ? 'fb-tone-ok' : 'fb-tone-err') : undefined}>
         {sync.isPending ? t('inventory.syncing') : message ? `${message.ok ? '✓' : '✕'} ${message.text}` : ''}
       </Text>
-      {typeTab === 'groups' && overview ? (
+      {typeTab === 'discovery' ? (
+        <DiscoveryView canEdit={canEdit} />
+      ) : typeTab === 'groups' && overview ? (
         <Box maw={520}>
           <GroupTree overview={overview} total={all.length} group={group} tags={tagFilter} canEdit={canEdit}
             onGroup={(g) => { setGroup(g); setTypeTab('device') }}

@@ -13,6 +13,8 @@ interface Defaults { naming?: string; row_labels?: string; reverse_numbers?: boo
 export interface NewBlock {
   naming: string; row_start: string; row_labels: string; name: string; cols: number; rows: number
   numbering_pattern: 'blockname_number'; reverse_numbers: boolean; rotation: number
+  /** Space above every row but the first, in seats (#1547). */
+  spacer?: number
 }
 
 /** New seat block(s) where the plan was clicked. Spacing and the rest start from Settings > Floor plan. */
@@ -33,7 +35,7 @@ function BlockForm({ defaults, row, onClose, onCreate }: {
 }) {
   const { t } = useTranslation()
   const [v, setV] = useState({
-    naming: defaults.naming || 'rows', row_start: row, row_labels: defaults.row_labels || 'start', name: '', cols: 8, rows: 1,
+    naming: defaults.naming || 'rows', row_start: row, row_labels: defaults.row_labels || 'start', name: '', cols: 8, rows: 2, spacer: 1,
     reverse_numbers: !!defaults.reverse_numbers, rotation: 0, count: 1, direction: 'down' as 'down' | 'right', gap: defaults.block_gap ?? 3,
   })
   const [more, setMore] = useState(false)
@@ -47,6 +49,7 @@ function BlockForm({ defaults, row, onClose, onCreate }: {
       const block: NewBlock = {
         naming: v.naming, row_start: (v.row_start.trim() || 'A').toUpperCase(), row_labels: v.row_labels, name: v.name.trim(),
         cols: Math.max(1, v.cols), rows: Math.max(1, v.rows), numbering_pattern: 'blockname_number', reverse_numbers: v.reverse_numbers, rotation: v.rotation,
+        spacer: v.rows > 1 ? v.spacer : 0,
       }
       await onCreate(block, v.count > 1 ? { count: v.count, ...blockStep(block, v.gap, v.direction) } : null)
     } finally {
@@ -66,6 +69,10 @@ function BlockForm({ defaults, row, onClose, onCreate }: {
             <NumberInput label={t('plan.edit.block.rows')} min={1} max={50} value={v.rows} onChange={(x) => set('rows', Number(x) || 1)} />
             <NumberInput label={t('plan.edit.block.count')} min={1} max={30} value={v.count} onChange={(x) => set('count', Math.min(30, Number(x) || 1))} />
           </SimpleGrid>
+          {v.rows > 1 && (
+            <NumberInput label={t('rowSpacers.newSpacer')} description={t('rowSpacers.newSpacerHint')} min={0} max={20} step={0.5} decimalScale={2}
+              suffix={` ${t('rowSpacers.unit', { count: v.spacer })}`} value={v.spacer} onChange={(x) => set('spacer', Math.min(20, Math.max(0, Number(x) || 0)))} />
+          )}
           <UnstyledButton onClick={() => setMore((m) => !m)} aria-expanded={more}>
             <Text size="sm" c="bit">{more ? '▾' : '▸'} {t('plan.edit.block.more')}</Text>
           </UnstyledButton>

@@ -1,6 +1,8 @@
 {
  "A label has 1 to {} characters": "Eine Beschriftung hat 1 bis {} Zeichen",
- "A mark is text, icon, wall or zone": "Eine Markierung ist Text, Symbol, Wand oder Zone",
+ "A mark is text, icon, wall, walkway or zone": "Eine Markierung ist Text, Symbol, Wand, Gang oder Zone",
+ "A walkway is {} to {} seats wide": "Ein Gang ist {} bis {} Plätze breit",
+ "A walkway needs two different ends": "Ein Gang braucht zwei verschiedene Enden",
  "A wall has at most {} bends, each [x, y]": "Eine Wand hat höchstens {} Knicke, jeder als [x, y]",
  "A wall needs two different ends": "Eine Wand braucht zwei verschiedene Enden",
  "A zone label has at most {} characters": "Der Name einer Zone hat höchstens {} Zeichen",

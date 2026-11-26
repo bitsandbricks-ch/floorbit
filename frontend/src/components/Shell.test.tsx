@@ -94,6 +94,11 @@ describe('page tabs', () => {
 describe('notifications panel', () => {
   it('shows the picked notification beside the list and leads to its problem page', async () => {
     const detail = { problem: problems.problems[1], device: null, can_mute: false, can_report: false, may_see_people: false }
+    // A computer: the details sit beside the list (on a phone they replace it).
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('min-width'), media: query, onchange: null,
+      addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
+    }))
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/problems': problems, 'GET /api/problems/b': detail }).fn)
     renderWithApp(<TopBar pages={pages} />, '/overview')
     fireEvent.click(await screen.findByRole('button', { name: 'Notifications (1 down · 1 need a look)' }))

@@ -130,7 +130,57 @@ The method names and shapes are in [Plugins](plugins.md#areas-uses).
 | Logins to devices | Ships | Asks `ctx.may_login(...)` first and reports `ctx.auth_failed(...)`; a refused credential is never tried again until a tech clears it. With two agents in a hall, only `ctx.primary()` polls. |
 | Self-health and metrics | Ships | `ctx.health(status, message)`, `ctx.error(...)`, `ctx.counter(...)`, `ctx.gauge(...)`: on the Local agents page, in the agent's `/metrics` as `floorbit_agent_plugin_<name>{plugin="<id>"}` and in `python -m floorbit_agent check`. The last 10 errors and 40 numbers per plugin are reported. |
 | A folder of its own (`ctx.state_dir`) | Ships | In the agent's state volume. |
+| Discovery areas (`discovery:`) | Ships | See [Discovery](#discovery) below. |
 | Updates without a new agent image | Ships | Official bundles only, never a downgrade, needs `agent_api` the image has; rolled back on its own when it fails in its first five minutes. |
+
+### Discovery
+
+A plugin whose agent part works on inventory devices (`agent.targets`) can add discovery areas
+next to the built-in ones ([inventory](inventory.md#discovery), issue #968):
+
+```yaml
+uses: [agent]
+agent:
+  targets: {credentials: [api], roles: [firewall]}
+discovery:
+  - area: routes               # a built-in area: the same shape as telemetry's facts
+    platforms: [opnsense]      # optional: only devices whose platform or software says so
+    minutes: 15
+  - area: gateways             # an area of its own
+    name: Gateways
+    fields: [name, status, rtt_ms]
+    minutes: 5
+```
+
+| Key | What it is |
+| --- | --- |
+| `area` | `identity`, `networks`, `optics`, `poe` or `routes`, or a name of its own (lowercase letters, digits, `_`). Interfaces come in through monitoring and are not an area here yet. |
+| `name` | For an area of its own: what Floorbit shows. A built-in area keeps its name. |
+| `roles` | The kinds of device it is about: by default those of the built-in area (all for one of its own), within `agent.targets.roles`. |
+| `platforms` | Optional: only devices whose platform or software holds one of these words. |
+| `fields` | For an area of its own: the fields it gives (40 at most); anything else is dropped. |
+| `minutes` | Its default interval, 5 to 1,440 (15 when left out). An admin changes it like any action. |
+| `privacy` | `aggregate` (the default) refuses a device's facts when they hold an IP or MAC address; `device` lets addresses through. `networks` and `routes` are `device` by default: a firewall's own networks and next hops, not a guest's. |
+
+The agent part answers `discover(area, devices)` with `{device_id: facts}`. `devices` are the
+plugin's targets the area applies to (`id`, `name`, `address`, `role`, `platform`, `credential`),
+25 per call; a device it couldn't read is left out. Floorbit asks through the call `discover`,
+added to `agent.calls` for it.
+
+What comes back is checked on the agent and again on the hosted side (64 KB per device and area,
+the privacy above), then lands where the built-in areas' facts land:
+
+- `identity` (`model`, `serial`, `descr`, `software`, `location`, `cores`, `memory_mb`, `disk_gb`,
+  `cpu`): the device's fields by discovery's fill rules (hand values win), the plugin's reading
+  next to each field, and drift where they disagree.
+- `networks` (`vlans`, `networks`, `svis`), `optics` (`transceivers`), `poe` (`budget_w`,
+  `used_w`) and `routes`: the device's discovered networks, transceivers, PoE budget and routes
+  where the monitoring source has none, and the entries made from them.
+- An area of its own: flat values or lists of values (200 characters, 100 items), as
+  `auto.<area>.<field>` properties of the device.
+
+Each area is a discovery action with the id `<plugin>.<area>`: in `GET /api/inventory/discovery`,
+with its own interval, **Run now** and its last run. Areas run even without a monitoring source.
 
 ### Storage
 

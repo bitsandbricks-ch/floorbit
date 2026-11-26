@@ -34,89 +34,84 @@ function page(route = '/problems') {
   )
 }
 
+// The palette's rows: each group's actions, "label" + "path" as the row shows them.
+const rows = (group: string) => within(screen.getByRole('group', { name: group })).getAllByRole('button')
+const box = () => screen.findByRole('textbox', { name: 'Jump to' })
+const type = async (text: string) => fireEvent.change(await box(), { target: { value: text } })
+const key = async (code: string) => fireEvent.keyDown(await box(), { key: code, code })
+
+async function opened(route?: string) {
+  const app = page(route)
+  await screen.findByRole('button', { name: /Signed in as kim/ })
+  fireEvent.click(screen.getByRole('button', { name: /Search pages/ }))
+  await box()
+  return app
+}
+
 describe('Go to', () => {
   it('lists the pages the server offers this account, in this language', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
-    page()
-    await screen.findByRole('button', { name: /Signed in as kim/ })
-    fireEvent.click(screen.getByRole('button', { name: /Search pages/ }))
-    const list = await screen.findByRole('listbox')
-    const names = () => within(list).getAllByRole('option').map((o) => o.textContent)
-    await waitFor(() => expect(names()).toContain('Problems/problems'))
-    expect(names()).toContain('Shift handover/handover')
+    await opened()
+    await waitFor(() => expect(rows('Pages').map((o) => o.textContent)).toContain('Problems/problems'))
+    const names = rows('Pages').map((o) => o.textContent)
+    expect(names).toContain('Shift handover/handover')
     // A page this version has no text for yet keeps the server's English name.
-    expect(names()).toContain('Status settings/settings/status')
-    expect(names()).toHaveLength(pages.pages.length)
+    expect(names).toContain('Status settings/settings/status')
+    expect(names).toHaveLength(pages.pages.length)
   })
 
-  it('filters as you type, moves with the arrows and opens on Enter', async () => {
+  it('opens with Ctrl+K, filters as you type and opens the first match on Enter', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
     const assign = vi.fn()
     vi.stubGlobal('location', { ...window.location, assign })
     page()
     await screen.findByRole('button', { name: /Signed in as kim/ })
-    // Ctrl+K opens it from anywhere on the page.
     fireEvent.keyDown(document.documentElement, { key: 'k', code: 'KeyK', ctrlKey: true })
-    const box = await screen.findByRole('combobox')
-    fireEvent.change(box, { target: { value: 'st' } })
-    const options = within(await screen.findByRole('listbox')).getAllByRole('option')
-    // Label matches first: Stats before pages that only match by path.
-    expect(options[0]).toHaveTextContent('Stats')
-    expect(options[0]).toHaveAttribute('aria-selected', 'true')
-    fireEvent.keyDown(box, { key: 'ArrowDown' })
-    expect(options[1]).toHaveAttribute('aria-selected', 'true')
-    expect(box).toHaveAttribute('aria-activedescendant', options[1].id)
-    fireEvent.keyDown(box, { key: 'Enter' })
-    expect(screen.getByTestId('where')).toHaveTextContent(options[1].querySelector('.fb-goto-path')!.textContent!)
+    await type('stats')
+    await waitFor(() => expect(rows('Pages')[0]).toHaveAttribute('data-selected', 'true'))
+    expect(rows('Pages')[0]).toHaveTextContent('Stats')
+    await key('Enter')
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/stats'))
     expect(assign).not.toHaveBeenCalled()
   })
 
   it('finds a page by other words for it too', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
-    page()
-    fireEvent.click(await screen.findByRole('button', { name: /Search pages/ }))
-    const box = await screen.findByRole('combobox')
-    fireEvent.change(box, { target: { value: 'uptime' } })
-    const options = within(await screen.findByRole('listbox')).getAllByRole('option')
-    expect(options.map((o) => o.textContent)).toEqual(['Service health/health'])
+    await opened()
+    await type('uptime')
+    await waitFor(() => expect(rows('Pages').map((o) => o.textContent)).toEqual(['Service health/health']))
   })
 
   it('loads the floor plan, a page the server draws, in full', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
     const assign = vi.fn()
     vi.stubGlobal('location', { ...window.location, assign })
-    page()
-    fireEvent.click(await screen.findByRole('button', { name: /Search pages/ }))
-    const box = await screen.findByRole('combobox')
-    fireEvent.change(box, { target: { value: 'floor' } })
-    await screen.findByRole('option', { name: /Floor plan/ })
-    fireEvent.keyDown(box, { key: 'Enter' })
+    await opened()
+    await type('floor plan')
+    await waitFor(() => expect(rows('Pages')[0]).toHaveAttribute('data-selected', 'true'))
+    await key('Enter')
     expect(assign).toHaveBeenCalledWith('/')
   })
 
   it('says so when nothing matches', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
-    page()
-    fireEvent.click(await screen.findByRole('button', { name: /Search pages/ }))
-    fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'zzz' } })
-    expect(await screen.findByText('Nothing matches.')).toBeInTheDocument()
+    await opened()
+    await type('zzz')
+    expect(await screen.findByText('Nothing matches')).toBeInTheDocument()
   })
 
   it('puts the pages opened last first while nothing is typed', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': tech, 'GET /api/pages': pages }).fn)
     localStorage.setItem('floorbit-recent-pages', JSON.stringify(['/health', '/nope']))
     // Opening this page remembers it, but the list leaves out the page you are on.
-    page('/stats')
+    await opened('/stats')
     expect(JSON.parse(localStorage.getItem('floorbit-recent-pages')!)).toEqual(['/stats', '/health', '/nope'])
-    fireEvent.click(await screen.findByRole('button', { name: /Search pages/ }))
-    const options = within(await screen.findByRole('listbox')).getAllByRole('option')
-    expect(options[0]).toHaveTextContent('Service health · recent/health')
-    expect(options.some((o) => o.textContent?.startsWith('Stats · recent'))).toBe(false)
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'health' } })
-    expect(screen.getAllByRole('option')[0]).toHaveTextContent(/^Service health\/health$/)
+    await waitFor(() => expect(rows('Recent').map((o) => o.textContent)).toEqual(['Service health/health']))
+    await type('health')
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Recent' })).toBeNull())
   })
 
-  it('finds seats and switches once you type two characters', async () => {
+  it('finds seats, switches and players once you type two characters', async () => {
     const fake = fakeFetch({
       'GET /api/auth/me': tech, 'GET /api/pages': pages,
       'GET /api/pages/find?q=b8': { places: [
@@ -126,38 +121,31 @@ describe('Go to', () => {
       ] },
     })
     vi.stubGlobal('fetch', fake.fn)
-    page()
-    fireEvent.click(await screen.findByRole('button', { name: /Search pages/ }))
-    const box = await screen.findByRole('combobox')
-    fireEvent.change(box, { target: { value: 'b' } })
-    fireEvent.change(box, { target: { value: 'b8' } })
-    const seat = await screen.findByRole('option', { name: /Seat B-8/ })
-    expect(screen.getByRole('option', { name: /Switch sw-b8/ })).toBeInTheDocument()
-    // A player by nick, IP or MAC, when the account may see people (issue #292).
-    expect(screen.getByRole('option', { name: /Player b8ster · C-3/ })).toBeInTheDocument()
+    await opened()
+    await type('b')
+    await type('b8')
+    await waitFor(() => expect(rows('Seats, switches and players').map((o) => o.textContent))
+      .toEqual(['Seat B-8', 'Switch sw-b8', 'Player b8ster · C-3']))
     // One character never asks the server.
     expect(fake.calls.some((c) => c.path === '/api/pages/find?q=b')).toBe(false)
-    expect(seat).toHaveAttribute('aria-selected', 'true')
-    fireEvent.keyDown(box, { key: 'Enter' })
-    expect(screen.getByTestId('where')).toHaveTextContent('/plan?seat=B-8')
+    // Only the server's answers match: the first one is picked, so Enter goes there.
+    await waitFor(() => expect(rows('Seats, switches and players')[0]).toHaveAttribute('data-selected', 'true'))
+    await key('Enter')
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/plan?seat=B-8'))
   })
 
-  it('does what the user menu does, once you type it', async () => {
+  it('does what the user menu does', async () => {
     const lead = { enabled: true, user: { ...tech.user, role: 'lead', permissions: [...tech.user.permissions, 'incidents.assign'] } }
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/pages': pages, 'GET /api/notice': { notice: null } }).fn)
-    page()
-    await screen.findByRole('button', { name: /Signed in as kim/ })
-    fireEvent.click(screen.getByRole('button', { name: /Search pages/ }))
-    const box = await screen.findByRole('combobox')
-    // Nothing typed: pages only.
-    expect(screen.queryByRole('option', { name: /Sign out/ })).toBeNull()
-    fireEvent.change(box, { target: { value: 'sign' } })
-    expect(await screen.findByRole('option', { name: /Sign outAction/ })).toBeInTheDocument()
-    fireEvent.change(box, { target: { value: 'notice' } })
-    expect(await screen.findByRole('option', { name: /Put up a crew notice/ })).toHaveAttribute('aria-selected', 'true')
-    fireEvent.keyDown(box, { key: 'Enter' })
+    await opened()
+    await waitFor(() => expect(rows('Actions').map((o) => o.textContent)).toContain('Sign out'))
+    // ">" leaves only the commands.
+    await type('>notice')
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Pages' })).toBeNull())
+    expect(rows('Actions')[0]).toHaveTextContent('Put up a crew notice')
+    await waitFor(() => expect(rows('Actions')[0]).toHaveAttribute('data-selected', 'true'))
+    await key('Enter')
     // The palette closes and the crew notice editor opens.
     expect(await screen.findByRole('dialog', { name: 'Crew notice' })).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByRole('combobox', { name: /Type a page/ })).toBeNull())
   })
 })

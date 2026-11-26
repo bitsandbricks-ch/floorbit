@@ -6,10 +6,10 @@
 }
 .fb-log-volume-bar:disabled { cursor: default; }
 .fb-log-volume-bar:not(:disabled):hover .fb-log-volume-all,
-.fb-log-volume-bar:focus-visible .fb-log-volume-all { background: var(--color-muted); }
-.fb-log-volume-bar:focus-visible { outline: 2px solid var(--color-trace); outline-offset: 1px; }
+.fb-log-volume-bar:focus-visible .fb-log-volume-all { background: var(--bnb-muted); }
+.fb-log-volume-bar:focus-visible { outline: 2px solid var(--bnb-info); outline-offset: 1px; }
 .fb-log-volume-all {
   width: 100%; min-height: 0; display: flex; align-items: flex-end;
-  background: var(--color-line); border-radius: 2px 2px 0 0;
+  background: var(--bnb-line); border-radius: 2px 2px 0 0;
 }
-.fb-log-volume-err { width: 100%; background: var(--color-down); border-radius: 2px 2px 0 0; }
+.fb-log-volume-err { width: 100%; background: var(--bnb-err); border-radius: 2px 2px 0 0; }

@@ -48,7 +48,8 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
  *  page. */
 export const HUBS: Record<string, string[]> = {
   helpdesk: ['problems', 'incidents', 'handover', 'networkStatus'],
-  network: ['firewalls', 'wifi', 'telemetry'],
+  network: ['switches', 'firewalls', 'wifi'],
+  agents: ['telemetry'],
   services: ['dns', 'lancache'],
   traffic: ['games', 'applications', 'stats', 'speedtests'],
   seats: ['seatMapping', 'checkins', 'seatWalk', 'switchAreas', 'endpoints'],
@@ -115,7 +116,7 @@ const ICONS: Record<string, Icon> = {
   preflight: IconChecklist, setup: IconListCheck, templates: IconTemplate,
   schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
   report: IconReport, events: IconCalendarEvent, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight, sidebarSections: IconLayoutSidebar,
-  apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
+  apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, switches: IconHierarchy2, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }
 
 /** A dashboard inside the app's frame, with the sidebar (``/dashboards/<id>`` is the big screen). */
