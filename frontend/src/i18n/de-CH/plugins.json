@@ -166,5 +166,7 @@
   "builtin": {
     "tab": "Eingebaut",
     "intro": "Was mit Floorbit kommt. Schalte aus, was dein Event nicht braucht: Was aus ist, verschwindet aus den Menüs, seine Seiten und API antworten \"nicht gefunden\", und seine Prüfungen im Hintergrund halten an. Nichts wird gelöscht."
-  }
+  },
+  "addonsOnly": "Erweiterungen aus dem Marketplace. Was mit Floorbit kommt (NetBox, LibreNMS, Telemetrie, Syslog, ...), ist unter",
+  "toSources": "Einstellungen › Quellen"
 }

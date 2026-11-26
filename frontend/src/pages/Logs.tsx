@@ -108,7 +108,7 @@ export function LogTable({ lines, store, source, onDevice }: { lines: SyslogLine
   return (
     <DataTable label={t('logs.title')} rows={lines} rowKey={(l, i) => (store ? `${l.id}-${i}` : String(l.id))} pageSize={PAGE_SIZE}
       onRowClick={toggle} rowProps={(l) => ({ title: open.has(rowKey(l)) ? undefined : t('logFilterBar.showAll') })}
-      striped density="compact" minWidth={640} defaultSort={{ id: 'time', desc: true }}
+      fill striped density="compact" minWidth={640} defaultSort={{ id: 'time', desc: true }}
       count={(n) => t('logs.loaded', { count: n, n: n.toLocaleString(i18n.language) })}
       columns={[
         { id: 'time', header: t('logs.time'), mono: true, sort: (line) => line.ts, cell: (line) =>
@@ -296,7 +296,7 @@ export default function Logs() {
   }, { replace: true })
 
   return (
-    <Layout title={t('logs.title')} back={{ href: '/', label: t('logs.floorplan') }}>
+    <Layout title={t('logs.title')} back={{ href: '/', label: t('logs.floorplan') }} fill>
       <PageHead title={t('logs.title')} desc={t(syslog ? 'logs.intro' : store ? 'logs.intros.store' : `logs.intros.${source}`)}
         actions={
           <Group gap="xs" wrap="nowrap">

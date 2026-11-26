@@ -98,10 +98,8 @@
 .fb-plan .cell:hover .seat { stroke: var(--bnb-accent); stroke-width: 3; }
 .fb-plan .blk.alarm { stroke: var(--bnb-err); stroke-width: 2px; fill: color-mix(in srgb, var(--bnb-err) 10%, transparent); }
 /* Block tags (SeatMap): the block's name on its corner, and a red count when it has problems. */
-.fb-plan .btag > rect { fill: var(--bnb-raised); stroke: color-mix(in srgb, var(--bnb-muted) 55%, transparent); }
-.fb-plan .btag text { fill: var(--bnb-fg); font-family: var(--font-sans); font-weight: 700; text-anchor: middle; pointer-events: none; }
 .fb-plan .btag-bad rect { fill: var(--bnb-err); }
-.fb-plan .btag-bad text { fill: var(--bnb-bg); }
+.fb-plan .btag-bad text { fill: #fff; font-family: var(--font-sans); font-weight: 700; text-anchor: middle; pointer-events: none; }
 .fb-marks .wall { fill: none; stroke: var(--bnb-fg); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
 .fb-marks .wall.dashed { stroke-dasharray: 22 14; }
 /* A walkway (#1564): a pale band as wide as the walkway, square at the ends so blocks snap to its edges. */
@@ -251,8 +249,9 @@
 .fb-block-bar .on { background: var(--bnb-ok); }
 .fb-block-bar .off { background: var(--bnb-err); }
 .fb-block-bar .unk { background: repeating-linear-gradient(45deg, var(--bnb-muted) 0 3px, transparent 3px 6px); }
-.fb-plan .btag.link { cursor: pointer; }
-.fb-plan .btag.link:hover > rect { stroke: var(--bnb-accent); }
+.fb-plan .rowlbl.blkname { text-anchor: end; }
+.fb-plan .btag-bad.link, .fb-plan .rowlbl.link { cursor: pointer; pointer-events: auto; }
+.fb-plan .rowlbl.link:hover { fill: var(--bnb-fg); }
 .fb-block-seat:focus-visible { outline: 2px solid var(--bnb-accent); outline-offset: 2px; border-radius: 6px; }
 .fb-plan .sw.link { cursor: pointer; }
 

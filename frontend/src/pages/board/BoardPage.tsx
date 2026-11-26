@@ -1,15 +1,15 @@
-import { Button, Select } from '@mantine/core'
+import { Select } from '@mantine/core'
 import { IconClock, IconMaximize, IconPencil, IconPin, IconPinnedOff } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useMemo, useState } from 'react'
 import { useMediaQuery } from '@mantine/hooks'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
+import { PageHead, type PageMenuItem } from '@bitsandbricks/ui'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { readBoot, useNavPrefs } from '@/nav/boot'
 import { type Board, TIME_RANGES, type TimeRange, boardName } from '../dashboards/model'
@@ -19,7 +19,7 @@ import { useFillHeight } from '../dashboards/fill'
 import '../dashboards/dashboards.css'
 
 /** One dashboard inside the app's frame, with the sidebar: the same widgets as on a big screen,
- *  with buttons to pin it to the sidebar, change it, or open it full screen. */
+ *  with the time range in front and pin, edit and big screen behind one "⋯" menu (#1407). */
 export function BoardPage({ id, title, kicker }: { id: string; title?: string; kicker?: string }) {
   const { t } = useTranslation()
   const canEdit = useCan('floorplan.edit')
@@ -43,27 +43,25 @@ export function BoardPage({ id, title, kicker }: { id: string; title?: string; k
   // Screen dashboards fit under the top bar like on a wall; phones always scroll (#923).
   const phone = useMediaQuery('(max-width: 48em)', false, { getInitialValueInEffect: false })
   const fit = !!q.data?.fit && !phone
+  const navigate = useNavigate()
+  const menu: PageMenuItem[] = [
+    { label: pinned ? t('board.unpin') : t('board.pin'), onClick: pin,
+      icon: pinned ? <IconPinnedOff size={16} aria-hidden="true" /> : <IconPin size={16} aria-hidden="true" /> },
+    ...(canEdit ? [{ label: t('board.edit'), icon: <IconPencil size={16} aria-hidden="true" />,
+      onClick: () => navigate(`/dashboards?edit=${encodeURIComponent(id)}`) }] : []),
+    // A plain link: the big screen is its own page outside the app's frame.
+    { label: t('board.bigScreen'), icon: <IconMaximize size={16} aria-hidden="true" />,
+      href: `/dashboards/${encodeURIComponent(id)}${asked ? `?range=${asked}` : ''}` },
+  ]
   const [area, setArea] = useState<HTMLDivElement | null>(null)
   const height = useFillHeight(area, fit)
   return (
     <Layout title={name}>
       <PageHead
-        title={name} eyebrow={kicker}
+        title={name} eyebrow={kicker} menu={menu}
         actions={<>
           <Select aria-label={t('board.range')} w={170} allowDeselect={false} leftSection={<IconClock size={16} aria-hidden="true" />} value={range ?? 'auto'} onChange={pickRange}
             data={['auto', ...TIME_RANGES].map((r) => ({ value: r, label: r === 'auto' ? t('board.rangeAuto') : t(`dashboards.range.${r}`) }))} />
-          <Button variant="default" onClick={pin} aria-pressed={pinned}
-            leftSection={pinned ? <IconPinnedOff size={16} aria-hidden="true" /> : <IconPin size={16} aria-hidden="true" />}>
-            {pinned ? t('board.unpin') : t('board.pin')}
-          </Button>
-          {canEdit && (
-            <Button variant="default" component={Link} to={`/dashboards?edit=${encodeURIComponent(id)}`} leftSection={<IconPencil size={16} aria-hidden="true" />}>
-              {t('board.edit')}
-            </Button>
-          )}
-          <Button variant="default" component="a" href={`/dashboards/${encodeURIComponent(id)}${asked ? `?range=${asked}` : ''}`} leftSection={<IconMaximize size={16} aria-hidden="true" />}>
-            {t('board.bigScreen')}
-          </Button>
         </>}
       />
       {q.isPending && <LoadingState rows={3} />}

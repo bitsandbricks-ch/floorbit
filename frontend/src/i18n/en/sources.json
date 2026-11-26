@@ -1,0 +1,11 @@
+{
+  "title": "Sources",
+  "hosted": {
+    "title": "What Floorbit asks",
+    "desc": "The sources that come with Floorbit: the inventory, monitoring, logs and metrics. Open one for its settings."
+  },
+  "agent": {
+    "title": "What every agent does",
+    "desc": "The local agent's own features. They are on for every agent; an agent's page shows how each runs there and turns one off for that agent."
+  }
+}

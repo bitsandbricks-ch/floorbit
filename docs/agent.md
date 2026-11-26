@@ -196,12 +196,21 @@ Agents of a group share their **certificate names**: names set on one agent's pa
 others' certificates too, so a second agent behind the same VIP or name needs none typed in.
 
 **Capabilities.** Each agent lists in its report what it can do (`capabilities`): `lease` (follows
-the primary Floorbit picks), `split` (splits devices with its group) and `syslog_hold` (sends only its
-own devices' syslog and keeps a minute of the rest). For an agent from before the list, Floorbit works
-them out from its report, and for what an agent can't do it falls back: VRRP picks the primary, one
-primary collects every device, every agent sends every syslog line (kept once). A group splits only
-when every connected agent of it can. The agent's page and its group's page show the list, and for
-each missing capability what Floorbit does instead.
+the primary Floorbit picks), `split` (splits devices with its group), `syslog_hold` (sends only its
+own devices' syslog and keeps a minute of the rest), `self_update` (installs signed agent releases),
+`syslog_ids` (each syslog line has an id), `plugin_updates` (installs signed plugin updates),
+`key_roll` (fetches a new key when you roll it) and `cert` (has Floorbit sign its TLS certificate).
+For an agent from before the list, Floorbit works them out from its report, and for what an agent
+can't do it falls back: VRRP picks the primary, one primary collects every device, every agent sends
+every syslog line (kept once), the crew pulls a new image. A group splits only when every connected
+agent of it can.
+
+What the agent **collects** comes from its built-in plugins, not from the list, since they can be
+off or failing on one agent: `syslog` (syslog relay), `netflow` (flow relay), `snmp`, `traps`,
+`gnmi` and `mdt` (telemetry with Telegraf, its own or the sidecar), `rest` (telemetry's API
+pollers: NX-API, RESTCONF, OPNsense) and `mac_lookup` (a check-in's port found with single SNMP
+GETs, docs/segments.md). The agent's page and its group's page show both lists, and for each missing
+capability what Floorbit does instead.
 
 Each group has its own page (the group's name on the Local agents page, `/settings/agents/groups/<tags>`):
 its agents and their roles, which shared addresses each holds, how many devices each owns now and
@@ -291,7 +300,7 @@ Each agent's own settings are set on its page in Floorbit (**Agents >** the agen
 the agent takes them with its plugins: the metrics listener and
 its token, its disk budget, how long it buffers while Floorbit is away, the Telegraf port, the log level and summary
 line, and the VRRP virtual IPs. Plugin settings that differ on one agent (another flow port, another
-syslog bind) are set there too; **Settings > Plugins** stays the default for every agent.
+syslog bind) are set there too; the plugin's own page (from **Settings > Sources** or **Settings > Plugins**) stays the default for every agent.
 
 **The agent's environment wins.** When the agent's own environment sets one of them
 (`FLOORBIT_AGENT_METRICS`, `_METRICS_TOKEN`, `_DISK_BUDGET_MB`,
@@ -536,7 +545,7 @@ for that container and runs none itself.
 
 ## The inventory through the agent
 
-Turn the event's inventory plugin on under Settings > Plugins (NetBox, with its URL and token);
+Turn the event's inventory plugin on under Settings > Sources (NetBox, with its URL and token);
 the agent runs it too. An inventory sync on the hosted Floorbit (**Inventory > Sync**, or **Sync
 switches** in the editor) then also asks the agent: it runs each inventory plugin that is on there
 and sends back their devices. They are merged under the plugin's own id (`netbox`), the same as a
@@ -701,7 +710,7 @@ times are taken as they are.
 
 Flows are too many, and too revealing, to send across the internet one by one. So the agent runs
 the [flow collector](flows.md) itself: turn on the **Traffic from the hall** plugin under
-Settings > Plugins (the agent listens on udp/2055, a fixed port like its others), publish the port (the `ports` lines in
+Settings > Sources (the agent listens on udp/2055, a fixed port like its others), publish the port (the `ports` lines in
 `docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or IPFIX export at the
 agent's machine. Only the newest summary waits while the hosted side is away.
 

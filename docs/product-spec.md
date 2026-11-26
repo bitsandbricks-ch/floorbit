@@ -182,6 +182,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   (the sidebar is 15px).
 - **Full width:** a page uses all the width next to the sidebar; no page sets a fixed maximum width
   for its content. Wide content (tables, grids) spreads out, forms stay in their panels.
+- **One screen on a desktop** (Mike: "one page with no scrollbars on desktop where possible", #896):
+  a list page fits the screen (`Layout fill`, the shared `FillPage` and `DataTable fill`). The head
+  and filters stay at the top and only the table's rows scroll, in pages. A page with too much above
+  its table scrolls as a whole; phones scroll as usual.
 - **Lists filter the same way:** a search field and a chip per filter with counts (`FilterBar`),
   kept in the address (`useFilters`) so a link or a reload shows the same view.
 - **Setup is a checklist:** what an event needs, in order, each step's state worked out from what is
@@ -204,7 +208,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Dates and times:** day-first (19.11.2026) and 24-hour in every language, through
   `frontend/src/lib/time.ts`; date fields use `DateTimeInput`.
 - **Phone and big screen:** every page works on a phone (wide tables stack into cards, panels become
-  bottom drawers) and readable on a wall (kiosk dashboards, seat labels that fit the zoom).
+  bottom drawers) and readable on a wall (kiosk dashboards, seat labels that fit the zoom). Nothing
+  scrolls sideways on a phone: tabs that don't fit go under "More", filters wrap. Workspaces like the
+  floor plan are map first on a phone: floating search, a dock at thumb height, sheets for the rest
+  (Mike, 2026-11-26). Keyboard hints show only where there is a keyboard.
 
 ## 5. Privacy and security
 

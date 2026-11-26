@@ -166,5 +166,7 @@
   "builtin": {
     "tab": "Built in",
     "intro": "The parts that come with Floorbit. Turn off what your event doesn't use: a part that is off leaves the menus, its pages and API answer \"not found\", and its background checks stop. Nothing is deleted."
-  }
+  },
+  "addonsOnly": "Add-ons from the Marketplace. What comes with Floorbit (NetBox, LibreNMS, telemetry, syslog, ...) is under",
+  "toSources": "Settings › Sources"
 }

@@ -50,7 +50,7 @@ export default function Cables() {
   const q = search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ''
 
   return (
-    <Layout title={t('cables.title')} back={{ href: '/', label: t('common.floorPlan') }}>
+    <Layout title={t('cables.title')} back={{ href: '/', label: t('common.floorPlan') }} fill>
       <PageHead title={t('cables.title')} desc={t('cables.intro')}
         actions={
           <Group gap="xs">
@@ -110,7 +110,7 @@ export default function Cables() {
           <>
             <TextInput leftSection={<IconSearch size={14} />} aria-label={t('cables.search')} placeholder={t('cables.search')}
               value={search} onChange={(e) => setSearch(e.currentTarget.value)} />
-            <DataTable label={t('cables.title')} rows={rows} rowKey={(c) => c.id} defaultSort={{ id: 'label' }} minWidth={640}
+            <DataTable fill label={t('cables.title')} rows={rows} rowKey={(c) => c.id} defaultSort={{ id: 'label' }} minWidth={640}
               empty={<Text c="dimmed">{d.cables.length ? t('cables.noMatch') : t('cables.empty')}</Text>}
               count={(n) => t('cables.count', { count: n })}
               columns={[

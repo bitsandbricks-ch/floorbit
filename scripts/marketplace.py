@@ -3,12 +3,16 @@
     python scripts/marketplace.py sign <plugin folder> --key plugin-key.pem --version 1.2.0 --out dist
     python scripts/marketplace.py build-index plugins.yaml site --key index-key.pem
     python scripts/marketplace.py check https://bitsandbricks-ch.github.io/floorbit-plugins/index.json
+    python scripts/marketplace.py build-applications games.yaml site --key index-key.pem
 
 ``sign`` packs one plugin as ``<id>-<version>.tar.gz``, signed with the plugin key (the release job
 of each ``floorbit-plugin-*`` repository). ``build-index`` reads the GitHub releases of the
 repositories ``plugins.yaml`` lists or discovers, checks every archive like a Floorbit would,
 copies them next to ``index.json`` and signs that with the index key (floorbit-plugins' publish
 workflow). ``check`` downloads a published index and everything it offers and checks them again.
+``build-applications`` writes Floorbit's own rules file for the applications, ``applications.json``,
+from floorbit-plugins' curated ``games.yaml``, checked as a Floorbit checks a rules file and signed
+with the index key (#1504); every Floorbit fetches it as its last rule source.
 
 Every command refuses a key that isn't the one built into Floorbit for its purpose
 (``floorbit/keys/plugins/``, ``floorbit/keys/index/``), and a key used for both.
@@ -222,6 +226,34 @@ def cmd_check(args):
     sys.exit(1 if check(args.url, get) else 0)
 
 
+# build-applications ----------------------------------------------------------------------------
+def build_applications(games, out, index_pem):
+    """Check the curated applications and write them, signed, to ``out/applications.json``."""
+    from floorbit import application_sources, applications
+    entries = (games or {}).get('applications') or []
+    try:
+        apps = application_sources._from_json({'version': 1, 'applications': entries},
+                                              {'id': 'floorbit', 'name': 'Floorbit list'},
+                                              applications)
+    except application_sources.SourceError as exc:
+        raise SystemExit(f'games.yaml: {exc.message}') from None
+    doc = {'name': 'Floorbit applications', 'version': 1,
+           'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'applications': apps}
+    doc = bundles.sign_rules(doc, index_pem)
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / 'applications.json').write_text(json.dumps(doc, indent=2) + '\n', encoding='utf-8')
+    return doc
+
+
+def cmd_build_applications(args):
+    import yaml
+    pem, kid = _private(args.key, 'index')
+    games = yaml.safe_load(Path(args.games).read_text(encoding='utf-8')) or {}
+    doc = build_applications(games, args.out, pem)
+    print(f"applications.json: {len(doc['applications'])} applications, signed with {kid}")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     sub = p.add_subparsers(dest='cmd', required=True)
@@ -236,8 +268,13 @@ def main():
     b.add_argument('--key', required=True)
     c = sub.add_parser('check')
     c.add_argument('url')
+    a = sub.add_parser('build-applications')
+    a.add_argument('games')
+    a.add_argument('out')
+    a.add_argument('--key', required=True)
     args = p.parse_args()
-    {'sign': cmd_sign, 'build-index': cmd_build_index, 'check': cmd_check}[args.cmd](args)
+    {'sign': cmd_sign, 'build-index': cmd_build_index, 'check': cmd_check,
+     'build-applications': cmd_build_applications}[args.cmd](args)
 
 
 if __name__ == '__main__':

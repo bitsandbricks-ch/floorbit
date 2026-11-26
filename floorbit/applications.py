@@ -4,6 +4,8 @@ NetFlow and the LAN cache. See docs/applications.md.
 - **Built in:** ``applications_lists.json`` (launchers and games from uklans/cache-domains, site
   groups from v2fly/domain-list-community, both MIT, written by ``scripts/applications_import.py``)
   plus ``STARTER`` below: launcher ports and game titles no open list has.
+- **Rule sources** (floorbit/application_sources.py, #1503): files fetched on a schedule, on top of
+  the built-in ones; the higher a source in its list, the more it wins.
 - **The event's own** live in data.json (``applications``): new applications, and for a built-in one
   the domains, ports, addresses and depots added to it, or that it is hidden.
 - **Matching:** DNS by site (``dns.site``), traffic by the name of the flow service (the agent's
@@ -87,6 +89,19 @@ def builtin():
     return _builtin_cache
 
 
+def base(data=None):
+    """{id: application} before the event's own changes: what Floorbit ships, with the rule
+    sources on top (a source's entry replaces one with the same id, keeping its LAN cache ids)."""
+    from . import application_sources
+    apps = dict(builtin()['apps'])
+    for source, entries in application_sources.overlay(data):
+        for entry in entries:
+            old = apps.get(entry['id']) or {}
+            apps[entry['id']] = {**_blank(), **old, **entry, 'source': f'source:{source["id"]}',
+                                 'source_name': source['name']}
+    return apps
+
+
 def _blank():
     return {'name': '', 'kind': 'sitegroup', 'category': 'other', 'part_of': None, 'sites': [], 'ports': [],
             'cidr': [], 'caches': [], 'depots': [], 'source': 'own'}
@@ -99,10 +114,11 @@ def _own(data=None):
 
 def listing(data=None):
     """Every application, built-in and own, with the event's changes applied. Hidden ones too."""
-    base = builtin()['apps']
+    data = load_data() if data is None else data
+    shipped = base(data)
     own = _own(data)
     out = []
-    for aid, app in base.items():
+    for aid, app in shipped.items():
         change = own.get(aid) or {}
         merged = {**app, 'builtin': True, 'hidden': bool(change.get('hidden')), 'edited': bool(change),
                   'added': {k: change.get(k) or [] for k in ('sites', 'ports', 'cidr', 'depots')}}
@@ -110,7 +126,7 @@ def listing(data=None):
             merged[k] = sorted(set(app.get(k) or []) | set(change.get(k) or []), key=str)
         out.append(merged)
     for aid, entry in own.items():
-        if aid in base:
+        if aid in shipped:
             continue
         out.append({**_blank(), **entry, 'builtin': False, 'hidden': bool(entry.get('hidden')), 'edited': False,
                     'added': {k: entry.get(k) or [] for k in ('sites', 'ports', 'cidr', 'depots')}})
@@ -182,15 +198,15 @@ def save(body, app_id=None):
     whether it is hidden are kept: its own matches stay."""
     if not isinstance(body, dict):
         raise ApplicationError('Send the application as a JSON object.')
-    base = builtin()['apps']
     with _lock:
         data = load_data()
+        shipped = base(data)
         own = _own(data)
-        if app_id is not None and app_id not in base and app_id not in own:
+        if app_id is not None and app_id not in shipped and app_id not in own:
             raise ApplicationError('No such application.', 404)
         hidden = body['hidden'] if 'hidden' in body else (own.get(app_id) or {}).get('hidden', False)
         entry = {'id': app_id, **_matches(body), 'hidden': bool(hidden)}
-        if app_id is None or app_id not in base:
+        if app_id is None or app_id not in shipped:
             name = ' '.join(str(body.get('name') or '').split())
             if not 1 <= len(name) <= 60:
                 raise ApplicationError('Give the application a name (up to 60 characters).')
@@ -208,9 +224,9 @@ def save(body, app_id=None):
             if names.get(name.lower(), app_id) != app_id:
                 raise ApplicationError(f'There is already an application called {name}.')
             if app_id is None:
-                if len([a for a in own if a not in base]) >= MAX_OWN:
+                if len([a for a in own if a not in shipped]) >= MAX_OWN:
                     raise ApplicationError(f'Floorbit keeps at most {MAX_OWN} own applications.')
-                app_id = _new_id(name, set(base) | set(own))
+                app_id = _new_id(name, set(shipped) | set(own))
             entry.update({'id': app_id, 'name': name, 'kind': kind, 'category': category, 'part_of': part_of})
         rest = [e for e in data.get(KEY) or [] if isinstance(e, dict) and e.get('id') != app_id]
         data[KEY] = [*rest, entry]

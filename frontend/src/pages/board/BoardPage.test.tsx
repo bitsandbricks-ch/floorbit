@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -26,5 +26,17 @@ describe('A dashboard in the app', () => {
     const { container } = show(false)
     expect(await screen.findByText('Hello')).toBeInTheDocument()
     expect(container.querySelector('.fb-grid.fit')).toBeNull()
+  })
+
+  it('keeps the time range in front and the rest behind one menu', async () => {
+    show(false)
+    expect(await screen.findByText('Hello')).toBeInTheDocument()
+    expect(screen.getAllByLabelText('Time shown').length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: 'Pin to sidebar' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect(await screen.findByRole('menuitem', { name: 'Pin to sidebar' })).toBeInTheDocument()
+    expect(screen.getByText('Big screen').closest('a')).toHaveAttribute('href', '/dashboards/ops')
+    // Editing needs floorplan.edit, which this account doesn't have.
+    expect(screen.queryByRole('menuitem', { name: 'Edit' })).toBeNull()
   })
 })

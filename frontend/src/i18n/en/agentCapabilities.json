@@ -1,22 +1,60 @@
 {
   "title": "Capabilities",
   "help": "What this agent can do. For what it can't, Floorbit falls back to what older agents do; updating the agent turns it on.",
+  "agent": "The agent",
+  "collects": "What it collects",
   "name": {
     "lease": "Primary picked by Floorbit",
     "split": "Splits devices with its group",
     "syslog_hold": "Keeps other agents' syslog for a takeover",
-    "self_update": "Updates itself"
+    "self_update": "Updates itself",
+    "syslog_ids": "Syslog lines with ids",
+    "plugin_updates": "Updates its plugins",
+    "key_roll": "Rolls its key",
+    "cert": "Gets its certificate from Floorbit",
+    "syslog": "Syslog",
+    "netflow": "Flows (NetFlow, IPFIX, sFlow)",
+    "snmp": "SNMP polling",
+    "traps": "SNMP traps",
+    "gnmi": "Streaming (gNMI)",
+    "mdt": "Streaming (Cisco MDT dial-out)",
+    "rest": "Device APIs (NX-API, RESTCONF, OPNsense)",
+    "mac_lookup": "MAC lookup for check-in"
   },
   "yes": {
     "lease": "Polls and logs in only while Floorbit says it is the primary.",
     "split": "Polls, logs in to and handles only its own devices.",
     "syslog_hold": "Sends only its own devices' lines and keeps a minute of the rest.",
-    "self_update": "Installs the signed agent releases Floorbit offers, with no new image."
+    "self_update": "Installs the signed agent releases Floorbit offers, with no new image.",
+    "syslog_ids": "Each line has an id, so a group's copies are kept once.",
+    "plugin_updates": "Installs signed plugin updates from the Marketplace, with no new image.",
+    "key_roll": "Fetches a new key itself when you roll it.",
+    "cert": "Makes its own key and has Floorbit sign its certificate.",
+    "syslog": "Relays the devices' syslog to Floorbit.",
+    "netflow": "Sums up flows in the hall; only totals leave the event network.",
+    "snmp": "Polls the devices over SNMP with Telegraf.",
+    "traps": "Takes the devices' SNMP traps.",
+    "gnmi": "Subscribes to the devices' gNMI streams.",
+    "mdt": "Takes the telemetry streams devices send to it.",
+    "rest": "Polls the devices' own APIs.",
+    "mac_lookup": "Finds a checked-in PC's port with a few SNMP GETs, where the range allows lookups."
   },
   "no": {
     "lease": "Falls back to VRRP: the agent holding the first shared address is primary.",
     "split": "Falls back to one primary collecting every device of the group.",
     "syslog_hold": "Falls back to sending every line; Floorbit keeps each line once.",
-    "self_update": "Falls back to the pull command: the crew pulls the new image by hand."
+    "self_update": "Falls back to the pull command: the crew pulls the new image by hand.",
+    "syslog_ids": "Its lines have no ids: in a group the same line can show twice.",
+    "plugin_updates": "Plugins update only with a new agent image.",
+    "key_roll": "Can't fetch a new key: a roll waits until the agent is updated.",
+    "cert": "Serves only the certificate the crew gives it.",
+    "syslog": "Syslog is off or not running on this agent.",
+    "netflow": "Flows are off or not running on this agent.",
+    "snmp": "No Telegraf on this agent, or telemetry is off: no SNMP polling.",
+    "traps": "No Telegraf on this agent, or telemetry is off: no traps.",
+    "gnmi": "No Telegraf on this agent, or telemetry is off: no gNMI.",
+    "mdt": "No Telegraf on this agent, or telemetry is off: no MDT.",
+    "rest": "Telemetry is off or not running on this agent.",
+    "mac_lookup": "Check-in uses the polled ARP and MAC tables only."
   }
 }
