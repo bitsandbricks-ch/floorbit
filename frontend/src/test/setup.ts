@@ -6,9 +6,12 @@ import { cleanup } from '@testing-library/react'
 afterEach(cleanup)
 
 // What Mantine needs from a browser that jsdom does not have.
+// jsdom has no screen: tests see a computer (min-width queries match), so the shared components
+// draw their computer layout (the FilterBar's filters in a row, not behind a phone's button).
+// A test of the phone layout stubs matchMedia itself.
 window.matchMedia ??= (query: string) =>
   ({
-    matches: false,
+    matches: /\(min-width/.test(query),
     media: query,
     onchange: null,
     addListener: () => {},
