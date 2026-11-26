@@ -106,3 +106,66 @@ def test_flow_rules_carry_the_applications_sites(app_module):
     rules = {r["name"]: r for r in applications.flow_rules()}
     assert rules["Steam"]["sites"].count("steampowered.com") == 1
     assert all("sites" in r for r in rules.values())
+
+
+class _Dns:
+    """A resolver that answers from a table and counts what it was asked."""
+
+    def __init__(self, table):
+        self.table, self.asked = table, []
+
+    def __call__(self, name):
+        self.asked.append(name)
+        if name not in self.table:
+            raise OSError("no such name")
+        return self.table[name]
+
+
+def _resolver(answers, clock=lambda: NOW):
+    table = Names()
+    dns = _Dns(answers)
+    return table, dns, names_mod.Resolver(table, resolve=dns, clock=clock, pause=0)
+
+
+def test_a_lookup_without_answers_is_resolved_by_the_agent_for_the_seat_that_asked():
+    table, dns, resolver = _resolver({"cdn.example.com": ["198.51.100.7", "2001:db8::7"]})
+    resolver.sites = frozenset({"example.com"})
+    rows = [{"ts": NOW, "domain": "cdn.example.com", "client": "192.0.2.10"},          # Pi-hole: no answers
+            {"ts": NOW, "domain": "tracker.example.org", "client": "192.0.2.10"},      # no application's site
+            {"ts": NOW, "domain": "cdn.example.com", "client": "192.0.2.11", "blocked": True}]
+    learn_rows(rows, table=table, now=NOW, resolver=resolver)
+    resolver._next_round = NOW + 1   # no round over the sites in this test
+    resolver.work(now=NOW)
+    assert dns.asked == ["cdn.example.com"]
+    assert table.site_of("192.0.2.10", "198.51.100.7", now=NOW + 60) == "example.com"
+    assert table.site_of("192.0.2.10", "2001:db8::7", now=NOW + 60) == "example.com"
+    # A second seat asking within the TTL takes the answer the agent already has: no new lookup.
+    assert resolver.ask("192.0.2.12", "cdn.example.com", now=NOW + 30)
+    assert dns.asked == ["cdn.example.com"]
+    assert table.pairs[("192.0.2.12", "198.51.100.7")][0] == "example.com"
+
+
+def test_a_round_resolves_the_sites_and_hosts_address_wide():
+    table, dns, resolver = _resolver({"example.com": ["198.51.100.20"], "gs.example.net": ["203.0.113.9"]})
+    resolver.sites = frozenset({"example.com", "example.org"})
+    resolver.hosts = frozenset({"gs.example.net"})
+    resolver.work(now=NOW)
+    assert sorted(dns.asked) == ["example.com", "example.org", "gs.example.net"]
+    assert table.site_of("192.0.2.30", "198.51.100.20", now=NOW + 60) == "example.com"
+    assert resolver.addresses_of("gs.example.net") == ("203.0.113.9",)
+    assert resolver.status()["failed"] == 1
+    resolver.work(now=NOW + 60)                       # not due yet
+    assert len(dns.asked) == 3
+
+
+def test_a_game_server_by_host_name_is_named_by_its_resolved_address():
+    servers = [{"game": "Some mod", "host": "gs.example.net"}]
+    rules = applications.flow_rules(data={"applications": {}}, servers=servers)
+    _table, _dns, resolver = _resolver({"gs.example.net": ["203.0.113.9"]})
+    classifier = Classifier(resolver=resolver)
+    resolver.want = lambda sites=(), hosts=(): setattr(resolver, "hosts", frozenset(hosts))   # no thread here
+    classifier.set_applications(rules)
+    assert resolver.hosts == {"gs.example.net"}
+    assert classifier("203.0.113.9", 17, 27015, 50000) != ("Some mod", "gaming")   # not resolved yet
+    resolver.work(now=NOW)
+    assert classifier("203.0.113.9", 17, 27015, 50000) == ("Some mod", "gaming")   # the cache was dropped

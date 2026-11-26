@@ -78,10 +78,24 @@ for the [application](applications.md) whose site that is. In order:
    CDN address that answers for several sites names nobody.
 5. The built-in ports ("Web" for 443).
 
-It needs a DNS plugin whose lookups carry the answer: **AdGuard Home** does; Pi-hole's API doesn't
-give the answer's addresses, so with Pi-hole flows are named by address and port only. The agent
-reads the answers where it reads the lookups for [DNS analytics](dns.md), once a minute, so a
-download that starts in the same minute as its lookup may count as "Web" until the next read.
+Where the answers come from:
+
+- **The DNS plugin's own answers.** AdGuard Home's lookups carry them. The agent reads them where it
+  reads the lookups for [DNS analytics](dns.md), once a minute, so a download that starts in the
+  same minute as its lookup may count as "Web" until the next read.
+- **The agent asks DNS itself.** Pi-hole's API says which name a seat looked up but not what it got.
+  For a name under an application's site, the agent looks the same name up through its own
+  resolver and gives the seat that asked the addresses it gets, for 5 minutes. When the agent uses
+  the hall's resolver, as it usually does, that is mostly the same cached answer the seat got. Each
+  name is looked up once per 5 minutes, however many seats ask.
+- **A round every 10 minutes**, with or without a DNS plugin: the agent resolves every application's
+  sites (`example.com` itself, not the hosts under it, which nobody can list) and the host names of
+  [game servers](applications.md). A flow to those addresses counts for them address-wide, under the
+  same rule: an address that more than one site has names nobody.
+
+A CDN can give the agent other addresses than it gave the seat (another resolver, another moment),
+so the agent's own answers name fewer flows than AdGuard's do. They never name a wrong one beyond
+what step 4 allows.
 
 Limits: nothing to match when the seat asks another resolver (DNS over HTTPS in the browser, a
 hard-coded `8.8.8.8`) or connects to an address it never looked up; a connection that began before

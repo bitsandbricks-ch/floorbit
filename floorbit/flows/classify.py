@@ -69,10 +69,12 @@ def compile_rules(rules, own_categories=False):
             nets = [ipaddress.ip_network(c, strict=False) for c in rule.get('cidr') or []]
         except ValueError as exc:
             raise RuleError(f'{rule["name"]}: {exc}') from exc
-        sites = rule.get('sites') or []
+        sites, hosts = rule.get('sites') or [], rule.get('hosts') or []
         out.append({'name': str(rule['name'])[:60], 'category': category, 'nets': nets,
                     'ports': _ports(rule.get('ports')),
-                    'sites': {str(s).lower() for s in sites} if isinstance(sites, list) else set()})
+                    'sites': {str(s).lower() for s in sites} if isinstance(sites, list) else set(),
+                    # Host names (a game server's): their addresses come from the agent's own lookups.
+                    'hosts': {str(h).lower().rstrip('.') for h in hosts} if isinstance(hosts, list) else set()})
     return out
 
 
@@ -93,10 +95,13 @@ def _builtin_rules():
 
 
 class Classifier:
-    def __init__(self, rules=None):
+    def __init__(self, rules=None, resolver=None):
         self.rules = rules if rules is not None else load_rules()[0]
         self._base = self.rules
         self._cache = {}
+        # The rules' host names resolved (names.Resolver); None outside the agent and in tests.
+        self.resolver = resolver
+        self._resolved_version = None
 
     def set_applications(self, rules):
         """The rules Floorbit's applications and game servers make (floorbit/applications.py), checked
@@ -111,10 +116,15 @@ class Classifier:
         own = self._base[:max(0, len(self._base) - len(builtin))]
         self.rules = own + extra + self._base[len(own):]
         self._cache = {}
+        if self.resolver is not None:
+            self.resolver.want_rules(self.rules)
 
     def __call__(self, remote_ip, proto, remote_port, local_port, site=None):
         """``site``: what the seat looked up before this flow, when DNS told the agent (names.py)."""
         key = (remote_ip, proto, remote_port, local_port, site)
+        if self.resolver is not None and self.resolver.version != self._resolved_version:
+            self._resolved_version = self.resolver.version   # a host moved: forget what it named
+            self._cache = {}
         found = self._cache.get(key)
         if found is None:
             found = self._match(remote_ip, proto, remote_port, local_port, site)
@@ -130,6 +140,9 @@ class Classifier:
             addr = None
         for rule in self.rules:
             if rule['nets'] and addr is not None and any(addr in n for n in rule['nets']):
+                return rule['name'], rule['category']
+            if rule.get('hosts') and self.resolver is not None and addr is not None and any(
+                    str(addr) in self.resolver.addresses_of(h) for h in rule['hosts']):
                 return rule['name'], rule['category']
         if site:
             # An event's or an application's own port still wins (a game's servers over the

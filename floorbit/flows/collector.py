@@ -14,6 +14,7 @@ from integrations import config
 from .. import disk_budget
 from . import names, seat_maps, store
 from .aggregate import Aggregator
+from .classify import Classifier
 from .owners import Owners
 from .parse import ParseError, Templates, parse
 
@@ -33,7 +34,10 @@ class Collector:
     def __init__(self, aggregator=None, raw=None, log=print, owners=None, names_table=None):
         self.owners = owners or Owners(log=log)
         self.names = names_table or names.TABLE
-        self.agg = aggregator or Aggregator(owner_of=self.owners.lookup, name_of=self.names.site_of)
+        # The agent's own classifier also names flows to the rules' host names, through the resolver.
+        resolver = names.RESOLVER if names_table is None else None
+        self.agg = aggregator or Aggregator(Classifier(resolver=resolver), owner_of=self.owners.lookup,
+                                            name_of=self.names.site_of)
         self.raw = raw or store.RawStore()
         self.templates = Templates()
         self.log = log
