@@ -47,6 +47,18 @@ describe('Schedule page', () => {
     renderWithApp(<Schedule />)
     expect(await screen.findByText('Lunch')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add item' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Change Lunch' })).toBeNull()
+  })
+
+  it('removes an item from its form, not from a red icon on the row', async () => {
+    const api = fakeFetch({ 'GET /api/auth/me': lead, 'GET /api/schedule': data, 'DELETE /api/schedule/items/b': { ok: true } })
+    vi.stubGlobal('fetch', api.fn)
+    renderWithApp(<Schedule />)
+    expect(await screen.findByText('Lunch')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Remove Lunch' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Change Lunch' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Yes, go ahead' }))
+    await waitFor(() => expect(api.calls).toContainEqual(expect.objectContaining({ method: 'DELETE', path: '/api/schedule/items/b' })))
   })
 })

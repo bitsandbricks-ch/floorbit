@@ -30,5 +30,6 @@
     "quiet": "Nachtruhe",
     "other": "Anderes"
   },
-  "emptyTitle": "Noch nichts geplant"
+  "emptyTitle": "Noch nichts geplant",
+  "remove": "Entfernen"
 }
