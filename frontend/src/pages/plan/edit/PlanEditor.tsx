@@ -2,7 +2,7 @@ import { ActionIcon, Anchor, Badge, Button, ColorSwatch, Group, Kbd, Menu, Numbe
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
-  IconArrowBackUp, IconArrowForwardUp, IconBookmark, IconBookmarks, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
+  IconArrowBackUp, IconArrowForwardUp, IconBookmark, IconChevronUp, IconBookmarks, IconHistory, IconClipboard, IconCopy, IconCut, IconLayersSubtract, IconLayoutAlignBottom, IconLayoutAlignCenter,
   IconLayoutAlignLeft, IconLayoutAlignMiddle, IconLayoutAlignRight, IconLayoutAlignTop, IconLayoutDistributeHorizontal, IconLayoutDistributeVertical,
   IconLink, IconLock, IconLockOpen, IconRotateClockwise, IconSelectAll, IconStack2, IconStackBack, IconStackFront, IconTrash, IconUnlink, IconZoomIn,
 } from '@tabler/icons-react'
@@ -200,9 +200,14 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
   // the room. Picking something else opens it again, since its fields are what you want next.
   const under = useMediaQuery('(max-width: 1099.98px)')
   const selKey = selected.map(refKey).join(' ')
-  // Phones start with the plan in full: the sheet comes up once something is picked.
-  const [foldedAt, setFoldedAt] = useState<string | null>(() => (window.matchMedia?.('(max-width: 767.98px)').matches ? '' : null))
-  const folded = !!under && foldedAt === selKey
+  const [foldedAt, setFoldedAt] = useState<string | null>(null)
+  // Phones: the open panel is a sheet over most of the plan, so it opens only when asked (Details or
+  // the grab bar). Picking or dragging on the plan keeps it down; it used to come up on every tap
+  // and hide what was being moved (Mike, 2026-11-26).
+  const phone = useMediaQuery('(max-width: 767.98px)')
+  const [sheetUp, setSheetUp] = useState(false)
+  const folded = phone ? !sheetUp : !!under && foldedAt === selKey
+  const toggleFold = () => { if (phone) setSheetUp(!sheetUp); else setFoldedAt(folded ? null : selKey) }
   // The row picked in a seat block's panel, kept here so a double-click on the plan can pick one.
   const [pickedRow, setPickedRow] = useState<{ block: string; row: string } | null>(null)
   // The panel's tab (Mike picked tabs and sub tabs): Rows and Seats are there for one seat block.
@@ -986,13 +991,16 @@ export function PlanEditor({ data, view, setView, layers, refresh: refreshPlan, 
     <PanelResize width={panelWidth} onWidth={setPanelWidth} />
     {under && (
       <UnstyledButton className="fb-edit-grab" aria-expanded={!folded} aria-label={t(folded ? 'planSheet.show' : 'planSheet.hide')}
-        onClick={() => setFoldedAt(folded ? null : selKey)}><span aria-hidden="true" /></UnstyledButton>
+        onClick={toggleFold}><span aria-hidden="true" /></UnstyledButton>
     )}
     <Paper withBorder radius="lg" p="md" className="fb-edit-panel">
       <Stack gap="sm">
         <Group justify="space-between" wrap="nowrap">
-          <Text fw={600}>{one ? itemTitle(t, data, one) : selected.length ? t('plan.edit.selected', { count: selected.length }) : t('plan.edit.title')}</Text>
+          <Text fw={600} truncate>{one ? itemTitle(t, data, one) : selected.length ? t('plan.edit.selected', { count: selected.length }) : t('plan.edit.title')}</Text>
           <Group gap={4} wrap="nowrap">
+            {phone && folded && (
+              <Button size="xs" variant="default" leftSection={<IconChevronUp size={14} />} aria-expanded={false} onClick={toggleFold}>{t('planSheet.details')}</Button>
+            )}
             <Tooltip label={history.nextUndo ? t('plan.edit.undoWhat', { what: history.nextUndo }) : t('plan.edit.undo')}>
               <ActionIcon variant="default" aria-label={t('plan.edit.undo')} disabled={!history.canUndo} onClick={() => void step('undo')}><IconArrowBackUp size={16} /></ActionIcon>
             </Tooltip>
