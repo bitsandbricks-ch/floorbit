@@ -26,7 +26,9 @@ Each one is recognised by any of:
 
 ## Built in
 
-Floorbit ships two open lists, at a fixed commit, so nothing is fetched during an event (their licences: `floorbit/applications_lists.LICENSES.md`):
+Floorbit ships two open lists at a fixed commit. They are the fallback that works with no internet;
+lists that should stay current are [rule sources](#rule-sources). Their licences are in
+`floorbit/applications_lists.LICENSES.md`:
 
 - [uklans/cache-domains](https://github.com/uklans/cache-domains) (MIT): the CDNs lancache-dns
   answers for. Its entries become launchers, games (Call of Duty, Guild Wars 2, Warframe, ...) and
@@ -41,6 +43,48 @@ TODO: ask Mike which games the event plays most, and check their domains and por
 
 `python scripts/applications_import.py` writes `floorbit/applications_lists.json` from the commits
 named in the script. Change them there to move to newer lists, and check the diff.
+
+## Rule sources
+
+**Rule sources** (button on the page, `settings.manage`) are rules files Floorbit fetches on a
+schedule, on top of the built-in lists. Each has a name, an https URL, how often to fetch it (every
+24 hours unless set) and an on/off switch.
+
+A file is one of:
+
+- **A rules file**, the page's own shape:
+
+  ```json
+  {"version": 1, "applications": [
+    {"id": "example-arena", "name": "Example Arena", "kind": "game", "category": "gaming",
+     "part_of": "steam", "sites": ["arena.example.com"], "ports": ["udp/7777"],
+     "cidr": ["198.51.100.0/28"], "depots": []}
+  ]}
+  ```
+
+  Every entry is checked as the page checks one. One bad entry keeps the whole file out.
+- **A plain domain list**, in uklans/cache-domains style (one domain per line, `*.` allowed) or
+  v2fly style (`domain:`, `full:`; `include:` and `regexp:` lines are left out). It becomes one
+  site group named after the source.
+
+How it behaves:
+
+- **Fetching:** the hosted Floorbit fetches through the outbound guard (`OUTBOUND_BLOCK_NETS`, see
+  [integrations](integrations.md)). It refuses files over 4 MB and gives up on a source that stops answering.
+- **Last good copy:** a source keeps its last good copy. A fetch that fails, or a file that doesn't
+  pass the checks, leaves that copy in use, and the page shows why. A failed fetch is tried again
+  after 15 minutes. Copies are kept in the event (`application-sources.json`).
+- **Order:** when two name the same application (by `id`), the winner is chosen in this order:
+  1. the event's own changes;
+  2. the sources, from the top of the list down ("Move to top");
+  3. the built-in lists.
+
+  A source's entry replaces the built-in one but keeps its LAN cache ids.
+- **Freeze:** stops all fetching during the event, so the numbers don't move. The copies stay in
+  use. The page footer shows the frozen state and when each source last changed.
+
+The agent's traffic rules come from the merged list, so a synced port or address reaches the flow
+collector within a minute, as an edit on the page does.
 
 ## The event's own
 
@@ -66,3 +110,9 @@ used it. Players on the event's own game servers are the server's count.
 - `POST /api/applications`, `PUT /api/applications/<id>`: `{name, kind, category, part_of, sites,
   ports, cidr, depots, hidden}`; a built-in one takes only the lists and `hidden`.
 - `DELETE /api/applications/<id>`: removes an own one, or resets a built-in one.
+- `GET /api/applications` also has `synced` (each source's name, whether it is on, `ok`, `changed_at`
+  and `count`; no URL) and `frozen`.
+- Rule sources (`settings.manage`, reading too, since a URL can carry a token):
+  `GET|POST /api/applications/sources`, `PUT|DELETE /api/applications/sources/<id>` (`{name, url,
+  every_hours, on, position}`), `POST /api/applications/sources/<id>/sync` (409 while frozen), and
+  `PUT /api/applications/sources-frozen` (`{frozen}`).

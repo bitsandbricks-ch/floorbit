@@ -1,4 +1,5 @@
 // Applications (docs/applications.md): the games, launchers and site groups Floorbit recognises.
+import type { SyncedSource } from './applicationSources'
 import { del, post, put } from './client'
 
 export type AppKind = 'game' | 'launcher' | 'sitegroup'
@@ -21,6 +22,8 @@ export type Application = AppMatches & {
   part_of: string | null
   caches: string[]
   source: string
+  /** Set when a rule source supplied it (``source`` is then ``source:<id>``). */
+  source_name?: string
   builtin: boolean
   edited: boolean
   hidden: boolean
@@ -30,6 +33,8 @@ export type Application = AppMatches & {
 export type ApplicationsAnswer = {
   applications: Application[]
   sources: { id: string; repo: string; commit: string; license: string; copyright: string }[]
+  synced: SyncedSource[]
+  frozen: boolean
   hours: number
   kinds: AppKind[]
   categories: string[]
