@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fakeFetch, renderWithApp } from '@/test/render'
 import Telemetry from './Telemetry'
@@ -20,42 +20,35 @@ const overview = {
 const agents = { options: [{ value: 'a1', label: 'Hall A agent', hint: 'a1' }] }
 
 describe('Telemetry', () => {
-  it('lists the inventory devices with what came in, their agent and errors', async () => {
+  it('shows a square per device and method, and the collector at a glance (#904)', async () => {
     vi.stubGlobal('fetch', fakeFetch({
-      'GET /api/auth/me': admin, 'GET /api/telemetry/overview': overview, 'GET /api/options/agents': agents,
-      'GET /api/telemetry/token': { token: 'fbt_example' },
+      'GET /api/auth/me': admin, 'GET /api/options/agents': agents, 'GET /api/telemetry/token': { token: 'fbt_example' },
+      'GET /api/telemetry/overview': { ...overview, syslog: { 'core-01': 1_763_100_000 } },
     }).fn)
     renderWithApp(<Telemetry />)
-    // Each device opens its own page, on the Telemetry tab, where it is set up and tested.
-    expect(await screen.findByRole('link', { name: 'core-01' })).toHaveAttribute('href', '/inventory/devices/d1?tab=telemetry')
-    expect(screen.getByRole('link', { name: /: fw-01$/ })).toHaveAttribute('href', '/inventory/devices/d2?tab=telemetry')
-    expect(screen.getByText('52 ports, 0 MACs, 812 ARP, 4 neighbours')).toBeInTheDocument()
-    expect(await screen.findByRole('cell', { name: 'Hall A agent' })).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: 'Any agent' })).toBeInTheDocument()
-    expect(screen.getByText('1 / 2')).toBeInTheDocument()       // heard from
-    expect(screen.getByText('Need a look')).toBeInTheDocument()
+    // fw-01 never reported: "with problems" (the default) lists it alone.
+    expect(await screen.findByRole('link', { name: 'fw-01' })).toHaveAttribute('href', '/inventory/devices/d2?tab=telemetry')
+    expect(screen.queryByRole('link', { name: 'core-01' })).toBeNull()
+    expect(screen.getByText('1 / 2')).toBeInTheDocument()
+    expect(screen.getByText('1 never heard, 0 late')).toBeInTheDocument()
+    expect(screen.getByText('Storage accepts everything')).toBeInTheDocument()
+    expect(screen.getByText('2 d')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Show/ }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /^All/, hidden: true }))
+    const row = (await screen.findByRole('link', { name: 'core-01' })).closest('tr')!
+    // SNMP and the API are set up and heard, syslog came in too; traps, gNMI and MDT aren't set up.
+    expect(within(row).getByRole('img', { name: /^SNMP: heard/ })).toBeInTheDocument()
+    expect(within(row).getByRole('img', { name: /^API: heard/ })).toBeInTheDocument()
+    expect(within(row).getByRole('img', { name: /^Syslog: heard/ })).toBeInTheDocument()
+    expect(within(row).getByRole('img', { name: 'Traps: not set up' })).toBeInTheDocument()
+    expect(within(row).getByRole('cell', { name: 'Hall A agent' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Open the inventory' })).toHaveAttribute('href', '/inventory')
-    // Devices are set up in the inventory: nothing here adds or changes one.
-    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
-    // Find and filter.
+    // Find a device.
     fireEvent.change(screen.getByRole('textbox', { name: 'Find a device' }), { target: { value: 'opn' } })
     expect(screen.queryByRole('link', { name: 'core-01' })).toBeNull()
-    expect(screen.getByRole('link', { name: 'fw-01' })).toBeInTheDocument()
-    fireEvent.change(screen.getByRole('textbox', { name: 'Find a device' }), { target: { value: '' } })
-    // fw-01 never reported: it needs a look, and counts as one on the summary card.
-    expect(screen.getAllByText('Never heard').length).toBeGreaterThan(0)
-    fireEvent.click(screen.getByText('Needs a look (1)'))
-    expect(screen.queryByRole('link', { name: 'core-01' })).toBeNull()
-    fireEvent.click(screen.getByText('All (2)'))
-    // By agent: the devices any agent may collect.
-    fireEvent.click(screen.getByRole('combobox', { name: 'Agent' }))
-    fireEvent.click(await screen.findByRole('option', { name: 'Any agent', hidden: true }))
-    expect(screen.queryByRole('link', { name: 'core-01' })).toBeNull()
-    expect(screen.getByRole('link', { name: 'fw-01' })).toBeInTheDocument()
     // The collector's own state and its errors have their tab; the token its own.
     fireEvent.click(screen.getByRole('tab', { name: /Collector/ }))
     expect(screen.getByText('NX-API on core-01 refused the login.')).toBeInTheDocument()
-    expect(screen.getAllByText("Floorbit's database, 2 days")).toHaveLength(2)     // the summary card and the tab
     fireEvent.click(screen.getByRole('tab', { name: 'Senders' }))
     fireEvent.click(screen.getByRole('button', { name: 'Show the token' }))
     expect(await screen.findByText('fbt_example')).toBeInTheDocument()
@@ -64,7 +57,7 @@ describe('Telemetry', () => {
   it('shows the crew the devices without the admin tools', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/telemetry/overview': overview, 'GET /api/options/agents': agents }).fn)
     renderWithApp(<Telemetry />)
-    expect((await screen.findAllByText('core-01')).length).toBeGreaterThan(0)
+    expect(await screen.findByRole('link', { name: 'fw-01' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Test now' })).toBeNull()
     expect(screen.queryByRole('tab', { name: 'Senders' })).toBeNull()
   })
@@ -83,12 +76,11 @@ describe('Telemetry', () => {
       'GET /api/telemetry/overview': { ...overview, seen: { 'core-01': { seen: null, online: false, problems: [problem] } } },
     }).fn)
     renderWithApp(<Telemetry />)
-    // Kind, where and since when on one line, then the hint; the collector's own line on demand.
-    expect(await screen.findByText('Nothing listens')).toBeInTheDocument()
+    // The square says the kind; the last column the kind, where and since when, then the hint.
+    expect(await screen.findByRole('img', { name: 'SNMP: Nothing listens' })).toBeInTheDocument()
     expect(screen.getByText('SNMP polling · whole device')).toBeInTheDocument()
     expect(screen.getByText('3 times')).toBeInTheDocument()
     expect(screen.getByText(/^Nothing listens on 192.0.2.1:161/)).toBeInTheDocument()
-    expect(screen.getAllByText('Sends nothing').length).toBeGreaterThan(0)
     expect(screen.queryByText(/recvfrom: connection refused/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: "Collector's line" }))
     expect(screen.getByText(/recvfrom: connection refused/)).toBeInTheDocument()
@@ -101,6 +93,8 @@ describe('Telemetry', () => {
       'GET /api/telemetry/overview': { ...overview, seen: { ...overview.seen, 'fw-09': { seen: 1_763_100_000, online: true } } },
     }).fn)
     renderWithApp(<Telemetry />)
+    fireEvent.click(await screen.findByRole('button', { name: /^Show/ }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /^All/, hidden: true }))
     expect(await screen.findByText('fw-09')).toBeInTheDocument()
     expect(screen.getByText('Sends by itself')).toBeInTheDocument()
   })

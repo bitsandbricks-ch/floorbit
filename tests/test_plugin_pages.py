@@ -98,17 +98,3 @@ def test_the_page_itself_is_the_react_app(client, thing):
     res = client.get("/plugins/pagething/overview")
     # 503 is the same page saying how to build the frontend: CI's pytest jobs run without a build.
     assert res.status_code in (200, 503) and b"<html" in res.data.lower()
-
-
-def test_the_server_drawn_sidebar_puts_them_under_plugins(client, thing, app_module):
-    from floorbit import nav
-    turn_on(client, "pagething")
-    with app_module.app.test_request_context("/plugins/pagething/overview"):
-        if nav._shell() is None:
-            pytest.skip("no frontend build")
-        from flask import g  # noqa: F401
-        boot = {"pages": [{"href": "/plan", "id": "floorPlan", "label": "Floor plan"},
-                          {"href": "/plugins/pagething/overview", "id": "plugin:pagething:overview",
-                           "label": "Game servers", "icon": "gamepad", "plugin": "Page thing"}]}
-        html = nav.markup(boot)
-    assert "Game servers" in html and html.index("Plugins") < html.index("Game servers")

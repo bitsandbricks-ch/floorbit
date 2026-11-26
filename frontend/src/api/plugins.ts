@@ -100,4 +100,12 @@ export interface PluginInfo {
   /** ``schema:`` of this version, and the schema this tenant's data is at (0: none). */
   schema?: number
   data_schema?: number
+  /** What it is doing (#1435): receiving data, not set up, off, ... (floorbit/plugin_activity.py). */
+  activity?: PluginActivity
 }
+
+export type PluginActivityState = 'broken' | 'off' | 'no_agent' | 'failing' | 'not_configured' | 'receiving' | 'waiting' | 'on'
+export interface PluginActivity { state: PluginActivityState; values: Record<string, string | number> }
+/** A Marketplace plugin whose data is here without it (the LAN cache read by an agent). */
+export interface MissingPlugin { id: string; name: string; href: string }
+export interface PluginList { plugins: PluginInfo[]; missing?: MissingPlugin[] }

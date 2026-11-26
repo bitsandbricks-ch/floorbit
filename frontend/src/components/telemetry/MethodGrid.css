@@ -1,0 +1,8 @@
+/* One square per method (issue #904): colour and outline, so it reads without colour too. */
+.fb-method-square { display: inline-block; width: 20px; height: 20px; border-radius: 5px; box-sizing: border-box; vertical-align: middle; }
+.fb-method-square.is-small { width: 12px; height: 12px; border-radius: 3px; }
+.fb-method-square.is-ok { background: var(--bnb-ok); }
+.fb-method-square.is-late { background: var(--bnb-warn); }
+.fb-method-square.is-err { background: var(--bnb-err); }
+.fb-method-square.is-never { border: 2px solid var(--bnb-muted); }
+.fb-method-square.is-off { background: var(--bnb-line); }

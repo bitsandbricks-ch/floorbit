@@ -50,8 +50,9 @@ describe('Problem priorities (issue #1364)', () => {
   it('groups by hall and filters by tag', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list }).fn)
     renderWithApp(<Problems />, '/problems?group=hall')
-    expect(await screen.findByRole('region', { name: 'Hall 1' })).toBeInTheDocument()
-    expect(within(screen.getByRole('region', { name: 'Hall 2' })).getByRole('row', { name: 'core-01 is offline' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^Hall 1/ })).toBeInTheDocument()
+    const hall2 = screen.getByRole('button', { name: /^Hall 2/ }).closest('tbody')!
+    expect(within(hall2).getByRole('row', { name: 'core-01 is offline' })).toBeInTheDocument()
   })
 
   it('filters by a switch tag from the address', async () => {

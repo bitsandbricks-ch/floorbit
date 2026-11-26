@@ -1,7 +1,7 @@
 import { IconBell, IconSpeakerphone } from '@tabler/icons-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { get } from '@/api/client'
 import { boardName, type Board } from '@/pages/dashboards/model'
@@ -9,24 +9,16 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan, useCustomSections, useMe, usePageList, useProblems } from '@/api/queries'
 import { readBoot } from '@/nav/boot'
-import { GOTO_EVENT } from '@/nav/goto'
 import { inApp } from '@/nav/sections'
-import { Sidebar, type LinkProps, type MenuAction } from '@/nav/Sidebar'
+import { useShellNav, type MenuAction } from '@/nav/ShellNav'
 import { useChecklist } from '@/pages/setup/checklist'
 import { CrewNoticeEditor } from './CrewNotice'
 import { GoTo } from './GoTo'
+import { CrewNotify } from '@/notify/CrewNotify'
 import { NotifySettings } from './NotifySettings'
 
-// Inside the React app a page is a route: the sidebar stays, only the page changes.
-function RouteLink({ href, children, ...rest }: LinkProps) {
-  if (!inApp(href)) return <a href={href} {...rest}>{children}</a>
-  return <Link to={href} {...rest}>{children}</Link>
-}
-const renderLink = (p: LinkProps) => <RouteLink {...p} />
-
-
-/** The sidebar, "Go to" and the account menu's dialogs for the React pages. */
-export function AppNav() {
+/** The sidebar's parts for the shared AppShell, plus "Go to" and the account menu's dialogs. */
+export function useAppNav() {
   const { t } = useTranslation()
   const path = useLocation().pathname
   const me = useMe().data
@@ -40,15 +32,8 @@ export function AppNav() {
   // For dashboards pinned to the sidebar: their names, in the reader's language for built-in ones.
   const boards = useQuery({ queryKey: qk.boards, queryFn: () => get<{ layouts: Board[] }>('/api/dashboards'), staleTime: 60_000 }).data
   const dashboards = useMemo(() => boards?.layouts.map((b) => ({ id: b.id, name: boardName(t, b) })), [boards, t])
-  const [goTo, setGoTo] = useState(false)
   const [notify, setNotify] = useState(false)
   const [notice, setNotice] = useState(false)
-  const open = useCallback(() => setGoTo(true), [])
-  const close = useCallback(() => setGoTo(false), [])
-  useEffect(() => {
-    window.addEventListener(GOTO_EVENT, open)
-    return () => window.removeEventListener(GOTO_EVENT, open)
-  }, [open])
 
   const boot = useMemo(() => {
     const b = readBoot()
@@ -67,14 +52,16 @@ export function AppNav() {
   if (me?.user) actions.push({ id: 'notify', label: t('common.notify.menu'), icon: IconBell, run: () => setNotify(true) })
   if (me?.user && lead) actions.push({ id: 'notice', label: t('notice.menu'), icon: IconSpeakerphone, run: () => setNotice(true) })
 
-  return (
+  const shell = useShellNav({ boot, path, down: problems?.counts.down ?? null, look: problems?.counts.look ?? null, actions, dashboards, setup })
+  const dialogs = (
     <>
-      <Sidebar boot={boot} path={path} renderLink={renderLink} onGoTo={open} down={problems?.counts.down ?? null} look={problems?.counts.look ?? null} actions={actions} dashboards={dashboards} setup={setup} />
-      <GoTo opened={goTo} onOpen={open} onClose={close} />
+      <GoTo />
+      <CrewNotify />
       {notify && <NotifySettings opened onClose={() => setNotify(false)} />}
       {notice && <CrewNoticeEditor onClose={() => setNotice(false)} />}
     </>
   )
+  return { shell, dialogs }
 }
 
 /** Plain links inside the pages (``<a href="/incidents?q=…">``) open as routes too, so the

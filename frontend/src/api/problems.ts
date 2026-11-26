@@ -1,4 +1,5 @@
 import type { Finding } from './security'
+import type { TimelineEntry } from './timeline'
 
 // Everything wrong right now, and muted switches (floorbit/problems.py).
 export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin' | 'librenms'
@@ -63,6 +64,8 @@ export interface ProblemDetail {
   finding?: Omit<Finding, 'title' | 'cleared_at'>
   can_shut?: boolean
   needs_login?: boolean
+  /** The place's outages, incidents and alerts from the event changelog (issue #882). */
+  history?: TimelineEntry[]
 }
 /** What to paste into LibreNMS's API transport (GET /api/alerts/librenms/setup). */
 export interface LibreNMSAlertsSetup {

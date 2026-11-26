@@ -68,6 +68,8 @@ export const qk = {
   topology: ['topology'] as const,
   preflight: ['preflight'] as const,
   incidentPeople: ['incidents', 'people'] as const,
+  // Under incidents, so a change on the board refreshes it too (issue #913).
+  incidentHistory: (id: string) => ['incidents', 'history', id] as const,
   helpdeskQr: ['helpdesk', 'qr'] as const,
   switches: ['switches'] as const,
   seatBlocks: ['seat-blocks'] as const,
@@ -129,6 +131,7 @@ export const qk = {
   appConfig: ['app-config'] as const,
   planIcons: ['plan-marks', 'icons'] as const,
   planBlocks: (hall: string) => ['seat-blocks', 'hall', hall] as const,
+  fillPreview: (hall: string, ask: unknown) => ['seat-blocks', 'fill', hall, ask] as const,
   ports: ['ports'] as const,
   plan: (hall: string) => ['plan', hall] as const,
   planSeat: (seat: string) => ['plan', 'seat', seat] as const,

@@ -440,20 +440,20 @@ describe('Seats page', () => {
     await waitFor(() => expect(api.calls).toContainEqual({ method: 'POST', path: '/api/incidents', body: { seat: 'D-2', title: 'Tech visit', note: 'No link' } }))
   })
 
-  it('watches a seat through notify.js', async () => {
-    let prefs = { on: false, incidents: true, jobs: true, switches: true, watch: [] as string[] }
-    const set = vi.fn(async (c: object) => (prefs = { ...prefs, ...c }))
-    window.floorNotify = { supported: () => true, permission: () => 'granted', set, settings: () => prefs }
+  it('watches a seat in this browser and switches notifications on', async () => {
+    const Note = Object.assign(vi.fn(), { permission: 'granted', requestPermission: async () => 'granted' })
+    vi.stubGlobal('Notification', Note)
     try {
       vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?seat=D-2': data, 'GET /api/plan/seats/D-2': details }).fn)
       renderWithApp(<FloorPlan />, '/plan?seat=D-2')
       fireEvent.click(await screen.findByRole('button', { name: 'Watch this seat' }))
-      await waitFor(() => expect(set).toHaveBeenCalledWith({ watch: ['D-2'], on: true }))
       expect(await screen.findByRole('button', { name: 'Stop watching' })).toHaveAttribute('aria-pressed', 'true')
+      expect(JSON.parse(localStorage.getItem('floorbit-watch')!)).toEqual(['D-2'])
+      await waitFor(() => expect(JSON.parse(localStorage.getItem('floorbit-notify')!).on).toBe(true))
       fireEvent.click(screen.getByRole('button', { name: 'Stop watching' }))
-      await waitFor(() => expect(set).toHaveBeenLastCalledWith({ watch: [] }))
+      expect(JSON.parse(localStorage.getItem('floorbit-watch')!)).toEqual([])
     } finally {
-      delete window.floorNotify
+      localStorage.clear()
     }
   })
 
@@ -709,7 +709,7 @@ describe('Seats page', () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/plan?hall=main': data }).fn)
     renderWithApp(<FloorPlan />, '/plan?hall=main')
     await screen.findByRole('application', { name: 'Seat map' })
-    expect(screen.getByRole('main')).toHaveClass('fb-main-full')
+    expect(document.querySelector('.fb-page-full')).not.toBeNull()
     // Each layer's key sits under its switch in Layers; the floating key shows while Layers isn't in view.
     expect(screen.getByRole('list', { name: 'Legend: Seats' })).toHaveTextContent('Online: port up')
     expect(screen.queryByRole('region', { name: 'Legend' })).toBeNull()

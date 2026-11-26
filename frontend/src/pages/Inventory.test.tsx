@@ -6,6 +6,7 @@ import { Route, Routes } from 'react-router-dom'
 import Inventory from './Inventory'
 import DevicePage from './inventory/DevicePage'
 import EntryPage from './inventory/EntryPage'
+import NewDevicePage from './inventory/NewDevicePage'
 import ScopePage from './inventory/ScopePage'
 import { matches } from './inventory/model'
 
@@ -94,6 +95,7 @@ function app(route = '/inventory') {
   return renderWithApp(
     <Routes>
       <Route path="/inventory" element={<Inventory />} />
+      <Route path="/inventory/devices/new" element={<NewDevicePage />} />
       <Route path="/inventory/devices/:id" element={<DevicePage />} />
       <Route path="/inventory/groups/:id" element={<ScopePage kind="group" />} />
       <Route path="/inventory/entries/:type/:id" element={<EntryPage />} />
@@ -138,6 +140,56 @@ describe('Inventory page', () => {
     expect(screen.queryByRole('table')).toBeNull()
   })
 
+  it("shows each device's uplink, its last 24 hours and who reads it (#981)", async () => {
+    const day = Array.from({ length: 24 }, (_, i) => (i === 20 ? 2400 : 0))
+    const cols = { ...list, devices: [
+      { ...list.devices[0], agent: 'a1', last_day: day,
+        uplink: { port: 'Gi1/0/48', peer: 'dist-01', peer_port: 'Te1/1/1', speed_bps: 1e9, planned_gbps: 10, state: 'up', issue: 'slow' } },
+      { ...hand, agent: '' },
+    ] }
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': cols, 'GET /api/inventory/groups': overview,
+      'GET /api/options/agents': { options: [{ value: 'a1', label: 'Hall agent' }] },
+    }).fn)
+    app()
+    const row = (await screen.findByRole('link', { name: 'Stage switch' })).closest('tr')!
+    expect(within(row).getByText('1G of 10G')).toBeInTheDocument()
+    expect(within(row).getByLabelText('1 hour with an outage in the last 24 hours')).toBeInTheDocument()
+    expect(await within(row).findByText('Hall agent')).toBeInTheDocument()
+    const handRow = screen.getByRole('link', { name: 'sw-hand' }).closest('tr')!
+    expect(within(handRow).getByText('Auto')).toBeInTheDocument()
+  })
+
+  it('picks devices and tags, groups or hides them in one request (#980)', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'POST /api/inventory/bulk': { changed: ['netbox-12', 'h1'], unchanged: 0 },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    app()
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Pick Stage switch' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Pick sw-hand' }))
+    const bar = screen.getByRole('toolbar', { name: 'Act on the picked devices' })
+    expect(within(bar).getByText('2 devices picked')).toBeInTheDocument()
+    // Without ports.act there is no console to open.
+    expect(within(bar).queryByRole('button', { name: 'Run command' })).toBeNull()
+    fireEvent.click(within(bar).getByRole('button', { name: 'Add tag' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'core' }))
+    await waitFor(() => expect(api.calls.find((c) => c.path === '/api/inventory/bulk')?.body)
+      .toEqual({ ids: ['netbox-12', 'h1'], action: 'tag-add', tag: 't1' }))
+    expect(await screen.findByText('✓ Changed 2 devices')).toBeInTheDocument()
+    fireEvent.click(within(bar).getByRole('button', { name: 'Clear the picks' }))
+    expect(screen.queryByRole('toolbar', { name: 'Act on the picked devices' })).toBeNull()
+  })
+
+  it('shows no pick boxes to viewers', async () => {
+    const viewer = { ...editor, user: { ...editor.user, role: 'viewer', permissions: ['floorplan.view'] } }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': viewer, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview }).fn)
+    app()
+    await screen.findByRole('link', { name: 'Stage switch' })
+    expect(screen.queryByRole('checkbox', { name: 'Pick Stage switch' })).toBeNull()
+  })
+
   it('says when the inventory syncs on its own', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': editor, 'GET /api/inventory': { ...list, every: 15 }, 'GET /api/inventory/groups': overview }).fn)
     app()
@@ -173,9 +225,45 @@ describe('Inventory page', () => {
     app()
     fireEvent.click(await screen.findByRole('link', { name: 'sw-hand' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }))
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()     // nothing changed yet
     fireEvent.change(await screen.findByLabelText('Model'), { target: { value: 'X1' } })
+    // The shared save bar, as on every settings page (#993); Discard puts the old value back.
+    expect(screen.getByText('1 unsaved change')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }))
+    expect(screen.getByLabelText('Model')).toHaveValue('')
+    fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'X1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ model: 'X1' }))
+  })
+
+  it('adds a device on a page of its own and opens it (#877)', async () => {
+    const api = fakeFetch({
+      'GET /api/auth/me': editor,
+      'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'POST /api/inventory': () => ({ status: 201, body: { ...hand, id: 'h2', name: 'sw-new' } }),
+      'GET /api/inventory/h2': { ...fedDetail, ...hand, id: 'h2', name: 'sw-new', blocks: [] },
+    })
+    vi.stubGlobal('fetch', api.fn)
+    app()
+    fireEvent.click(await screen.findByRole('button', { name: 'Add device' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect((await screen.findAllByRole('heading', { name: 'New device' })).length).toBeGreaterThan(0)
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'sw-new' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add device' }))
+    await waitFor(() => expect(api.calls.find((c) => c.method === 'POST')?.body).toMatchObject({ name: 'sw-new' }))
+    expect((await screen.findAllByRole('heading', { name: 'sw-new' })).length).toBeGreaterThan(0)
+  })
+
+  it('edits a device on its Settings tab, not in a dialog (#877)', async () => {
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'GET /api/inventory/h1': { ...fedDetail, ...hand, blocks: [] },
+    }).fn)
+    app('/inventory/devices/h1')
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }))
+    expect(await screen.findByLabelText('Model')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('tab', { name: 'Settings', selected: true })).toBeInTheDocument()
   })
 
   it('lets admins upload SVG icons to the shared library', async () => {
@@ -223,6 +311,20 @@ describe('Inventory page', () => {
     fireEvent.change(height, { target: { value: '47' } })
     fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0])
     await waitFor(() => expect(api.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ fields: { height_u: '47' } }))
+  })
+
+  it('leaves cables and power to their own tabs: one row of type tabs (#1426)', async () => {
+    const deviceType = { id: 'device', name: 'Device', sort: 'device', builtin: true, icon: '', default_icon: 'other', color: '',
+      fields: [], own_fields: [], properties: {}, features: {}, count: 2 }
+    const linked = (id: string, name: string) => ({ ...deviceType, id, name, sort: 'linked', count: 3 })
+    vi.stubGlobal('fetch', fakeFetch({
+      'GET /api/auth/me': editor, 'GET /api/inventory': list, 'GET /api/inventory/groups': overview,
+      'GET /api/inventory/types': { types: [deviceType, linked('cable', 'Cable'), linked('circuit', 'Circuit'),
+        linked('power-board', 'Power board'), linked('patch-panel', 'Patch panel')], field_kinds: [] },
+    }).fn)
+    app()
+    expect(await screen.findByRole('tab', { name: /Patch panel/ })).toBeInTheDocument()
+    for (const name of [/^Cable/, /^Circuit/, /^Power board/]) expect(screen.queryByRole('tab', { name })).toBeNull()
   })
 
   it('shows viewers the list without edit buttons', async () => {

@@ -25,7 +25,7 @@ class Plugin(Base):
     def agent_lines(self, agent, payload):
         receiver = current_app.extensions.get('floorbit_syslog')
         if receiver is None or not features.on('syslog'):
-            raise PluginError('Syslog is turned off on this Floorbit (Settings > Features).')
+            raise PluginError('Syslog is turned off on this Floorbit (Settings > Plugins > Built in).')
         lines = payload.get('lines') if isinstance(payload.get('lines'), list) else []
         dropped = payload.get('dropped') if isinstance(payload.get('dropped'), int) else 0
         taken = receiver.relay(agent['name'], lines[:BATCH], dropped=dropped,

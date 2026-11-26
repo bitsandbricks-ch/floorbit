@@ -3,7 +3,7 @@
 Turning on attendee check-in took several places (a setting, a plugin, an agent, the DHCP).
 A capability switches its parts together: settings that are only on/off for it, feature switches
 (``features.py``) and the plugins that exist only to provide it. Then it lists what it still needs,
-each worked out from what is there (an agent connected, a port set, another capability on), or
+each worked out from what is there (an agent connected, another capability on), or
 marked as outside Floorbit (an option in the event's DHCP), with a link to where it is done.
 
 Nothing new is stored: a capability is on when all its parts are on.
@@ -18,9 +18,9 @@ CAPABILITIES = (
     {'id': 'checkin', 'settings': ('integrations.checkin_enabled',), 'features': (), 'plugins': (),
      'requires': ('front_door',), 'checks': ('dhcp114',)},
     {'id': 'logs', 'settings': (), 'features': ('syslog',), 'plugins': ('syslog-relay',), 'requires': (),
-     'checks': ('agent', 'port:syslog-relay')},
+     'checks': ('agent',)},
     {'id': 'traffic', 'settings': (), 'features': ('traffic',), 'plugins': ('netflow-relay',), 'requires': (),
-     'checks': ('agent', 'port:netflow-relay')},
+     'checks': ('agent',)},
     {'id': 'electrics', 'settings': (), 'features': ('power',), 'plugins': (), 'requires': (),
      'checks': ('power_source',)},
 )
@@ -44,21 +44,12 @@ def _parts(cap, settings, registry, off):
     return parts
 
 
-def _port_set(pid, settings, agents_data):
-    if int(settings.get(f'plugin.{pid}.port') or 0) > 0:
-        return True
-    return any(int(((a.get('plugin_settings') or {}).get(pid) or {}).get('port') or 0) > 0 for a in agents_data)
-
-
-def _check(name, settings, registry, agents, agents_data):
+def _check(name, settings, registry, agents):
     """One thing a capability needs: ``ok`` True, False, or None (outside Floorbit, can't tell)."""
     if name == 'agent':
         if not agents:
             return {'id': 'agent', 'ok': False, 'href': '/settings/agents'}
         return {'id': 'agentConnected', 'ok': any(a.get('connected') for a in agents), 'href': '/settings/agents'}
-    if name.startswith('port:'):
-        pid = name.split(':', 1)[1]
-        return {'id': f'port.{pid}', 'ok': _port_set(pid, settings, agents_data), 'href': f'/settings/plugins/{pid}'}
     if name == 'dhcp114':
         return {'id': 'dhcp114', 'ok': None, 'href': None}
     if name == 'power_source':
@@ -72,7 +63,6 @@ def status(settings, registry, agents=(), data=None):
     from .store import load_data
     data = load_data() if data is None else data
     off = features.off(data)
-    agents_data = [a for a in data.get('agents') or [] if isinstance(a, dict)]
     states = {}
     out = []
     for cap in CAPABILITIES:
@@ -85,7 +75,7 @@ def status(settings, registry, agents=(), data=None):
                     'parts': [{'kind': k, 'id': i, 'on': v} for k, i, v in parts], 'needs': []})
     for item, cap in zip(out, CAPABILITIES, strict=True):
         needs = [{'id': f'cap.{r}', 'ok': states[r] == 'on', 'href': f'#cap-{r}'} for r in cap['requires']]
-        needs += [_check(c, settings, registry, agents, agents_data) for c in cap['checks']]
+        needs += [_check(c, settings, registry, agents) for c in cap['checks']]
         item['needs'] = needs
     return out
 

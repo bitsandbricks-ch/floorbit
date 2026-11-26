@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProblemList } from '@/api/types'
 import { fakeFetch, renderWithApp } from '@/test/render'
@@ -7,14 +7,28 @@ import Problems from './Problems'
 
 /** Picks a choice from one of the filter row's menus. */
 async function pick(button: string, item: string | RegExp) {
-  fireEvent.click(screen.getByRole('button', { name: button }))
+  // The shared FilterBar adds a hint after the value to the button's name, so match its start.
+  const start = new RegExp(`^${button.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+  fireEvent.click(screen.getByRole('button', { name: start }))
   fireEvent.click(await screen.findByRole('menuitem', { name: item, hidden: true }))
+}
+
+/** Ticks or unticks a choice of the multi-select Type menu (issue #1472), then closes the menu. */
+async function tick(button: string, item: string | RegExp) {
+  const start = new RegExp(`^${button.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+  fireEvent.click(screen.getByRole('button', { name: start }))
+  fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: item, hidden: true }))
+  fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
 }
 
 afterEach(() => vi.unstubAllGlobals())
 
 /** The problem rows, without the header. */
-const bodyRows = () => screen.queryAllByRole('row').filter((r) => r.closest('tbody'))
+const bodyRows = () => screen.queryAllByRole('row').filter((r) => r.closest('tbody') && !r.classList.contains('bnb-dt-group-head'))
+/** A group of the grouped list: its header cell, and the problems shown under it. */
+const groupHead = (name: string) => screen.getAllByRole('rowheader').find((h) => h.textContent?.startsWith(name))
+const groupRows = (name: string) => within(groupHead(name)!.closest('tbody')!).queryAllByRole('row')
+  .filter((r) => !r.classList.contains('bnb-dt-group-head')).map((r) => r.getAttribute('aria-label'))
 
 const now = Date.now() / 1000
 const list = (over: Partial<ProblemList> = {}): ProblemList => ({
@@ -92,7 +106,7 @@ describe('Problems', () => {
     expect(within(incident).getByText('Incident')).toBeInTheDocument()
     expect(within(incident).getByRole('link', { name: 'Open' })).toHaveAttribute('href', '/incidents?q=seat%3AB-4')
     expect(await rowActions(incident)).not.toContain('Mute')
-    await pick('Type: All', /Seats/)
+    await tick('Type: All', /Seats/)
     await vi.waitFor(() => expect(names()).toEqual(['No internet at the seat', 'Seat A-12 is online without a check-in']))
   })
 
@@ -132,16 +146,28 @@ describe('Problems', () => {
     await vi.waitFor(() => expect(fake.calls.find((c) => c.method === 'PATCH')?.body).toEqual({ minutes: 30 }))
   })
 
-  it('shows one kind at a time, with counts, and keeps it in the link', async () => {
+  it('shows the types ticked, several at once, and keeps them in the link (issue #1472)', async () => {
     vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
     renderWithApp(<Problems />, '/problems?kind=power')
     expect(await screen.findByRole('row', { name: /Circuit B row 2/ })).toBeInTheDocument()
     expect(screen.queryByRole('row', { name: 'sw-c-02 is offline' })).not.toBeInTheDocument()
-    await pick('Type: Power', /^Switch/)
+    // Power and Switch together.
+    await tick('Type: Power', /^Switch/)
+    await vi.waitFor(() => expect(bodyRows()).toHaveLength(3))
+    // Only Switch.
+    await tick('Type: Switch, Power', /^Power/)
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(2))
     expect(screen.queryByRole('row', { name: /Circuit B row 2/ })).not.toBeInTheDocument()
-    await pick('Type: Switch', /^All/)
+    // None ticked shows everything.
+    await tick('Type: Switch', /^Switch/)
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(3))
+  })
+
+  it('ignores a type in an old link that is no longer on the list', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />, '/problems?kind=all')
+    await screen.findByRole('row', { name: /Circuit B row 2/ })
+    expect(bodyRows()).toHaveLength(3)
   })
 
   it('makes an incident from an offline switch, or links the open one', async () => {
@@ -282,6 +308,24 @@ describe('Problems', () => {
     await vi.waitFor(() => expect(api.calls.some((c) => c.method === 'DELETE' && c.path === '/api/alerts/librenms/abc')).toBe(true))
   })
 
+  it('filters by whether someone works on it, for those who see the board (issue #883)', async () => {
+    const problems = list().problems.map((p) => ({ ...p, incident: p.id === 'switch:s2' ? 'abc123' : null }))
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list({ problems }) }).fn)
+    renderWithApp(<Problems />, '/problems?incident=none')
+    await screen.findByRole('row', { name: 'sw-c-02 is offline' })
+    expect(bodyRows()).toHaveLength(2)
+    await pick('Incident: Nobody on it', /^Being worked on/)
+    await vi.waitFor(() => expect(bodyRows().map((r) => r.getAttribute('aria-label'))).toEqual(['sw-d-01 is offline']))
+  })
+
+  it('offers no incident filter to those who don\'t see the board', async () => {
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': me, 'GET /api/problems': list() }).fn)
+    renderWithApp(<Problems />, '/problems?incident=open')
+    await screen.findByRole('row', { name: 'sw-c-02 is offline' })
+    expect(bodyRows()).toHaveLength(3)
+    expect(screen.queryByRole('button', { name: /^Incident:/ })).not.toBeInTheDocument()
+  })
+
   it('filters by severity and muted, and groups by switch, all in the address (issue #883)', async () => {
     const attention = [
       { id: 'attention:errors:s1:Gi1/0/9', kind: 'errors' as const, level: 'warn' as const, title: 'Errors rising on Gi1/0/9',
@@ -294,12 +338,11 @@ describe('Problems', () => {
     expect(bodyRows().map((r) => r.getAttribute('aria-label'))).toEqual(['sw-c-02 is offline'])
     await pick('Muted: Hidden', 'Shown')
     await vi.waitFor(() => expect(bodyRows()).toHaveLength(2))
-    const grouped = renderWithApp(<Problems />, '/problems?group=device')
-    const sw = await within(grouped.container).findByRole('region', { name: 'sw-c-02' })
-    expect(within(sw).getAllByRole('row').filter((r) => r.closest('tbody')).map((r) => r.getAttribute('aria-label')))
-      .toEqual(['sw-c-02 is offline', 'Errors rising on Gi1/0/9'])
-    const loose = within(grouped.container).getByRole('region', { name: 'Not on a switch' })
-    expect(within(loose).getByRole('row', { name: /Circuit B row 2/ })).toBeInTheDocument()
+    cleanup()
+    renderWithApp(<Problems />, '/problems?group=device')
+    await screen.findByRole('button', { name: /^sw-c-02/ })
+    expect(groupRows('sw-c-02')).toEqual(['sw-c-02 is offline', 'Errors rising on Gi1/0/9'])
+    expect(groupRows('Not on a switch')).toContainEqual(expect.stringMatching(/Circuit B row 2/))
   })
 
   it('searches, folds a group and remembers it, and pages by groups (issue #1472)', async () => {
@@ -313,17 +356,17 @@ describe('Problems', () => {
     expect(head).toHaveAttribute('aria-expanded', 'true')
     // 13 switches and the rest: ten groups on a page, the rest on the next.
     expect(screen.getByText('1–10 of 13 groups')).toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: 'sw-21' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^sw-21/ })).not.toBeInTheDocument()
     fireEvent.click(head)
-    await vi.waitFor(() => expect(within(screen.getByRole('region', { name: 'sw-10' })).queryByRole('table')).not.toBeInTheDocument())
+    await vi.waitFor(() => expect(groupRows('sw-10')).toHaveLength(0))
     fireEvent.click(screen.getAllByRole('button', { name: '2' }).at(-1)!)
-    expect(await screen.findByRole('region', { name: 'sw-21' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /^sw-21/ })).toBeInTheDocument()
     view.unmount()
     // Folded stays folded after a reload.
     renderWithApp(<Problems />, '/problems?group=device')
     expect(await screen.findByRole('button', { name: /^sw-10/ })).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(screen.getByRole('button', { name: 'Fold all' }))
-    await vi.waitFor(() => expect(screen.queryAllByRole('table')).toHaveLength(0))
+    await vi.waitFor(() => expect(bodyRows()).toHaveLength(0))
     fireEvent.click(screen.getByRole('button', { name: 'Unfold all' }))
     fireEvent.change(screen.getByPlaceholderText('Search a switch, seat or text'), { target: { value: 'sw-12' } })
     await vi.waitFor(() => expect(bodyRows().map((r) => r.getAttribute('aria-label'))).toEqual(['Errors rising on sw-12']))

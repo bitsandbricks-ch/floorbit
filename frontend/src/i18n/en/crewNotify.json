@@ -1,0 +1,13 @@
+{
+  "incident": "New incident",
+  "seat": "Seat {{seat}}",
+  "switch": "Switch {{name}}",
+  "job": "A job for you",
+  "jobText": "An incident was sent to you.",
+  "down": "Switch down",
+  "downText": "{{name}} went offline.",
+  "service": "Service down",
+  "watched": "Watched seat",
+  "seatDown": "Seat {{seat}} went offline.",
+  "seatUp": "Seat {{seat}} is online again."
+}

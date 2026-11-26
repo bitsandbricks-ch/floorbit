@@ -356,7 +356,7 @@
     },
     "integrations_public_url": {
       "label": "Public URL",
-      "help": "Where people open the floor plan; used for links in alerts."
+      "help": "Where people open the floor plan; used for links in alerts. Empty: the address the crew last opened Floorbit at."
     },
     "integrations_qr_url": {
       "label": "Address on the seat QR codes",
@@ -577,7 +577,7 @@
     },
     "plugin_syslog-relay_port": {
       "label": "UDP port on the agent",
-      "help": "Where the switches and firewalls send syslog, on the agent machine (514 is the usual one; the agent needs the right to use it). 0: off."
+      "help": "Where the agent listens for syslog. The compose file publishes the machine's udp/514 to it. 0: off."
     },
     "plugin_syslog-relay_bind": {
       "label": "Listen address",
@@ -597,7 +597,7 @@
     },
     "plugin_netflow-relay_port": {
       "label": "UDP port on the agent",
-      "help": "Where the switches and routers export NetFlow or IPFIX to, on the agent machine (2055 is usual). 0: off."
+      "help": "Where the agent listens for NetFlow and IPFIX. The compose file publishes the machine's udp/2055 to it. 0: off."
     },
     "plugin_netflow-relay_bind": {
       "label": "Listen address",

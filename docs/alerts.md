@@ -64,8 +64,9 @@ every other list in Floorbit. **Search** looks through the title, where it is, t
 and the hall (`?q=sw-a`). The filters, all kept in the address so a reload or a shared link shows
 the same:
 
-- **Type**: one kind at a time (switches, services, power, …) with how many of each (`?kind=power`);
-  **Seats** shows everything about a seat, whatever its kind;
+- **Type**: tick one kind or several (switches, services, power, …), each with how many there are
+  (`?kind=power,switch`); with none ticked, every kind shows. **Seats** shows everything about a
+  seat, whatever its kind;
 - **Severity**: all, only what is down, or only what needs a look (`?level=down`, `?level=warn`);
 - **Group by**: nothing, type, switch (`?group=device`) or, with more than one hall, hall
   (`?group=hall`). Grouped, each gets its own table under its name with a count and how many are
@@ -73,6 +74,8 @@ the same:
   **No hall**). The hall is the one the switch is placed in, or for seat trouble the seat's block;
 - **Tag**: only problems on a switch with that tag in the inventory (`?tag=stage`);
 - **Muted**: shown or hidden (`?muted=hide`).
+- **Incident**: any, being worked on (an open incident) or nobody on it (`?incident=none`), for those
+  who see the incident board.
 
 A group's name folds it away, for one someone is already on: it stays folded in this browser across
 reloads, and **Fold all** / **Unfold all** next to the filters fold every group at once. Grouped,
@@ -86,7 +89,10 @@ switch is open, the button becomes **Incident open**, which opens the board filt
 Each problem's title opens **its own page** (`/problems/<id>`): what it is and where, since when,
 the seats it cuts off, and links to look further (where it was seen, the device in the inventory,
 the seat or switch on the floor plan, and for `seats.view` its logs and the machines seen at the
-seat). **Make an incident** works there and in the list for every problem on a seat or a switch:
+seat). With `seats.view` it also lists the newest 20 syslog lines of the seat (or the switch,
+when the problem has no seat), every 15 seconds, with **Open in Logs** for more. **What happened here**
+lists the device's (and, for `seats.view`, the seat's) outages, incidents and alerts from the
+[event changelog](timeline.md), from six hours before the problem started. **Make an incident** works there and in the list for every problem on a seat or a switch:
 the incident remembers the problem it came from and links back to it, and the problem shows
 **Incident open** while it is. A problem that is over says so; its incident stays on the board.
 A problem is what Floorbit sees and ends by itself; an incident is the work someone does about it.

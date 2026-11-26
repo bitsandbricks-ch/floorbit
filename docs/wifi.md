@@ -59,7 +59,7 @@ them (1, 6 or 24 hours).
 no Wi-Fi; Aruba APs need Aruba Central or an Instant/Mobility controller API. Which one runs at
 the events? -->
 
-Everyone who can see the floor plan can see this page. Settings > Features has a `wifi` switch.
+Everyone who can see the floor plan can see this page. Settings > Plugins > Built in has a `wifi` switch.
 
 ## API
 

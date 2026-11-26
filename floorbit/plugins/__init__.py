@@ -125,7 +125,7 @@ BUILTIN_ONLY = ('default_enabled', 'core_settings', 'enable_env')
 MANIFEST_KEYS = frozenset({
     'id', 'name', 'icon', 'version', 'floorbit', 'description', 'author', 'homepage', 'license', 'uses',
     'settings', 'actions', 'widgets', 'endpoints', 'hooks', 'context_menu', 'agent', 'panels', 'layers', 'pages',
-    'dashboards', 'schema',
+    'dashboards', 'schema', 'discovery',
     *BUILTIN_ONLY})
 # Agreed in docs/plugin-spec.md but not built yet: refused with a clearer word than "unknown".
 MANIFEST_NEXT = ()
@@ -382,6 +382,10 @@ def _validate(m):
     actions = {a['id'] for a in m.get('actions') or []}
     from .agent import check_agent_block
     err = check_agent_block(m)
+    if err:
+        return err
+    from .discovery import check_discovery_block
+    err = check_discovery_block(m)
     if err:
         return err
     err = _check_menu(m)
@@ -772,6 +776,8 @@ class Registry:
                                             for o in f['options']]
                 if ftype == 'int':
                     field_def['min'], field_def['max'] = f.get('min', 0), f.get('max', 10 ** 9)
+                if f.get('advanced'):
+                    field_def['advanced'] = True
                 settings_module.FIELDS.append(field_def)
                 settings_module.FIELDS_BY_KEY[key] = field_def
         self.settings_store.reload()

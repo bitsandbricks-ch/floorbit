@@ -3,7 +3,7 @@ import {
   IconDeviceDesktopSearch, IconAlertTriangle, IconApps, IconArmchair, IconArrowsExchange, IconBolt, IconBook,
   IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck, IconListCheck,
   IconBell, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart, IconLink, IconMap,
-  IconBuildingCommunity, IconDeviceGamepad2, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
+  IconBuildingCommunity, IconDeviceGamepad2, IconFileDiff, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
   IconHierarchy2, IconLifebuoy, IconListSearch, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport,
   IconServer, IconServerBolt, IconSettings, IconShield, IconStar, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
   IconTools, IconTrophy, IconUserCheck, IconUsers, IconUsersGroup, IconWalk, IconWall, IconWebhook, IconWifi, IconWorldWww,
@@ -48,14 +48,15 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
  *  page. */
 export const HUBS: Record<string, string[]> = {
   helpdesk: ['problems', 'incidents', 'handover', 'networkStatus'],
-  network: ['firewalls', 'wifi', 'telemetry'],
+  network: ['switches', 'firewalls', 'wifi'],
+  agents: ['telemetry'],
   services: ['dns', 'lancache'],
   traffic: ['games', 'applications', 'stats', 'speedtests'],
   seats: ['seatMapping', 'checkins', 'seatWalk', 'switchAreas', 'endpoints'],
   inventory: ['cables', 'power'],
-  console: ['commands', 'terminal'],
+  console: ['commands', 'terminal', 'configs'],
   dashboards: ['widgets'],
-  settings: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'features', 'sidebarSections', 'audit'],
+  settings: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'sidebarSections', 'audit'],
   events: ['schedule', 'timeline', 'replay', 'report', 'templates'],
 }
 
@@ -111,11 +112,11 @@ const ICONS: Record<string, Icon> = {
   incidents: IconAlertCircle, jobs: IconClipboardCheck, handover: IconArrowsExchange,
   checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
   dns: IconWorldWww, games: IconDeviceGamepad2, applications: IconApps, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, lancache: IconServer, power: IconBolt,
-  commands: IconTerminal2, terminal: IconTerminal, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk, switchAreas: IconHierarchy2,
+  commands: IconTerminal2, terminal: IconTerminal, configs: IconFileDiff, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk, switchAreas: IconHierarchy2,
   preflight: IconChecklist, setup: IconListCheck, templates: IconTemplate,
   schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
   report: IconReport, events: IconCalendarEvent, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight, sidebarSections: IconLayoutSidebar,
-  apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
+  apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, switches: IconHierarchy2, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
 }
 
 /** A dashboard inside the app's frame, with the sidebar (``/dashboards/<id>`` is the big screen). */

@@ -1,6 +1,5 @@
 {
   "label": "Agents nach Gruppe",
-  "groupLabel": "Agents in {{group}}",
   "search": "Agent, Adresse oder Gerät suchen",
   "show": "Zeigen",
   "group": "Gruppe",

@@ -322,7 +322,7 @@ can reach or do.
 
 ### Rolling an agent's key
 
-**Roll key** on the agent's page (or for every agent at once, `POST /api/agents/roll`) makes a new
+**Roll key** in the header of the agent's page (or for every agent at once, `POST /api/agents/roll`) makes a new
 key; the agent fetches it on its next pull and keeps it in `agent-key` in its state folder, readable
 only by it. Nothing in its environment has to change: a stored key wins over `FLOORBIT_AGENT_KEY`,
 which only enrols it. The old key keeps working until the agent uses the new one, for 24 hours at
@@ -447,7 +447,8 @@ Floorbit login can at most offer a release that was already signed.
   change it.
 
 Each agent's **Updates** tab shows the version it runs, the newest release, where its update stands
-and its last steps; every step is in the [audit log](audit.md). Without a release (Floorbit can't
+and its last steps; every step is in the [audit log](audit.md), and the agent's **Logs** tab lists
+what the audit log holds about that agent (`GET /api/agents/<id>/events`). Without a release (Floorbit can't
 reach GitHub), or for a new image, pull it and start the agent again (`docker compose pull &&
 docker compose up -d`). The **Local agents** page shows **Update** next to an agent that speaks an
 older agent protocol than this Floorbit.
@@ -659,8 +660,8 @@ only has data when the hosted Floorbit has a Wi-Fi plugin of its own.
 
 Syslog is UDP, unencrypted and unauthenticated: the switches shouldn't send it across the internet
 to a hosted Floorbit. Let the agent take it instead: turn on the **Syslog from the hall** plugin
-under Settings > Plugins and set its UDP port (such as `5514`); every agent picks it up within a
-minute (docs/agent-plugins.md). Publish the port (in `docker-compose.agent.yml`, uncomment the
+under Settings > Plugins; every agent picks it up within a minute (docs/agent-plugins.md) and
+listens on udp/5514, a fixed port like its others (Advanced on the plugin's page changes it). Publish the port (in `docker-compose.agent.yml`, uncomment the
 `ports` lines, which map the host's udp/514 to it) and point the switches, firewalls and DHCP
 servers at the agent's machine, as [Syslog](syslog.md) describes for a Floorbit of your own.
 
@@ -700,7 +701,7 @@ times are taken as they are.
 
 Flows are too many, and too revealing, to send across the internet one by one. So the agent runs
 the [flow collector](flows.md) itself: turn on the **Traffic from the hall** plugin under
-Settings > Plugins and set its UDP port (such as `2055`), publish the port (the `ports` lines in
+Settings > Plugins (the agent listens on udp/2055, a fixed port like its others), publish the port (the `ports` lines in
 `docker-compose.agent.yml`) and point the routers and firewalls' NetFlow or IPFIX export at the
 agent's machine. Only the newest summary waits while the hosted side is away.
 

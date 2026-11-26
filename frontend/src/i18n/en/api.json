@@ -16,9 +16,8 @@
   "readOnlyBadge": "read only",
   "make": "Make token",
   "madeTitle": "Token \"{{name}}\" made",
-  "madeHelp": "Copy it now: Floorbit keeps only a fingerprint and can't show it again. Send it as \"Authorization: Bearer <token>\".",
-  "copy": "Copy",
-  "copied": "Copied",
+  "madeHelp": "Floorbit keeps only a fingerprint. Send it as \"Authorization: Bearer <token>\".",
+  "tokenLabel": "API token",
   "expired": "expired",
   "made": "Made {{date}} by {{who}}",
   "until": "valid until {{date}}",
@@ -27,5 +26,6 @@
   "neverUsed": "never used",
   "revoke": "Revoke",
   "revokeQuestion": "Revoke \"{{name}}\"? Whatever uses it stops working right away.",
-  "docs": "The API is described in docs/api.md."
+  "docs": "The API is described in the docs:",
+  "docsLink": "API reference"
 }

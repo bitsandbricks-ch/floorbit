@@ -67,7 +67,7 @@ def public_key():
 
 
 def _public_url():
-    return (config.get('PUBLIC_URL', '') or '').rstrip('/')
+    return config.public_url()
 
 
 def _state_file():

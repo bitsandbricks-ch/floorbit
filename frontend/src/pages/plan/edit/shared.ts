@@ -1,8 +1,13 @@
 import type { PlanMark, SeatViewData } from '@/api/types'
 import type { ItemRef } from './geometry'
+import { isLine } from '../lineMarks'
 
 export const LAYER_IDS = ['overview', 'safety', 'network', 'electrical', 'services'] as const
 export const ZONE_COLORS = ['muted', 'bit', 'trace', 'warn', 'down'] as const
+/** A zone colour's token, the same one the plan draws it with (styles/plan.css, .zone-*). */
+export const ZONE_SWATCH: Record<(typeof ZONE_COLORS)[number], string> = {
+  muted: 'var(--bnb-muted)', bit: 'var(--bnb-accent)', trace: 'var(--bnb-info)', warn: 'var(--bnb-warn)', down: 'var(--bnb-err)',
+}
 
 /** The fields several selected items can be given at once. */
 export type SharedField = 'layer' | 'style' | 'color' | 'size' | 'rotation' | 'tint'
@@ -15,7 +20,7 @@ const HAS: Record<SharedField, (m: PlanMark) => boolean> = {
   style: (m) => m.kind === 'wall',
   color: (m) => m.kind === 'zone',
   size: (m) => m.kind === 'text' || m.kind === 'icon',
-  rotation: (m) => m.kind !== 'wall',
+  rotation: (m) => !isLine(m),
   tint: () => true,
 }
 

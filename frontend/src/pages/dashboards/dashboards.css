@@ -7,94 +7,92 @@
 .fb-split-border { flex: 0 0 8px; }
 .fb-split-border.movable { cursor: col-resize; background: transparent; position: relative; touch-action: none; }
 .fb-split-column > .fb-split-border.movable { cursor: row-resize; }
-.fb-split-border.movable::after { content: ''; position: absolute; inset: 2px; border-radius: 2px; background: var(--color-line); }
-.fb-split-border.movable:hover::after { background: var(--color-bit); }
+.fb-split-border.movable::after { content: ''; position: absolute; inset: 2px; border-radius: 2px; background: var(--bnb-line); }
+.fb-split-border.movable:hover::after { background: var(--bnb-accent); }
 
 .fb-split-pane { position: relative; display: flex; min-width: 0; min-height: 0; flex: 1; }
-.fb-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--color-surface);
-  border: 1px solid var(--color-line); border-radius: var(--radius-card); overflow: hidden; }
+.fb-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bnb-surface);
+  border: 1px solid var(--bnb-line); border-radius: var(--radius-card); overflow: hidden; }
 /* The panel look of the mocks and of every page (issues #934, #1011): a slight step above the page,
    8px corners, flat; a quiet title row. */
 /* Fills inside a widget (inputs, bars, chips, notes) are a slight step from the pane, not the theme's
    fixed grey (#1219), so they follow whatever the pane's colour is. The custom theme mixes the same way. */
 .fb-pane, .fb-widget-preview {
-  --color-raised: color-mix(in srgb, var(--color-surface), var(--color-fg) 5%);
-  --mantine-color-default-hover: var(--color-raised);
-  --mantine-color-gray-light: var(--color-raised);
-  --mantine-color-dark-6: var(--color-raised);
-  --mantine-color-gray-1: var(--color-raised);
+  --bnb-raised: color-mix(in srgb, var(--bnb-surface), var(--bnb-fg) 5%);
+  --mantine-color-default-hover: var(--bnb-raised);
+  --mantine-color-gray-light: var(--bnb-raised);
+  --mantine-color-dark-6: var(--bnb-raised);
+  --mantine-color-gray-1: var(--bnb-raised);
 }
 .fb-pane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px 4px; min-height: 30px; }
-.fb-pane-title { font-size: clamp(13.5px, 0.95vw, 20px); color: var(--color-fg); min-width: 0; }
+.fb-pane-title { font-size: clamp(13.5px, 0.95vw, 20px); color: var(--bnb-fg); min-width: 0; }
 .fb-pane-count { font-size: clamp(13px, 0.95vw, 19px); white-space: nowrap; }
 .fb-pane-body { flex: 1; min-height: 0; position: relative; display: flex; }
 .fb-pane-body > * { flex: 1; }
 .fb-pane-scroll { overflow: auto; padding: 0 12px 12px; display: block; }
 .fb-pane-note { margin: auto; padding: 16px; text-align: center; }
-.fb-pane-frame { flex: 1; border: 0; width: 100%; height: 100%; background: var(--color-surface); }
+.fb-pane-frame { flex: 1; border: 0; width: 100%; height: 100%; background: var(--bnb-surface); }
 /* A plan pane is the plan edge to edge: its own frame is the pane's. */
-.fb-pane-plan .fb-plan-wrap { height: 100%; min-height: 0; border: 0; border-radius: 0; background: color-mix(in srgb, var(--color-ink) 60%, transparent); }
+.fb-pane-plan .fb-plan-wrap { height: 100%; min-height: 0; border: 0; border-radius: 0; background: color-mix(in srgb, var(--bnb-bg) 60%, transparent); }
 .fb-pane-plan .fb-minimap { display: none; }
 
 /* The editor: each pane picks itself and carries its tools. */
 .fb-pane-pick { position: absolute; inset: 0; z-index: 2; background: transparent; border: 0; cursor: pointer; border-radius: var(--radius-card); }
-.fb-pane-pick:hover { background: color-mix(in srgb, var(--color-bit) 6%, transparent); }
-.fb-split-pane.selected .fb-pane-pick { box-shadow: inset 0 0 0 3px var(--color-bit); }
+.fb-pane-pick:hover { background: color-mix(in srgb, var(--bnb-accent) 6%, transparent); }
+.fb-split-pane.selected .fb-pane-pick { box-shadow: inset 0 0 0 3px var(--bnb-accent); }
 .fb-pane-tools { position: absolute; top: 8px; right: 8px; z-index: 3; transition: opacity .15s; }
 /* Only the picked pane (or the one under the pointer or the keyboard) shows its tools, so the others
    show their content as the screen will (#1135). */
 .fb-split-pane:not(.selected):not(:hover):not(:focus-within) > .fb-pane-tools { opacity: 0; }
 /* Focus mode (#1325): while a dashboard is edited, the app's sidebar, top bar, tabs and phone tab bar
    step aside, so the canvas gets the whole screen like the plan editor. ✕ in the bar leaves. */
-body:has(.fb-board-editor) .fb-nav-slot,
-body:has(.fb-board-editor) .fb-tabbar,
-body:has(.fb-board-editor) .fb-header,
-body:has(.fb-board-editor) .fb-topbar,
+body:has(.fb-board-editor) .bnb-shell-nav,
+body:has(.fb-board-editor) .bnb-dock,
+body:has(.fb-board-editor) .bnb-topbar,
 body:has(.fb-board-editor) .fb-hubtabs,
 body:has(.fb-board-editor) .fb-up { display: none; }
-body.fb-has-nav:has(.fb-board-editor) { padding-bottom: 0; }
-body .fb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; }
+body .bnb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; padding-bottom: 0; }
 .fb-board-editor { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 /* One slim bar: name, tools, the dashboard's settings in a popover, save. */
 .fb-board-bar { display: flex; align-items: center; gap: 8px; min-height: 50px; padding: 6px 10px;
-  background: var(--color-surface); border-bottom: 1px solid var(--color-line); }
+  background: var(--bnb-surface); border-bottom: 1px solid var(--bnb-line); }
 .fb-board-name { flex: 0 1 260px; min-width: 120px; }
-.fb-board-name input { height: 34px; padding: 0 8px; border: 1px dashed transparent; border-radius: 6px; font-size: 16px; font-weight: 700; color: var(--color-fg); }
-.fb-board-name input:hover, .fb-board-name input:focus { border-color: var(--color-line); }
+.fb-board-name input { height: 34px; padding: 0 8px; border: 1px dashed transparent; border-radius: 6px; font-size: 16px; font-weight: 700; color: var(--bnb-fg); }
+.fb-board-name input:hover, .fb-board-name input:focus { border-color: var(--bnb-line); }
 .fb-board-tools { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
 .fb-board-hint { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* One row the height of the editor: without it the row grows with the dashboard and nothing scrolls (#1324). */
 .fb-board-work { flex: 1; min-height: 0; position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .fb-board-editor.docked .fb-board-work { grid-template-columns: minmax(0, 1fr) 380px; }
 .fb-board-canvas { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 10px; }
-.fb-board-screen { aspect-ratio: 16 / 9; max-height: 100%; width: 100%; background: var(--color-ink); border-radius: 12px; padding: 6px; display: flex; }
+.fb-board-screen { aspect-ratio: 16 / 9; max-height: 100%; width: 100%; background: var(--bnb-bg); border-radius: 12px; padding: 6px; display: flex; }
 /* Scrolling dashboards are as long as they are: the canvas scrolls instead of keeping 16:9. */
 .fb-board-screen.scroll { aspect-ratio: auto; height: 100%; overflow: auto; display: block; }
 /* The widget settings: floating over the canvas while a widget is picked, or docked beside it. The
    canvas stays usable under a floating panel, so picking another widget switches what it shows. */
-.fb-board-side { display: flex; flex-direction: column; min-height: 0; background: var(--color-surface); }
-.fb-board-side.is-docked { border-left: 1px solid var(--color-line); }
+.fb-board-side { display: flex; flex-direction: column; min-height: 0; background: var(--bnb-surface); }
+.fb-board-side.is-docked { border-left: 1px solid var(--bnb-line); }
 .fb-board-side.is-float { position: absolute; z-index: 20; top: 12px; right: 12px; bottom: 12px; width: min(380px, calc(100% - 24px));
-  border: 1px solid var(--color-line); border-radius: 12px; box-shadow: 0 18px 50px rgb(0 0 0 / 35%); }
-.fb-board-side-head { display: flex; align-items: center; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--color-line); }
+  border: 1px solid var(--bnb-line); border-radius: 12px; box-shadow: 0 18px 50px rgb(0 0 0 / 35%); }
+.fb-board-side-head { display: flex; align-items: center; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--bnb-line); }
 .fb-board-side-title { flex: 1; min-width: 0; }
 .fb-board-side-body { flex: 1; min-height: 0; overflow: auto; padding: 12px 14px; }
 @media (max-width: 62em) {
   .fb-board-hint { display: none; }
   .fb-board-editor.docked .fb-board-work { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); }
-  .fb-board-side.is-docked { border-left: 0; border-top: 1px solid var(--color-line); }
+  .fb-board-side.is-docked { border-left: 0; border-top: 1px solid var(--bnb-line); }
 }
 /* Phones: the tools in a bar at the bottom, the widget settings as a sheet from below. */
 @media (max-width: 48em) {
   .fb-board-cancel { display: none; }
   .fb-board-tools { position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; overflow-x: auto;
-    padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); background: var(--color-surface); border-top: 1px solid var(--color-line); }
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); background: var(--bnb-surface); border-top: 1px solid var(--bnb-line); }
   /* A row that scrolls sideways rather than squeezing the buttons' words. */
   .fb-board-tools > * { flex: none; }
   .fb-board-canvas { padding: 6px 6px calc(56px + env(safe-area-inset-bottom)); }
   .fb-board-editor .fb-board-side.is-float, .fb-board-editor .fb-board-side.is-docked {
     position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; top: auto; width: auto; height: 60dvh;
-    border: 1px solid var(--color-line); border-radius: 16px 16px 0 0; box-shadow: 0 -10px 40px rgb(0 0 0 / 35%); }
+    border: 1px solid var(--bnb-line); border-radius: 16px 16px 0 0; box-shadow: 0 -10px 40px rgb(0 0 0 / 35%); }
   .fb-board-editor.docked .fb-board-work { grid-template-rows: minmax(0, 1fr); }
 }
 .fb-box-picker .fb-plan-wrap { height: 200px; }
@@ -106,66 +104,66 @@ body .fb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; }
 .fb-grid-body { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); flex: 1; min-height: 0; position: relative; }
 .fb-grid-item { position: relative; display: flex; min-width: 0; min-height: 0; }
 .fb-grid-item > .fb-split, .fb-grid-item > .fb-split-pane { flex: 1; }
-.fb-grid-head { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 4px; color: var(--color-fg); }
+.fb-grid-head { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 4px; color: var(--bnb-fg); }
 .fb-grid-head.line { min-height: 0; }
 .fb-grid-title { font-size: clamp(15px, 1.2vw, 24px); white-space: nowrap; }
 .fb-grid-title-input { flex: 0 1 360px; }
-.fb-grid-title-input input { font-weight: 800; font-size: 15px; color: var(--color-fg); }
-.fb-grid-rule { flex: 1; height: 1px; background: var(--color-line); }
-.fb-grid-fold { display: inline-flex; color: var(--color-muted); border-radius: 6px; }
-.fb-grid-fold:hover { color: var(--color-fg); }
-.fb-grid-empty { grid-column: 1 / -1; padding: 16px; text-align: center; border: 1px dashed var(--color-line); border-radius: 12px; }
+.fb-grid-title-input input { font-weight: 800; font-size: 15px; color: var(--bnb-fg); }
+.fb-grid-rule { flex: 1; height: 1px; background: var(--bnb-line); }
+.fb-grid-fold { display: inline-flex; color: var(--bnb-muted); border-radius: 6px; }
+.fb-grid-fold:hover { color: var(--bnb-fg); }
+.fb-grid-empty { grid-column: 1 / -1; padding: 16px; text-align: center; border: 1px dashed var(--bnb-line); border-radius: 12px; }
 .fb-grid.editing .fb-grid-body { min-height: 80px;
-  background-image: linear-gradient(to right, color-mix(in srgb, var(--color-line) 50%, transparent) 1px, transparent 1px);
+  background-image: linear-gradient(to right, color-mix(in srgb, var(--bnb-line) 50%, transparent) 1px, transparent 1px);
   background-size: calc((100% + 8px) / 24) 100%; }
 /* Move by the grip, resize by the corner; both above the pane's own pick layer. */
 .fb-grid-grip { position: absolute; top: 8px; left: 8px; z-index: 4; display: inline-flex; padding: 4px; border-radius: 6px; cursor: grab;
-  border: 1px solid var(--color-line); background: var(--color-raised); color: var(--color-muted); touch-action: none; }
+  border: 1px solid var(--bnb-line); background: var(--bnb-raised); color: var(--bnb-muted); touch-action: none; }
 .fb-grid-grip:active { cursor: grabbing; }
-.fb-grid-grip:focus-visible { outline: 2px solid var(--color-bit); }
+.fb-grid-grip:focus-visible { outline: 2px solid var(--bnb-accent); }
 .fb-grid-corner { position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; z-index: 4; cursor: nwse-resize; touch-action: none;
-  background: linear-gradient(135deg, transparent 50%, var(--color-bit) 50%); border-radius: 0 0 10px 0; opacity: .7; }
+  background: linear-gradient(135deg, transparent 50%, var(--bnb-accent) 50%); border-radius: 0 0 10px 0; opacity: .7; }
 .fb-grid-corner:hover { opacity: 1; }
 .fb-board-screen .fb-grid-item .fb-pane-head { padding-left: 44px; }
 /* No head to sit in: the grip and tools get a strip of their own above the content. */
 .fb-board-screen .fb-grid-item .fb-pane-nohead { padding-top: 40px; }
 
 /* The list's little picture of each split. */
-.fb-board-thumb { aspect-ratio: 16 / 9; background: var(--color-ink); border-radius: 8px; padding: 4px; }
+.fb-board-thumb { aspect-ratio: 16 / 9; background: var(--bnb-bg); border-radius: 8px; padding: 4px; }
 .fb-board-thumb .fb-split-border { display: none; }
 .fb-thumb-grid { display: flex; flex-direction: column; gap: 4px; height: 100%; }
 .fb-thumb-section { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 4px; min-height: 0; }
 .fb-board-thumb .fb-split { gap: 4px; }
-.fb-thumb-pane { flex: 1; border-radius: 4px; background: var(--color-raised); border: 1px solid var(--color-line); }
-.fb-thumb-pane.k-plan { background: color-mix(in srgb, var(--color-bit) 30%, var(--color-raised)); }
+.fb-thumb-pane { flex: 1; border-radius: 4px; background: var(--bnb-raised); border: 1px solid var(--bnb-line); }
+.fb-thumb-pane.k-plan { background: color-mix(in srgb, var(--bnb-accent) 30%, var(--bnb-raised)); }
 .fb-thumb-pane.k-empty { background: transparent; border-style: dashed; }
 
 /* Full screen. */
 /* A column: the alert bar (#1137), with or without the header, sits above the panes, never beside them. */
-.fb-board-show { height: 100vh; padding: 1vh 1vw; background: var(--color-ink); position: relative; display: flex; flex-direction: column; gap: 1vh; }
+.fb-board-show { height: 100vh; padding: 1vh 1vw; background: var(--bnb-bg); position: relative; display: flex; flex-direction: column; gap: 1vh; }
 .fb-board-show > .fb-grid { flex: 1; }
 .fb-board-show.scroll { height: auto; min-height: 100vh; }
 .fb-board-clock { position: absolute; left: 1.6vw; bottom: 1.4vh; z-index: 4; font-size: clamp(16px, 1.6vw, 36px);
-  color: var(--color-fg); background: color-mix(in srgb, var(--color-raised) 85%, transparent); padding: 2px 10px; border-radius: 8px; }
+  color: var(--bnb-fg); background: color-mix(in srgb, var(--bnb-raised) 85%, transparent); padding: 2px 10px; border-radius: 8px; }
 .fb-board-stale { position: absolute; left: 50%; transform: translateX(-50%); bottom: 1.4vh; z-index: 4;
-  font-size: clamp(14px, 1.1vw, 28px); color: var(--color-down); padding: 2px 10px; border-radius: 8px;
-  background: color-mix(in srgb, var(--color-raised) 85%, transparent); }
+  font-size: clamp(14px, 1.1vw, 28px); color: var(--bnb-err); padding: 2px 10px; border-radius: 8px;
+  background: color-mix(in srgb, var(--bnb-raised) 85%, transparent); }
 /* Full screen with its frame: header, the panes, the status line (issue #927). Type grows with
    the screen so the header reads from across the hall. */
 .fb-board-show > .fb-grid { min-height: 0; }
 .fb-board-show.framed > .fb-status { margin: 0 -1vw -1vh; font-size: clamp(12px, .8vw, 22px); }
-.fb-screen-head { display: flex; align-items: baseline; gap: 1.2vw; padding: .2vh .3vw; color: var(--color-muted);
+.fb-screen-head { display: flex; align-items: baseline; gap: 1.2vw; padding: .2vh .3vw; color: var(--bnb-muted);
   font-size: clamp(13px, 1vw, 28px); white-space: nowrap; overflow: hidden; }
-.fb-screen-name { color: var(--color-fg); font-size: 1.25em; overflow: hidden; text-overflow: ellipsis; }
+.fb-screen-name { color: var(--bnb-fg); font-size: 1.25em; overflow: hidden; text-overflow: ellipsis; }
 .fb-screen-grow { flex: 1; }
 .fb-board-show.framed .fb-board-stale { bottom: 5vh; }
 /* The browser wants one click before a wall may play its tone (#1137): bottom left, small. */
 .fb-board-sound { position: fixed; left: 16px; bottom: 6vh; z-index: 6; }
 /* The offer to make a scrolling dashboard fit (#923): bottom right, out of the panes' way. */
 .fb-board-suggest { position: fixed; right: 16px; bottom: 6vh; z-index: 6; max-width: 380px; display: flex; flex-direction: column;
-  gap: 8px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--color-line);
-  background: var(--color-raised); box-shadow: 0 6px 24px rgb(0 0 0 / .35); }
-.fb-screen-clock { color: var(--color-fg); font-size: 1.25em; font-variant-numeric: tabular-nums; }
+  gap: 8px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--bnb-line);
+  background: var(--bnb-raised); box-shadow: 0 6px 24px rgb(0 0 0 / .35); }
+.fb-screen-clock { color: var(--bnb-fg); font-size: 1.25em; font-variant-numeric: tabular-nums; }
 .fb-board-show .fb-plan-zoom { transition: opacity .3s; }
 .fb-board-show.idle, .fb-board-show.idle * { cursor: none !important; }
 .fb-board-show.idle .fb-plan-zoom { opacity: 0; pointer-events: none; }
@@ -209,7 +207,7 @@ body .fb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; }
 .fb-pane-headless { padding-top: 12px; }
 /* The colour a series setting picks, shown in its picker. */
 .fb-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
-.fb-series-row { padding-left: 8px; border-left: 2px solid var(--color-line); }
+.fb-series-row { padding-left: 8px; border-left: 2px solid var(--bnb-line); }
 
 /* Make large (#925): one pane fills the dashboard's area, under a bar that goes back. */
 .fb-grid-large { display: flex; flex-direction: column; gap: 8px; }
@@ -220,7 +218,7 @@ body .fb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; }
 /* The picked row's device beside the large widget (#925); below it on a phone. */
 .fb-grid-large-body.glancing { flex-direction: row; gap: 8px; }
 .fb-glance { flex: 0 0 300px; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; min-width: 0; overflow: auto;
-  border: 1px solid var(--color-line); border-radius: 10px; background: var(--color-raised); }
+  border: 1px solid var(--bnb-line); border-radius: 10px; background: var(--bnb-raised); }
 .fb-glance-name { overflow-wrap: anywhere; }
 @media (max-width: 48em) {
   .fb-grid-large-body.glancing { flex-direction: column; }
@@ -232,31 +230,31 @@ body .fb-shell-main:has(.fb-board-editor) { height: 100vh; height: 100dvh; }
 
 /* Editor: the level a widget draws at, and the panel's size in cells while its corner moves (#928). */
 .fb-pane-level { position: absolute; right: 26px; bottom: 6px; z-index: 3; font-size: 11px; font-weight: 700; padding: 1px 7px;
-  border-radius: 999px; color: var(--color-muted); background: color-mix(in srgb, var(--color-raised) 90%, transparent);
-  border: 1px solid var(--color-line); pointer-events: none;
+  border-radius: 999px; color: var(--bnb-muted); background: color-mix(in srgb, var(--bnb-raised) 90%, transparent);
+  border: 1px solid var(--bnb-line); pointer-events: none;
   white-space: nowrap; max-width: calc(100% - 34px); overflow: hidden; text-overflow: ellipsis; }
-.fb-pane-level.cut { color: var(--color-warn); border-color: color-mix(in srgb, var(--color-warn) 50%, transparent); }
+.fb-pane-level.cut { color: var(--bnb-warn); border-color: color-mix(in srgb, var(--bnb-warn) 50%, transparent); }
 /* Too small: the whole width of the pane is the badge's, over the corner too. */
 .fb-pane-level.tight { left: 4px; right: 4px; max-width: none; text-align: center; }
 .fb-grid-size { position: absolute; right: 10px; bottom: 34px; z-index: 5; font-size: 12px; font-weight: 700; padding: 2px 8px;
-  border-radius: 6px; color: var(--color-on-bit); background: var(--color-bit); pointer-events: none; }
+  border-radius: 6px; color: var(--bnb-on-accent); background: var(--bnb-accent); pointer-events: none; }
 
 /* A pane listing what the bar names pulses with it (#1137). */
-.fb-pane.fb-pane-alert { border-color: var(--color-down); animation: fb-pane-alert 2s ease-in-out infinite; }
-@keyframes fb-pane-alert { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-down) 45%, transparent); } }
+.fb-pane.fb-pane-alert { border-color: var(--bnb-err); animation: fb-pane-alert 2s ease-in-out infinite; }
+@keyframes fb-pane-alert { 50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--bnb-err) 45%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .fb-pane.fb-pane-alert { animation: none; } }
 
 /* A wall's call for attention: something is down and nobody has taken it (#1137). */
 .fb-screen-alert { flex: none; display: flex; align-items: center; gap: 1vw; padding: .6vh 1vw; border-radius: 8px;
-  font-size: clamp(14px, 1.1vw, 30px); color: var(--color-fg); white-space: nowrap; overflow: hidden;
-  background: color-mix(in srgb, var(--color-down) 22%, var(--color-raised)); border: 1px solid var(--color-down);
+  font-size: clamp(14px, 1.1vw, 30px); color: var(--bnb-fg); white-space: nowrap; overflow: hidden;
+  background: color-mix(in srgb, var(--bnb-err) 22%, var(--bnb-raised)); border: 1px solid var(--bnb-err);
   animation: fb-screen-alert 2s ease-in-out infinite; }
-.fb-screen-alert-hint { color: var(--color-muted); font-size: .8em; }
-@keyframes fb-screen-alert { 50% { background: color-mix(in srgb, var(--color-down) 8%, var(--color-raised)); } }
+.fb-screen-alert-hint { color: var(--bnb-muted); font-size: .8em; }
+@keyframes fb-screen-alert { 50% { background: color-mix(in srgb, var(--bnb-err) 8%, var(--bnb-raised)); } }
 @media (prefers-reduced-motion: reduce) { .fb-screen-alert { animation: none; } }
 /* The demo badge (static/css/brand/demo.css) sits by the sidebar's logo, which focus mode hides:
    bottom left of the canvas instead, clear of the bar's name and buttons. */
-html body:has(.fb-board-editor):has(.fb-nav-slot)::after { top: auto; bottom: 18px; left: 18px; transform: none; }
+html body:has(.fb-board-editor):has(.bnb-shell)::after { top: auto; bottom: 18px; left: 18px; transform: none; }
 @media (max-width: 48em) {
-  html body:has(.fb-board-editor):has(.fb-nav-slot)::after { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  html body:has(.fb-board-editor):has(.bnb-shell)::after { bottom: calc(64px + env(safe-area-inset-bottom)); }
 }

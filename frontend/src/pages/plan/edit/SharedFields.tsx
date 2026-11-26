@@ -1,7 +1,7 @@
 import { ColorSwatch, Group, SegmentedControl, Select, Stack, Text, Tooltip } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { TintField } from './TintField'
-import { LAYER_IDS, MIXED, type SharedField, ZONE_COLORS } from './shared'
+import { LAYER_IDS, MIXED, type SharedField, ZONE_COLORS, ZONE_SWATCH } from './shared'
 
 /** The fields several selected items share (``sharedFields``): picking a value sets it on all of
  *  them. A field whose items differ shows nothing picked. */
@@ -32,9 +32,9 @@ export function SharedFields({ fields, onChange }: {
           <Group gap="xs">
             {ZONE_COLORS.map((c) => (
               <Tooltip key={c} label={t(`plan.edit.colors.${c}`)}>
-                <ColorSwatch component="button" type="button" color={`var(--color-${c})`} size={26}
+                <ColorSwatch component="button" type="button" color={ZONE_SWATCH[c]} size={26}
                   aria-label={t(`plan.edit.colors.${c}`)} aria-pressed={fields.color === c} onClick={() => onChange('color', c)}
-                  style={{ outline: fields.color === c ? '2px solid var(--color-fg)' : undefined, outlineOffset: 2 }} />
+                  style={{ outline: fields.color === c ? '2px solid var(--bnb-fg)' : undefined, outlineOffset: 2 }} />
               </Tooltip>
             ))}
           </Group>

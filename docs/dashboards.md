@@ -213,7 +213,7 @@ you pick. A widget whose feature is off says so instead of its content.
 
 Every widget is a tile that fits its box. What needs more room than a box, like the health checks'
 numbers and mutes, IP and MAC search, forecasts and comparisons, resetting the peak or posting a
-network status update, is on its page (Health, IP and MAC, Stats, Network status, ...). The rich
+network status update, is on its page (Health, IP and MAC, Stats, Status updates, ...). The rich
 widgets that drew a whole page inside a pane are gone: a dashboard saved with one shows the tile
 that matches it (service health, the LAN cache, seats by block, Wi-Fi clients, agents, traffic, DNS
 lookups, game launchers, downloaded, power circuits), or an empty pane where there is none

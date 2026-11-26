@@ -1,7 +1,8 @@
 # Navigation
 
-Every crew page (the floor plan, the React pages, Settings, users and the audit log) has the
-same navigation: a sidebar on a computer, a bar at the bottom on a phone.
+Every crew page has the same navigation: a sidebar on a computer, a bar at the bottom on a phone.
+It is the shared shell of the BitsAndBricks UI package (`AppShell` from `@bitsandbricks/ui`), with
+Floorbit's own parts in it.
 
 ## Sidebar
 
@@ -16,17 +17,17 @@ same navigation: a sidebar on a computer, a bar at the bottom on a phone.
   **Screens** (Dashboards). A click on a group's name folds it, and this browser remembers it. The
   group of the page on screen is always open.
 - Most rows hold several pages, shown as tabs under the top bar: **Helpdesk** has Problems,
-  Incidents, Handover and Status updates; **Network** has Topology and Firewalls;
+  Incidents, Handover and Status updates; **Network** has Switches, Firewalls and Wi-Fi;
   **Seats** has Seat mapping, Check-in, the seat walk-through and IP and MAC history;
   **Inventory** has Cables and Electrics; **Switch console** has the switch commands and the
-  terminal; **Agents** has Telemetry; **Dashboards** has Widgets.
+  terminal; **Agents** has the Telemetry collector; **Dashboards** has Widgets.
   Each tab keeps its own address.
 - **Events** sits under Overview and Floor plan: the event list, with the event's own pages
   (schedule, changelog, replay, report, floor plan templates) as its tabs. The picker at the top
   only switches the event this browser works on (issue #1201).
 - **Plugins** and **Settings** are named rows at the foot, above your name.
 - The button at the bottom folds the sidebar to icons, and back. The choice is kept in a cookie
-  (`floorbit_nav`), so every page starts with the same width.
+  (`floorbit_nav`) on this browser.
 - Your name at the bottom opens the account menu: language, light or dark theme, notifications,
   the crew notice (leads) and **Sign out**.
 
@@ -82,23 +83,17 @@ Between the React pages only the page changes: the sidebar stays, nothing reload
 ## Phones
 
 Below 768 px the sidebar becomes a bar at the bottom with **Overview**, **Floor plan**,
-**Incidents**, **Problems** and **Menu**. **Menu** opens everything else as a sheet from the left, with the
-search and the account menu. The brand and a search button sit at the top of each page.
+**Helpdesk**, **Services** and **More**. **More** opens every page as a sheet from the bottom, with
+the event picker and the account menu. The brand, the search button and the bell sit at the top of
+each page.
 
 ## For developers
 
-The sidebar is `frontend/src/nav/`: one React component for both kinds of pages. The React app
-draws it in `components/Layout.tsx`; the server pages include `templates/_nav.html`, which loads it
-as the second entry of the Vite build (`src/nav/entry.tsx`). The server puts the page list, the
-brand and the account into the page (`floorbit/nav.py`), so the sidebar draws without waiting for
-an API call. Without a frontend build the server pages show a plain list of links instead.
-
-On the server pages the sidebar is in the first paint, before the floor plan: the build writes
-`static/app/nav-shell.json` (icons, order and texts, from `frontend/buildtools/nav-shell.ts`), and
-`floorbit/nav.py` draws the same markup as `Sidebar.tsx` from it into `#fb-nav`. The script then
-takes it over in one commit. The server picks the language from the `floorbit_lang` cookie (the
-frontend writes it) or `Accept-Language`. A change to the sidebar's markup in `Sidebar.tsx` needs
-the same change in `nav.markup()`.
+The sidebar is `frontend/src/nav/`: `ShellNav.tsx` turns the page list into the shared
+`AppShell`'s groups, its slot above the links (the event picker), its foot (tenant switcher and
+account menu) and the phone's `PhoneDock`; `components/Layout.tsx` draws the shell. The server puts
+the page list, the brand and the account into every page (`floorbit/nav.py`,
+`templates/_nav.html`), so the sidebar draws without waiting for an API call.
 
 A new page goes into `floorbit/page_index.py` as before, and into a group in
 `frontend/src/nav/sections.ts` (with an icon). A page that is a tab of another one (the admin pages

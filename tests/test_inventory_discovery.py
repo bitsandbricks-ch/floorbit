@@ -539,8 +539,16 @@ def test_the_schedule_runs_only_the_actions_that_are_due(client, monkeypatch):
 
 def test_run_now_for_one_action_on_one_device(client, monkeypatch):
     # The session's background sync loops call tick() too (#1222, #1283): one that runs the schedule
-    # here sets the actions' ``last``, which this test checks stays unset.
+    # here sets the actions' ``last``, which this test checks stays unset. Patching tick() alone
+    # missed a loop already inside the real one (#1501): turn the schedule off so nothing is due,
+    # wait for a run under way to finish, and forget what it wrote.
     monkeypatch.setattr(inventory_discovery, 'tick', lambda now=None: None)
+    monkeypatch.setattr(inventory_discovery, 'every_minutes', lambda: 0)
+    from floorbit.store import load_data, save_data
+    with inventory_discovery.running:
+        data = load_data()
+        data.pop(inventory_discovery.RUNS, None)
+        save_data(data)
     sw = add(client, name='sw-a-01')
     fw = add(client, name='fw-01', role='firewall')
     rows = [{'hostname': 'sw-a-01', 'status': 1, 'facts': {'model': 'WS-C2960X-48FPD-L', 'poe': {'budget_w': 740}}},

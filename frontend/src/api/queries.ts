@@ -5,7 +5,6 @@ import { getWidget } from './widgetBatch'
 import type { CustomSection } from '@/nav/sections'
 import type {
   PageLink,
-  Place,
   CrewNotice,
   AccountSummary,
   IncidentBoard,
@@ -15,7 +14,7 @@ import type {
   OidcList,
   Me,
   Permission,
-  PluginInfo,
+  PluginList,
   QrSeat,
   HealthWall,
   SecurityList,
@@ -36,7 +35,7 @@ export function useMe() {
   return useQuery({ queryKey: qk.me, queryFn: () => get<Me>('/api/auth/me'), staleTime: 60_000 })
 }
 
-/** Is this feature switched on (Settings > Features)? On until the server says otherwise, so a slow
+/** Is this feature switched on (Settings > Plugins > Built in)? On until the server says otherwise, so a slow
  *  answer never hides a link. Only hides links: a feature that is off answers 404 anyway. */
 export function useFeature(feature: string) {
   return !useFeaturesOff().includes(feature)
@@ -71,15 +70,6 @@ function usePagesQuery() {
 }
 
 /** Seats and switches whose number or name matches, for "Go to" (issue #252); needs two characters. */
-export function usePlaces(query: string): Place[] {
-  const q = query.trim()
-  const places = useQuery({
-    queryKey: qk.places(q), queryFn: () => get<{ places: Place[] }>(`/api/pages/find?q=${encodeURIComponent(q)}`),
-    enabled: q.length >= 2, staleTime: 30_000, retry: false,
-  })
-  return q.length >= 2 ? places.data?.places ?? [] : []
-}
-
 export function useDashboard() {
   return useQuery({ queryKey: qk.dashboard, queryFn: () => get<{ tiles: Tile[] }>('/api/dashboard') })
 }
@@ -107,7 +97,7 @@ export function useWidgets(tiles: WidgetTile[]) {
 }
 
 export function usePlugins() {
-  return useQuery({ queryKey: qk.plugins, queryFn: () => get<{ plugins: PluginInfo[] }>('/api/settings/plugins') })
+  return useQuery({ queryKey: qk.plugins, queryFn: () => get<PluginList>('/api/settings/plugins') })
 }
 
 export function usePluginLog(id: string, enabled: boolean) {

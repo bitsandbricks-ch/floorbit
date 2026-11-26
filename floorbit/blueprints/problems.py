@@ -7,7 +7,8 @@
 - ``GET /problems/<id>``, ``GET /api/problems/<id>``: one problem's page (issue #882): the problem,
   its open incident and where to look next. 404 once it is over. A security finding's page also
   carries the ``finding`` (evidence, uplink) for ``seats.view``, and whether its port can be shut
-  (issue #885).
+  (issue #885), and its ``history``: the place's outages, incidents and alerts from the event changelog
+  since a few hours before it started.
 - ``POST /api/alerts/mutes``: ``{"switch_id", "minutes", "reason"}`` mutes a switch's alerts;
   ``{"service_id", ...}`` mutes a service on the health wall instead (issue #256), ``{"ap", ...}``
   a Wi-Fi access point (issue #1064), ``{"problem_id", ...}`` any other problem on the list (issue #887).
@@ -17,14 +18,17 @@
   ``DELETE /api/alerts/raised/<problem id>`` takes that back.
 Mutes and raises need ``incidents.work`` (auth/roles.py): the people working problems decide what pages them.
 """
+import time
+
 from flask import Blueprint, current_app, g, jsonify, request
 
 from integrations import alerting, events
 
-from .. import audit, i18n, incidents, inventory, problems, spa, wifi
+from .. import audit, i18n, incidents, inventory, problems, spa, timeline, wifi
 from ..store import load_data
 
 bp = Blueprint('problems', __name__)
+HISTORY_HOURS = 6   # how far before a problem started its page looks back
 
 
 def _user():
@@ -98,10 +102,22 @@ def one_problem(problem_id):
         device = next(({'id': d['id'], 'name': d['name']} for d in inventory.devices(load_data(), include_hidden=True)
                        if d['name'] == found['device']), None)
     body = {'problem': found, 'device': device, 'can_mute': _can('incidents.work'),
-            'can_report': can_report, 'may_see_people': may_see_people}
+            'can_report': can_report, 'may_see_people': may_see_people,
+            'history': _history(found, may_see_people, lang)}
     if found['kind'] == 'security' and may_see_people:
         body.update(_finding(found['id'][len('security:'):]))
     return jsonify(body)
+
+
+def _history(problem, may_see_people, lang):
+    """The place's last hours from the event changelog (issue #882): outages, incidents, alerts."""
+    names = [problem.get('device'), problem.get('name')]
+    if problem.get('kind') == 'switch':
+        names.append(problem.get('where'))
+    start = min(problem.get('since') or time.time(), time.time())
+    events = current_app.extensions['floorbit_stats'].event().get('switch_events') or []
+    return timeline.about(events, names, problem.get('seat'), people=may_see_people,
+                          since=start - HISTORY_HOURS * 3600, lang=lang)
 
 
 def _finding(finding_id):

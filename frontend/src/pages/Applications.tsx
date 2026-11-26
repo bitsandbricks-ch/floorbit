@@ -15,7 +15,6 @@ import {
 } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
 import { bytes } from './traffic/format'
-import './applications/Applications.css'
 
 const HOURS = 24
 const KIND_COLOR: Record<AppKind, string> = { game: 'teal', launcher: 'cyan', sitegroup: 'grape' }
@@ -73,7 +72,7 @@ export default function Applications() {
         <DataTable rows={rows} columns={columns} rowKey={(a) => a.id} label={t('applications.title')}
           loading={q.isLoading} defaultSort={{ id: 'seats', desc: true }} cards urlState
           onRowClick={(a) => setOpen(a.id)}
-          rowProps={(a) => (a.id === open ? { className: 'is-selected', 'aria-selected': true } : undefined)}
+          selected={open}
           count={(n) => t('applications.count', { count: n })}
           empty={<EmptyState title={t('applications.none')} />} />
         {q.data && (
