@@ -299,7 +299,7 @@
       "hall_url": "In der Halle erreichbar unter",
       "metrics": "Metrics-Port",
       "metrics_token": "Metrics-Token",
-      "buffer_max_mb": "Puffergrösse (MB)",
+      "disk_budget_mb": "Speicherbudget (MB)",
       "buffer_max_hours": "Pufferalter (Stunden)",
       "telemetry_port": "Telemetrie-Port",
       "cert_names": "Namen im Zertifikat",
@@ -315,7 +315,7 @@
       "hall_url": "Wo Laptops in der Halle diesen Agent öffnen, für den Platz-Rundgang. Leer lassen: Der Agent lernt es selbst, mit den Ports, auf denen Compose ihn veröffentlicht. Setzen für einen Reverse Proxy oder eine Portweiterleitung, etwa https://checkin.lan:8443.",
       "metrics": "host:port für /metrics und /healthz, oder off.",
       "metrics_token": "Scraper senden dann \"Authorization: Bearer <token>\". Setzen, wenn der Port aus dem LAN erreichbar ist.",
-      "buffer_max_mb": "Wie viel der Agent behält, solange Floorbit nicht erreichbar ist.",
+      "disk_budget_mb": "Alles, was der Agent auf seiner Festplatte behält: rohe Flows, sein Puffer, solange Floorbit weg ist, Plugin-Dateien. Ist es aufgebraucht, gehen die ältesten zuerst. 0: die Hälfte dessen, was seine Festplatte fassen könnte.",
       "buffer_max_hours": "Wie lange der Agent Daten behält, solange Floorbit nicht erreichbar ist.",
       "telemetry_port": "Wohin Switches Telemetrie an das Telegraf des Agents senden.",
       "cert_names": "Hostnamen und IPs, über die Crew-Geräte diesen Agent erreichen. Nur diese kommen ins Zertifikat.",
@@ -436,5 +436,19 @@
   "tags": "Zuständig für",
   "allDevices": "Alle Geräte",
   "tagsHelp": "Inventar-Tags: Der Agent ist für die Geräte mit einem davon zuständig, direkt oder über ihre Gruppe. Agents mit denselben Tags sichern sich gegenseitig ab. Leer: alle Geräte.",
-  "noTags": "Noch keine Tags: Leg sie unter Inventar › Gruppen und Tags an."
+  "noTags": "Noch keine Tags: Leg sie unter Inventar › Gruppen und Tags an.",
+  "disk": {
+    "title": "Speicherplatz",
+    "budget": "Speicherbudget",
+    "budgetAuto": "Speicherbudget (automatisch)",
+    "used": "{{used}} von {{budget}}",
+    "kindValue": "{{size}}, {{hours}} Stunden zurück",
+    "dropped_one": "{{count}} alte Datei überschrieben",
+    "dropped_other": "{{count}} alte Dateien überschrieben",
+    "empty": "Noch nichts auf der Festplatte.",
+    "kind": {
+      "flows": "Rohe Flows",
+      "buffer": "Puffer, solange Floorbit weg ist"
+    }
+  }
 }

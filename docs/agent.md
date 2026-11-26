@@ -289,16 +289,16 @@ The front door is on by default on every agent (see "Attendees through the agent
 
 Each agent's own settings are set on its page in Floorbit (**Agents >** the agent **> Settings**), and
 the agent takes them with its plugins: the metrics listener and
-its token, how much it buffers while Floorbit is away, the Telegraf port, the log level and summary
+its token, its disk budget, how long it buffers while Floorbit is away, the Telegraf port, the log level and summary
 line, and the VRRP virtual IPs. Plugin settings that differ on one agent (another flow port, another
 syslog bind) are set there too; **Settings > Plugins** stays the default for every agent.
 
 **The agent's environment wins.** When the agent's own environment sets one of them
-(`FLOORBIT_AGENT_METRICS`, `_METRICS_TOKEN`, `_BUFFER_MAX_MB`,
+(`FLOORBIT_AGENT_METRICS`, `_METRICS_TOKEN`, `_DISK_BUDGET_MB`,
 `_BUFFER_MAX_HOURS`, `FLOORBIT_TELEMETRY_PORT`, `FLOORBIT_AGENT_LOG_LEVEL` (or `LOG_LEVEL`),
 `_LOG_SUMMARY`, `FLOORBIT_AGENT_VRRP_*`), that value is used and the field on the page is locked.
 The agent reports where each value came from (*agent env*, *Floorbit* or *default*), and which ones
-wait for its next start: the address and the log level apply at once, the rest when it starts again.
+wait for its next start: the address, the disk budget and the log level apply at once, the rest when it starts again.
 It keeps what Floorbit sent in `agent-settings.json` in its state folder (readable only by it), so it
 starts with them even while Floorbit is out of reach. A token set in Floorbit is sealed there and
 only sent to that agent; the page shows it as set, never its value.
@@ -709,7 +709,7 @@ agent's machine. Only the newest summary waits while the hosted side is away.
   hall, area and service totals, services only once enough seats used them (`FLOWS_MIN_SEATS`), and
   per seat the volume and category mix. The page says "collected by the local agent …".
 - The **flow records**, with addresses and ports, stay on the agent, in its state volume, for
-  `FLOWS_RETENTION_DAYS` (7) and at most `FLOWS_RAW_MAX_MB` (10 GB, the oldest hours go first).
+  `FLOWS_RETENTION_DAYS` (7), within the agent's disk budget (see "The agent's disk budget").
   `FLOWS_KEEP_RAW=false` on the agent keeps none.
 - To count per seat the agent needs the seats' addresses. It asks the hosted Floorbit for them
   every minute (`GET /api/agent/v1/seats`), so they reach the event network's own machine, and
@@ -748,6 +748,28 @@ own Telegraf) does too. **Needs a look** keeps only the devices with a problem, 
 "some devices send nothing" warning and a failed call about one device link there. While the
 agent is away the tab still lists what Floorbit gives it. `GET /api/agents/<id>/devices` (admins)
 has the same, asked from the agent's memory through its link; no logins.
+
+## The agent's disk budget
+
+Everything the agent keeps on its disk shares **one budget**: the raw flow records, the buffer for
+while Floorbit is out of reach, and files a plugin keeps on the agent. Set it on the agent's page
+(**Agents >** the agent **> Settings**, *Disk budget (MB)*, or `FLOORBIT_AGENT_DISK_BUDGET_MB`). Left
+at 0 it is automatic: half of what the agent's volume could hold for it, its free space plus what
+the agent already keeps. A new budget applies within a minute, without a restart.
+
+When the budget is used up, the **oldest files go first**, whichever kind they are, so the agent
+always keeps the newest data and never stops collecting because the disk is full. The file each
+kind is writing stays. The agent's page shows, under *Disk*, the budget, what each kind uses and
+how many hours back it reaches, and how many old files were overwritten.
+
+For a feel of the size: merged per minute, a raw flow record took about 13 bytes on disk with
+made-up traffic ([flows](flows.md)). At 20,000 records a second that is about 1 GB an hour, so a
+5-day LAN of 2,500 seats needs in the order of 100 GB to keep every raw flow. Real halls will
+differ: the page's *hours back* tells what yours holds.
+
+Plugins: a plugin that keeps files on the agent registers its folder with
+`floorbit.disk_budget.register(name, floorbit.disk_budget.Folder(path, pattern))`, and the budget
+counts and trims it like the rest.
 
 ## When the agent is away
 

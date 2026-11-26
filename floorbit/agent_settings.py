@@ -2,7 +2,7 @@
 
 Two kinds, kept on the agent's record (data.json ``agents``):
 
-- **The agent's settings** (``FIELDS``): where laptops reach it, its metrics port, its disk buffer,
+- **The agent's settings** (``FIELDS``): where laptops reach it, its metrics port, its disk budget and buffer age,
   the Telegraf port, VRRP. Each has the environment variable the agent read before; the agent's
   environment still wins when it sets one, and the agent reports where each value came from.
 - **Plugin settings for this agent** (``plugin_settings``): a plugin's setting (the flow port, a
@@ -25,8 +25,10 @@ PLUGIN_KEY = 'plugin_settings'
 FIELDS = [
     {'key': 'metrics', 'env': 'FLOORBIT_AGENT_METRICS', 'type': 'listen', 'default': '0.0.0.0:9520', 'restart': True},
     {'key': 'metrics_token', 'env': 'FLOORBIT_AGENT_METRICS_TOKEN', 'type': 'secret', 'default': '', 'restart': True},
-    {'key': 'buffer_max_mb', 'env': 'FLOORBIT_AGENT_BUFFER_MAX_MB', 'type': 'int', 'default': 2048,
-     'min': 16, 'max': 1_000_000, 'restart': True},
+    # One budget for all it keeps on disk (raw flows, the buffer, plugin files), floorbit/disk_budget.py.
+    # 0 is automatic: half of what the agent's volume could hold.
+    {'key': 'disk_budget_mb', 'env': 'FLOORBIT_AGENT_DISK_BUDGET_MB', 'type': 'int', 'default': 0,
+     'min': 0, 'max': 100_000_000, 'restart': False},
     {'key': 'buffer_max_hours', 'env': 'FLOORBIT_AGENT_BUFFER_MAX_HOURS', 'type': 'int', 'default': 24,
      'min': 1, 'max': 720, 'restart': True},
     # Where laptops in the hall reach it, when it can't learn that (a reverse proxy, port forwarding,

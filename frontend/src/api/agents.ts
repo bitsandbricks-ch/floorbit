@@ -1,3 +1,4 @@
+import type { AgentDisk } from './agentDisk'
 import type { AgentSelfUpdateReport, SelfUpdateStatus } from './agentUpdates'
 
 /** GET /api/agents (issue #2): the local agents enrolled for a hosted Floorbit. */
@@ -89,6 +90,8 @@ export interface AgentReport {
   vrrp?: { primary: boolean; holds: string[] }
   /** Where each of its settings came from (floorbit/agent_settings.py ``clean_report``). */
   settings?: AgentSettingsReport
+  /** Its disk budget and what each kind of data uses of it. */
+  disk?: AgentDisk
 }
 
 export type SettingSource = 'env' | 'floorbit' | 'default'
