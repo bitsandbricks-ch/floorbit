@@ -25,7 +25,7 @@ import uuid
 
 from integrations import config, events
 
-from . import features, seat_names, seat_rows
+from . import features, seat_names, seat_rows, shared_state
 from .plugins import PluginError
 from .seat_names import block_rows
 from .store import load_data, save_data
@@ -317,9 +317,14 @@ def state_of(circuit, reading):
     return ('crit' if pct >= crit else 'warn' if pct >= warn else 'ok'), pct
 
 
-class PowerWatch:
+class PowerWatch(shared_state.Shared):
     """Readings from power plugins, polled in the background, and the alerts when a circuit
     turns red or trips."""
+    # With several pods only the leader polls and decides what alerts; the others show this and
+    # ask it to look again after a change (issue #1417).
+    shared_name = 'power'
+    shared_fields = ('readings', 'states', 'baseline_done', 'last_poll')
+    leader_calls = ('evaluate', 'ensure_baseline')
 
     def __init__(self, registry):
         self.registry = registry
@@ -353,7 +358,7 @@ class PowerWatch:
         while not self._stop.is_set():
             try:
                 # Inside the try too: reading the settings can fail (a database not there yet).
-                if enabled() and features.on('power') and self.registry.feeders('power'):
+                if shared_state.my_turn(self) and enabled() and features.on('power') and self.registry.feeders('power'):
                     self.poll_once()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 print(f'[power] poll failed: {exc}')
@@ -382,13 +387,15 @@ class PowerWatch:
         return self.evaluate(baseline=not self.baseline_done)
 
     def reading_for(self, circuit):
+        readings = self.view().readings
         with self._lock:
-            return self._reading_for(circuit)
+            return self._reading_for(circuit, readings)
 
-    def _reading_for(self, circuit):
+    def _reading_for(self, circuit, readings=None):
         """The newer of the typed-in reading and the plugin's."""
+        readings = self.readings if readings is None else readings
         manual = circuit.get('reading')
-        metered = self.readings.get(circuit.get('meter')) if circuit.get('meter') else None
+        metered = readings.get(circuit.get('meter')) if circuit.get('meter') else None
         if manual and metered:
             return manual if manual['at'] >= metered['at'] else metered
         return manual or metered
@@ -419,6 +426,7 @@ class PowerWatch:
                                'phase': c['phase'], 'state': state, 'pct': pct, 'rating_a': c['rating_a']})
             self.states = seen
             self.baseline_done = True
+        self.share()
         for alert in alerts:
             circuit = next(c for c in circuits if c['id'] == alert['id'])
             feeds = fed_by(circuit, data)
@@ -447,7 +455,7 @@ class PowerWatch:
         warn, crit = thresholds()
         counts = {s: sum(c['state'] == s for c in out) for s in STATES}
         return {'enabled': enabled(), 'boards': sorted(boards, key=lambda b: b['name'].lower()),
-                'circuits': out, 'counts': counts, 'warn': warn, 'crit': crit, 'last_poll': self.last_poll,
+                'circuits': out, 'counts': counts, 'warn': warn, 'crit': crit, 'last_poll': self.view().last_poll,
                 'plugins': len(self.registry.feeders('power')),
                 'blocks': [{'id': b.get('id'), 'name': b.get('name') or '', 'label': seat_names.label(b),
                             'rows': seat_rows.count(b), 'row_names': seat_names.row_names(b),

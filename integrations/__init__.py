@@ -63,6 +63,7 @@ def _placed_switches(load_data):
 
 
 def init_integrations(app, load_data, settings_store=None, start_background=True):
+    from floorbit import shared_state
     if settings_store is not None:
         settings_bridge.connect(settings_store)
     monitor = StatusMonitor(_placed_switches(load_data))
@@ -102,6 +103,21 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
     app.extensions['floorbit_crew'] = crew
     discord = DiscordNotifier(crew=crew, app=app)
     discord.monitor = monitor
+
+    def sources_wake():
+        from floorbit import sources
+        sources.status_wake.set()
+
+    def poll_now():
+        try:
+            changes = monitor.poll_once()
+        except Exception as exc:
+            monitor.last_error = str(exc)
+            monitor.share()
+            raise
+        return {'changes': changes, 'counts': monitor.counts()}
+    shared_state.answer('monitor.poll', poll_now)
+    shared_state.answer('monitor.wake', sources_wake)
     discord.attach()
     app.extensions['floorbit_discord'] = discord
 
@@ -148,7 +164,7 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
     @bp.route('/api/status/snapshot')
     def status_snapshot():
         return jsonify({'statuses': monitor.snapshot(), 'counts': monitor.counts(),
-                        'last_poll': monitor.last_poll})
+                        'last_poll': monitor.last_polled()})
 
     @bp.route('/api/integrations/discord/test', methods=['POST'])
     def discord_test():
@@ -165,11 +181,11 @@ def init_integrations(app, load_data, settings_store=None, start_background=True
         if not monitor.enabled():
             return jsonify({'ok': False, 'error': 'Status monitor is disabled or LibreNMS is not configured'}), 400
         try:
-            changes = monitor.poll_once()
+            # The leader polls (floorbit/shared_state.py): from another pod this asks it to.
+            done = shared_state.ask('monitor.poll')
         except Exception as exc:  # noqa: BLE001  # report any poll failure to the caller
-            monitor.last_error = str(exc)
             return jsonify({'ok': False, 'error': str(exc)}), 502
-        return jsonify({'ok': True, 'changes': changes, 'counts': monitor.counts()})
+        return jsonify({'ok': True, **done})
 
     @bp.route('/api/seats/sources')
     def seat_sources_info():

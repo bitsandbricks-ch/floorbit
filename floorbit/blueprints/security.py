@@ -50,5 +50,5 @@ def markers():
 
 @bp.route('/api/security/check', methods=['POST'])
 def check_now():
-    _watch().poll_once()
+    _watch().poll_now()
     return findings()

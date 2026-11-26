@@ -81,7 +81,7 @@ numbers move.
 
 ## More than one worker
 
-The image runs one gunicorn worker with 64 threads. Python runs one thread at a time per process, so
+Without the cluster the image runs one gunicorn worker with 64 threads. Python runs one thread at a time per process, so
 when many tabs ask at once (doors open, a dashboard wall reloading) their requests queue behind each
 other. Measured with crew tabs that each load a page's reads at once (sign-in check, pages, problems,
 a dashboard batch, plan, inventory, seat map, stats, incidents: 12 requests), demo data, Postgres and
@@ -98,8 +98,14 @@ except the shared volume, which they already have:
 
 - `FLOORBIT_CLUSTER=valkey` and `REDIS_HOST`, so live updates and agent calls reach every worker and
   only one sends alerts. Without it Floorbit logs a warning at start.
+- Only the leading worker runs the background checks (switch status, ports and traffic, health,
+  security, power, services, game servers, DNS); the others show what it shares through Valkey, so
+  LibreNMS, the agent and the plugins aren't asked once per worker.
 - The [switch terminal](terminal.md) works on every worker: the one that opened a terminal holds its
   SSH connection, and the others pass its requests there through Valkey.
 
-To try it: `GUNICORN_CMD_ARGS=--workers 2` (or up to the number of CPUs) in `.env` or the pod's
-environment. `GUNICORN_CMD_ARGS=--threads 200` raises the threads the same way.
+So with `FLOORBIT_CLUSTER` set the image starts one worker per CPU the container may use (its CPU
+limit, else its CPUs), at most 4: the table above shows what that buys, and more workers mostly add
+memory. Without the cluster it stays at one. `GUNICORN_CMD_ARGS=--workers 2` in `.env` or the pod's
+environment picks the number yourself, `--workers 1` goes back to one; `GUNICORN_CMD_ARGS=--threads 200`
+raises the threads the same way.

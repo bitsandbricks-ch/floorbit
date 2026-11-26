@@ -1093,8 +1093,9 @@ class Tunnel:
         from .agent_plugins import clean_updates, clean_vrrp
         from .agent_settings import clean_report
         from .agent_updates import clean as clean_agent_update
+        from .disk_budget import clean as clean_disk
         for key, cleaner in (('updates', clean_updates), ('vrrp', clean_vrrp), ('settings', clean_report),
-                             ('agent_update', clean_agent_update)):
+                             ('agent_update', clean_agent_update), ('disk', clean_disk)):
             value = cleaner(raw.get(key))
             if value is not None:
                 clean[key] = value

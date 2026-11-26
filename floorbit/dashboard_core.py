@@ -27,7 +27,8 @@ TEXTS = {
            'seats_by_block': 'Seats online by block', 'seats_by_row': 'Seats online by row',
            'bandwidth': 'Bandwidth', 'down_up': '↓ {down} · ↑ {up}', 'no_reads': 'No traffic read yet',
            'peak': 'Peak of the event', 'peak_sub': '{ago} ago · 24 h peak {day}', 'ports': 'Ports',
-           'ports_unit': 'up', 'ports_sub': '{down} down · {errors} with errors', 'uplinks': 'Uplinks',
+           'ports_unit': 'in use', 'ports_sub': 'of {total} · {lost} went down · {errors} with errors',
+           'uplinks': 'Uplinks',
            'top_ports': 'Busiest seats', 'port_at': '{switch} {port}', 'traffic_mix': 'Traffic by kind',
            'mix_sub': 'Last hour: {total}', 'flow_services': 'Top services', 'seat_count': '{n} seats',
            'traffic_areas': 'Traffic by area', 'anomalies': 'Look at this', 'nothing_odd': 'Nothing odd',
@@ -66,7 +67,8 @@ TEXTS = {
            'seats_by_block': 'Plätze online nach Block', 'seats_by_row': 'Plätze online nach Reihe',
            'bandwidth': 'Bandbreite', 'down_up': '↓ {down} · ↑ {up}', 'no_reads': 'Noch keine Verkehrsdaten',
            'peak': 'Spitze des Events', 'peak_sub': 'vor {ago} · 24-Std.-Spitze {day}', 'ports': 'Ports',
-           'ports_unit': 'online', 'ports_sub': '{down} offline · {errors} mit Fehlern', 'uplinks': 'Uplinks',
+           'ports_unit': 'belegt', 'ports_sub': 'von {total} · {lost} ausgefallen · {errors} mit Fehlern',
+           'uplinks': 'Uplinks',
            'top_ports': 'Aktivste Plätze', 'port_at': '{switch} {port}', 'traffic_mix': 'Verkehr nach Art',
            'mix_sub': 'Letzte Stunde: {total}', 'flow_services': 'Top-Dienste', 'seat_count': '{n} Plätze',
            'traffic_areas': 'Verkehr nach Bereich', 'anomalies': 'Anschauen', 'nothing_odd': 'Nichts Auffälliges',
@@ -383,7 +385,7 @@ def bandwidth_widget(lang, snapshot):
     now = snapshot.get('now')
     if not now:
         return {'type': 'stat', 'value': NONE, 'unit': '', 'sub': text['no_reads'], 'link': '/dashboards/network'}
-    return {'type': 'stat', 'value': now['down'] + now['up'], 'unit': 'bit/s', 'link': '/dashboards/network',
+    return {'type': 'stat', 'value': now['down'] + now['up'], 'unit': 'bit/s', 'link': '/dashboards/traffic',
             'sub': text['down_up'].format(down=rate(now['down']), up=rate(now['up']))}
 
 
@@ -395,7 +397,7 @@ def peak_widget(lang, snapshot, now=None):
     if not peak:
         return {'type': 'stat', 'value': NONE, 'unit': '', 'sub': text['no_reads'], 'link': '/dashboards/network'}
     day = (snapshot.get('day') or {}).get('peak_bps') or 0
-    return {'type': 'stat', 'value': peak['bps'], 'unit': 'bit/s', 'link': '/dashboards/network',
+    return {'type': 'stat', 'value': peak['bps'], 'unit': 'bit/s', 'link': '/dashboards/traffic',
             'sub': text['peak_sub'].format(ago=_down_for(text, now - (peak.get('at') or now)), day=rate(day))}
 
 
@@ -405,10 +407,12 @@ def ports_widget(lang, snapshot):
     now = snapshot.get('now')
     if not now:
         return {'type': 'stat', 'value': NONE, 'unit': '', 'sub': text['no_reads'], 'link': '/problems'}
-    up, down, errors = now.get('ports_up', 0), now.get('ports_down', 0), now.get('ports_errors', 0)
-    return {'type': 'stat', 'value': up, 'unit': text['ports_unit'], 'tone': 'warn' if errors else '',
-            'sub': text['ports_sub'].format(down=down, errors=errors), 'link': '/problems',
-            'min': 0, 'max': up + down}
+    # Most ports that are down were never used: only one that was up and went down counts (#1421).
+    up, errors = now.get('ports_up', 0), now.get('ports_errors', 0)
+    total, lost = now.get('ports_total') or up + now.get('ports_down', 0), now.get('ports_lost', 0)
+    return {'type': 'stat', 'value': up, 'unit': text['ports_unit'], 'tone': 'warn' if errors or lost else '',
+            'sub': text['ports_sub'].format(total=total, lost=lost, errors=errors), 'link': '/problems',
+            'min': 0, 'max': total}
 
 
 def uplinks_widget(lang, snapshot):
@@ -433,7 +437,7 @@ def top_ports_widget(lang, snapshot):
     return {'type': 'list', 'items': items, 'link': '/dashboards/network'}
 
 
-CATEGORIES = ('gaming', 'streaming', 'downloads', 'updates', 'web', 'other')
+from .flows.classify import CATEGORIES, CATEGORY_COLOURS  # noqa: E402
 
 
 def _no_flows(text):
@@ -447,8 +451,9 @@ def traffic_mix_widget(lang, flows):
         return _no_flows(text)
     mix = flows.get('mix_hour') or {}
     total = sum(mix.get(c) or 0 for c in CATEGORIES)
-    items = [{'label': text['cat'][c], 'value': f"{round((mix.get(c) or 0) / total * 100)} % · {size(mix.get(c))}",
-              'number': mix.get(c) or 0} for c in CATEGORIES if total and mix.get(c)]
+    # The share shows in the pie (hover, large tiles); a short value keeps the legend's names whole.
+    items = [{'label': text['cat'][c], 'value': size(mix.get(c)), 'number': mix.get(c) or 0,
+              'colour': CATEGORY_COLOURS[c]} for c in CATEGORIES if total and mix.get(c)]
     return {'type': 'list', 'items': items, 'sub': text['mix_sub'].format(total=size(total)),
             'link': '/dashboards/traffic'}
 
@@ -655,4 +660,11 @@ from . import dashboard_event as _event  # noqa: E402  (it imports helpers from 
 
 TILES.update(_event.TILES)
 for _lang, _texts in _event.TEXTS.items():
+    TEXTS[_lang].update(_texts)
+
+# The event report's numbers (#898): crew tiles from report.build, for the Overview's "During the event".
+from . import dashboard_report as _report  # noqa: E402
+
+TILES.update(_report.TILES)
+for _lang, _texts in _report.TEXTS.items():
     TEXTS[_lang].update(_texts)

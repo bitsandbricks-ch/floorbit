@@ -21,7 +21,7 @@ import time
 
 from integrations import config, events
 
-from . import features
+from . import features, shared_state
 from .plugins import PluginError
 
 KINDS = ('rogue-dhcp', 'arp-spoof', 'mac-flap', 'loop', 'storm', 'other')
@@ -85,7 +85,10 @@ def _seat_index():
     return index
 
 
-class SecurityWatch:
+class SecurityWatch(shared_state.Shared):
+    # With several pods only the leader asks the plugins; the others show this (issue #1417).
+    shared_name = 'security'
+    shared_fields = ('findings', 'cleared', 'baseline_done', 'last_poll')
     def __init__(self, registry):
         self.registry = registry
         self._lock = threading.Lock()
@@ -119,7 +122,7 @@ class SecurityWatch:
         while not self._stop.is_set():
             try:
                 # Inside the try too: reading the settings can fail (a database not there yet).
-                if features.on('security') and self.registry.feeders('security'):
+                if shared_state.my_turn(self) and features.on('security') and self.registry.feeders('security'):
                     self.poll_once()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 print(f'[security] poll failed: {exc}')
@@ -158,6 +161,7 @@ class SecurityWatch:
             self.findings = current
             self.baseline_done = True
             self.last_poll = now
+        self.share()
         for f in new:
             # Every open browser gets this event too: no title, MAC or IP, which can name a person.
             events.publish('security.finding', {k: f[k] for k in (
@@ -165,21 +169,25 @@ class SecurityWatch:
         return new
 
     def fresh(self):
+        if shared_state.follower():
+            return self.snapshot()          # the leader polls (issue #1417)
         if self.last_poll is None or time.time() - self.last_poll > 2 * self.interval():
             self.poll_once()
         return self.snapshot()
 
     def snapshot(self):
         order = {s: i for i, s in enumerate(SEVERITIES)}
+        seen = self.view()
         with self._lock:
-            active = sorted(self.findings.values(),
+            active = sorted(seen.findings.values(),
                             key=lambda f: (order[f['severity']], -f['first_seen']))
-            return {'findings': active, 'cleared': list(self.cleared), 'last_poll': self.last_poll,
+            return {'findings': active, 'cleared': list(seen.cleared), 'last_poll': seen.last_poll,
                     'interval': self.interval(), 'plugins': len(self.registry.feeders('security'))}
 
     def get(self, finding_id):
+        seen = self.view()
         with self._lock:
-            f = self.findings.get(finding_id)
+            f = seen.findings.get(finding_id)
             return dict(f) if f else None
 
 

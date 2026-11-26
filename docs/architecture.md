@@ -62,7 +62,7 @@ it). Flask stays the JSON API and serves the pages: a route that moved to React 
 and the asset tags from Vite's manifest. So the preset, colours and light/dark from the server
 apply before React paints, and sign-in and roles are checked by Flask as for any page.
 
-- `src/pages/`: one file per page, loaded lazily. Routes are in `src/App.tsx`.
+- `src/pages/`: one file per page, loaded lazily. Routes are in `src/routes/<area>.ts`, which `src/App.tsx` collects.
 - `src/api/`: the fetch client (same origin, cookie session; a 401 goes to the sign-in page),
   the response types and the TanStack Query hooks. Query keys live in `src/api/keys.ts`.
 - `src/theme.ts`: Mantine on top of the design tokens, as CSS variables, so themes need no rebuild.

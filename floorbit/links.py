@@ -18,7 +18,7 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-from . import inventory, sources
+from . import inventory, shared_state, sources
 from .store import load_data, save_data
 
 KEY = 'links'
@@ -238,14 +238,29 @@ class Reader:
         """The ports last read, without reading: for the floor plan, which refreshes often."""
         with self._lock:
             hit = self._ports.get(switch.lower())
-            return hit[1] if hit else None
+        return self._newer(hit, 'ports', switch, None)
 
     def cached_neighbours(self, switch):
         with self._lock:
             hit = self._neighbours.get(switch.lower())
-            return hit[1] if hit else []
+        return self._newer(hit, 'neighbours', switch, [])
+
+    def _newer(self, hit, kind, switch, empty):
+        """This pod's read, or the leader's when that is newer (only the leader reads in the
+        background, issue #1417)."""
+        if shared_state.follower():
+            row = ((shared_state.get(SHARED) or {}).get(kind) or {}).get(switch.lower())
+            if row and (not hit or row[0] > hit[0]):
+                return row[1]
+        return hit[1] if hit else empty
+
+    def share(self):
+        with self._lock:
+            shared_state.put(SHARED, {'ports': {k: list(v) for k, v in self._ports.items()},
+                                      'neighbours': {k: list(v) for k, v in self._neighbours.items()}})
 
 
+SHARED = 'links'
 reader = Reader()
 
 
@@ -292,6 +307,13 @@ def problems(data=None):
 class Refresher:
     """Reads the ports at both ends of every link in the background, so a link that goes down shows
     on the Problems page even while nobody has the topology open."""
+    shared_name = SHARED
+
+    def answer_calls(self):
+        pass
+
+    def take_over(self):
+        pass
 
     def __init__(self):
         self._thread = None
@@ -318,7 +340,9 @@ class Refresher:
     def _run(self):
         while not self._stop.is_set():
             try:
-                self.read_once()
+                if shared_state.my_turn(self):
+                    self.read_once()
+                    reader.share()
             except Exception as exc:  # noqa: BLE001  # keep the thread alive no matter what
                 print(f'[links] read failed: {exc}')
             self._stop.wait(READ_EVERY)

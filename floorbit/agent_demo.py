@@ -15,6 +15,7 @@ AGENTS = (
     {'id': 'de30a001', 'name': 'Hall agent A', 'address': '192.0.2.21', 'primary': True},
     {'id': 'de30a002', 'name': 'Hall agent B', 'address': '192.0.2.22', 'primary': False},
 )
+GB = 1_000_000_000
 VIP = '192.0.2.20'
 VERSION = 'demo'
 # The plugins whose data the demo agents report: the demo turns them on with the agents.
@@ -73,6 +74,10 @@ def live(row, now, protocol):
         'vrrp': {'primary': spec['primary'], 'holds': [VIP] if spec['primary'] else []},
         # No "lease": the demo's pair is picked by VRRP, so its pages show that fallback too.
         'capabilities': ['split', 'syslog_hold'],
+        'disk': {'auto': True, 'budget': 120 * GB, 'used': (64 if spec['primary'] else 3) * GB,
+                 'kinds': {'flows': {'bytes': 61 * GB, 'files': 58, 'hours': 57.5, 'dropped': 0},
+                           'buffer': {'bytes': 3 * GB, 'files': 412, 'hours': 0.4, 'dropped': 0}}
+                 if spec['primary'] else {'buffer': {'bytes': 3 * GB, 'files': 405, 'hours': 0.4, 'dropped': 0}}},
         'settings': {'values': {}, 'key': 'stored',
                      'cert': {'not_after': now + 80 * 86400, 'names': [spec['address']], 'source': 'floorbit',
                               'floorbit_ca': True, 'public': False}},

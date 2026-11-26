@@ -720,7 +720,7 @@ def init_syslog(app, registry=None, start_background=True):
 
     def seats():
         watch = app.extensions.get('floorbit_attention')
-        return getattr(watch, 'port_seats', {}) or {}
+        return getattr(watch.view() if watch is not None else None, 'port_seats', {}) or {}
 
     receiver.port_seats = seats
     started = threading.Event()

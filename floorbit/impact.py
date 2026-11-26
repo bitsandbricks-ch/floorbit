@@ -36,7 +36,8 @@ def seats_by_switch(data):
         if switch and seat:
             out.setdefault(short(switch), set()).add(str(seat).upper())
     watch = current_app.extensions.get('floorbit_attention')
-    for (switch, _port), seat in dict(getattr(watch, 'port_seats', None) or {}).items():
+    for (switch, _port), seat in dict(getattr(watch.view() if watch is not None else None, 'port_seats', None)
+                                      or {}).items():
         add(switch, seat)
     with status_page._lock:
         remembered = {k: set(v) for k, v in status_page._seats_of.items()}

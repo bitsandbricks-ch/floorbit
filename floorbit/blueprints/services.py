@@ -58,11 +58,11 @@ def get_summary():
 
 @bp.route('/api/services/check', methods=['POST'])
 def check_services():
-    services.poller.poll_once()
+    services.poller.poll_now()
     # One "Check now" for the whole page: the health plugins (DHCP, firewalls, ...) too.
     wall = current_app.extensions.get('floorbit_health')
     if wall is not None:
-        wall.poll_once()
+        wall.poll_now()
     # The pollers keep their messages in English; a German page gets them in German.
     lang = i18n.language(request.headers.get('Accept-Language'))
     return jsonify(i18n.translate_fields(services.overview(), lang))

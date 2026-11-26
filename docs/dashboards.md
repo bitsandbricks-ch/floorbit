@@ -229,9 +229,9 @@ editor saves it as a new dashboard of your own, named "… (copy)" and not publi
 | Dashboard | What is on it |
 | --- | --- |
 | **Kiosk** | The big screen in the hall (below). Public. |
-| **Overview** | Seats, bandwidth, switches, incidents, agents and the LAN cache as numbers; the plan, service health and switches down; switch states, traffic over time, uplinks, the busiest seats, traffic by kind and what looks odd. |
+| **Overview** | Seats, bandwidth, switches, incidents, agents and the LAN cache as numbers; the plan, service health and switches down; switch states, uplinks, the busiest seats, traffic by kind and what looks odd. Bandwidth over time is on Traffic; the bandwidth tile leads there. Below, **During the event**: seats online and checked in, seats that moved, incidents and switch outages so far, traffic since the event started and the ports with the most problems, from the event report. The printable report stays under its export. |
 | **Service health** | Services up, switches, LAN cache and agents as numbers; every check worst first, internet uplinks and switches down. Each check's numbers and mutes are in its panel on the Services page. |
-| **Network** | Switches, seats, bandwidth and ports; traffic over time, switches down, uplinks, the busiest seats and switch states; Wi-Fi clients, access points and seats online by block. IP/MAC search and network status updates are on their pages. |
+| **Network** | Switches, seats, bandwidth and ports in use (only ports that went down count as down); switches down, uplinks, the busiest seats and switch states; Wi-Fi clients, access points and seats online by block. IP/MAC search and network status updates are on their pages. |
 | **Services** | Services up, the LAN cache, DNS lookups and agents; service health and internet uplinks; top and blocked sites and game launchers. Adding and editing services is on the Services page. |
 | **Traffic** | Bandwidth, the peak and what looks odd; traffic over time and by kind; top services, traffic by area and the busiest seats; DNS lookups, the LAN cache, top and blocked sites and game launchers. Speed tests are on their page. |
 | **Power load** | Every circuit's load, fullest first. The boards in detail are on the Power page. |
@@ -349,7 +349,7 @@ A dashboard is `sections` (each with an optional `title`, `folded` and its `pane
 as one split tree (`root`) are read as one panel filling the screen. How panels make room is in
 `frontend/src/pages/dashboards/grid.ts`.
 A Monitoring page (Health, Wi-Fi, DNS, ...) is one line in `frontend/src/pages/monitoring/pages.ts`
-and is drawn by `pages/monitoring/ViewPage.tsx` (one route in `App.tsx`, one entry in
+and is drawn by `pages/monitoring/ViewPage.tsx` (one route in `routes/<area>.ts`, one entry in
 `floorbit/page_index.py`, a tab in `nav/sections.ts`). `RETIRED_VIEWS` in `floorbit/dashboards.py`
 says which tile a saved `view` pane is read as. `GET /api/dashboard` lists the tiles this account may see. Floorbit's own tiles are one line in
 `TILES` (`floorbit/dashboard_core.py`) plus their builder in `CORE_TILES`

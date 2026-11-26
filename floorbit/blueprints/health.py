@@ -113,7 +113,7 @@ def health():
 
 @bp.route('/api/health/check', methods=['POST'])
 def check_now():
-    _wall().poll_once()
+    _wall().poll_now()
     return jsonify(_with_mutes(_wall().snapshot()))
 
 

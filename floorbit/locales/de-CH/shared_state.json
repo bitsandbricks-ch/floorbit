@@ -1,0 +1,6 @@
+{
+ "No Floorbit pod is leading right now. Try again in a moment.": "Gerade führt kein Floorbit-Pod. Versuche es gleich nochmals.",
+ "The leading Floorbit pod did not answer. Try again.": "Der führende Floorbit-Pod hat nicht geantwortet. Versuche es nochmals.",
+ "The leading Floorbit pod could not do it.": "Der führende Floorbit-Pod konnte es nicht ausführen.",
+ "Unknown leader request.": "Unbekannte Anfrage an den führenden Pod."
+}

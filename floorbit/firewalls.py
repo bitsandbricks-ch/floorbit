@@ -459,10 +459,10 @@ class Health:
         with self._lock:
             if self._at is not None and 0 <= now - self._at < READ_EVERY:
                 return self._devices
-        if StatusMonitor.latest['polled'] is not None:
+        latest = StatusMonitor.latest_devices()
+        if latest['polled'] is not None:
             # The status monitor is polling: use its list rather than ask a source that may be
             # hanging (the page waited for its timeout). None, "unknown", when its last poll failed.
-            latest = StatusMonitor.latest
             found = latest['devices'] if latest['at'] is not None and latest['at'] >= latest['polled'] else None
             with self._lock:
                 self._at, self._devices = now, found

@@ -109,7 +109,7 @@ pull request.
   (`uses: actions/checkout@<sha> # v7.0.1`), as `.github/workflows/` already does.
 - **Dependencies:** add one only when it clearly pays for itself, and say why in the pull request.
 - **Where code goes:** a new API area is a new blueprint in `floorbit/blueprints/`; a new page is a React page in
-  `frontend/src/pages/` with its texts in English and German (`frontend/src/i18n/`); a new editor
+  `frontend/src/pages/` with its route in `frontend/src/routes/<area>.ts` and its texts in English and German (`frontend/src/i18n/`); a new editor
   feature is a new file in `frontend/src/pages/plan/edit/`. A new error message from the server gets its German text
   in `floorbit/locales/de-CH/<area>.json` (`tests/test_i18n_server.py` checks). NetBox and LibreNMS calls live in their
   plugins; the core asks the inventory and `floorbit.sources.monitoring()`, never the API itself. Nothing names one particular event:
@@ -130,7 +130,7 @@ happen. Add files, don't grow shared ones:
 | adding a new page's styles to `frontend/src/app.css` or `frontend/src/styles/` | a `<Page>.css` next to the page, imported by it |
 | one big test file for an area (`tests/test_cables.py`) | a new `tests/test_<area>_<topic>.py` for a new topic |
 | editing `docs/api-reference.md` by hand, or merging its conflict | run `python scripts/api_reference.py` after the merge; it writes the file from the routes |
-| a branch based on another open pull request | a branch from `master`; if it needs the other one, wait for it |
+| a long stack of branches, each on the one below | a branch from `master`; build on another open pull request only when the work needs it, say so in the description, and merge `master` in once GitHub moves it there |
 
 Two threads (or people) never work on the same page or area at the same time. When a conflict comes
 anyway: merge `master` in, resolve it yourself, never by taking one side wholesale for a file both

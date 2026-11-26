@@ -29,10 +29,10 @@ def test_settings_are_checked_saved_and_reach_only_that_agent(client, anon_clien
     assert client.patch(f"/api/agents/{a['id']}/settings",
                         json={"plugins": {"netflow-relay": {"secret_thing": 1}}}).status_code == 400
     page = client.patch(f"/api/agents/{a['id']}/settings", json={
-        "settings": {"log_level": "debug", "buffer_max_mb": 512, "metrics_token": "example-token",
+        "settings": {"log_level": "debug", "disk_budget_mb": 512, "metrics_token": "example-token",
                      "vrrp_vips": "192.0.2.10/24, 192.0.2.11/24"},
         "plugins": {"netflow-relay": {"port": 2056}}}).get_json()
-    assert page["values"] == {"log_level": "debug", "buffer_max_mb": 512, "metrics_token": True,
+    assert page["values"] == {"log_level": "debug", "disk_budget_mb": 512, "metrics_token": True,
                               "vrrp_vips": ["192.0.2.10/24", "192.0.2.11/24"]}
     relay = next(p for p in page["plugins"] if p["id"] == "netflow-relay")
     assert relay["values"] == {"port": 2056} and {f["key"] for f in relay["fields"]} == {"port", "bind"}
@@ -41,7 +41,7 @@ def test_settings_are_checked_saved_and_reach_only_that_agent(client, anon_clien
     mine = anon_client.get("/api/agent/v1/plugins", headers=head(a["key"])).get_json()
     assert mine["plugins"]["netflow-relay"]["settings"]["port"] == 2056
     assert mine["agent"]["settings"]["metrics_token"] == "example-token"
-    assert mine["agent"]["settings"]["buffer_max_mb"] == 512
+    assert mine["agent"]["settings"]["disk_budget_mb"] == 512
     other = anon_client.get("/api/agent/v1/plugins", headers=head(b["key"])).get_json()
     assert other["plugins"]["netflow-relay"]["settings"]["port"] == 2055 and other["agent"]["settings"] == {}
     # Cleared: the default from Settings > Plugins applies again.
@@ -59,7 +59,7 @@ def test_the_report_says_where_each_value_came_from(client, anon_client):
         "metrics_token": {"source": "env", "value": "example-token", "set": True},
         "FLOORBIT_AGENT_ALLOW_ACTIONS": {"source": "env", "value": "lancache.*"},
         "SOMETHING_ELSE": {"source": "env", "value": "x"}},
-        "pending": ["buffer_max_mb", "nope"], "key": "stored",
+        "pending": ["buffer_max_hours", "nope"], "key": "stored",
         "cert": {"not_after": 1_900_000_000, "names": ["agent.example.com"], "source": "floorbit",
                  "floorbit_ca": True}}}
     anon_client.post("/api/agent/v1/report", json={"report": sent}, headers=head(a["key"]))
@@ -67,7 +67,7 @@ def test_the_report_says_where_each_value_came_from(client, anon_client):
     assert got["values"]["log_level"] == {"source": "floorbit", "value": "debug"}
     assert got["values"]["metrics_token"] == {"source": "env", "set": True}           # never the token
     assert got["values"]["FLOORBIT_AGENT_ALLOW_ACTIONS"]["value"] == "lancache.*"
-    assert "SOMETHING_ELSE" not in got["values"] and got["pending"] == ["buffer_max_mb"] and got["key"] == "stored"
+    assert "SOMETHING_ELSE" not in got["values"] and got["pending"] == ["buffer_max_hours"] and got["key"] == "stored"
     assert got["cert"]["names"] == ["agent.example.com"] and got["cert"]["floorbit_ca"] is True
 
 

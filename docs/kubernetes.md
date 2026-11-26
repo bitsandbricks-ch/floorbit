@@ -107,8 +107,14 @@ With `FLOORBIT_CLUSTER` set the pods share three things through Valkey:
   calls there and get the answers back, so it doesn't matter which pod a browser reaches. Calls
   and answers cross Redis sealed with the vault key every pod shares (a switch call carries its
   login), so the pods need the same `FLOORBIT_SECRET_KEY_FILE`.
-- **One leader.** Every pod polls the switches and runs its checks, so every page is current on
-  every pod. Only the pod holding the leader lease sends what those checks find: Discord alerts,
+- **One leader.** The pod holding the leader lease runs the background checks: switch status, the
+  port watch and traffic, the health wall, services, security, power, game servers, DNS, which
+  machine is on which port, the uplinks between switches and the check-in refresh. It shares what
+  they found through Valkey (`floorbit/shared_state.py`); the other pods' pages read that, a second
+  or two old at most (the traffic history up to half a minute, from the database). A "check now"
+  on another pod, a typed-in power reading and what a local agent sends go to the leader. A pod
+  that takes the lease carries on from that picture, so a switch that was down stays down instead
+  of starting from a fresh baseline. Only the leader sends what the checks find: Discord alerts,
   webhooks, the event timeline, plugin hooks, replay frames and the nightly config backup. When it
   stops, another pod takes the lease within about 20 seconds. What a crew member does (an
   incident, a notice, a handover) is
@@ -118,6 +124,10 @@ With `FLOORBIT_CLUSTER` set the pods share three things through Valkey:
 The [switch terminal](terminal.md) keeps its SSH connection in the pod that opened it. A request for
 it that lands on another pod is passed to that pod through Valkey (sealed, like agent calls), so no
 sticky sessions are needed. When that pod stops, its terminals close.
+
+With `FLOORBIT_CLUSTER` set each pod also starts one gunicorn worker per CPU of its limit, at most
+4 ([sizing](sizing.md#more-than-one-worker)); each worker joins as a pod of its own. Set
+`resources.limits.cpu` to choose how many, or `GUNICORN_CMD_ARGS=--workers 1` for one.
 
 Each pod logs `[cluster] pod … joined (Redis)` at start, and the leader logs `… is now the leader`.
 Sign-in cookies work on every pod as long as they all have the same `SECRET_KEY` (the Secret above).

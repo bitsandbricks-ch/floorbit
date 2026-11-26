@@ -14,7 +14,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from integrations import events, seat_sources
 
-from .. import sources, spa
+from .. import sources, spa, stats
 
 bp = Blueprint('stats', __name__)
 
@@ -76,6 +76,6 @@ def seat_traffic():
 
 @bp.route('/api/stats/peak/reset', methods=['POST'])
 def reset_peak():
-    _stats().reset_peak()
+    stats.on_leader(_stats(), 'reset_peak')
     events.publish('stats.changed', {})
     return jsonify(_stats().snapshot())

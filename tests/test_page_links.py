@@ -8,9 +8,11 @@ LINK = re.compile(r"""['"]link['"]\s*:\s*f?['"](/[^'"{?#]*)""")
 
 
 def _routes():
-    app = (ROOT / 'frontend/src/App.tsx').read_text()
+    # Each area lists its pages in frontend/src/routes/<area>.ts (issue #1234).
+    files = sorted((ROOT / 'frontend/src/routes').glob('*.ts'))
+    text = '\n'.join(f.read_text() for f in files)
     out = []
-    for path in re.findall(r'<Route path="([^"]+)"', app):
+    for path in re.findall(r"\{ path: '([^']+)'", text):
         if path == '*':
             continue
         pattern = re.sub(r'/:[^/]+\?', '(/[^/]+)?', path)
@@ -21,7 +23,7 @@ def _routes():
 
 def test_every_link_from_the_server_opens_a_page():
     routes = _routes()
-    assert routes, 'no routes found in App.tsx'
+    assert routes, 'no routes found in frontend/src/routes/'
     dead = []
     for folder in ('floorbit', 'integrations'):
         for file in (ROOT / folder).rglob('*.py'):
