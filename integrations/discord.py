@@ -365,7 +365,7 @@ class DiscordNotifier:
                  'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat()}
         public_url = config.public_url()
         if public_url:
-            embed['url'] = public_url + '/stats'
+            embed['url'] = public_url + '/traffic'
         return {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': [embed],
                 'allowed_mentions': {'parse': []}}
 

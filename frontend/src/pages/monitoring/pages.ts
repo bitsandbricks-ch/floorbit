@@ -10,10 +10,8 @@ export interface ViewProps {
 const PAGES = {
   wifi: { label: 'wifi.title', load: () => import('@/pages/wifi/WifiView') },
   dns: { label: 'dns.title', load: () => import('@/pages/dns/DnsView') },
-  lancache: { label: 'lancache.title', load: () => import('@/pages/lancache/LancacheView') },
-  traffic: { label: 'traffic.title', load: () => import('@/pages/traffic/TrafficView') },
-  games: { label: 'games.title', load: () => import('@/pages/games/GamesView') },
-  stats: { label: 'stats.title', load: () => import('@/pages/stats/StatsView') },
+  traffic: { label: 'traffic.title', load: () => import('@/pages/traffic/TrafficOverview') },
+  games: { label: 'games.title', load: () => import('@/pages/games/GamesAndDownloads') },
   speedtests: { label: 'speedtests.title', load: () => import('@/pages/speedtests/SpeedtestsView') },
 } satisfies Record<string, { label: string; load: () => Promise<{ default: ComponentType<ViewProps> }> }>
 

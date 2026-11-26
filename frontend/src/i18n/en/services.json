@@ -115,6 +115,7 @@
   "panel": {
     "label": "{{name}}: details",
     "close": "Close details",
+    "downloads": "What the hall downloads",
     "since": "Like this since {{time}}",
     "history": "Last half hour",
     "tags": "Tags",

@@ -67,7 +67,7 @@ export default function Report() {
   const seatsSub = r?.seats ? t('report.ofSeats', { count: r.seats }) : undefined
 
   return (
-    <Layout title={t('report.title')} back={{ href: '/stats', label: t('stats.title') }}>
+    <Layout title={t('report.title')} back={{ href: '/events', label: t('events.title') }}>
       <PageHead title={r?.event_name || t('report.title')} desc={t('report.intro')}
         actions={
           <Group gap="xs">

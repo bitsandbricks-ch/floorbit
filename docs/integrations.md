@@ -51,7 +51,7 @@ Browsers subscribe to `GET /api/events` (Server-Sent Events). The React app hand
 | `monitor.poll` | every status poll | none (re-dispatched only) |
 | `checkin`, `checkin.removed`, `checkin.refreshed` | seat check-ins change | none (re-dispatched only) |
 | `attention.changed` | the needs-attention list changed | the Problems page reloads |
-| `stats.changed` | a new read of all ports, or the peak was reset | the Stats page reloads |
+| `stats.changed` | a new read of all ports, or the peak was reset | the Traffic overview reloads |
 
 | Variable | Default | |
 |---|---|---|

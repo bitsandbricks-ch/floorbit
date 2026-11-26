@@ -29,13 +29,11 @@ PAGES = (
     ('/services', 'services', 'Services', None),
     ('/wifi', 'wifi', 'Wi-Fi', lambda c, can: c['feature_on']('wifi') and c.get('wifi_on')),
     ('/dns', 'dns', 'DNS', lambda c, can: c['feature_on']('dns')),
-    ('/lancache', 'lancache', 'LAN cache', lambda c, can: _lancache_on()),
     ('/traffic', 'traffic', 'Traffic', lambda c, can: c['feature_on']('traffic')),
-    ('/games', 'games', 'Games', lambda c, can: c['feature_on']('games')),
+    ('/games', 'games', 'Games and downloads', lambda c, can: c['feature_on']('games')),
     ('/applications', 'applications', 'Applications', None),
     ('/flow-lookup', 'flowLookup', 'Flow lookup',
      lambda c, can: c['feature_on']('traffic') and can('traffic.investigate')),
-    ('/stats', 'stats', 'Stats', None),
     ('/speedtests', 'speedtests', 'Speed tests',
      lambda c, can: c['feature_on']('helpdesk') and can('incidents.work')),
     ('/logs', 'logs', 'Logs',
@@ -81,13 +79,6 @@ PAGES = (
     ('/settings/sign-in', 'signIn', 'Sign-in providers', lambda c, can: can('settings.manage')),
     ('/settings/audit', 'audit', 'Audit log', lambda c, can: can('audit.read')),
 )
-
-
-def _lancache_on():
-    # The LAN cache plugin comes from the Marketplace; a cache log Floorbit reads itself (or the
-    # demo) brings the page too, so it keeps its place in the Services tabs while data comes in (#1420).
-    from .blueprints.lancache import _has_data, _plugin
-    return _plugin()[1] or _has_data()
 
 
 def _checkin_on():

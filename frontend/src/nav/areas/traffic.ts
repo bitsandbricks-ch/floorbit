@@ -1,16 +1,17 @@
-import { IconApps, IconChartLine, IconChartPie, IconDeviceGamepad2, IconGauge, IconListSearch } from '@tabler/icons-react'
+import { IconApps, IconChartPie, IconDeviceGamepad2, IconGauge, IconListSearch, IconWorldWww } from '@tabler/icons-react'
 import type { NavArea } from '../sections'
 
-// Traffic: games, applications, the flow lookup, figures and speed tests as tabs.
+// Traffic: what the hall does. Its overview, games and downloads, DNS, applications, speed tests
+// and the flow lookup as tabs (#1642).
 export const area: NavArea = {
   hub: 'traffic',
-  tabs: ['games', 'applications', 'flowLookup', 'stats', 'speedtests'],
+  tabs: ['games', 'dns', 'applications', 'speedtests', 'flowLookup'],
   icons: {
     traffic: IconChartPie,
     games: IconDeviceGamepad2,
+    dns: IconWorldWww,
     applications: IconApps,
     flowLookup: IconListSearch,
-    stats: IconChartLine,
     speedtests: IconGauge,
   },
 }

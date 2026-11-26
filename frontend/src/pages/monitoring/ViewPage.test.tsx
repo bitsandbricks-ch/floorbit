@@ -17,9 +17,12 @@ describe('ViewPage', () => {
   it('shows a Monitoring view at its big size under the page title and intro', async () => {
     const api = fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/lancache?hours=24': empty })
     vi.stubGlobal('fetch', api.fn)
-    renderWithApp(<ViewPage view="lancache" />, '/lancache')
-    expect((await screen.findAllByRole('heading', { name: 'LAN cache' })).length).toBeGreaterThan(0)
-    expect(screen.getByText(/What the LAN cache saved/)).toBeInTheDocument()
-    await vi.waitFor(() => expect(api.calls.some((c) => c.path.startsWith('/api/lancache'))).toBe(true))
+    renderWithApp(<ViewPage view="games" />, '/games')
+    expect((await screen.findAllByRole('heading', { name: 'Games and downloads' })).length).toBeGreaterThan(0)
+    expect(screen.getByText(/what the LAN cache saved/)).toBeInTheDocument()
+    // Games and the LAN cache share one page and one range (#1642).
+    expect(await screen.findByRole('heading', { name: 'LAN cache' })).toBeInTheDocument()
+    await vi.waitFor(() => expect(api.calls.some((c) => c.path.startsWith('/api/lancache?hours=24'))).toBe(true))
+    expect(screen.getAllByRole('radiogroup', { name: /range|Zeitraum/i }).length).toBeLessThanOrEqual(1)
   })
 })

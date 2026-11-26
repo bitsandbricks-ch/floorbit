@@ -1,6 +1,6 @@
 # Post-event report
 
-**Event report** (`/report`, linked from the stats page) sums the event up in numbers, to read on the
+**Event report** (`/report`, linked from **Events**) sums the event up in numbers, to read on the
 page or download as a PDF: how full the hall was, peak bandwidth, switch outages, the ports with the
 most problems and every incident.
 

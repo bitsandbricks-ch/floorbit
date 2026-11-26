@@ -68,7 +68,7 @@ describe('Plugins page', () => {
     const unset = { ...plugin, id: 'zabbix', name: 'Zabbix', enabled: true, activity: { state: 'not_configured' as const, values: {} } }
     vi.stubGlobal('fetch', fakeFetch({
       'GET /api/auth/me': { enabled: false, user: null },
-      'GET /api/settings/plugins': { plugins: [receiving, unset], missing: [{ id: 'lancache', name: 'LAN cache', href: '/lancache' }] },
+      'GET /api/settings/plugins': { plugins: [receiving, unset], missing: [{ id: 'lancache', name: 'LAN cache', href: '/games' }] },
       'GET /api/settings/marketplace': { source: { url: '', name: '', generated: '', error: '' }, plugins: [] },
     }).fn)
     renderWithApp(<Plugins />)
@@ -78,7 +78,7 @@ describe('Plugins page', () => {
     expect(within(card('unifi')).getByText(/runs on the agent/)).toBeInTheDocument()
     expect(within(card('zabbix')).getByText('Not configured')).toBeInTheDocument()
     expect(within(card('lancache')).getByText('Not installed')).toBeInTheDocument()
-    expect(within(card('lancache')).getByRole('link', { name: 'LAN cache' })).toHaveAttribute('href', '/lancache')
+    expect(within(card('lancache')).getByRole('link', { name: 'LAN cache' })).toHaveAttribute('href', '/games')
     fireEvent.click(within(card('lancache')).getByRole('button', { name: 'Install' }))
     expect(await screen.findByRole('tab', { name: 'Marketplace' })).toHaveAttribute('aria-selected', 'true')
   })

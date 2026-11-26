@@ -142,8 +142,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   notifications on the right; no second title row on a computer), a status line. Pinned favourites per person, including
   dashboards. The tenant switcher shows only with two or more tenants.
 - **Sidebar, about a dozen rows:** Overview, Floor plan and Events · **Work:** Helpdesk · **Monitoring:**
-  Health, Network (Topology, Firewalls, Wi-Fi, Telemetry, Security), Services (DNS, LAN cache),
-  Traffic (Games, Stats, Speed tests), Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
+  Health, Network (Topology, Firewalls, Wi-Fi, Telemetry, Security), Services (health only: is it up),
+  Traffic (what the hall uses: Overview, Games and downloads, DNS, Applications, Speed tests, Flow lookup), Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,
   Pre-flight, Logs · **Screens:** Dashboards. Settings is the gear at the foot. Events holds the
   event's own pages (schedule, changelog, replay, report) as tabs; the picker at the top only
   switches the event. A row holds its

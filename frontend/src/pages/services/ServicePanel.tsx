@@ -9,6 +9,7 @@ import type { ServiceTags } from '@/api/serviceChecks'
 import type { ServiceRowData } from '@/widgets/serviceRows'
 import { clock } from '@/lib/time'
 import { Sparkline } from '@bitsandbricks/ui'
+import { CacheMachine } from '../lancache/LancacheView'
 
 const MUTE_MINUTES = 60
 
@@ -79,6 +80,12 @@ export function ServicePanel({ row, check, allTags, canEdit, canMute, canRcon, o
           <div style={{ height: 64 }} aria-label={t('services.panel.history')} role="img"><Sparkline points={row.points} min={0} /></div>
         )}
         {row.elsewhere && <Text size="sm" c="dimmed">{row.elsewhere}</Text>}
+        {row.type === 'lancache' && (
+          <>
+            <CacheMachine />
+            <Anchor component={Link} to="/games" size="sm">{t('services.panel.downloads')}</Anchor>
+          </>
+        )}
         {canEdit ? (
           <TagsInput label={t('services.panel.tags')} description={t('services.panel.tagsHelp')} data={allTags} value={tags}
             maxTags={8} clearable onChange={(next) => saveTags.mutate(next)} />

@@ -1,6 +1,6 @@
 {
-  "title": "Games",
-  "intro": "Was die Halle spielt und herunterlädt. Nur für die ganze Halle.",
+  "title": "Games und Downloads",
+  "intro": "Was die Halle spielt und herunterlädt, und was der LAN-Cache gespart hat. Nur für die ganze Halle.",
   "cacheLink": "Der LAN-Cache hat {{saved}} von seinen Disks geliefert.",
   "cacheLinkOpen": "LAN-Cache öffnen",
   "trafficPage": "Traffic",

@@ -1,6 +1,6 @@
 {
-  "title": "Games",
-  "intro": "What the hall plays and downloads. Hall-wide only.",
+  "title": "Games and downloads",
+  "intro": "What the hall plays and downloads, and what the LAN cache saved. Hall-wide only.",
   "cacheLink": "The LAN cache served {{saved}} from its disks.",
   "cacheLinkOpen": "Open LAN cache",
   "trafficPage": "Traffic",

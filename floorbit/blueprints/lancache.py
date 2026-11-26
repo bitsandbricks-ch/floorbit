@@ -1,13 +1,12 @@
 """The LAN cache view and widgets (docs/lancache.md):
 
-- ``GET /lancache``: the page (React).
 - ``GET /api/lancache?hours=24``: what the cache served per service and hour, the downloads enough
   players fetched, suspect files, lancache-dns lookups, and each agent's view of the cache machine.
   Hall-wide numbers only. Clearing the cache is the plugin's action (``/api/plugins/lancache/...``).
 """
 from flask import Blueprint, current_app, jsonify, request
 
-from .. import agent_plugins, spa
+from .. import agent_plugins
 from ..lancache import overview, settings
 
 bp = Blueprint('lancache', __name__)
@@ -24,11 +23,6 @@ def _has_data():
     """True once Floorbit reads a cache log itself or an agent reports one, with or without the plugin."""
     stats = current_app.extensions.get('floorbit_lancache')
     return bool(stats is not None and (stats.demo or stats.hours or stats.remote or settings()['log']))
-
-
-@bp.route('/lancache')
-def page():
-    return spa.render('LAN cache')
 
 
 @bp.route('/api/lancache', methods=['GET'])

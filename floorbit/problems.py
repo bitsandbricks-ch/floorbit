@@ -175,7 +175,7 @@ def _forecast():
     at = time.strftime('%H:%M', time.localtime(alert['t']))
     return [{'id': f"forecast:{alert['t']}", 'kind': 'forecast', 'level': 'down' if alert['pct'] >= 100 else 'warn',
              'title': f"Bandwidth expected at {alert['pct']} % of the line around {at}",
-             'where': 'Forecast from the hours so far', 'since': None, 'link': '/stats'}]
+             'where': 'Forecast from the hours so far', 'since': None, 'link': '/traffic'}]
 
 
 def _attention():

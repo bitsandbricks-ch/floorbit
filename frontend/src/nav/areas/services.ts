@@ -1,14 +1,11 @@
-import { IconHeartbeat, IconServer, IconServerBolt, IconWorldWww } from '@tabler/icons-react'
+import { IconHeartbeat, IconServerBolt } from '@tabler/icons-react'
 import type { NavArea } from '../sections'
 
-// Services, with DNS and the LAN cache as tabs.
+// Services: one page that says whether each service works (#1642). What the hall looks up and
+// downloads is under Traffic.
 export const area: NavArea = {
-  hub: 'services',
-  tabs: ['dns', 'lancache'],
   icons: {
     services: IconServerBolt,
-    dns: IconWorldWww,
-    lancache: IconServer,
     health: IconHeartbeat,
   },
 }

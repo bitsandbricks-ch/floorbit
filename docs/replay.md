@@ -1,6 +1,6 @@
 # Event replay
 
-**Replay** (`/replay`, linked from the stats page) plays the whole event back on the floor plan: how
+**Replay** (`/replay`, linked from **Events**) plays the whole event back on the floor plan: how
 the hall filled up, when traffic peaked, and where the incidents were. A time slider, play and
 pause, and a heatmap of every seat block to click on to jump to a moment. With more than one hall,
 a picker at the top switches between them.

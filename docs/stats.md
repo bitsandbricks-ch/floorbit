@@ -1,7 +1,8 @@
 # Stats
 
 The **Stats** widget (in the [widget gallery](dashboards.md#the-widget-gallery) and on the ready-made
-Network dashboard) has the numbers people ask for during the event:
+Network dashboard) has the numbers people ask for during the event. Opened up, it is the top of the
+**Traffic** overview, above what the traffic is made of (docs/flows.md):
 
 | Tile | What it is |
 | --- | --- |
@@ -15,7 +16,7 @@ Below them: traffic over the last hour or 24 hours, **Uplinks** (how full each s
 amber from 60 %, red from 80 %) and **Busiest seats** (the ten seats with the most traffic right now; a port without a seat, such as a server or an access point, counts in the hall's total but is not listed).
 
 Code: [`floorbit/stats.py`](../floorbit/stats.py), [`floorbit/blueprints/stats.py`](../floorbit/blueprints/stats.py),
-[`frontend/src/pages/Stats.tsx`](../frontend/src/pages/Stats.tsx).
+[`frontend/src/pages/stats/StatsView.tsx`](../frontend/src/pages/stats/StatsView.tsx).
 
 ## Where the numbers come from
 
@@ -68,7 +69,7 @@ far" outage count. The same comparison is on the [report](report.md).
 ## On a big screen
 
 On a dashboard, the stats tiles (seats online, bandwidth, the peak, seats by block) show the numbers
-readable from across the hall. Replay, the report and resetting the peak are on the Stats page.
+readable from across the hall. Replay and the report are under **Events**; resetting the peak is on the Traffic overview.
 
 ## Who sees what
 

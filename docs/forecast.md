@@ -1,6 +1,6 @@
 # Bandwidth forecast
 
-The Stats page shows what the hall's bandwidth will probably do in the next 12 hours. If you set
+The Traffic overview (**Traffic** in the sidebar) shows what the hall's bandwidth will probably do in the next 12 hours. If you set
 the line's capacity, Floorbit warns before the line is expected to fill: on the Problems list, on
 Discord and as a webhook.
 
