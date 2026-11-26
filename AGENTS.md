@@ -127,6 +127,7 @@ happen. Add files, don't grow shared ones:
 | one big translation file (`floorbit/locales/de-CH.json` is gone; `discord.de-CH.json` too should not grow) | add to `floorbit/locales/de-CH/<area>.json` (`log.de-CH/`, `discord.de-CH/`), named after the module that sends the text |
 | adding a blueprint to a shared list | nothing: a module in `floorbit/blueprints/` with a `bp` registers itself (there is no list) |
 | adding a new area's types to `frontend/src/api/types.ts` | put them in `frontend/src/api/<area>.ts`, next to its queries (like `tenantEvents.ts`) |
+| adding a sidebar row, tab or page icon to `frontend/src/nav/sections.ts` | a file in `frontend/src/nav/areas/<area>.ts` with the row, its tabs and their icons (`sections.ts` collects them) |
 | adding a new page's styles to `frontend/src/app.css` or `frontend/src/styles/` | a `<Page>.css` next to the page, imported by it |
 | one big test file for an area (`tests/test_cables.py`) | a new `tests/test_<area>_<topic>.py` for a new topic |
 | editing `docs/api-reference.md` by hand, or merging its conflict | run `python scripts/api_reference.py` after the merge; it writes the file from the routes |
