@@ -1,13 +1,8 @@
 import {
-  IconActivityHeartbeat, IconAlertCircle,
-  IconDeviceDesktopSearch, IconAlertTriangle, IconApps, IconArmchair, IconArrowsExchange, IconBolt, IconBook,
-  IconBroadcast, IconCalendar, IconCalendarEvent, IconChartLine, IconChartPie, IconChecklist, IconClipboardCheck, IconListCheck,
-  IconBell, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart, IconLink, IconMap,
-  IconBuildingCommunity, IconDeviceGamepad2, IconFileDiff, IconFileText, IconGauge, IconHeartbeat, IconHistory, IconKey, IconLayoutCards, IconLayoutDashboard, IconLayoutGrid, IconLayoutSidebar,
-  IconHierarchy2, IconLifebuoy, IconListSearch, IconLogin, IconNetwork, IconPlayerPlay, IconPlug, IconPlugConnected, IconPuzzle, IconReport,
-  IconServer, IconServerBolt, IconSettings, IconShield, IconStar, IconTableOptions, IconTemplate, IconTerminal, IconTerminal2, IconToggleRight,
-  IconTools, IconTrophy, IconUserCheck, IconUsers, IconUsersGroup, IconWalk, IconWall, IconWebhook, IconWifi, IconWorldWww,
-  type Icon,
+  IconActivityHeartbeat, IconApps, IconArmchair, IconBell, IconBolt, IconBook, IconCalendar, IconChartLine,
+  IconDeviceGamepad2, IconDeviceTv, IconExternalLink, IconEye, IconFlag, IconFolder, IconHeart,
+  IconLayoutDashboard, IconLifebuoy, IconLink, IconMap, IconNetwork, IconPuzzle, IconServer, IconShield,
+  IconStar, IconTools, IconTrophy, IconUsers, IconWifi, type Icon,
 } from '@tabler/icons-react'
 
 /** A page as the server lists it (GET /api/pages, floorbit/page_index.py): only those this account may open. */
@@ -42,23 +37,26 @@ export const SECTIONS: { id: SectionId; icon: Icon; pages: string[] }[] = [
   { id: 'screens', icon: IconDeviceTv, pages: ['dashboards'] },
 ]
 
+/** One area of the sidebar (``src/nav/areas/<area>.ts``): its row, the pages it holds as tabs,
+ *  and their icons. A new area is a new file there, so pull requests don't all edit one list. */
+export interface NavArea {
+  /** The row that bundles ``tabs``; none for pages that are only listed for their icon. */
+  hub?: string
+  tabs?: string[]
+  icons: Record<string, Icon>
+}
+
+export const AREAS: NavArea[] = Object.values(
+  import.meta.glob<NavArea>('./areas/*.ts', { eager: true, import: 'area' }),
+)
+
 /** Rows that hold other pages as tabs (issue #892). A row is a page of its own (Inventory,
  *  Settings) or only a bundle (Helpdesk): then it opens its first tab this account may open.
  *  The tabs show under the top bar (HubTabs); Settings draws its own. "Go to" still finds every
  *  page. */
-export const HUBS: Record<string, string[]> = {
-  helpdesk: ['problems', 'incidents', 'handover', 'networkStatus'],
-  network: ['switches', 'firewalls', 'wifi'],
-  agents: ['telemetry'],
-  services: ['dns', 'lancache'],
-  traffic: ['games', 'applications', 'stats', 'speedtests'],
-  seats: ['seatMapping', 'checkins', 'seatWalk', 'switchAreas', 'endpoints'],
-  inventory: ['cables', 'power'],
-  console: ['commands', 'terminal', 'configs'],
-  dashboards: ['widgets'],
-  settings: ['plugins', 'users', 'teams', 'signIn', 'apiTokens', 'webhooks', 'tenants', 'sidebarSections', 'audit'],
-  events: ['schedule', 'timeline', 'replay', 'report', 'templates'],
-}
+export const HUBS: Record<string, string[]> = Object.fromEntries(
+  AREAS.flatMap((a) => (a.hub ? [[a.hub, a.tabs ?? []]] : [])),
+)
 
 /** Hubs that draw their tabs themselves (pages/Settings.tsx). */
 export const OWN_TABS = ['settings']
@@ -106,18 +104,7 @@ export function hubTabs(pages: NavPage[], path: string): { hub: string; tabs: Na
 /** Groups folded until someone opens them (or a page in them is on screen). */
 export const FOLDED: string[] = []
 
-const ICONS: Record<string, Icon> = {
-  overview: IconLayoutGrid, floorPlan: IconMap, seats: IconArmchair, dashboards: IconLayoutDashboard, widgets: IconLayoutCards, problems: IconAlertTriangle,
-  helpdesk: IconLifebuoy, network: IconNetwork, console: IconTerminal2, event: IconCalendarEvent,
-  incidents: IconAlertCircle, jobs: IconClipboardCheck, handover: IconArrowsExchange,
-  checkins: IconUserCheck, speedtests: IconGauge, networkStatus: IconBroadcast, health: IconHeartbeat, stats: IconChartLine, traffic: IconChartPie,
-  dns: IconWorldWww, games: IconDeviceGamepad2, applications: IconApps, topology: IconHierarchy2, firewalls: IconWall, services: IconServerBolt, logs: IconFileText, security: IconShield, wifi: IconWifi, lancache: IconServer, power: IconBolt,
-  commands: IconTerminal2, terminal: IconTerminal, configs: IconFileDiff, inventory: IconServer, seatMapping: IconTableOptions, cables: IconPlug, seatWalk: IconWalk, switchAreas: IconHierarchy2,
-  preflight: IconChecklist, setup: IconListCheck, templates: IconTemplate,
-  schedule: IconCalendar, timeline: IconHistory, replay: IconPlayerPlay,
-  report: IconReport, events: IconCalendarEvent, settings: IconSettings, plugins: IconPuzzle, features: IconToggleRight, sidebarSections: IconLayoutSidebar,
-  apiTokens: IconKey, tenants: IconBuildingCommunity, agents: IconPlugConnected, switches: IconHierarchy2, telemetry: IconActivityHeartbeat, endpoints: IconDeviceDesktopSearch, webhooks: IconWebhook, users: IconUsers, teams: IconUsersGroup, signIn: IconLogin, audit: IconListSearch,
-}
+const ICONS: Record<string, Icon> = Object.assign({}, ...AREAS.map((a) => a.icons))
 
 /** A dashboard inside the app's frame, with the sidebar (``/dashboards/<id>`` is the big screen). */
 export const boardHref = (id: string) => `/dashboards/view/${encodeURIComponent(id)}`

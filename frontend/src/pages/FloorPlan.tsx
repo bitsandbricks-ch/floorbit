@@ -1,11 +1,11 @@
-import { ActionIcon, Alert, Anchor, Button, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core'
+import { ActionIcon, Alert, Anchor, Button, Chip, Drawer, Group, Kbd, Menu, Paper, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core'
 import { useHotkeys, useMediaQuery } from '@mantine/hooks'
-import { IconHelp, IconLayoutSidebarRight, IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
+import { IconCheck, IconDeviceTv, IconEdit, IconHelp, IconLayoutDashboard, IconLayoutSidebarRight, IconPhoto, IconPrinter, IconSearch } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { notifications } from '@mantine/notifications'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
@@ -39,9 +39,11 @@ import { useCablePlan } from './plan/cablePlan'
 import { CableLegend } from './plan/NetworkLayer'
 import { PlanEditor } from './plan/edit/PlanEditor'
 import { PlanMenu, type PlanDialog } from './plan/edit/PlanMenu'
-import { ExportMenu } from './plan/ExportMenu'
+import { ExportItems, ExportMenu } from './plan/ExportMenu'
+import { useExportImage } from './plan/useExportImage'
+import { PhoneControls } from './plan/PhoneControls'
 import { SnapToggles } from './plan/edit/SnapToggles'
-import { fromOldMode, isEditing, setEditing } from './plan/workspace'
+import { fromOldMode, isEditing, kioskHref, setEditing } from './plan/workspace'
 import { ToolRail } from './plan/edit/ToolRail'
 import { PlanKey } from './plan/PlanKey'
 import { TOOL_KEYS, TOOLS, type Tool } from './plan/edit/tools'
@@ -105,6 +107,10 @@ export default function FloorPlan() {
   // Big screens can rotate through the halls (issue #163): ?cycle=30 shows each for 30 seconds.
   const cycle = screen && params.get('cycle') ? Math.max(10, Number(params.get('cycle')) || 30) : 0
   const phone = useMediaQuery('(max-width: 48em)')
+  // Phones get the map-first controls (PhoneControls.tsx) instead of the bar while not editing.
+  const phoneLive = !!phone && !editing
+  // Editing on a phone: the bar keeps only the hall, layers, snapping, the plan menu and Done.
+  const phoneEdit = !!phone && editing
   const qc = useQueryClient()
   // A link with a seat or switch but no hall (from the incident board) opens the hall it is in (issue #206).
   // Only the first load asks by seat, so clicking around keeps the same hall.
@@ -173,6 +179,7 @@ export default function FloorPlan() {
   }, [switchSel, switchQ.data, selected, seatSwitch, blockSel, data])
   const [saved, setSaved] = useState<{ box: string; view: View } | null>(null)
   // The filter lives in the address so a reload or a shared link keeps it (issue #192).
+  const exportImage = useExportImage(data?.halls.find((h) => h.id === data.hall)?.name ?? data?.hall ?? '')
   const filter: Filter = FILTERS.includes(params.get('show') as Filter) ? params.get('show') as Filter : 'all'
   const filterRow = useRef<HTMLDivElement | null>(null)
   useEffect(() => revealActive(filterRow.current), [filter])
@@ -370,6 +377,14 @@ export default function FloorPlan() {
     )
   }
 
+  const searchForm = data && (
+    <form onSubmit={go} role="search">
+      <TextInput ref={findBox} size={phoneLive ? 'md' : 'xs'} aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={phoneLive ? undefined : canPeople ? 250 : 210} value={search}
+        leftSection={<IconSearch size={phoneLive ? 18 : 14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
+        onChange={(e) => setSearch(e.currentTarget.value)}
+        onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
+    </form>
+  )
   const inspector = selected
     ? <Inspector key={selected} seat={selected} onClose={() => set('seat', null)} onBlock={(b) => set('block', b)} />
     : blockSel ? <BlockPanel key={blockSel} name={blockSel} onSeat={(s) => set('seat', s)} onSwitch={(w) => set('switch', w)} onClose={() => set('block', null)} />
@@ -397,6 +412,33 @@ export default function FloorPlan() {
     grid: true, marks: true, network: true, safety: true, services: true, status: !!data?.monitoring, problems: true, checkin: !!data?.checkin,
     electrical: !!markers.data?.enabled, firewalls: !!fwSeats.data?.enabled, wifi: wifiPlaced, crew: !!incidentQ.data,
   }
+  // Phones: the filter as chips that wrap (never a row to scroll sideways), on top of the Problems sheet.
+  const phoneFilters = data && (
+    <Chip.Group value={filter} onChange={(v) => set('show', v === 'all' ? null : v as string)}>
+      <Group gap={6} className="fb-phone-filters" role="radiogroup" aria-label={t('planPhone.show')}>
+        {FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => (
+          <Chip key={f} value={f} size="sm" color={f === 'problems' ? 'down' : undefined}>{t(`plan.filter.${f}`)} {counts[f]}</Chip>
+        ))}
+      </Group>
+    </Chip.Group>
+  )
+  const phoneMore = data && (
+    <>
+      {data.halls.length > 1 && <>
+        <Menu.Label>{t('planPhone.hall')}</Menu.Label>
+        {data.halls.map((h) => (
+          <Menu.Item key={h.id} onClick={() => toHall(h.id)} rightSection={h.id === data.hall ? <IconCheck size={14} /> : undefined}>
+            <HallOption hall={h} />
+          </Menu.Item>
+        ))}
+        <Menu.Divider />
+      </>}
+      <Menu.Item leftSection={<IconDeviceTv size={14} />} component="a" href={kioskHref(data.hall, params)}>{t('planPhone.screen')}</Menu.Item>
+      <Menu.Item leftSection={<IconLayoutDashboard size={14} />} component={Link} to="/dashboards">{t('planPhone.dashboards')}</Menu.Item>
+      {!list && !topo && <><Menu.Divider /><ExportItems hall={data.hall} filter={filter} save={exportImage.save} /></>}
+      {canEdit && !list && !topo && <><Menu.Divider /><Menu.Item leftSection={<IconEdit size={14} />} onClick={() => edit('select')}>{t('planPhone.edit')}</Menu.Item></>}
+    </>
+  )
   return (
     <Layout title={t('plan.title')} back={{ href: '/', label: t('plan.editor') }} count={problems + elsewhere} full>
       {q.isPending && <div className="fb-ws-pad"><LoadingState rows={3} /></div>}
@@ -404,7 +446,7 @@ export default function FloorPlan() {
       {data && (
         <div className="fb-ws">
           {/* One slim bar like a map editor's: where you are, what you see, and the tools. */}
-          <div className="fb-ws-bar">
+          {!phoneLive && <div className={phoneEdit ? 'fb-ws-bar is-phone-edit' : 'fb-ws-bar'}>
             {!topo && data.halls.length > 1 && (
               <Select aria-label={t('plan.hall')} w={170} size="xs" comboboxProps={{ width: 'max-content', position: 'bottom-start' }}
                 allowDeselect={false} value={data.hall}
@@ -412,10 +454,10 @@ export default function FloorPlan() {
                 renderOption={({ option }) => <HallOption hall={data.halls.find((h) => h.id === option.value)!} />}
                 onChange={(v) => { if (v) toHall(v) }} />
             )}
-            {!topo && <Text size="sm" className="fb-ws-online"><b>{online}</b> / {total} {t('plan.online')}</Text>}
-            {editing && problems > 0 && <Text size="sm" c="down"><b>{problems}</b> {t('plan.withProblems')}</Text>}
+            {!topo && !phoneEdit && <Text size="sm" className="fb-ws-online"><b>{online}</b> / {total} {t('plan.online')}</Text>}
+            {editing && !phoneEdit && problems > 0 && <Text size="sm" c="down"><b>{problems}</b> {t('plan.withProblems')}</Text>}
             {/* The filters say how many seats each holds (issue #190), so the row doubles as the summary. */}
-              {!topo && <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
+              {!topo && !phoneEdit && <div className="fb-filter-scroll" ref={mountFilterRow}><SegmentedControl size="xs" value={filter} onChange={(v) => set('show', v === 'all' ? null : v)} aria-label={t('plan.show')}
                 data={FILTERS.filter((f) => data.checkin || f !== 'checked_in').map((f) => ({
                   value: f,
                   label: <span><span>{t(`plan.filter.${f}`)}</span> <span className="fb-filter-count">{counts[f]}</span></span>,
@@ -426,24 +468,21 @@ export default function FloorPlan() {
               onOpen={phone && !editing ? () => { setSide({ tab: 'layers' }); setSheet(true) } : undefined} />}
             {editing && !list && <SnapToggles layers={layers} onLayers={setLayers} />}
             <div className="fb-ws-bar-end">
-              {!topo && <>
+              {!topo && !phoneEdit && <>
               <Elsewhere halls={data.halls} current={data.hall} onHall={toHall} />
               {data.last_read && <Text c="dimmed" size="xs" className="fb-ws-read">{t('plan.lastRead', { time: clock(data.last_read) })}</Text>}
               <StaleNotice updatedAt={q.dataUpdatedAt} failing={q.isRefetchError} />
-              <form onSubmit={go} role="search">
-                <TextInput ref={findBox} size="xs" aria-label={t('plan.find')} aria-keyshortcuts="/" rightSection={keyboard ? <Kbd size="xs">/</Kbd> : undefined} placeholder={canPeople ? t('plan.findPlayerHint') : t('plan.findHint')} w={canPeople ? 250 : 210} value={search}
-                  leftSection={<IconSearch size={14} />} error={notFound ? t(canPeople ? 'plan.notFoundPlayer' : 'plan.notFound') : undefined}
-                  onChange={(e) => setSearch(e.currentTarget.value)}
-                  onKeyDown={(e) => { if (e.key === 'Escape') { setSearch(''); setPlayers(null); e.currentTarget.blur() } }} />
-              </form>
+              {searchForm}
               {!list && <ViewMenu hall={data.hall} view={view} params={params} setParams={setParams} setView={setView} canEdit={canEdit} />}
               <ScreenLink hall={data.hall} params={params} />
-              {editing && <PlanMenu onOpen={setPlanDialog} />}
               <ExportMenu hall={data.hall} hallName={data.halls.find((h) => h.id === data.hall)?.name ?? data.hall} filter={filter} />
               </>}
-              <Tooltip label={t('plan.shortcuts.show')}>
+              {editing && <PlanMenu onOpen={setPlanDialog} />}
+              {phoneEdit && <Button size="xs" onClick={() => setParams(setEditing(params, false))}>{t('planPhone.done')}</Button>}
+              {/* The key list is for keyboards: touch screens have none. */}
+              {keyboard && <Tooltip label={t('plan.shortcuts.show')}>
                 <ActionIcon variant="default" size="md" aria-label={t('plan.shortcuts.show')} aria-keyshortcuts="?" onClick={showShortcuts}><IconHelp size={16} aria-hidden="true" /></ActionIcon>
-              </Tooltip>
+              </Tooltip>}
               {!editing && !phone && (
                 <Tooltip label={<>{t(side.open ? 'plan.side.hide' : 'plan.side.show')} <Kbd size="xs">]</Kbd></>}>
                   <ActionIcon variant={side.open ? 'light' : 'default'} size="md" aria-label={t(side.open ? 'plan.side.hide' : 'plan.side.show')}
@@ -453,7 +492,7 @@ export default function FloorPlan() {
                 </Tooltip>
               )}
             </div>
-          </div>
+          </div>}
           {searched && players.hits.length > 1 && (
             <Group gap={6} className="fb-ws-strip" justify="flex-end" role="list" aria-label={t('plan.players')}>
               {players.hits.map((h) => (
@@ -467,6 +506,15 @@ export default function FloorPlan() {
           )}
           {!data.monitoring && !topo && <Alert color="warn" radius={0} py={6} className="fb-ws-strip">{t('plan.noMonitoring')}</Alert>}
           <div className="fb-ws-body">
+            {phoneLive && (data.drawing || topo) && (
+              <PhoneControls search={topo ? undefined : searchForm} online={online} total={total}
+                view={topo ? 'topology' : list ? 'list' : 'map'} onView={(v) => set('view', v === 'map' ? null : v)}
+                layersOn={[...layers.on].filter((l) => available[l]).length}
+                onLayers={list ? undefined : () => { setSide({ tab: 'layers' }); setSheet(true) }}
+                problems={problems} onProblems={() => { setSide({ tab: 'problems' }); setSheet(true) }}
+                views={list ? undefined : (target) => <ViewMenu hall={data.hall} view={view} params={params} setParams={setParams} setView={setView} canEdit={canEdit} target={target as React.ReactElement} />}
+                more={phoneMore} />
+            )}
             {topo && (
               <Suspense fallback={<div className="fb-ws-pad"><LoadingState /></div>}>
                 <TopologyView phone={!!phone} sideOpen={side.open} switchSel={switchSel} onSwitch={(w) => set('switch', w)} switchPanel={switchSel && (
@@ -487,8 +535,8 @@ export default function FloorPlan() {
             )}
             {/* The side panel's tabs carry the attribution in their foot; one is enough. */}
             {!editing && !topo && data.drawing && <div className={`fb-plan-layout${(panel || side.open) && !phone ? ' with-inspector' : ''}${list ? ' is-list' : ''}`}>
-              <div className={canEdit && !list ? 'fb-edit-stage' : 'fb-ws-stage'}>
-              {canEdit && !list && <ToolRail tool={null} onTool={edit} onView={() => {}} />}
+              <div className={canEdit && !list && !phone ? 'fb-edit-stage' : 'fb-ws-stage'}>
+              {canEdit && !list && !phone && <ToolRail tool={null} onTool={edit} onView={() => {}} />}
               <div className="fb-ws-canvas">
                 {list ? <SeatList data={data} filter={filter} selected={selected} onSelect={(s) => set('seat', s === selected ? null : s)} /> : map}
                 {list ? !tabsShown && <Attribution compact /> : (
@@ -516,11 +564,12 @@ export default function FloorPlan() {
               onClose={() => { setSheet(false); if (panel) set(selected ? 'seat' : blockSel ? 'block' : 'switch', null) }}
               aria-label={selected ?? blockSel ?? switchSel ?? t('plan.side.label')}
               classNames={{ content: 'fb-plan-sheet', body: 'fb-plan-sheet-body' }}>
-              {editing || !data.drawing ? inspector : (
+              {editing || !data.drawing ? inspector : (<>
+                {!panel && side.tab === 'problems' && phoneFilters}
                 <SidePanel data={data} tab={side.tab} onTab={(tab) => setSide({ tab })} layers={layers} onLayers={setLayers} available={available}
                   inspector={inspector} legends={legends} extraLayers={pluginPicker} onSeat={(s) => jump(s)} onBlock={(b) => set('block', b)} onSwitch={(w) => set('switch', w)}
                   onClose={panel ? undefined : () => setSheet(false)} />
-              )}
+              </>)}
             </Drawer>
           )}
         </div>

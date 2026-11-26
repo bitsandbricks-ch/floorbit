@@ -1,7 +1,7 @@
 import { Alert, Button, CopyButton, Group, Menu, Modal, Stack, Switch, Text, TextInput } from '@mantine/core'
 import { IconBookmark, IconChevronDown, IconDeviceFloppy, IconLink, IconLock, IconRefresh, IconTrash } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { type ReactElement, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { del, post, put } from '@/api/client'
 import { PLAN_VIEWS_KEY, type PlanView, usePlanViews } from '@/api/planViews'
@@ -12,9 +12,11 @@ import { applyView, currentView, VIEW_PARAM } from './apply'
 /** The plan's View ▾ menu (issue #1326): saved views of this hall to open, and saving what the plan
  *  shows now (position and zoom, layers, filter) under a name. Opening one is an address with
  *  ``?pv=``, so a view also has a link. */
-export function ViewMenu({ hall, view, params, setParams, setView, canEdit }: {
+export function ViewMenu({ hall, view, params, setParams, setView, canEdit, target }: {
   hall: string; view: View | null; params: URLSearchParams
   setParams: (p: URLSearchParams) => void; setView: (v: View) => void; canEdit: boolean
+  /** Another button to open the menu with (the phone plan's dock). */
+  target?: ReactElement
 }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
@@ -51,12 +53,12 @@ export function ViewMenu({ hall, view, params, setParams, setView, canEdit }: {
 
   return (
     <>
-      <Menu position="bottom-end" withinPortal width={280}>
+      <Menu position={target ? 'top' : 'bottom-end'} withinPortal width={280}>
         <Menu.Target>
-          <Button size="xs" variant={open ? 'light' : 'default'} leftSection={<IconBookmark size={14} aria-hidden="true" />}
+          {target ?? <Button size="xs" variant={open ? 'light' : 'default'} leftSection={<IconBookmark size={14} aria-hidden="true" />}
             rightSection={<IconChevronDown size={14} aria-hidden="true" />} maw={220}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{open ? open.name : t('planViews.button')}</span>
-          </Button>
+          </Button>}
         </Menu.Target>
         <Menu.Dropdown>
           {here.length === 0 && <Menu.Label>{t('planViews.none')}</Menu.Label>}

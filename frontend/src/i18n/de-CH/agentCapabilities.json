@@ -1,22 +1,60 @@
 {
   "title": "Fähigkeiten",
   "help": "Was dieser Agent kann. Wo er etwas nicht kann, macht Floorbit es wie bei älteren Agents; ein Update des Agents schaltet es ein.",
+  "agent": "Der Agent",
+  "collects": "Was er sammelt",
   "name": {
     "lease": "Primary von Floorbit bestimmt",
     "split": "Teilt die Geräte mit seiner Gruppe",
     "syslog_hold": "Behält Syslog anderer Agents für eine Übernahme",
-    "self_update": "Aktualisiert sich selbst"
+    "self_update": "Aktualisiert sich selbst",
+    "syslog_ids": "Syslog-Zeilen mit IDs",
+    "plugin_updates": "Aktualisiert seine Plugins",
+    "key_roll": "Wechselt seinen Schlüssel",
+    "cert": "Holt sein Zertifikat bei Floorbit",
+    "syslog": "Syslog",
+    "netflow": "Flows (NetFlow, IPFIX, sFlow)",
+    "snmp": "SNMP-Abfragen",
+    "traps": "SNMP-Traps",
+    "gnmi": "Streaming (gNMI)",
+    "mdt": "Streaming (Cisco MDT Dial-out)",
+    "rest": "Geräte-APIs (NX-API, RESTCONF, OPNsense)",
+    "mac_lookup": "MAC-Suche beim Check-in"
   },
   "yes": {
     "lease": "Fragt Geräte ab und meldet sich an, nur solange Floorbit ihn zum Primary macht.",
     "split": "Fragt nur seine eigenen Geräte ab, meldet sich nur dort an und verarbeitet nur deren Daten.",
     "syslog_hold": "Sendet nur die Zeilen seiner eigenen Geräte und behält eine Minute vom Rest.",
-    "self_update": "Installiert die signierten Agent-Versionen, die Floorbit anbietet, ohne neues Image."
+    "self_update": "Installiert die signierten Agent-Versionen, die Floorbit anbietet, ohne neues Image.",
+    "syslog_ids": "Jede Zeile hat eine ID, so behält Floorbit die Kopien einer Gruppe nur einmal.",
+    "plugin_updates": "Installiert signierte Plugin-Updates aus dem Marketplace, ohne neues Image.",
+    "key_roll": "Holt selbst einen neuen Schlüssel, wenn du ihn wechselst.",
+    "cert": "Erzeugt seinen eigenen Schlüssel und lässt sein Zertifikat von Floorbit signieren.",
+    "syslog": "Leitet das Syslog der Geräte an Floorbit weiter.",
+    "netflow": "Fasst die Flows in der Halle zusammen; nur Summen verlassen das Eventnetz.",
+    "snmp": "Fragt die Geräte per SNMP mit Telegraf ab.",
+    "traps": "Nimmt die SNMP-Traps der Geräte an.",
+    "gnmi": "Abonniert die gNMI-Streams der Geräte.",
+    "mdt": "Nimmt die Telemetrie-Streams an, die Geräte ihm senden.",
+    "rest": "Fragt die eigenen APIs der Geräte ab.",
+    "mac_lookup": "Findet den Port eines eingecheckten PCs mit wenigen SNMP-GETs, wo der Bereich Suchen erlaubt."
   },
   "no": {
     "lease": "Wie früher mit VRRP: Primary ist der Agent mit der ersten geteilten Adresse.",
     "split": "Wie früher: Ein Primary sammelt alle Geräte der Gruppe.",
     "syslog_hold": "Wie früher: Er sendet jede Zeile, Floorbit behält jede nur einmal.",
-    "self_update": "Fällt auf den Pull-Befehl zurück: Die Crew holt das neue Image von Hand."
+    "self_update": "Fällt auf den Pull-Befehl zurück: Die Crew holt das neue Image von Hand.",
+    "syslog_ids": "Seine Zeilen haben keine IDs: In einer Gruppe kann dieselbe Zeile doppelt erscheinen.",
+    "plugin_updates": "Plugins werden nur mit einem neuen Agent-Image aktualisiert.",
+    "key_roll": "Kann keinen neuen Schlüssel holen: Ein Wechsel wartet, bis der Agent aktualisiert ist.",
+    "cert": "Verwendet nur das Zertifikat, das die Crew ihm gibt.",
+    "syslog": "Syslog ist auf diesem Agent aus oder läuft nicht.",
+    "netflow": "Flows sind auf diesem Agent aus oder laufen nicht.",
+    "snmp": "Kein Telegraf auf diesem Agent oder Telemetrie aus: keine SNMP-Abfragen.",
+    "traps": "Kein Telegraf auf diesem Agent oder Telemetrie aus: keine Traps.",
+    "gnmi": "Kein Telegraf auf diesem Agent oder Telemetrie aus: kein gNMI.",
+    "mdt": "Kein Telegraf auf diesem Agent oder Telemetrie aus: kein MDT.",
+    "rest": "Telemetrie ist auf diesem Agent aus oder läuft nicht.",
+    "mac_lookup": "Der Check-in nutzt nur die abgefragten ARP- und MAC-Tabellen."
   }
 }

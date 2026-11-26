@@ -208,7 +208,10 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Dates and times:** day-first (19.11.2026) and 24-hour in every language, through
   `frontend/src/lib/time.ts`; date fields use `DateTimeInput`.
 - **Phone and big screen:** every page works on a phone (wide tables stack into cards, panels become
-  bottom drawers) and readable on a wall (kiosk dashboards, seat labels that fit the zoom).
+  bottom drawers) and readable on a wall (kiosk dashboards, seat labels that fit the zoom). Nothing
+  scrolls sideways on a phone: tabs that don't fit go under "More", filters wrap. Workspaces like the
+  floor plan are map first on a phone: floating search, a dock at thumb height, sheets for the rest
+  (Mike, 2026-11-26). Keyboard hints show only where there is a keyboard.
 
 ## 5. Privacy and security
 

@@ -10,7 +10,7 @@ floorbit/applications.py, docs in docs/applications.md.
 """
 from flask import Blueprint, current_app, g, jsonify, request
 
-from .. import applications, audit, features, spa
+from .. import application_sources, applications, audit, features, spa
 from .flows import current as current_flows
 from .games import servers_now
 
@@ -42,7 +42,11 @@ def list_applications():
         {c['cache']: c for c in (cache or {}).get('caches') or []}, (cache or {}).get('downloads'),
         servers_now())
     rows = [{**a, 'seen': {**seen[a['id']], 'seats': applications.seats(seen[a['id']])}} for a in apps]
-    return jsonify({'applications': rows, 'sources': applications.builtin()['sources'], 'hours': hours,
+    # The rule sources by name only: their URLs are for settings.manage (blueprints/application_sources.py).
+    synced = [{k: s[k] for k in ('id', 'name', 'on', 'ok', 'changed_at', 'count')}
+              for s in application_sources.status()]
+    return jsonify({'applications': rows, 'sources': applications.builtin()['sources'], 'synced': synced,
+                    'frozen': application_sources.frozen(), 'hours': hours,
                     'kinds': list(applications.KINDS), 'categories': list(applications.CATEGORIES)})
 
 
@@ -74,7 +78,8 @@ def remove_application(app_id):
     gone = applications.remove(app_id)
     if gone is None:
         return jsonify({'error': 'No such application, or nothing changed on it.'}), 404
-    builtin = app_id in applications.builtin()['apps']
+    shipped = applications.base()
+    builtin = app_id in shipped
     audit.record('applications', 'Reset an application' if builtin else 'Removed an application',
-                 g.get('audit_user'), gone.get('name') or applications.builtin()['apps'][app_id]['name'])
+                 g.get('audit_user'), gone.get('name') or shipped[app_id]['name'])
     return jsonify({'ok': True})
