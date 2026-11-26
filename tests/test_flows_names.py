@@ -98,12 +98,11 @@ def test_flows_after_a_lookup_count_for_the_application_and_stay_in_the_hall(app
     assert services["Web"]["bytes"] == 600
     # Nothing in the summary says which seat looked up what, or which address it got.
     text = json.dumps(snap)
-    assert "198.51.100.7" not in text and "steampowered.com" not in text
-    for ip in SEATS:
-        assert ip not in text
+    for secret in ("198.51.100.7", "steampowered.com", *SEATS):
+        assert text.count(secret) == 0
 
 
 def test_flow_rules_carry_the_applications_sites(app_module):
     rules = {r["name"]: r for r in applications.flow_rules()}
-    assert "steampowered.com" in rules["Steam"]["sites"]
+    assert rules["Steam"]["sites"].count("steampowered.com") == 1
     assert all("sites" in r for r in rules.values())
