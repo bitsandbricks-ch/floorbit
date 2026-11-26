@@ -1,0 +1,10 @@
+{
+  "title": "Network owners, 24 hours",
+  "owner": "Owner",
+  "none": "No owner was used by enough seats yet.",
+  "noList": "The agent fetches the list of network owners once a day. It has none yet.",
+  "text_one": "An owner is only named once {{count}} different seat used it. {{volume}} went to owners fewer seats used.",
+  "text_other": "An owner is only named once {{count}} different seats used it. {{volume}} went to owners fewer seats used.",
+  "source": "Owners from iptoasn.com (public domain), fetched {{when}}.",
+  "sourceNone": "Owners come from iptoasn.com (public domain)."
+}

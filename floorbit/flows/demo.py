@@ -17,6 +17,18 @@ DEMO_RULES = [{'name': 'LAN cache', 'category': 'downloads', 'cidr': [f'{LAN_CAC
               {'name': 'Tournament servers', 'category': 'gaming', 'cidr': ['198.51.100.64/28']},
               {'name': 'Video streaming', 'category': 'streaming', 'cidr': ['203.0.113.20/32']}]
 REMOTE = {'web': '203.0.113.10', 'stream': '203.0.113.20', 'steam': '203.0.113.30', 'update': '203.0.113.40'}
+# Made-up owners on the documentation AS numbers (RFC 5398), for the Traffic page's network owners.
+DEMO_OWNERS = {REMOTE['web']: (64496, 'Example CDN'), REMOTE['stream']: (64497, 'Example Video'),
+               REMOTE['steam']: (64498, 'Example Game Network'), REMOTE['update']: (64499, 'Example Software')}
+
+
+def demo_owner(ip):
+    if ip in DEMO_OWNERS:
+        return DEMO_OWNERS[ip]
+    if ip.startswith('203.0.113.'):     # the torrent's peers: many owners, each too few seats to name
+        n = int(ip.rsplit('.', 1)[1])
+        return 64500 + n % 10, f'Example ISP {n % 10 + 1}'
+    return None
 
 
 def _flow(src, dst, sport, dport, proto, size, now):
@@ -61,7 +73,7 @@ def flows_for(now, step=STEP):
 
 class DemoFlows:
     def __init__(self):
-        self.agg = Aggregator(Classifier(compile_rules(DEMO_RULES) + compile_rules(BUILTIN)))
+        self.agg = Aggregator(Classifier(compile_rules(DEMO_RULES) + compile_rules(BUILTIN)), owner_of=demo_owner)
         self._stop = threading.Event()
         self._thread = None
 
@@ -91,5 +103,6 @@ class DemoFlows:
     def snapshot(self):
         snap = self.agg.snapshot()
         snap['raw'] = {'files': 0, 'bytes': 0, 'oldest': None}
+        snap['owners_list'] = {'updated': time.time() - 3 * 3600, 'ranges': 0}
         snap['demo'] = True
         return snap

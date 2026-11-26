@@ -43,6 +43,7 @@ agent has sent anything for 5 minutes, and when the last summary is more than a 
 | The whole hall | bytes per category, last hour and last 24 hours | everyone with `floorplan.view` |
 | Per area | the same per seat block, last hour | everyone |
 | Applications | per service, 24 hours: how many different seats used it, bytes down (to the seats) and up, bytes per hour for the last 6 hours, and bytes per seat block. Click one for its blocks and hours | everyone |
+| Network owners | per remote network (AS) and its owner, 24 hours: how many different seats used it, bytes down and up | everyone |
 | Look at this | P2P or torrent floods, DDoS-like bursts, seats answering DHCP or DNS | everyone sees the kind; `seats.view` sees which seat |
 | Per seat | total volume and the category mix only, 24 hours | `seats.view` |
 
@@ -57,6 +58,13 @@ cache:
  {"name": "Some game", "category": "gaming", "ports": ["udp/7777-7780"]}]
 ```
 
+**Network owners** come from the [iptoasn.com](https://iptoasn.com/) list
+(`ip2asn-combined.tsv.gz`, public domain under PDDL 1.0), which maps address ranges to the network
+(AS number) that announces them and its owner. The collector on the agent fetches it once a day into
+`FLOWS_DIR`, keeps the last good copy when a fetch fails (it tries again after an hour), and looks up
+each flow's remote address in memory. Private and documentation addresses have no owner. Nothing to
+set up; until the first list is in, the table says so.
+
 **Domains and sites** (from DNS and TLS SNI) need data that NetFlow and IPFIX don't carry. TODO: ask
 Mike whether the event's DNS resolver logs can be read; until then services come from addresses and
 ports only.
@@ -69,6 +77,8 @@ Flows are personal data under Swiss and EU rules (an address at a seat is a pers
   counts as "other", so a rare service can't point at one person. The same floor holds for a seat
   block: a service's bytes in a block are only shown when that many of the block's seats used it;
   the rest shows as "blocks with fewer seats".
+- A **network owner** follows the same rule: named once 5 different seats used it, otherwise counted
+  as "owners fewer seats used". Only the owner's name and AS number leave the agent, never addresses.
 - **Per seat** there is only the volume and the category mix ("80 GB, mostly gaming"), for spotting
   problems. Never services, addresses or ports.
 - **Raw flows** (`FLOWS_DIR/raw/`, one gzip file per hour) are kept for `FLOWS_RETENTION_DAYS` (7)
@@ -84,7 +94,7 @@ Flows are personal data under Swiss and EU rules (an address at a seat is a pers
 - **Per-seat numbers** live only in the collector's memory and are gone after the retention too
   (or when it restarts).
 - **What stays** after that is `FLOWS_DIR/hourly.jsonl`: per hour, the hall, area and service
-  totals, services only with enough seats. No seats and no addresses.
+  totals, services and network owners only with enough seats. No seats and no addresses.
 
 `FLOWS_DIR` defaults to `flows/` next to `data.json` (`/app/state/flows` in Docker).
 

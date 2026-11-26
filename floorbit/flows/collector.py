@@ -14,6 +14,7 @@ from integrations import config
 from .. import disk_budget
 from . import seat_maps, store
 from .aggregate import Aggregator
+from .owners import Owners
 from .parse import ParseError, Templates, parse
 
 PUBLISH_EVERY = 10
@@ -29,8 +30,9 @@ RAW_LATE = 60         # a minute is written this long after it ended: exporters 
 
 
 class Collector:
-    def __init__(self, aggregator=None, raw=None, log=print):
-        self.agg = aggregator or Aggregator()
+    def __init__(self, aggregator=None, raw=None, log=print, owners=None):
+        self.owners = owners or Owners(log=log)
+        self.agg = aggregator or Aggregator(owner_of=self.owners.lookup)
         self.raw = raw or store.RawStore()
         self.templates = Templates()
         self.log = log
@@ -138,6 +140,7 @@ class Collector:
 
     def housekeeping(self, now=None, refresh_seats=None):
         now = time.time() if now is None else now
+        self.owners.refresh(now=now)
         if self._due('seats', now, SEATS_EVERY):
             try:
                 seat_of = (refresh_seats or seat_maps)()
@@ -167,4 +170,5 @@ class Collector:
             snap['templates_missing'] = self.templates.missing
             snap['errors'] = self.errors
             snap['refused'] = self.refused
+            snap['owners_list'] = self.owners.status()
             self.publish(snap)
