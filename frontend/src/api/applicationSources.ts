@@ -15,6 +15,8 @@ export type RuleSource = {
   /** Floorbit's own list: signed, always last, can be switched off but not removed or moved. */
   builtin?: boolean
   signed?: boolean
+  /** What the last fetch that changed something changed, by name. */
+  last_change?: Record<'added' | 'changed' | 'removed', { count: number; names: string[] }> | null
 }
 export type RuleSourcesAnswer = { sources: RuleSource[]; frozen: boolean }
 export type RuleSourceBody = { name?: string; url?: string; every_hours?: number; on?: boolean; position?: number }

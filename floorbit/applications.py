@@ -122,6 +122,10 @@ def listing(data=None):
         change = own.get(aid) or {}
         merged = {**app, 'builtin': True, 'hidden': bool(change.get('hidden')), 'edited': bool(change),
                   'added': {k: change.get(k) or [] for k in ('sites', 'ports', 'cidr', 'depots')}}
+        # Everything the event added now ships too (it was shared, or a list caught up): the local
+        # copy can go (#1612).
+        merged['redundant'] = bool(change) and not change.get('hidden') and any(merged['added'].values()) and all(
+            set(merged['added'][k]) <= set(app.get(k) or []) for k in merged['added'])
         for k in ('sites', 'ports', 'cidr', 'depots'):
             merged[k] = sorted(set(app.get(k) or []) | set(change.get(k) or []), key=str)
         out.append(merged)
@@ -129,6 +133,7 @@ def listing(data=None):
         if aid in shipped:
             continue
         out.append({**_blank(), **entry, 'builtin': False, 'hidden': bool(entry.get('hidden')), 'edited': False,
+                    'redundant': False,
                     'added': {k: entry.get(k) or [] for k in ('sites', 'ports', 'cidr', 'depots')}})
     out.sort(key=lambda a: (KINDS.index(a['kind']) if a['kind'] in KINDS else 9, a['name'].lower()))
     return out
@@ -359,6 +364,15 @@ def usage(apps, sites=None, services=None, caches=None, downloads=None, servers=
             'players': players.get(app['name'].lower()) if app['kind'] == 'game' else None,
         }
     return out
+
+
+def unrecognised(apps, sites, limit=30):
+    """The busiest sites no shown application has: what to name next (#1612). ``sites`` is
+    dns.site_lookups, which only has sites 5 or more seats used, so nothing here is one player's."""
+    known = {s for a in apps if not a.get('hidden') for s in a['sites']}
+    rows = [{'site': s, 'lookups': n, 'seats': c} for s, (n, c) in (sites or {}).items() if s not in known]
+    rows.sort(key=lambda r: (-r['seats'], -r['lookups'], r['site']))
+    return rows[:limit]
 
 
 def seats(row):

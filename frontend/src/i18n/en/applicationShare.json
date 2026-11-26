@@ -17,5 +17,13 @@
   "exportHelp": "The event's own applications and what it added to built-in ones, as a rules file",
   "import": "Import",
   "imported": "{{added}} added, {{changed}} changed",
-  "triedLookups": "Here it was seen by {{seats}} seats in the last 24 hours, in {{lookups}} DNS lookups."
+  "triedLookups": "Here it was seen by {{seats}} seats in the last 24 hours, in {{lookups}} DNS lookups.",
+  "unrecognised": "Not recognised",
+  "unrecognisedHelp": "The busiest domains 5 or more seats used that no application has. Name them, and share them if others will see them too.",
+  "seatsLookups": "{{seats}} seats · {{lookups}} lookups",
+  "make": "Make an application",
+  "allOf": "All {{count}}",
+  "fewer": "Fewer",
+  "redundant": "Floorbit's lists now have everything this event added here.",
+  "dropLocal": "Drop the local copy"
 }

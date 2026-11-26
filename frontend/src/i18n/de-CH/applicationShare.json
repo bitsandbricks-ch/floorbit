@@ -17,5 +17,13 @@
   "exportHelp": "Die eigenen Anwendungen des Events und was es zu eingebauten hinzugefügt hat, als Regeldatei",
   "import": "Importieren",
   "imported": "{{added}} hinzugefügt, {{changed}} geändert",
-  "triedLookups": "Hier sahen es in den letzten 24 Stunden {{seats}} Plätze, in {{lookups}} DNS-Abfragen."
+  "triedLookups": "Hier sahen es in den letzten 24 Stunden {{seats}} Plätze, in {{lookups}} DNS-Abfragen.",
+  "unrecognised": "Nicht erkannt",
+  "unrecognisedHelp": "Die meistgenutzten Domains von 5 oder mehr Plätzen, die keine Anwendung hat. Benenn sie, und teil sie, wenn andere sie auch sehen werden.",
+  "seatsLookups": "{{seats}} Plätze · {{lookups}} Abfragen",
+  "make": "Anwendung erstellen",
+  "allOf": "Alle {{count}}",
+  "fewer": "Weniger",
+  "redundant": "Floorbits Listen haben jetzt alles, was dieses Event hier hinzugefügt hat.",
+  "dropLocal": "Lokale Kopie entfernen"
 }

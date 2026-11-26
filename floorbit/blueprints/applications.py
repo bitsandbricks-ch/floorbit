@@ -40,8 +40,9 @@ def list_applications():
     lancache = ext.get('floorbit_lancache')
     cache = lancache.snapshot(hours) if lancache is not None else None
     apps = applications.listing()
+    sites = dns_stats.site_lookups(hours) if dns_stats is not None else {}
     seen = applications.usage(
-        apps, dns_stats.site_lookups(hours) if dns_stats is not None else {},
+        apps, sites,
         {s['name']: s for s in (flows or {}).get('services') or []},
         {c['cache']: c for c in (cache or {}).get('caches') or []}, (cache or {}).get('downloads'),
         servers_now())
@@ -51,6 +52,7 @@ def list_applications():
               for s in application_sources.status()]
     return jsonify({'applications': rows, 'sources': applications.builtin()['sources'], 'synced': synced,
                     'frozen': application_sources.frozen(), 'hours': hours,
+                    'unrecognised': applications.unrecognised(apps, sites),
                     'kinds': list(applications.KINDS), 'categories': list(applications.CATEGORIES)})
 
 

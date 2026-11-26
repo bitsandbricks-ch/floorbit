@@ -27,6 +27,8 @@ export type Application = AppMatches & {
   builtin: boolean
   edited: boolean
   hidden: boolean
+  /** Built in now has everything the event added: the local copy can go. */
+  redundant: boolean
   added: AppMatches
   seen: AppSeen
 }
@@ -36,6 +38,8 @@ export type ApplicationsAnswer = {
   synced: SyncedSource[]
   frozen: boolean
   hours: number
+  /** The busiest sites (5+ seats) no shown application has. */
+  unrecognised: { site: string; lookups: number; seats: number }[]
   kinds: AppKind[]
   categories: string[]
 }

@@ -32,5 +32,12 @@
   "syncedOne": "{{name}} (geändert {{when}})",
   "frozenNote": "Regelquellen eingefroren.",
   "from": "Aus {{name}}",
-  "ownList": "Von BitsAndBricks gepflegt und signiert: Floorbit verwendet sie nur, wenn die Signatur stimmt. Immer zuletzt, damit eure eigenen Quellen gewinnen."
+  "ownList": "Von BitsAndBricks gepflegt und signiert: Floorbit verwendet sie nur, wenn die Signatur stimmt. Immer zuletzt, damit eure eigenen Quellen gewinnen.",
+  "lastChange": "Letzte Änderung: {{added}} neu, {{changed}} geändert, {{removed}} entfernt",
+  "change": {
+    "added": "Neu",
+    "changed": "Geändert",
+    "removed": "Entfernt"
+  },
+  "andMore": "und {{count}} weitere"
 }

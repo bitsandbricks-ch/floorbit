@@ -11,12 +11,12 @@ const none = { sites: [], ports: [], cidr: [], depots: [] }
 const seen = { lookups: 40, dns_seats_max: 12, traffic_bytes: 2_000_000_000, traffic_seats: 30, cache_hit_bytes: null, cache_miss_bytes: null, players: 20, seats: 30 }
 const app = (over: object) => ({
   id: 'x', name: 'X', kind: 'game', category: 'gaming', part_of: null, caches: [], source: 'floorbit', builtin: true,
-  edited: false, hidden: false, added: none, seen: { ...seen, seats: 0, lookups: null, dns_seats_max: null, traffic_bytes: null, traffic_seats: null, players: null }, ...none, ...over,
+  edited: false, hidden: false, redundant: false, added: none, seen: { ...seen, seats: 0, lookups: null, dns_seats_max: null, traffic_bytes: null, traffic_seats: null, players: null }, ...none, ...over,
 })
 const answer = {
   hours: 24, kinds: ['game', 'launcher', 'sitegroup'], categories: ['gaming'],
   sources: [{ id: 'cache-domains', repo: 'uklans/cache-domains', commit: 'f7d6206f47', license: 'MIT', copyright: '' }],
-  synced: [], frozen: false,
+  synced: [], frozen: false, unrecognised: [] as { site: string; lookups: number; seats: number }[],
   applications: [
     app({ id: 'steam', name: 'Steam', kind: 'launcher', sites: ['steamcontent.com'], caches: ['steam'] }),
     app({ id: 'valorant', name: 'Valorant', part_of: 'riot', sites: ['example.net', 'playvalorant.com'], edited: true,
@@ -59,5 +59,23 @@ describe('Applications', () => {
     expect(await screen.findByText('Added for this event')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add application' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull()
+  })
+
+  it('lists what nothing recognises and makes an application from it', async () => {
+    const withSites = { ...answer, unrecognised: [{ site: 'example.org', lookups: 300, seats: 12 }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/applications?hours=24': withSites }).fn)
+    renderWithApp(<Applications />, '/applications')
+    expect(await screen.findByText('Not recognised')).toBeInTheDocument()
+    expect(screen.getByText('12 seats · 300 lookups')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Make an application' }))
+    expect(await screen.findByText('example.org', { selector: '.mantine-TagsInput-pill *, .mantine-Pill-label' })).toBeInTheDocument()
+  })
+
+  it('offers to drop a local copy that Floorbit now ships', async () => {
+    const shipped = { ...answer, applications: [{ ...answer.applications[1], redundant: true }] }
+    vi.stubGlobal('fetch', fakeFetch({ 'GET /api/auth/me': admin, 'GET /api/applications?hours=24': shipped }).fn)
+    renderWithApp(<Applications />, '/applications')
+    fireEvent.click(await screen.findByText('Valorant'))
+    expect(await screen.findByRole('button', { name: 'Drop the local copy' })).toBeInTheDocument()
   })
 })
