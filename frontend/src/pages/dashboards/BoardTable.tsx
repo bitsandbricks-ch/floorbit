@@ -3,7 +3,7 @@ import { IconArrowRight, IconDeviceTv, IconDots, IconDownload, IconPencil, IconP
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { type DataColumn, DataTable, FilterBar, useFilters } from '@bitsandbricks/ui'
+import { type DataColumn, DataTable, FilterBar, toggleNavPin, useFilters } from '@bitsandbricks/ui'
 import { useMe } from '@/api/queries'
 import { readBoot, useNavPrefs } from '@/nav/boot'
 import { boardHref } from '@/nav/sections'
@@ -22,11 +22,8 @@ export function BoardTable({ boards, loading, canEdit, onEdit }: { boards: Board
   const me = useMe().data?.user?.username ?? null
   const filters = useFilters({ show: 'all', tag: '', group: '' })
   const show = (SHOWS.includes(filters.values.show as Show) ? filters.values.show : 'all') as Show
-  const isPinned = (id: string) => prefs.favourites.includes(`dashboard:${id}`)
-  const pin = (id: string) => {
-    const fav = `dashboard:${id}`
-    setPrefs({ ...prefs, favourites: isPinned(id) ? prefs.favourites.filter((x) => x !== fav) : [...prefs.favourites, fav] })
-  }
+  const isPinned = (id: string) => (prefs.pinned ?? []).includes(`dashboard:${id}`)
+  const pin = (id: string) => setPrefs(toggleNavPin(prefs, `dashboard:${id}`))
   const ctx = { pinned: isPinned, me }
   const tags = useMemo(() => [...new Set(boards.flatMap((b) => b.tags ?? []))].sort(), [boards])
   const groups = useMemo(() => [...new Set(boards.map((b) => b.group).filter((g): g is string => !!g))].sort((a, b) => a.localeCompare(b)), [boards])

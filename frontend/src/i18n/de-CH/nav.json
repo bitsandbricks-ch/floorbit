@@ -18,7 +18,7 @@
     "event": "Event",
     "floorbit": "Floorbit",
     "plugins": "Plugins",
-    "more": "Mehr"
+    "more": "Sonstige"
   },
   "search": "Seiten, Plätze und Switches suchen",
   "quick": "Wichtigste Seiten",
@@ -26,6 +26,7 @@
   "favourites": "Favoriten",
   "favAdd": "{{page}} zu den Favoriten",
   "favRemove": "{{page}} aus den Favoriten entfernen",
+  "customise": "Seitenleiste anpassen",
   "skip": "Zum Inhalt springen",
   "switchTenant": "Mandant wechseln",
   "thisTenant": "Dieser Mandant",

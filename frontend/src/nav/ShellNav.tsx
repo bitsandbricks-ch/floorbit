@@ -1,13 +1,13 @@
 import { UnstyledButton } from '@mantine/core'
-import { IconStar, IconStarFilled } from '@tabler/icons-react'
+import { IconLayoutSidebar, IconStar, IconStarFilled } from '@tabler/icons-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PhoneDock, type NavGroup, type NavItem } from '@bitsandbricks/ui'
+import { NAV_FAVOURITES, NAV_MORE, NavCustomizer, PhoneDock, toggleNavPin, useCustomNav, type NavGroup, type NavItem, type NavSection } from '@bitsandbricks/ui'
 import { readFolded, readRail, saveFolded, saveRail, useNavPrefs, type NavBoot } from './boot'
 import { EventPicker } from './EventPicker'
 import { Account, Brand, Tenants, type MenuAction } from './NavParts'
 import './nav.css'
-import { activeHref, boardHref, group, isPluginPage, linkIcon, pageIcon, rowsOf, TABS, withParents, type CustomLink, type NavPage } from './sections'
+import { activeHref, boardHref, group, INSIDE, isPluginPage, linkIcon, pageIcon, rowsOf, TABS, withParents, type CustomLink, type NavPage } from './sections'
 
 export type { MenuAction }
 
@@ -27,18 +27,24 @@ export interface ShellNavProps {
 }
 
 /** What Floorbit puts into the shared AppShell: its brand, the event picker above the links, the
- *  groups (favourites, the start pages, the admins' and Floorbit's sections, Plugins and Settings),
- *  the tenant switcher and account menu at the foot, folding to icons, and the phone's bottom bar. */
+ *  groups, the tenant switcher and account menu at the foot, folding to icons, and the phone's
+ *  bottom bar. The groups are Floorbit's own sidebar (the start pages, the admins' sections,
+ *  Floorbit's sections, Plugins and Settings) as the person arranged it with the shared NavPrefs
+ *  (#1597): their favourites on top, their own categories, what they put away under "More".
+ *  The admins' sections and the foot stay where they are (locked). */
 export function useShellNav(props: ShellNavProps) {
   const { t } = useTranslation()
   const { boot, path } = props
   const [folded, setFolded] = useState(readRail)
   const [prefs, setPrefs] = useNavPrefs(boot)
+  const [customising, setCustomising] = useState(false)
   const [closed, setClosed] = useState<string[]>(readFolded)
-  const boards = pinnedBoards(props.dashboards)
+  const pins = prefs.pinned ?? []
+  // A dashboard is in the sidebar only while it is pinned (from its page or the Dashboards table).
+  const boards = pinnedBoards(props.dashboards).filter((b) => pins.includes(b.id))
   const custom = boot.custom ?? []
   // A tab of another page (Users in Settings) lights its page's row.
-  const lit = activeHref([...rowsOf(boot.pages), ...boards.filter((b) => prefs.favourites.includes(b.id)), ...custom.flatMap((c) => c.links)], path)
+  const lit = activeHref([...rowsOf(boot.pages), ...boards, ...custom.flatMap((c) => c.links)], path)
   const byId = new Map([...withParents(boot.pages), ...boards].map((p) => [p.id, p]))
   const { pinned, sections } = group(boot.pages)
 
@@ -46,9 +52,6 @@ export function useShellNav(props: ShellNavProps) {
     saveRail(next)
     setFolded(next)
   }
-  const isFav = (id: string) => prefs.favourites.includes(id)
-  const toggleFav = (id: string) =>
-    setPrefs({ ...prefs, favourites: isFav(id) ? prefs.favourites.filter((x) => x !== id) : [...prefs.favourites, id] })
 
   const labelOf = (p: NavPage) => (ownLabel(p.id) ? p.label : t(`goto.pages.${p.id}`, { defaultValue: p.label }))
   const badgeOf = (id: string): ReactNode => {
@@ -65,16 +68,17 @@ export function useShellNav(props: ShellNavProps) {
       </span>
     )
   }
-  const item = (p: NavPage, key: string, opts: { star?: boolean; active?: boolean } = {}): NavItem => {
+  // Every entry once, by its page id: the shared prefs pin, move and put away entries by id.
+  const item = (p: NavPage, opts: { star?: boolean; active?: boolean } = {}): NavItem => {
     const Icon = pageIcon(p.id, p.icon)
     const label = labelOf(p)
-    const fav = isFav(p.id)
+    const fav = pins.includes(p.id)
     return {
-      id: `${key}:${p.id}`, label, href: p.href, icon: <Icon size={18} />,
+      id: p.id, label, href: p.href, icon: <Icon size={18} />,
       active: opts.active ?? lit === p.href, badge: badgeOf(p.id),
       action: opts.star === false ? undefined : (
         <UnstyledButton
-          className="fb-nav-fav" aria-pressed={fav} onClick={() => toggleFav(p.id)}
+          className="fb-nav-fav" aria-pressed={fav} onClick={() => setPrefs(toggleNavPin(prefs, p.id))}
           aria-label={t(fav ? 'nav.favRemove' : 'nav.favAdd', { page: label })} title={t(fav ? 'nav.favRemove' : 'nav.favAdd', { page: label })}
         >
           {fav ? <IconStarFilled size={14} aria-hidden="true" /> : <IconStar size={14} aria-hidden="true" />}
@@ -97,28 +101,56 @@ export function useShellNav(props: ShellNavProps) {
   // Plugins lives under /settings, so it lights on its own pages and Settings on the rest.
   const adminLit = admin.find((p) => p.id === 'plugins' && (path === p.href || path.startsWith(`${p.href}/`)))?.id
     ?? admin.find((p) => p.href === lit)?.id
-  const favourites = prefs.favourites.map((id) => byId.get(id)).filter((p): p is NavPage => !!p)
 
-  // The admins' own sections first (ids "c:<id>", so they never meet a built-in one), then Floorbit's.
-  const folding = [
-    ...custom.map((c) => ({ id: `c:${c.id}`, label: c.name, items: c.links.map(customItem) })),
-    ...sections.map((s) => ({ id: s.id as string, label: t(`nav.sections.${s.id}`), items: s.pages.map((p) => item(p, s.id)) })),
+  // Floorbit's own sidebar, before the person's prefs: the start pages (no heading), the admins'
+  // sections (ids "c:<id>", locked: the admin arranges those), Floorbit's sections, the foot.
+  const own: NavSection[] = [
+    { id: 'start', items: pinned.map((p) => item(p)) },
+    ...custom.map((c) => ({ id: `c:${c.id}`, label: c.name, items: c.links.map(customItem), locked: true })),
+    ...sections.map((s) => ({ id: s.id as string, label: t(`nav.sections.${s.id}`), items: s.pages.map((p) => item(p)) })),
+    ...(admin.length ? [{ id: 'admin', items: admin.map((p) => item(p, { star: false, active: p.id === adminLit })), locked: true }] : []),
   ]
+  // A pinned page that is no row of its own (a dashboard, or a tab such as Problems that someone
+  // pinned before rows bundled tabs) joins the group of the row it belongs to, so the pin keeps it.
+  const rows = new Set(own.flatMap((g) => g.items.map((i) => i.id)))
+  for (const id of pins) {
+    const p = byId.get(id)
+    if (!p || rows.has(id)) continue
+    const hub = id.startsWith('dashboard:') ? 'dashboards' : INSIDE[id]
+    const home = own.find((g) => !g.locked && g.items.some((i) => i.id === hub)) ?? own[0]
+    home.items.push(item(p))
+  }
+  const arranged = useCustomNav(own, prefs)
+
   const toggle = (id: string, open: boolean) => {
     const next = open ? [...closed, id] : closed.filter((x) => x !== id)
     setClosed(next)
     saveFolded(next)
   }
-  const nav: NavGroup[] = [
-    ...(favourites.length ? [{ id: 'favourites', label: t('nav.favourites'), items: favourites.map((p) => item(p, 'fav')) }] : []),
-    { id: 'pinned', items: pinned.map((p) => item(p, 'pin')) },
-    ...folding.map((g) => {
-      // A group with the page on screen is always open (the shell sees to that); the rest stay as someone left them.
-      const open = !closed.includes(g.id)
-      return { ...g, collapsible: true, open, onToggle: () => toggle(g.id, open || g.items.some((i) => i.active)) }
-    }),
-    ...(admin.length ? [{ id: 'admin', items: admin.map((p) => item(p, 'admin', { star: false, active: p.id === adminLit })) }] : []),
+  const foldable = (g: NavGroup & { id: string }): NavGroup => {
+    // A group with the page on screen is always open (the shell sees to that); the rest stay as someone left them.
+    const open = !closed.includes(g.id)
+    return { ...g, collapsible: true, open, onToggle: () => toggle(g.id, open || g.items.some((i) => i.active)) }
+  }
+  const fixed = new Set([NAV_FAVOURITES, 'start', 'admin'])
+  const groups: NavGroup[] = arranged.nav.map((g) => (fixed.has(g.id) ? g : foldable(g)))
+  // What the person put away: at the end, above the foot, folded until opened.
+  if (arranged.more.length) {
+    const label = arranged.groups.find((g) => g.id === NAV_MORE)?.label
+    const at = groups.findIndex((g) => g.id === 'admin')
+    groups.splice(at < 0 ? groups.length : at, 0, foldable({ id: NAV_MORE, label, items: arranged.more }))
+  }
+  const nav = groups
+
+  const actions: MenuAction[] = [
+    { id: 'customiseNav', label: t('nav.customise'), icon: IconLayoutSidebar, run: () => setCustomising(true) },
+    ...(props.actions ?? []),
   ]
+  // The dialog lists the entries without their stars and counts.
+  const plain = own.map((s) => ({ ...s, items: s.items.map((i) => ({ ...i, action: undefined, badge: undefined, active: false })) }))
+  const customizer = (
+    <NavCustomizer opened={customising} onClose={() => setCustomising(false)} sections={plain} prefs={prefs} onChange={setPrefs} />
+  )
 
   // Phone bar: the four pages crews open most, then everything else behind "More".
   const tabs = TABS.flatMap((id) => byId.get(id) ?? []).slice(0, 4)
@@ -126,7 +158,7 @@ export function useShellNav(props: ShellNavProps) {
   const foot = (rail: boolean) => (
     <>
       <Tenants boot={boot} rail={rail} />
-      <Account boot={boot} actions={props.actions} rail={rail} />
+      <Account boot={boot} actions={actions} rail={rail} />
     </>
   )
   const phoneNav = (
@@ -149,13 +181,14 @@ export function useShellNav(props: ShellNavProps) {
     folded,
     onFoldedChange,
     phoneNav,
+    customizer,
   }
 }
 
 /** A plugin's page or a pinned dashboard names itself; Floorbit's pages have their texts. */
 const ownLabel = (id: string) => isPluginPage(id) || id.startsWith('dashboard:')
 
-/** Every dashboard as a row that can be pinned (``dashboard:<id>`` in the favourites). */
+/** Every dashboard as a row that can be pinned (``dashboard:<id>`` in the pins). */
 function pinnedBoards(dashboards: { id: string; name: string }[] | undefined): NavPage[] {
   return (dashboards ?? []).map((d) => ({ href: boardHref(d.id), id: `dashboard:${d.id}`, label: d.name }))
 }

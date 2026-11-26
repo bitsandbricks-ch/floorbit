@@ -140,7 +140,8 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
 - **Shell:** event picker at the top of the sidebar, grouped sidebar, one bar on top of every
   page (its breadcrumb ends in the page's title, the page's buttons, Go to (`Ctrl K`) and
   notifications on the right; no second title row on a computer), a status line. Pinned favourites per person, including
-  dashboards. The tenant switcher shows only with two or more tenants.
+  dashboards, and each person's own arrangement of the sidebar (order, own groups, put away under
+  "More") with the shared NavPrefs. The tenant switcher shows only with two or more tenants.
 - **Sidebar, about a dozen rows:** Overview, Floor plan and Events · **Work:** Helpdesk · **Monitoring:**
   Health, Network (Topology, Firewalls, Wi-Fi, Telemetry, Security), Services (DNS, LAN cache),
   Traffic (Games, Stats, Speed tests), Agents · **Seats and inventory:** Seats, Inventory · **Tools:** Switch console,

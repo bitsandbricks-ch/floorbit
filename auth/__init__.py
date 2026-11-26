@@ -506,7 +506,7 @@ def _blueprint():
 
     @bp.route('/api/auth/me/nav', methods=['GET', 'PUT'])
     def my_nav():
-        """The sidebar's favourites and fold behaviour for the signed-in account."""
+        """The sidebar as the signed-in account arranged it (pins, order, "More", own groups)."""
         auth = _auth()
         user = current_user()
         if not auth.enabled or not user or user.get('api_token') or user.get('platform'):

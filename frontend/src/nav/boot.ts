@@ -1,3 +1,4 @@
+import { NO_NAV_PREFS, type NavPrefs } from '@bitsandbricks/ui'
 import { useSyncExternalStore } from 'react'
 import { FOLDED, type CustomSection, type NavPage } from './sections'
 
@@ -18,27 +19,34 @@ export interface NavBoot {
   prefs: NavPrefs | null
 }
 
-/** Favourite pages first in the sidebar. ``accordion`` is kept for accounts that saved it; the
- *  grouped sidebar no longer folds the other groups. */
-export interface NavPrefs { favourites: string[]; accordion: boolean }
+export type { NavPrefs }
 
 const EMPTY: NavBoot = { pages: [], custom: [], brand: { logo: null, name: null }, user: null, signOut: false, prefs: null }
 const PREFS_KEY = 'floorbit-nav-prefs'
-export const DEFAULT_PREFS: NavPrefs = { favourites: [], accordion: true }
 
+const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : undefined)
+
+/** The shared NavPrefs as this browser kept them; an old ``favourites`` list becomes the pins (#1597). */
 function cleanPrefs(v: unknown): NavPrefs {
-  const o = (v && typeof v === 'object' ? v : {}) as Partial<NavPrefs>
-  const favourites = Array.isArray(o.favourites) ? o.favourites.filter((x): x is string => typeof x === 'string') : []
-  return { favourites, accordion: o.accordion !== false }
+  const o = (v && typeof v === 'object' ? v : {}) as NavPrefs & { favourites?: unknown }
+  const pinned = strings(o.pinned) ?? strings(o.favourites)
+  return {
+    ...(pinned ? { pinned } : {}),
+    ...(strings(o.hidden) ? { hidden: strings(o.hidden) } : {}),
+    ...(strings(o.order) ? { order: strings(o.order) } : {}),
+    ...(o.sections && typeof o.sections === 'object' ? { sections: o.sections } : {}),
+    ...(Array.isArray(o.categories) ? { categories: o.categories.filter((c) => c && typeof c.id === 'string' && typeof c.label === 'string') } : {}),
+    ...(o.labels && typeof o.labels === 'object' ? { labels: o.labels } : {}),
+  }
 }
 
-/** The account's settings, or this browser's when nobody is signed in. */
+/** The account's settings (the server already cleaned them), or this browser's when nobody is signed in. */
 export function readPrefs(boot: NavBoot): NavPrefs {
   if (boot.prefs) return cleanPrefs(boot.prefs)
   try {
     return cleanPrefs(JSON.parse(localStorage.getItem(PREFS_KEY) ?? 'null'))
   } catch {
-    return DEFAULT_PREFS
+    return NO_NAV_PREFS
   }
 }
 
@@ -59,8 +67,8 @@ export function savePrefs(boot: NavBoot, prefs: NavPrefs) {
   }
 }
 
-// One copy of the sidebar settings for the whole page, so a page's own "Pin" button and the
-// sidebar's stars change the same list and both show it at once.
+// One copy of the sidebar settings for the whole page, so a page's own "Pin" button, the sidebar's
+// stars and the customise dialog change the same prefs and all show them at once.
 let shared: NavPrefs | null = null
 const listeners = new Set<() => void>()
 
@@ -69,8 +77,8 @@ export function useNavPrefs(boot: NavBoot): [NavPrefs, (next: NavPrefs) => void]
   shared ??= readPrefs(boot)
   const prefs = useSyncExternalStore(
     (l) => { listeners.add(l); return () => { listeners.delete(l) } },
-    () => shared ?? DEFAULT_PREFS,
-    () => shared ?? DEFAULT_PREFS,
+    () => shared ?? NO_NAV_PREFS,
+    () => shared ?? NO_NAV_PREFS,
   )
   const set = (next: NavPrefs) => {
     shared = next

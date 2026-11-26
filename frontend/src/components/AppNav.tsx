@@ -56,6 +56,7 @@ export function useAppNav() {
   const dialogs = (
     <>
       <GoTo />
+      {shell.customizer}
       <CrewNotify />
       {notify && <NotifySettings opened onClose={() => setNotify(false)} />}
       {notice && <CrewNoticeEditor onClose={() => setNotice(false)} />}

@@ -205,8 +205,8 @@ class UserStore:
             return dict(user)
 
     def set_nav(self, username, prefs):
-        """The sidebar as this person set it up: favourite pages and whether sections fold up when
-        another opens. Kept with the account so it follows them to every browser."""
+        """The sidebar as this person arranged it (clean_nav). Kept with the account so it follows
+        them to every browser."""
         with self._lock:
             users = self._users()
             user = users.get((username or '').lower())
@@ -256,20 +256,56 @@ def _admin_count(users):
     return sum(1 for u in users.values() if _manager(u))
 
 
-# A page id, or a dashboard pinned to the sidebar (``dashboard:<id>``, ids as in floorbit/dashboards.py).
-NAV_PAGE_RE = re.compile(r'^(?:[A-Za-z][A-Za-z0-9]{0,40}|dashboard:[a-z0-9][a-z0-9-]{0,31})\Z')
-MAX_FAVOURITES = 20
+# An entry of the sidebar: a page id, a plugin's page (``plugin:<plugin>:<page>``) or a dashboard
+# (``dashboard:<id>``, ids as in floorbit/dashboards.py).
+NAV_PAGE_RE = re.compile(
+    r'^(?:[A-Za-z][A-Za-z0-9]{0,40}|dashboard:[a-z0-9][a-z0-9-]{0,31}'
+    r'|plugin:[a-z0-9][a-z0-9-]{0,40}:[A-Za-z0-9][A-Za-z0-9_-]{0,40})\Z')
+# A group of the sidebar: Floorbit's (``monitoring``), the shared ones (``_favourites``, ``_more``)
+# or one the person made (``c1``).
+NAV_GROUP_RE = re.compile(r'^_?[A-Za-z][A-Za-z0-9_-]{0,40}\Z')
+MAX_NAV_ENTRIES = 200
+MAX_NAV_CATEGORIES = 20
+MAX_NAV_LABEL = 40
+
+
+def _nav_ids(raw, pattern, limit=MAX_NAV_ENTRIES):
+    out = []
+    for x in raw if isinstance(raw, list) else []:
+        if isinstance(x, str) and pattern.match(x) and x not in out:
+            out.append(x)
+    return out[:limit]
+
+
+def _nav_label(raw):
+    return ' '.join(raw.split())[:MAX_NAV_LABEL] if isinstance(raw, str) else ''
 
 
 def clean_nav(prefs):
-    """{'favourites': [page ids], 'accordion': bool}; anything else is dropped."""
+    """The sidebar as this person arranged it, in the shared UI's NavPrefs shape
+    (@bitsandbricks/ui navPrefs): pinned entries, entries put away under "More", their order,
+    entries moved to another group, their own categories and their own names for headings.
+    Anything else is dropped. The old ``favourites`` become ``pinned`` (#1597)."""
     prefs = prefs if isinstance(prefs, dict) else {}
-    raw = prefs.get('favourites') if isinstance(prefs.get('favourites'), list) else []
-    favourites = []
-    for page in raw:
-        if isinstance(page, str) and NAV_PAGE_RE.match(page) and page not in favourites:
-            favourites.append(page)
-    return {'favourites': favourites[:MAX_FAVOURITES], 'accordion': prefs.get('accordion') is not False}
+    pinned = prefs.get('pinned') if 'pinned' in prefs else prefs.get('favourites')
+    categories = []
+    for c in prefs.get('categories') if isinstance(prefs.get('categories'), list) else []:
+        if isinstance(c, dict) and isinstance(c.get('id'), str) and NAV_GROUP_RE.match(c['id']) \
+                and c['id'] not in [x['id'] for x in categories]:
+            categories.append({'id': c['id'], 'label': _nav_label(c.get('label'))})
+    sections = prefs.get('sections') if isinstance(prefs.get('sections'), dict) else {}
+    labels = prefs.get('labels') if isinstance(prefs.get('labels'), dict) else {}
+    moved = [(k, v) for k, v in sections.items()
+             if isinstance(k, str) and NAV_PAGE_RE.match(k) and isinstance(v, str) and NAV_GROUP_RE.match(v)]
+    names = [(k, _nav_label(v)) for k, v in labels.items() if isinstance(k, str) and NAV_GROUP_RE.match(k)]
+    return {
+        'pinned': _nav_ids(pinned, NAV_PAGE_RE),
+        'hidden': _nav_ids(prefs.get('hidden'), NAV_PAGE_RE),
+        'order': _nav_ids(prefs.get('order'), NAV_PAGE_RE),
+        'sections': dict(moved[:MAX_NAV_ENTRIES]),
+        'categories': categories[:MAX_NAV_CATEGORIES],
+        'labels': dict([(k, v) for k, v in names if v][:MAX_NAV_ENTRIES]),
+    }
 
 
 PLATFORM_FLAG = 'platform_admin'

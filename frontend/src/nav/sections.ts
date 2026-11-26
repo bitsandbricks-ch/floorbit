@@ -101,8 +101,9 @@ export function hubTabs(pages: NavPage[], path: string): { hub: string; tabs: Na
   return tabs.length > 1 ? { hub: row.id, tabs } : null
 }
 
-/** Groups folded until someone opens them (or a page in them is on screen). */
-export const FOLDED: string[] = []
+/** Groups folded until someone opens them (or a page in them is on screen): what the person put
+ *  away under "More" (the shared NAV_MORE). */
+export const FOLDED: string[] = ['_more']
 
 const ICONS: Record<string, Icon> = Object.assign({}, ...AREAS.map((a) => a.icons))
 

@@ -9,13 +9,18 @@ Floorbit's own parts in it.
 - The **event** you work on is at the top: click it to switch to another event of this tenant.
 - **Favourites** come first: the star on a row (it shows when you point at the row) pins that page
   there, and a second click takes it off again. A dashboard's **Pin to sidebar** puts it there too.
-  They are kept with your account, so they follow you to every browser (`GET` and
-  `PUT /api/auth/me/nav`); without sign-in this browser keeps them.
-- **Overview** and **Floor plan** are always at the top.
+- **Customise sidebar** in the account menu arranges the rest: pin rows, move them up and down or
+  into another group, put away what you never use under **More** (folded at the end until you
+  open it), rename a heading and make groups of your own. The sections admins made and the rows
+  at the foot stay where they are. It is the shared `NavCustomizer` of `@bitsandbricks/ui`, and
+  the arrangement is its `NavPrefs` (issue #1597).
+- Favourites and the arrangement are kept with your account, so they follow you to every browser
+  (`GET` and `PUT /api/auth/me/nav`); without sign-in this browser keeps them.
+- **Overview** and **Floor plan** start at the top.
 - The other rows are in groups: **Work** (Helpdesk), **Monitoring** (Services, Network, Agents),
   **Seats and inventory** (Seats, Inventory), **Tools** (Switch console, Pre-flight, Logs) and
-  **Screens** (Dashboards). A click on a group's name folds it, and this browser remembers it. The
-  group of the page on screen is always open.
+  **Screens** (Dashboards); pages no group names yet are under **Other**. A click on a group's
+  name folds it, and this browser remembers it. The group of the page on screen is always open.
 - Most rows hold several pages, shown as tabs under the top bar: **Helpdesk** has Problems,
   Incidents, Handover and Status updates; **Network** has Switches, Firewalls and Wi-Fi;
   **Seats** has Seat mapping, Check-in, the seat walk-through and IP and MAC history;
@@ -28,8 +33,8 @@ Floorbit's own parts in it.
 - **Plugins** and **Settings** are named rows at the foot, above your name.
 - The button at the bottom folds the sidebar to icons, and back. The choice is kept in a cookie
   (`floorbit_nav`) on this browser.
-- Your name at the bottom opens the account menu: language, light or dark theme, notifications,
-  the crew notice (leads) and **Sign out**.
+- Your name at the bottom opens the account menu: language, light or dark theme, **Customise
+  sidebar**, notifications, the crew notice (leads) and **Sign out**.
 
 Above each page a bar shows where you are (group, page, sub page), **Go to** (**Ctrl K**, **⌘K** on
 a Mac) for any page, seat or switch, and the bell with what needs a look.
