@@ -1,4 +1,4 @@
-import { Badge, Button, Group, SegmentedControl, Select, SimpleGrid, Stack, TagsInput, Text, TextInput } from '@mantine/core'
+import { Badge, Button, FileButton, Group, SegmentedControl, Select, SimpleGrid, Stack, TagsInput, Text, TextInput } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -7,15 +7,17 @@ import {
   APPLICATIONS_URL, removeApplication, saveApplication,
   type AppKind, type Application, type ApplicationBody, type ApplicationsAnswer,
 } from '@/api/applications'
+import { download, importApplications, rulesFile, sharedEntry } from '@/api/applicationShare'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import {
   ConfirmButton, DataTable, EmptyState, ErrorBanner, FilterBar, PageHead, PanelField, PanelSection, SidePanel,
-  type DataColumn,
+  toastDone, type DataColumn,
 } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
 import { ago } from '@/lib/time'
 import { RuleSources } from './applications/RuleSources'
+import { ShareApplication } from './applications/ShareApplication'
 import { bytes } from './traffic/format'
 
 const HOURS = 24
@@ -32,7 +34,18 @@ export default function Applications() {
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState<string | null>(null)   // an id, or 'new'
   const [sourcesOpen, setSourcesOpen] = useState(false)
+  const client = useQueryClient()
+  const imported = useMutation({
+    mutationFn: importApplications,
+    onSuccess: (r) => {
+      toastDone(t('applicationShare.imported', r))
+      void client.invalidateQueries({ queryKey: qk.applicationsAll })
+      void client.invalidateQueries({ queryKey: qk.gamesAll })
+    },
+  })
   const apps = q.data?.applications ?? []
+  // The event's own applications, and built-in ones it added to: the rest every Floorbit has.
+  const exported = apps.filter((a) => !a.builtin || Object.values(a.added).some((v) => v.length))
   const needle = search.trim().toLowerCase()
   const rows = apps.filter((a) => (shown === 'all' || a.kind === shown)
     && (!needle || a.name.toLowerCase().includes(needle) || a.sites.some((s) => s.includes(needle))))
@@ -63,12 +76,19 @@ export default function Applications() {
       <PageHead title={t('applications.title')} desc={t('applications.intro')}
         actions={canEdit ? (
           <Group gap="xs">
+            <Button variant="default" disabled={!exported.length} title={t('applicationShare.exportHelp')}
+              onClick={() => download('floorbit-applications.json', rulesFile(exported.map(sharedEntry)))}>
+              {t('applicationShare.export')}
+            </Button>
+            <FileButton accept=".json,application/json" onChange={(f) => f && imported.mutate(f)}>
+              {(props) => <Button {...props} variant="default" loading={imported.isPending}>{t('applicationShare.import')}</Button>}
+            </FileButton>
             <Button variant="default" onClick={() => { setOpen(null); setSourcesOpen(true) }}>{t('applicationSources.open')}</Button>
             <Button onClick={() => { setSourcesOpen(false); setOpen('new') }}>{t('applications.add')}</Button>
           </Group>
         ) : undefined} />
       <Stack gap="md">
-        {q.error && <ErrorBanner error={q.error} />}
+        {(q.error || imported.error) && <ErrorBanner error={q.error ?? imported.error} />}
         <FilterBar search={search} onSearchChange={setSearch} searchLabel={t('applications.search')}
           groups={[{
             key: 'kind', label: t('applications.col.kind'), value: shown, defaultValue: 'all',
@@ -163,6 +183,7 @@ function AppPanel({ app, apps, canEdit, onClose, onSaved, onPrev, onNext }: {
   const save = useMutation({ mutationFn: (hidden?: boolean) => saveApplication(app?.id ?? null, body(hidden)), onSuccess: done })
   const remove = useMutation({ mutationFn: () => removeApplication(app!.id), onSuccess: () => done() })
   const fixed = (list: string[], added: string[]) => list.filter((v) => !added.includes(v))
+  const [sharing, setSharing] = useState(false)
 
   return (
     <SidePanel onClose={onClose} onPrev={onPrev} onNext={onNext} padded={false}
@@ -179,6 +200,7 @@ function AppPanel({ app, apps, canEdit, onClose, onSaved, onPrev, onNext }: {
             <ConfirmButton variant="subtle" danger label={t('applications.remove')} question={t('applications.removeAsk', { name: app.name })}
               onConfirm={() => remove.mutate()} />
           )}
+          {app && <Button variant="default" onClick={() => setSharing(true)}>{t('applicationShare.share')}</Button>}
           {builtin && (
             <Button variant="default" loading={save.isPending} onClick={() => save.mutate(!app!.hidden)}>
               {app!.hidden ? t('applications.show') : t('applications.hide')}
@@ -235,6 +257,7 @@ function AppPanel({ app, apps, canEdit, onClose, onSaved, onPrev, onNext }: {
           <Text size="xs" c="dimmed" mt="xs">{t('applications.seenNote')}</Text>
         </PanelSection>
       )}
+      {sharing && app && <ShareApplication app={app} onClose={() => setSharing(false)} />}
     </SidePanel>
   )
 }

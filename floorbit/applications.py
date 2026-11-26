@@ -193,9 +193,10 @@ def _matches(body):
     return {'sites': _sites(body), 'ports': _ports(body), 'cidr': _cidr(body), 'depots': _depots(body)}
 
 
-def save(body, app_id=None):
+def save(body, app_id=None, new_id=None):
     """Adds an application (no id) or changes one. For a built-in one only what is added to it and
-    whether it is hidden are kept: its own matches stay."""
+    whether it is hidden are kept: its own matches stay. ``new_id`` keeps an imported one's id when
+    it is free."""
     if not isinstance(body, dict):
         raise ApplicationError('Send the application as a JSON object.')
     with _lock:
@@ -226,12 +227,38 @@ def save(body, app_id=None):
             if app_id is None:
                 if len([a for a in own if a not in shipped]) >= MAX_OWN:
                     raise ApplicationError(f'Floorbit keeps at most {MAX_OWN} own applications.')
-                app_id = _new_id(name, set(shipped) | set(own))
+                taken = set(shipped) | set(own)
+                app_id = new_id if new_id and ID_RE.match(new_id) and new_id not in taken else _new_id(name, taken)
             entry.update({'id': app_id, 'name': name, 'kind': kind, 'category': category, 'part_of': part_of})
         rest = [e for e in data.get(KEY) or [] if isinstance(e, dict) and e.get('id') != app_id]
         data[KEY] = [*rest, entry]
         save_data(data)
     return next(a for a in listing() if a['id'] == app_id)
+
+
+def import_entries(entries):
+    """Takes applications from another Floorbit's export (a rules file, already checked): a new one
+    is added with its id, an own one replaced, and a built-in one gets what the file has beyond what
+    shipped, on top of what the event added. Stops at the first one that doesn't fit and says which;
+    the ones before it stay. {"added": n, "changed": n}."""
+    out = {'added': 0, 'changed': 0}
+    keys = ('sites', 'ports', 'cidr', 'depots')
+    for entry in entries:
+        aid = entry['id']
+        shipped, own = base(), _own()
+        try:
+            if aid in shipped:
+                added = own.get(aid) or {}
+                save({k: sorted(set(added.get(k) or []) | (set(entry.get(k) or []) - set(shipped[aid].get(k) or [])))
+                      for k in keys}, aid)
+            else:
+                body = {k: entry.get(k) for k in ('name', 'kind', 'category', 'part_of', *keys)}
+                save(body, aid if aid in own else None, new_id=aid)
+        except ApplicationError as exc:
+            raise ApplicationError(f'{entry.get("name") or aid}: {exc.message} '
+                                   f'({out["added"] + out["changed"]} taken before it.)') from exc
+        out['changed' if aid in shipped or aid in own else 'added'] += 1
+    return out
 
 
 def _new_id(name, taken):

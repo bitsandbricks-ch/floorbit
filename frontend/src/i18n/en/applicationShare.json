@@ -1,0 +1,21 @@
+{
+  "share": "Share",
+  "title": "Share {{name}}",
+  "intro": "Add it to Floorbit's own list, which every Floorbit fetches, or give it to another event as a file.",
+  "source": "Where it comes from",
+  "sourceHelp": "A link (the publisher's support page) or a note (\"seen in our LAN cache log\"). The review needs it.",
+  "preview": "What leaves this Floorbit",
+  "onlyMatches": "Only what it matches: no seats, no numbers, nothing about the event.",
+  "tryTitle": "Matched here",
+  "tried": "Here it was seen by {{seats}} seats in the last 24 hours.",
+  "triedNone": "Nothing matched it here in the last 24 hours (or fewer than 5 seats). Check the domains before you share it.",
+  "tooLong": "Too much for GitHub to fill in. Download the file and add it to games/ by hand.",
+  "review": "GitHub opens with the file filled in; your account opens the pull request. Once it is reviewed and merged, every Floorbit gets it with Floorbit's list.",
+  "openGithub": "Open on GitHub",
+  "download": "Download as rules file",
+  "export": "Export",
+  "exportHelp": "The event's own applications and what it added to built-in ones, as a rules file",
+  "import": "Import",
+  "imported": "{{added}} added, {{changed}} changed",
+  "triedLookups": "Here it was seen by {{seats}} seats in the last 24 hours, in {{lookups}} DNS lookups."
+}
