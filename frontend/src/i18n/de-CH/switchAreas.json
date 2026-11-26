@@ -14,6 +14,7 @@
     "manual": "Festgelegt",
     "learned": "Gelernt",
     "plan": "Im Block gezeichnet",
+    "upstream": "Speist Switches",
     "todo": "Offen",
     "excluded": "Ausgenommen"
   },
@@ -28,6 +29,7 @@
   "driftCount_one": "Bei {{count}} Switch widersprechen sich die Quellen.",
   "driftCount_other": "Bei {{count}} Switches widersprechen sich die Quellen.",
   "todo": "In keinem Block gezeichnet und keine Plätze gelernt",
+  "upstream": "Andere Switches hängen daran; selbst bedient er keine Plätze",
   "agrees": "Alles stimmt überein",
   "pinRow": "Reihe {{row}} festlegen",
   "edit": "Festlegen",

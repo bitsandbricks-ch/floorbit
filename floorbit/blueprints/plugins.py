@@ -485,7 +485,17 @@ def _incidents_tile(user):
 
 
 def _switches_tile(user):
-    return core.switches_widget(_lang(), current_app.extensions['floorbit_integrations']['monitor'].counts())
+    # The monitor also tracks routers and access points; the tile names switches, so it counts
+    # those only, the same set as the Switches page.
+    from .. import inventory
+    from ..store import load_data
+    switches = {d['id'] for d in inventory.devices(load_data()) if d.get('role') == 'switch'}
+    statuses = current_app.extensions['floorbit_integrations']['monitor'].snapshot()
+    counts = {'online': 0, 'offline': 0, 'unknown': 0}
+    for sid, status in statuses.items():
+        if sid in switches:
+            counts[status] = counts.get(status, 0) + 1
+    return core.switches_widget(_lang(), counts)
 
 
 def _seats_tile(user):

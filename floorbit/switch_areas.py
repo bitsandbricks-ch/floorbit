@@ -6,7 +6,8 @@ A switch's area comes from three sources, strongest first:
 - **Learned**: a seat mapped to one of the switch's ports (seat walk, check-in) or patched to it in
   the patch plan puts that seat on the switch.
 - **Plan position**: a switch drawn inside a block's area, the aisles between its rows included,
-  serves the whole block. A switch outside every block is not guessed: it is a to-do.
+  serves the whole block. A switch outside every block is not guessed: it is a to-do, unless other
+  switches uplink to it (core and distribution, from the topology), which serve no seats of their own.
 
 Mike decided that the crew works a row at a time (rows, not blocks, are walked, patched and fed), so
 the finer unit here is a row; the issue's "sections" are rows. A row whose seats are all learned on
@@ -81,6 +82,17 @@ def _switches(data):
     return [d for d in inventory.devices(data) if d.get('role') == 'switch' and d.get('name')]
 
 
+def _feeding(data):
+    """Switches others uplink to (core and distribution): they serve no seats of their own, so
+    they are not a to-do. Worked out from the topology, so nobody has to leave them out by hand."""
+    from . import inventory_columns
+    try:
+        return {str(u.get('peer') or '').lower() for u in inventory_columns.uplinks(data).values()} - {''}
+    except Exception as exc:  # noqa: BLE001  # the list must show even without a topology
+        print(f'[switch areas] uplinks: {exc}')
+        return set()
+
+
 def overview(data=None):
     """Every switch with what it serves: ``{name, serves: {blocks, rows, seats}, how, manual,
     learned, plan_blocks, drift, suggest, todo}``, switches in name order."""
@@ -92,6 +104,7 @@ def overview(data=None):
     row_of = {s: r for r in rows for s in r['seats']}
     row_by_id = {r['id']: r for r in rows}
     learned, manual = _learned(data), _manual(data)
+    feeds = _feeding(data)
     out = []
     for dev in sorted(_switches(data), key=lambda d: d['name'].lower()):
         key = dev['name'].lower()
@@ -108,7 +121,7 @@ def overview(data=None):
             how, serves = 'manual', {k: pin[k] for k in ('blocks', 'rows', 'seats')}
         else:
             learned_rows = sorted({row_of[s]['id'] for s in seats if s in row_of})
-            how = 'learned' if seats else 'plan' if plan else 'todo'
+            how = 'learned' if seats else 'plan' if plan else 'upstream' if key in feeds else 'todo'
             serves = {'blocks': plan, 'rows': learned_rows, 'seats': sorted(seats)}
         out.append({'name': dev['name'], 'id': dev['id'], 'how': how, 'serves': serves, 'manual': pin,
                     'learned': [{'seat': s, 'source': src} for s, src in sorted(seats.items())],
