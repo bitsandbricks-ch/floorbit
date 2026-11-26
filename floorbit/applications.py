@@ -303,14 +303,15 @@ def remove(app_id):
 # ── what the agent's classifier gets ────────────────────────────────────────
 
 def flow_rules(data=None, servers=None):
-    """Traffic rules from the applications with ports or addresses, and from the game servers, as
-    ``FLOWS_SERVICES`` entries (floorbit/flows/classify.py). Games first: a game wins over its launcher."""
+    """Traffic rules from the applications with ports, addresses or sites, and from the game servers,
+    as ``FLOWS_SERVICES`` entries (floorbit/flows/classify.py). Games first: a game wins over its
+    launcher. The sites name HTTPS flows the agent saw a DNS answer for (floorbit/flows/names.py)."""
     apps = active(data)
     rules = []
     for app in sorted(apps, key=lambda a: a['kind'] != 'game'):
-        if app['ports'] or app['cidr']:
+        if app['ports'] or app['cidr'] or app['sites']:
             rules.append({'name': service_name(app), 'category': app['category'],
-                          'ports': app['ports'], 'cidr': app['cidr']})
+                          'ports': app['ports'], 'cidr': app['cidr'], 'sites': app['sites']})
     for server in servers or []:
         net = _host_net(server.get('host'))
         if net and server.get('game'):

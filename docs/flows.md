@@ -65,9 +65,28 @@ cache:
 each flow's remote address in memory. Private and documentation addresses have no owner. Nothing to
 set up; until the first list is in, the table says so.
 
-**Domains and sites** (from DNS and TLS SNI) need data that NetFlow and IPFIX don't carry. TODO: ask
-Mike whether the event's DNS resolver logs can be read; until then services come from addresses and
-ports only.
+**HTTPS by name** (#1600). NetFlow and IPFIX carry addresses and ports, not host names, and the
+exporters the events use (pfSense, Nexus) don't add the TLS server name either. So most launcher and
+game downloads would only say "Web". The agent fills that gap from DNS: when a seat looks up
+`cdn.example.com` and gets `198.51.100.7`, its flows to that address count for `example.com`, and so
+for the [application](applications.md) whose site that is. In order:
+
+1. The event's `FLOWS_SERVICES` and the applications' address ranges.
+2. An application's or the event's own port, for the flow's remote port.
+3. **The site the seat looked up**, for the answer's TTL, at least 2 and at most 30 minutes.
+4. Else the site **anyone** was last given that address for, when exactly one site has it. A shared
+   CDN address that answers for several sites names nobody.
+5. The built-in ports ("Web" for 443).
+
+It needs a DNS plugin whose lookups carry the answer: **AdGuard Home** does; Pi-hole's API doesn't
+give the answer's addresses, so with Pi-hole flows are named by address and port only. The agent
+reads the answers where it reads the lookups for [DNS analytics](dns.md), once a minute, so a
+download that starts in the same minute as its lookup may count as "Web" until the next read.
+
+Limits: nothing to match when the seat asks another resolver (DNS over HTTPS in the browser, a
+hard-coded `8.8.8.8`) or connects to an address it never looked up; a connection that began before
+the window keeps its name only while the address-wide match holds. Encrypted Client Hello doesn't
+matter here: the lookup still went to the event's resolver.
 
 ## Privacy
 
@@ -79,6 +98,9 @@ Flows are personal data under Swiss and EU rules (an address at a seat is a pers
   the rest shows as "blocks with fewer seats".
 - A **network owner** follows the same rule: named once 5 different seats used it, otherwise counted
   as "owners fewer seats used". Only the owner's name and AS number leave the agent, never addresses.
+- **Names from DNS** are matched on the agent, in memory: which seat looked up which site and got
+  which address never leaves the hall and is never written to disk. The flows they name count under
+  the same five-seat rule.
 - **Per seat** there is only the volume and the category mix ("80 GB, mostly gaming"), for spotting
   problems. Never services, addresses or ports.
 - **Raw flows** (`FLOWS_DIR/raw/`, one gzip file per hour) are kept for `FLOWS_RETENTION_DAYS` (7)

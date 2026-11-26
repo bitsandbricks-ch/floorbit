@@ -54,9 +54,11 @@ def settings():
 
 
 class Aggregator:
-    def __init__(self, classifier=None, now=None, owner_of=None):
+    def __init__(self, classifier=None, now=None, owner_of=None, name_of=None):
         self.classify = classifier or Classifier()
         self.owner_of = owner_of or (lambda ip: None)   # ip -> (AS number, owner) or None
+        # (seat ip, remote ip) -> the site the seat looked up, or None (names.py). Stays on the agent.
+        self.name_of = name_of or (lambda seat, remote: None)
         self._lock = threading.Lock()
         self.seat_of = {}          # ip -> seat
         self.area_of = {}          # seat -> area (seat block name)
@@ -101,10 +103,11 @@ class Aggregator:
         size, w = f['bytes'], self._window
         # The seat's side decides the direction; between two seats, the receiver's view counts.
         if dst_seat:
-            seat, remote, local_port, remote_port = dst_seat, f['src'], f['dport'], f['sport']
+            seat, seat_ip, remote, local_port, remote_port = dst_seat, f['dst'], f['src'], f['dport'], f['sport']
         else:
-            seat, remote, local_port, remote_port = src_seat, f['dst'], f['sport'], f['dport']
-        service, category = self.classify(remote, f['proto'], remote_port, local_port)
+            seat, seat_ip, remote, local_port, remote_port = src_seat, f['src'], f['dst'], f['sport'], f['dport']
+        service, category = self.classify(remote, f['proto'], remote_port, local_port,
+                                          site=self.name_of(seat_ip, remote))
         area = self.area_of.get(seat) or 'Other'
         for bucket in (minute, hour):
             bucket['total'][category] += size

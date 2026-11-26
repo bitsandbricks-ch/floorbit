@@ -15,7 +15,9 @@ Every application is one of three kinds:
 Each one is recognised by any of:
 
 - **Domains**, counted per site (`cdn.example.com` counts as `example.com`), from the resolver's
-  lookups under the five-seat rule.
+  lookups under the five-seat rule. With a resolver whose plugin gives the answers (AdGuard Home),
+  they also name HTTPS **traffic**: a seat's flows to an address it was just given for the site count
+  for the application ([traffic](flows.md#what-it-shows), "HTTPS by name").
 - **Ports** (`udp/27015`, `tcp/6881-6889`) and **server addresses** (`198.51.100.0/28`), from the
   flows. The agent's flow collector gets these with the seat addresses, within a minute of a change.
 - **LAN cache**: the lancache.net cache it owns (`steam`, `blizzard`, ...) and, for Steam, depot ids
