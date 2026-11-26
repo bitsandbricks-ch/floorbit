@@ -11,9 +11,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@bitsandbricks/tokens": "0.3.1-dev.20261125215406.sha-c72fcc5",
-    "@bitsandbricks/ui": "0.3.1-dev.20261125215406.sha-c72fcc5",
-    "@bitsandbricks/widgets": "0.3.1-dev.20261125215406.sha-c72fcc5",
+    "@bitsandbricks/tokens": "0.3.1-dev.20261126073008.sha-8aeede8",
+    "@bitsandbricks/ui": "0.3.1-dev.20261126073008.sha-8aeede8",
+    "@bitsandbricks/widgets": "0.3.1-dev.20261126073008.sha-8aeede8",
     "@mantine/core": "9.7.4",
     "@mantine/hooks": "9.7.4",
     "@mantine/notifications": "9.7.4",
