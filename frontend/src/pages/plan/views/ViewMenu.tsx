@@ -62,7 +62,7 @@ export function ViewMenu({ hall, view, params, setParams, setView, canEdit }: {
           {here.length === 0 && <Menu.Label>{t('planViews.none')}</Menu.Label>}
           {here.map((v) => (
             <Menu.Item key={v.id} onClick={() => pick(v)} rightSection={v.private ? <IconLock size={12} aria-label={t('planViews.private')} /> : undefined}
-              bg={v.id === openId ? 'var(--color-trace-soft)' : undefined}>
+              bg={v.id === openId ? 'var(--bnb-info-soft)' : undefined}>
               {v.name}
             </Menu.Item>
           ))}

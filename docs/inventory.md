@@ -12,6 +12,10 @@ defaults for all devices at `/inventory/defaults`, each with tabs for its detail
 settings (properties and feature switches) and credentials. Other entries (cables, transceivers, ...) open at
 `/inventory/entries/<type>/<id>`. The links can be shared and bookmarked.
 
+Edits happen on these pages too, never in a dialog: a device's details (name, role, model,
+address, group, tags, look, notes) are the first panel of its **Settings** tab, which **Edit details**
+opens, and **Add device** opens `/inventory/devices/new`, which goes to the new device's page once it is added.
+
 **Graphs** on a device's page shows its CPU, memory and reachability over 1 to 48 hours, then
 one port's traffic in and out and its errors (pick the port), as Floorbit stored them from
 monitoring or telemetry; a number never stored is left out. **Logs** shows the syslog lines this
@@ -25,11 +29,14 @@ machine seen on the device's ports, newest first, from the [IP and MAC history](
 needs **See seats** too.
 
 The **Inventory** page is one list with a tab per type (Devices, then any other type that has
-entries) and a **Groups and tags** tab. The device list shows each device's live state (the status
+entries, but cables, circuits and power boards, which have the **Cables** and **Electrics** tabs
+next to Inventory) and a **Groups and tags** tab (issue #1426). The device list shows each device's live state (the status
 monitor's dot; a firewall, server or switch not on the plan is looked up by name in the same poll,
 as the Firewalls page does), its role, group, model, management IP, how many of its ports are up (from the last
 read of the placed switches) and which plugin feeds it. Every column sorts; search, group, tag,
-state and role filter it, 50 rows to a page, and the sort and page stay in the address (`?sort=-ports&page=2`). A small chip next to the filters says when the
+state, role and hidden devices filter it on the shared filter row (each filter a chip, with how
+many devices it leaves), 50 rows to a page, and the filters, sort and page stay in the address
+(`?role=switch&state=offline&sort=-ports&page=2`). A small chip next to the filters says when the
 plugins last synced (red when a sync failed; hover for each plugin and the schedule). Picking a
 group or tag on the Groups and tags tab goes back to the list, filtered.
 
@@ -64,6 +71,54 @@ the floor plan can use them too: the editor's icon list has them under **Uploade
 the kiosk and the attendee hall view draw them in the icon's colour. Removing an icon puts the
 devices, groups and tags that showed it back on their default icon, and turns plan icons that used
 it into the info icon.
+
+### In the list
+
+Besides name, role, model and state, the device list shows per device:
+
+- **Uplink**: its link towards the core, as the [topology](topology.md) draws it (the core is where
+  the internet lines come in, else the routers). It shows the speed the port runs at, amber "1G of
+  10G" when it runs slower than planned, and red when the link is down. The tooltip names both ports.
+- **Last 24 h**: one block per hour from the status monitor's changes, amber when the device was
+  down for part of the hour, red for half an hour or more. A device the monitor doesn't track stays grey.
+- **Agent**: who reads it, from its `telemetry.agent` property: Auto, the agents with a tag, or one agent.
+
+All three come with the one list call; sort by them to find the devices that need a look.
+
+### Acting on several devices
+
+Tick the box in front of devices (shift-click picks a span, the header box every device the filters
+show) and a bar comes up under the list: **Add tag**, **Remove tag**, **Move to group** (or out of
+any group), **Hide** or **Show again**, and **Run command**, which opens the
+[switch console](commands.md) with the picked switches. Editing needs `floorplan.edit`, Run command
+the console's `ports.act`; viewers see no boxes. Each action is one request
+(`POST /api/inventory/bulk`), and every device it changed gets its own line in the audit log.
+
+### Unknown senders
+
+A device that sends syslog, traps, streams (gNMI, MDT) or flows to the agents without being in the
+inventory would look silent although it talks. The list's **Unknown senders** chip opens each address
+heard from in the last 24 hours that matches no device (by management address or name): what it sent
+and how often, first and last heard, through which agent, and the name it gives (the syslog host name
+or the trap's `sysName`). **Add to inventory** makes the device with that address; **Ignore** leaves it
+out of the count and the Problems page, where the rest show as one row to look at. Only these counts
+leave the agents, never the lines. Up to 200 addresses are kept per kind.
+
+### The Discovery tab
+
+**Discovery** (the last tab, issue #891) lists what the agents found that the inventory doesn't have
+yet. Nothing is added on its own.
+
+- **Devices**: boxes the switches see by LLDP or CDP whose name or address matches no device, with
+  the switch ports that see them, and the [unknown senders](#unknown-senders). **Add** opens a new
+  device prefilled with the name and address; **Ignore** leaves the row out.
+- **Links**: links LLDP or CDP sees between two inventory devices that no planned link explains.
+  **Confirm link** adds it as a planned link (`POST /api/links`); until then the topology view of
+  the floor plan lists it under *Found by LLDP* instead of drawing it.
+
+`GET /api/inventory/found` lists both (viewers and up); `POST /api/inventory/found/ignore`
+`{"kind": "device"|"link", "key", "ignored"}` leaves one out or takes it back (editors, audit-logged).
+Devices plugins report through their own discovery areas (#968) will land here too.
 
 ## Interfaces
 
@@ -179,7 +234,8 @@ Handing out logins is in the audit log each time the set changes.
 
 ## Types and entries
 
-Devices are one **type** of inventory entry. The others sit in tabs on the Inventory page:
+Devices are one **type** of inventory entry. The others sit in tabs on the Inventory page, or on
+the Cables and Electrics tabs next to it:
 
 | Type | Where its entries live |
 | --- | --- |
@@ -240,7 +296,7 @@ stored.
 
 ### Syncing on its own
 
-Set **Inventory sync (minutes)** under Settings > General (`INVENTORY_SYNC_MINUTES`) and Floorbit
+Set **Inventory sync (minutes)** under Settings > Inventory (`INVENTORY_SYNC_MINUTES`) and Floorbit
 runs the same sync by itself, so a switch added in NetBox during setup shows up without anyone
 pressing **Sync now**. 0 (the default) is off; less than 5 counts as 5, at most once a day. The
 time counts from the newest sync, by hand or not, and a failed one waits the same time before the
@@ -273,7 +329,7 @@ LibreNMS call (an agent older than this asks nothing, and those areas stay as th
   | `poe`: the PoE budget | switches | Discovery (minutes) |
   | `routes` | firewalls | Discovery (minutes) |
 
-  **Discovery (minutes)** is under Settings > General (`DISCOVERY_MINUTES`, 15 by default; less
+  **Discovery (minutes)** is under Settings > Inventory (`DISCOVERY_MINUTES`, 15 by default; less
   than 5 counts as 5, 0 turns every action off). An admin sets one action's own interval with
   `PUT /api/inventory/discovery/actions/<id>` (`{"minutes": 30}`, 0 for off, `null` for the
   default). `GET /api/inventory/discovery` lists the actions with their last run (when, how many
@@ -281,6 +337,23 @@ LibreNMS call (an agent older than this asks nothing, and those areas stay as th
   runs some (`{"actions": ["optics"]}`) or all, on every device or one (`{"device": "<id>"}`), and
   a run for one device doesn't move the schedule. The Inventory page shows the last run next to
   the plugins'.
+- Plugins with an agent part can add **areas** of their own or feed the built-in ones (an OPNsense
+  plugin's gateways, a Proxmox host's VMs): each is an action named `<plugin>.<area>` with its own
+  interval and last run, listed after the built-in ones ([plugin spec](plugin-spec.md#discovery)).
+- Where several sources read an area (the monitoring source and plugins), one **decides** per
+  kind of device: by default the first in the order (the monitoring source, then the plugins by
+  id); an admin picks another on **What Floorbit reads** (`/inventory/reads/<kind>`, or
+  `PUT /api/inventory/discovery/deciding` with `{"role": "firewall", "area": "routes", "source":
+  "opnsense"}`, `null` for the default). The page lists each area with its deciding source, the
+  others, the interval, where the facts go, the last run and the open conflicts
+  (`GET /api/inventory/discovery/types/<kind>`). The others still count: a field the deciding
+  source doesn't read is filled from them, and a list it has nothing in is theirs. Values typed by
+  hand or sent by NetBox win over every source, as before.
+- Where a source that doesn't decide reads another value for a field, that's a **source
+  conflict**, shown next to drift on the device's Overview with both sources and both values.
+  **Take** gives the field the other source's value, like a hand edit
+  (`POST /api/inventory/<id>/conflicts/take` with `{"field": "os", "source": "opnsense"}`); an admin
+  can also let that source decide the device's identity for its kind.
 - It only fills in. A field gets the discovered value when it is empty, or when it still holds
   what discovery put there last, so a software upgrade shows up. A value typed by hand or sent by
   another plugin (NetBox) stays; the run counts it as kept. Empty a field and the next run fills

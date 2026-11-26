@@ -24,6 +24,7 @@ PAGES = (
      lambda c, can: c['feature_on']('incidents') and c.get('incidents_board')),
     ('/handover', 'handover', 'Shift handover', lambda c, can: c['feature_on']('handover') and can('incidents.work')),
     ('/plan?view=topology', 'topology', 'Topology', None),
+    ('/switches', 'switches', 'Switches', None),
     ('/firewalls', 'firewalls', 'Firewalls', None),
     ('/services', 'services', 'Services', None),
     ('/wifi', 'wifi', 'Wi-Fi', lambda c, can: c['feature_on']('wifi') and c.get('wifi_on')),
@@ -42,6 +43,8 @@ PAGES = (
     ('/commands', 'commands', 'Switch commands',
      lambda c, can: c['feature_on']('commands') and c.get('commands_on') and can('ports.act')),
     ('/terminal', 'terminal', 'Switch terminal', lambda c, can: c['feature_on']('terminal') and can('terminal.open')),
+    # Nightly config backups and what changed: the third tab of the Switch console (#900, #1051).
+    ('/configs', 'configs', 'Switch configs', lambda c, can: can('configs.read')),
     ('/inventory', 'inventory', 'Inventory', None),
     ('/seat-mapping', 'seatMapping', 'Seat mapping', lambda c, can: can('seats.view')),
     ('/cables', 'cables', 'Cables', lambda c, can: c['feature_on']('cables')),
@@ -51,8 +54,8 @@ PAGES = (
     ('/setup#doors', 'preflight', 'Before doors open', lambda c, can: c['feature_on']('preflight')),
     ('/schedule', 'schedule', 'Schedule', lambda c, can: c['feature_on']('schedule')),
     ('/timeline', 'timeline', 'Event changelog', lambda c, can: c['feature_on']('timeline') and can('audit.read')),
-    ('/telemetry', 'telemetry', 'Telemetry', None),
-    ('/network-status', 'networkStatus', 'Network status',
+    ('/telemetry', 'telemetry', 'Telemetry collector', None),
+    ('/network-status', 'networkStatus', 'Status updates',
      lambda c, can: c['feature_on']('status_page') and can('incidents.work')),
     ('/replay', 'replay', 'Event replay', lambda c, can: c['feature_on']('replay')),
     ('/report', 'report', 'Event report', lambda c, can: c['feature_on']('report')),
@@ -60,9 +63,10 @@ PAGES = (
     # events on the page follows the past_events feature (issue #1201).
     ('/events', 'events', 'Events', None),
     ('/templates', 'templates', 'Floor plan templates', None),
+    # The event's setup checklist, at the sidebar's foot with its progress (#1437).
+    ('/setup', 'setup', 'Set up', lambda c, can: can('settings.manage')),
     ('/settings', 'settings', 'Settings', lambda c, can: can('settings.manage')),
     ('/settings/plugins', 'plugins', 'Plugins', lambda c, can: can('settings.manage')),
-    ('/settings/features', 'features', 'Features', lambda c, can: can('settings.manage')),
     ('/settings/sidebar', 'sidebarSections', 'Sidebar sections', lambda c, can: can('settings.manage')),
     ('/settings/api', 'apiTokens', 'API tokens', lambda c, can: can('settings.manage')),
     ('/settings/tenants', 'tenants', 'Tenants',
@@ -78,9 +82,10 @@ PAGES = (
 
 
 def _lancache_on():
-    # The LAN cache plugin comes from the Marketplace: no page until it is installed and on.
-    from .blueprints.lancache import _plugin
-    return _plugin()[1]
+    # The LAN cache plugin comes from the Marketplace; a cache log Floorbit reads itself (or the
+    # demo) brings the page too, so it keeps its place in the Services tabs while data comes in (#1420).
+    from .blueprints.lancache import _has_data, _plugin
+    return _plugin()[1] or _has_data()
 
 
 def _checkin_on():

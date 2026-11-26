@@ -38,7 +38,7 @@
       "doneNoLogo": "Name und Daten sind gesetzt. Ein Logo ist optional.",
       "missing": "Es fehlt noch: {{list}}.",
       "part": {
-        "name": "der Event-Name (Einstellungen › Aussehen)",
+        "name": "ein Name für das Event (Events; bis dahin heisst es \"Erstes Event\")",
         "dates": "die Daten (Programm)",
         "logo": "ein Logo (optional)"
       }
@@ -84,8 +84,6 @@
       "done_one": "{{count}} Konto, {{teams}} Teams.",
       "done_other": "{{count}} Konten, {{teams}} Teams.",
       "alone": "Bisher nur ein Konto. Die Crew und ihre Teams erfassen."
-    },
-    "nudge": "Event einrichten: {{done}} von {{count}} Schritten erledigt. Als Nächstes: {{next}}.",
-    "continue": "Weiter einrichten"
+    }
   }
 }

@@ -118,7 +118,7 @@ export function Inspector({ seat, onClose, onBlock }: { seat: string; onClose: (
 
 /** The seat's link over the last hours (issue #167). Offline is a thin red bar under the line and
  *  online a full green one, so the two differ by shape too; not known yet is left empty. */
-function LinkHistory({ history }: { history: NonNullable<SeatDetails['history']> }) {
+export function LinkHistory({ history }: { history: NonNullable<SeatDetails['history']> }) {
   const { t } = useTranslation()
   const spans = linkSpans(history)
   const span = Math.max(1, history.to - history.from)

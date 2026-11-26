@@ -1,18 +1,19 @@
 import { Alert, Anchor, Button, Group, Paper, SimpleGrid, Stack, Switch, Text, Title } from '@mantine/core'
 import { IconDownload } from '@tabler/icons-react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { get, post } from '@/api/client'
+import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import { useCan, useFeature } from '@/api/queries'
+import { useFeature } from '@/api/queries'
 import type { EventReport, ReportHour } from '@/api/types'
-import { ConfirmButton, DataTable, type DataTableProps, ErrorBanner, LoadingState, PageHead, StatTile } from '@bitsandbricks/ui'
+import { DataTable, type DataTableProps, ErrorBanner, LoadingState, PageHead, StatTile } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
 import { bytes, duration, hourPath, pdfUrl, stamp } from './report/format'
 import { Compare } from './stats/Compare'
 import { bps } from './stats/format'
 import { incidentTitle } from '@/lib/incidentTitle'
+import './Report.css'
 
 type PortRow = EventReport['problem_ports'][number]
 type IncidentRow = EventReport['incidents']['items'][number]
@@ -21,11 +22,12 @@ const W = 1000
 const H = 140
 
 
-function Chart({ title, label, hours, children, keys }: {
+function Chart({ title, label, hours, children, keys, className }: {
   title: string; label: string; hours: ReportHour[]; children: (top: number) => ReactNode; keys: { cls: string; text: string }[]
+  className?: string
 }) {
   return (
-    <Paper withBorder radius="lg" p="md">
+    <Paper withBorder radius="lg" p="md" className={className}>
       <Group justify="space-between" mb={6}>
         <Text size="sm" fw={600}>{title}</Text>
         <Group gap="sm">
@@ -57,20 +59,11 @@ function Section<T>({ title, empty, ...table }: { title: string; empty: string }
 export default function Report() {
   const { t, i18n } = useTranslation()
   const pastEventsOn = useFeature('past_events')
-  const qc = useQueryClient()
-  const canReset = useCan('settings.manage')
   const [people, setPeople] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
   const query = useQuery({ queryKey: qk.report(people), queryFn: () => get<EventReport>(`/api/report${people ? '?people=1' : ''}`) })
-  const reset = useMutation({
-    mutationFn: () => post('/api/report/new-event'),
-    onSuccess: () => {
-      setNotice(t('report.newEventDone'))
-      void qc.invalidateQueries({ queryKey: qk.reports })
-    },
-  })
   const r = query.data
-  const error = query.error ?? reset.error
+  const error = query.error
+  const incidentsChart = !!r?.hours.some((h) => h.incidents)
   const seatsSub = r?.seats ? t('report.ofSeats', { count: r.seats }) : undefined
 
   return (
@@ -82,17 +75,9 @@ export default function Report() {
               href={pdfUrl(i18n.language, people, new Date().getTimezoneOffset())}>
               {t('report.download')}
             </Button>
-            {pastEventsOn && (
-              <Button variant="default" component="a" href="/events">{t('report.pastEvents')}</Button>
-            )}
-            {canReset && (
-              <ConfirmButton variant="default" danger label={t('report.newEvent')} question={t('report.newEventQuestion')}
-                onConfirm={() => reset.mutate()} loading={reset.isPending} />
-            )}
           </Group>
         } />
       <Stack gap="md">
-        {notice && <Alert color="up" role="status" withCloseButton onClose={() => setNotice(null)}>{notice}</Alert>}
         <ErrorBanner error={error} />
         {r?.may_add_people && (
           <Switch checked={people} onChange={(e) => setPeople(e.currentTarget.checked)} label={t('report.people')}
@@ -120,7 +105,7 @@ export default function Report() {
             {r.hours.length < 2 ? (
               <Paper withBorder radius="lg" p="lg"><Text c="dimmed">{t('report.empty')}</Text></Paper>
             ) : (
-              <SimpleGrid cols={{ base: 1, md: 2 }}>
+              <SimpleGrid cols={{ base: 1, md: 2, xl: incidentsChart ? 3 : 2 }}>
                 <Chart title={t('report.chartSeats')} label={t('report.chartSeatsLabel')} hours={r.hours}
                   keys={[{ cls: 'online', text: t('report.legendOnline') }, { cls: 'checked', text: t('report.legendCheckedIn') }]}>
                   {(top) => (
@@ -148,8 +133,8 @@ export default function Report() {
                     )
                   }}
                 </Chart>
-                {r.hours.some((h) => h.incidents) && (
-                  <Chart title={t('report.chartIncidents')} label={t('report.chartIncidentsLabel')} hours={r.hours}
+                {incidentsChart && (
+                  <Chart title={t('report.chartIncidents')} label={t('report.chartIncidentsLabel')} hours={r.hours} className="fb-report-wide"
                     keys={[{ cls: 'incidents', text: t('report.legendIncidents') }]}>
                     {() => {
                       const top = Math.max(1, ...r.hours.map((h) => h.incidents ?? 0))

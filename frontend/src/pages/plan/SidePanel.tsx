@@ -1,5 +1,5 @@
-import { Badge, Group, ScrollArea, Stack, Tabs, Text, UnstyledButton } from '@mantine/core'
-import { IconAlertTriangle, IconList, IconStack2 } from '@tabler/icons-react'
+import { ActionIcon, Badge, Group, ScrollArea, Stack, Tabs, Text, UnstyledButton } from '@mantine/core'
+import { IconAlertTriangle, IconList, IconStack2, IconX } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SeatViewData } from '@/api/types'
@@ -12,7 +12,7 @@ import type { SideTab } from './side'
 
 /** The plan's docked right panel, like a map editor's: Layers, Problems and Items while nothing is
  *  open; the open seat, block or switch (``inspector``) takes its place and closing it comes back. */
-export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspector, onSeat, onBlock, onSwitch, legends, extraLayers }: {
+export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspector, onSeat, onBlock, onSwitch, legends, extraLayers, onClose }: {
   data: SeatViewData; tab: SideTab; onTab: (t: SideTab) => void
   layers: LayerState; onLayers: (next: LayerState) => void; available: Record<LayerId, boolean>
   inspector: ReactNode; onSeat: (s: string) => void; onBlock: (b: string) => void; onSwitch: (w: string) => void
@@ -20,6 +20,8 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
   legends?: LayerLegends
   /** Under the layer switches: the plugin layer picker. */
   extraLayers?: ReactNode
+  /** Phones, where the panel is a sheet from below: a close button beside the tabs. */
+  onClose?: () => void
 }) {
   const { t } = useTranslation()
   if (inspector) return <aside className="fb-ws-panel" aria-label={t('plan.side.label')}>{inspector}</aside>
@@ -37,6 +39,11 @@ export function SidePanel({ data, tab, onTab, layers, onLayers, available, inspe
           <Tabs.Tab value="problems" leftSection={<IconAlertTriangle size={14} />}>
             {t('plan.side.problems')}{problems.length + down ? <Badge size="xs" color="down" ml={6}>{problems.length + down}</Badge> : null}</Tabs.Tab>
           <Tabs.Tab value="items" leftSection={<IconList size={14} />}>{t('plan.side.items')}</Tabs.Tab>
+          {onClose && (
+            <ActionIcon variant="subtle" color="gray" size="lg" className="fb-side-close" aria-label={t('plan.side.hide')} onClick={onClose}>
+              <IconX size={18} aria-hidden="true" />
+            </ActionIcon>
+          )}
         </Tabs.List>
         <ScrollArea className="fb-side-body" type="auto">
           <Tabs.Panel value="layers" p="md">

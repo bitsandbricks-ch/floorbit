@@ -8,30 +8,30 @@
   min-width: 44px;
   padding: 4px 6px;
   border-radius: 6px;
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--bnb-line);
   font-size: 12px;
   font-family: var(--mantine-font-family-monospace);
   text-align: center;
-  color: var(--color-muted);
+  color: var(--bnb-muted);
 }
-.walk-strip-seat:hover { background: var(--color-raised); }
+.walk-strip-seat:hover { background: var(--bnb-raised); }
 .walk-strip-seat[data-state='mapped'] {
-  color: var(--color-up);
-  border-color: color-mix(in srgb, var(--color-up) 45%, transparent);
-  background: color-mix(in srgb, var(--color-up) 10%, transparent);
+  color: var(--bnb-ok);
+  border-color: color-mix(in srgb, var(--bnb-ok) 45%, transparent);
+  background: color-mix(in srgb, var(--bnb-ok) 10%, transparent);
 }
 .walk-strip-seat[data-state='failed'] {
-  color: var(--color-down);
-  border-color: color-mix(in srgb, var(--color-down) 45%, transparent);
+  color: var(--bnb-err);
+  border-color: color-mix(in srgb, var(--bnb-err) 45%, transparent);
 }
 .walk-strip-seat[data-state='marked'] {
-  color: var(--color-warn);
+  color: var(--bnb-warn);
   border-style: dashed;
-  border-color: color-mix(in srgb, var(--color-warn) 60%, transparent);
+  border-color: color-mix(in srgb, var(--bnb-warn) 60%, transparent);
 }
 .walk-strip-seat[data-current] {
-  outline: 2px solid var(--color-trace);
+  outline: 2px solid var(--bnb-info);
   outline-offset: 1px;
-  color: var(--color-fg);
+  color: var(--bnb-fg);
   font-weight: 700;
 }

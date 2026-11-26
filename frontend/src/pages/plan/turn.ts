@@ -7,7 +7,8 @@ const left = (x: number, y: number): [number, number] => [y, -x]
 function turnMark(m: PlanMark): PlanMark {
   const [x, y] = left(m.x, m.y)
   switch (m.kind) {
-    case 'wall': {
+    case 'wall':
+    case 'walkway': {
       const [x2, y2] = left(m.x2 ?? m.x, m.y2 ?? m.y)
       return { ...m, x, y, x2, y2, points: m.points?.map(([px, py]) => left(px, py)) }
     }

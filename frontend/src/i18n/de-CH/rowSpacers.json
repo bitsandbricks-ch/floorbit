@@ -1,0 +1,17 @@
+{
+  "newSpacer": "Abstand zwischen den Reihen",
+  "newSpacerHint": "Platz zwischen den Reihen für den Switch. Bei 1 Platz oder weniger teilen sie sich noch einen Tisch.",
+  "above": "Abstand über {{name}}",
+  "add": "Abstand über {{name}}",
+  "remove": "Abstand über Reihe {{name}} entfernen",
+  "stripTitle": "Plätze und Lücken",
+  "stripHint": "Klicke zwischen zwei Plätze, um dort eine Lücke einzufügen; klicke eine Lücke an, um sie anzupassen oder zu entfernen.",
+  "addAfter": "Lücke nach Platz {{seat}} einfügen",
+  "gapAfterShort": "Lücke nach Platz {{seat}}",
+  "gapSize": "Grösse der Lücke nach Platz {{seat}}, in Plätzen",
+  "removeGap": "Lücke nach Platz {{seat}} entfernen",
+  "gapAfter_one": "Lücke nach Platz {{seat}}, {{count}} Platz",
+  "gapAfter_other": "Lücke nach Platz {{seat}}, {{count}} Plätze",
+  "unit_one": "Platz",
+  "unit_other": "Plätze"
+}

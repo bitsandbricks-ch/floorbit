@@ -1,0 +1,7 @@
+{
+  "No such kind of device.": "Diese Geräteart gibt es nicht.",
+  "Send the kind of device, the area and the source (null for the default).": "Schick die Geräteart, den Bereich und die Quelle (null für die Vorgabe).",
+  "That source does not read this area on such devices.": "Diese Quelle liest diesen Bereich bei solchen Geräten nicht.",
+  "That source's value is not a valid value for this field.": "Der Wert dieser Quelle ist für dieses Feld nicht gültig.",
+  "The sources agree on this now.": "Die Quellen sind sich hier jetzt einig."
+}

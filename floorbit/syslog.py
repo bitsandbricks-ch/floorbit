@@ -31,7 +31,7 @@ from datetime import datetime
 
 from integrations import config
 
-from . import dhcp_leases, features, inventory, log_alerts, store
+from . import dhcp_leases, features, inventory, log_alerts, store, unknown_senders
 
 MAX_LINE = 2048
 LATE = 120               # seconds: a relayed line older than this was kept by the agent (#465)
@@ -166,6 +166,7 @@ def _tail(path, count, block=1 << 20):
 
 PRUNE_EVERY = 60              # seconds; a busy hall fills SYSLOG_MAX_MB in minutes
 RCVBUF = 8 * 1024 * 1024      # a burst waits in the kernel while one line is handled
+HEARD_MAX = 5000            # devices whose last syslog line is remembered
 MAX_TCP = 256                 # senders at once; more are closed (a switch reconnects)
 
 
@@ -209,6 +210,9 @@ class SyslogReceiver:
         self.lines = deque()
         self.next_id = 1
         self.counts = {'received': 0, 'kept': 0, 'not_allowed': 0, 'rate_limited': 0, 'duplicates': 0}
+        # device name, lower case -> when its last line came: the Syslog square of Agents >
+        # Telemetry collector (issue #904). Capped, so a flood of made-up host names can't grow it.
+        self.heard = {}
         self._buckets = {}      # sender (or (sender, 'late')) -> [tokens, last]
         self._seen_ids = OrderedDict()   # a relayed line's id -> its time, to drop copies
         self._servers = []
@@ -344,15 +348,22 @@ class SyslogReceiver:
         return True
 
     # ── receiving ───────────────────────────────────────────────────────────────────
-    def receive(self, raw, sender, now=None, check=True, device=None, late=False):
+    def receive(self, raw, sender, now=None, check=True, device=None, late=False, agent=''):
         """One datagram or TCP line from ``sender``. Returns the kept line, or None. ``late``: a line
-        an agent kept while the uplink was down, sent long after it came."""
+        an agent kept while the uplink was down, sent long after it came. ``agent``: the one that relayed it."""
         now = time.time() if now is None else now
         with self._lock:
             self.counts['received'] += 1
             if check and not self.sender_ok(sender):
                 self.counts['not_allowed'] += 1
-                return None
+                refused = True
+            else:
+                refused = False
+        if refused:
+            # Still dropped, but listed: a switch missing from the inventory looks silent otherwise (#1443).
+            self._unknown(raw, sender, now, agent)
+            return None
+        with self._lock:
             # Late lines come oldest first behind the live ones: on a bucket of their own, their
             # times refill it as the switch's own pace did, and they can't eat the live lines' share.
             if not self._rate_ok((sender, 'late') if late else sender, now):
@@ -360,6 +371,8 @@ class SyslogReceiver:
                 return None
         line = parse(raw, now)
         _nets, switches = self._allowed()
+        if sender not in switches and not device:
+            unknown_senders.syslog.note('syslog', sender, name=line['host'], agent=agent, now=now)
         device = device or switches.get(sender) or line['host'] or sender
         ports = ports_in(line['message'])
         port = ports[0] if ports else None
@@ -367,6 +380,10 @@ class SyslogReceiver:
         with self._lock:
             line.update(id=self.next_id, sender=sender, device=device, port=port, seat=seat)
             self.next_id += 1
+            if not late:
+                key = str(device).lower()
+                if key in self.heard or len(self.heard) < HEARD_MAX:
+                    self.heard[key] = now
             self.lines.append(line)
             self.counts['kept'] += 1
             self._trim(now)
@@ -376,6 +393,11 @@ class SyslogReceiver:
             # A lease line hours old could undo a newer one; the lease ran out by now anyway.
             dhcp_leases.leases.observe(line['message'], now)
         return line
+
+    def _unknown(self, raw, sender, now, agent):
+        _nets, switches = self._allowed()
+        if sender not in switches:
+            unknown_senders.syslog.note('syslog', sender, name=parse(raw[:MAX_LINE], now)['host'], agent=agent, now=now)
 
     def relay(self, agent_name, lines, now=None, dropped=0, offset=0.0):
         """Lines a local agent received on the event network (issue #2): ``[{"raw", "from", "at", "id"}]``.
@@ -413,7 +435,7 @@ class SyslogReceiver:
             if self._duplicate(item.get('id'), at):
                 continue
             late = now - at > LATE
-            if self.receive(item['raw'][:MAX_LINE], sender, now=at, late=late) is not None:
+            if self.receive(item['raw'][:MAX_LINE], sender, now=at, late=late, agent=agent_name) is not None:
                 kept += 1
         with self._lock:
             seen = self.relayed.setdefault(str(agent_name)[:80], {'lines': 0, 'dropped': 0})
@@ -456,36 +478,71 @@ class SyslogReceiver:
                 line['seat'] = index.get((str(line.get('device') or '').lower(), line['port']))
 
     # ── reading ─────────────────────────────────────────────────────────────────────
-    def search(self, q='', device='', seat='', port='', severity='', after=0, before=None, limit=200):
-        """Newest first. ``severity`` is the least severe level to show ('warning' shows emerg to warning)."""
+    def _matcher(self, q='', device='', seat='', port='', severity='', since=None, until=None):
+        """One test for the filters every reader shares: the list, the volume chart and the download."""
         words = [w for w in str(q or '').lower().split() if w]
         worst = SEVERITIES.index(severity) if severity in SEVERITIES else len(SEVERITIES) - 1
         device, seat, port = str(device or '').lower(), str(seat or '').lower(), canonical_port(port) if port else ''
+
+        def match(line):
+            if SEVERITIES.index(line['severity']) > worst:
+                return False
+            if since is not None and (line.get('ts') or 0) < since:
+                return False
+            if until is not None and (line.get('ts') or 0) >= until:
+                return False
+            if device and str(line.get('device') or '').lower() != device:
+                return False
+            if seat and str(line.get('seat') or '').lower() != seat:
+                return False
+            if port and line.get('port') != port:
+                return False
+            if words:
+                text = ' '.join(str(line.get(k) or '') for k in ('message', 'device', 'program', 'seat')).lower()
+                if not all(w in text for w in words):
+                    return False
+            return True
+        return match
+
+    def _snapshot(self):
         with self._lock:
             lines = list(self.lines)
         self._fill_seats(lines)
+        return lines
+
+    def search(self, q='', device='', seat='', port='', severity='', after=0, before=None, limit=200,
+               since=None, until=None):
+        """Newest first. ``severity`` is the least severe level to show ('warning' shows emerg to warning);
+        ``since`` and ``until`` are unix seconds."""
+        match = self._matcher(q, device, seat, port, severity, since, until)
         out = []
-        for line in reversed(lines):
+        for line in reversed(self._snapshot()):
             if line['id'] <= after:
                 break
             if before is not None and line['id'] >= before:
                 continue
-            if SEVERITIES.index(line['severity']) > worst:
+            if not match(line):
                 continue
-            if device and str(line.get('device') or '').lower() != device:
-                continue
-            if seat and str(line.get('seat') or '').lower() != seat:
-                continue
-            if port and line.get('port') != port:
-                continue
-            if words:
-                text = ' '.join(str(line.get(k) or '') for k in ('message', 'device', 'program', 'seat')).lower()
-                if not all(w in text for w in words):
-                    continue
             out.append(line)
             if len(out) >= limit:
                 break
         return out
+
+    def volume(self, since, until, buckets=60, **filters):
+        """Lines per time slice for the chart over the list: ``[start, all, errors]`` per slice, where
+        errors are err and worse, so a burst of them stands out."""
+        step = max(1, -(-(until - since) // buckets))
+        counts = [[since + i * step, 0, 0] for i in range(buckets)]
+        match = self._matcher(since=since, until=until, **filters)
+        worst = SEVERITIES.index('err')
+        for line in self._snapshot():
+            if not match(line):
+                continue
+            row = counts[min(buckets - 1, int((line['ts'] - since) // step))]
+            row[1] += 1
+            if SEVERITIES.index(line['severity']) <= worst:
+                row[2] += 1
+        return {'since': since, 'until': until, 'step': step, 'buckets': counts}
 
     def markers(self, devices, now=None, minutes=10):
         with self._lock:
@@ -552,6 +609,7 @@ class SyslogReceiver:
                     'relayed': [{'agent': name, **seen, 'recent': time.time() - seen['at'] < 300}
                                 for name, seen in sorted(self.relayed.items())],
                     'last_id': self.lines[-1]['id'] if self.lines else 0,
+                    'first_ts': self.lines[0].get('ts') if self.lines else None,
                     'leases': dhcp_leases.leases.status(),
                     'stores': [{'id': s.id, 'name': s.name, **{k: v for k, v in self.forwarded.get(s.id, {}).items()
                                                                if k != 'id'}} for s in self.log_plugins()]}

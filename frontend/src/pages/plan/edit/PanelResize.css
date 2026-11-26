@@ -4,8 +4,8 @@
 .fb-panel-resize { position: absolute; top: 0; bottom: 0; left: -4px; width: 8px; cursor: ew-resize; z-index: 2; touch-action: none; }
 .fb-panel-resize::after {
   content: ''; position: absolute; left: 3px; top: 50%; width: 2px; height: 32px; margin-top: -16px;
-  border-radius: 2px; background: var(--color-line);
+  border-radius: 2px; background: var(--bnb-line);
 }
-.fb-panel-resize:hover::after, .fb-panel-resize:focus-visible::after { background: var(--color-bit); height: 100%; top: 0; margin-top: 0; }
+.fb-panel-resize:hover::after, .fb-panel-resize:focus-visible::after { background: var(--bnb-accent); height: 100%; top: 0; margin-top: 0; }
 .fb-panel-resize:focus-visible { outline: none; }
 @media (max-width: 1099.98px) { .fb-panel-resize { display: none; } }

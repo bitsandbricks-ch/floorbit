@@ -1,48 +1,63 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { renderWithApp } from '@/test/render'
-import notifySource from '../../../static/js/notify.js?raw'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { qk } from '@/api/keys'
+import { CrewNotify } from '@/notify/CrewNotify'
+import { crewNotify, migrate, setWatchedSeats, watchedSeats } from '@/notify/crewNotify'
+import { fakeFetch, renderWithApp } from '@/test/render'
 import { NotifySettings } from './NotifySettings'
 
-afterEach(() => {
-  vi.unstubAllGlobals()
-  delete window.floorNotify
-  localStorage.clear()
-})
+type Shown = { title: string; body: string; tag: string }
 
 class FakeSource {
   static last: FakeSource | null = null
   handlers: Record<string, (e: { data: string }) => void> = {}
+  readyState = 1
   constructor() { FakeSource.last = this }
   addEventListener(type: string, fn: (e: { data: string }) => void) { this.handlers[type] = fn }
   close() {}
   emit(type: string, data: unknown) { this.handlers[type]?.({ data: JSON.stringify({ type, data }) }) }
 }
 
-function loadNotify(shown: { title: string; body: string; tag: string }[], mutes: { switch_id: string }[] = []) {
-  const Note = vi.fn(function (this: object, title: string, opts: { body: string; tag: string }) { shown.push({ title, ...opts }) }) as unknown as typeof Notification
-  Object.assign(Note, { permission: 'granted', requestPermission: async () => 'granted' })
-  vi.stubGlobal('Notification', Note)
+let shown: Shown[] = []
+
+beforeEach(() => {
+  shown = []
+  const Note = vi.fn(function (this: object, title: string, opts: { body: string; tag: string }) { shown.push({ title, ...opts }) })
+  vi.stubGlobal('Notification', Object.assign(Note, { permission: 'granted', requestPermission: async () => 'granted' }))
   vi.stubGlobal('EventSource', FakeSource)
-  vi.stubGlobal('fetch', vi.fn(async (path: string) => ({
-    ok: true,
-    json: async () => path === '/api/auth/me'
-      ? { user: { username: 'tia' } }
-      : path === '/api/problems' ? { mutes }
-      : { incidents: [{ id: 'i1', seat: 'D-6', title: 'No link' }] },
-  })))
-  // static/js/notify.js is a classic script for the editor and the React pages alike.
-  new Function(notifySource)()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.useRealTimers()
+  localStorage.clear()
+  FakeSource.last = null
+})
+
+/** CrewNotify listening, signed in as tia; resolves once it knows who "me" is. */
+async function listen(mutes: { switch_id: string }[] = []) {
+  vi.stubGlobal('fetch', fakeFetch({
+    'GET /api/auth/me': { enabled: true, user: { username: 'tia', permissions: [] } },
+    'GET /api/problems': { mutes },
+    'GET /api/incidents': { incidents: [{ id: 'i1', seat: 'D-6', title: 'No link' }] },
+  }).fn)
+  const { client } = renderWithApp(<CrewNotify />)
+  await waitFor(() => expect(client.getQueryData(qk.me)).toBeTruthy())
+  await waitFor(() => expect(FakeSource.last?.handlers['seats.changed']).toBeTruthy())
+  return FakeSource.last!
 }
 
-describe('notify.js', () => {
-  it('shows a job for me, a new incident and a switch going down once switched on', async () => {
-    const shown: { title: string; body: string; tag: string }[] = []
-    loadNotify(shown)
-    expect(window.floorNotify!.settings().on).toBe(false)
-    await window.floorNotify!.set({ on: true })
-    await waitFor(() => expect(FakeSource.last?.handlers['switch.status']).toBeTruthy())
-    const src = FakeSource.last!
+describe('CrewNotify', () => {
+  it('opens no stream while notifications are off', async () => {
+    vi.stubGlobal('fetch', fakeFetch({}).fn)
+    renderWithApp(<CrewNotify />)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(FakeSource.last).toBeNull()
+  })
+
+  it('shows a job for me, a new incident and a switch going down', async () => {
+    await crewNotify.set({ on: true })
+    const src = await listen()
     src.emit('incident.dispatched', { id: 'i1', assignee: 'someone-else' })
     src.emit('incident.dispatched', { id: 'i1', assignee: 'tia' })
     src.emit('incident.changed', { id: 'i1', action: 'created' })
@@ -51,17 +66,11 @@ describe('notify.js', () => {
     await waitFor(() => expect(shown).toHaveLength(3))
     expect(shown.map((n) => n.tag).sort()).toEqual(['incident-i1', 'job-i1', 'switch-s1'])
     expect(shown.find((n) => n.tag === 'incident-i1')?.body).toBe('Seat D-6: No link')
-    expect(JSON.parse(localStorage.getItem('floorbit-notify')!).on).toBe(true)
   })
-})
 
-describe('services and mutes', () => {
   it('shows a service going down and skips what is muted', async () => {
-    const shown: { title: string; body: string; tag: string }[] = []
-    loadNotify(shown, [{ switch_id: 's2' }, { switch_id: 'health:dns' }])
-    await window.floorNotify!.set({ on: true })
-    await waitFor(() => expect(FakeSource.last?.handlers['health.changed']).toBeTruthy())
-    const src = FakeSource.last!
+    await crewNotify.set({ on: true })
+    const src = await listen([{ switch_id: 's2' }, { switch_id: 'health:dns' }])
     src.emit('health.changed', { changes: [
       { id: 'game3', name: 'Game server 3', status: 'down', previous: 'up', summary: 'Not answering' },
       { id: 'dns', name: 'DNS players', status: 'down', previous: 'up', summary: 'Timeout' },
@@ -77,79 +86,62 @@ describe('services and mutes', () => {
     ])
   })
 
-  it('leaves services out when that box is off', async () => {
-    const shown: { title: string; body: string; tag: string }[] = []
-    loadNotify(shown)
-    await window.floorNotify!.set({ on: true, services: false })
-    await waitFor(() => expect(FakeSource.last?.handlers['health.changed']).toBeTruthy())
-    FakeSource.last!.emit('health.changed', { changes: [{ id: 'game3', name: 'Game server 3', status: 'down', previous: 'up', summary: '' }] })
-    FakeSource.last!.emit('switch.status', { id: 's1', name: 'sw-d-01', status: 'offline' })
+  it('leaves out a kind that is switched off', async () => {
+    await crewNotify.set({ on: true, kinds: { services: false } })
+    const src = await listen()
+    src.emit('health.changed', { changes: [{ id: 'game3', name: 'Game server 3', status: 'down', previous: 'up', summary: '' }] })
+    src.emit('switch.status', { id: 's1', name: 'sw-d-01', status: 'offline' })
     await waitFor(() => expect(shown.map((n) => n.tag)).toEqual(['switch-s1']))
   })
-})
-
-describe('quiet hours', () => {
-  afterEach(() => vi.useRealTimers())
 
   it('holds back everything but my jobs during quiet hours, past midnight too', async () => {
-    const shown: { title: string; body: string; tag: string }[] = []
     vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 10, 14, 23, 30))
-    loadNotify(shown)
-    await window.floorNotify!.set({ on: true, quiet: true, quietFrom: '22:00', quietTo: '07:00' })
-    await waitFor(() => expect(FakeSource.last?.handlers['switch.status']).toBeTruthy())
-    expect(window.floorNotify!.quietNow!()).toBe(true)
-    const src = FakeSource.last!
+    await crewNotify.set({ on: true, quiet: true, quietFrom: '22:00', quietTo: '07:00' })
+    const src = await listen()
+    expect(crewNotify.quietNow()).toBe(true)
     src.emit('switch.status', { id: 's1', name: 'sw-d-01', status: 'offline' })
     src.emit('incident.changed', { id: 'i1', action: 'created' })
     src.emit('incident.dispatched', { id: 'i1', assignee: 'tia' })
     await waitFor(() => expect(shown.map((n) => n.tag)).toEqual(['job-i1']))
 
-    await window.floorNotify!.set({ jobsInQuiet: false })
-    FakeSource.last!.emit('incident.dispatched', { id: 'i2', assignee: 'tia' })
+    await crewNotify.set({ urgentInQuiet: false })
+    src.emit('incident.dispatched', { id: 'i2', assignee: 'tia' })
     vi.setSystemTime(new Date(2026, 10, 15, 7, 0))
-    expect(window.floorNotify!.quietNow!()).toBe(false)
-    FakeSource.last!.emit('switch.status', { id: 's2', name: 'sw-d-02', status: 'offline' })
+    expect(crewNotify.quietNow()).toBe(false)
+    src.emit('switch.status', { id: 's2', name: 'sw-d-02', status: 'offline' })
     await waitFor(() => expect(shown.map((n) => n.tag)).toEqual(['job-i1', 'switch-s2']))
   })
-})
 
-describe('watched seats', () => {
   it('notifies when a watched seat goes down or comes back, and only that seat', async () => {
-    const shown: { title: string; body: string; tag: string }[] = []
-    loadNotify(shown)
-    await window.floorNotify!.set({ on: true, watch: ['D-6'] })
-    await waitFor(() => expect(FakeSource.last?.handlers['seats.changed']).toBeTruthy())
-    FakeSource.last!.emit('seats.changed', { seats: [['D-6', 0], ['D-7', 0]] })
-    FakeSource.last!.emit('seats.changed', { seats: [['D-6', 1]] })
+    await crewNotify.set({ on: true })
+    setWatchedSeats(['D-6'])
+    const src = await listen()
+    src.emit('seats.changed', { seats: [['D-6', 0], ['D-7', 0]] })
+    src.emit('seats.changed', { seats: [['D-6', 1]] })
     await waitFor(() => expect(shown).toHaveLength(2))
     expect(shown.map((n) => [n.tag, n.body])).toEqual([['seat-D-6', 'Seat D-6 went offline.'], ['seat-D-6', 'Seat D-6 is online again.']])
   })
 })
 
-describe('NotifySettings', () => {
-  it('switches notifications on through notify.js', async () => {
-    const set = vi.fn(async (c: object) => ({ on: true, incidents: true, jobs: true, switches: true, ...c }))
-    window.floorNotify = {
-      supported: () => true, permission: () => 'granted', set,
-      settings: () => ({ on: false, incidents: true, jobs: true, switches: true }),
-    }
-    renderWithApp(<NotifySettings opened onClose={() => {}} />)
-    fireEvent.click(await screen.findByRole('switch', { name: 'Notifications on this device' }))
-    await waitFor(() => expect(set).toHaveBeenCalledWith({ on: true }))
-    expect(await screen.findByRole('checkbox', { name: 'A switch going down' })).not.toBeDisabled()
+describe('old settings', () => {
+  it('moves what notify.js saved to the shared shape', () => {
+    localStorage.setItem('floorbit-notify', JSON.stringify({ on: true, switches: false, quiet: true, quietFrom: '23:00', quietTo: '06:00', jobsInQuiet: false, watch: ['D-6'] }))
+    migrate()
+    expect(crewNotify.prefs()).toEqual({ on: true, kinds: { switches: false }, quiet: true, quietFrom: '23:00', quietTo: '06:00', urgentInQuiet: false })
+    expect(watchedSeats()).toEqual(['D-6'])
   })
+})
 
-  it('sets quiet hours', async () => {
-    let prefs = { on: true, incidents: true, jobs: true, switches: true, quiet: false }
-    const set = vi.fn(async (c: object) => (prefs = { ...prefs, ...c }))
-    window.floorNotify = { supported: () => true, permission: () => 'granted', set, settings: () => prefs, quietNow: () => true }
+describe('NotifySettings', () => {
+  it('switches notifications on and offers Floorbit\'s kinds', async () => {
     renderWithApp(<NotifySettings opened onClose={() => {}} />)
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Quiet hours' }))
-    await waitFor(() => expect(set).toHaveBeenCalledWith({ quiet: true }))
-    fireEvent.click(await screen.findByRole('combobox', { name: 'From' }))
-    fireEvent.click((await screen.findAllByRole('option', { name: '23:00', hidden: true }))[0])
-    await waitFor(() => expect(set).toHaveBeenCalledWith({ quietFrom: '23:00' }))
-    expect(screen.getByText(/only jobs sent to you come through/)).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('switch', { name: 'Notify me on this device' }))
+    await waitFor(() => expect(crewNotify.prefs().on).toBe(true))
+    const box = await screen.findByRole('checkbox', { name: 'A switch going down' })
+    expect(box).not.toBeDisabled()
+    fireEvent.click(box)
+    await waitFor(() => expect(crewNotify.prefs().kinds.switches).toBe(false))
+    expect(screen.getByRole('checkbox', { name: /A job sent to me/ })).toBeChecked()
   })
 })

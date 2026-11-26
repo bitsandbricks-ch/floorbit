@@ -173,7 +173,7 @@ class DiscordNotifier:
                 if (health_alerts or not k.startswith('health:')) and self._still_down(k)]
         if not down:
             return None
-        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        public_url = config.public_url()
         ts = datetime.fromtimestamp(now, tz=UTC).isoformat()
         embeds = []
         for key, entry in down[:MAX_EMBEDS]:
@@ -238,7 +238,7 @@ class DiscordNotifier:
             selected.append(c)
         if not selected:
             return None
-        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        public_url = config.public_url()
         ts = datetime.fromtimestamp(now, tz=UTC).isoformat()
         embeds = []
         for c in selected[:MAX_EMBEDS]:
@@ -288,7 +288,7 @@ class DiscordNotifier:
         embed = {'title': f"🛡️ {SECURITY_KINDS.get(finding.get('kind'), 'Security finding')}",
                  'color': COLOR_OFFLINE if finding.get('severity') == 'high' else COLOR_INFO,
                  'fields': fields, 'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat()}
-        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        public_url = config.public_url()
         if public_url:
             # The finding's own problem page (issue #885).
             embed['url'] = f"{public_url}/problems/{quote('security:' + str(finding.get('id')), safe=':')}"
@@ -333,7 +333,7 @@ class DiscordNotifier:
             fields.append({'name': 'Feeds', 'value': ' and '.join(feeds)[:250], 'inline': False})
         embed = {'title': title[:200], 'color': COLOR_OFFLINE if tripped else COLOR_INFO, 'fields': fields,
                  'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat()}
-        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        public_url = config.public_url()
         if public_url:
             embed['url'] = public_url + '/power'
         payload = {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': [embed],
@@ -363,7 +363,7 @@ class DiscordNotifier:
                  'description': f'Forecast {gbps:.1f} Gbps of a {cap:.1f} Gbps line, from the hours so far.',
                  'color': COLOR_OFFLINE if alert['pct'] >= 100 else COLOR_INFO,
                  'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat()}
-        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        public_url = config.public_url()
         if public_url:
             embed['url'] = public_url + '/stats'
         return {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': [embed],
@@ -393,7 +393,7 @@ class DiscordNotifier:
             'color': COLOR_OFFLINE if down else COLOR_ONLINE,
             'timestamp': datetime.fromtimestamp(now, tz=UTC).isoformat(),
         }
-        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        public_url = config.public_url()
         if public_url:
             embed['url'] = public_url
         return {'username': config.get('DISCORD_USERNAME', 'Floorbit'), 'embeds': [embed],
@@ -427,7 +427,7 @@ class DiscordNotifier:
 
         offline = [c for c in selected if c['status'] == 'offline']
         back = [c for c in selected if c['status'] != 'offline']
-        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        public_url = config.public_url()
         ts = datetime.fromtimestamp(now, tz=UTC).isoformat()
         group_after = config.get_int('ALERT_GROUP_AFTER', 3, minimum=1)
 
@@ -506,7 +506,7 @@ class DiscordNotifier:
             return 0
 
     def build_test_message(self):
-        public_url = (config.get('PUBLIC_URL', '') or '').rstrip('/')
+        public_url = config.public_url()
         embed = {
             'title': '✅ Discord alerts are connected',
             'description': ('This channel will get a message when a switch on the floor plan '

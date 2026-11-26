@@ -27,7 +27,10 @@ describe('ApiTokens', () => {
     expect(screen.getByText(/never expires · never used/)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Discord bot' } })
     fireEvent.click(screen.getByRole('button', { name: 'Make token' }))
-    expect(await screen.findByText('fbt_e5f6a7b8_example-secret')).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('fbt_e5f6a7b8_example-secret')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Token "Discord bot" made' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: "I've stored it" }))
+    expect(screen.queryByDisplayValue('fbt_e5f6a7b8_example-secret')).toBeNull()
     const sent = api.calls.find((c) => c.method === 'POST')?.body as Record<string, unknown>
     expect(sent).toMatchObject({ name: 'Discord bot', role: 'viewer', read_only: true, expires_days: 90 })
   })

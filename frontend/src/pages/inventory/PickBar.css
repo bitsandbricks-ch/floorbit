@@ -1,0 +1,5 @@
+/* Sticks above the status line (desktop) or the phone dock while the list scrolls. */
+.fb-pickbar { position: sticky; bottom: 48px; z-index: 3; }
+@media (max-width: 48em) {
+  .fb-pickbar { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}

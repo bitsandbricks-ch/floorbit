@@ -1,5 +1,5 @@
 import {
-  Alert, Badge, Button, Checkbox, Code, CopyButton, Group, Paper, SimpleGrid, Stack, Switch, Text, TextInput, Title,
+  Alert, Anchor, Badge, Button, Checkbox, Code, CopyButton, Group, Paper, SimpleGrid, Stack, Switch, Text, TextInput, Title,
 } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -171,7 +171,7 @@ export default function Webhooks() {
             {d.webhooks.length === 0 && <Paper withBorder radius="lg"><EmptyState icon={<IconWebhook size={24} />} title={t('webhooks.none')} /></Paper>}
             {d.webhooks.map((h) => <Hook key={h.id} hook={h} events={d.events} onSecret={shown} onChanged={refresh} />)}
             <NewHook events={d.events} onMade={shown} />
-            <Text size="sm" c="dimmed">{t('webhooks.docs')}</Text>
+            <Text size="sm" c="dimmed">{t('webhooks.docs')} <Anchor href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/api.md#webhooks" target="_blank" rel="noopener noreferrer" inherit>{t('webhooks.docsLink')}</Anchor></Text>
           </>
         )}
       </Stack>

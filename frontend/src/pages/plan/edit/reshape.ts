@@ -1,6 +1,7 @@
 import type { PlanMark } from '@/api/types'
 import { SCALE_MAX, SCALE_MIN } from '../markSize'
 import { type Point, fromPct, snapPct, toPct } from './geometry'
+import { isLine } from '../lineMarks'
 
 /** The handles a selected mark has: a label or icon one corner to scale it, a zone its four
  *  corners, a wall its two ends. */
@@ -23,7 +24,7 @@ export function handlesOf(m: PlanMark, corner: Point): [Handle, Point][] {
     return ([['nw', { x: m.x, y: m.y }], ['ne', { x: x2, y: m.y }], ['sw', { x: m.x, y: y2 }], ['se', { x: x2, y: y2 }]] as [Handle, Point][])
       .map(([h, p]) => [h, turn(p, c, deg)])
   }
-  if (m.kind === 'wall') return [['a', { x: m.x, y: m.y }], ['b', { x: m.x2 ?? m.x, y: m.y2 ?? m.y }]]
+  if (isLine(m)) return [['a', { x: m.x, y: m.y }], ['b', { x: m.x2 ?? m.x, y: m.y2 ?? m.y }]]
   return [['scale', turn(corner, m, m.rotation ?? 0)]]
 }
 
@@ -73,7 +74,7 @@ export function shapeBody(m: PlanMark, size: Size): Record<string, unknown> {
     const a = toPct(size, m), d = toPct(size, { x: m.w ?? 0, y: m.h ?? 0 })
     return { x: r3(a.x), y: r3(a.y), w: r3(d.x), h: r3(d.y) }
   }
-  if (m.kind === 'wall') {
+  if (isLine(m)) {
     const a = toPct(size, m), b = toPct(size, { x: m.x2 ?? m.x, y: m.y2 ?? m.y })
     // Always sent, even empty: undoing a bend has to take it out again.
     const points = (m.points ?? []).map(([x, y]) => { const q = toPct(size, { x, y }); return [r3(q.x), r3(q.y)] })

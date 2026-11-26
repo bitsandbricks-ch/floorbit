@@ -63,6 +63,29 @@ export function inLane(start: Pt, shape: PlanShape, c: PlanCell, cell: number, s
   return bends.map(([bu, bv]) => pct(size, shape.cx + bu * cos - bv * sin, shape.cy + bu * sin + bv * cos))
 }
 
+/** The route into a seat on a bent row, as the server draws it (cable_plan._along_path): to the
+ *  block's side, to the end of the row's lane that makes the shorter cable, along the lane to the
+ *  seat. In the block's own frame (drawing units), like ``inLane``. */
+export function alongPath(start: Pt, shape: PlanShape, lane: Pt[], i: number, cell: number, size: Size): Pt[] {
+  const a = (shape.rotation * Math.PI) / 180, cos = Math.cos(a), sin = Math.sin(a)
+  const dx = (start[0] / 100) * size.w - shape.cx, dy = (start[1] / 100) * size.h - shape.cy
+  const su = dx * cos + dy * sin, sv = -dx * sin + dy * cos
+  const w = shape.w / 2, h = shape.h / 2, out = (TRUNK * cell) / 2
+  let best: { len: number; bends: Pt[] } | null = null
+  for (const run of [lane.slice(0, i + 1), lane.slice(i).reverse()]) {
+    const [eu, ev] = run[0]
+    const end = su < 0 ? -w - out : w + out
+    const bends: Pt[] = -w <= su && su <= w
+      ? [[su, sv < 0 ? -h - out : h + out], [eu, sv < 0 ? -h - out : h + out]]
+      : [[end, sv], [end, ev]]
+    bends.push(...run)
+    let len = 0, prev: Pt = [su, sv]
+    for (const p of bends) { len += Math.hypot(p[0] - prev[0], p[1] - prev[1]); prev = p }
+    if (!best || len < best.len - 1e-6 * cell) best = { len, bends }
+  }
+  return best!.bends.map(([bu, bv]) => pct(size, shape.cx + bu * cos - bv * sin, shape.cy + bu * sin + bv * cos))
+}
+
 /** Drops repeated points and bends that are not bends, like the server's ``_tidy``. */
 function tidy(points: Pt[]): Pt[] {
   const out: Pt[] = []
@@ -105,7 +128,10 @@ export function followPlan(cables: PlanCable[], data: Pick<SeatViewData, 'switch
     // Through a patch panel the panel's leg stays as drawn; the rest follows the seat.
     if (c.manual || c.via) return { ...c, points: [start, ...c.points.slice(1, -1), end] }
     const shape = shapeOf(c.ref.seat), seatCell = shape?.cells.find((x) => x.seat === c.ref.seat)
-    const bends = shape && seatCell?.lane != null ? inLane(start, shape, seatCell, drawing.cell, size) : toSeat(start, end, blockOf(shape))
+    const bent = seatCell?.li != null && seatCell.rc ? shape?.lanes?.[String(seatCell.rc[0])] : undefined
+    const bends = shape && seatCell?.lane != null ? inLane(start, shape, seatCell, drawing.cell, size)
+      : shape && bent && seatCell?.li != null ? alongPath(start, shape, bent, seatCell.li, drawing.cell, size)
+      : toSeat(start, end, blockOf(shape))
     return { ...c, points: tidy([start, ...bends, end]) }
   })
 }

@@ -1,17 +1,18 @@
-import { ActionIcon, Loader, Stack, Text, Tooltip } from '@mantine/core'
-import { IconArrowsMaximize, IconExternalLink } from '@tabler/icons-react'
+import { ActionIcon, Anchor, Loader, Stack, Text, Tooltip } from '@mantine/core'
+import { IconArrowsMaximize } from '@tabler/icons-react'
 import { useContext, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDashboard, useWidgets } from '@/api/queries'
 import type { Tile, Widget, WidgetTile } from '@/api/types'
+import { Markdown } from '@bitsandbricks/ui'
 import { FitWidget } from '@bitsandbricks/widgets'
 import { usePaneData } from '@/widgets/usePaneData'
 import { type Pane, displayOf, paneRange, rangedUrl } from './model'
 import { PlanPane } from './PlanPane'
-import { Markdown } from '@/components/Markdown'
 import { publicUrl, useScreen } from './screen'
 import { followed } from '../widgets/saved'
 import { LargeContext, useMakeLarge } from './large'
+import './Panes.css'
 
 const tileKey = (tile: Tile) => `${tile.plugin}/${tile.kind === 'action' ? 'a' : 'w'}/${tile.id}`
 
@@ -103,16 +104,16 @@ function TileWidgetPane({ pane, tiles }: { pane: Extract<Pane, { kind: 'tile' }>
   return (
     <Framed title={title} hide={pane.hide_title} fit alert={alert} actions={data && (
       <>
+        {/* One quiet "Open" on tiles that lead somewhere; the big view's button only on hover or
+            focus, so a row of tiles doesn't carry an icon pair each (#1407). */}
         {link && (
-          <Tooltip label={t('common.details')}>
-            <ActionIcon component="a" href={link} variant="subtle" color="gray" size="sm" aria-label={t('widgets.kind.detailsNamed', { name: title })}>
-              <IconExternalLink size={15} />
-            </ActionIcon>
-          </Tooltip>
+          <Anchor href={link} size="xs" c="dimmed" className="fb-pane-open" aria-label={t('widgets.kind.detailsNamed', { name: title })}>
+            {t('widgets.kind.open')}
+          </Anchor>
         )}
         {makeLarge && (
           <Tooltip label={t('dashboards.pane.openBig')}>
-            <ActionIcon variant="subtle" color="gray" size="sm" aria-label={t('dashboards.pane.openBigNamed', { name: title })} onClick={makeLarge}>
+            <ActionIcon variant="subtle" color="gray" size="sm" className="fb-pane-hover" aria-label={t('dashboards.pane.openBigNamed', { name: title })} onClick={makeLarge}>
               <IconArrowsMaximize size={15} />
             </ActionIcon>
           </Tooltip>
@@ -139,7 +140,7 @@ function TextPane({ pane }: { pane: Extract<Pane, { kind: 'text' }> }) {
   const { t } = useTranslation()
   return (
     <Framed title={pane.title} hide={pane.hide_title} className={`fb-pane-text fb-text-${pane.size} fb-text-${pane.align}`}>
-      {pane.text ? <Markdown source={pane.text} breaks /> : <Note>{t('dashboards.pane.noText')}</Note>}
+      {pane.text ? <Markdown source={pane.text} breaks className="fb-markdown" /> : <Note>{t('dashboards.pane.noText')}</Note>}
     </Framed>
   )
 }

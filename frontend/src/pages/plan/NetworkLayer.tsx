@@ -91,15 +91,15 @@ export function CableLegend({ cables, links = [] }: { cables: PlanCable[]; links
   return (
     <ul className="fb-plan-legend fb-cable-legend" aria-label={t('plan.net.legend')}>
       {up.total > 0 && <li><b>{t('plan.net.uplinks', { count: up.total })}</b></li>}
-      {up.down > 0 && <li className="fb-legend-down">{line('var(--color-down)', 3, '6 4')}{t('plan.net.uplinksDown', { count: up.down })}</li>}
+      {up.down > 0 && <li className="fb-legend-down">{line('var(--bnb-err)', 3, '6 4')}{t('plan.net.uplinksDown', { count: up.down })}</li>}
       {up.slow > 0 && <li>{line('var(--mantine-color-orange-6)', 3)}{t('plan.net.uplinksSlow', { count: up.slow })}</li>}
       {s.total > 0 && <li><b>{t('plan.net.cables', { count: s.total })}</b></li>}
       {s.media.map((m) => <li key={m}>{line(MEDIA_COLOR[m], 3)}{t(`plan.net.media.${m}`)}</li>)}
-      {s.speeds.length > 1 && s.speeds.map((v) => <li key={v}>{line('var(--color-muted)', SPEED_W[v] ?? 1.6)}{t('plan.net.speed', { gbps: v })}</li>)}
-      {s.total > 0 && <li>{line('var(--color-muted)', 2)}{t('plan.net.portUp')}</li>}
-      {s.total > 0 && <li>{line('var(--color-muted)', 2, '6 4')}{t('plan.net.portDown')}</li>}
-      {s.total > 0 && <li>{line('var(--color-muted)', 2, '1 4')}{t('plan.net.portUnknown')}</li>}
-      {s.learned > 0 && <li>{line('color-mix(in srgb, var(--color-muted) 45%, transparent)', 2)}{t('plan.net.learnedCount', { count: s.learned })}</li>}
+      {s.speeds.length > 1 && s.speeds.map((v) => <li key={v}>{line('var(--bnb-muted)', SPEED_W[v] ?? 1.6)}{t('plan.net.speed', { gbps: v })}</li>)}
+      {s.total > 0 && <li>{line('var(--bnb-muted)', 2)}{t('plan.net.portUp')}</li>}
+      {s.total > 0 && <li>{line('var(--bnb-muted)', 2, '6 4')}{t('plan.net.portDown')}</li>}
+      {s.total > 0 && <li>{line('var(--bnb-muted)', 2, '1 4')}{t('plan.net.portUnknown')}</li>}
+      {s.learned > 0 && <li>{line('color-mix(in srgb, var(--bnb-muted) 45%, transparent)', 2)}{t('plan.net.learnedCount', { count: s.learned })}</li>}
     </ul>
   )
 }

@@ -86,8 +86,9 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
         angles = seat_layout.angles(block)
         sides = [seat_rows.side_of(r) for r in seat_rows.rows_of(block)]
         lanes = cable_lanes.lanes(block)
+        bent = cable_lanes.paths(block)
         w, h = width * CELL, height * CELL
-        cells = []
+        cells, row_lanes = [], {}
         for r, row in enumerate(rows):
             for c, seat in enumerate(row):
                 hit = seat == highlight
@@ -105,6 +106,11 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
                 if (r, c) in lanes:
                     # Where its cables run, from the seat's centre across the row (floorbit/cable_lanes.py).
                     cell['lane'] = round((lanes[r, c] - y - 0.5) * CELL, 2)
+                elif (r, c) in bent:
+                    # A bent row's lane, once per row on the block, and this seat's point in it.
+                    lane, cell['li'] = bent[r, c]
+                    row_lanes.setdefault(str(r), [[round(u * CELL - w / 2, 2), round(v * CELL - h / 2, 2)]
+                                                  for u, v in lane])
                 cells.append(cell)
         reach = max(w, h) / 2 + CELL * 2   # the row letters sit one cell out
         xs += [cx - reach, cx + reach]
@@ -116,7 +122,8 @@ def plan(data, highlight=None, online=None, hall_id=None, public=False):
                        'rows': [] if block.get('seat_at') else _row_labels(block, at, angles, w, h),
                        # Each row (cells' rc[0]) by its id and name, as /api/options/rows has them.
                        'row_list': _rows_of(block, nrows),
-                       'free': bool(block.get('seat_at'))})
+                       'free': bool(block.get('seat_at')),
+                       **({'lanes': row_lanes} if row_lanes else {})})
     if not shapes:
         return None, None
     marks, icons, custom = _marks(data, hall_id, xs, ys, public)
@@ -135,12 +142,13 @@ def _marks(data, hall_id, xs, ys, public=False):
             continue
         d = {**m, 'x': m['x'] * sx, 'y': m['y'] * sy}
         d.pop('hall_id', None)
-        if m['kind'] == 'wall':
+        if m['kind'] in plan_marks.LINES:
             d.update(x2=m['x2'] * sx, y2=m['y2'] * sy)
             if m.get('points'):
                 d['points'] = [[x * sx, y * sy] for x, y in m['points']]
-            xs += [d['x'], d['x2'], *(p[0] for p in d.get('points', []))]
-            ys += [d['y'], d['y2'], *(p[1] for p in d.get('points', []))]
+            half = m.get('width', 0) * CELL / 2   # a walkway's band reaches past its middle line
+            xs += [v + e for v in (d['x'], d['x2'], *(p[0] for p in d.get('points', []))) for e in (-half, half)]
+            ys += [v + e for v in (d['y'], d['y2'], *(p[1] for p in d.get('points', []))) for e in (-half, half)]
         elif m['kind'] == 'zone':
             d.update(w=m['w'] * sx, h=m['h'] * sy)
             xs += [d['x'], d['x'] + d['w']]

@@ -76,7 +76,7 @@
       "off": "Off",
       "partly": "Partly on"
     },
-    "partly": "Some parts are off: {{parts}}. Switch it on to turn them all on.",
+    "partly": "Some parts are off: {{parts}}.",
     "forced": "Turned off on the server's environment.",
     "needsTitle": "What it needs",
     "stillNeeds": "What {{name}} still needs",
@@ -110,9 +110,8 @@
       "cap.front_door": "The front door for attendees switched on",
       "cap.checkin": "Seat check-in switched on",
       "dhcp114": "Option 114 in the event's DHCP, pointing at the agent",
-      "port.syslog-relay": "A UDP port for syslog on the agent",
-      "port.netflow-relay": "A UDP port for flows on the agent",
       "powerSource": "A power meter plugin, such as Shelly or Home Assistant"
-    }
+    },
+    "allOn": "Turn all on"
   }
 }

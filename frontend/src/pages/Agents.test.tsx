@@ -6,6 +6,16 @@ import { admin, busyAgent, quietAgent } from './agents/fixtures'
 
 afterEach(() => vi.unstubAllGlobals())
 
+/** The agents' rows, without the groups' header rows. */
+const dataRows = () => screen.getAllByRole('row').filter((r) => r.closest('tbody') && !r.classList.contains('bnb-dt-group-head'))
+
+/** The agents under a group's header row, in order. */
+const agentRows = (name: string) => {
+  const head = screen.getAllByRole('heading').find((h) => h.textContent?.includes(name))
+  const body = head?.closest('tbody')
+  return body ? within(body).getAllByRole('row').filter((r) => !r.classList.contains('bnb-dt-group-head')) : []
+}
+
 const groups = { groups: [], tags: [{ id: 't1', name: 'Site A' }, { id: 't2', name: 'Hall 2' }] }
 
 describe('Agents', () => {
@@ -41,18 +51,16 @@ describe('Agents', () => {
     const heads = within(list).getAllByRole('heading')
     expect(heads.map((h) => h.textContent)).toEqual([expect.stringContaining('Site A'), expect.stringContaining('Hall 2')])
     expect(within(heads[1]).getByText('Failover ready')).toBeInTheDocument()
-    const hall = within(list).getByRole('table', { name: 'Agents in Hall 2' })
-    const names = within(hall).getAllByRole('row').map((r) => r.textContent)    // no header row: only the first group has one
-    expect(names[0]).toContain('Spring LAN, hall 2')
-    expect(names[1]).toContain('Calm hall')
-    const busy = within(hall).getAllByRole('row')[0]
+    const hall = agentRows('Hall 2')
+    expect(hall.map((r) => r.textContent)).toEqual([expect.stringContaining('Spring LAN, hall 2'), expect.stringContaining('Calm hall')])
+    const busy = hall[0]
     expect(within(busy).getByText('Primary')).toBeInTheDocument()
     expect(within(busy).getByText('192.0.2.20')).toBeInTheDocument()
     expect(await within(busy).findByRole('img', { name: '160 telemetry points and syslog lines per minute now' })).toBeInTheDocument()
     expect(within(busy).getByText('2')).toBeInTheDocument()                     // syslog lines/s: 120 a minute
     expect(within(busy).getByText(/netbox/)).toBeInTheDocument()                // the worst problem, then how many more
     expect(within(busy).getByText(/and \d+ more/)).toBeInTheDocument()
-    expect(within(within(list).getByRole('table', { name: 'Agents in Site A' })).getByText('Update')).toBeInTheDocument()
+    expect(within(agentRows('Site A').find((r) => r.textContent?.includes('Old box'))!).getByText('Update')).toBeInTheDocument()
     // A row opens the agent beside the list
     fireEvent.click(within(busy).getByText('Spring LAN, hall 2'))
     const panel = await screen.findByRole('dialog')
@@ -64,14 +72,13 @@ describe('Agents', () => {
     fireEvent.click(within(panel).getByRole('button', { name: /close/i }))
     // Filters: only the older ones, from the head's update button
     fireEvent.click(screen.getByRole('button', { name: 'Update 1 agent' }))
-    expect(await screen.findByRole('table', { name: 'Agents in Site A' })).toBeInTheDocument()
-    expect(screen.queryByRole('table', { name: 'Agents in Hall 2' })).toBeNull()
-    expect(within(screen.getByRole('table', { name: 'Agents in Site A' })).getAllByRole('row').slice(1).map((r) => r.textContent)).toEqual([expect.stringContaining('Old box')])
+    await vi.waitFor(() => expect(agentRows('Site A').map((r) => r.textContent)).toEqual([expect.stringContaining('Old box')]))
+    expect(within(list).queryByRole('heading', { name: /Hall 2/ })).toBeNull()
     // Enrol
     fireEvent.click(screen.getByRole('button', { name: 'Enrol an agent' }))
     fireEvent.change(await screen.findByLabelText(/^Name/), { target: { value: 'Autumn LAN' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enrol' }))
-    expect(await screen.findByText('fba_e5f6a7b8_example-key-0123456789')).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('fba_e5f6a7b8_example-key-0123456789')).toBeInTheDocument()
     expect(screen.getByText(/FLOORBIT_AGENT_KEY=fba_e5f6a7b8_example-key-0123456789/)).toBeInTheDocument()
     expect(api.calls.find((c) => c.method === 'POST' && c.path === '/api/agents')?.body).toEqual({ name: 'Autumn LAN' })
   })
@@ -87,7 +94,8 @@ describe('Agents', () => {
       'GET /api/agents': { agents: [agent], connected: true, max: 10, server_version: '0.1.0', protocol: 2, newest_version: '0.9.0' },
     }).fn)
     renderWithApp(<Agents />)
-    fireEvent.click(within(await screen.findByRole('table')).getByText('Spring LAN, hall 2'))
+    await screen.findByRole('table')
+    fireEvent.click(within(dataRows()[0]).getByText('Spring LAN, hall 2'))
     const panel = await screen.findByRole('dialog')
     expect(within(panel).getByText(/telemetry: Nothing from Telegraf: this agent image has no Telegraf/)).toBeInTheDocument()
     expect(within(panel).getByRole('link', { name: 'How to fix' })).toHaveAttribute('href', expect.stringContaining('docs/agent.md#telegraf'))
@@ -102,10 +110,11 @@ describe('Agents', () => {
         connected: true, max: 10, protocol: 2, newest_version: '0.10.0' },
     }).fn)
     renderWithApp(<Agents />)
-    const row = (await screen.findAllByRole('row')).find((r) => r.textContent?.includes('Behind'))!
+    await screen.findByRole('table')
+    const row = dataRows().find((r) => r.textContent?.includes('Behind'))!
     expect(within(row).getByText(/Runs 0\.9\.0, another agent runs 0\.10\.0/)).toBeInTheDocument()
     expect(within(row).getByText('Update')).toBeInTheDocument()
-    expect(within(screen.getAllByRole('row').find((r) => r.textContent?.includes('Ahead'))!).queryByText('Update')).toBeNull()
+    expect(within(dataRows().find((r) => r.textContent?.includes('Ahead'))!).queryByText('Update')).toBeNull()
   })
 
   it('says the plugins answer while there is no agent', async () => {
@@ -136,7 +145,7 @@ describe('Agents', () => {
     expect(within(head).getByText('active/passive')).toBeInTheDocument()
     expect(within(head).getByText('192.0.2.10/24')).toBeInTheDocument()
     expect(screen.getByText(/a backup agent is offline/)).toBeInTheDocument()
-    const primary = screen.getAllByRole('row').find((r) => r.textContent?.includes('Spring LAN, hall 2'))!
+    const primary = dataRows().find((r) => r.textContent?.includes('Spring LAN, hall 2'))!
     expect(within(primary).getByText('192.0.2.10/24')).toBeInTheDocument()
     expect(screen.getByText('0 / 1')).toBeInTheDocument()                        // failover ready
     expect(screen.getByText('2 instances share the work over Valkey.')).toBeInTheDocument()

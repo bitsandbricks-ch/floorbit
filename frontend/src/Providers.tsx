@@ -2,9 +2,10 @@ import { useCallback, useMemo, type ReactNode } from 'react'
 import { Modal, mergeThemeOverrides } from '@mantine/core'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { BnbProvider } from '@bitsandbricks/ui'
 import { floorbitSchemeManager, useScheme } from './colorScheme'
+import { AppLink } from './nav/AppLink'
 import { theme } from './theme'
 
 const schemeManager = floorbitSchemeManager()
@@ -23,7 +24,7 @@ export function Providers({ client, children }: { client: QueryClient; children:
   )
   return (
     <BnbProvider theme={themed} locale={i18n.language.startsWith('de') ? 'de' : 'en'} translate={translate}
-      link={Link} useSearchParams={useSearchParams} colorSchemeManager={schemeManager} defaultColorScheme={scheme}>
+      link={AppLink} useSearchParams={useSearchParams} colorSchemeManager={schemeManager} defaultColorScheme={scheme}>
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     </BnbProvider>
   )

@@ -63,7 +63,7 @@ def _changed():
 def status_public():
     """The page itself is React (frontend/src/pages/public/PublicStatus.tsx), reading /status.json;
     404 while it is switched off, so links and monitors see that, and the page says so."""
-    html, status = spa.render('Network status')
+    html, status = spa.render('Status updates')
     return html, status if page_on() else 404
 
 
@@ -91,7 +91,7 @@ for _view in (status_public, status_json, old_hall_view):
 
 @bp.route('/network-status')
 def crew_page():
-    return spa.render('Network status')
+    return spa.render('Status updates')
 
 
 @bp.route('/api/status-page', methods=['GET'])

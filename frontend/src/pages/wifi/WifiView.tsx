@@ -28,7 +28,7 @@ function Plan({ data, band, mode, label }: { data: WifiData; band: WifiBand; mod
   const aps = data.aps.filter((a) => a.on_plan)
   const colorOf = (ap: WifiAp) => {
     const r = radioOn(ap, band)
-    if (ap.status === 'down' || !r) return 'var(--color-muted)'
+    if (ap.status === 'down' || !r) return 'var(--bnb-muted)'
     if (mode === 'channels') return channelColor(r.channel)
     if (mode === 'clients') return loadColor(Math.min(100, (r.clients / crowded) * 100), 100)
     return loadColor(r.utilization, data.thresholds.busy)

@@ -6,9 +6,8 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import { Panel } from '@/components/ui'
 import { EmptyState, ErrorBanner, LoadingState, type Widget } from '@bitsandbricks/ui'
-import { FitWidget, type TimePoint } from '@bitsandbricks/widgets'
+import { FitWidget, TimeChart, type TimePoint } from '@bitsandbricks/widgets'
 import { IconArrowsMaximize, IconChartLine } from '@tabler/icons-react'
-import { HoverTimeChart } from '@/components/HoverTimeChart'
 import { stats } from '@/components/timeSeries'
 import './AgentGraphs.css'
 
@@ -62,7 +61,7 @@ export function AgentGraphs({ agentId }: { agentId: string }) {
                 </ActionIcon>}>
                 {/* The latest value as the stat widget, at the level without its own graph: the chart under it has the history. */}
                 <div className="fb-agent-stat"><FitWidget widget={widget(m, pts)} pick="stat" pin="m" /></div>
-                <HoverTimeChart points={pts} since={since} until={until} label={name}
+                <TimeChart points={pts} since={since} until={until} label={name}
                   format={(v) => t('agents.graphs.max', { n: num(v) })} value={num} />
                 <Text size="xs" c="dimmed" mt={4} style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {t('agents.graphs.stats', { min: num(s.min), avg: num(s.avg), max: num(s.max) })}
@@ -79,7 +78,7 @@ export function AgentGraphs({ agentId }: { agentId: string }) {
           <>
             <SegmentedControl size="xs" mb="sm" value={hours} onChange={setHours} aria-label={t('agents.graphs.range')}
               data={RANGES.map((h) => ({ value: h, label: t('agents.graphs.hours', { count: Number(h) }) }))} />
-            <HoverTimeChart points={q.data.series[big]} since={since} until={until} height={320} label={t(`agents.graphs.metric.${big}`)}
+            <TimeChart points={q.data.series[big]} since={since} until={until} height={320} label={t(`agents.graphs.metric.${big}`)}
               format={(v) => t('agents.graphs.max', { n: num(v) })} value={num} />
             <Text size="sm" c="dimmed" mt={4} style={{ fontVariantNumeric: 'tabular-nums' }}>
               {(({ min, avg, max }) => t('agents.graphs.stats', { min: num(min), avg: num(avg), max: num(max) }))(stats(q.data.series[big]))}

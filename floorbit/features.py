@@ -1,6 +1,6 @@
 """Feature switches (issue #114). See docs/features.md.
 
-An admin turns whole features off under Settings > Features. A feature that is off:
+An admin turns whole features off under Settings > Plugins > Built in. A feature that is off:
 
 - leaves the navigation (``feature_on()`` in Jinja, ``useFeature()`` in React),
 - answers 404 on its pages and API (``guard``, before sign-in is even checked),

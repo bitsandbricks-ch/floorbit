@@ -15,7 +15,7 @@ different features touch different files.
    **`floorbit/theme.py`**: the preset and colours every page renders with, `?theme=` per
    screen and the event logo at `/brand/logo` (see [themes.md](themes.md)).
    **`floorbit/audit.py`**: appends every successful change and sign-in to the audit log.
-4. **`floorbit/blueprints/`**: one blueprint per area, listed in `blueprints/__init__.py`:
+4. **`floorbit/blueprints/`**: one blueprint per area; each module with a `bp` registers itself (`blueprints/_discover.py`):
 
    | Module | Routes |
    | --- | --- |
@@ -79,7 +79,8 @@ to make one.
 Plain JavaScript and CSS, no build step. Every page is React now; what is left here serves it.
 
 - The floor plan editor moved to React (`frontend/src/pages/plan/edit/`); `/editor/classic` redirects there.
-- `notify.js` and `theme.js` are shared by every page.
+- `theme.js` is shared by every page. Browser notifications live in the React app
+  (`frontend/src/notify/`, on the shared `createBrowserNotify`).
 - `templates/unavailable.html` is the one page Flask still draws: what a page answers while the
   database is away. It needs neither the database nor the JavaScript build, on purpose.
 - `templates/_attribution.html` and `static/css/attribution.css` are the "Buy me a coffee" and

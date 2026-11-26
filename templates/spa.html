@@ -11,16 +11,14 @@
   {% if assets %}
   {% for href in assets.css %}<link rel="stylesheet" href="{{ href }}" />
   {% endfor %}
-  <script src="/static/js/notify.js"></script>
   {% for src in assets.js %}<script type="module" src="{{ src }}"></script>
   {% endfor %}
   {% for src in assets.preload %}<link rel="modulepreload" href="{{ src }}" />
   {% endfor %}
   {% endif %}
 </head>
-<body class="fb-has-nav">
-  {#- The React app draws the sidebar itself; it needs only the data. #}
-  {% with include_slot=False %}{% include "_nav.html" %}{% endwith %}
+<body>
+  {% include "_nav.html" %}
   {% if page %}<script type="application/json" id="fb-page">{{ page | tojson }}</script>{% endif %}
   <div id="root">
     {% if not assets %}

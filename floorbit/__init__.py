@@ -117,7 +117,10 @@ def create_app(start_background=True):
     from auth.providers import DiscordProvider
     auth = app.extensions['auth']
     auth.providers.register(DiscordProvider(settings_store.get))
-    auth.public_url = lambda: _setting_or_empty(settings_store, 'integrations.public_url')
+    # The setting, else where the crew last opened Floorbit (floorbit/public_url.py, #1433).
+    from . import public_url
+    auth.public_url = lambda: _setting_or_empty(settings_store, 'integrations.public_url') or public_url.learned()
+    public_url.init_app(app)
 
     @app.before_request
     def refresh_runtime_settings():

@@ -7,6 +7,7 @@ import { qk } from '@/api/keys'
 import { CHECK_KINDS, UDP_ASKS } from '@/api/serviceChecks'
 import type { CheckKind, OwnCheck, OwnCheckResult, UdpAsk } from '@/api/serviceChecks'
 import { ConfirmButton } from '@bitsandbricks/ui'
+import { useAgentChoices } from '@/components/agentChoices'
 
 const SLOW: Record<CheckKind, number> = { ping: 100, tcp: 200, udp: 200, http: 1000 }
 
@@ -20,11 +21,13 @@ export function CheckModal({ check, onClose }: { check: OwnCheck | null; onClose
     port: check?.port ?? '' as number | '', ask: (check?.ask || 'none') as UdpAsk, url: check?.url ?? '',
     expect: check?.expect || '200-399', contains: check?.contains ?? '',
     cert_warn_days: check?.cert_warn_days ?? 14, slow_ms: check?.slow_ms ?? SLOW[check?.kind ?? 'ping'],
+    from: check?.from ?? '',
   })
+  const agents = useAgentChoices()
   const [slowTouched, setSlowTouched] = useState(!!check)
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }))
   const body = () => {
-    const common = { name: form.name, kind: form.kind, slow_ms: form.slow_ms }
+    const common = { name: form.name, kind: form.kind, slow_ms: form.slow_ms, from: form.from }
     if (form.kind === 'http') return { ...common, url: form.url.trim(), expect: form.expect, contains: form.contains, cert_warn_days: form.cert_warn_days }
     return { ...common, host: form.host.trim(), ...(form.kind !== 'ping' && { port: form.port === '' ? null : form.port }),
       ...(form.kind === 'udp' && { ask: form.ask }) }
@@ -74,6 +77,9 @@ export function CheckModal({ check, onClose }: { check: OwnCheck | null; onClose
         )}
         <NumberInput label={t('services.check.slow')} suffix=" ms" min={1} max={60000} allowDecimal={false} value={form.slow_ms}
           onChange={(v) => { setSlowTouched(true); set({ slow_ms: typeof v === 'number' ? v : 1 }) }} />
+        <Select label={t('services.check.from')} description={t('services.check.fromHelp')} clearable searchable
+          placeholder={t('services.check.fromAny')} data={agents.data} value={form.from || null}
+          onChange={(v) => { set({ from: v ?? '' }); test.reset() }} />
         <Group gap="sm" wrap="nowrap" align="center" className="fb-check-test">
           <Button variant="default" size="compact-md" disabled={!ready} loading={test.isPending} onClick={() => test.mutate()}>{t('services.check.test')}</Button>
           <Text size="sm" role="status" c={test.data ? (test.data.status === 'down' ? 'down' : test.data.status === 'warn' ? 'warn' : undefined) : 'dimmed'}>

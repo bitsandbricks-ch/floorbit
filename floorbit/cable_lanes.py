@@ -11,8 +11,13 @@ side is the row's ``cables`` (floorbit/seat_rows.py):
 - ``chair``: on the chair side, where the player sits.
 
 The lane runs in the middle of the gap to the next row, on the seam when the rows touch, and half a
-seat out at the block's edge. Bent rows, U and L shapes, paths and seats placed freely keep the
-route along the block (floorbit/cable_plan.py): they have no one line to run along.
+seat out at the block's edge.
+
+A bent row, a U or an L with chairs gets a lane that bends with it (``paths``, issue #1208): half a
+seat out from its seats on the cable side, one point per seat and one past each end. Its cables
+come in at the end nearer the switch and run along the row to their seat. Rows without chairs that
+aren't straight, paths in pieces and seats placed freely keep the route along the block
+(floorbit/cable_plan.py): they have no one line or side to run along.
 
 Everything is in seats in the block's own frame before it is turned, as ``seat_rows.layout``.
 """
@@ -74,3 +79,64 @@ def lanes(block):
         for c, *_ in mine:
             out[r, c] = round(v, 4)
     return out
+
+
+OUT = 1.0    # seats from a seat's centre to its bent lane: half a seat, then half a seat out
+PAST = 1.0   # seats a bent lane runs on past the row's last seat at either end
+
+
+def paths(block):
+    """``{(r, c): (points, i)}``: for each seat on a bent row with a lane, the row's lane as points
+    ``(u, v)`` in seats in the block's frame (one past the start, one per seat, one past the end) and
+    where the seat's own point is in it. Straight rows (``lanes``) and rows without a side to run
+    on are not in it."""
+    if block.get('seat_at'):
+        return {}
+    rows = seat_rows.rows_of(block)
+    at, _, _ = seat_rows.layout(block)
+    straight = {r for r, _ in lanes(block)}
+    out = {}
+    for r, row in enumerate(rows):
+        mine = sorted((c, x, y, a) for (rr, c), (x, y, a) in at.items() if rr == r)
+        if r in straight or len(mine) < 2 or row.get('pieces'):
+            continue
+        side = seat_rows.side_of(row)
+        if not side:
+            continue
+        # The chairs' side as a sign on the left of the way the row runs; cables go the other way
+        # unless the row wants them where the player sits.
+        chair = 1 if side == 'left' else -1
+        sign = chair if row.get('cables') == 'chair' else -chair
+        points, index, prev = [], {}, None
+        for c, x, y, a in mine:
+            rad = math.radians(a)
+            p = (x + sign * math.sin(rad) * OUT, y - sign * math.cos(rad) * OUT)
+            # Round a corner (a U's, an L's) square instead of cutting across it.
+            corner = prev and _corner(prev[0], prev[1], p, a)
+            if corner:
+                points.append(corner)
+            index[c] = len(points) + 1
+            points.append(p)
+            prev = (p, a)
+        (_, _, _, a0), (_, _, _, a1) = mine[0], mine[-1]
+        first = (points[0][0] - math.cos(math.radians(a0)) * PAST, points[0][1] - math.sin(math.radians(a0)) * PAST)
+        last = (points[-1][0] + math.cos(math.radians(a1)) * PAST, points[-1][1] + math.sin(math.radians(a1)) * PAST)
+        lane = tuple((round(u, 4), round(v, 4)) for u, v in [first, *points, last])
+        for c, *_ in mine:
+            out[r, c] = (lane, index[c])
+    return out
+
+
+def _corner(p, a, q, b):
+    """Where the lane through ``p`` running at ``a`` degrees meets the one through ``q`` at ``b``,
+    when the row turns there by more than a little; None on a gentle bend."""
+    turn = (b - a + 180) % 360 - 180
+    if abs(turn) < 30:
+        return None
+    ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+    cb, sb = math.cos(math.radians(b)), math.sin(math.radians(b))
+    det = ca * sb - sa * cb
+    if abs(det) < 1e-9:
+        return None
+    t = ((q[0] - p[0]) * sb - (q[1] - p[1]) * cb) / det
+    return (p[0] + t * ca, p[1] + t * sa)
