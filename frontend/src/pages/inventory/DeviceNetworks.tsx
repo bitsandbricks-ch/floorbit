@@ -1,8 +1,7 @@
 import { Stack, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import type { DeviceDetail } from '@/api/types'
-import { DataTable, EmptyState } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, DataTable, EmptyState } from '@bitsandbricks/ui'
 import { dateTime } from '@/lib/time'
 
 type Discovered = NonNullable<DeviceDetail['discovered']>
@@ -26,7 +25,7 @@ export function DeviceNetworks({ found }: { found: Discovered | undefined }) {
     <Stack gap="md">
       {found?.at && <Text size="sm" c="dimmed">{t('deviceNetworks.readAt', { when: dateTime(Date.parse(found.at) / 1000) })}</Text>}
       {vlans.length > 0 && (
-        <Panel title={t('deviceNetworks.vlans', { count: vlans.length })} padding={0}>
+        <Card heading={2} title={t('deviceNetworks.vlans', { count: vlans.length })} padded={false}>
           <DataTable label={t('deviceNetworks.vlansLabel')} rows={vlans} rowKey={(v) => String(v.id)} defaultSort={{ id: 'id' }} bare
             columns={[
               { id: 'id', header: t('deviceNetworks.col.id'), width: 90, numeric: true, sort: (v) => v.id, cell: (v) => v.id },
@@ -34,20 +33,20 @@ export function DeviceNetworks({ found }: { found: Discovered | undefined }) {
               { id: 'nets', header: t('deviceNetworks.col.networks'), mono: true,
                 cell: (v) => svis.filter((s) => s.vlan === v.id).map((s) => s.network).join(', ') || '–' },
             ]} />
-        </Panel>
+        </Card>
       )}
       {networks.length > 0 && (
-        <Panel title={t('deviceNetworks.networks', { count: networks.length })} padding={0}>
+        <Card heading={2} title={t('deviceNetworks.networks', { count: networks.length })} padded={false}>
           <DataTable label={t('deviceNetworks.networksLabel')} rows={networks} rowKey={(n) => n.net} defaultSort={{ id: 'net' }} bare
             columns={[
               { id: 'net', header: t('deviceNetworks.col.network'), mono: true, sort: (n) => n.net, cell: (n) => n.net },
               { id: 'vlan', header: t('deviceNetworks.col.vlan'), sort: (n) => n.vlan ?? -1,
                 cell: (n) => (n.vlan == null ? '–' : nameOf.get(n.vlan) ? `${n.vlan} · ${nameOf.get(n.vlan)}` : n.vlan) },
             ]} />
-        </Panel>
+        </Card>
       )}
       {routes.length > 0 && (
-        <Panel title={t('deviceNetworks.routes', { count: routes.length })} padding={0}>
+        <Card heading={2} title={t('deviceNetworks.routes', { count: routes.length })} padded={false}>
           <DataTable label={t('deviceNetworks.routesLabel')} rows={routes} rowKey={(r, i) => `${r.network}|${r.next_hop}|${i}`} bare
             columns={[
               { id: 'net', header: t('deviceNetworks.col.network'), mono: true, sort: (r) => r.network, cell: (r) => r.network },
@@ -55,7 +54,7 @@ export function DeviceNetworks({ found }: { found: Discovered | undefined }) {
               { id: 'if', header: t('deviceNetworks.col.interface'), sort: (r) => r.interface ?? '', cell: (r) => r.interface || '–' },
               { id: 'proto', header: t('deviceNetworks.col.proto'), hideOnPhone: true, sort: (r) => r.proto ?? '', cell: (r) => r.proto || '–' },
             ]} />
-        </Panel>
+        </Card>
       )}
     </Stack>
   )

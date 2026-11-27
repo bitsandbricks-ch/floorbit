@@ -6,11 +6,10 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { ActionResult, LancacheAgent, LancacheOverview } from '@/api/types'
-import { ConfirmButton, DataTable, ErrorBanner, StatTile } from '@bitsandbricks/ui'
+import { Card, ConfirmButton, DataTable, ErrorBanner, StatTile } from '@bitsandbricks/ui'
 import { ago, dayClock } from '@/lib/time'
 import type { ViewProps } from '@/pages/monitoring/pages'
 import { bytes } from '../traffic/format'
-import { Panel } from '@/components/ui'
 import { RANGES } from '../games/ranges'
 
 const W = 1000
@@ -27,7 +26,7 @@ function Chart({ data }: { data: LancacheOverview }) {
   const w = W / Math.max(1, hours.length)
   const stamp = (ts: number) => dayClock(ts, i18n.language)
   return (
-    <Panel className="fb-wide" titleId="lc-hours" title={t('lancache.perHour')} actions={<>
+    <Card heading={2} className="fb-wide" title={t('lancache.perHour')} actions={<>
       <Group gap="sm">
         <Text size="xs" c="dimmed"><span className="fb-dns-key hit" /> {t('lancache.hit')}</Text>
         <Text size="xs" c="dimmed"><span className="fb-dns-key miss" /> {t('lancache.miss')}</Text>
@@ -53,7 +52,7 @@ function Chart({ data }: { data: LancacheOverview }) {
           <Text size="xs" c="dimmed">{stamp(hours[hours.length - 1].t + 3600)}</Text>
         </Group>
       )}
-    </Panel>
+    </Card>
   )
 }
 
@@ -140,7 +139,7 @@ function Machines({ data, expanded, bare }: { data: LancacheOverview; expanded: 
       </Stack>
     )
   }
-  return <Panel className="fb-wide" titleId="lc-machine" title={t('lancache.machine')} actions={<>{clearButton}</>}>{body}</Panel>
+  return <Card heading={2} className="fb-wide" title={t('lancache.machine')} actions={<>{clearButton}</>}>{body}</Card>
 }
 
 /** The cache machine as each agent sees it, for the LAN cache's row on Services: Services says
@@ -155,7 +154,7 @@ function Downloads({ data }: { data: LancacheOverview }) {
   const { t } = useTranslation()
   const other = data.other_downloads
   return (
-    <Panel className="fb-wide" titleId="lc-downloads" title={t('lancache.downloads')}>
+    <Card heading={2} className="fb-wide" title={t('lancache.downloads')}>
       {data.downloads.length === 0 ? <Text size="sm" c="dimmed">{t('lancache.noDownloads', { count: data.min_clients })}</Text> : (
         <DataTable rows={data.downloads} rowKey={(d) => `${d.cache}/${d.item}`} label={t('lancache.downloads')} urlState={false} pageSize={25}
           bare striped density="compact" minWidth={560} defaultSort={{ id: 'bytes', desc: true }}
@@ -172,14 +171,14 @@ function Downloads({ data }: { data: LancacheOverview }) {
         {t('lancache.downloadsText', { count: data.min_clients })}
         {other.items > 0 && ` ${t('lancache.otherDownloads', { items: other.items, size: bytes(other.hit_bytes + other.miss_bytes) })}`}
       </Text>
-    </Panel>
+    </Card>
   )
 }
 
 function Services({ data }: { data: LancacheOverview }) {
   const { t } = useTranslation()
   return (
-    <Panel titleId="lc-services" title={t('lancache.services')}>
+    <Card heading={2} title={t('lancache.services')}>
       {data.caches.length === 0 ? <Text size="sm" c="dimmed">{t('lancache.nothingYet')}</Text> : (
         <ol className="fb-stats-top">
           {data.caches.map((c) => (
@@ -191,14 +190,14 @@ function Services({ data }: { data: LancacheOverview }) {
           ))}
         </ol>
       )}
-    </Panel>
+    </Card>
   )
 }
 
 function Suspects({ data }: { data: LancacheOverview }) {
   const { t } = useTranslation()
   return (
-    <Panel titleId="lc-suspects" title={t('lancache.suspects')}>
+    <Card heading={2} title={t('lancache.suspects')}>
       {data.suspects.length === 0 ? <Text size="sm" c="dimmed">{t('lancache.noSuspects')}</Text> : (
         <ol className="fb-stats-top">
           {data.suspects.map((s) => (
@@ -211,7 +210,7 @@ function Suspects({ data }: { data: LancacheOverview }) {
         </ol>
       )}
       <Text size="xs" c="dimmed" mt={6}>{t('lancache.suspectsText')}</Text>
-    </Panel>
+    </Card>
   )
 }
 
@@ -219,7 +218,7 @@ function Lookups({ data }: { data: LancacheOverview }) {
   const { t, i18n } = useTranslation()
   if (data.dns_services.length === 0) return null
   return (
-    <Panel titleId="lc-dns" title={t('lancache.lookups')}>
+    <Card heading={2} title={t('lancache.lookups')}>
       <ol className="fb-stats-top">
         {data.dns_services.map((s) => (
           <li key={s.cache}>
@@ -229,7 +228,7 @@ function Lookups({ data }: { data: LancacheOverview }) {
         ))}
       </ol>
       <Text size="xs" c="dimmed" mt={6}>{t('lancache.lookupsText')}</Text>
-    </Panel>
+    </Card>
   )
 }
 

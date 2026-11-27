@@ -3,8 +3,7 @@ import { IconDownload, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlayerSk
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EventReplayData } from '@/api/types'
-import { StatTile } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, StatTile } from '@bitsandbricks/ui'
 import { bps } from '../stats/format'
 import { heatmap, sampleAt, when, type HeatMetric } from './model'
 import { Chart, Plan } from './Plan'
@@ -75,7 +74,7 @@ export function EventReplay({ data }: { data: EventReplayData }) {
 
   return (
     <Stack gap="md">
-      <Panel>
+      <Card heading={2}>
         <Group gap="sm" wrap="nowrap" align="center">
           <ActionIcon size="lg" variant="default" aria-label={t('replay.restart')} onClick={() => seek(start)}>
             <IconPlayerSkipBack size={18} />
@@ -92,13 +91,13 @@ export function EventReplay({ data }: { data: EventReplayData }) {
           <SegmentedControl size="xs" value={speed} onChange={setSpeed} aria-label={t('replay.speed')}
             data={EVENT_SPEEDS.map((s) => ({ value: String(s), label: t(`replay.speed${s}`) }))} />
         </Group>
-      </Panel>
+      </Card>
 
       <div className="fb-replay-body">
-        <Panel className="fb-replay-plan-box">
+        <Card heading={2} className="fb-replay-plan-box">
           {data.drawing ? <Plan hall={data.hall} drawing={data.drawing} frame={frame} label={t('replay.planLabel', { time: when(time) })} />
             : <Text c="dimmed">{t('replay.noPlan')}</Text>}
-        </Panel>
+        </Card>
         <Stack gap="md" className="fb-replay-side">
           <SimpleGrid cols={2} spacing="md">
             <StatTile label={t('replay.online')} value={t('replay.ofSeats', { on: frame?.seats.length ?? 0, total: seats })} />
@@ -107,28 +106,28 @@ export function EventReplay({ data }: { data: EventReplayData }) {
             <StatTile label={t('replay.incidents')} value={String(frame?.incidents.length ?? 0)} />
           </SimpleGrid>
           {frames.length > 1 && (
-            <Panel title={t('replay.chart')}>
+            <Card heading={2} title={t('replay.chart')}>
               <Chart samples={frames} peak={peak} start={start} end={end} t={time} onSeek={seek} label={t('replay.chartLabel')} />
-            </Panel>
+            </Card>
           )}
         </Stack>
       </div>
 
-      <Panel title={t('replay.event.heatmap')} actions={
+      <Card heading={2} title={t('replay.event.heatmap')} actions={
         <SegmentedControl size="xs" value={metric} onChange={(v) => setMetric(v as HeatMetric)} aria-label={t('replay.event.metric')}
           data={METRICS.map((m) => ({ value: m, label: t(`replay.event.${m}`) }))} />
       }>
         <Heatmap data={data} metric={metric} t={time} onSeek={seek} label={t('replay.event.heatmapLabel', { metric: t(`replay.event.${metric}`) })} />
-      </Panel>
+      </Card>
 
-      <Panel title={t('replay.event.export')}>
+      <Card heading={2} title={t('replay.event.export')}>
         <Group gap="sm">
           <Button component="a" href="/api/replay/event.json" download variant="default" leftSection={<IconDownload size={16} />}>
             {t('replay.event.json')}
           </Button>
         </Group>
         <Text size="xs" c="dimmed" mt="xs">{t('replay.event.exportHint')}</Text>
-      </Panel>
+      </Card>
       <Text size="xs" c="dimmed">{t('replay.event.kept')}</Text>
     </Stack>
   )

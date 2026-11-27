@@ -6,9 +6,8 @@ import { del, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { CredentialInfo, InventoryGroup, InventoryOverview, InventoryTag } from '@/api/types'
-import { PageTabs } from '@bitsandbricks/ui'
+import { Card, PageTabs } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
-import { Panel } from '@/components/ui'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
 import { SaveBar } from '@/pages/settings/editor'
 import { credentialBody } from './model'
@@ -104,7 +103,7 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
         <PageTabs label={t('inventory.title')} active={tab} onChange={setTab} tabs={tabIds.map((id) => ({ id, label: t(`inventory.tabs.${id}`) }))} />
       )}
       {tab === 'details' && (
-        <Panel title={t('inventory.groups.basics')}>
+        <Card heading={2} title={t('inventory.groups.basics')}>
           <form onSubmit={(e) => { e.preventDefault(); basics() }}>
             <Stack gap="sm">
               <TextInput label={t('inventory.field.name')} required value={name} maxLength={60} disabled={!canEdit}
@@ -132,31 +131,31 @@ export function ScopeEditor({ target, overview, onDeleted, onSaved }: {
               {canEdit && item && <SaveBar count={count} bad={!name.trim()} saving={save.isPending} onDiscard={discard} />}
             </Stack>
           </form>
-        </Panel>
+        </Card>
       )}
       {current && tab === 'telemetry' && (
-        <Panel title={t('inventory.tabs.telemetry')} desc={t('inventory.telemetry.groupIntro')}>
+        <Card heading={2} title={t('inventory.tabs.telemetry')} desc={t('inventory.telemetry.groupIntro')}>
           <TelemetrySettings key={JSON.stringify([current.properties, current.features])} own={current.properties}
             ownFeatures={current.features} canEdit={canEdit} busy={save.isPending} onSave={(body) => save.mutate(body)} />
-        </Panel>
+        </Card>
       )}
       {current && tab === 'settings' && (
         <>
-          <Panel title={t('inventory.props.title')}>
+          <Card heading={2} title={t('inventory.props.title')}>
             <PropertiesEditor key={JSON.stringify(current.properties)} value={current.properties} canEdit={canEdit}
               busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
-          </Panel>
-          <Panel title={t('inventory.features.title')}>
+          </Card>
+          <Card heading={2} title={t('inventory.features.title')}>
             <FeaturesEditor key={JSON.stringify(current.features)} catalog={overview.features} value={current.features} canEdit={canEdit} busy={save.isPending}
               onSave={(features) => save.mutate({ features })} />
-          </Panel>
+          </Card>
         </>
       )}
       {current && tab === 'credentials' && canEdit && (
-        <Panel title={t('inventory.creds.title')} desc={t('inventory.creds.inheritIntro')}>
+        <Card heading={2} title={t('inventory.creds.title')} desc={t('inventory.creds.inheritIntro')}>
           <CredentialsEditor own={own} overview={overview} canSet={canSetCreds} busy={setCred.isPending} error={credError}
             onSet={(d) => setCred.mutateAsync(d)} onRemove={(c) => removeCred.mutate(c)} />
-        </Panel>
+        </Card>
       )}
       {!current && <Text size="sm" c="dimmed">{t('inventory.groups.saveFirst')}</Text>}
     </Stack>

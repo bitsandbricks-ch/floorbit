@@ -4,12 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { useFlows } from '@/api/queries'
 import type { FlowMix, FlowsData } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
-import { DataTable, ErrorBanner } from '@bitsandbricks/ui'
+import { Card, DataTable, ErrorBanner } from '@bitsandbricks/ui'
 import { bytes, mostly, total } from './format'
 import { mixParts, useTrafficCategories } from '@/api/trafficCategories'
 import { onPlan } from '../plan/links'
 import { clock } from '@/lib/time'
-import { Panel } from '@/components/ui'
 import { TrafficServices } from './TrafficServices'
 import { TrafficOwners } from './TrafficOwners'
 
@@ -45,7 +44,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
   const [filter, setFilter] = useState('')
   const shown = seats.filter((s) => !filter || s.seat.toLowerCase().includes(filter.toLowerCase()))
   return (
-    <Panel className="fb-wide" titleId="traffic-seats" title={t('traffic.seats')} actions={<>
+    <Card heading={2} className="fb-wide" title={t('traffic.seats')} actions={<>
       <TextInput size="xs" placeholder={t('traffic.seatFilter')} aria-label={t('traffic.seatFilter')} value={filter}
         onChange={(e) => setFilter(e.currentTarget.value)} />
     </>}>
@@ -60,7 +59,7 @@ function Seats({ seats }: { seats: NonNullable<FlowsData['seats']> }) {
           } },
           { id: 'mix', header: t('traffic.mix'), width: '45%', cell: (s) => <MixBar mix={s.mix} label={s.seat} /> },
         ]} />
-    </Panel>
+    </Card>
   )
 }
 
@@ -71,7 +70,7 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
   return (
     <div className="fb-stats">
       {!!data.anomalies?.length && (
-        <Panel className="fb-wide" titleId="traffic-anomalies" title={t('traffic.anomalies')}>
+        <Card heading={2} className="fb-wide" title={t('traffic.anomalies')}>
           <ul className="fb-flow-anomalies">
             {data.anomalies.map((a) => (
               <li key={a.id} className={a.kind}>
@@ -82,18 +81,18 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
               </li>
             ))}
           </ul>
-        </Panel>
+        </Card>
       )}
 
-      <Panel className="fb-wide" titleId="traffic-mix" title={t('traffic.hall')}>
+      <Card heading={2} className="fb-wide" title={t('traffic.hall')}>
         <Text size="sm" c="dimmed" mb={4}>{t('traffic.lastHour', { volume: bytes(total(data.mix_hour)) })}</Text>
         <MixBar mix={data.mix_hour} label={t('traffic.hall')} big />
         <Legend mix={data.mix_hour} />
         <Text size="sm" c="dimmed" mt="sm" mb={4}>{t('traffic.lastDay', { volume: bytes(total(data.mix_day)) })}</Text>
         <MixBar mix={data.mix_day} label={t('traffic.day')} />
-      </Panel>
+      </Card>
 
-      {!compact && <Panel titleId="traffic-areas" title={t('traffic.areas')}>
+      {!compact && <Card heading={2} title={t('traffic.areas')}>
         <ul className="fb-flow-areas">
           {(data.areas ?? []).map((a) => (
             <li key={a.area}>
@@ -104,10 +103,10 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
           ))}
         </ul>
         <Text size="xs" c="dimmed" mt={6}>{t('traffic.areasText')}</Text>
-      </Panel>}
+      </Card>}
 
       {compact ? (
-        <Panel titleId="traffic-services" title={t('traffic.services')}>
+        <Card heading={2} title={t('traffic.services')}>
           <ol className="fb-stats-top">
             {services.map((s) => (
               <li key={s.name}>
@@ -116,7 +115,7 @@ function Board({ data, compact }: { data: FlowsData; compact: boolean }) {
               </li>
             ))}
           </ol>
-        </Panel>
+        </Card>
       ) : <TrafficServices data={data} />}
 
       {!compact && <TrafficOwners data={data} />}

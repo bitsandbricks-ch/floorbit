@@ -9,8 +9,7 @@ import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { SwitchArea, SwitchAreas as Areas } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, PageHead } from '@bitsandbricks/ui'
 import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { AreaEditor } from './switchAreas/AreaEditor'
 
@@ -52,7 +51,7 @@ export default function SwitchAreas() {
               .filter(Boolean).join(' ')}
           </Alert>
         )}
-        <Panel padding={0}>
+        <Card heading={2} padded={false}>
           {query.isPending ? <LoadingState rows={3} /> : !d?.switches.length ? (
             <EmptyState title={t('switchAreas.none')} description={t('switchAreas.noneHint')} />
           ) : (
@@ -105,7 +104,7 @@ export default function SwitchAreas() {
               </Table>
             </Table.ScrollContainer>
           )}
-        </Panel>
+        </Card>
       </Stack>
       {editing && d && (
         <AreaEditor sw={editing} blocks={d.blocks} saving={save.isPending} onClose={() => setEditing(null)}

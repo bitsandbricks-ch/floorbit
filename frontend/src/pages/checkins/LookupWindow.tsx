@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { del, post } from '@/api/client'
 import type { CheckinLookup, LookupWindow as Window } from '@/api/types'
-import { Panel } from '@/components/ui'
-import { ErrorBanner } from '@bitsandbricks/ui'
+import { Card, ErrorBanner } from '@bitsandbricks/ui'
 import { dayClock } from '@/lib/time'
 
 /** When check-ins may ask the switches for their PC (docs/segments.md): open from doors open for a
@@ -17,7 +16,7 @@ export function LookupWindow({ w, canEdit, onChange }: { w: Window; canEdit: boo
     onSuccess: onChange,
   })
   return (
-    <Panel title={t('crewCheckin.lookups.title')} desc={t('crewCheckin.lookups.intro', { hours: w.hours })}
+    <Card heading={2} title={t('crewCheckin.lookups.title')} desc={t('crewCheckin.lookups.intro', { hours: w.hours })}
       actions={canEdit && (w.open
         ? w.why === 'by_hand' && <Button variant="default" loading={change.isPending} onClick={() => change.mutate(false)}>
             {t('crewCheckin.lookups.close')}</Button>
@@ -38,7 +37,7 @@ export function LookupWindow({ w, canEdit, onChange }: { w: Window; canEdit: boo
           </Alert>
         )}
       </Stack>
-    </Panel>
+    </Card>
   )
 }
 

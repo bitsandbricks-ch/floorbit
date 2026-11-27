@@ -8,7 +8,7 @@ import { useLiveEvent } from '@/api/live'
 import { useCan, useFeature, useStats } from '@/api/queries'
 import type { StatsData, StatsSample } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
-import { StatTile } from '@bitsandbricks/ui'
+import { Card, StatTile } from '@bitsandbricks/ui'
 import { Compare } from './Compare'
 import { Forecast } from './Forecast'
 import { bps } from './format'
@@ -16,7 +16,6 @@ import { onPlan } from '../plan/links'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { ConfirmButton } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
 
 const HOUR = 3600
 
@@ -79,18 +78,18 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
           sub={t('stats.portsRest', { total: now.ports_total ?? now.ports_up + now.ports_down, lost: now.ports_lost ?? 0, errors: now.ports_errors })} />
       </div>
 
-      <Panel className="fb-wide" titleId="stats-traffic" title={t('stats.traffic')} actions={<>
+      <Card heading={2} className="fb-wide" title={t('stats.traffic')} actions={<>
         <SegmentedControl size="xs" value={range} onChange={(v) => setRange(v as 'hour' | 'day')}
           data={[{ value: 'hour', label: t('stats.lastHour') }, { value: 'day', label: t('stats.lastDay') }]} />
       </>}>
         <Chart series={series} label={t('stats.chartLabel')} />
         <OnlineLine series={series} />
-      </Panel>
+      </Card>
 
       {forecastOn && !screen && <Forecast />}
       {!screen && <Compare />}
 
-      <Panel titleId="stats-uplinks" title={t('stats.uplinks')}>
+      <Card heading={2} title={t('stats.uplinks')}>
         {!data.uplinks.length ? <Text c="dimmed" size="sm">{t('stats.noUplinks')}</Text> : (
           <ul className="fb-stats-bars">
             {data.uplinks.slice(0, rows).map((u) => {
@@ -107,9 +106,9 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
           </ul>
         )}
         {data.uplinks.length > rows && <Text c="dimmed" size="sm" mt={6}>{t('stats.moreUplinks', { count: data.uplinks.length - rows })}</Text>}
-      </Panel>
+      </Card>
 
-      <Panel titleId="stats-top" title={t('stats.top')}>
+      <Card heading={2} title={t('stats.top')}>
         {!data.top.length ? <Text c="dimmed" size="sm">{t('stats.noTop')}</Text> : (
           <ol className="fb-stats-top">
             {data.top.slice(0, rows).map((r) => (
@@ -127,7 +126,7 @@ function Board({ data, screen }: { data: StatsData; screen: boolean }) {
             ))}
           </ol>
         )}
-      </Panel>
+      </Card>
     </div>
   )
 }

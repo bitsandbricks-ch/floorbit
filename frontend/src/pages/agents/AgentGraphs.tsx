@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
-import { Panel } from '@/components/ui'
-import { EmptyState, ErrorBanner, LoadingState, type Widget } from '@bitsandbricks/ui'
+import { Card, EmptyState, ErrorBanner, LoadingState, type Widget } from '@bitsandbricks/ui'
 import { FitWidget, TimeChart, type TimePoint } from '@bitsandbricks/widgets'
 import { IconArrowsMaximize, IconChartLine } from '@tabler/icons-react'
 import { stats } from '@/components/timeSeries'
@@ -47,7 +46,7 @@ export function AgentGraphs({ agentId }: { agentId: string }) {
       </Group>
       <ErrorBanner error={q.error} />
       {q.isPending ? <LoadingState rows={3} /> : shown.length === 0 ? (
-        <Panel><EmptyState icon={<IconChartLine size={24} />} title={t('agents.graphs.noneTitle')} description={t('agents.graphs.none')} /></Panel>
+        <Card heading={2}><EmptyState icon={<IconChartLine size={24} />} title={t('agents.graphs.noneTitle')} description={t('agents.graphs.none')} /></Card>
       ) : (
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           {shown.map((m) => {
@@ -55,7 +54,7 @@ export function AgentGraphs({ agentId }: { agentId: string }) {
             const s = stats(pts)
             const name = t(`agents.graphs.metric.${m}`)
             return (
-              <Panel key={m} title={name} desc={t(`agents.graphs.note.${m}`)}
+              <Card heading={2} key={m} title={name} desc={t(`agents.graphs.note.${m}`)}
                 actions={<ActionIcon variant="subtle" color="gray" aria-label={t('agents.graphs.bigger', { name })} onClick={() => setBig(m)}>
                   <IconArrowsMaximize size={16} />
                 </ActionIcon>}>
@@ -66,7 +65,7 @@ export function AgentGraphs({ agentId }: { agentId: string }) {
                 <Text size="xs" c="dimmed" mt={4} style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {t('agents.graphs.stats', { min: num(s.min), avg: num(s.avg), max: num(s.max) })}
                 </Text>
-              </Panel>
+              </Card>
             )
           })}
         </SimpleGrid>

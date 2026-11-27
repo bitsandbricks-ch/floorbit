@@ -7,8 +7,7 @@ import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan, useSecurity } from '@/api/queries'
 import type { SecurityList } from '@/api/types'
-import { DataTable, ErrorBanner } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, DataTable, ErrorBanner } from '@bitsandbricks/ui'
 import { ago } from '@/lib/time'
 import { PortDialog, type PortRequest } from '@/pages/security/PortDialog'
 import { findingWhere } from './findingWhere'
@@ -43,7 +42,7 @@ export function ShutPorts({ always }: { always: boolean }) {
   // Outside the security filter only while a port is still shut: it stays down until someone acts.
   if (!always && !data.shut_ports.length) return null
   return (
-    <Panel title={t('security.shutPorts')}
+    <Card heading={2} title={t('security.shutPorts')}
       desc={data.plugins ? undefined : t('problem.shut.noPlugins')}
       actions={canCheck && (
         <Button size="xs" variant="default" leftSection={<IconRefresh size={14} />} loading={check.isPending} onClick={() => check.mutate()}>
@@ -71,6 +70,6 @@ export function ShutPorts({ always }: { always: boolean }) {
       )}
       <PortDialog request={request} needsLogin={data.needs_login} busy={enable.isPending} error={error}
         onClose={() => setRequest(null)} onConfirm={(extra) => request && enable.mutate({ request, extra })} />
-    </Panel>
+    </Card>
   )
 }

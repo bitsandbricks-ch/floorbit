@@ -7,8 +7,7 @@ import { get, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import { EntitySelect } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, PageHead } from '@bitsandbricks/ui'
 import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { CUSTOM_ICONS } from '@/nav/sections'
 
@@ -72,7 +71,7 @@ export default function SidebarSections() {
               <EmptyState title={t('sidebarSections.emptyTitle')} description={t('sidebarSections.emptyDesc')} />
             )}
             {sections.map((s, i) => (
-              <Panel
+              <Card heading={2}
                 key={i} aria-label={s.name || t('sidebarSections.unnamed')}
                 title={s.name || t('sidebarSections.unnamed')}
                 actions={(
@@ -172,7 +171,7 @@ export default function SidebarSections() {
                     </Button>
                   </Group>
                 </Stack>
-              </Panel>
+              </Card>
             ))}
             <Group>
               <Button variant="light" leftSection={<IconPlus size={16} aria-hidden="true" />} onClick={addSection} disabled={sections.length >= MAX_SECTIONS}>

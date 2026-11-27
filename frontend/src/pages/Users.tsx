@@ -6,8 +6,7 @@ import { del, get, patch, post, put } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Account, AccountsList } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, PageHead } from '@bitsandbricks/ui'
 import { ErrorBanner } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
@@ -155,7 +154,7 @@ function AddAccount({ list, onSaved }: { list: AccountsList; onSaved: (l: Accoun
   })
   const set = (k: keyof typeof empty) => (v: string) => { setAdded(''); setForm((f) => ({ ...f, [k]: v })) }
   return (
-    <Panel title={t('users.add')}>
+    <Card heading={2} title={t('users.add')}>
       <form onSubmit={(e) => { e.preventDefault(); add.mutate() }} autoComplete="off">
         <Stack gap="sm">
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
@@ -177,7 +176,7 @@ function AddAccount({ list, onSaved }: { list: AccountsList; onSaved: (l: Accoun
           </Group>
         </Stack>
       </form>
-    </Panel>
+    </Card>
   )
 }
 
@@ -194,11 +193,11 @@ function PlatformVisits() {
   })
   if (!query.data?.shown) return null
   return (
-    <Panel title={t('users.platformVisits')}>
+    <Card heading={2} title={t('users.platformVisits')}>
       <Switch checked={query.data.visits} disabled={save.isPending} label={t('users.platformVisitsLabel')}
         description={t('users.platformVisitsHelp')} onChange={(e) => save.mutate(e.currentTarget.checked)} />
       {save.error && <Text size="sm" c="down" role="alert" mt="xs">{save.error.message}</Text>}
-    </Panel>
+    </Card>
   )
 }
 
@@ -225,11 +224,11 @@ export default function Users() {
                 <span key={r.id}>{i ? ' ' : ''}<strong>{r.label}:</strong> {t(`teams.roleText.${r.id}`, { defaultValue: r.description })}</span>
               ))}
             </Text>
-            <Panel title={t('users.accounts')} desc={t('users.accountsHelp')}>
+            <Card heading={2} title={t('users.accounts')} desc={t('users.accountsHelp')}>
               <div aria-live="polite">
                 {list.users.map((u) => <AccountRow key={u.username} user={u} list={list} boards={boards.data?.layouts ?? []} onSaved={saved} />)}
               </div>
-            </Panel>
+            </Card>
             <AddAccount list={list} onSaved={saved} />
             <PlatformVisits />
           </>

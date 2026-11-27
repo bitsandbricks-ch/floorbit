@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAgentDevices } from '@/components/telemetry/api'
 import { DeviceStateTable, type DeviceFilter } from '@/components/telemetry/DeviceStateTable'
-import { Panel } from '@/components/ui'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { Card, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 
 /** The devices one agent collects: their state, what came in and why one sends nothing (issue #1013). */
 export function AgentDevices({ agentId }: { agentId: string }) {
@@ -31,11 +30,11 @@ export function AgentDevices({ agentId }: { agentId: string }) {
         </Alert>
       )}
       {d.primary === false && <Alert color="gray" title={t('agents.devices.standby')}><Text size="sm">{t('agents.devices.standbyHelp')}</Text></Alert>}
-      <Panel padding={0}>
+      <Card heading={2} padded={false}>
         {d.devices.length
           ? <DeviceStateTable rows={d.devices} filter={filter} onFilter={onFilter} actions={d.connected && !d.error} />
           : <Text size="sm" c="dimmed" p="md">{t('agents.devices.none')}</Text>}
-      </Panel>
+      </Card>
     </Stack>
   )
 }

@@ -6,9 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { get, patch } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent, AgentPluginField, AgentSettingsPage, AgentTagSettingsPage, InheritedValue, PluginInfo } from '@/api/types'
-import { Panel } from '@/components/ui'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
-import { ErrorBanner } from '@bitsandbricks/ui'
+import { Card, ErrorBanner } from '@bitsandbricks/ui'
 import { Input, Row, Source } from '@/pages/agents/fields'
 import { useAgentTags } from '@/pages/agents/data'
 import { fieldId, shown, type Value } from '@/pages/agents/values'
@@ -70,7 +69,7 @@ export function PerAgentSettings({ plugin, agents }: { plugin: PluginInfo; agent
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); if (count) save.mutate(draft) }} autoComplete="off" noValidate>
-      <Panel title={t('plugins.perAgent.settingsTitle')} desc={t('plugins.perAgent.settingsIntro')}>
+      <Card heading={2} title={t('plugins.perAgent.settingsTitle')} desc={t('plugins.perAgent.settingsIntro')}>
         <Stack gap={0}>
           {tagIds.map((id, i) => {
             const page = tagPages[i].data
@@ -90,7 +89,7 @@ export function PerAgentSettings({ plugin, agents }: { plugin: PluginInfo; agent
               onSet={(k, v) => set(`agent:${a.id}`, k, v)} onUndo={(k) => undo(`agent:${a.id}`, k)} />
           ))}
         </Stack>
-      </Panel>
+      </Card>
       {count > 0 && <div style={{ height: 96 }} />}
       <SaveBar count={count} bad={false} saving={save.isPending} error={save.error}
         saved={saved ? t('agents.cfg.saved') : null} onDiscard={() => setDraft({})} />

@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { useAgentGroup, type AgentGroupDetail, type AgentGroupMember } from '@/api/agentGroups'
 import { Layout } from '@/components/Layout'
-import { Panel } from '@/components/ui'
-import { EmptyState, ErrorBanner, LoadingState, PanelField } from '@bitsandbricks/ui'
+import { Card, EmptyState, ErrorBanner, LoadingState, PanelField } from '@bitsandbricks/ui'
 import { Capabilities } from './agents/Capabilities'
 import { agentHref } from './agents/data'
 import { STATE_COLOR } from './agents/listModel'
@@ -54,18 +53,18 @@ export default function AgentGroup() {
           </Stack>
         </Group>
 
-        <Panel title={t('agentGroup.agentsTitle')}>
+        <Card heading={2} title={t('agentGroup.agentsTitle')}>
           <SimpleGrid cols={{ base: 1, md: Math.min(g.agents.length, 3) }} spacing="md">
             {g.agents.map((a) => <AgentCard key={a.id} agent={a} total={g.devices} />)}
           </SimpleGrid>
-        </Panel>
+        </Card>
 
         <Split group={g} />
 
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-          <Panel title={t('agentGroup.sendTitle')}>
+          <Card heading={2} title={t('agentGroup.sendTitle')}>
             <Text size="sm">{t('agentGroup.sendHelp')}</Text>
-          </Panel>
+          </Card>
           <SharedAddresses group={g} />
         </SimpleGrid>
       </Stack>
@@ -106,7 +105,7 @@ function Split({ group: g }: { group: AgentGroupDetail }) {
   const busiest = g.split ? [...live].sort((x, y) => y.owns - x.owns)[0] : undefined
   const shares = g.agents.map((a, i) => ({ a, color: SHARE_COLOR[i % SHARE_COLOR.length] })).filter(({ a }) => a.owns + a.pinned > 0)
   return (
-    <Panel title={t('agentGroup.splitTitle')}>
+    <Card heading={2} title={t('agentGroup.splitTitle')}>
       <Stack gap="sm">
         {g.devices > 0 && (
           <>
@@ -133,7 +132,7 @@ function Split({ group: g }: { group: AgentGroupDetail }) {
         {pinned > 0 && <Text size="sm" c="dimmed">{t('agentGroup.pinnedNote', { count: pinned })}</Text>}
         {busiest && busiest.owns > 0 && <Text size="sm" c="dimmed">{t('agentGroup.whenStops', { name: busiest.name, n: num(busiest.owns) })}</Text>}
       </Stack>
-    </Panel>
+    </Card>
   )
 }
 
@@ -141,7 +140,7 @@ function SharedAddresses({ group: g }: { group: AgentGroupDetail }) {
   const { t } = useTranslation()
   const holder = (vip: string) => g.agents.find((a) => a.holds.includes(vip))?.name
   return (
-    <Panel title={t('agentGroup.vipsTitle')}>
+    <Card heading={2} title={t('agentGroup.vipsTitle')}>
       <Stack gap="sm">
         <Text size="sm" c="dimmed">{t('agentGroup.vipsHelp')}</Text>
         {g.vips.length === 0 ? <Text size="sm">{t('agentGroup.vipsNone')}</Text> : (
@@ -157,6 +156,6 @@ function SharedAddresses({ group: g }: { group: AgentGroupDetail }) {
           </Table>
         )}
       </Stack>
-    </Panel>
+    </Card>
   )
 }

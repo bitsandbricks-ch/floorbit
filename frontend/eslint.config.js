@@ -17,7 +17,7 @@ const DATES = [
 
 // Pieces that moved to the shared packages (#1266, #1274): their old Floorbit paths are gone, and
 // a copy that comes back would drift from the one every app shares.
-const SHARED_UI = 'ConfirmButton|DataTable|FilterBar|HoverTimeChart|Markdown|PageError|PageHead|PageTabs|SidePanel|StatTile|State|stateTone|toast|topbarSlot|useFilters|panel'
+const SHARED_UI = 'ConfirmButton|DataTable|FilterBar|HoverTimeChart|Markdown|PageError|PageHead|PageTabs|SidePanel|StatTile|State|stateTone|toast|topbarSlot|useFilters|panel|ui'
 const SHARED_WIDGETS = 'Sparkline|TimeChart|TileCard|FitWidget|WidgetBody|kinds/.*|level|levelReport|spark|useBox|views|drill|autoPage'
 const SHARED = [
   { regex: `^(@/|(\\.\\.?/)+)components/(${SHARED_UI})$`, message: 'This moved to @bitsandbricks/ui: import it from there.' },

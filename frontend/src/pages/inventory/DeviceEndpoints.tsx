@@ -5,8 +5,7 @@ import { Link } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { EndpointAnswer } from '@/api/types'
-import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { EndpointTable } from '@/pages/endpoints/EndpointTable'
 
 /** The device's MAC and IP tab (issue #903): every machine seen on its ports, newest first, from
@@ -28,7 +27,7 @@ export function DeviceEndpoints({ name }: { name: string }) {
             <Text size="sm" c="dimmed">{t('deviceNetworks.macsHint')}</Text>
             <Anchor component={Link} to="/endpoints" size="sm">{t('deviceNetworks.allHistory')}</Anchor>
           </Group>
-          <Panel padding={0}><EndpointTable rows={rows} now={q.dataUpdatedAt / 1000} label={t('deviceNetworks.macsLabel', { name })} /></Panel>
+          <Card heading={2} padded={false}><EndpointTable rows={rows} now={q.dataUpdatedAt / 1000} label={t('deviceNetworks.macsLabel', { name })} /></Card>
         </>
       )}
     </>

@@ -7,8 +7,7 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { PreflightBoard, PreflightGroupId, PreflightStatus } from '@/api/types'
-import { Panel } from '@/components/ui'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { Card, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { when } from '../handover/format'
 
 const COLOR: Record<PreflightStatus, string> = { pass: 'up', warn: 'warn', fail: 'down', skip: 'gray' }
@@ -37,7 +36,7 @@ export function DoorsCheck() {
   const verdict = !b ? null : b.ready ? 'ready' : b.complete ? 'notReady' : 'incomplete'
 
   return (
-    <Panel id="doors" title={t('preflight.title')} desc={t('preflight.intro')}
+    <Card heading={2} id="doors" title={t('preflight.title')} desc={t('preflight.intro')}
       actions={
         <>
           <Button size="compact-sm" variant="default" component="a" target="_blank"
@@ -95,6 +94,6 @@ export function DoorsCheck() {
           </SimpleGrid>
         </Stack>
       )}
-    </Panel>
+    </Card>
   )
 }
