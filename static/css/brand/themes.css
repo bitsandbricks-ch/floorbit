@@ -16,10 +16,10 @@
   --theme-bg: #000000;
   --theme-surface: #0e0e13;
   --theme-fg: #ffffff;
-  --color-raised: #1a1a21;
-  --color-line: #33333f;
-  --color-muted: #b4b4bc;
-  --color-faint: #8a8a94;
+  --bnb-raised: #1a1a21;
+  --bnb-line: #33333f;
+  --bnb-muted: #b4b4bc;
+  --bnb-faint: #8a8a94;
   --plan-cell: transparent;
   --fs-xs: 14px;
   --fs-sm: 16px;
@@ -51,10 +51,10 @@
   --theme-surface: #161b22;
   --theme-fg: #f0f6fc;
   --theme-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  --color-raised: #21262d;
-  --color-line: #30363d;
-  --color-muted: #9da7b3;
-  --color-faint: #6e7681;
+  --bnb-raised: #21262d;
+  --bnb-line: #30363d;
+  --bnb-muted: #9da7b3;
+  --bnb-faint: #6e7681;
   --plan-cell: #12171e;
 }
 
@@ -67,9 +67,9 @@
  * Status colours are not seeds, so an event theme can never make "down" look fine.
  */
 :root[data-preset="custom"] {
-  --color-raised: color-mix(in srgb, var(--theme-surface), var(--theme-fg) 5%);
-  --color-line: color-mix(in srgb, var(--theme-surface), var(--theme-fg) 10%);
-  --color-muted: color-mix(in srgb, var(--theme-fg) 68%, var(--theme-bg));
-  --color-faint: color-mix(in srgb, var(--theme-fg) 52%, var(--theme-bg));
+  --bnb-raised: color-mix(in srgb, var(--theme-surface), var(--theme-fg) 5%);
+  --bnb-line: color-mix(in srgb, var(--theme-surface), var(--theme-fg) 10%);
+  --bnb-muted: color-mix(in srgb, var(--theme-fg) 68%, var(--theme-bg));
+  --bnb-faint: color-mix(in srgb, var(--theme-fg) 52%, var(--theme-bg));
   --plan-cell: color-mix(in srgb, var(--theme-bg), var(--theme-fg) 4%);
 }

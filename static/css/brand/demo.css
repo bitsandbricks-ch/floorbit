@@ -11,8 +11,8 @@ body::after {
   z-index: 10000;
   padding: 2px 10px;
   border-radius: 999px;
-  background: var(--color-warn);
-  color: var(--color-ink, #111);
+  background: var(--bnb-warn);
+  color: var(--bnb-bg, #111);
   font: 600 12px/1.4 var(--font-sans, system-ui, sans-serif);
   letter-spacing: 0.04em;
   text-transform: uppercase;
