@@ -10,8 +10,7 @@ import { usePlugins } from '@/api/queries'
 import type { Agent } from '@/api/types'
 import { DangerZone } from '@/components/ItemPage'
 import { Layout } from '@/components/Layout'
-import { EmptyState, ErrorBanner, LoadingState, PanelField, StatTile } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, EmptyState, ErrorBanner, LoadingState, PanelField, StatTile } from '@bitsandbricks/ui'
 import { pluginName } from '@/lib/pluginName'
 import { ago, dateOnly } from '@/lib/time'
 import { AgentDevices } from './agents/AgentDevices'
@@ -149,14 +148,14 @@ export default function AgentDetail() {
                     <StatTile label={t('agents.stat.reconnects')} value={num(Math.max(r?.reconnects ?? 0, r?.link_drops ?? 0))}
                       tone={(r?.reconnects ?? 0) > 0 ? 'warn' : undefined} />
                   </SimpleGrid>
-                  <Panel title={t('agents.needsLook')} aria-label={t('agents.needsLook')}>
+                  <Card heading={2} title={t('agents.needsLook')} aria-label={t('agents.needsLook')}>
                     <Stack gap={6}>
                       {problems.length === 0 && <Text size="sm" c="dimmed">{t('agents.overview.allGood')}</Text>}
                       {problems.filter((p) => !p.blocked).map((p, i) => <Text key={i} size="sm" c={p.tone} style={{ overflowWrap: 'anywhere' }}>{p.text}{p.link && <>{' '}<HintAnchor link={p.link} /></>}</Text>)}
                       <Blocked agentId={a.id} plugins={plugins} lang={lang} size="sm" />
                     </Stack>
-                  </Panel>
-                  <Panel title={t('agentDetail.does.title')} desc={t('agentDetail.does.help')} aria-label={t('agentDetail.does.title')}>
+                  </Card>
+                  <Card heading={2} title={t('agentDetail.does.title')} desc={t('agentDetail.does.help')} aria-label={t('agentDetail.does.title')}>
                     <Stack gap="md">
                       <Stack gap={6}>
                         <Text size="xs" fw={500} c="dimmed">{t('agentDetail.does.features')}</Text>
@@ -165,12 +164,12 @@ export default function AgentDetail() {
                       </Stack>
                       {a.connected && <Capabilities have={a.capabilities} />}
                     </Stack>
-                  </Panel>
+                  </Card>
                 </Stack>
               </Grid.Col>
               <Grid.Col span={{ base: 12, lg: 4 }}>
                 <Stack gap="md">
-                  <Panel title={t('agents.detailsTitle')}>
+                  <Card heading={2} title={t('agents.detailsTitle')}>
                     <Stack gap="sm">
                       <PanelField label={t('agents.tags')}>{tagText}</PanelField>
                       <PanelField label={t('agents.fact.address')}>{a.address ?? '–'}</PanelField>
@@ -180,30 +179,30 @@ export default function AgentDetail() {
                       <PanelField label={t('agents.fact.enrolled')}>{t('agents.fact.enrolledValue', { date: dateOnly(a.created_at, lang), who: a.created_by ?? '?' })}</PanelField>
                       {a.old_works_until && <Text size="xs" c="warn">{t('agents.oldKeyWorks', { when: dateOnly(a.old_works_until, lang) })}</Text>}
                     </Stack>
-                  </Panel>
-                  <Panel title={t('agentDetail.failover.title')} aria-label={t('agentDetail.failover.title')}>
+                  </Card>
+                  <Card heading={2} title={t('agentDetail.failover.title')} aria-label={t('agentDetail.failover.title')}>
                     <FailoverCard agentId={a.id} groups={d.groups} />
-                  </Panel>
-                  <Panel title={t('agentDetail.events.title')} aria-label={t('agentDetail.events.title')}>
+                  </Card>
+                  <Card heading={2} title={t('agentDetail.events.title')} aria-label={t('agentDetail.events.title')}>
                     <RecentEvents agentId={a.id} onAll={() => setTab('logs')} />
-                  </Panel>
-                  <Panel title={t('agents.tab.plugins', { count: addonIds.length })} aria-label={t('agentDetail.addons.title')}>
+                  </Card>
+                  <Card heading={2} title={t('agents.tab.plugins', { count: addonIds.length })} aria-label={t('agentDetail.addons.title')}>
                     <Stack gap={6}>
                       <Text size="sm">{addonIds.length ? addonIds.map((pid) => names[pid] ?? pid).join(' · ') : t('agentDetail.addons.none')}</Text>
                       <Text size="xs" c="dimmed">
                         {t('agentDetail.addons.help')} <Anchor component="button" type="button" size="xs" onClick={() => setTab('plugins')}>{t('agentDetail.addons.open')}</Anchor>
                       </Text>
                     </Stack>
-                  </Panel>
+                  </Card>
                   {r?.disk && (
-                    <Panel title={t('agents.disk.title')}>
+                    <Card heading={2} title={t('agents.disk.title')}>
                       <DiskBudget disk={r.disk} />
-                    </Panel>
+                    </Card>
                   )}
                   {r && (
-                    <Panel title={t('agents.reportTitle')}>
+                    <Card heading={2} title={t('agents.reportTitle')}>
                       <Report report={r} lang={lang} />
-                    </Panel>
+                    </Card>
                   )}
                 </Stack>
               </Grid.Col>
@@ -224,25 +223,25 @@ export default function AgentDetail() {
                 <Text size="sm" c="dimmed" maw={640}>{t('agentDetail.addons.tab')}</Text>
                 <Button component={Link} to="/settings/plugins?tab=marketplace" variant="default" size="xs">{t('agentDetail.addons.market')}</Button>
               </Group>
-              <Panel padding={0}><PluginTable plugins={addons} lang={lang} agentId={a.id} available={addonsAvailable} off={a.plugins_off}
-                names={names} empty={t('agentDetail.addons.none')} /></Panel>
+              <Card heading={2} padded={false}><PluginTable plugins={addons} lang={lang} agentId={a.id} available={addonsAvailable} off={a.plugins_off}
+                names={names} empty={t('agentDetail.addons.none')} /></Card>
               <Blocked agentId={a.id} plugins={plugins} lang={lang} />
             </Stack>
           </Tabs.Panel>
 
           <Tabs.Panel value="updates" pt="md">
             <Stack gap="md">
-              <Panel title={t('agentSelfUpdate.title')}>
+              <Card heading={2} title={t('agentSelfUpdate.title')}>
                 <SelfUpdate status={a.self_update} report={r?.agent_update} version={a.version} />
-              </Panel>
-              <Panel title={t('agents.updates.title')}>
+              </Card>
+              <Card heading={2} title={t('agents.updates.title')}>
                 {r?.updates ? <Updates updates={r.updates} /> : <Text size="sm" c="dimmed">{t('agents.updates.none')}</Text>}
-              </Panel>
+              </Card>
             </Stack>
           </Tabs.Panel>
 
           <Tabs.Panel value="logs" pt="md">
-            <Panel><AgentLog agentId={a.id} /></Panel>
+            <Card heading={2}><AgentLog agentId={a.id} /></Card>
           </Tabs.Panel>
 
           <Tabs.Panel value="certificate" pt="md">
@@ -276,7 +275,7 @@ function SettingsTab({ agent: a, tagOptions, onTags, onRevoke }: {
       </Grid.Col>
       <Grid.Col span={{ base: 12, lg: 4 }}>
         <Stack gap="md">
-          <Panel title={t('agents.cfg.generalTitle')}>
+          <Card heading={2} title={t('agents.cfg.generalTitle')}>
             <Stack gap="md">
               <AgentRename agent={a} />
               <MultiSelect label={t('agents.tags')} description={t('agents.tagsHelp')}
@@ -285,7 +284,7 @@ function SettingsTab({ agent: a, tagOptions, onTags, onRevoke }: {
                 data={tagOptions} value={a.tags ?? []} clearable onChange={onTags} />
               <PluginsOff agent={a} />
             </Stack>
-          </Panel>
+          </Card>
           <DangerZone label={t('agents.revoke')} question={t('agents.revokeQuestion', { name: a.name })} onConfirm={onRevoke} />
         </Stack>
       </Grid.Col>

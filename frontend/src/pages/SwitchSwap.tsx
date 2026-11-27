@@ -8,8 +8,7 @@ import { get, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, PageHead } from '@bitsandbricks/ui'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ago, dateTime } from '@/lib/time'
 import type { SwapEntry, SwapPlan } from './switchSwap/types'
@@ -52,7 +51,7 @@ export default function SwitchSwap() {
         <ErrorBanner error={query.error} onRetry={() => void query.refetch()} />
         {query.isPending ? <LoadingState rows={3} /> : p && (
           <>
-            <Panel title={name} aria-label={t('switchSwap.now')}
+            <Card heading={2} title={name} aria-label={t('switchSwap.now')}
               actions={<Badge variant="light" color={down ? 'down' : state === 'online' ? 'up' : 'gray'} tt="none" className="fb-on-tint">
                 {t(`switchSwap.status.${state}`)}
                 {down && p.switch.since ? ` · ${ago(p.switch.since)}` : ''}
@@ -65,7 +64,7 @@ export default function SwitchSwap() {
                   value={p.incident ? <Anchor href={`/incidents?q=${encodeURIComponent(`switch:${name}`)}`}>{p.incident.title}</Anchor> : ''} />
               </SimpleGrid>
               <Text size="sm" c="dimmed" mt="sm">{t('switchSwap.keeps')}</Text>
-            </Panel>
+            </Card>
 
             {done && (
               <Alert color="up" role="status" title={t('switchSwap.doneTitle')}>
@@ -74,7 +73,7 @@ export default function SwitchSwap() {
             )}
 
             <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="md">
-              <Panel title={t('switchSwap.step1')} desc={t('switchSwap.step1Desc')}>
+              <Card heading={2} title={t('switchSwap.step1')} desc={t('switchSwap.step1Desc')}>
                 <Radio.Group value={choice} onChange={setPick} aria-label={t('switchSwap.step1')}>
                   <Stack gap="xs">
                     {p.spares.map((s) => (
@@ -97,9 +96,9 @@ export default function SwitchSwap() {
                     )}
                   </Stack>
                 </Radio.Group>
-              </Panel>
+              </Card>
 
-              <Panel title={t('switchSwap.step2')} desc={t('switchSwap.step2Desc')}>
+              <Card heading={2} title={t('switchSwap.step2')} desc={t('switchSwap.step2Desc')}>
                 {!p.config_readable ? <Text size="sm" c="dimmed">{t('switchSwap.configHidden')}</Text>
                   : p.config ? (
                     <Stack gap="xs" align="flex-start">
@@ -111,9 +110,9 @@ export default function SwitchSwap() {
                       <Anchor size="sm" href="/configs">{t('switchSwap.allCopies')}</Anchor>
                     </Stack>
                   ) : <Text size="sm" c="dimmed">{t('switchSwap.noCopy')} <Anchor href="/configs">{t('switchSwap.configsPage')}</Anchor></Text>}
-              </Panel>
+              </Card>
 
-              <Panel title={t('switchSwap.step3')} desc={t('switchSwap.step3Desc', { count: p.seat_ports.length })} padding={p.seat_ports.length ? 0 : 'md'}>
+              <Card heading={2} title={t('switchSwap.step3')} desc={t('switchSwap.step3Desc', { count: p.seat_ports.length })} padded={!p.seat_ports.length}>
                 {p.seat_ports.length === 0 ? <Text size="sm" c="dimmed">{t('switchSwap.noSeats')}</Text> : (
                   <Table.ScrollContainer minWidth={200} mah={320}>
                     <Table striped stickyHeader>
@@ -126,10 +125,10 @@ export default function SwitchSwap() {
                     </Table>
                   </Table.ScrollContainer>
                 )}
-              </Panel>
+              </Card>
             </SimpleGrid>
 
-            <Panel title={t('switchSwap.step4')} desc={t('switchSwap.step4Desc')}>
+            <Card heading={2} title={t('switchSwap.step4')} desc={t('switchSwap.step4Desc')}>
               <Stack gap="xs" align="flex-start">
                 <ErrorBanner error={swap.error} />
                 {canSwap ? (
@@ -139,9 +138,9 @@ export default function SwitchSwap() {
                   </Button>
                 ) : <Text size="sm" c="dimmed">{t('switchSwap.noRight')}</Text>}
               </Stack>
-            </Panel>
+            </Card>
 
-            <Panel title={t('switchSwap.history')}>
+            <Card heading={2} title={t('switchSwap.history')}>
               {p.swaps.length === 0 ? <Text size="sm" c="dimmed">{t('switchSwap.noSwaps')}</Text> : (
                 <Stack gap={4}>
                   {p.swaps.map((s) => (
@@ -151,7 +150,7 @@ export default function SwitchSwap() {
                   ))}
                 </Stack>
               )}
-            </Panel>
+            </Card>
           </>
         )}
       </Stack>

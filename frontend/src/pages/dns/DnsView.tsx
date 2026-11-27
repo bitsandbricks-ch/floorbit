@@ -6,10 +6,9 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { DnsData, DnsSite } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
-import { type DataColumn, DataTable, ErrorBanner, LoadingState, StatGrid, StatTile } from '@bitsandbricks/ui'
+import { Card, type DataColumn, DataTable, ErrorBanner, LoadingState, StatGrid, StatTile } from '@bitsandbricks/ui'
 import { clock, dayClock } from '@/lib/time'
 import './DnsView.css'
-import { Panel as SharedPanel } from '@/components/ui'
 
 const W = 1000
 const H = 140
@@ -27,7 +26,7 @@ function Chart({ hours, label }: { hours: DnsData['hours']; label: string }) {
   const w = W / Math.max(1, hours.length)
   const stamp = (ts: number) => dayClock(ts, i18n.language)
   return (
-    <SharedPanel className="fb-wide" titleId="dns-hours" title={t('dns.perHour')} actions={<>
+    <Card heading={2} className="fb-wide" title={t('dns.perHour')} actions={<>
       <Group gap="sm">
         <Text size="xs" c="dimmed"><span className="fb-dns-key" /> {t('dns.answered')}</Text>
         <Text size="xs" c="dimmed"><span className="fb-dns-key blocked" /> {t('dns.blockedKey')}</Text>
@@ -52,7 +51,7 @@ function Chart({ hours, label }: { hours: DnsData['hours']; label: string }) {
           <Text size="xs" c="dimmed">{stamp(hours[hours.length - 1].t + 3600)}</Text>
         </Group>
       )}
-    </SharedPanel>
+    </Card>
   )
 }
 
@@ -72,11 +71,11 @@ function TopList({ sites, value }: { sites: DnsSite[]; value: (s: DnsSite) => st
 }
 
 /** One panel of the page: a heading over a list or a sortable, paged table. */
-function Panel({ id, title, wide, children }: { id: string; title: string; wide?: boolean; children: ReactNode }) {
+function DnsCard({ title, wide, children }: { title: string; wide?: boolean; children: ReactNode }) {
   return (
-    <SharedPanel className={wide ? 'fb-wide' : undefined} titleId={id} title={title}>
+    <Card heading={2} className={wide ? 'fb-wide' : undefined} title={title}>
       {children}
-    </SharedPanel>
+    </Card>
   )
 }
 
@@ -114,13 +113,13 @@ function Board({ data, compact }: { data: DnsData; compact: boolean }) {
       <div className="fb-stats">
         <Chart hours={data.hours} label={t('dns.chartLabel', { lookups: num(data.lookups), blocked: num(data.blocked) })} />
         {compact ? (
-          <Panel id="dns-top" title={t('dns.top')}>
+          <DnsCard title={t('dns.top')}>
             {data.sites.length === 0 ? <Text size="sm" c="dimmed">{t('dns.noneYet', { count: data.min_clients })}</Text>
               : <TopList sites={data.sites.slice(0, 5)} value={(s) => num(s.lookups)} />}
-          </Panel>
+          </DnsCard>
         ) : (
           <>
-            <Panel id="dns-categories" title={t('dns.categories')}>
+            <DnsCard title={t('dns.categories')}>
               <DataTable {...table} rowKey={(c) => c.id} label={t('dns.categories')} rows={data.categories} pageSize={PANEL_ROWS}
                 defaultSort={{ id: 'lookups', desc: true }} empty={<Text size="sm" c="dimmed">{t('dns.noneYet', { count: data.min_clients })}</Text>}
                 columns={[
@@ -130,19 +129,19 @@ function Board({ data, compact }: { data: DnsData; compact: boolean }) {
                   { id: 'lookups', header: t('dns.lookups'), numeric: true, descFirst: true, sort: (c) => c.lookups, cell: (c) => num(c.lookups) },
                 ]} />
               <Text size="xs" c="dimmed" mt={6}>{t('dns.categoriesText')}</Text>
-            </Panel>
-            <Panel id="dns-blocked" title={t('dns.blockedSites')}>
+            </DnsCard>
+            <DnsCard title={t('dns.blockedSites')}>
               <DataTable {...table} label={t('dns.blockedSites')} rows={data.blocked_sites} pageSize={PANEL_ROWS} columns={siteColumns(t, blocked)}
                 defaultSort={{ id: 'blocked', desc: true }} empty={<Text size="sm" c="dimmed">{t('dns.noneBlocked')}</Text>} />
-            </Panel>
-            <Panel id="dns-top" title={t('dns.top')} wide>
+            </DnsCard>
+            <DnsCard title={t('dns.top')} wide>
               <DataTable {...table} label={t('dns.top')} rows={data.sites} pageSize={SITE_ROWS} columns={siteColumns(t, lookups).concat(clients)}
                 defaultSort={{ id: 'lookups', desc: true }} empty={<Text size="sm" c="dimmed">{t('dns.noneYet', { count: data.min_clients })}</Text>} />
-            </Panel>
-            <Panel id="dns-new" title={t('dns.new')} wide>
+            </DnsCard>
+            <DnsCard title={t('dns.new')} wide>
               <DataTable {...table} label={t('dns.new')} rows={data.new} pageSize={PANEL_ROWS} columns={siteColumns(t, seen)}
                 defaultSort={{ id: 'seen', desc: true }} empty={<Text size="sm" c="dimmed">{t('dns.noneNew')}</Text>} />
-            </Panel>
+            </DnsCard>
           </>
         )}
       </div>

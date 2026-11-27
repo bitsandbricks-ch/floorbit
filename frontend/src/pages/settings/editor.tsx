@@ -5,9 +5,9 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
 import { contrast } from '@/colorContrast'
-import { Panel } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 import { HEX, invalid, k, keys, sectionTitle, TESTABLE, type Field, type SettingsAnswer, type SettingsEditor, type TestResult, type useTest, type Value } from './model'
+import { Card } from '@bitsandbricks/ui'
 
 
 export function TestLine({ result }: { result: TestResult | 'running' | null }) {
@@ -34,7 +34,7 @@ export function Connections({ status, test }: { status: SettingsAnswer['status']
     ['Valkey', redis.connected, redis.connected ? where : t('settings.redisOff', { where })],
   ]
   return (
-    <Panel title={t('settings.connections')}>
+    <Card heading={2} title={t('settings.connections')}>
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
         {items.map(([name, on, sub]) => (
           <Paper key={name} withBorder radius="md" p="sm">
@@ -51,7 +51,7 @@ export function Connections({ status, test }: { status: SettingsAnswer['status']
         <TestLine result={test.results.redis ?? null} />
       </Group>
       <Text size="xs" c="dimmed" mt="xs">{t('settings.redisHelp')}</Text>
-    </Panel>
+    </Card>
   )
 }
 
@@ -99,7 +99,7 @@ export function BackupPanel() {
     })
   })()
   return (
-    <Panel title={t('settings.backup.title')} desc={t('settings.backup.desc')}>
+    <Card heading={2} title={t('settings.backup.title')} desc={t('settings.backup.desc')}>
       <Group gap="sm">
         <Button component="a" href="/api/settings/backup" download variant="default" leftSection={<IconDownload size={16} />}>
           {t('settings.backup.download')}
@@ -118,7 +118,7 @@ export function BackupPanel() {
         </Alert>
       )}
       {result && <Stack mt="sm"><TestLine result={result} /></Stack>}
-    </Panel>
+    </Card>
   )
 }
 
@@ -304,7 +304,7 @@ export function SectionPanel({ ed, section, only, title, desc, actions, folded =
     </Stack>
   )
   return (
-    <Panel id={`sec-${s.id}`} title={title ?? sectionTitle(t, s)}
+    <Card heading={2} id={`sec-${s.id}`} title={title ?? sectionTitle(t, s)}
       desc={desc === null ? undefined : desc ?? t(keys(`sections.${s.id}.desc`), { defaultValue: s.description })}
       actions={actions ?? (TESTABLE.has(s.id) && (
         <Button variant="default" size="xs" onClick={() => void ed.test.run(s.id)}>{t('settings.test')}</Button>
@@ -318,7 +318,7 @@ export function SectionPanel({ ed, section, only, title, desc, actions, folded =
           <Stack gap={0} className="fb-setting-rows">{advanced.map(row)}</Stack>
         </Advanced>
       )}
-    </Panel>
+    </Card>
   )
 }
 

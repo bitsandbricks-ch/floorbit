@@ -3,8 +3,7 @@ import { IconExternalLink } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { TimelineEntry } from '@/api/types'
-import { Panel } from '@/components/ui'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { Card, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { TimelineRow } from '@/pages/Timeline'
 
 /** What happened at a problem's or an incident's place, from the event changelog (issues #882, #913):
@@ -20,7 +19,7 @@ export function PlaceHistory({ entries, loading, error, search, canOpen }: {
 }) {
   const { t, i18n } = useTranslation()
   return (
-    <Panel title={t('placeHistory.title')}
+    <Card heading={2} title={t('placeHistory.title')}
       actions={canOpen && search ? (
         <Button size="xs" variant="default" component={Link} to={`/timeline?q=${encodeURIComponent(search)}`}
           rightSection={<IconExternalLink size={14} />}>{t('placeHistory.open')}</Button>
@@ -33,6 +32,6 @@ export function PlaceHistory({ entries, loading, error, search, canOpen }: {
           {entries.map((e, i) => <TimelineRow key={`${e.t}-${i}`} e={e} lang={i18n.language} />)}
         </div>
       )}
-    </Panel>
+    </Card>
   )
 }

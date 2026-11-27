@@ -6,9 +6,8 @@ import { Link } from 'react-router-dom'
 import { patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Agent, AgentSettingField, AgentSettingsPage, SettingSource } from '@/api/types'
-import { Panel } from '@/components/ui'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { Card, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { Advanced, SaveBar } from '@/pages/settings/editor'
 import { useAgentSettings, useAgents } from './data'
 import { Input, Row, Source } from './fields'
@@ -79,7 +78,7 @@ export function AgentSettingsForm({ agent }: { agent: Agent }) {
   return (
     <form onSubmit={(e) => { e.preventDefault(); if (count) save.mutate() }} autoComplete="off" noValidate>
       <Stack gap="md" pb={count ? 96 : 0}>
-        <Panel title={t('agents.cfg.title')} desc={t('agents.cfg.intro')}>
+        <Card heading={2} title={t('agents.cfg.title')} desc={t('agents.cfg.intro')}>
           <Stack gap={0} className="fb-setting-rows">{BASIC.filter((k) => byKey[k]).map((k) => row(byKey[k]))}</Stack>
           {advanced.length > 0 && (
             <Advanced count={advanced.length} hint={t('agents.cfg.advancedHint')}
@@ -87,7 +86,7 @@ export function AgentSettingsForm({ agent }: { agent: Agent }) {
               <Stack gap={0} className="fb-setting-rows">{advanced.map((k) => row(byKey[k]))}</Stack>
             </Advanced>
           )}
-        </Panel>
+        </Card>
         {page.plugins.length > 0 && <PluginOverrides plugins={page.plugins} />}
         <HallOnly agent={agent} keys={page.local_only} />
       </Stack>
@@ -101,7 +100,7 @@ export function AgentSettingsForm({ agent }: { agent: Agent }) {
 function PluginOverrides({ plugins }: { plugins: AgentSettingsPage['plugins'] }) {
   const { t } = useTranslation()
   return (
-    <Panel title={t('agents.cfg.pluginsTitle')} desc={t('agents.cfg.pluginsIntro')}>
+    <Card heading={2} title={t('agents.cfg.pluginsTitle')} desc={t('agents.cfg.pluginsIntro')}>
       <Stack gap={0} className="fb-setting-rows">
         {plugins.map((p) => {
           const set = p.fields.filter((f) => f.key in p.values)
@@ -127,7 +126,7 @@ function PluginOverrides({ plugins }: { plugins: AgentSettingsPage['plugins'] })
           )
         })}
       </Stack>
-    </Panel>
+    </Card>
   )
 }
 
@@ -137,7 +136,7 @@ function HallOnly({ agent, keys }: { agent: Agent; keys: string[] }) {
   const values = agent.report?.settings?.values ?? {}
   const reported = !!agent.report?.settings
   return (
-    <Panel title={t('agents.cfg.hallTitle')} desc={t('agents.cfg.hallIntro')}>
+    <Card heading={2} title={t('agents.cfg.hallTitle')} desc={t('agents.cfg.hallIntro')}>
       <Stack gap={0} className="fb-setting-rows">
         {keys.map((k) => {
           const value = values[k]?.value
@@ -161,7 +160,7 @@ function HallOnly({ agent, keys }: { agent: Agent; keys: string[] }) {
           )
         })}
       </Stack>
-    </Panel>
+    </Card>
   )
 }
 
@@ -187,7 +186,7 @@ export function KeyPanel({ agent, page, children }: { agent: Agent; page?: Agent
   const { t, i18n } = useTranslation()
   const where = agent.report?.settings?.key
   return (
-    <Panel title={t('agents.cfg.keyTitle')} desc={t('agents.cfg.keyIntro')}>
+    <Card heading={2} title={t('agents.cfg.keyTitle')} desc={t('agents.cfg.keyIntro')}>
       <Stack gap="xs">
         <Text size="sm">
           {t('agents.cfg.keyMade', { when: dateOnly(agent.renewed_at ?? agent.created_at, i18n.language) })}
@@ -201,7 +200,7 @@ export function KeyPanel({ agent, page, children }: { agent: Agent; page?: Agent
         {!agent.connected && <Text size="xs" c="dimmed">{t('agents.cfg.rollOffline')}</Text>}
         {page && <IdentityLine agent={agent} page={page} />}
       </Stack>
-    </Panel>
+    </Card>
   )
 }
 
@@ -267,7 +266,7 @@ export function CertPanel({ agent, page }: { agent: Agent; page: AgentSettingsPa
   const has = agent.report?.settings?.cert
   const suggest = [agent.address, ...(agent.report?.vrrp?.holds ?? [])].filter((x): x is string => !!x)
   return (
-    <Panel title={t('agents.cfg.certTitle')} desc={t('agents.cfg.certIntro')}
+    <Card heading={2} title={t('agents.cfg.certTitle')} desc={t('agents.cfg.certIntro')}
       actions={<Anchor href="/api/agents/ca.pem" size="sm">{t('agents.cfg.downloadCa')}</Anchor>}>
       <Stack gap="sm">
         {has ? (
@@ -291,6 +290,6 @@ export function CertPanel({ agent, page }: { agent: Agent; page: AgentSettingsPa
         </Group>
         <ErrorBanner error={save.error ?? renew.error} />
       </Stack>
-    </Panel>
+    </Card>
   )
 }

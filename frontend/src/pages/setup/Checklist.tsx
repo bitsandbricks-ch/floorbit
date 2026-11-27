@@ -6,8 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
-import { Panel } from '@/components/ui'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { Card, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { useChecklist, type ChecklistStep } from './checklist'
 
 const ICON = { done: IconCircleCheck, look: IconAlertTriangle, todo: IconCircleDashed, skipped: IconPlayerSkipForward }
@@ -58,7 +57,7 @@ export function SetupChecklist() {
   const steps = q.data.steps
   const finished = steps.filter((s) => s.state === 'done' || s.state === 'skipped').length
   return (
-    <Panel title={t('setup.check.title')} desc={t('setup.check.progress', { done: finished, count: steps.length })}>
+    <Card heading={2} title={t('setup.check.title')} desc={t('setup.check.progress', { done: finished, count: steps.length })}>
       <Stack gap={0} className="fb-setting-rows">
         {steps.map((s, i) => {
           const Icon = ICON[s.state]
@@ -94,6 +93,6 @@ export function SetupChecklist() {
         })}
       </Stack>
       <ErrorBanner error={mark.error} />
-    </Panel>
+    </Card>
   )
 }

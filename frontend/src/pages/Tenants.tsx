@@ -5,8 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { get, patch, post } from '@/api/client'
 import { qk } from '@/api/keys'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, PageHead } from '@bitsandbricks/ui'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
@@ -27,7 +26,7 @@ function NewTenant({ onMade }: { onMade: (m: Made) => void }) {
     onSuccess: (m) => { setId(''); setName(''); setUrl(''); setAdmin(''); onMade(m) },
   })
   return (
-    <Panel title={t('tenants.new')}>
+    <Card heading={2} title={t('tenants.new')}>
       <Stack gap="sm">
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <TextInput label={t('tenants.id')} description={t('tenants.idHelp')} value={id} maxLength={40} required
@@ -44,7 +43,7 @@ function NewTenant({ onMade }: { onMade: (m: Made) => void }) {
           <Button loading={make.isPending} disabled={!id.trim()} onClick={() => make.mutate()}>{t('tenants.add')}</Button>
         </Group>
       </Stack>
-    </Panel>
+    </Card>
   )
 }
 
@@ -172,11 +171,11 @@ export default function Tenants() {
         )}
         {query.isPending ? <LoadingState rows={3} /> : d && (
           <>
-            <Panel title={t('tenants.list', { count: d.tenants.length })}>
+            <Card heading={2} title={t('tenants.list', { count: d.tenants.length })}>
               <Stack gap="sm">
                 {d.tenants.map((tn) => <Row key={tn.id} tenant={tn} here={d.here} onChanged={refresh} />)}
               </Stack>
-            </Panel>
+            </Card>
             <NewTenant onMade={(m) => { setMade(m); refresh() }} />
             <Text size="sm" c="dimmed">{t('tenants.docs')} <Anchor href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/tenancy.md" target="_blank" rel="noopener noreferrer" inherit>{t('tenants.docsLink')}</Anchor></Text>
           </>

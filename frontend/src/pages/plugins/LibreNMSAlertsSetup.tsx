@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
 import type { LibreNMSAlertsSetup as Setup } from '@/api/types'
-import { Panel } from '@/components/ui'
-import { ConfirmButton } from '@bitsandbricks/ui'
+import { Card, ConfirmButton } from '@bitsandbricks/ui'
 
 function Copy({ value }: { value: string }) {
   const { t } = useTranslation()
@@ -30,7 +29,7 @@ export function LibreNMSAlertsSetup() {
   })
   const error = show.error ?? renew.error
   return (
-    <Panel title={t('plugins.librenmsAlerts.title')} desc={t('plugins.librenmsAlerts.desc')}>
+    <Card heading={2} title={t('plugins.librenmsAlerts.title')} desc={t('plugins.librenmsAlerts.desc')}>
       <Stack gap="sm">
         {!setup ? (
           <Group><Button variant="default" loading={show.isPending} onClick={() => show.mutate()}>{t('plugins.librenmsAlerts.show')}</Button></Group>
@@ -68,6 +67,6 @@ export function LibreNMSAlertsSetup() {
         )}
         {error && <Alert color="down" role="alert">{error.message}</Alert>}
       </Stack>
-    </Panel>
+    </Card>
   )
 }

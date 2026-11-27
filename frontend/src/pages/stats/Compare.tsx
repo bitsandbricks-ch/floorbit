@@ -7,7 +7,7 @@ import { qk } from '@/api/keys'
 import type { CompareData, ComparePoint, CompareSide } from '@/api/types'
 import { bytes } from '../traffic/format'
 import { bps } from './format'
-import { Panel } from '@/components/ui'
+import { Card } from '@bitsandbricks/ui'
 
 const W = 1000
 const H = 120
@@ -65,7 +65,7 @@ export function Compare({ only }: { only?: 'event' }) {
   const nowLabel = which === 'event' ? t('stats.compare.thisEvent') : t('stats.compare.today')
   const hours = Math.round((ev?.elapsed_s ?? 0) / 3600)
   return (
-    <Panel className="fb-wide" titleId="stats-compare" title={t('stats.compare.title')} actions={<>
+    <Card heading={2} className="fb-wide" title={t('stats.compare.title')} actions={<>
       {!only && ev && (
         <SegmentedControl size="xs" value={which} onChange={(v) => setView(v as 'day' | 'event')} aria-label={t('stats.compare.title')}
           data={[{ value: 'day', label: t('stats.compare.dayView') }, { value: 'event', label: t('stats.compare.eventView', { name: ev.name }) }]} />
@@ -115,6 +115,6 @@ export function Compare({ only }: { only?: 'event' }) {
           </Group>
         </>
       )}
-    </Panel>
+    </Card>
   )
 }

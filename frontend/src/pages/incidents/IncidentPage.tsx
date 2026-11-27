@@ -15,8 +15,7 @@ import { RecentLogs } from '@/components/RecentLogs'
 import { PlaceHistory } from '@/components/PlaceHistory'
 import { useCanOpenTimeline } from '@/components/useCanOpenTimeline'
 import { LinkHistory } from '../plan/Inspector'
-import { Panel } from '@/components/ui'
-import { EmptyState, ErrorBanner, LoadingState, PageHead, PanelField } from '@bitsandbricks/ui'
+import { Card, EmptyState, ErrorBanner, LoadingState, PageHead, PanelField } from '@bitsandbricks/ui'
 import { useNowSeconds } from '@/components/useNowSeconds'
 import { incidentTitle, powerNote } from '@/lib/incidentTitle'
 import { ago, dateTime } from '@/lib/time'
@@ -141,7 +140,7 @@ export default function IncidentPage() {
           <Text size="sm" role="status" className={message.ok ? 'fb-tone-ok' : 'fb-tone-err'}>{message.text}</Text>
         )}
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-          <Panel title={t('incident.what')}>
+          <Card heading={2} title={t('incident.what')}>
             <Stack gap="sm">
               <IncidentBadges i={i} board={data} now={now} full />
               <IncidentDetails i={i} />
@@ -159,8 +158,8 @@ export default function IncidentPage() {
                 </Group>
               )}
             </Stack>
-          </Panel>
-          <Panel title={t('incident.who')}>
+          </Card>
+          <Card heading={2} title={t('incident.who')}>
             <Stack gap="sm">
               <OwnerLine i={i} now={now} />
               {i.can_assign && i.status === 'open' && !i.assignee && (
@@ -187,9 +186,9 @@ export default function IncidentPage() {
               )}
               {i.fixed_at && <PanelField label={t('incident.fixedAt')}><Text size="sm">{dateTime(i.fixed_at)}</Text></PanelField>}
             </Stack>
-          </Panel>
+          </Card>
         </SimpleGrid>
-        <Panel title={t('incident.notes', { count: i.notes.length })}>
+        <Card heading={2} title={t('incident.notes', { count: i.notes.length })}>
           <Stack gap="sm">
             {!i.notes.length && <Text size="sm" c="dimmed">{t('incident.noNotes')}</Text>}
             {i.notes.map((n, k) => (
@@ -213,13 +212,13 @@ export default function IncidentPage() {
               </Group>
             )}
           </Stack>
-        </Panel>
+        </Card>
         {/* Where it happens, without leaving the incident (issue #913). */}
         <PlaceHistory entries={history.data?.entries} loading={history.isPending} error={history.error}
           search={i.switch_name ?? i.seat} canOpen={canAudit} />
         {/* Where it happens, without leaving the incident (issue #913): the seat's link over the last hours. */}
         {i.seat && seat.data?.history && seat.data.switch && (
-          <Panel><LinkHistory history={seat.data.history} /></Panel>
+          <Card heading={2}><LinkHistory history={seat.data.history} /></Card>
         )}
         {seesLogs && (i.seat || i.switch_name) && <RecentLogs seat={i.seat} device={i.switch_name} />}
       </Stack>

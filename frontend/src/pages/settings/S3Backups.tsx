@@ -4,8 +4,7 @@ import { IconCloudUpload, IconDownload, IconLock, IconRestore } from '@tabler/ic
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { get, post } from '@/api/client'
-import { DataTable } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, DataTable } from '@bitsandbricks/ui'
 import { ago, dateTime } from '@/lib/time'
 import { bytes } from '@/pages/traffic/format'
 import { TestLine } from './editor'
@@ -49,7 +48,7 @@ export function S3BackupPanel() {
   const schedule = d && (d.interval_hours > 0 ? t('settings.s3.every', { count: d.interval_hours }) : t('settings.s3.manual'))
 
   return (
-    <Panel title={t('settings.s3.title')} desc={t('settings.s3.desc')}
+    <Card heading={2} title={t('settings.s3.title')} desc={t('settings.s3.desc')}
       actions={d?.configured ? (
         <Button size="xs" leftSection={<IconCloudUpload size={16} />} loading={upload.isPending} onClick={() => { setResult(null); upload.mutate() }}>
           {t('settings.s3.now')}
@@ -113,6 +112,6 @@ export function S3BackupPanel() {
         </Stack>
       )}
       {result && <Stack mt="sm"><TestLine result={result} /></Stack>}
-    </Panel>
+    </Card>
   )
 }

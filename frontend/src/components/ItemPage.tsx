@@ -4,8 +4,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Layout } from './Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { Panel } from './ui'
+import { Card, PageHead } from '@bitsandbricks/ui'
 import { EmptyState, LoadingState } from '@bitsandbricks/ui'
 import { ConfirmButton } from '@bitsandbricks/ui'
 
@@ -48,11 +47,11 @@ export function DangerZone({ label, question, desc, onConfirm, loading }: {
 }) {
   const { t } = useTranslation()
   return (
-    <Panel title={t('item.danger')} className="fb-danger-zone">
+    <Card heading={2} title={t('item.danger')} className="fb-danger-zone">
       {desc && <Text size="sm" c="dimmed" mb="sm">{desc}</Text>}
       <Group>
         <ConfirmButton variant="default" danger label={label} question={question} onConfirm={onConfirm} loading={loading} />
       </Group>
-    </Panel>
+    </Card>
   )
 }

@@ -11,8 +11,7 @@ import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { StatusArea, StatusPageData, StatusState, StatusUpdate } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { PageHead } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, PageHead } from '@bitsandbricks/ui'
 import { DataTable, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { COLOR } from './status/state'
@@ -108,7 +107,7 @@ export default function NetworkStatus() {
           <>
             {!d.public && <Alert color="gray" variant="light">{t('status.publicOff')}</Alert>}
             <SimpleGrid cols={{ base: 1, md: 2 }}>
-              <Panel>
+              <Card heading={2}>
                 <Text size="xs" c="dimmed">{t('status.shows')}</Text>
                 <Group gap="sm" mt={4}>
                   <Badge size="lg" color={COLOR[d.state]} variant="filled" tt="none" data-testid="state">{t(`status.state.${d.state}`)}</Badge>
@@ -143,8 +142,8 @@ export default function NetworkStatus() {
                     </Group>
                   </Stack>
                 )}
-              </Panel>
-              <Panel title={t('status.areas')}>
+              </Card>
+              <Card heading={2} title={t('status.areas')}>
                 {d.crew_areas.length === 0 ? <Text size="sm" c="dimmed">{t('status.noAreas')}</Text> : (
                   <Stack gap="xs">{d.crew_areas.map((a) => <AreaLine key={`${a.hall}-${a.block}`} a={a} />)}</Stack>
                 )}
@@ -158,9 +157,9 @@ export default function NetworkStatus() {
                   </Stack>
                 )}
                 <Text size="xs" c="dimmed" mt="sm">{t('status.namesHidden')}</Text>
-              </Panel>
+              </Card>
             </SimpleGrid>
-            <Panel title={t('status.updates')}>
+            <Card heading={2} title={t('status.updates')}>
               {canSet && (
                 <Stack gap="xs" mb="md">
                   {suggestions.length > 0 && (
@@ -196,7 +195,7 @@ export default function NetworkStatus() {
                     </ConfirmIcon>
                   ) }] : []),
                 ]} />
-            </Panel>
+            </Card>
           </>
         )}
       </Stack>

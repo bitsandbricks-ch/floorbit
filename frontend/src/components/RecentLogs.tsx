@@ -6,8 +6,7 @@ import { Link } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { LogsData } from '@/api/types'
-import { Panel } from '@/components/ui'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { Card, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { LogTable } from '@/pages/Logs'
 
 const LINES = 20
@@ -25,7 +24,7 @@ export function RecentLogs({ seat, device }: { seat?: string | null; device?: st
   })
   const lines = logs.data?.lines ?? []
   return (
-    <Panel title={t('recentLogs.title')}
+    <Card heading={2} title={t('recentLogs.title')}
       actions={<Button size="xs" variant="default" component={Link} to={`/logs?${filter}`} rightSection={<IconExternalLink size={14} />}>
         {t('recentLogs.open')}</Button>}>
       <ErrorBanner error={logs.error} />
@@ -34,6 +33,6 @@ export function RecentLogs({ seat, device }: { seat?: string | null; device?: st
       ) : (
         <LogTable lines={lines} store={false} source="syslog" />
       )}
-    </Panel>
+    </Card>
   )
 }

@@ -2,8 +2,7 @@ import { Badge, Group, Text } from '@mantine/core'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { FlowService, FlowsData } from '@/api/types'
-import { DataTable, PanelField, PanelSection, SidePanel, Sparkline, type DataColumn } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, type DataColumn, DataTable, PanelField, PanelSection, SidePanel, Sparkline } from '@bitsandbricks/ui'
 import { clock } from '@/lib/time'
 import { bytes, trendOf } from './format'
 import { useTrafficCategories } from '@/api/trafficCategories'
@@ -36,7 +35,7 @@ export function TrafficServices({ data }: { data: FlowsData }) {
     ) },
   ]
   return (
-    <Panel className="fb-wide" titleId="traffic-services" title={t('traffic.services')}>
+    <Card heading={2} className="fb-wide" title={t('traffic.services')}>
       <DataTable rows={services} columns={columns} rowKey={(s) => s.name} label={t('traffic.services')} urlState={false}
         bare density="compact" defaultSort={{ id: 'down', desc: true }}
         onRowClick={(s) => setOpen(s.name)}
@@ -49,7 +48,7 @@ export function TrafficServices({ data }: { data: FlowsData }) {
           onPrev={index > 0 ? () => setOpen(services[index - 1].name) : undefined}
           onNext={index < services.length - 1 ? () => setOpen(services[index + 1].name) : undefined} />
       )}
-    </Panel>
+    </Card>
   )
 }
 

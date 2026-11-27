@@ -8,8 +8,7 @@ import { del, patch } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { EntryDetail, InventoryOverview, InventoryType } from '@/api/types'
 import { DangerZone, ItemPage } from '@/components/ItemPage'
-import { Panel } from '@/components/ui'
-import { PanelField } from '@bitsandbricks/ui'
+import { Card, PanelField } from '@bitsandbricks/ui'
 import { RangePanel } from '@/pages/firewalls/RangePanel'
 import { useLeaveWarning } from '@/components/useLeaveWarning'
 import { SaveBar } from '@/pages/settings/editor'
@@ -91,7 +90,7 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
   return (
     <Stack gap="md">
       {(entry.summary || entry.link) && (
-        <Panel title={t('inventory.tabs.overview')}>
+        <Card heading={2} title={t('inventory.tabs.overview')}>
           <Stack gap={4}>
             {entry.summary && <PanelField label={t('inventory.entries.what')}>{entry.summary}</PanelField>}
             {entry.detail && <Text size="sm" c="dimmed">{entry.detail}</Text>}
@@ -101,10 +100,10 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
               </Anchor>
             )}
           </Stack>
-        </Panel>
+        </Card>
       )}
       {type.id === 'prefix' && <RangePanel id={entry.id} canEdit={canEdit} prefix={entry.fields.prefix} name={entry.name} />}
-      <Panel title={t('inventory.entries.details')}>
+      <Card heading={2} title={t('inventory.entries.details')}>
         <Stack gap="sm">
           {stored && <TextInput label={t('inventory.field.name')} value={name} onChange={(e) => setName(e.currentTarget.value)} disabled={!canEdit} maxLength={80} />}
           <FieldInputs fields={type.fields} values={fields} onChange={setFields} disabled={!canEdit} />
@@ -121,11 +120,11 @@ function EntryForm({ type, entry, overview, canEdit, onClose }: {
               onDiscard={discard} />
           )}
         </Stack>
-      </Panel>
-      <Panel title={t('inventory.props.title')}>
+      </Card>
+      <Card heading={2} title={t('inventory.props.title')}>
         <PropertiesEditor value={entry.properties} inherited={entry.resolved.properties} canEdit={canEdit} busy={save.isPending}
           onSave={(properties) => save.mutate({ properties })} />
-      </Panel>
+      </Card>
       {canEdit && stored && (
         <DangerZone label={t('inventory.delete')} question={t('inventory.deleteManual', { name: entry.name })}
           loading={remove.isPending} onConfirm={() => remove.mutate()} />

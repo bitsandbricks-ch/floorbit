@@ -7,10 +7,9 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import { useCan } from '@/api/queries'
 import type { CheckinConflict, CheckinOverview, CrewCheckin, WiredState } from '@/api/types'
-import { ConfirmIcon, DataTable, EmptyState, ErrorBanner, FilterBar, LoadingState, PageHead, StatTile, useFilters } from '@bitsandbricks/ui'
+import { Card, ConfirmIcon, DataTable, EmptyState, ErrorBanner, FilterBar, LoadingState, PageHead, StatTile, useFilters } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
 import { Link } from 'react-router-dom'
-import { Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { History } from './checkins/History'
 import { LookupNote, LookupWindow } from './checkins/LookupWindow'
@@ -82,13 +81,13 @@ export default function Checkins() {
         )}
         {disabled ? (
           <>
-            <Panel>
+            <Card heading={2}>
               <EmptyState icon={<IconPlugConnectedX size={24} />} title={t('crewCheckin.off.title')}
                 description={t(canSettings ? 'crewCheckin.off.desc' : 'crewCheckin.off.askAdmin')}
                 action={canSettings && (
                   <Button component={Link} to="/settings/checkin">{t('crewCheckin.off.turnOn')}</Button>
                 )} />
-            </Panel>
+            </Card>
             <History />
           </>
         ) : query.isPending || !d ? <LoadingState rows={3} /> : (
@@ -189,7 +188,7 @@ function Review({ conflicts, canEdit, onForget }: { conflicts: CheckinConflict[]
   return (
     <Stack gap="xs">
       {conflicts.map((c) => (
-        <Panel key={`${c.kind}-${c.seat}-${c.port}`}>
+        <Card heading={2} key={`${c.kind}-${c.seat}-${c.port}`}>
           <Group justify="space-between" wrap="nowrap">
             <div>
               <Text fw={600}>{t(`crewCheckin.conflict.${c.kind}`, { seat: c.seat, other: c.other.join(', ') })}</Text>
@@ -207,7 +206,7 @@ function Review({ conflicts, canEdit, onForget }: { conflicts: CheckinConflict[]
               </Group>
             )}
           </Group>
-        </Panel>
+        </Card>
       ))}
     </Stack>
   )

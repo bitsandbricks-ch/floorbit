@@ -9,8 +9,7 @@ import { qk } from '@/api/keys'
 import { useRoles } from '@/api/queries'
 import type { ApiToken } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { OneTimeSecret, PageHead } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, OneTimeSecret, PageHead } from '@bitsandbricks/ui'
 import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { dateOnly } from '@/lib/time'
 import { ConfirmButton } from '@bitsandbricks/ui'
@@ -33,7 +32,7 @@ function NewToken({ maxDays, onMade }: { maxDays: number; onMade: (m: Made) => v
   })
   const options = (roles.data?.roles ?? []).map((r) => ({ value: r.id, label: r.label }))
   return (
-    <Panel title={t('api.new')}>
+    <Card heading={2} title={t('api.new')}>
       <Stack gap="sm">
         <TextInput label={t('api.name')} description={t('api.nameHelp')} value={name} maxLength={60}
           onChange={(e) => setName(e.currentTarget.value)} />
@@ -50,7 +49,7 @@ function NewToken({ maxDays, onMade }: { maxDays: number; onMade: (m: Made) => v
           <Button loading={make.isPending} disabled={!name.trim() || !role} onClick={() => make.mutate()}>{t('api.make')}</Button>
         </Group>
       </Stack>
-    </Panel>
+    </Card>
   )
 }
 
@@ -79,7 +78,7 @@ export default function ApiTokens() {
         )}
         {query.isPending ? <LoadingState rows={3} /> : d && (
           <>
-            <Panel title={t('api.tokens')}>
+            <Card heading={2} title={t('api.tokens')}>
               {d.tokens.length === 0 ? <Text size="sm" c="dimmed">{t('api.none')}</Text> : (
                 <Stack gap="sm">
                   {d.tokens.map((tk) => (
@@ -103,7 +102,7 @@ export default function ApiTokens() {
                   ))}
                 </Stack>
               )}
-            </Panel>
+            </Card>
             <NewToken maxDays={d.max_days} onMade={(m) => { setMade(m); refresh() }} />
             <Text size="sm" c="dimmed">{t('api.docs')} <Anchor href="https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/api.md" target="_blank" rel="noopener noreferrer" inherit>{t('api.docsLink')}</Anchor></Text>
           </>

@@ -7,9 +7,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { EndpointAnswer } from '@/api/types'
-import { EmptyState, ErrorBanner, LoadingState, PageHead } from '@bitsandbricks/ui'
+import { Card, EmptyState, ErrorBanner, LoadingState, PageHead } from '@bitsandbricks/ui'
 import { Layout } from '@/components/Layout'
-import { Panel } from '@/components/ui'
 import { EndpointTable } from './endpoints/EndpointTable'
 
 /** Where each machine was seen (docs/endpoints.md): search an IP or MAC, or open a port's or a
@@ -74,9 +73,9 @@ export default function Endpoints() {
           (ask ? <EmptyState title={t('endpoints.none')} description={t('endpoints.noneDesc', { days: query.data?.status.keep_days ?? 7 })} />
           : <EmptyState title={t('endpoints.nothingYet')} description={t('endpoints.startDesc')} />)
         ) : (
-          <Panel padding={0}>
+          <Card heading={2} padded={false}>
             <EndpointTable rows={rows} now={now} label={t('endpoints.title')} />
-          </Panel>
+          </Card>
         )}
       </Stack>
     </Layout>

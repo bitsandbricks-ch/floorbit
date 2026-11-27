@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { FirewallList } from '@/api/types'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { RangeForm } from './RangeForm'
 import { ROUTE_TONE, useSwitchScope } from './scope'
 
@@ -21,15 +20,15 @@ export function RangePanel({ id, canEdit, prefix, name }: { id: string; canEdit:
     // A prefix no firewall routes yet: its plan starts here, on the prefix (IPAM, #1346).
     if (!canEdit || !prefix) return null
     return (
-      <Panel title={t('ipam.routeIt')}>
+      <Card heading={2} title={t('ipam.routeIt')}>
         <Text size="sm" c="dimmed" mb="sm">{t('ipam.noRoute')}</Text>
         <RangeForm range={null} cidr={prefix} name={name} names={q.data.firewalls.map((f) => f.name)} scope={scope} />
-      </Panel>
+      </Card>
     )
   }
   return (
     <>
-      <Panel title={t('firewalls.parts')}>
+      <Card heading={2} title={t('firewalls.parts')}>
         <Table verticalSpacing={6} fz="sm">
           <Table.Thead><Table.Tr><Table.Th>{t('firewalls.range')}</Table.Th><Table.Th>{t('firewalls.planned')}</Table.Th>
             <Table.Th>{t('firewalls.now')}</Table.Th><Table.Th ta="right">{t('firewalls.seats')}</Table.Th></Table.Tr></Table.Thead>
@@ -49,8 +48,8 @@ export function RangePanel({ id, canEdit, prefix, name }: { id: string; canEdit:
             ))}
           </Table.Tbody>
         </Table>
-      </Panel>
-      <Panel title={t('firewalls.plan')}>
+      </Card>
+      <Card heading={2} title={t('firewalls.plan')}>
         {canEdit ? <RangeForm key={JSON.stringify(range)} range={range} names={q.data.firewalls.map((f) => f.name)} scope={scope} />
           : (
             <Stack gap={4}>
@@ -59,7 +58,7 @@ export function RangePanel({ id, canEdit, prefix, name }: { id: string; canEdit:
               {range.fallback.length > 0 && <Text size="xs" c="dimmed">{t('firewalls.fallsBack', { list: range.fallback.join(', ') })}</Text>}
             </Stack>
           )}
-      </Panel>
+      </Card>
     </>
   )
 }

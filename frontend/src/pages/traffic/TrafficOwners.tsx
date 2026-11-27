@@ -1,8 +1,7 @@
 import { Badge, Group, Text } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import type { FlowOwner, FlowsData } from '@/api/types'
-import { DataTable, type DataColumn } from '@bitsandbricks/ui'
-import { Panel } from '@/components/ui'
+import { Card, type DataColumn, DataTable } from '@bitsandbricks/ui'
 import { ago } from '@/lib/time'
 import { bytes } from './format'
 
@@ -24,7 +23,7 @@ export function TrafficOwners({ data }: { data: FlowsData }) {
     { id: 'up', header: t('traffic.svc.up'), numeric: true, descFirst: true, hideOnPhone: true, sort: (o) => o.up, cell: (o) => bytes(o.up) },
   ]
   return (
-    <Panel className="fb-wide" titleId="traffic-owners" title={t('trafficOwners.title')}>
+    <Card heading={2} className="fb-wide" title={t('trafficOwners.title')}>
       {owners.length ? (
         <DataTable rows={owners} columns={columns} rowKey={(o) => String(o.asn)} label={t('trafficOwners.title')}
           urlState={false} bare density="compact" defaultSort={{ id: 'down', desc: true }} />
@@ -36,6 +35,6 @@ export function TrafficOwners({ data }: { data: FlowsData }) {
         {' '}
         {updated ? t('trafficOwners.source', { when: ago(updated) }) : t('trafficOwners.sourceNone')}
       </Text>
-    </Panel>
+    </Card>
   )
 }

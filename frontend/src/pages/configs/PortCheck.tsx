@@ -4,8 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { get, put } from '@/api/client'
 import { qk } from '@/api/keys'
-import { Panel } from '@/components/ui'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { Card, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { dateTime } from '@/lib/time'
 
 export type PortCheckFinding = { rule: string; label: string; ports: string[]; count: number; fix: string[]; vlan?: number }
@@ -30,7 +29,7 @@ export function PortCheckPanel() {
   const bad = d?.switches.filter((s) => s.findings.length) ?? []
   const fine = d ? d.switches.length - bad.length : 0
   return (
-    <Panel id="port-check" title={t('configs.portCheck.title')} desc={t('configs.portCheck.intro')}>
+    <Card heading={2} id="port-check" title={t('configs.portCheck.title')} desc={t('configs.portCheck.intro')}>
       <ErrorBanner error={query.error ?? save.error} mb="sm" />
       {query.isPending ? <LoadingState rows={2} /> : d && (
         <Stack gap="md">
@@ -79,6 +78,6 @@ export function PortCheckPanel() {
           ))}
         </Stack>
       )}
-    </Panel>
+    </Card>
   )
 }

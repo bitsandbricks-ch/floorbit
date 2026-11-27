@@ -8,14 +8,13 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import type { EntityOption } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
-import { ConfirmButton, EmptyState, FilterBar, PageHead, PageTabs, PanelField, StatTile, useFilters } from '@bitsandbricks/ui'
+import { Card, ConfirmButton, EmptyState, FilterBar, PageHead, PageTabs, PanelField, StatTile, useFilters } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { MethodGrid, type GridRow } from '@/components/telemetry/MethodGrid'
 import { methodCells, rowNeedsLook } from '@/components/telemetry/methods'
 import { NEEDS_LOOK, deviceRows } from '@/components/telemetry/state'
 import type { DeviceSeen } from '@/components/telemetry/api'
 import { TelemetryAgentNumbersList, type TelemetryAgentNumbers } from '@/components/telemetry/AgentNumbers'
-import { Panel } from '@/components/ui'
 
 /** A device telemetry collects from: an inventory device with the Telemetry feature on. No logins. */
 export interface TelemetryDevice {
@@ -96,8 +95,8 @@ function Devices({ d }: { d?: TelemetryOverview }) {
   const agentName = (id: string) => agents.data?.options.find((o) => o.value === id)?.label ?? id
   const filters = useFilters({ show: 'look', agent: '' })
   if (d && !d.devices.length && !Object.keys(d.seen).length) {
-    return <Panel><EmptyState title={t('telemetry.emptyTitle')} description={t('telemetry.empty')}
-      action={canEdit ? <Button component={Link} to="/inventory/defaults" variant="default">{t('telemetry.turnOn')}</Button> : undefined} /></Panel>
+    return <Card heading={2}><EmptyState title={t('telemetry.emptyTitle')} description={t('telemetry.empty')}
+      action={canEdit ? <Button component={Link} to="/inventory/defaults" variant="default">{t('telemetry.turnOn')}</Button> : undefined} /></Card>
   }
   const agentOf = new Map((d?.devices ?? []).map((x) => [x.name, x.agent]))
   const all: GridRow[] = (d ? deviceRows(d) : []).map((r) => {
@@ -130,7 +129,7 @@ function Devices({ d }: { d?: TelemetryOverview }) {
           ] },
         ])} />
       {show === 'look' && !look.length && all.length > 0 && <Text size="sm" c="dimmed">{t('telemetryGrid.allGood')}</Text>}
-      <Panel padding="md"><MethodGrid rows={rows} /></Panel>
+      <Card heading={2}><MethodGrid rows={rows} /></Card>
     </Stack>
   )
 }
@@ -142,16 +141,16 @@ function Collector({ d }: { d: TelemetryOverview }) {
   return (
     <Stack gap="md">
       {errors.map(([what, msg]) => <Alert key={what} color="warn" title={what}>{msg}</Alert>)}
-      <Panel title={t('telemetry.collector')}>
+      <Card heading={2} title={t('telemetry.collector')}>
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
           <PanelField label={t('telemetry.collector')}>{t(`telemetry.collectorIs.${d.status.collector}`)}</PanelField>
           <PanelField label={t('telemetry.storage')}>{t(`telemetry.storageIs.${d.status.storage.mode}`, { days: d.status.storage.keep_days })}</PanelField>
           <PanelField label={t('telemetry.devices')}>{d.status.devices}</PanelField>
           {d.status.points !== null && <PanelField label={t('telemetry.points')}>{d.status.points}</PanelField>}
         </SimpleGrid>
-      </Panel>
+      </Card>
       {d.status.agents && d.status.agents.length > 0 && (
-        <Panel title={t('telemetry.agentsTitle')}><TelemetryAgentNumbersList agents={d.status.agents} /></Panel>
+        <Card heading={2} title={t('telemetry.agentsTitle')}><TelemetryAgentNumbersList agents={d.status.agents} /></Card>
       )}
     </Stack>
   )
@@ -165,7 +164,7 @@ function Senders({ collector }: { collector?: 'here' | 'agent' }) {
   const renew = useMutation({ mutationFn: () => post<{ token: string }>('/api/telemetry/token'), onSuccess: (r) => setToken(r.token) })
   const error = reveal.error || renew.error
   return (
-    <Panel title={t('telemetry.sendersTitle')} desc={t('telemetry.senders')}>
+    <Card heading={2} title={t('telemetry.sendersTitle')} desc={t('telemetry.senders')}>
       <Stack gap="sm">
         <Group gap="sm">
           {token ? <Code>{token}</Code> : <Button variant="default" loading={reveal.isPending} onClick={() => reveal.mutate()}>{t('telemetry.showToken')}</Button>}
@@ -177,6 +176,6 @@ function Senders({ collector }: { collector?: 'here' | 'agent' }) {
         </Group>
         {error && <Alert color="down" role="alert">{error.message}</Alert>}
       </Stack>
-    </Panel>
+    </Card>
   )
 }

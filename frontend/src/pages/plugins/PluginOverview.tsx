@@ -4,11 +4,10 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { post } from '@/api/client'
 import type { ActionResult, Agent, PluginInfo } from '@/api/types'
-import { Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { Badges, DataSchema } from './parts'
 import { pluginState, type PluginTone } from './status'
-import { ConfirmButton } from '@bitsandbricks/ui'
+import { Card, ConfirmButton } from '@bitsandbricks/ui'
 
 const TONE: Record<PluginTone, string> = { up: 'up', warn: 'warn', down: 'down', off: 'gray' }
 
@@ -31,7 +30,7 @@ export function PluginOverview({ plugin, agents }: { plugin: PluginInfo; agents?
   const state = pluginState(plugin, agents)
   const buttons = plugin.enabled && (plugin.has_test || plugin.actions.length > 0)
   return (
-    <Panel>
+    <Card heading={2}>
       <Stack gap="sm">
         <Group gap="sm" wrap="wrap" align="center">
           <Badge size="lg" variant="light" color={TONE[state.tone]} tt="none" data-testid="plugin-state">
@@ -55,7 +54,7 @@ export function PluginOverview({ plugin, agents }: { plugin: PluginInfo; agents?
           </Text>
         )}
       </Stack>
-    </Panel>
+    </Card>
   )
 }
 

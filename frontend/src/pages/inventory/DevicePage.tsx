@@ -10,10 +10,9 @@ import { useCan, useInventory } from '@/api/queries'
 import { SPEC_FIELDS, type CredentialInfo, type DeviceDetail, type InventoryField, type InventoryOverview } from '@/api/types'
 import type { EntityOption } from '@/components/EntitySelect'
 import { Layout } from '@/components/Layout'
-import { ConfirmButton, EmptyState, LoadingState, PageHead, PageTabs, PanelField, StatusBadge } from '@bitsandbricks/ui'
+import { Card, ConfirmButton, EmptyState, LoadingState, PageHead, PageTabs, PanelField, StatusBadge } from '@bitsandbricks/ui'
 import { usePageTab } from '@/components/pageTab'
 import { DeviceRawData, DeviceTelemetryActions, DeviceTelemetryStatus } from '@/components/telemetry/DeviceTelemetry'
-import { Panel } from '@/components/ui'
 import { dateTime } from '@/lib/time'
 import { PluginPanels } from '@/pages/plugins/PluginPanels'
 import { DeviceForm } from './DeviceForm'
@@ -211,7 +210,7 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
         {tab === 'overview' && (
           <div className="fb-detail-grid">
             <Stack gap="md" style={{ minWidth: 0 }}>
-              <Panel title={t('inventory.page.details')}>
+              <Card heading={2} title={t('inventory.page.details')}>
                 <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }} spacing="sm">
                   {(['model', 'serial', 'mgmt_ip', 'hall', 'location', 'status'] as const).filter((f) => dev[f]).map((f) => (
                     <PanelField key={f} label={t(`inventory.field.${f}`)}>{f === 'status' ? statusLabel(t, dev[f]) : dev[f]}</PanelField>
@@ -226,20 +225,20 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                     </PanelField>
                   ))}
                 </SimpleGrid>
-              </Panel>
+              </Card>
               {!!dev.drift?.length && (
-                <Panel title={t('inventoryDrift.title')}>
+                <Card heading={2} title={t('inventoryDrift.title')}>
                   <DriftPanel deviceId={dev.id} rows={dev.drift} canEdit={canEdit} />
-                </Panel>
+                </Card>
               )}
               {!!dev.conflicts?.length && (
-                <Panel title={t('discoverySources.conflictTitle')}>
+                <Card heading={2} title={t('discoverySources.conflictTitle')}>
                   <ConflictPanel deviceId={dev.id} role={dev.role || 'switch'} rows={dev.conflicts} canEdit={canEdit} />
-                </Panel>
+                </Card>
               )}
               {dev.connected && (dev.connected.cables.length + dev.connected.circuits.length + dev.connected.uplinks.length
                 + (dev.connected.entries?.length ?? 0) > 0) && (
-                <Panel title={t('inventory.connected.title')}>
+                <Card heading={2} title={t('inventory.connected.title')}>
                   <Stack gap={6}>
                     {dev.connected.uplinks.map((u) => (
                       <Text key={u.id} size="sm">{t('inventory.connected.uplink', { name: u.name, port: u.port })}</Text>
@@ -267,10 +266,10 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                       </Text>
                     ))}
                   </Stack>
-                </Panel>
+                </Card>
               )}
               {!!dev.runs_here?.length && (
-                <Panel title={t('inventory.runsHere.title')} desc={t('inventory.runsHere.hint')}>
+                <Card heading={2} title={t('inventory.runsHere.title')} desc={t('inventory.runsHere.hint')}>
                   <Group gap={6}>
                     {dev.runs_here.map((r) => (
                       <Badge key={`${r.kind}-${r.id}`} tt="none" variant="light" color={r.kind === 'game-server' ? 'cyan' : 'gray'}>
@@ -279,12 +278,12 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                       </Badge>
                     ))}
                   </Group>
-                </Panel>
+                </Card>
               )}
-              <PluginPanels on="device" target={dev.id} frame={(c) => <Panel>{c}</Panel>} />
+              <PluginPanels on="device" target={dev.id} frame={(c) => <Card heading={2}>{c}</Card>} />
             </Stack>
             <Stack gap="md" style={{ minWidth: 0 }}>
-              <Panel title={t('inventory.page.belongs')}>
+              <Card heading={2} title={t('inventory.page.belongs')}>
                 <Stack gap="sm">
                   <PanelField label={t('inventory.groups.one')}>
                     {dev.resolved.group_path.length ? (
@@ -316,87 +315,87 @@ function DeviceView({ dev, overview }: { dev: DeviceDetail; overview: InventoryO
                     </Group>
                   </PanelField>
                 </Stack>
-              </Panel>
+              </Card>
               {telemetryOn && canSetCreds && (
-                <Panel title={t('inventory.tabs.telemetry')}>
+                <Card heading={2} title={t('inventory.tabs.telemetry')}>
                   <DeviceTelemetryStatus name={dev.name} />
-                </Panel>
+                </Card>
               )}
-              {dev.notes && <Panel title={t('inventory.field.notes')}><Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{dev.notes}</Text></Panel>}
+              {dev.notes && <Card heading={2} title={t('inventory.field.notes')}><Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{dev.notes}</Text></Card>}
             </Stack>
           </div>
         )}
 
         {tab === 'interfaces' && (
-          <Panel>
+          <Card heading={2}>
             <InterfacesPanel device={dev} canEdit={canEdit} sourceName={sourceName} onChanged={() => void refresh()} />
             {dev.interfaces.some((i) => i.speed_mbps) && (
               <Text size="xs" c="dimmed" mt="xs">
                 {t('inventory.ifaces.summary', { count: visible.length, fastest: speedLabel(Math.max(...dev.interfaces.map((i) => i.speed_mbps ?? 0))) })}
               </Text>
             )}
-          </Panel>
+          </Card>
         )}
 
         {tab === 'telemetry' && (
           <Stack gap="md">
-            <Panel title={t('inventory.telemetry.now')}>
+            <Card heading={2} title={t('inventory.telemetry.now')}>
               {!telemetryOn ? <Text size="sm" c="dimmed">{t('inventory.telemetry.off')}</Text> : canSetCreds ? (
                 <Group justify="space-between" align="flex-start" wrap="wrap" gap="sm">
                   <DeviceTelemetryStatus name={dev.name} />
                   <Group gap={6}><DeviceTelemetryActions name={dev.name} setup raw={false} /></Group>
                 </Group>
               ) : <Text size="sm" c="dimmed">{t('inventory.page.telemetryAdmins')}</Text>}
-            </Panel>
-            <Panel title={t('inventory.telemetry.setup')}>
+            </Card>
+            <Card heading={2} title={t('inventory.telemetry.setup')}>
               {telemetry.error && <Alert color="down" mb="sm">{telemetry.error.message}</Alert>}
               <TelemetrySettings key={JSON.stringify([dev.properties, dev.features])} own={dev.properties ?? {}} ownFeatures={dev.features ?? {}}
                 inherited={dev.resolved.properties} resolvedOn={dev.resolved.features.telemetry} info={telemetry.data}
                 canEdit={canEdit} busy={save.isPending} onSave={(body) => save.mutate(body)} />
-            </Panel>
+            </Card>
           </Stack>
         )}
 
         {tab === 'raw' && rawTab && (
-          <Panel title={t('telemetry.raw.title', { name: dev.name })}>
+          <Card heading={2} title={t('telemetry.raw.title', { name: dev.name })}>
             <DeviceRawData name={dev.name} />
-          </Panel>
+          </Card>
         )}
 
         {tab === 'networks' && <DeviceNetworks found={dev.discovered} />}
         {tab === 'macs' && canLogs && <DeviceEndpoints name={dev.name} />}
         {tab === 'graphs' && <DeviceGraphs name={dev.name} interfaces={dev.interfaces} />}
 
-        {tab === 'logs' && canLogs && <Panel><DeviceLogs name={dev.name} /></Panel>}
+        {tab === 'logs' && canLogs && <Card heading={2}><DeviceLogs name={dev.name} /></Card>}
 
         {tab === 'settings' && (
           <Stack gap="md">
             {canEdit && inventory && (
               // The device's details are edited here, on its page (#877), not in a dialog.
-              <Panel title={t('inventory.page.details')}>
+              <Card heading={2} title={t('inventory.page.details')}>
                 <DeviceForm key={JSON.stringify(dev)} device={{ ...dev, drift: dev.drift?.length }} roles={inventory.roles} overview={overview}
                   sourceName={sourceName} busy={edit.isPending} error={formError} saved={formSaved}
                   onCancel={() => setTab('overview')} onSave={(changes) => edit.mutate(changes)}
                   onUnlock={(f) => edit.mutate({ unlock: [f] })} />
-              </Panel>
+              </Card>
             )}
-            <Panel title={t('inventory.props.title')}>
+            <Card heading={2} title={t('inventory.props.title')}>
               <PropertiesEditor key={JSON.stringify(dev.properties)} value={dev.properties ?? {}} inherited={dev.resolved.properties} role={dev.role}
                 canEdit={canEdit} busy={save.isPending} onSave={(properties) => save.mutate({ properties })} />
-            </Panel>
-            <Panel title={t('inventory.features.title')}>
+            </Card>
+            <Card heading={2} title={t('inventory.features.title')}>
               <FeaturesEditor key={JSON.stringify(dev.features)} catalog={overview.features} value={dev.features ?? {}} resolved={dev.resolved.features} role={dev.role}
                 canEdit={canEdit} busy={save.isPending} onSave={(features) => save.mutate({ features })} />
-            </Panel>
+            </Card>
           </Stack>
         )}
 
         {tab === 'credentials' && canEdit && (
-          <Panel title={t('inventory.creds.title')} desc={t('inventory.creds.intro')}>
+          <Card heading={2} title={t('inventory.creds.title')} desc={t('inventory.creds.intro')}>
             <CredentialsEditor own={dev.own_credentials} inherited={dev.resolved.credentials} overview={overview}
               canSet={canSetCreds} busy={setCred.isPending} error={credError}
               onSet={(d) => setCred.mutateAsync(d)} onRemove={(c) => removeCred.mutate(c)} />
-          </Panel>
+          </Card>
         )}
       </div>
 

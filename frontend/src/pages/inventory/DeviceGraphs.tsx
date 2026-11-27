@@ -8,8 +8,7 @@ import { qk } from '@/api/keys'
 import type { DeviceInterface } from '@/api/types'
 import { TimeChart, type TimePoint } from '@bitsandbricks/widgets'
 import { stats } from '@/components/timeSeries'
-import { Panel } from '@/components/ui'
-import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { Card, EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { BITS, scaled } from '@/lib/units'
 
 /** GET /api/telemetry/series (floorbit/telemetry/storage.py): one series, oldest first. */
@@ -53,7 +52,7 @@ export function DeviceGraphs({ name, interfaces }: { name: string; interfaces: D
     const value = write(metric)
     const s = stats(points)
     return (
-      <Panel key={`${metric}-${p ?? ''}`} title={label} desc={points.length ? value(points[points.length - 1][1]) : undefined}>
+      <Card heading={2} key={`${metric}-${p ?? ''}`} title={label} desc={points.length ? value(points[points.length - 1][1]) : undefined}>
         {points.length ? (
           <>
             <TimeChart points={points} since={since} until={until} label={label} value={value}
@@ -67,7 +66,7 @@ export function DeviceGraphs({ name, interfaces }: { name: string; interfaces: D
             )}
           </>
         ) : <Text size="sm" c="dimmed">{t('deviceTabs.graphs.noPoints')}</Text>}
-      </Panel>
+      </Card>
     )
   }
   const pending = results.some((r) => r.isPending)
@@ -84,7 +83,7 @@ export function DeviceGraphs({ name, interfaces }: { name: string; interfaces: D
       {pending ? <LoadingState rows={3} /> : (
         <>
           {devicePanels.length === 0 ? (
-            <Panel><EmptyState icon={<IconChartLine size={24} />} title={t('deviceTabs.graphs.noneTitle')} description={t('deviceTabs.graphs.none')} /></Panel>
+            <Card heading={2}><EmptyState icon={<IconChartLine size={24} />} title={t('deviceTabs.graphs.noneTitle')} description={t('deviceTabs.graphs.none')} /></Card>
           ) : (
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">{devicePanels.map(chart)}</SimpleGrid>
           )}

@@ -7,11 +7,11 @@ import { Link } from 'react-router-dom'
 import { post } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { Finding } from '@/api/types'
-import { Panel } from '@/components/ui'
 import { ago } from '@/lib/time'
 import { pluginName } from '@/lib/pluginName'
 import { PortDialog, type PortRequest } from '@/pages/security/PortDialog'
 import { findingWhere } from './findingWhere'
+import { Card } from '@bitsandbricks/ui'
 
 const TONE = { high: 'down', medium: 'warn', low: 'gray' } as const
 
@@ -37,7 +37,7 @@ export function FindingPanel({ f, canShut, needsLogin }: { f: PageFinding; canSh
   })
   const onPort = !!(f.switch && f.port)
   return (
-    <Panel title={t('problem.finding.title')}
+    <Card heading={2} title={t('problem.finding.title')}
       actions={<>
         {canShut && onPort && !f.uplink && (
           <Button size="xs" color="down" leftSection={<IconPlugConnectedX size={14} />}
@@ -75,6 +75,6 @@ export function FindingPanel({ f, canShut, needsLogin }: { f: PageFinding; canSh
       </Stack>
       <PortDialog request={request} needsLogin={needsLogin} busy={shut.isPending} error={error}
         onClose={() => setRequest(null)} onConfirm={(extra) => shut.mutate(extra)} />
-    </Panel>
+    </Card>
   )
 }

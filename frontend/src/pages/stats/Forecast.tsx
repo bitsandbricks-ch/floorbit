@@ -6,7 +6,7 @@ import { qk } from '@/api/keys'
 import type { ForecastData } from '@/api/types'
 import { bps } from './format'
 import { clock } from '@/lib/time'
-import { Panel } from '@/components/ui'
+import { Card } from '@bitsandbricks/ui'
 
 const W = 1000
 const H = 140
@@ -20,7 +20,7 @@ export function Forecast() {
   if (!f) return null
   const hour = (ts: number) => clock(ts, i18n.language)
   return (
-    <Panel className="fb-wide" titleId="stats-forecast" title={t('stats.forecast.title')} actions={<>
+    <Card heading={2} className="fb-wide" title={t('stats.forecast.title')} actions={<>
       {f.ready && (
         <Group gap="sm">
           <Text size="xs" c="dimmed"><span className="fb-dns-key hit" /> {t('stats.forecast.expected')}</Text>
@@ -51,7 +51,7 @@ export function Forecast() {
           </Text>
         </>
       )}
-    </Panel>
+    </Card>
   )
 }
 

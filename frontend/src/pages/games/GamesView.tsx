@@ -7,9 +7,8 @@ import { get } from '@/api/client'
 import { qk } from '@/api/keys'
 import type { GamesData } from '@/api/types'
 import type { ViewProps } from '@/pages/monitoring/pages'
-import { DataTable, ErrorBanner } from '@bitsandbricks/ui'
+import { Card, DataTable, ErrorBanner } from '@bitsandbricks/ui'
 import { bytes } from '../traffic/format'
-import { Panel } from '@/components/ui'
 import { RANGES } from './ranges'
 
 const DOCS = 'https://github.com/bitsandbricks-ch/floorbit/blob/master/docs/games.md'
@@ -22,7 +21,7 @@ function Launchers({ data }: { data: GamesData }) {
   const { t, i18n } = useTranslation()
   const num = (n: number | null) => (n == null ? '–' : n.toLocaleString(i18n.language))
   return (
-    <Panel className="fb-wide" titleId="games-launchers" title={t('games.launchers')}>
+    <Card heading={2} className="fb-wide" title={t('games.launchers')}>
       {data.launchers.length === 0 ? <Text size="sm" c="dimmed">{t('games.noLaunchers')}</Text> : (
         <DataTable rows={data.launchers} rowKey={(l) => l.id} label={t('games.launchers')} urlState={false} pageSize={0} bare striped
           density="compact" minWidth={620} defaultSort={{ id: data.sources.cache ? 'cache' : data.sources.traffic ? 'traffic' : 'launcher', desc: !!(data.sources.cache || data.sources.traffic) }}
@@ -45,7 +44,7 @@ function Launchers({ data }: { data: GamesData }) {
           ]} />
       )}
       <Text size="xs" c="dimmed" mt={6}>{t('games.launchersText', { count: data.min_seats.dns })}</Text>
-    </Panel>
+    </Card>
   )
 }
 
@@ -56,7 +55,7 @@ function Titles({ data, compact }: { data: GamesData; compact: boolean }) {
   const seen = (g: Launcher) => [g.dns_seats_max && t('games.via.dns'), g.traffic_seats && t('games.via.traffic'),
     g.players && t('games.via.servers'), g.cache_hit_bytes != null && t('games.via.cache')].filter(Boolean).join(' + ')
   return (
-    <Panel titleId="games-titles" title={t('games.titles')}
+    <Card heading={2} title={t('games.titles')}
       actions={!compact ? <Anchor component={Link} to="/applications" size="sm">{t('games.manage')}</Anchor> : undefined}>
       {rows.length === 0 ? <Text size="sm" c="dimmed">{t('games.noTitles')}</Text> : (
         <ol className="fb-stats-top">
@@ -69,7 +68,7 @@ function Titles({ data, compact }: { data: GamesData; compact: boolean }) {
         </ol>
       )}
       <Text size="xs" c="dimmed" mt={6}>{t('games.titlesText', { count: data.min_seats.dns })}</Text>
-    </Panel>
+    </Card>
   )
 }
 
@@ -88,7 +87,7 @@ function Board({ data, compact, embedded }: { data: GamesData; compact: boolean;
         <Titles data={data} compact={compact} />
         {!compact && <Launchers data={data} />}
         {data.games.length > 0 && (
-          <Panel titleId="games-games" title={t('games.games')}>
+          <Card heading={2} title={t('games.games')}>
             <ol className="fb-stats-top">
               {data.games.slice(0, compact ? 8 : undefined).map((g) => (
                 <li key={g.name}>
@@ -98,7 +97,7 @@ function Board({ data, compact, embedded }: { data: GamesData; compact: boolean;
               ))}
             </ol>
             <Text size="xs" c="dimmed" mt={6}>{t('games.gamesText')}</Text>
-          </Panel>
+          </Card>
         )}
       </div>
     </>

@@ -9,11 +9,10 @@ import { qk } from '@/api/keys'
 import { useLiveEvent } from '@/api/live'
 import type { ProblemDetail } from '@/api/types'
 import { Layout } from '@/components/Layout'
-import { Panel } from '@/components/ui'
 import { RecentLogs } from '@/components/RecentLogs'
 import { PlaceHistory } from '@/components/PlaceHistory'
 import { useCanOpenTimeline } from '@/components/useCanOpenTimeline'
-import { EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { Card, EmptyState, ErrorBanner, LoadingState } from '@bitsandbricks/ui'
 import { PageHead } from '@bitsandbricks/ui'
 import { canReport, reportBody } from './problems/format'
 import { ProblemFacts } from './problems/facts'
@@ -83,10 +82,10 @@ export default function ProblemPage() {
         </>} />
       <ErrorBanner error={report.error} mb="md" />
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
-        <Panel title={t('problem.what')}>
+        <Card heading={2} title={t('problem.what')}>
           <ProblemFacts p={p} />
-        </Panel>
-        <Panel title={t('problem.next')}>
+        </Card>
+        <Card heading={2} title={t('problem.next')}>
           {places.length ? (
             <Stack gap={6}>
               {places.map((x) => (
@@ -94,7 +93,7 @@ export default function ProblemPage() {
               ))}
             </Stack>
           ) : <Text size="sm" c="dimmed">{t('problem.nowhere')}</Text>}
-        </Panel>
+        </Card>
       </SimpleGrid>
       {q.data.finding && (
         <div style={{ marginTop: 'var(--mantine-spacing-md)' }}>

@@ -7,10 +7,10 @@ import { qk } from '@/api/keys'
 import { useInventory } from '@/api/queries'
 import type { Device } from '@/api/types'
 import { ItemPage } from '@/components/ItemPage'
-import { Panel } from '@/components/ui'
 import { DeviceForm } from './DeviceForm'
 import { devicePath } from './model'
 import { useInventoryGroups } from './scope'
+import { Card } from '@bitsandbricks/ui'
 
 /** A new device on a page of its own (/inventory/devices/new, issue #877): once added, its own
  *  page opens. ?name=, ?mgmt_ip= and ?role= fill it in (Inventory › Discovery's Add). */
@@ -34,11 +34,11 @@ export default function NewDevicePage() {
     <ItemPage title={t('inventory.newDevice')} fallbackTitle={t('inventory.title')}
       back={{ href: '/inventory', label: t('inventory.page.back') }} loading={!inventory || !overview}>
       {inventory && overview && (
-        <Panel>
+        <Card heading={2}>
           <DeviceForm device={null} start={start} roles={inventory.roles} overview={overview} sourceName={sourceName}
             busy={add.isPending} error={error} onCancel={() => navigate('/inventory')}
             onSave={(body) => { setError(null); add.mutate(body) }} onUnlock={() => undefined} />
-        </Panel>
+        </Card>
       )}
     </ItemPage>
   )
