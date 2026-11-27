@@ -51,9 +51,9 @@ Settings warns when the accent has less than 3:1 contrast against the background
 On the React pages, coloured badges and tinted buttons pull their text 20 % towards the page's
 text colour, so small labels keep 4.5:1 against their own tint with the built-in colours in both
 the light and the dark theme. The pages are checked with axe in the browser (`color-contrast`
-included) before a change to colours goes in. The faint text colour (`--color-faint`) is for
+included) before a change to colours goes in. The faint text colour (`--bnb-faint`) is for
 decoration only; text people need to read, such as help lines and timestamps,
-uses the muted colour (`--color-muted`), which passes 4.5:1 in both themes.
+uses the muted colour (`--bnb-muted`), which passes 4.5:1 in both themes.
 
 ## Controls
 
@@ -73,10 +73,9 @@ taken ports say which seat or cable holds them.
 
 | File | What it holds |
 | --- | --- |
-| `static/css/brand/tokens.css` | Seeds (`--theme-*`), tokens (`--color-*`, `--heat-*`, `--plan-*`), the light theme, the Geist fonts. |
+| `static/css/brand/tokens.css` | Seeds (`--theme-*`), tokens (`--bnb-*` under the shared token names, `--heat-*`, `--plan-*`), the light theme, the Geist fonts. |
 | `frontend/src/ui.css` | The `--ui-*` tokens applied to Mantine's dropdowns, tabs, inputs, tooltips and modals. |
 | `static/css/brand/themes.css` | The presets and the custom derivation. |
-| `static/css/brand/legacy-map.css` | Maps the older `--bg-primary`-style names to the tokens. Remove once the page CSS uses `--color-*` directly. |
 | `static/css/brand/brand.css` | The logo in the sidebar and the phone header. |
 | `static/brand/` | Logos, icons, favicon and link preview image. |
 | `static/fonts/` | Geist and Geist Mono (SIL OFL, `OFL.txt`), shipped so a LAN without internet renders them. |
