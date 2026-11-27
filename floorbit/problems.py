@@ -213,7 +213,7 @@ def _ranges(data):
         return []
     # A range set for the wrong switch is fixed under Firewalls; the rest on the plan.
     return [{'id': f['id'], 'kind': 'range', 'level': 'warn', 'title': f['title'], 'where': f['where'],
-             'since': None, 'switch_id': None, 'device': f.get('switch') or None,
+             'since': None, 'switch_id': None, 'device': f.get('switch') or None, 'seat': f['seat'],
              'link': '/firewalls' if f['id'].startswith('range:plan:')
              else _on_plan(seat=f['seat'], switch=f['switch'])}
             for f in found]

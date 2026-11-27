@@ -105,8 +105,8 @@ def test_most_of_a_named_switch_off_means_the_range_is_set_wrong(client, hall):
     m.update({f"B-{n}": seat(n, f"192.0.2.{70 + n}", "sw-r1") for n in range(1, 6)})
     [item] = seat_ranges.items(load_data(), m)
     assert (item["id"], item["title"]) == ("range:plan:sw-r1", "sw-r1: 5 of 5 seats are outside its ranges")
-    link = next(p for p in client.get("/api/problems").get_json()["attention"] if p["kind"] == "range")["link"]
-    assert link == "/firewalls"
+    item = next(p for p in client.get("/api/problems").get_json()["attention"] if p["kind"] == "range")
+    assert item["link"] == "/firewalls" and item["seat"] is None
 
 
 def test_problems_list_them_under_attention_in_german_too(client, hall):
@@ -117,6 +117,7 @@ def test_problems_list_them_under_attention_in_german_too(client, hall):
     mine = [p for p in body["attention"] if p["kind"] == "range"]
     assert [p["id"] for p in mine] == ["range:seat:A-3"]
     assert mine[0]["level"] == "warn" and mine[0]["link"] == "/plan?seat=A-3"
+    assert mine[0]["seat"] == "A-3"     # so the Problems page folds many of them into one row (#1593)
     de = client.get("/api/problems", headers={"Accept-Language": "de-CH"}).get_json()
     [item] = [p for p in de["attention"] if p["kind"] == "range"]
     assert item["title"] == "Platz A-3 hat eine Adresse ausserhalb aller geplanten Bereiche"

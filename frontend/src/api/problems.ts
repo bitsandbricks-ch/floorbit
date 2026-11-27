@@ -5,6 +5,7 @@ import type { TimelineEntry } from './timeline'
 export type ProblemKind = 'monitoring' | 'switch' | 'health' | 'security' | 'power' | 'link' | 'wifi' | 'plugin' | 'librenms'
   | 'flapping' | 'errors' | 'duplex' | 'checkin' | 'mapping' | 'log' | 'forecast'   // ports that need a look (issue #15)
   | 'incident'   // an open incident on a seat (issue #1204)
+  | 'range'      // a seat outside its switch's IP range (issue #1062)
 export interface AlertMute {
   /** The switch id, ``health:<service id>`` for a service (issue #256), ``wifi:<ap>`` for an access
    *  point, or ``problem:<problem id>`` for any other problem (issue #887). */

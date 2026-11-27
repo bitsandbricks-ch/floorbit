@@ -9,7 +9,9 @@
     "errors_one": "{{count}} seat port with rising errors",
     "errors_other": "{{count}} seat ports with rising errors",
     "duplex_one": "{{count}} seat port at half duplex",
-    "duplex_other": "{{count}} seat ports at half duplex"
+    "duplex_other": "{{count}} seat ports at half duplex",
+    "range_one": "{{count}} seat outside its switch's IP range",
+    "range_other": "{{count}} seats outside their switch's IP range"
   },
   "show": "Show the {{count}} seats",
   "hide": "Hide the seats",

@@ -9,7 +9,9 @@
     "errors_one": "{{count}} Platz-Port mit steigenden Fehlern",
     "errors_other": "{{count}} Platz-Ports mit steigenden Fehlern",
     "duplex_one": "{{count}} Platz-Port im Halbduplex",
-    "duplex_other": "{{count}} Platz-Ports im Halbduplex"
+    "duplex_other": "{{count}} Platz-Ports im Halbduplex",
+    "range_one": "{{count}} Platz ausserhalb des IP-Bereichs seines Switches",
+    "range_other": "{{count}} Plätze ausserhalb des IP-Bereichs ihres Switches"
   },
   "show": "Die {{count}} Plätze zeigen",
   "hide": "Plätze ausblenden",
