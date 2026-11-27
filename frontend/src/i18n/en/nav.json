@@ -18,7 +18,7 @@
     "event": "Event",
     "floorbit": "Floorbit",
     "plugins": "Plugins",
-    "more": "More"
+    "more": "Other"
   },
   "search": "Search pages, seats and switches",
   "quick": "Main pages",
@@ -26,6 +26,7 @@
   "favourites": "Favourites",
   "favAdd": "Add {{page}} to favourites",
   "favRemove": "Remove {{page}} from favourites",
+  "customise": "Customise sidebar",
   "skip": "Skip to content",
   "switchTenant": "Switch tenant",
   "thisTenant": "This tenant",

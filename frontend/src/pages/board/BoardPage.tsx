@@ -10,7 +10,7 @@ import { qk } from '@/api/keys'
 import { useCan } from '@/api/queries'
 import { Layout } from '@/components/Layout'
 import { PageHead, type PageMenuItem } from '@bitsandbricks/ui'
-import { ErrorBanner, LoadingState } from '@bitsandbricks/ui'
+import { ErrorBanner, LoadingState, toggleNavPin } from '@bitsandbricks/ui'
 import { readBoot, useNavPrefs } from '@/nav/boot'
 import { type Board, TIME_RANGES, type TimeRange, boardName } from '../dashboards/model'
 import { ScreenContext } from '../dashboards/screen'
@@ -27,8 +27,8 @@ export function BoardPage({ id, title, kicker }: { id: string; title?: string; k
   const q = useQuery({ queryKey: qk.board(id), queryFn: () => get<Board>(`/api/dashboards/${encodeURIComponent(id)}`), refetchInterval: 60_000 })
   const name = title ?? (q.data ? boardName(t, q.data) : t('dashboards.title'))
   const fav = `dashboard:${id}`
-  const pinned = prefs.favourites.includes(fav)
-  const pin = () => setPrefs({ ...prefs, favourites: pinned ? prefs.favourites.filter((x) => x !== fav) : [...prefs.favourites, fav] })
+  const pinned = (prefs.pinned ?? []).includes(fav)
+  const pin = () => setPrefs(toggleNavPin(prefs, fav))
   // The time shown: the viewer's pick (in the address, so it can be shared), else the dashboard's.
   const [params, setParams] = useSearchParams()
   const asked = params.get('range') as TimeRange | null

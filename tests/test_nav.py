@@ -46,22 +46,38 @@ def test_react_pages_get_the_sidebar_data(client, monkeypatch):
     assert 'id="fb-nav"' not in html
 
 
-def test_favourites_and_folding_are_kept_with_the_account(app_module):
+EMPTY_NAV = {"pinned": [], "hidden": [], "order": [], "sections": {}, "categories": [], "labels": {}}
+
+
+def test_the_sidebar_arrangement_is_kept_with_the_account(app_module):
     crew = sign_in_as(app_module, "fav1", "tech")
-    assert crew.get("/api/auth/me/nav").get_json() == {"favourites": [], "accordion": True}
-    saved = crew.put("/api/auth/me/nav", json={"favourites": ["problems", "problems", "../x", 7, "settings"],
-                                               "accordion": False, "colour": "red"})
-    assert saved.get_json() == {"favourites": ["problems", "settings"], "accordion": False}
-    assert boot(crew.get("/plan").get_data(as_text=True))["prefs"] == {"favourites": ["problems", "settings"],
-                                                                     "accordion": False}
+    assert crew.get("/api/auth/me/nav").get_json() == EMPTY_NAV
+    saved = crew.put("/api/auth/me/nav", json={
+        "pinned": ["problems", "problems", "../x", 7, "settings"], "hidden": ["logs"], "order": ["agents", "network"],
+        "sections": {"agents": "c1", "network": "../x", "<b>": "c1"},
+        "categories": [{"id": "c1", "label": "  Mine   first "}, {"id": "c1", "label": "again"},
+                       {"id": "../x", "label": "x"}],
+        "labels": {"monitoring": "Watch", "_favourites": "", "x y": "no"}, "colour": "red"})
+    expected = {"pinned": ["problems", "settings"], "hidden": ["logs"], "order": ["agents", "network"],
+                "sections": {"agents": "c1"}, "categories": [{"id": "c1", "label": "Mine first"}],
+                "labels": {"monitoring": "Watch"}}
+    assert saved.get_json() == expected
+    assert boot(crew.get("/plan").get_data(as_text=True))["prefs"] == expected
     other = sign_in_as(app_module, "fav2", "viewer")
-    assert other.get("/api/auth/me/nav").get_json()["favourites"] == []
+    assert other.get("/api/auth/me/nav").get_json() == EMPTY_NAV
 
 
-def test_dashboards_can_be_pinned_to_the_sidebar(app_module):
+def test_old_favourites_become_pins(app_module):
+    crew = sign_in_as(app_module, "fav3", "tech")
+    saved = crew.put("/api/auth/me/nav", json={"favourites": ["problems", "dashboard:hall-b"], "accordion": False})
+    assert saved.get_json() == {**EMPTY_NAV, "pinned": ["problems", "dashboard:hall-b"]}
+
+
+def test_dashboards_and_plugin_pages_can_be_pinned_to_the_sidebar(app_module):
     crew = sign_in_as(app_module, "pin1", "tech")
-    saved = crew.put("/api/auth/me/nav", json={"favourites": ["dashboard:hall-b", "dashboard:../x", "dashboard:"]})
-    assert saved.get_json()["favourites"] == ["dashboard:hall-b"]
+    saved = crew.put("/api/auth/me/nav", json={"pinned": [
+        "dashboard:hall-b", "dashboard:../x", "dashboard:", "plugin:game-servers:overview", "plugin::x"]})
+    assert saved.get_json()["pinned"] == ["dashboard:hall-b", "plugin:game-servers:overview"]
 
 
 def test_the_overview_and_dashboards_open_inside_the_app(client):
@@ -73,4 +89,4 @@ def test_the_overview_and_dashboards_open_inside_the_app(client):
 
 def test_only_a_signed_in_account_keeps_sidebar_settings(anon_client):
     assert anon_client.get("/api/auth/me/nav").status_code == 400
-    assert anon_client.put("/api/auth/me/nav", json={"favourites": ["problems"]}).status_code == 401
+    assert anon_client.put("/api/auth/me/nav", json={"pinned": ["problems"]}).status_code == 401

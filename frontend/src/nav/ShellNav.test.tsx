@@ -146,29 +146,85 @@ describe('the sidebar', () => {
   it('pins favourites to the top, saved with the account when signed in', () => {
     const fetchMock = vi.fn(() => Promise.resolve(new Response('{}')))
     vi.stubGlobal('fetch', fetchMock)
-    sidebar('/problems', { boot: { ...boot, prefs: { favourites: ['widgets'], accordion: true } } })
+    sidebar('/problems', { boot: { ...boot, prefs: { pinned: ['agents'] } } })
     const first = () => within(main()).getAllByRole('link').map((a) => a.textContent)
     expect(within(main()).getByText('Favourites')).toBeInTheDocument()
-    expect(first()[0]).toBe('Widgets')
+    expect(first()[0]).toBe('Local agents')
+    // Each page is listed once: a pinned page leaves its group.
+    expect(within(main()).getAllByRole('link', { name: 'Local agents' })).toHaveLength(1)
     fireEvent.click(within(main()).getByRole('button', { name: 'Add Helpdesk to favourites' }))
-    expect(first().slice(0, 2)).toEqual(['Widgets', 'Helpdesk'])
-    expect(fetchMock).toHaveBeenCalledWith('/api/auth/me/nav', expect.objectContaining({
-      method: 'PUT', body: JSON.stringify({ favourites: ['widgets', 'helpdesk'], accordion: true }),
-    }))
-    fireEvent.click(within(main()).getAllByRole('button', { name: 'Remove Widgets from favourites' })[0])
+    expect(first().slice(0, 2)).toEqual(['Local agents', 'Helpdesk'])
+    const saved = fetchMock.mock.calls.find((c) => (c as unknown[])[0] === '/api/auth/me/nav') as unknown as [string, RequestInit]
+    expect(saved[1].method).toBe('PUT')
+    expect(JSON.parse(saved[1].body as string).pinned).toEqual(['agents', 'helpdesk'])
+    fireEvent.click(within(main()).getByRole('button', { name: 'Remove Local agents from favourites' }))
     expect(first()[0]).toBe('Helpdesk')
     expect(localStorage.getItem('floorbit-nav-prefs')).toBeNull()
   })
 
+  it("keeps an old browser's favourites as pins, a tab such as Widgets included (#1597)", () => {
+    localStorage.setItem('floorbit-nav-prefs', JSON.stringify({ favourites: ['widgets'], accordion: true }))
+    sidebar('/problems', { boot: { ...boot, user: null } })
+    expect(within(main()).getByText('Favourites')).toBeInTheDocument()
+    expect(within(main()).getAllByRole('link')[0]).toHaveTextContent('Widgets')
+    fireEvent.click(within(main()).getByRole('button', { name: 'Remove Widgets from favourites' }))
+    expect(within(main()).queryByRole('link', { name: 'Widgets' })).not.toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('floorbit-nav-prefs')!)).toEqual({ pinned: [] })
+  })
+
   it('lists pinned dashboards with the favourites, lit while one is on screen', () => {
     sidebar('/dashboards/view/hall-b', {
-      boot: { ...boot, prefs: { favourites: ['dashboard:hall-b'], accordion: true } },
+      boot: { ...boot, prefs: { pinned: ['dashboard:hall-b'] } },
       dashboards: [{ id: 'hall-b', name: 'Hall B' }, { id: 'ops', name: 'Ops desk' }],
     })
     const row = within(main()).getByRole('link', { name: 'Hall B' })
     expect(row).toHaveAttribute('href', '/dashboards/view/hall-b')
     expect(row).toHaveAttribute('aria-current', 'page')
     expect(within(main()).queryByRole('link', { name: 'Ops desk' })).not.toBeInTheDocument()
+  })
+
+  it("follows the person's arrangement: own categories, own headings, and what they put away folded under More", () => {
+    sidebar('/problems', {
+      boot: { ...boot, prefs: {
+        hidden: ['brandNew'], sections: { agents: 'c1' }, categories: [{ id: 'c1', label: 'Mine' }], labels: { work: 'Desk' },
+      } },
+    })
+    expect(within(main()).getByRole('button', { name: 'Desk' })).toBeInTheDocument()
+    expect(within(main()).getByRole('button', { name: 'Mine' })).toHaveAttribute('aria-expanded', 'true')
+    expect(within(main()).getByRole('link', { name: 'Local agents' })).toBeInTheDocument()
+    // Put away: folded under "More" until opened, above Settings at the foot.
+    const more = within(main()).getByRole('button', { name: 'More' })
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    expect(within(main()).queryByRole('link', { name: 'Brand new page' })).not.toBeInTheDocument()
+    fireEvent.click(more)
+    const names = within(main()).getAllByRole('link').map((a) => a.textContent)
+    expect(names).toContain('Brand new page')
+    expect(names.indexOf('Brand new page')).toBeLessThan(names.indexOf('Settings'))
+  })
+
+  it('opens "Customise sidebar" from the account menu and saves what changes there', async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(new Response('{}')))
+    vi.stubGlobal('fetch', fetchMock)
+    function WithDialog(props: ShellNavProps) {
+      const s = useShellNav(props)
+      return (
+        <AppShell brand={s.brand(s.folded)} nav={s.nav} navFooter={s.navFooter} folded={s.folded} onFoldedChange={s.onFoldedChange}>
+          {s.customizer}
+        </AppShell>
+      )
+    }
+    renderWithApp(<WithDialog boot={{ ...boot, prefs: {} }} path="/problems" />, '/problems')
+    fireEvent.click(await within(aside()).findByRole('button', { name: /Signed in as kim/ }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Customise sidebar', hidden: true }))
+    const dialog = await screen.findByRole('dialog', { name: 'Customise sidebar' })
+    // The foot stays put: Settings can't be pinned or put away.
+    expect(within(dialog).queryByText('Settings')).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Put away under More: Floor plan' }))
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/auth/me/nav', expect.objectContaining({ method: 'PUT' })))
+    const sent = fetchMock.mock.calls.find((c) => (c as unknown[])[0] === '/api/auth/me/nav') as unknown as [string, RequestInit]
+    expect(JSON.parse(sent[1].body as string).hidden).toEqual(['floorPlan'])
+    // Put away at once in the sidebar too.
+    expect(within(main()).queryByRole('link', { name: 'Floor plan' })).not.toBeInTheDocument()
   })
 
   it('folds to icons, keeps that in a cookie, and shows every page as an icon with its name', () => {
