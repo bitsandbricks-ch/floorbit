@@ -12,7 +12,7 @@
 .fb-brand-logo { display: block; height: 100%; width: auto; max-width: 180px; object-fit: contain; }
 .fb-brand-name {
   font-weight: 600; letter-spacing: var(--tracking-tight); white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; color: var(--color-fg);
+  overflow: hidden; text-overflow: ellipsis; color: var(--bnb-fg);
 }
 
 /* Presets that fix light or dark have no use for the toggle. */

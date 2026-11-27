@@ -127,7 +127,7 @@ There are no hosted and self-hosted variants of the same thing. Where two ways e
   `--brand-*`). Bit Green is the accent, Trace Cyan is only for selection and seat-to-port traces,
   status colours (up, down, warn, unknown, disabled) are fixed and never themable.
 - **Panels are calm:** a fill one slight step from the page, a thin line, 8px corners, no shadow;
-  pages and dashboards share the look (`--color-surface`, `--radius-card`).
+  pages and dashboards share the look (`--bnb-surface`, `--radius-card`).
   A boxed section of a page is a `Panel` (title, optional line under it, buttons on the right);
   a bare `Paper` belongs only inside a component.
 - **Type:** Geist for text and titles, Geist Mono only for numbers. Square status "bits" and the

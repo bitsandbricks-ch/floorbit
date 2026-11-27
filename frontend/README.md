@@ -49,7 +49,9 @@ npm run build        # writes ../static/app/, which Flask serves
 - Every text goes through `t()` with a key in `src/i18n/en/<feature>.json` **and**
   `src/i18n/de-CH/<feature>.json` (Swiss spelling, no "ß"). The i18n test fails otherwise.
 - Colours come from the shared design tokens (`var(--bnb-...)`), never hex values, so themes work.
-  Only `src/styles/bnb.css` reads the old `--color-*` names (`src/tokens.test.ts` checks).
+  Floorbit's brand sets them under the same names (`static/css/brand/tokens.css`); the package's own
+  values sit in a lower cascade layer (`src/styles/bnb.css`). The old `--color-*` names are gone
+  (`src/tokens.test.ts` checks).
 - Text from the API or a plugin is shown as text. No `dangerouslySetInnerHTML` (ESLint refuses it).
 - Query keys come from `src/api/keys.ts`.
 - Use the shared pieces from `@bitsandbricks/ui` and `@bitsandbricks/widgets`. ESLint refuses

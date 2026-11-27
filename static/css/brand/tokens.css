@@ -20,8 +20,11 @@
  *
  * Theming works in three layers:
  *   1. Seeds (--theme-*): the few values a preset or an admin sets.
- *   2. Tokens (--color-*): what components use. Built-in themes set them to exact
- *      values; a custom theme derives them from the seeds (themes.css, "custom").
+ *   2. Tokens (--bnb-*): what components use, under the names of the shared BitsAndBricks
+ *      tokens (@bitsandbricks/tokens), so the shared components draw in Floorbit's colours.
+ *      Built-in themes set them to exact values; a custom theme derives them from the seeds
+ *      (themes.css, "custom"). The React app loads the package's own values in a lower cascade
+ *      layer (frontend/src/styles/bnb.css), so these win whatever the load order.
  *   3. Presets (themes.css): bundles of values, picked per site or per screen.
  */
 :root {
@@ -40,38 +43,41 @@
   --theme-logo-mark: url("/static/brand/floorbit-mark.svg");
 
   /* 2. Neutrals: the dark hall */
-  --color-ink: var(--theme-bg);
-  --color-surface: var(--theme-surface);
-  --color-raised: #1f1f28;     /* inputs, hover, free seats */
-  --color-line: #2a2a35;       /* borders */
-  --color-fg: var(--theme-fg);
-  --color-muted: #a1a1aa;      /* secondary text */
-  --color-faint: #71717a;      /* hints, footer (4.1:1, non-essential only) */
+  --bnb-bg: var(--theme-bg);
+  --bnb-surface: var(--theme-surface);
+  --bnb-raised: #1f1f28;     /* inputs, hover, free seats */
+  --bnb-line: #2a2a35;       /* borders */
+  --bnb-fg: var(--theme-fg);
+  --bnb-muted: #a1a1aa;      /* secondary text */
+  --bnb-faint: #8a8a94;      /* hints, placeholders: 5.5:1 on panels, as in the shared tokens */
 
   /* Brand accent: Bit Green unless a theme changes it */
-  --color-bit: var(--theme-accent);
-  --color-bit-hover: color-mix(in srgb, var(--theme-accent), white 20%);
-  --color-on-bit: var(--theme-on-accent);
-  --color-bit-soft: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+  --bnb-accent: var(--theme-accent);
+  --bnb-accent-hover: color-mix(in srgb, var(--theme-accent), white 20%);
+  --bnb-on-accent: var(--theme-on-accent);
+  --bnb-accent-soft: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+  /* The accent is chosen readable on the page in each theme, so links use it as it is. The shared
+     theme reads the -light/-dark pair (createBnbTheme({ accent: 'css' })). */
+  --bnb-accent-text: var(--bnb-accent);
+  --bnb-accent-light: var(--bnb-accent);
+  --bnb-accent-dark: var(--bnb-accent);
+  --bnb-on-accent-light: var(--bnb-on-accent);
+  --bnb-on-accent-dark: var(--bnb-on-accent);
 
   /* Trace: what you are looking at. Selection, a seat's path to its switch port. */
-  --color-trace: #22d3ee;
-  --color-trace-soft: color-mix(in srgb, var(--color-trace) 14%, transparent);
+  --bnb-info: #22d3ee;
+  --bnb-info-soft: color-mix(in srgb, var(--bnb-info) 14%, transparent);
 
   /* Link status. Fixed on purpose: a theme never changes what "down" looks like. */
-  --color-up: #2ee59d;
-  --color-down: #f87171;
-  --color-warn: #fbbf24;       /* errors, half duplex, flapping */
-  --color-unknown: #71717a;    /* not polled yet, no data */
-  --color-disabled: #3f3f46;   /* admin down */
+  --bnb-ok: #2ee59d;
+  --bnb-err: #f87171;
+  --bnb-warn: #fbbf24;       /* errors, half duplex, flapping */
+  --bnb-off: #71717a;    /* not polled yet, no data */
+  --bnb-on-status: var(--bnb-bg); /* text on status fills */
 
-  /* Seats */
-  --color-seat: var(--color-raised);
-  --color-seat-checked-in: color-mix(in srgb, var(--color-up) 18%, var(--color-surface));
-  --color-seat-line: var(--color-line);
 
   /* Traffic heat, idle to saturated. Cyan family, so it never reads as up or down. */
-  --heat-0: var(--color-raised);
+  --heat-0: var(--bnb-raised);
   --heat-1: #164e63;
   --heat-2: #0e7490;
   --heat-3: #22d3ee;
@@ -79,9 +85,9 @@
   --heat-5: #f87171;
 
   /* Floor plan canvas: the seat-grid texture, very low contrast */
-  --plan-bg: var(--color-ink);
+  --plan-bg: var(--bnb-bg);
   --plan-cell: #14141b;
-  --plan-block: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  --plan-block: color-mix(in srgb, var(--bnb-surface) 70%, transparent);
 
   /* Shape (Seatbit values) */
   --radius-bit: 0.375rem;
@@ -91,6 +97,8 @@
   /* Type */
   --font-sans: var(--theme-font-sans);
   --font-mono: var(--theme-font-mono);
+  --bnb-font-sans: var(--theme-font-sans);
+  --bnb-font-mono: var(--theme-font-mono);
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-md: 14px;
@@ -100,7 +108,7 @@
   --tracking-tight: -0.025em;
 
   --shadow: 0 8px 28px rgb(0 0 0 / 0.55);
-  --focus-ring: 0 0 0 2px var(--color-ink), 0 0 0 4px var(--color-bit);
+  --focus-ring: 0 0 0 2px var(--bnb-bg), 0 0 0 4px var(--bnb-accent);
 
   /* Controls on the React pages (frontend/src/ui.css): one look for inputs, dropdowns, menus
    * and tabs everywhere. */
@@ -111,17 +119,17 @@
   --ui-control-h-sm: 1.875rem;
   --ui-pad-x: 0.75rem;
   --ui-gap: 0.5rem;
-  --ui-focus: 0 0 0 2px var(--color-ink), 0 0 0 4px color-mix(in srgb, var(--color-bit) 70%, transparent);
+  --ui-focus: 0 0 0 2px var(--bnb-bg), 0 0 0 4px color-mix(in srgb, var(--bnb-accent) 70%, transparent);
   --ui-pop-radius: 0.625rem;
   --ui-pop-pad: 0.25rem;
   /* Menus float over panels, so they keep a clear step up. */
-  --ui-pop-bg: color-mix(in srgb, var(--color-fg) 4%, var(--color-surface));
-  --ui-pop-border: 1px solid var(--color-line);
+  --ui-pop-bg: color-mix(in srgb, var(--bnb-fg) 4%, var(--bnb-surface));
+  --ui-pop-border: 1px solid var(--bnb-line);
   --ui-pop-shadow: 0 12px 32px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
   --ui-option-h: 2rem;
   --ui-option-radius: calc(var(--ui-radius) - 2px);
-  --ui-option-hover: var(--color-raised);
-  --ui-option-selected: color-mix(in srgb, var(--color-bit) 14%, transparent);
+  --ui-option-hover: var(--bnb-raised);
+  --ui-option-selected: color-mix(in srgb, var(--bnb-accent) 14%, transparent);
   --ui-tab-indicator: 2px;
 }
 
@@ -138,17 +146,16 @@
   --theme-fg: #111118;
   --theme-logo: url("/static/brand/floorbit-logo-light.svg");
   --theme-logo-mark: url("/static/brand/floorbit-mark-light.svg");
-  --color-raised: #eeeef2;
-  --color-line: #dcdce3;
-  --color-muted: #52525b;
-  --color-faint: #6b6b75;
-  --color-bit-hover: #065f46;
-  --color-trace: #0e7490;
-  --color-up: #047857;
-  --color-down: #c81e1e;
-  --color-warn: #b45309;
-  --color-unknown: #6b6b75;
-  --color-disabled: #d4d4d8;
+  --bnb-raised: #eeeef2;
+  --bnb-line: #dcdce3;
+  --bnb-muted: #52525b;
+  --bnb-faint: #6b6b75;
+  --bnb-accent-hover: #065f46;
+  --bnb-info: #0e7490;
+  --bnb-ok: #047857;
+  --bnb-err: #c81e1e;
+  --bnb-warn: #b45309;
+  --bnb-off: #6b6b75;
   --heat-1: #cffafe;
   --heat-2: #67e8f9;
   --heat-3: #0891b2;
@@ -169,17 +176,16 @@
     --theme-fg: #111118;
     --theme-logo: url("/static/brand/floorbit-logo-light.svg");
     --theme-logo-mark: url("/static/brand/floorbit-mark-light.svg");
-    --color-raised: #eeeef2;
-    --color-line: #dcdce3;
-    --color-muted: #52525b;
-    --color-faint: #6b6b75;
-    --color-bit-hover: #065f46;
-    --color-trace: #0e7490;
-    --color-up: #047857;
-    --color-down: #c81e1e;
-    --color-warn: #b45309;
-    --color-unknown: #6b6b75;
-    --color-disabled: #d4d4d8;
+    --bnb-raised: #eeeef2;
+    --bnb-line: #dcdce3;
+    --bnb-muted: #52525b;
+    --bnb-faint: #6b6b75;
+    --bnb-accent-hover: #065f46;
+    --bnb-info: #0e7490;
+    --bnb-ok: #047857;
+    --bnb-err: #c81e1e;
+    --bnb-warn: #b45309;
+    --bnb-off: #6b6b75;
     --heat-1: #cffafe;
     --heat-2: #67e8f9;
     --heat-3: #0891b2;
