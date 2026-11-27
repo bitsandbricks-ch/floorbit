@@ -49,7 +49,8 @@ what is muted.
 
 The list folds what belongs together (issue #1415):
 
-- The same problem on three seats or more is **one row**, e.g. **9 seats online without a check-in**;
+- The same problem on three seats or more is **one row**, e.g. **9 seats online without a check-in**
+  or **18 seats outside their switch's IP range**;
   **Show the 9 seats** lists them, each opening its own page. Picking that kind or **Seats** above
   the list shows them one row each again, and a muted or raised one keeps its own row.
 - A link that is down because the box at one of its ends is down hangs **under that box**
