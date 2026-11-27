@@ -11,7 +11,7 @@ export interface Row extends Problem {
 /** This many seats with the same problem become one row. */
 export const GROUP_FROM = 3
 /** Seat problems that read the same on every seat. A log line or an incident says something of its own. */
-export const GROUPED_KINDS: readonly string[] = ['checkin', 'flapping', 'errors', 'duplex']
+export const GROUPED_KINDS: readonly string[] = ['checkin', 'flapping', 'errors', 'duplex', 'range']
 
 const lower = (s?: string | null) => (s ?? '').toLowerCase()
 

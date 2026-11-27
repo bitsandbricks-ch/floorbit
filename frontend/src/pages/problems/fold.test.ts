@@ -29,6 +29,15 @@ describe('fold (issue #1415)', () => {
     expect(fold(logs)).toHaveLength(3)
   })
 
+  it('makes one row of seats outside their switch range (issue #1593), not of a whole switch', () => {
+    const range = (n: number): Problem => ({ ...seat(n, n), id: `range:seat:A-${n}`, kind: 'range',
+      title: `Seat A-${n} is in the range 192.0.2.128/27` })
+    const wholeSwitch: Problem = { ...range(9), id: 'range:switch:sw-a-02', seat: null, title: '3 seats on sw-a-02 are outside its range' }
+    const rows = fold([range(1), range(2), range(3), wholeSwitch])
+    expect(rows.map((r) => r.id)).toEqual(['group:range:warn', 'range:switch:sw-a-02'])
+    expect(rows[0]!.members).toHaveLength(3)
+  })
+
   it('hangs a down link under the down box at either end', () => {
     const rows = fold([fw, link])
     expect(rows.map((r) => r.id)).toEqual(['switch:fw3'])
