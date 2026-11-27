@@ -3,11 +3,11 @@ import { type ReactNode, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Attribution } from '@/components/Attribution'
 import { LANGUAGES, type Lang, setLang } from '@/i18n'
-import { readBoot } from '@/nav/boot'
+import { readBrand } from '@/nav/bootData'
 
 /** The event's logo or name, else Floorbit's: the same choice as the sidebar's brand. */
 export function EventBrand() {
-  const { brand } = readBoot()
+  const brand = readBrand()
   if (brand.logo) return <img className="fb-public-logo" src={brand.logo} alt={brand.name || 'Event logo'} />
   return (
     <span className="fb-brand fb-public-brand">

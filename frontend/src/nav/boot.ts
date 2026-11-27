@@ -1,6 +1,7 @@
 import { NO_NAV_PREFS, type NavPrefs } from '@bitsandbricks/ui'
 import { useSyncExternalStore } from 'react'
 import { FOLDED, type CustomSection, type NavPage } from './sections'
+import { type Brand, readNavData } from './bootData'
 
 /** What the server puts into every crew page for the sidebar (templates/_nav.html), so it draws
  *  at once, without waiting for an API call. */
@@ -8,7 +9,7 @@ export interface NavBoot {
   pages: NavPage[]
   /** The sections admins made, with only the links this account may open (floorbit/nav_sections.py). */
   custom?: CustomSection[]
-  brand: { logo: string | null; name: string | null }
+  brand: Brand
   /** ``platform``: an admin of the platform visiting this tenant, with no account of their own here. */
   user: { name: string; username: string; platform?: boolean } | null
   /** Sign-in is on: offer "Sign out". */
@@ -94,13 +95,7 @@ export function resetNavPrefs() {
 }
 
 export function readBoot(): NavBoot {
-  const el = typeof document === 'undefined' ? null : document.getElementById('fb-nav-data')
-  if (!el?.textContent) return EMPTY
-  try {
-    return { ...EMPTY, ...(JSON.parse(el.textContent) as Partial<NavBoot>) }
-  } catch {
-    return EMPTY
-  }
+  return { ...EMPTY, ...(readNavData() as Partial<NavBoot>) }
 }
 
 // Folded to icons or open: a cookie, so the server reserves the right width before any script runs.

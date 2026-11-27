@@ -11,7 +11,7 @@ import { toggleScheme, useScheme } from '@/colorScheme'
 import { Attribution } from '@/components/Attribution'
 import { EventBrand } from '@/components/PublicPage'
 import { LANGUAGES, type Lang, setLang } from '@/i18n'
-import { readBoot } from '@/nav/boot'
+import { readBrand } from '@/nav/bootData'
 
 const dbDown = (err: unknown) => err instanceof ApiError && err.data.code === 'database_unavailable'
 
@@ -58,7 +58,7 @@ function HallArt() {
 export default function Login() {
   const { t, i18n } = useTranslation()
   const [params] = useSearchParams()
-  const { brand } = readBoot()
+  const brand = readBrand()
   const scheme = useScheme()
   const toggle = toggleScheme()
   const options = useQuery({
